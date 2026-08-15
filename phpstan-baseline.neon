@@ -1,10 +1,250 @@
+# DEUDA CONGELADA — no es una lista de perdonados
+#
+# Es la foto del 15/08/2026, el día que el proyecto pasó del nivel 2 al 5, para que a partir de
+# aquí salte SÓLO lo nuevo. Si tocas un archivo que tiene entradas aquí dentro, arréglalas y
+# quítalas: para eso está medida.
+#
+# ── De qué está hecha ───────────────────────────────────────────────────────
+# Casi todo es REDUNDANCIA, no fallos: un `??` sobre algo que nunca es null, un `?->` sobre algo
+# que siempre existe, una comparación que siempre da lo mismo. Son restos de defensas que dejaron
+# de hacer falta, y quitarlas a ciegas es peligroso —con entidades de Doctrine, «esto nunca es
+# null» a veces no es cierto en tiempo de ejecución—, así que se quitan cuando se toca el archivo
+# y se puede razonar el caso.
+#
+# Las que SÍ merecen atención cuando se pase por ahí:
+#   · `method.notFound` (19) — métodos que no existen. Casi todos en llamadas hacia `src/Oweb/`.
+#   · `parameter.requiredAfterOptional` (23) — firmas con un parámetro obligatorio detrás de uno
+#     opcional. Legal en PHP pero avisa de una firma pensada al revés.
+#   · `return.type` (13) — sobre todo `getId(): UuidV7` donde `IdTrait` guarda `?Uuid`. Funciona
+#     porque Doctrine hidrata v7, pero el tipo declarado miente. Arreglarlo es tocar el trait y
+#     todos sus usuarios: va aparte.
+#
+# ⚠️ Lo que NO está aquí es el nivel 6 (`array` sin tipar, ~760 sitios): eso no se congeló, se
+# dejó fuera subiendo sólo hasta el 5. Ver la nota de `phpstan.dist.neon`.
+
 parameters:
 	ignoreErrors:
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: src/Agent/Alexa/AlexaFirma.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 2
+			path: src/Agent/Entity/AgentConocimiento.php
+
+		-
+			message: '#^Property App\\Agent\\Entity\\AgentConocimiento\:\:\$dominios \(list\<string\>\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Agent/Entity/AgentConocimiento.php
+
+		-
+			message: '#^Property App\\Agent\\Entity\\AgentConocimiento\:\:\$perfiles \(list\<string\>\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Agent/Entity/AgentConocimiento.php
+
+		-
+			message: '#^Method App\\Agent\\Entity\\AutoResponderRule\:\:getId\(\) should return Symfony\\Component\\Uid\\UuidV7\|null but returns Symfony\\Component\\Uid\\Uuid\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Agent/Entity/AutoResponderRule.php
+
+		-
+			message: '#^Offset ''rol'' on array\{rol\: string, texto\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
+
+		-
+			message: '#^Offset ''texto'' on array\{rol\: string, texto\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>cacheCreationInputTokens" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>cacheReadInputTokens" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>inputTokens" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>outputTokens" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Agent/Provider/Anthropic/AnthropicEngine.php
+
+		-
+			message: '#^Offset ''rol'' on array\{rol\: string, texto\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Agent/Provider/Google/GoogleAIEngine.php
+
+		-
+			message: '#^Offset ''texto'' on array\{rol\: string, texto\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Agent/Provider/Google/GoogleAIEngine.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between Symfony\\Component\\Uid\\UuidV7 and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Agent/Service/AiConversationProcessor.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: src/Agent/Service/AiConversationProcessor.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Agent/Skill/Pms/AjustarTarifasSkill.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<App\\Pms\\Entity\\PmsReserva\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: src/Agent/Skill/Pms/BuscarReservaSkill.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Agent/Skill/Pms/EnviarMensajeHuespedSkill.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: src/Agent/Skill/Pms/EnviarMensajeHuespedSkill.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: src/Agent/Skill/Pms/EnviarPlantillaSkill.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Agent/Skill/Pms/EnviarPlantillaSkill.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Agent/Skill/Pms/EnviarPlantillaSkill.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: src/Agent/Skill/Pms/EnviarmePlantillaSkill.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Agent/Skill/Pms/EnviarmePlantillaSkill.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Agent/Skill/Pms/EnviarmePlantillaSkill.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between ''Al equipo YA se le…''\|array\{hay_respuesta_escrita\: true, contenido\: string, aviso\: ''Esto ya estaba…''\}\|true and false will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Agent/Skill/Pms/EscalarAlEquipoSkill.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Agent/Skill/Pms/EscalarAlEquipoSkill.php
+
 		-
 			message: '#^Call to an undefined method App\\Agent\\Access\\ActorInterface\:\:tieneRol\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: src/Agent/Skill/Pms/ListarSalidasSkill.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Agent/Skill/Pms/LocalizarConversacionSkill.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 2
+			path: src/Agent/Skill/Pms/ModificarReservaSkill.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between App\\Pms\\Enum\\PmsMedioPago and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Agent/Skill/Pms/RegistrarPagoSkill.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<non\-empty\-string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: src/Agent/Triage/Triaje.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 2
+			path: src/Api/Controller/Oweb/FitAlimentoController.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: src/Api/Controller/Oweb/ServicioItinerarioController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between App\\Pms\\Entity\\PmsInformacionFinanciera and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Api/Provider/Pms/PmsInformacionFinancieraPorReservaProvider.php
+
+		-
+			message: '#^Method App\\Api\\Provider\\Pms\\PmsReservaByLocalizadorProvider\:\:provide\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: src/Api/Provider/Pms/PmsReservaByLocalizadorProvider.php
+
+		-
+			message: '#^Method App\\Api\\Provider\\Pms\\PmsReservaPaxProvider\:\:cifras\(\) should return array\<string, bool\|string\> but returns array\<string, array\<int\<0, max\>\|string, array\<string, list\<array\<string, string\>\>\|string\|null\>\|string\>\|string\|null\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Api/Provider/Pms/PmsReservaPaxProvider.php
 
 		-
 			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
@@ -13,8 +253,56 @@ parameters:
 			path: src/Calendar/Provider/DoctrineCalendarProvider.php
 
 		-
+			message: '#^Instanceof between Doctrine\\Persistence\\ObjectRepository\<object\> and Doctrine\\Persistence\\ObjectRepository will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Calendar/Provider/DoctrineCalendarProvider.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Pms\\Entity\\PmsEventoCalendario\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: src/Calendar/Provider/PmsEventosRawCalendarProvider.php
+
+		-
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsInformacionFinanciera and App\\Pms\\Entity\\PmsInformacionFinanciera will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Pms\\Entity\\PmsEventoCalendario\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
+
+		-
 			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
 			identifier: method.notFound
+			count: 1
+			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
+
+		-
+			message: '#^Call to function method_exists\(\) with App\\Pms\\Service\\Tarifa\\Dto\\TarifaLogicalRangeDto and ''getSourceId'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
+
+		-
+			message: '#^Instanceof between Doctrine\\Persistence\\ObjectRepository\<object\> and Doctrine\\Persistence\\ObjectRepository will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
+
+		-
+			message: '#^Offset 1 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
 			count: 1
 			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
 
@@ -25,8 +313,50 @@ parameters:
 			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
 
 		-
+			message: '#^Call to function method_exists\(\) with App\\Pms\\Service\\Tarifa\\Dto\\TarifaLogicalRangeDto and ''getSourceId'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
+
+		-
+			message: '#^Instanceof between Doctrine\\Persistence\\ObjectRepository\<object\> and Doctrine\\Persistence\\ObjectRepository will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
+
+		-
+			message: '#^Offset 1 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
+
+		-
 			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectRepository\<object\>\:\:createQueryBuilder\(\)\.$#'
 			identifier: method.notFound
+			count: 1
+			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
+
+		-
+			message: '#^Instanceof between Doctrine\\Persistence\\ObjectRepository\<object\> and Doctrine\\Persistence\\ObjectRepository will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
+
+		-
+			message: '#^Offset 1 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
 			count: 1
 			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
 
@@ -35,6 +365,36 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
+
+		-
+			message: '#^Instanceof between Doctrine\\Persistence\\ObjectRepository\<object\> and Doctrine\\Persistence\\ObjectRepository will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
+
+		-
+			message: '#^Offset 1 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
+
+		-
+			message: '#^Call to function is_numeric\(\) with int will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Calendar/Twig/FullCalendarStimulusExtension.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Calendar/Twig/FullCalendarStimulusExtension.php
 
 		-
 			message: '#^Access to an undefined property App\\Command\\EnviarResumenCommand\:\:\$mailer\.$#'
@@ -49,6 +409,18 @@ parameters:
 			path: src/Command/EnviarResumenCommand.php
 
 		-
+			message: '#^Dead catch \- Exception is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: src/Command/ObtenerReservasCommand.php
+
+		-
+			message: '#^Property App\\Command\\ObtenerReservasCommand\:\:\$params is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Command/ObtenerReservasCommand.php
+
+		-
 			message: '#^Variable \$summaryRaw on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.variable
 			count: 1
@@ -60,8 +432,83 @@ parameters:
 			count: 2
 			path: src/Cotizacion/Entity/CotizacionCottarifa.php
 
+		-
+			message: '#^Comparison operation "\<\=" between int\<13, 17\> and 17 is always true\.$#'
+			identifier: smallerOrEqual.alwaysTrue
+			count: 1
+			path: src/Cotizacion/Entity/CotizacionFilepasajero.php
 
+		-
+			message: '#^Comparison operation "\<\=" between int\<3, 12\> and 12 is always true\.$#'
+			identifier: smallerOrEqual.alwaysTrue
+			count: 1
+			path: src/Cotizacion/Entity/CotizacionFilepasajero.php
 
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Cotizacion/Entity/CotizacionFilepasajero.php
+
+		-
+			message: '#^Instanceof between App\\Cotizacion\\Entity\\Cotizacion and App\\Cotizacion\\Entity\\Cotizacion will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Cotizacion/Serializer/CotizacionDenormalizer.php
+
+		-
+			message: '#^Property App\\Entity\\MessengerMessage\:\:\$availableAt \(DateTimeImmutable\|null\) is never assigned DateTimeImmutable so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Entity/MessengerMessage.php
+
+		-
+			message: '#^Property App\\Entity\\MessengerMessage\:\:\$body \(string\|null\) is never assigned string so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Entity/MessengerMessage.php
+
+		-
+			message: '#^Property App\\Entity\\MessengerMessage\:\:\$createdAt \(DateTimeImmutable\|null\) is never assigned DateTimeImmutable so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Entity/MessengerMessage.php
+
+		-
+			message: '#^Property App\\Entity\\MessengerMessage\:\:\$deliveredAt \(DateTimeImmutable\|null\) is never assigned DateTimeImmutable so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Entity/MessengerMessage.php
+
+		-
+			message: '#^Property App\\Entity\\MessengerMessage\:\:\$headers \(string\|null\) is never assigned string so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Entity/MessengerMessage.php
+
+		-
+			message: '#^Property App\\Entity\\MessengerMessage\:\:\$id \(string\|null\) is never assigned string so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Entity/MessengerMessage.php
+
+		-
+			message: '#^Property App\\Entity\\MessengerMessage\:\:\$queueName \(string\|null\) is never assigned string so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Entity/MessengerMessage.php
+
+		-
+			message: '#^Property App\\Entity\\PushSubscription\:\:\$id \(int\|null\) is never assigned int so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Entity/PushSubscription.php
+
+		-
+			message: '#^Parameter \#1 \$user of method App\\Oweb\\Entity\\CuentaMovimiento\:\:setUser\(\) expects App\\Entity\\User, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Entity/User.php
 
 		-
 			message: '#^Call to an undefined method App\\Exchange\\Entity\\MetaConfig\:\:getToken\(\)\.$#'
@@ -82,10 +529,190 @@ parameters:
 			path: src/Exchange/Service/Cron/Job/Beds24BookingsPushJob.php
 
 		-
+			message: '#^Using nullsafe property access "\?\-\>message" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Exchange/Service/Engine/ExchangeOrchestrator.php
+
+		-
+			message: '#^Offset ''content'' on array\{language\: string, content\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Finanzas/Entity/FinMedioCobro.php
+
+		-
+			message: '#^Offset ''language'' on array\{language\: string, content\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Finanzas/Entity/FinMedioCobro.php
+
+		-
+			message: '#^Property App\\Finanzas\\Entity\\FinMedioCobro\:\:\$nota \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Finanzas/Entity/FinMedioCobro.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between null and string will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Message/Controller/Crud/Beds24SendQueueCrudController.php
+
+		-
+			message: '#^Property App\\Message\\Controller\\Crud\\MessageAttachmentCrudController\:\:\$params is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Message/Controller/Crud/MessageAttachmentCrudController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between Symfony\\Component\\Uid\\UuidV7 and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Message/Controller/Crud/MessageConversationCrudController.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Message\\Controller\\Crud\\MessageCrudController\) and ''isEmbedded'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Message/Controller/Crud/MessageCrudController.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Message/Controller/Crud/MetaWebhookAuditCrudController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between null and string will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Message/Controller/Crud/WhatsappMetaSendQueueCrudController.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: src/Message/Dto/Mercure/MercureConversationDto.php
+
+		-
+			message: '#^Method App\\Message\\Entity\\Beds24ReceiveQueue\:\:getId\(\) should return Symfony\\Component\\Uid\\UuidV7 but returns Symfony\\Component\\Uid\\Uuid\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Message/Entity/Beds24ReceiveQueue.php
+
+		-
+			message: '#^Property App\\Message\\Entity\\Beds24ReceiveQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Message/Entity/Beds24ReceiveQueue.php
+
+		-
+			message: '#^Property App\\Message\\Entity\\Beds24ReceiveQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Message/Entity/Beds24ReceiveQueue.php
+
+		-
+			message: '#^Property App\\Message\\Entity\\Beds24ReceiveQueue\:\:\$lockedAt is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Message/Entity/Beds24ReceiveQueue.php
+
+		-
+			message: '#^Property App\\Message\\Entity\\Beds24ReceiveQueue\:\:\$lockedBy is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Message/Entity/Beds24ReceiveQueue.php
+
+		-
+			message: '#^Method App\\Message\\Entity\\Beds24SendQueue\:\:getId\(\) should return Symfony\\Component\\Uid\\UuidV7 but returns Symfony\\Component\\Uid\\Uuid\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Message/Entity/Beds24SendQueue.php
+
+		-
 			message: '#^Call to an undefined method DateTimeInterface\:\:modify\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: src/Message/Entity/Message.php
+
+		-
+			message: '#^Method App\\Message\\Entity\\Message\:\:getId\(\) should return Symfony\\Component\\Uid\\UuidV7 but returns Symfony\\Component\\Uid\\Uuid\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Message/Entity/Message.php
+
+		-
+			message: '#^Method App\\Message\\Entity\\Message\:\:setInboundIntent\(\) should return \$this\(App\\Message\\Entity\\Message\) but returns App\\Message\\Entity\\Message\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Message/Entity/Message.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between Doctrine\\Common\\Collections\\Collection and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: src/Message/Entity/Message.php
+
+		-
+			message: '#^Method App\\Message\\Entity\\MessageAttachment\:\:getId\(\) should return Symfony\\Component\\Uid\\UuidV7 but returns Symfony\\Component\\Uid\\Uuid\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Message/Entity/MessageAttachment.php
+
+		-
+			message: '#^Method App\\Message\\Entity\\MessageRule\:\:getId\(\) should return Symfony\\Component\\Uid\\UuidV7 but returns Symfony\\Component\\Uid\\Uuid\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Message/Entity/MessageRule.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Message/Entity/MessageTemplate.php
+
+		-
+			message: '#^Method App\\Message\\Entity\\MessageTemplate\:\:getId\(\) should return Symfony\\Component\\Uid\\UuidV7 but returns Symfony\\Component\\Uid\\Uuid\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Message/Entity/MessageTemplate.php
+
+		-
+			message: '#^Method App\\Message\\Entity\\MetaWebhookAudit\:\:getId\(\) should return Symfony\\Component\\Uid\\UuidV7\|null but returns Symfony\\Component\\Uid\\Uuid\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Message/Entity/MetaWebhookAudit.php
+
+		-
+			message: '#^Method App\\Message\\Entity\\WhatsappMetaSendQueue\:\:getId\(\) should return Symfony\\Component\\Uid\\UuidV7 but returns Symfony\\Component\\Uid\\Uuid\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Message/Entity/WhatsappMetaSendQueue.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between Symfony\\Component\\Uid\\UuidV7 and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Message/EventListener/AvisoEnvioFallidoListener.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between 2 and 2 will always evaluate to false\.$#'
+			identifier: notIdentical.alwaysFalse
+			count: 1
+			path: src/Message/EventListener/MessageAutoResponderListener.php
+
+		-
+			message: '#^Instanceof between App\\Message\\Contract\\MessageQueueItemInterface and App\\Message\\Contract\\MessageQueueItemInterface will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Message/EventListener/Queue/MessageEnqueuerEntityListener.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: src/Message/Factory/MessageConversationFactory.php
 
 		-
 			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ExchangeQueueItemInterface\:\:getTargetBookId\(\)\.$#'
@@ -94,10 +721,34 @@ parameters:
 			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveMappingStrategy.php
 
 		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceivePersister.php
+
+		-
+			message: '#^Property App\\Message\\Service\\Exchange\\Tasks\\Beds24Send\\Beds24SendHandler\:\:\$em is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendHandler.php
+
+		-
 			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\EndpointInterface\:\:getId\(\)\.$#'
 			identifier: method.notFound
 			count: 2
 			path: src/Message/Service/Exchange/Tasks/Beds24Send/Beds24SendQueueProvider.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: src/Message/Service/Exchange/Tasks/WhatsappMetaReceive/WhatsappMetaReceivePersister.php
+
+		-
+			message: '#^Property App\\Message\\Service\\Exchange\\Tasks\\WhatsappMetaSend\\WhatsappMetaSendHandler\:\:\$em is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendHandler.php
 
 		-
 			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ChannelConfigInterface\:\:getCredential\(\)\.$#'
@@ -108,6 +759,12 @@ parameters:
 		-
 			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ChannelConfigInterface\:\:getNombre\(\)\.$#'
 			identifier: method.notFound
+			count: 1
+			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
+
+		-
+			message: '#^Offset ''format'' on array\{format\: string, content\: string\|null\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
 			count: 1
 			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
 
@@ -124,442 +781,160 @@ parameters:
 			path: src/Message/Service/Mercure/MercureBroadcaster.php
 
 		-
-			message: '#^Access to an undefined property App\\Oweb\\Admin\\CotizacionCotservicioAdmin\:\:\$vars\.$#'
-			identifier: property.notFound
+			message: '#^Offset 1 on array\{list\<string\>, list\<non\-empty\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
 			count: 1
-			path: src/Oweb/Admin/CotizacionCotservicioAdmin.php
+			path: src/Message/Service/Meta/Template/WhatsappMetaTemplatePushService.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$datagridMapper$#'
-			identifier: parameter.notFound
+			message: '#^Strict comparison using \!\=\= between Symfony\\Component\\Uid\\UuidV7 and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
 			count: 1
-			path: src/Oweb/Admin/MaestroCategoriatourAdmin.php
+			path: src/Message/Service/Queue/Beds24SendEnqueuer.php
 
 		-
-			message: '#^Call to an undefined method Sonata\\AdminBundle\\Model\\ModelManagerInterface\<object\>\:\:getEntityManager\(\)\.$#'
-			identifier: method.notFound
+			message: '#^Strict comparison using \=\=\= between Symfony\\Component\\Uid\\UuidV7 and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
 			count: 1
-			path: src/Oweb/Admin/ReservaReservaAdmin.php
+			path: src/Message/Service/Queue/Beds24SendEnqueuer.php
 
 		-
-			message: '#^Call to an undefined method Sonata\\AdminBundle\\Model\\ModelManagerInterface\<object\>\:\:getEntityManager\(\)\.$#'
-			identifier: method.notFound
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 3
+			path: src/Message/Service/Queue/MessageDispatcher.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Symfony\\Component\\Uid\\UuidV7\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: src/Message/Service/Queue/MessageDispatcher.php
+
+		-
+			message: '#^Instanceof between App\\Message\\Contract\\MessageQueueItemInterface and App\\Message\\Contract\\MessageQueueItemInterface will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
-			path: src/Oweb/Admin/ReservaUnitCaracteristicaLinkAdmin.php
+			path: src/Message/Service/Queue/MessageRuleEngine.php
 
 		-
-			message: '#^Access to an undefined property App\\Oweb\\Admin\\ReservaUnitmedioAdmin\:\:\$datagridValues\.$#'
-			identifier: property.notFound
+			message: '#^Strict comparison using \!\=\= between Symfony\\Component\\Uid\\UuidV7 and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
 			count: 1
-			path: src/Oweb/Admin/ReservaUnitmedioAdmin.php
+			path: src/Message/Service/Queue/WhatsappMetaSendEnqueuer.php
 
 		-
-			message: '#^Call to an undefined method Sonata\\AdminBundle\\Datagrid\\ProxyQueryInterface\<object\>\:\:andWhere\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Oweb/Admin/TransporteServicioAdmin.php
-
-		-
-			message: '#^Call to an undefined method Sonata\\AdminBundle\\Datagrid\\ProxyQueryInterface\<object\>\:\:expr\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Oweb/Admin/TransporteServicioAdmin.php
-
-		-
-			message: '#^Call to an undefined method Sonata\\AdminBundle\\Datagrid\\ProxyQueryInterface\<object\>\:\:getRootAliases\(\)\.$#'
-			identifier: method.notFound
+			message: '#^Strict comparison using \=\=\= between Symfony\\Component\\Uid\\UuidV7 and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
 			count: 1
-			path: src/Oweb/Admin/TransporteServicioAdmin.php
+			path: src/Message/Service/Queue/WhatsappMetaSendEnqueuer.php
 
 		-
-			message: '#^Call to an undefined method Sonata\\AdminBundle\\Datagrid\\ProxyQueryInterface\<object\>\:\:setParameter\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Oweb/Admin/TransporteServicioAdmin.php
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 3
+			path: src/Message/Service/Translation/MessageTranslator.php
 
 		-
-			message: '#^Cannot call method getUser\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 4
-			path: src/Oweb/Admin/TransporteServicioAdmin.php
-
-		-
-			message: '#^Method Symfony\\Component\\Security\\Csrf\\TokenStorage\\TokenStorageInterface\:\:getToken\(\) invoked with 0 parameters, 1 required\.$#'
-			identifier: arguments.count
-			count: 4
-			path: src/Oweb/Admin/TransporteServicioAdmin.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#2 \$response \(Symfony\\Component\\HttpFoundation\\Response\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
 			count: 1
-			path: src/Oweb/Block/TareasBlockService.php
+			path: src/Message/Service/Translation/MessageTranslator.php
 
 		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$request \(Symfony\\Component\\HttpFoundation\\Request\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
+			message: '#^Instanceof between App\\Operacion\\ApiPlatform\\Dto\\AplicarPlanInput and App\\Operacion\\ApiPlatform\\Dto\\AplicarPlanInput will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
-			path: src/Oweb/Controller/ComprobanteComprobanteController.php
+			path: src/Operacion/ApiPlatform/State/AplicarPlanOperacionProcessor.php
 
 		-
-			message: '#^Variable \$cotizacion in empty\(\) always exists and is not falsy\.$#'
-			identifier: empty.variable
+			message: '#^Instanceof between App\\Cotizacion\\Entity\\Cotizacion and App\\Cotizacion\\Entity\\Cotizacion will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
 			count: 1
-			path: src/Oweb/Controller/CotizacionCotservicioController.php
+			path: src/Operacion/ApiPlatform/State/PlanificarOperacionProcessor.php
 
 		-
-			message: '#^Variable \$cotizacion might not be defined\.$#'
-			identifier: variable.undefined
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 3
+			path: src/Operacion/Entity/OperacionServicio.php
+
+		-
+			message: '#^Offset ''cotizacionTarifaId''\|''prestadorMaestroId''\|''proveedorMaestroId'' on array\{fechaServicio\: ''Fecha'', horaRecojoReal\: ''Hora de recojo'', descripcionServicio\: ''Servicio'', contextoServicio\: ''Día del itinerario'', prestadorNombre\: ''Prestador'', prestadorTelefono\: ''Teléfono del…'', prestadorDireccion\: ''Dirección del…'', proveedorNombreManual\: ''Proveedor \(compra\)'', \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
 			count: 1
-			path: src/Oweb/Controller/CotizacionCotservicioController.php
+			path: src/Operacion/Service/BibliaReconciliacionService.php
 
 		-
-			message: '#^Variable \$resultados might not be defined\.$#'
-			identifier: variable.undefined
-			count: 4
-			path: src/Oweb/Controller/CotizacionFileController.php
-
-		-
-			message: '#^Cannot call method getId\(\) on null\.$#'
-			identifier: method.nonObject
+			message: '#^Offset ''cotizacionTarifaId''\|''prestadorMaestroId''\|''proveedorMaestroId'' on array\{proveedorMaestroId\: ''proveedorNombreManu…'', prestadorMaestroId\: ''prestadorNombre'', cotizacionTarifaId\: ''costoCotizado''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
 			count: 1
-			path: src/Oweb/Controller/ReservaReservaController.php
+			path: src/Operacion/Service/BibliaReconciliacionService.php
 
 		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$request \(Symfony\\Component\\HttpFoundation\\Request\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 4
-			path: src/Oweb/Controller/ReservaReservaController.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$request \(Symfony\\Component\\HttpFoundation\\Request\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 4
-			path: src/Oweb/Controller/ReservaUnitController.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$request \(Symfony\\Component\\HttpFoundation\\Request\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 2
-			path: src/Oweb/Controller/ReservaUnitnexoController.php
-
-		-
-			message: '#^Property App\\Oweb\\Entity\\CotizacionCotizacion\:\:\$portadafotos in isset\(\) is not nullable nor uninitialized\.$#'
-			identifier: isset.initializedProperty
-			count: 2
-			path: src/Oweb/Entity/CotizacionCotizacion.php
-
-		-
-			message: '#^Call to function unset\(\) contains undefined variable \$aspectRatio\.$#'
-			identifier: unset.variable
+			message: '#^Strict comparison using \!\=\= between ''costoCotizado''\|''prestadorNombre''\|''proveedorNombreManu…'' and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
 			count: 1
-			path: src/Oweb/Entity/CotizacionFiledocumento.php
+			path: src/Operacion/Service/BibliaReconciliacionService.php
 
 		-
-			message: '#^PHPDoc tag @extends has invalid value \(AbstractPersonalTranslation\)\: Unexpected token "\\n ", expected ''\<'' at offset 43 on line 2$#'
-			identifier: phpDoc.parseError
+			message: '#^Parameter \#1 \$array \(non\-empty\-list\<mixed\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
 			count: 1
-			path: src/Oweb/Entity/CotizacionMenuTranslation.php
+			path: src/Operacion/Service/BibliaSnapshotService.php
 
 		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$unidad \(App\\Oweb\\Entity\\TransporteUnidad\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
+			message: '#^Trait App\\Panel\\Entity\\Trait\\ExternalMediaTrait is used zero times and is not analysed\.$#'
+			identifier: trait.unused
 			count: 1
-			path: src/Oweb/Entity/CuentaCentro.php
-
-		-
-			message: '#^Binary operation "\*" between non\-falsy\-string and 1\|3\.2 results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 2
-			path: src/Oweb/Entity/CuentaMovimiento.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$centro \(App\\Oweb\\Entity\\CuentaCentro\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/CuentaMovimiento.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$periodotransferencia \(App\\Oweb\\Entity\\CuentaPeriodo\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/CuentaMovimiento.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$cuenta \(App\\Oweb\\Entity\\CuentaCuenta\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/CuentaPeriodo.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$medidaalimento \(App\\Oweb\\Entity\\FitMedidaalimento\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/FitAlimento.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$tipoalimento \(App\\Oweb\\Entity\\FitTipoalimento\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/FitAlimento.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$user \(App\\Entity\\User\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/FitDieta.php
-
-		-
-			message: '#^Binary operation "\*" between string and string results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 1
-			path: src/Oweb/Entity/FitDietaalimento.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$alimento \(App\\Oweb\\Entity\\FitAlimento\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/FitDietaalimento.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$dietacomida \(App\\Oweb\\Entity\\FitDietacomida\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/FitDietaalimento.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$dieta \(App\\Oweb\\Entity\\FitDieta\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/FitDietacomida.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$maestromedio$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Oweb/Entity/MaestroClasemedio.php
-
-		-
-			message: '#^Call to function unset\(\) contains undefined variable \$aspectRatio\.$#'
-			identifier: unset.variable
-			count: 1
-			path: src/Oweb/Entity/MaestroMedio.php
-
-		-
-			message: '#^Call to an undefined static method Gedmo\\Translatable\\Entity\\MappedSuperclass\\AbstractPersonalTranslation\:\:__construct\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 1
-			path: src/Oweb/Entity/MaestroTipocontactoTranslation.php
-
-		-
-			message: '#^Call to function unset\(\) contains undefined variable \$aspectRatio\.$#'
-			identifier: unset.variable
-			count: 1
-			path: src/Oweb/Entity/MainArchivo.php
-
-		-
-			message: '#^Call to an undefined method App\\Oweb\\Entity\\ReservaImporte\:\:getFecha\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Oweb/Entity/ReservaImporte.php
-
-		-
-			message: '#^Call to function unset\(\) contains undefined variable \$aspectRatio\.$#'
-			identifier: unset.variable
-			count: 1
-			path: src/Oweb/Entity/ReservaUnitmedio.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$servicio \(App\\Oweb\\Entity\\ServicioServicio\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/ServicioItinerario.php
-
-		-
-			message: '#^PHPDoc tag @param for parameter \$itinerariodia with type App\\Oweb\\Entity\\ServicioItinerariodia is incompatible with native type App\\Oweb\\Entity\\ServicioItinerario\.$#'
-			identifier: parameter.phpDocType
-			count: 1
-			path: src/Oweb/Entity/ServicioNotaitinerariodia.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$itinerario$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Oweb/Entity/ServicioNotaitinerariodia.php
-
-		-
-			message: '#^Call to function unset\(\) contains undefined variable \$aspectRatio\.$#'
-			identifier: unset.variable
-			count: 1
-			path: src/Oweb/Entity/ServicioProvidermedio.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$user \(App\\Entity\\User\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteConductor.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$conductor \(App\\Oweb\\Entity\\TransporteConductor\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteServicio.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$dependencia \(App\\Oweb\\Entity\\UserDependencia\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteServicio.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$unidad \(App\\Oweb\\Entity\\TransporteUnidad\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteServicio.php
-
-		-
-			message: '#^Variable \$fechahorafin in empty\(\) always exists and is not falsy\.$#'
-			identifier: empty.variable
-			count: 1
-			path: src/Oweb/Entity/TransporteServicio.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$servicio \(App\\Oweb\\Entity\\TransporteServicio\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteServiciocomponente.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$servicio \(App\\Oweb\\Entity\\TransporteServicio\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteServiciocontable.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$servicio \(App\\Oweb\\Entity\\TransporteServicio\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteServiciooperativo.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$tiposeroperativo \(App\\Oweb\\Entity\\TransporteTiposeroperativo\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteServiciooperativo.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$centro \(App\\Oweb\\Entity\\CuentaCentro\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteUnidad.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$tipounibit \(App\\Oweb\\Entity\\TransporteTipounibit\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteUnidadbitacora.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$unidad \(App\\Oweb\\Entity\\TransporteUnidad\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/TransporteUnidadbitacora.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$users$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Oweb/Entity/UserArea.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$cuentatipo \(App\\Oweb\\Entity\\UserCuentatipo\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/UserCuenta.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$user \(App\\Entity\\User\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/UserCuenta.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$organizacion \(App\\Oweb\\Entity\\UserOrganizacion\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: src/Oweb/Entity/UserDependencia.php
-
-		-
-			message: '#^Variable \$newFechahoraFin might not be defined\.$#'
-			identifier: variable.undefined
-			count: 2
-			path: src/Oweb/EventListener/CotizacionCotcomponenteDoctrineEventListener.php
-
-		-
-			message: '#^Variable \$newFechahoraInicio might not be defined\.$#'
-			identifier: variable.undefined
-			count: 2
-			path: src/Oweb/EventListener/CotizacionCotcomponenteDoctrineEventListener.php
-
-		-
-			message: '#^Variable \$newFechahoraIngreso might not be defined\.$#'
-			identifier: variable.undefined
-			count: 2
-			path: src/Oweb/EventListener/CotizacionCotservicioDoctrineEventListener.php
-
-		-
-			message: '#^Variable \$newFechahoraSalida might not be defined\.$#'
-			identifier: variable.undefined
-			count: 2
-			path: src/Oweb/EventListener/CotizacionCotservicioDoctrineEventListener.php
-
-		-
-			message: '#^Call to an undefined method Symfony\\Component\\HttpFoundation\\Session\\SessionInterface\:\:getFlashBag\(\)\.$#'
-			identifier: method.notFound
-			count: 12
-			path: src/Oweb/Service/CotizacionClasificador.php
-
-		-
-			message: '#^Call to an undefined method Symfony\\Component\\HttpFoundation\\Session\\SessionInterface\:\:getFlashBag\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Oweb/Service/CotizacionIncluye.php
-
-		-
-			message: '#^Call to an undefined method DateTimeInterface\:\:add\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Oweb/Service/CotizacionItinerario.php
-
-		-
-			message: '#^Call to an undefined method Symfony\\Component\\HttpFoundation\\Session\\SessionInterface\:\:getFlashBag\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Oweb/Service/CotizacionProceso.php
-
-		-
-			message: '#^Call to an undefined method Symfony\\Component\\HttpFoundation\\Session\\SessionInterface\:\:getFlashBag\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Oweb/Service/CotizacionResumen.php
-
-		-
-			message: '#^Variable \$repositorio in empty\(\) always exists and is not falsy\.$#'
-			identifier: empty.variable
-			count: 1
-			path: src/Oweb/Service/MainArchivoexcel.php
-
-		-
-			message: '#^Variable \$setTablaSpecs in empty\(\) always exists and is not falsy\.$#'
-			identifier: empty.variable
-			count: 1
-			path: src/Oweb/Service/MainArchivoexcel.php
+			path: src/Panel/Entity/Trait/ExternalMediaTrait.php
 
 		-
 			message: '#^Cannot cast App\\Pms\\Enum\\PmsMedioPago to string\.$#'
 			identifier: cast.string
 			count: 1
 			path: src/Pms/Command/PmsAuditarReservaCommand.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Pms/Command/PmsRepararHitosCommand.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between array\{\} and array\{\} will always evaluate to true\.$#'
+			identifier: identical.alwaysTrue
+			count: 1
+			path: src/Pms/Command/PmsRepararHitosCommand.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: src/Pms/Command/PmsRepararHitosCommand.php
+
+		-
+			message: '#^Call to function method_exists\(\) with App\\Pms\\Entity\\PmsGuiaItemGaleria and ''isImage'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Pms/Controller/Crud/PmsGuiaItemGaleriaCrudController.php
+
+		-
+			message: '#^Call to function method_exists\(\) with App\\Pms\\Entity\\PmsUnidad and ''isImage'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Pms/Controller/Crud/PmsUnidadCrudController.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: src/Pms/Controller/Webhook/Beds24WebhookController.php
+
+		-
+			message: '#^Offset ''id'' on non\-empty\-array\<mixed, mixed\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: src/Pms/DispatchHandler/ProcessBeds24WebhookDispatchHandler.php
 
 		-
 			message: '#^Deprecated in PHP 8\.0\: Required parameter \$apiReference follows optional parameter \$bookingGroup\.$#'
@@ -700,10 +1075,124 @@ parameters:
 			path: src/Pms/Dto/Beds24BookingDto.php
 
 		-
+			message: '#^Method App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:getId\(\) should return Symfony\\Component\\Uid\\UuidV7 but returns Symfony\\Component\\Uid\\Uuid\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$lockedAt is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$lockedBy is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Pms/Entity/PmsBookingsPullQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Pms/Entity/PmsBookingsPullQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$type is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Pms/Entity/PmsBookingsPullQueue.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: src/Pms/Entity/PmsBookingsPullQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsBookingsPushQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Pms/Entity/PmsBookingsPushQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsBookingsPushQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Pms/Entity/PmsBookingsPushQueue.php
+
+		-
+			message: '#^Offset ''content'' on array\{content\: string, language\: ''es''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Pms/Entity/PmsCargoFinanciero.php
+
+		-
+			message: '#^Offset ''content'' on array\{content\: string, language\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Pms/Entity/PmsCargoFinanciero.php
+
+		-
+			message: '#^Offset ''language'' on array\{content\: string, language\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 3
+			path: src/Pms/Entity/PmsCargoFinanciero.php
+
+		-
 			message: '#^Attribute class App\\Pms\\Entity\\Assert\\Valid does not exist\.$#'
 			identifier: attribute.notFound
 			count: 1
 			path: src/Pms/Entity/PmsChannel.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsChannel\:\:\$eventosCalendario is never written, only read\.$#'
+			identifier: property.onlyRead
+			count: 1
+			path: src/Pms/Entity/PmsChannel.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<App\\Message\\Contract\\HitoDeAsunto\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: src/Pms/Entity/PmsConversacionEnlace.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<array\{tipo\: string, fecha\: string, detalle\: string\|null, detalleAnterior\: string\|null\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: src/Pms/Entity/PmsConversacionEnlace.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsConversacionEnlace\:\:\$hitos \(list\<array\{tipo\: string, fecha\: string, detalle\: string\|null, detalleAnterior\: string\|null\}\>\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Pms/Entity/PmsConversacionEnlace.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsConversacionEnlace\:\:\$milestones \(array\<string, string\>\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Pms/Entity/PmsConversacionEnlace.php
 
 		-
 			message: '#^PHPDoc tag @return with type int is incompatible with native type bool\.$#'
@@ -712,10 +1201,100 @@ parameters:
 			path: src/Pms/Entity/PmsEventoCalendario.php
 
 		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: src/Pms/Entity/PmsGuia.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$agentePasos \(list\<string\>\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Pms/Entity/PmsGuiaItem.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$descripcion \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Pms/Entity/PmsGuiaItem.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaItem\:\:\$labelBoton \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Pms/Entity/PmsGuiaItem.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaItemGaleria\:\:\$descripcion \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Pms/Entity/PmsGuiaItemGaleria.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaItemGaleria\:\:\$imageUpdatedAt is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Pms/Entity/PmsGuiaItemGaleria.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaSeccion\:\:\$icono \(string\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Pms/Entity/PmsGuiaSeccion.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsGuiaSeccion\:\:\$subtitulo \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Pms/Entity/PmsGuiaSeccion.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: src/Pms/Entity/PmsGuiaSeccion.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsRatesPushQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Pms/Entity/PmsRatesPushQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsRatesPushQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Pms/Entity/PmsRatesPushQueue.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsUnidad\:\:\$imageUpdatedAt is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Pms/Entity/PmsUnidad.php
+
+		-
+			message: '#^Property App\\Pms\\Entity\\PmsUnidad\:\:\$wifiNetworks \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Pms/Entity/PmsUnidad.php
+
+		-
 			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectManager\:\:getReference\(\)\.$#'
 			identifier: method.notFound
 			count: 2
 			path: src/Pms/EventListener/PmsEventoCalendarioIntegrityListener.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: src/Pms/EventListener/PmsEventoCalendarioSecurityListener.php
+
+		-
+			message: '#^Instanceof between Doctrine\\ORM\\EntityManagerInterface and Doctrine\\ORM\\EntityManagerInterface will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
 
 		-
 			message: '#^Variable \$e in PHPDoc tag @var does not match any variable in the foreach loop\: \$l$#'
@@ -730,8 +1309,62 @@ parameters:
 			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
 
 		-
+			message: '#^Instanceof between Doctrine\\ORM\\EntityManagerInterface and Doctrine\\ORM\\EntityManagerInterface will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Pms/EventListener/Queue/Beds24RatesPushQueueListener.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: src/Pms/Form/Type/PmsEventAssignmentEmbeddedType.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<App\\Pms\\Entity\\PmsReserva\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: src/Pms/Repository/PmsReservaRepository.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\{language\: string, content\: string\} will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
+
+		-
+			message: '#^Method App\\Pms\\Service\\Agent\\PmsIndiceDeTemas\:\:temasQueCubren\(\) should return list\<string\> but returns list\<App\\Message\\Contract\\TemaQueCubre\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
+
+		-
+			message: '#^Offset ''content'' on array\{language\: string, content\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 2
+			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
+
+		-
+			message: '#^Return type \(list\<string\>\) of method App\\Pms\\Service\\Agent\\PmsIndiceDeTemas\:\:temasQueCubren\(\) should be compatible with return type \(list\<App\\Message\\Contract\\TemaQueCubre\>\) of method App\\Message\\Contract\\IndiceDeTemasInterface\:\:temasQueCubren\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Pms/Service/Agent/PmsInstruccionesDominio.php
+
+		-
 			message: '#^Access to an undefined property App\\Pms\\Dto\\Beds24BookingDto\:\:\$country\.$#'
 			identifier: property.notFound
+			count: 1
+			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
 			count: 1
 			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
 
@@ -748,10 +1381,40 @@ parameters:
 			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullMappingStrategy.php
 
 		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 2
+			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between numeric\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
+
+		-
 			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ExchangeQueueItemInterface\:\:getTargetBookId\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveMappingStrategy.php
+
+		-
+			message: '#^Offset ''price'' on array\{price\: float, minStay\: int, currency\: string\|null, sourceId\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Pms/Service/Finance/PmsCargosAutomaticosService.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Pms/Service/Finance/PmsEstadoPagoEventosService.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Pms/Service/Finance/PmsInformacionFinancieraRecalculoService.php
 
 		-
 			message: '#^Variable \$evento in PHPDoc tag @var does not match any variable in the foreach loop\: \$link$#'
@@ -766,16 +1429,142 @@ parameters:
 			path: src/Pms/Service/Message/PmsReservaMessageContext.php
 
 		-
+			message: '#^Instanceof between DateTimeImmutable\|null and DateTime will always evaluate to false\.$#'
+			identifier: instanceof.alwaysFalse
+			count: 1
+			path: src/Pms/Service/Message/PmsReservaMessageContext.php
+
+		-
+			message: '#^Instanceof between string and DateTimeInterface will always evaluate to false\.$#'
+			identifier: instanceof.alwaysFalse
+			count: 1
+			path: src/Pms/Service/Message/PmsReservaMessageContext.php
+
+		-
+			message: '#^Ternary operator condition is always false\.$#'
+			identifier: ternary.alwaysFalse
+			count: 2
+			path: src/Pms/Service/Message/PmsReservaMessageContext.php
+
+		-
+			message: '#^Instanceof between App\\Pms\\Entity\\PmsBookingsPushQueue and App\\Pms\\Entity\\PmsBookingsPushQueue will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Pms/Service/Queue/Beds24BookingsPushQueueCreator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Pms/Service/Queue/Beds24BookingsPushQueueCreator.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: src/Pms/Service/Queue/Beds24RatesPushQueueCreator.php
+
+		-
+			message: '#^Instanceof between App\\Message\\Entity\\MessageConversation and App\\Message\\Entity\\MessageConversation will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Pms/Service/Reserva/PmsReservaRecalculoService.php
+
+		-
+			message: '#^Offset ''price'' on non\-empty\-array\<mixed\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Pms/Service/Tarifa/Engine/TarifaDailyPriceFlattener.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Pms/Service/Tarifa/Engine/TarifaDailyPriceFlattener.php
+
+		-
+			message: '#^Offset ''price'' on array\{price\: float\|int, currency\?\: string\|null, minStay\?\: int\|null, sourceId\?\: string\|null\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: src/Pms/Service/Tarifa/Engine/TarifaLogicalRangeCompressor.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 2
+			path: src/Pms/Service/Tarifa/Engine/TarifaLogicalRangeCompressor.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed~''USD'' and ''USD'' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Service/TipocambioManager.php
+
+		-
 			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectManager\:\:getUnitOfWork\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: src/Service/Translate/AutoTranslationService.php
 
 		-
+			message: '#^Call to function method_exists\(\) with App\\Attribute\\AutoTranslate and ''getFormat'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Service/Translate/AutoTranslationService.php
+
+		-
+			message: '#^Call to function property_exists\(\) with App\\Attribute\\AutoTranslate and ''preventOverwriteIf'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Service/Translate/AutoTranslationService.php
+
+		-
+			message: '#^Cannot call method isEmpty\(\) on iterable\<App\\Travel\\Entity\\TravelSegmentoComponente\>\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: src/Travel/Controller/Crud/TravelSegmentoCrudController.php
+
+		-
+			message: '#^Match arm comparison between ''OPCIONAL'' and ''OPCIONAL'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 1
+			path: src/Travel/Entity/TravelComponenteItem.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Travel/Entity/TravelItinerario.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Travel/Entity/TravelSegmento.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Travel/Entity/TravelServicio.php
+
+		-
+			message: '#^Property App\\Travel\\Entity\\TravelTarifa\:\:\$monto \(string\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Travel/Entity/TravelTarifa.php
+
+		-
 			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'
 			identifier: parameter.implicitlyNullable
 			count: 1
 			path: src/Travel/Filter/ProveedorServicioProveedorExtension.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Travel/Filter/TarifaBatchIdExtension.php
 
 		-
 			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'
@@ -788,6 +1577,12 @@ parameters:
 			identifier: parameter.implicitlyNullable
 			count: 1
 			path: src/Travel/Filter/TarifaComponenteExtension.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Travel/Filter/UuidBatchIdExtension.php
 
 		-
 			message: '#^Deprecated in PHP 8\.4\: Parameter \#4 \$operation \(ApiPlatform\\Metadata\\Operation\) is implicitly nullable via default value null\.$#'

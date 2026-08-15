@@ -24,11 +24,19 @@ class TipocambioManager
         private readonly string $sunatApiToken
     ) {}
 
-    public function getTipodecambio(DateTime $fechaInput): ?MaestroTipocambio
+    /**
+     * ⚠️ Acepta `DateTimeInterface`, no `DateTime`. Con la firma estrecha, pasarle un
+     * `DateTimeImmutable` —que es lo que devuelven media docena de getters del PMS— era un
+     * `TypeError` en producción, la misma familia de fallo que tumbó la sincronización de
+     * reservas canceladas el 15/08/2026 (`docs/Mensajeria.md` §22.16).
+     *
+     * El `createFromInterface` no es sólo por el tipo: sobre un `DateTimeImmutable`,
+     * `(clone $f)->setTime(...)` **devuelve** una instancia nueva y descarta el cambio en la
+     * clonada, así que la normalización a medianoche se perdía en silencio.
+     */
+    public function getTipodecambio(\DateTimeInterface $fechaInput): ?MaestroTipocambio
     {
-        // ✅ CORRECCIÓN 1: Normalizamos a medianoche para "match exacto"
-        // Clonamos para no modificar la fecha original que pasó el controlador
-        $fechaBuscada = (clone $fechaInput)->setTime(0, 0, 0);
+        $fechaBuscada = DateTime::createFromInterface($fechaInput)->setTime(0, 0, 0);
 
         $repo = $this->em->getRepository(MaestroTipocambio::class);
         $usdRef = $this->getUsdRef(); // Obtenemos el Proxy una sola vez

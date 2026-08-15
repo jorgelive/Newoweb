@@ -1,14 +1,18 @@
 # Análisis estático — la red que faltaba
 #
-# Nivel 2 a propósito, y no más: es el que caza VARIABLES INDEFINIDAS y métodos que no existen,
-# que es la clase de fallo que ya costó caro. Un `$message` donde la variable era `$msg` pasó
-# `php -l`, pasó los 104 tests —ninguno tocaba ese archivo— y habría tumbado todo el envío
-# saliente en el primer mensaje. Esto lo caza en un segundo y en TODO el proyecto, no sólo donde
-# alguien se acordó de escribir un test.
+# Nivel 5 desde el 15/08/2026. Antes era 2 —el que caza variables indefinidas y métodos que no
+# existen, la clase de fallo que ya costó caro: un `$message` donde la variable era `$msg` pasó
+# `php -l`, pasó los tests y habría tumbado todo el envío saliente en el primer mensaje—.
 #
-# Subir de nivel es deseable pero es otro trabajo: los niveles altos exigen tipar genéricos y
-# anotar colecciones de Doctrine en cientos de sitios, y un baseline gigante que nadie mira no
-# protege de nada.
+# ── Por qué se subió, y por qué justo al 5 ──────────────────────────────────
+# El 15/08 un `TypeError` tumbó la sincronización de reservas canceladas, y al medirlo resultó
+# que **no lo cazaba ningún nivel, del 2 al 9**: el valor salía de un `array` sin tipar, que es
+# `mixed` implícito. El 5 es el que revisa TIPOS DE ARGUMENTO, que es esa familia entera; del 4
+# al 5 sólo hay once avisos más, así que quedarse en el 4 no ahorraba nada.
+#
+# El 6 es el siguiente objetivo real y es el que de verdad cierra el agujero: prohíbe el `array`
+# sin declarar qué lleva dentro (`missingType.iterableValue`). Son ~760 anotaciones, mecánicas
+# pero muchas, y por eso va aparte.
 includes:
     # La deuda que ya existía, congelada. NO es una lista de perdonados para siempre: es lo que
     # había el día que se instaló la herramienta, para que a partir de aquí salte SÓLO lo nuevo.
@@ -17,7 +21,7 @@ includes:
     - phpstan-baseline.neon
 
 parameters:
-    level: 2
+    level: 5
     paths:
         - src
     bootstrapFiles:
@@ -25,3 +29,8 @@ parameters:
     # Cachés y código generado: no es nuestro y no se corrige aquí.
     excludePaths:
         - src/Kernel.php
+        # 375 de los 604 avisos del nivel 5 estaban aquí. No se arreglan porque el módulo se
+        # retira entero (ver el plan de baja de `oweb`/phptravels): tiparlo sería trabajo que se
+        # tira en septiembre. Al excluirlo, lo que queda en la lista es código vivo.
+        # ⚠️ Al borrar `src/Oweb/`, borrar también esta línea y las entradas suyas del baseline.
+        - src/Oweb

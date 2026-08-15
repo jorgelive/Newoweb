@@ -243,7 +243,8 @@ class TravelSegmentoCrudController extends BaseCrudController
         // 🔥 LECTURA (Getter Virtual ya existente)
         yield TextField::new('virtualLogistica', 'Logística Inyectada')
             ->onlyOnIndex()
-            ->formatValue(function ($value, $entity) {
+            ->formatValue(function ($value, TravelSegmento $entity) {
+                /** @var iterable<TravelSegmentoComponente> $coleccion */
                 $coleccion = $entity->getSegmentoComponentes();
                 if ($coleccion->isEmpty()) return '<span class="badge bg-light text-muted border">Sin logística</span>';
 

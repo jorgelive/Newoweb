@@ -85,7 +85,16 @@ final readonly class MessageAutoResponderListener
         // que se quería cortar.
         //
         // Lo que decide es si cambió EL INTENT, que es lo único que este listener atiende.
-        [$antes, $despues] = $cambios['metadata'];
+        // El changeset de Doctrine es `[antes, después]`, pero su tipo declarado admite otras
+        // formas y desestructurar a ciegas ahí es un `TypeError` esperando: este listener corre
+        // en `postUpdate` de CADA mensaje, y reventar aquí abortaría el flush entero.
+        $par = $cambios['metadata'];
+
+        if (!is_array($par) || 2 !== count($par)) {
+            return;
+        }
+
+        [$antes, $despues] = $par;
 
         if (($antes['inbound_intent'] ?? null) === ($despues['inbound_intent'] ?? null)) {
             return;

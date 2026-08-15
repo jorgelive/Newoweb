@@ -6,13 +6,22 @@
   Comandos: `php bin/console ...`. Verificación: `php bin/phpunit`, `vendor/bin/phpstan analyse`,
   `php -l`, `lint:container` y, cuando aplica, ejecutar el flujo real.
 
-  **Análisis estático:** PHPStan nivel 2 sobre `src/`, con `phpstan-baseline.neon` congelando la
-  deuda que ya existía. Está en nivel 2 y no más porque ése es el que caza **variables
-  indefinidas y métodos que no existen**, que es la clase de fallo que ya costó caro: un
-  `$message` donde la variable era `$msg` pasó `php -l`, pasó los 104 tests —ninguno tocaba ese
-  archivo— y habría tumbado TODO el envío saliente en el primer mensaje. Correrlo antes de
+  **Análisis estático:** PHPStan **nivel 5** sobre `src/` (menos `src/Oweb/`, que se retira
+  entero), con `phpstan-baseline.neon` congelando la deuda que ya existía. Correrlo antes de
   cerrar un cambio no es opcional; es más barato que cualquier test que se pueda escribir para
   cubrir lo mismo.
+
+  Estuvo en nivel 2 hasta el 15/08/2026, porque ése caza **variables indefinidas y métodos que
+  no existen** —un `$message` donde la variable era `$msg` pasó `php -l`, pasó los tests y habría
+  tumbado TODO el envío saliente en el primer mensaje—. Subió a 5 tras medir que el `TypeError`
+  que tumbó la sincronización de reservas canceladas **no lo cazaba ningún nivel del 2 al 9**: el
+  valor salía de un `array` sin tipar, que es `mixed` implícito. El 5 es el que revisa tipos de
+  argumento, que es esa familia entera, y del 4 al 5 sólo hay once avisos más.
+
+  ⚠️ **El siguiente objetivo es el nivel 6**, y es el que de verdad cierra el agujero: prohíbe el
+  `array` sin declarar qué lleva dentro. Son ~760 anotaciones pendientes, mecánicas pero muchas.
+  Mientras tanto, **un `array` pelado en una firma nueva es deuda**: escribe el tipo del valor, o
+  mejor, un tipo propio — ver `MomentoDeHito`/`MapaDeHitos` en `docs/Mensajeria.md` §22.16.
 
   ⚠️ La baseline **no es una lista de perdonados**: es la foto del día que se instaló, para que
   salte sólo lo nuevo. Si tocas un archivo que tiene errores dentro, arréglalos y quítalos de
