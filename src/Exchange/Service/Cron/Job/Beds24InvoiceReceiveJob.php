@@ -122,8 +122,20 @@ class Beds24InvoiceReceiveJob implements CronJobInterface, CronHorizonteInterfac
                 $this->em->clear();
                 $this->enqueuer->clearCache();
 
-                // Recuperar el endpoint tras el clear()
-                $endpoint = $this->em->getRepository(ExchangeEndpoint::class)->find($endpoint->getId());
+                // Recuperar el endpoint tras el clear(): el `clear()` desvincula la entidad
+                // del EntityManager, así que la referencia anterior ya no sirve.
+                //
+                // ⚠️ `find()` puede devolver null —si alguien borró el endpoint mientras corría
+                // el lote—, y sin esta guarda la siguiente vuelta llamaba a `getId()` sobre null
+                // y tumbaba el cron entero a mitad, dejando el resto del lote sin procesar.
+                $refrescado = $this->em->getRepository(ExchangeEndpoint::class)->find($endpoint->getId());
+
+                if (null === $refrescado) {
+                    $io->warning('El endpoint desapareció durante el lote; se corta aquí.');
+                    break;
+                }
+
+                $endpoint = $refrescado;
 
                 if ($io->isVerbose()) {
                     $io->write('.');
