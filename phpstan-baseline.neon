@@ -22,9 +22,10 @@
 # más el tipo compartido `ContenidoI18n` y el ayudante `MaestroIdioma::textoEn()`. Siguiente ahí:
 # `Beds24BookingDto` (25) y las estrategias de Exchange.
 #
-# ⚠️ `property.unusedType` sobre columnas JSON nulables (`descripcion`, `labelBoton`,
-# `subtitulo`): PHPStan dice que nunca se les asigna null y sugiere quitar el `?`. NO se quita:
-# la columna es nullable y Doctrine puede hidratar null: eso el análisis estático no lo ve.
+# ⚠️ Lo de las columnas nulables de Doctrine YA NO está aquí: se sacó a una `ignoreErrors` en
+# `phpstan.dist.neon`, acotada a `Entity/`. No era deuda —no se va a «saldar» nunca, porque el
+# análisis estático no puede ver la hidratación del ORM—, y como regla cubre además las entidades
+# que se escriban mañana. El baseline es para lo que sí se arregla.
 #
 # El resto (~250) es REDUNDANCIA heredada del salto de nivel: un `??` sobre algo que nunca es
 # null, comparaciones que siempre dan lo mismo. Quitarlas a ciegas es peligroso —con entidades de

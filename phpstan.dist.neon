@@ -35,6 +35,30 @@ parameters:
         - src
     bootstrapFiles:
         - vendor/autoload.php
+    # ── La excepción de Doctrine, y sólo la de Doctrine ─────────────────────────
+    #
+    # PHPStan avisa de que a una propiedad «nunca se le asigna null, quita el `?`». En una
+    # entidad eso es FALSO y quitarlo mete un TypeError latente: la columna es `nullable: true`
+    # y el ORM hidrata directamente sobre la propiedad, sin pasar por el setter. Una sola fila
+    # con NULL —de una migración, de un import, de antes de que el campo tuviera valor por
+    # defecto— revienta al leerla.
+    #
+    # El análisis estático no puede ver esa asignación, así que aquí no acierta nunca. Va como
+    # regla y no como entradas sueltas en el baseline a propósito: el baseline es deuda que se
+    # salda, y esto no se va a saldar jamás — además, así cubre también las entidades que se
+    # escriban mañana.
+    #
+    # ⚠️ Acotada a `Entity/`: fuera de ahí no hay hidratación y el aviso SÍ vale.
+    ignoreErrors:
+        -
+            identifier: property.unusedType
+            message: '#is never assigned null so it can be removed from the property type\.$#'
+            paths:
+                - src/*/Entity
+                - src/Entity
+            # Es preventiva: vale que hoy alguna de esas rutas no tenga ninguna coincidencia.
+            reportUnmatched: false
+
     # Cachés y código generado: no es nuestro y no se corrige aquí.
     excludePaths:
         - src/Kernel.php
