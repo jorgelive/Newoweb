@@ -94,6 +94,40 @@ function fcFechaGuardada(): string | undefined {
     return localStorage.getItem(`${FC_STORAGE_KEY}_date`) || undefined;
 }
 
+/** ¿Se está recargando ahora mismo? Para dar señal visible en el botón. */
+const recargando = ref(false);
+
+/**
+ * Vuelve a pedir eventos y recursos del rango visible.
+ *
+ * La usa el botón ↻ de la barra y cualquier sitio que necesite refrescar sin
+ * cambiar de mes. `refetchEvents()` no devuelve promesa, así que el indicador se
+ * apaga por tiempo: es señal de que se pulsó, no una barra de progreso real.
+ */
+async function recargarCalendario(): Promise<void> {
+    const api = calendarApiRef.value?.getApi();
+    if (!api || recargando.value) return;
+
+    recargando.value = true;
+    api.refetchResources();
+    api.refetchEvents();
+
+    await new Promise((r) => setTimeout(r, 600));
+    recargando.value = false;
+}
+
+/**
+ * Gira el icono mientras recarga.
+ *
+ * Se toca el DOM a mano porque el botón lo pinta FullCalendar desde `customButtons`,
+ * fuera del árbol de Vue: no hay forma de bindearle una clase desde el template. Es
+ * la señal de que el clic hizo algo — sin ella, pulsar y que nada cambie en pantalla
+ * se lee como que el botón está roto.
+ */
+watch(recargando, (activo) => {
+    document.querySelector('.fc-recargar-button')?.classList.toggle('esta-recargando', activo);
+});
+
 function onCambiarCalendario(): void {
     // `refetchResources()` lo aporta @fullcalendar/resource, que amplía CalendarApi
     // vía `declare module`: está tipado mientras el plugin se importe en el archivo.
@@ -873,7 +907,7 @@ const calendarOptions: CalendarOptions = {
     // Sin título en el centro: así "today prev,next" y los botones de vista
     // caben en una sola fila incluso en mobile (ver calendarTitulo más arriba).
     headerToolbar: {
-        left: 'irHoy prev,next',
+        left: 'irHoy prev,next recargar',
         center: '',
         right: 'resourceTimelineTwoMonths,resourceTimelineOneMonth',
     },
@@ -903,6 +937,23 @@ const calendarOptions: CalendarOptions = {
                 diaPendiente = fromDateLocal(hoyLocal());
                 resolverDiaPendiente();
             },
+        },
+
+        /**
+         * Recarga a mano lo que el calendario ya tiene en pantalla.
+         *
+         * FullCalendar sólo vuelve a pedir eventos al cambiar de rango, así que una
+         * reserva creada desde otro equipo —o desde el canal— no aparece hasta navegar
+         * a otro mes y volver. Con la pestaña abierta toda la jornada eso significa
+         * estar mirando datos viejos sin saberlo.
+         *
+         * Recarga también los recursos: si se dio de alta una casita, la fila nueva
+         * tampoco estaría.
+         */
+        recargar: {
+            text: '↻',
+            hint: 'Recargar reservas y casitas desde el servidor',
+            click: () => recargarCalendario(),
         },
     },
 
@@ -1638,5 +1689,15 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
 .fc-tip-val {
     font-weight: 700;
     font-size: 0.78rem;
+}
+
+/* El botón ↻ de la barra del calendario, mientras recarga. */
+:deep(.fc-recargar-button.esta-recargando) {
+    animation: girar-recarga 0.6s linear infinite;
+}
+
+@keyframes girar-recarga {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 </style>

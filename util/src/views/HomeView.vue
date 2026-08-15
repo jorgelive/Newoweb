@@ -437,11 +437,15 @@ const cerrarVistaPrevia = () => { vistaPreviaConv.value = null; };
                        class="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors">
                       <i class="fab fa-whatsapp text-sm" aria-hidden="true"></i>
                     </a>
-                    <RouterLink v-if="fila.conversacionId" :to="`/chat/${fila.conversacionId}`"
-                       :title="`Abrir el chat de ${fila.cliente}`" :aria-label="`Abrir el chat de ${fila.cliente}`"
+                    <!-- Se asoma en vez de saltar: casi siempre basta ver el resumen y los
+                         últimos mensajes para decidir. Y el enlace viejo iba a /chat/:id,
+                         que ChatView no escucha — dejaba en la bandeja sin abrir nada. -->
+                    <button v-if="fila.conversacionId" type="button"
+                       @click="abrirVistaPrevia({ id: fila.conversacionId }, $event)"
+                       :title="`Ver la conversación de ${fila.cliente}`" :aria-label="`Ver la conversación de ${fila.cliente}`"
                        class="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#376875] transition-colors">
                       <i class="fas fa-comment-dots text-xs" aria-hidden="true"></i>
-                    </RouterLink>
+                    </button>
                   </span>
                 </li>
               </ul>
@@ -487,11 +491,15 @@ const cerrarVistaPrevia = () => { vistaPreviaConv.value = null; };
                        class="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors">
                       <i class="fab fa-whatsapp text-sm" aria-hidden="true"></i>
                     </a>
-                    <RouterLink v-if="fila.conversacionId" :to="`/chat/${fila.conversacionId}`"
-                       :title="`Abrir el chat de ${fila.cliente}`" :aria-label="`Abrir el chat de ${fila.cliente}`"
+                    <!-- Se asoma en vez de saltar: casi siempre basta ver el resumen y los
+                         últimos mensajes para decidir. Y el enlace viejo iba a /chat/:id,
+                         que ChatView no escucha — dejaba en la bandeja sin abrir nada. -->
+                    <button v-if="fila.conversacionId" type="button"
+                       @click="abrirVistaPrevia({ id: fila.conversacionId }, $event)"
+                       :title="`Ver la conversación de ${fila.cliente}`" :aria-label="`Ver la conversación de ${fila.cliente}`"
                        class="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#376875] transition-colors">
                       <i class="fas fa-comment-dots text-xs" aria-hidden="true"></i>
-                    </RouterLink>
+                    </button>
                   </span>
                 </li>
               </ul>

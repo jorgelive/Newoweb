@@ -69,6 +69,36 @@ const calendarRootEl = ref<HTMLElement | null>(null);
 // ReservasView (si comparte fila con los botones, en mobile todo se parte).
 const calendarTitulo = ref('');
 
+/** ¿Se está recargando ahora mismo? Señal visible para el botón ↻. */
+const recargando = ref(false);
+
+/**
+ * Recarga manual del rango visible. Mismo motivo que en ReservasView: FullCalendar
+ * sólo vuelve a pedir al cambiar de rango, así que un cambio hecho desde otro equipo
+ * no aparece hasta navegar de mes. Con la pestaña abierta todo el día, eso es estar
+ * mirando precios viejos sin enterarse.
+ */
+async function recargarCalendario(): Promise<void> {
+    if (recargando.value) return;
+
+    recargando.value = true;
+    refrescarCalendario();
+    await new Promise((r) => setTimeout(r, 600));
+    recargando.value = false;
+}
+
+/**
+ * Gira el icono mientras recarga.
+ *
+ * Se toca el DOM a mano porque el botón lo pinta FullCalendar desde `customButtons`,
+ * fuera del árbol de Vue: no hay forma de bindearle una clase desde el template. Es
+ * la señal de que el clic hizo algo — sin ella, pulsar y que nada cambie en pantalla
+ * se lee como que el botón está roto.
+ */
+watch(recargando, (activo) => {
+    document.querySelector('.fc-recargar-button')?.classList.toggle('esta-recargando', activo);
+});
+
 function refrescarCalendario(): void {
     // `refetchResources()` lo aporta @fullcalendar/resource, que amplía CalendarApi
     // vía `declare module`: está tipado mientras el plugin se importe en el archivo.
@@ -637,7 +667,7 @@ const calendarOptions = computed<CalendarOptions>(() => ({
     },
 
     headerToolbar: {
-        left: 'irHoy prev,next',
+        left: 'irHoy prev,next recargar',
         center: '',
         right: 'resourceTimelineTwoMonths,resourceTimelineOneMonth',
     },
@@ -650,6 +680,11 @@ const calendarOptions = computed<CalendarOptions>(() => ({
      * está el detalle.
      */
     customButtons: {
+        recargar: {
+            text: '↻',
+            hint: 'Recargar tarifas y unidades desde el servidor',
+            click: () => { void recargarCalendario(); },
+        },
         irHoy: {
             text: 'Hoy',
             hint: 'Ir a hoy',
@@ -1152,5 +1187,15 @@ const calendarOptions = computed<CalendarOptions>(() => ({
     padding: 2px 4px;
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.22);
+}
+
+/* El botón ↻ de la barra del calendario, mientras recarga. */
+:deep(.fc-recargar-button.esta-recargando) {
+    animation: girar-recarga 0.6s linear infinite;
+}
+
+@keyframes girar-recarga {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 </style>
