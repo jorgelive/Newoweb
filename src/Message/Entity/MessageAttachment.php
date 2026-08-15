@@ -108,7 +108,7 @@ class MessageAttachment implements RequiresJpegConversionInterface
     // =========================================================================
 
     #[Groups(['message:read'])]
-    public function getId(): UuidV7
+    public function getId(): ?Uuid
     {
         return $this->id;
     }

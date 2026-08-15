@@ -47,6 +47,7 @@ class PmsChannel
     #[ORM\Column(type: 'string', length: 50)]
     private ?string $id = null;
 
+    /** @var Collection<int, PmsEventoCalendario> */
     #[ORM\OneToMany(mappedBy: 'channel', targetEntity: PmsEventoCalendario::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Assert\Valid]
     private Collection $eventosCalendario;

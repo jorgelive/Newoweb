@@ -44,7 +44,7 @@ class AutoResponderRule
     /**
      * Obtiene el ID único de la regla.
      */
-    public function getId(): ?UuidV7
+    public function getId(): ?Uuid
     {
         return $this->id;
     }

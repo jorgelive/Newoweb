@@ -61,15 +61,18 @@ class TravelServicio
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
+    /** @var Collection<int, TravelComponente> */
     #[Groups(['servicio:item:read', 'servicio:write'])]
     #[ORM\ManyToMany(targetEntity: TravelComponente::class, inversedBy: 'servicios')]
     #[ORM\JoinTable(name: 'travel_servicio_componentes_pool')]
     private Collection $componentes;
 
+    /** @var Collection<int, TravelItinerario> */
     #[Groups(['servicio:item:read', 'servicio:write'])]
     #[ORM\OneToMany(mappedBy: 'servicio', targetEntity: TravelItinerario::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $itinerarios;
 
+    /** @var Collection<int, TravelSegmento> */
     #[Groups(['servicio:item:read', 'servicio:write'])]
     #[ORM\ManyToMany(targetEntity: TravelSegmento::class, mappedBy: 'servicios')]
     private Collection $segmentos;

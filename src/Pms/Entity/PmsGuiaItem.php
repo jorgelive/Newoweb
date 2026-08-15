@@ -33,6 +33,7 @@ class PmsGuiaItem
     public const TIPO_ALBUM = 'album';
     public const TIPO_AVISO = 'alert';
 
+    /** @var Collection<int, PmsGuiaSeccionHasItem> */
     #[ORM\OneToMany(mappedBy: 'item', targetEntity: PmsGuiaSeccionHasItem::class, cascade: ['persist', 'remove'])]
     private Collection $itemHasSecciones;
 
@@ -231,6 +232,7 @@ class PmsGuiaItem
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $metadata = [];
 
+    /** @var Collection<int, PmsGuiaItemGaleria> */
     #[ORM\OneToMany(mappedBy: 'item', targetEntity: PmsGuiaItemGaleria::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['orden' => 'ASC'])]
     #[Assert\Valid]

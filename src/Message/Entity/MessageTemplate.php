@@ -166,7 +166,7 @@ class MessageTemplate
     }
 
     #[Groups(['template:read'])]
-    public function getId(): UuidV7
+    public function getId(): ?Uuid
     {
         return $this->id;
     }

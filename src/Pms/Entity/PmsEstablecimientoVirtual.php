@@ -83,6 +83,7 @@ class PmsEstablecimientoVirtual
     /**
      * Los mapas técnicos de Beds24 que usan este establecimiento virtual.
      */
+    /** @var Collection<int, PmsUnidadBeds24Map> */
     #[ORM\OneToMany(mappedBy: 'virtualEstablecimiento', targetEntity: PmsUnidadBeds24Map::class)]
     private Collection $beds24Maps;
 

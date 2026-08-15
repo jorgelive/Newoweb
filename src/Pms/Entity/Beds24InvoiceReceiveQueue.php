@@ -124,7 +124,7 @@ class Beds24InvoiceReceiveQueue implements ExchangeQueueItemInterface, MemoryCle
     // IMPLEMENTACIÓN ExchangeQueueItemInterface
     // =========================================================================
 
-    public function getId(): UuidV7 { return $this->id; }
+    public function getId(): ?Uuid { return $this->id; }
     public function getConfig(): ?ChannelConfigInterface { return $this->config; }
     public function setConfig(?ChannelConfigInterface $config): self { $this->config = $config; return $this; }
     public function getEndpoint(): ?EndpointInterface { return $this->endpoint; }

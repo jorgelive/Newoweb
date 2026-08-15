@@ -208,6 +208,7 @@ class MessageConversation
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $contextData = [];
 
+    /** @var Collection<int, Message> */
     #[ORM\OneToMany(mappedBy: 'conversation', targetEntity: Message::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $messages;

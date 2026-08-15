@@ -212,10 +212,12 @@ class PmsReserva
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $nota = null;
 
+    /** @var Collection<int, PmsEventoCalendario> */
     #[ORM\OneToMany(mappedBy: 'reserva', targetEntity: PmsEventoCalendario::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Assert\Valid]
     private Collection $eventosCalendario;
 
+    /** @var Collection<int, PmsReservaHuesped> */
     #[ORM\OneToMany(mappedBy: 'reserva', targetEntity: PmsReservaHuesped::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Assert\Valid]
     private Collection $huespedes;

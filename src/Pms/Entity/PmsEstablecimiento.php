@@ -120,12 +120,15 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     // RELACIONES
     // ============================================================
 
+    /** @var Collection<int, PmsUnidad> */
     #[ORM\OneToMany(mappedBy: 'establecimiento', targetEntity: PmsUnidad::class, cascade: ['persist', 'remove'])]
     private Collection $unidades;
 
+    /** @var Collection<int, PmsReserva> */
     #[ORM\OneToMany(mappedBy: 'establecimiento', targetEntity: PmsReserva::class, cascade: ['persist', 'remove'])]
     private Collection $reservas;
 
+    /** @var Collection<int, PmsEstablecimientoVirtual> */
     #[ORM\OneToMany(mappedBy: 'establecimiento', targetEntity: PmsEstablecimientoVirtual::class, cascade: ['persist', 'remove'])]
     private Collection $virtualEstablecimientos;
 

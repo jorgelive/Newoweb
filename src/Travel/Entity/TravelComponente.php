@@ -122,6 +122,7 @@ class TravelComponente
     /**
      * 👇 CASCADA HACIA ABAJO (Items descriptivos)
      */
+    /** @var Collection<int, TravelComponenteItem> */
     #[Assert\Valid]
     #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\OneToMany(mappedBy: 'componente', targetEntity: TravelComponenteItem::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -133,6 +134,7 @@ class TravelComponente
      * Ordenamos la colección de tarifas por el campo nombreInterno de forma ascendente.
      * Se aplica Assert\Valid para disparar en cadena la validación interna de cada tarifa mapeada.
      */
+    /** @var Collection<int, TravelTarifa> */
     #[Assert\Valid]
     #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\OneToMany(mappedBy: 'componente', targetEntity: TravelTarifa::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -142,6 +144,7 @@ class TravelComponente
     /**
      * 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs
      */
+    /** @var Collection<int, TravelServicio> */
     #[ORM\ManyToMany(targetEntity: TravelServicio::class, mappedBy: 'componentes')]
     private Collection $servicios;
 
@@ -149,6 +152,7 @@ class TravelComponente
      * 🔍 SOLO LECTURA: lado inverso para saber en qué Segmentos (itinerarios) se está
      * inyectando este componente. El dueño real es TravelSegmentoComponente.
      */
+    /** @var Collection<int, TravelSegmentoComponente> */
     #[ORM\OneToMany(mappedBy: 'componente', targetEntity: TravelSegmentoComponente::class)]
     private Collection $segmentoComponentesInyectados;
 

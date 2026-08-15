@@ -79,6 +79,7 @@ class TravelItemDiccionario
      * 🔍 SOLO LECTURA: lado inverso para saber en qué Componentes se está usando este término.
      * Sin cascade/orphanRemoval porque el dueño real de la relación es TravelComponenteItem.
      */
+    /** @var Collection<int, TravelComponenteItem> */
     #[ORM\OneToMany(mappedBy: 'diccionario', targetEntity: TravelComponenteItem::class)]
     private Collection $componenteItems;
 

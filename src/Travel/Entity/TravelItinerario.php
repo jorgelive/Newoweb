@@ -63,6 +63,7 @@ class TravelItinerario
     #[ORM\Column(type: 'integer')]
     private int $duracionDias = 1;
 
+    /** @var Collection<int, TravelItinerarioSegmentoRel> */
     #[Groups(['itinerario:item:read', 'itinerario:write'])]
     #[ORM\OneToMany(mappedBy: 'itinerario', targetEntity: TravelItinerarioSegmentoRel::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['dia' => 'ASC', 'orden' => 'ASC'])]

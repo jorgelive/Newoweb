@@ -87,7 +87,7 @@ class MetaWebhookAudit
     // GETTERS Y SETTERS EXPLÍCITOS
     // =========================================================================
 
-    public function getId(): ?UuidV7
+    public function getId(): ?Uuid
     {
         return $this->id;
     }

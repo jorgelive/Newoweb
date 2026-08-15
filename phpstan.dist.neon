@@ -1,6 +1,6 @@
 # Análisis estático — la red que faltaba
 #
-# Nivel 5 desde el 15/08/2026. Antes era 2 —el que caza variables indefinidas y métodos que no
+# Nivel 6 desde el 15/08/2026. Antes era 2 —el que caza variables indefinidas y métodos que no
 # existen, la clase de fallo que ya costó caro: un `$message` donde la variable era `$msg` pasó
 # `php -l`, pasó los tests y habría tumbado todo el envío saliente en el primer mensaje—.
 #
@@ -10,9 +10,18 @@
 # `mixed` implícito. El 5 es el que revisa TIPOS DE ARGUMENTO, que es esa familia entera; del 4
 # al 5 sólo hay once avisos más, así que quedarse en el 4 no ahorraba nada.
 #
-# El 6 es el siguiente objetivo real y es el que de verdad cierra el agujero: prohíbe el `array`
-# sin declarar qué lleva dentro (`missingType.iterableValue`). Son ~760 anotaciones, mecánicas
-# pero muchas, y por eso va aparte.
+# Y de ahí al 6, que es el que de verdad cierra el agujero: **prohíbe el `array` sin declarar qué
+# lleva dentro**. Es exactamente la regla que faltaba — el valor que reventó salía de un `array`
+# pelado, y con el 6 esa firma no habría pasado.
+#
+# ⚠️ Quedan ~760 anotaciones pendientes en el baseline, y NO es una lista de perdonados: es que
+# escribir 760 `@var` a mano de golpe garantiza escribir algunos mal, y un tipo mentiroso es peor
+# que ninguno —le hace creer al analizador algo falso—. Se van quitando por módulo, al tocarlos.
+# Las 33 colecciones de Doctrine ya están hechas: su `targetEntity` estaba al lado y se pudo
+# derivar sin adivinar.
+#
+# Lo que el nivel 6 SÍ hace desde hoy, que es el 90% del valor: **el código nuevo no puede
+# escribir un `array` sin tipo**. La deuda vieja no crece.
 includes:
     # La deuda que ya existía, congelada. NO es una lista de perdonados para siempre: es lo que
     # había el día que se instaló la herramienta, para que a partir de aquí salte SÓLO lo nuevo.
@@ -21,7 +30,7 @@ includes:
     - phpstan-baseline.neon
 
 parameters:
-    level: 5
+    level: 6
     paths:
         - src
     bootstrapFiles:

@@ -92,6 +92,7 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'json')]
     private array $snapshotItems = [];
 
+    /** @var Collection<int, CotizacionCottarifa> */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\OneToMany(mappedBy: 'cotcomponente', targetEntity: CotizacionCottarifa::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $cottarifas;

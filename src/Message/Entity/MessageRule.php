@@ -130,7 +130,7 @@ class MessageRule
     // GETTERS Y SETTERS
     // =========================================================================
 
-    public function getId(): UuidV7 { return $this->id; }
+    public function getId(): ?Uuid { return $this->id; }
 
     public function getName(): ?string { return $this->name; }
     public function setName(string $name): self { $this->name = $name; return $this; }

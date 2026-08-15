@@ -81,6 +81,7 @@ class CotizacionSegmento
     #[ORM\Column(type: 'json')]
     private array $notasSnapshot = [];
 
+    /** @var Collection<int, CotizacionCotcomponente> */
     #[ORM\OneToMany(mappedBy: 'cotsegmento', targetEntity: CotizacionCotcomponente::class)]
     private Collection $cotcomponentes;
 

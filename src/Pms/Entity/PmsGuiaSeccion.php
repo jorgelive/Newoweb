@@ -60,6 +60,7 @@ class PmsGuiaSeccion
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
+    /** @var Collection<int, PmsGuiaSeccionHasItem> */
     #[ORM\OrderBy(['orden' => 'ASC'])]
     #[Assert\Valid]
     private Collection $seccionHasItems;

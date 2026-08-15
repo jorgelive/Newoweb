@@ -6,7 +6,7 @@
   Comandos: `php bin/console ...`. Verificación: `php bin/phpunit`, `vendor/bin/phpstan analyse`,
   `php -l`, `lint:container` y, cuando aplica, ejecutar el flujo real.
 
-  **Análisis estático:** PHPStan **nivel 5** sobre `src/` (menos `src/Oweb/`, que se retira
+  **Análisis estático:** PHPStan **nivel 6** sobre `src/` (menos `src/Oweb/`, que se retira
   entero), con `phpstan-baseline.neon` congelando la deuda que ya existía. Correrlo antes de
   cerrar un cambio no es opcional; es más barato que cualquier test que se pueda escribir para
   cubrir lo mismo.
@@ -18,10 +18,14 @@
   valor salía de un `array` sin tipar, que es `mixed` implícito. El 5 es el que revisa tipos de
   argumento, que es esa familia entera, y del 4 al 5 sólo hay once avisos más.
 
-  ⚠️ **El siguiente objetivo es el nivel 6**, y es el que de verdad cierra el agujero: prohíbe el
-  `array` sin declarar qué lleva dentro. Son ~760 anotaciones pendientes, mecánicas pero muchas.
-  Mientras tanto, **un `array` pelado en una firma nueva es deuda**: escribe el tipo del valor, o
-  mejor, un tipo propio — ver `MomentoDeHito`/`MapaDeHitos` en `docs/Mensajeria.md` §22.16.
+  Y de ahí al **6**, que es el que cierra el agujero de raíz: **prohíbe el `array` sin declarar
+  qué lleva dentro**. Con el 6 puesto, la firma que dejó pasar el fallo no habría compilado.
+
+  ⚠️ **Un `array` pelado en una firma nueva ya no pasa.** Escribe el tipo del valor
+  (`array<string, string>`) o, mejor, un tipo propio — ver `MomentoDeHito`/`MapaDeHitos` en
+  `docs/Mensajeria.md` §22.16. Quedan ~760 anotaciones viejas en el baseline, y se quitan por
+  módulo al tocarlos: escribir 760 `@var` de golpe garantiza escribir algunos mal, y un tipo
+  mentiroso es peor que ninguno.
 
   ⚠️ La baseline **no es una lista de perdonados**: es la foto del día que se instaló, para que
   salte sólo lo nuevo. Si tocas un archivo que tiene errores dentro, arréglalos y quítalos de

@@ -172,14 +172,17 @@ class Message
     #[ORM\Column(name: 'asunto_id', type: 'string', length: 100, nullable: true)]
     private ?string $asuntoId = null;
 
+    /** @var Collection<int, WhatsappMetaSendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappMetaSendQueue::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
     private Collection $whatsappMetaSendQueues;
 
+    /** @var Collection<int, Beds24SendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: Beds24SendQueue::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
     private Collection $beds24SendQueues;
 
+    /** @var Collection<int, MessageAttachment> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: MessageAttachment::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
     private Collection $attachments;
@@ -313,7 +316,7 @@ class Message
     // =========================================================================
 
     #[Groups(['message:read'])]
-    public function getId(): UuidV7 { return $this->id; }
+    public function getId(): ?Uuid { return $this->id; }
 
     #[Groups(['message:read'])]
     public function getCreatedAt(): ?DateTimeInterface { return $this->createdAt ?? null; }

@@ -142,7 +142,7 @@ class Beds24SendQueue implements MessageQueueItemInterface, MemoryCleanableInter
         $this->retryCount++;
     }
 
-    public function getId(): UuidV7 { return $this->id; }
+    public function getId(): ?Uuid { return $this->id; }
     public function getMessage(): ?Message { return $this->message; }
     public function setMessage(?Message $message): self { $this->message = $message; return $this; }
     public function getTargetBookId(): ?string { return $this->targetBookId; }

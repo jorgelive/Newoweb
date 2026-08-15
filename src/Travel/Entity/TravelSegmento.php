@@ -43,6 +43,7 @@ class TravelSegmento
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
+    /** @var Collection<int, TravelServicio> */
     #[ORM\ManyToMany(targetEntity: TravelServicio::class, inversedBy: 'segmentos')]
     #[ORM\JoinTable(name: 'travel_segmento_servicio_pool')]
     private Collection $servicios;
@@ -61,15 +62,18 @@ class TravelSegmento
     #[ORM\Column(type: 'json')]
     private array $contenido = [];
 
+    /** @var Collection<int, TravelNota> */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[ORM\ManyToMany(targetEntity: TravelNota::class, inversedBy: 'segmentos')]
     #[ORM\JoinTable(name: 'travel_segmento_notas_rel')]
     private Collection $notas;
 
+    /** @var Collection<int, TravelSegmentoImagen> */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoImagen::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $imagenes;
 
+    /** @var Collection<int, TravelSegmentoComponente> */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoComponente::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['orden' => 'ASC'])]
@@ -79,6 +83,7 @@ class TravelSegmento
      * 🔍 SOLO LECTURA: lado inverso para saber en qué Itinerarios (plantillas) y en qué
      * día se está inyectando este segmento. El dueño real es TravelItinerarioSegmentoRel.
      */
+    /** @var Collection<int, TravelItinerarioSegmentoRel> */
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelItinerarioSegmentoRel::class)]
     private Collection $itinerarioSegmentosInyectados;
 

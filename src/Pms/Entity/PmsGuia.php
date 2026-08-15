@@ -83,6 +83,7 @@ class PmsGuia
     #[Assert\NotNull]
     private array $titulo = [];
 
+    /** @var Collection<int, PmsGuiaHasSeccion> */
     #[ORM\OneToMany(mappedBy: 'guia', targetEntity: PmsGuiaHasSeccion::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['orden' => 'ASC'])]
     private Collection $guiaHasSecciones;

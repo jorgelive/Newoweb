@@ -105,6 +105,7 @@ class OperacionOrdenServicio
      * Ahora borrar la OS sólo desasocia (`onDelete: 'SET NULL'` en el lado propietario),
      * que es lo que la documentación decía desde el principio y el mapeo desmentía.
      */
+    /** @var Collection<int, OperacionServicio> */
     #[Groups(['operacion:read'])]
     #[ORM\OneToMany(mappedBy: 'ordenServicio', targetEntity: OperacionServicio::class)]
     private Collection $operacionServicios;
