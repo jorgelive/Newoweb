@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Energia\Entity;
+namespace App\Domotica\Entity;
 
-use App\Energia\Repository\EnergiaSuscripcionRepository;
+use App\Domotica\Repository\DomoticaSuscripcionRepository;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Pms\Entity\PmsEventoCalendario;
@@ -16,7 +16,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
  * Lo que un aparato le imputa a una estancia concreta.
  *
  * Es el estado actual: cuánto marcaba el contador cuando entró el huésped, cuánto marca ahora y
- * cuánto de eso es suyo. Todo lo de aquí es **proyección de `EnergiaLectura`** —se puede volver a
+ * cuánto de eso es suyo. Todo lo de aquí es **proyección de `DomoticaLectura`** —se puede volver a
  * calcular entero recorriendo la bitácora—, y existe para no tener que recorrerla cada vez que se
  * abre la app.
  *
@@ -41,24 +41,24 @@ use Symfony\Component\Serializer\Attribute\Groups;
  * siguió marcando lo que marcaba; lo único que se perdona es lo que se le imputaba a esta
  * persona. Así el huésped puede seguir viendo el número del aparato y comprobar que cuadra.
  */
-#[ORM\Entity(repositoryClass: EnergiaSuscripcionRepository::class)]
-#[ORM\Table(name: 'energia_suscripcion')]
+#[ORM\Entity(repositoryClass: DomoticaSuscripcionRepository::class)]
+#[ORM\Table(name: 'domotica_suscripcion')]
 // Un aparato no puede tener dos cuentas abiertas contra la misma estancia: sería cobrar dos veces
 // el mismo consumo, y el cron no sabría en cuál de las dos escribir.
-#[ORM\UniqueConstraint(name: 'uniq_energia_suscripcion_dispositivo_evento', columns: ['dispositivo_id', 'evento_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_domotica_suscripcion_dispositivo_evento', columns: ['dispositivo_id', 'evento_id'])]
 // El cron pregunta siempre lo mismo: «¿qué suscripciones están vivas ahora?».
-#[ORM\Index(name: 'idx_energia_suscripcion_activa', columns: ['activa'])]
-#[ORM\Index(name: 'idx_energia_suscripcion_evento', columns: ['evento_id'])]
+#[ORM\Index(name: 'idx_domotica_suscripcion_activa', columns: ['activa'])]
+#[ORM\Index(name: 'idx_domotica_suscripcion_evento', columns: ['evento_id'])]
 #[ORM\HasLifecycleCallbacks]
-class EnergiaSuscripcion
+class DomoticaSuscripcion
 {
     use IdTrait;
     use TimestampTrait;
 
-    #[ORM\ManyToOne(targetEntity: EnergiaDispositivo::class)]
+    #[ORM\ManyToOne(targetEntity: DomoticaDispositivo::class)]
     #[ORM\JoinColumn(name: 'dispositivo_id', nullable: false, onDelete: 'CASCADE')]
-    #[Groups(['energia_suscripcion:read'])]
-    private ?EnergiaDispositivo $dispositivo = null;
+    #[Groups(['domotica_suscripcion:read'])]
+    private ?DomoticaDispositivo $dispositivo = null;
 
     /**
      * El evento de calendario, no la reserva.
@@ -68,17 +68,17 @@ class EnergiaSuscripcion
      */
     #[ORM\ManyToOne(targetEntity: PmsEventoCalendario::class)]
     #[ORM\JoinColumn(name: 'evento_id', nullable: false, onDelete: 'CASCADE')]
-    #[Groups(['energia_suscripcion:read'])]
+    #[Groups(['domotica_suscripcion:read'])]
     private ?PmsEventoCalendario $evento = null;
 
     /** Desde cuándo se le imputa consumo: la hora de check-in, no la medianoche. */
     #[ORM\Column(type: 'datetime_immutable')]
-    #[Groups(['energia_suscripcion:read'])]
+    #[Groups(['domotica_suscripcion:read'])]
     private ?DateTimeImmutable $iniciaEn = null;
 
     /** Hasta cuándo. La hora de check-out; después de esto el cron ya no la toca. */
     #[ORM\Column(type: 'datetime_immutable')]
-    #[Groups(['energia_suscripcion:read'])]
+    #[Groups(['domotica_suscripcion:read'])]
     private ?DateTimeImmutable $terminaEn = null;
 
     /**
@@ -89,12 +89,12 @@ class EnergiaSuscripcion
      * referencia pero no debe borrar de dónde se partió.
      */
     #[ORM\Column(type: 'decimal', precision: 12, scale: 3, options: ['default' => '0.000'])]
-    #[Groups(['energia_suscripcion:read'])]
+    #[Groups(['domotica_suscripcion:read'])]
     private string $lecturaInicial = '0.000';
 
-    /** Última lectura del contador físico. Espejo de `EnergiaDispositivo::$lecturaTotal`. */
+    /** Última lectura del contador físico. Espejo de `DomoticaDispositivo::$lecturaTotal`. */
     #[ORM\Column(type: 'decimal', precision: 12, scale: 3, options: ['default' => '0.000'])]
-    #[Groups(['energia_suscripcion:read'])]
+    #[Groups(['domotica_suscripcion:read'])]
     private string $consumoTotal = '0.000';
 
     /**
@@ -105,12 +105,12 @@ class EnergiaSuscripcion
      * estancia.
      */
     #[ORM\Column(type: 'decimal', precision: 12, scale: 3, options: ['default' => '0.000'])]
-    #[Groups(['energia_suscripcion:read'])]
+    #[Groups(['domotica_suscripcion:read'])]
     private string $consumoCliente = '0.000';
 
     /** Soles por kW·h, según el tarifario de Electro Sur Este vigente al abrir la cuenta. */
     #[ORM\Column(type: 'decimal', precision: 8, scale: 4)]
-    #[Groups(['energia_suscripcion:read'])]
+    #[Groups(['domotica_suscripcion:read'])]
     private string $tarifaSolesKwh = '0.0000';
 
     /**
@@ -121,24 +121,24 @@ class EnergiaSuscripcion
      * el exceso.
      */
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
-    #[Groups(['energia_suscripcion:read'])]
+    #[Groups(['domotica_suscripcion:read'])]
     private string $creditoDiarioSoles = '0.00';
 
     /** ¿La sigue muestreando el cron? Se apaga al cerrar la estancia, no se borra. */
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    #[Groups(['energia_suscripcion:read'])]
+    #[Groups(['domotica_suscripcion:read'])]
     private bool $activa = true;
 
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
-    #[Groups(['energia_suscripcion:read'])]
+    #[Groups(['domotica_suscripcion:read'])]
     private ?DateTimeImmutable $cerradaEn = null;
 
-    public function getDispositivo(): ?EnergiaDispositivo
+    public function getDispositivo(): ?DomoticaDispositivo
     {
         return $this->dispositivo;
     }
 
-    public function setDispositivo(?EnergiaDispositivo $dispositivo): self
+    public function setDispositivo(?DomoticaDispositivo $dispositivo): self
     {
         $this->dispositivo = $dispositivo;
 

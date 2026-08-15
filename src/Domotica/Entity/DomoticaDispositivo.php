@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Energia\Entity;
+namespace App\Domotica\Entity;
 
-use App\Energia\Repository\EnergiaDispositivoRepository;
+use App\Domotica\Repository\DomoticaDispositivoRepository;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Pms\Entity\PmsUnidad;
@@ -21,7 +21,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
  * ## La medición es UNA parte, no el todo
  *
  * El módulo nació para cobrar la calefacción por kW·h, pero lo que se registra aquí es el parque
- * de aparatos: los que miden alimentan `EnergiaSuscripcion` y `EnergiaLectura`; los que sólo
+ * de aparatos: los que miden alimentan `DomoticaSuscripcion` y `DomoticaLectura`; los que sólo
  * conmutan se registran igual, porque saber que algo quedó encendido en una casita vacía ya es
  * accionable por sí solo —es la otra mitad de la fricción que originó todo esto—.
  *
@@ -30,7 +30,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
  *
  * El accionamiento (encender/apagar desde el sistema) **todavía no existe**: hoy el estado sólo se
  * lee. `conmutable` está para que el día que se accione no haya que adivinar cuáles aceptan la
- * orden. No sabe nada de reservas — eso lo pone `EnergiaSuscripcion`.
+ * orden. No sabe nada de reservas — eso lo pone `DomoticaSuscripcion`.
  *
  * ## Vive atado a una unidad, no a una reserva
  *
@@ -46,18 +46,18 @@ use Symfony\Component\Serializer\Attribute\Groups;
  *
  * ## `lecturaActual` es caché, no verdad
  *
- * La verdad de lo consumido está en `EnergiaLectura`. Estas dos columnas son la foto del último
+ * La verdad de lo consumido está en `DomoticaLectura`. Estas dos columnas son la foto del último
  * muestreo, para pintar el panel sin recorrer la bitácora. Si alguna vez discrepan, manda la
- * bitácora — ver `docs/Energia.md` §3.
+ * bitácora — ver `docs/Domotica.md` §3.
  */
-#[ORM\Entity(repositoryClass: EnergiaDispositivoRepository::class)]
-#[ORM\Table(name: 'energia_dispositivo')]
+#[ORM\Entity(repositoryClass: DomoticaDispositivoRepository::class)]
+#[ORM\Table(name: 'domotica_dispositivo')]
 // El id de Tuya es la clave natural: es con lo que llega cualquier respuesta de la nube, y dos
 // filas con el mismo id harían que un muestreo se escribiera en la que tocara por azar.
-#[ORM\UniqueConstraint(name: 'uniq_energia_dispositivo_tuya', columns: ['tuya_device_id'])]
-#[ORM\Index(name: 'idx_energia_dispositivo_unidad', columns: ['unidad_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_domotica_dispositivo_tuya', columns: ['tuya_device_id'])]
+#[ORM\Index(name: 'idx_domotica_dispositivo_unidad', columns: ['unidad_id'])]
 #[ORM\HasLifecycleCallbacks]
-class EnergiaDispositivo
+class DomoticaDispositivo
 {
     use IdTrait;
     use TimestampTrait;
@@ -69,12 +69,12 @@ class EnergiaDispositivo
      * permite volver a encontrar el aparato si alguien lo renombra en la app del móvil.
      */
     #[ORM\Column(type: 'string', length: 64)]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private string $tuyaDeviceId = '';
 
     /** Cómo lo llamamos nosotros: «Casa 3 · dormitorio 1». Es lo que ve el operador en el panel. */
     #[ORM\Column(type: 'string', length: 120)]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private string $nombre = '';
 
     /**
@@ -84,7 +84,7 @@ class EnergiaDispositivo
      * escribir «dormitorio 1» sería inventar un modelo antes de necesitarlo.
      */
     #[ORM\Column(type: 'string', length: 120, nullable: true)]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private ?string $ubicacion = null;
 
     /**
@@ -93,7 +93,7 @@ class EnergiaDispositivo
      */
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class)]
     #[ORM\JoinColumn(name: 'unidad_id', nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private ?PmsUnidad $unidad = null;
 
     /**
@@ -105,7 +105,7 @@ class EnergiaDispositivo
      * lectura: no la da porque no la tiene, y avisar de eso cada tres horas quemaría el canal.
      */
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private bool $mideConsumo = true;
 
     /**
@@ -116,7 +116,7 @@ class EnergiaDispositivo
      * que no va a funcionar, que es peor que no ofrecerlo.
      */
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private bool $conmutable = true;
 
     /**
@@ -127,11 +127,11 @@ class EnergiaDispositivo
      * esto —el calefactor que se queda ardiendo a pleno sol—.
      */
     #[ORM\Column(type: 'boolean', nullable: true)]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private ?bool $encendido = null;
 
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private ?DateTimeImmutable $estadoTomadoEn = null;
 
     /**
@@ -142,7 +142,7 @@ class EnergiaDispositivo
      * de «no se borra: se marca» de CLAUDE.md.
      */
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private bool $activo = true;
 
     /**
@@ -152,12 +152,12 @@ class EnergiaDispositivo
      * y no se reinicia jamás: los reinicios sólo tocan el consumo imputado en la suscripción.
      */
     #[ORM\Column(type: 'decimal', precision: 12, scale: 3, nullable: true)]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private ?string $lecturaTotal = null;
 
     /** Cuándo se tomó `lecturaTotal`. Si se queda atrás, el cron dejó de correr: hay que avisar. */
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private ?DateTimeImmutable $lecturaTomadaEn = null;
 
     /**
@@ -167,7 +167,7 @@ class EnergiaDispositivo
      * «ahora mismo está gastando», que es lo que convence de verdad al que dice que no lo usa.
      */
     #[ORM\Column(type: 'integer', nullable: true)]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private ?int $potenciaVatios = null;
 
     /**
@@ -179,12 +179,12 @@ class EnergiaDispositivo
      * el aviso número sesenta ya no lo lee nadie.
      */
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private int $fallosConsecutivos = 0;
 
     /** Cuándo se avisó por última vez. Sólo informativo: quien decide es el contador. */
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
-    #[Groups(['energia_dispositivo:read'])]
+    #[Groups(['domotica_dispositivo:read'])]
     private ?DateTimeImmutable $ultimaAlertaEn = null;
 
     #[ORM\Column(type: 'text', nullable: true)]

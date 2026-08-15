@@ -14,11 +14,11 @@ api_platform:
             # AttributeFilterPass sólo recorre los directorios listados aquí, así que los
             # filtros se ignoran en silencio y las colecciones salen sin filtrar.
             - '%kernel.project_dir%/src/Operacion/Entity'
-            # Energía (consumo eléctrico por enchufe). El directorio está listado, pero las
+            # Domótica (enchufes inteligentes: consumo y estado). El directorio está listado, pero las
             # entidades AÚN NO llevan #[ApiResource]: los grupos de serialización están puestos y
             # el día que se exponga hay que decidir antes quién ve qué. El consumo de un huésped es
             # suyo, y publicar la colección sin `security` la deja legible para cualquier token.
-            - '%kernel.project_dir%/src/Energia/Entity'
+            - '%kernel.project_dir%/src/Domotica/Entity'
             # Descomenta estas líneas si luego quieres exponer APIs de estos módulos:
             # - '%kernel.project_dir%/src/Exchange/Entity'
 

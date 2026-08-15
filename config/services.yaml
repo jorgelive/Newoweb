@@ -19,7 +19,7 @@ imports:
     - { resource: 'services/services_cotizacion.yaml' }
     - { resource: 'services/services_operacion.yaml' }
     - { resource: 'services/services_finanzas.yaml' }
-    - { resource: 'services/services_energia.yaml' }
+    - { resource: 'services/services_domotica.yaml' }
 
 
     - { resource: 'services/services_exchange.yaml' }

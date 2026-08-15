@@ -76,7 +76,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Agent/Alexa/`, `VoiceAssistant`, `AlexaController` (el agente por voz) | `docs/AgentVoz.md` |
 | `src/Logging/`, `config/packages/monolog.yaml`, rotación de logs | `docs/Logging.md` |
 | `config/packages/mailer.yaml`, variables `MAILER_*`, envío por Graph | `docs/CorreoSaliente.md` |
-| `src/Energia/`, `TuyaExchangeClient`, consumo eléctrico por enchufe | `docs/Energia.md` |
+| `src/Domotica/`, `TuyaExchangeClient`, aparatos inteligentes (consumo y estado) | `docs/Domotica.md` |
 
 Si el módulo que tocas no tiene doc (`src/Travel/`, `src/Agent/`, `src/Pax/`…), **créalo**
 siguiendo el formato de los existentes y agrégalo a esta tabla.

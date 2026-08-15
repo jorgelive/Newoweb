@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Energia\Enum;
+namespace App\Domotica\Enum;
 
 /**
  * Por qué existe una fila en la bitácora de consumo.
@@ -15,7 +15,7 @@ namespace App\Energia\Enum;
  * fíe: si el reinicio se hiciera con un UPDATE, el salto en la cuenta no tendría explicación
  * dentro del propio historial, que es justo lo que hay que evitar cuando se cobra por consumo.
  */
-enum EnergiaMotivoLectura: string
+enum DomoticaMotivoLectura: string
 {
     /** Muestreo horario del cron. Es el caso normal y el 99 % de las filas. */
     case Poll = 'poll';

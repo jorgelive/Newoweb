@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Energia\Command;
+namespace App\Domotica\Command;
 
-use App\Energia\Repository\EnergiaDispositivoRepository;
-use App\Energia\Service\VigilanteDeDispositivos;
+use App\Domotica\Repository\DomoticaDispositivoRepository;
+use App\Domotica\Service\VigilanteDeDispositivos;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -31,23 +31,23 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * Por eso esto va en su propia entrada de crontab y mira el RELOJ en vez del contador. Es la
  * única señal que sobrevive a que el proceso que debía vigilar sea justamente el que falló.
  *
- *   5  * * * *   php bin/console app:energia:muestrear    (pendiente)
- *   35 * * * *   php bin/console app:energia:vigilar
+ *   5  * * * *   php bin/console app:domotica:muestrear    (pendiente)
+ *   35 * * * *   php bin/console app:domotica:vigilar
  *
  * Desfasado media hora del muestreo a propósito: si los dos salen juntos, el barrido lee el
  * estado de antes de que el muestreo lo actualice y avisa de aparatos que están bien.
  */
 #[AsCommand(
-    name: 'app:energia:vigilar',
+    name: 'app:domotica:vigilar',
     description: 'Avisa de los enchufes que llevan horas sin registrar consumo.'
 )]
-final class EnergiaVigilarCommand extends Command
+final class DomoticaVigilarCommand extends Command
 {
     public function __construct(
         private readonly VigilanteDeDispositivos $vigilante,
-        private readonly EnergiaDispositivoRepository $dispositivos,
+        private readonly DomoticaDispositivoRepository $dispositivos,
         private readonly EntityManagerInterface $em,
-        #[Autowire('%energia.horas_para_alerta%')] private readonly int $horasPorDefecto,
+        #[Autowire('%domotica.horas_para_alerta%')] private readonly int $horasPorDefecto,
     ) {
         parent::__construct();
     }

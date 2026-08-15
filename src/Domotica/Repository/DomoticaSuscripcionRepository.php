@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace App\Energia\Repository;
+namespace App\Domotica\Repository;
 
-use App\Energia\Entity\EnergiaDispositivo;
-use App\Energia\Entity\EnergiaSuscripcion;
+use App\Domotica\Entity\DomoticaDispositivo;
+use App\Domotica\Entity\DomoticaSuscripcion;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * @extends ServiceEntityRepository<EnergiaSuscripcion>
+ * @extends ServiceEntityRepository<DomoticaSuscripcion>
  */
-class EnergiaSuscripcionRepository extends ServiceEntityRepository
+class DomoticaSuscripcionRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, EnergiaSuscripcion::class);
+        parent::__construct($registry, DomoticaSuscripcion::class);
     }
 
     /**
      * Las cuentas vivas en este momento: lo que recorre el cron cada hora.
      *
-     * @return list<EnergiaSuscripcion>
+     * @return list<DomoticaSuscripcion>
      */
     public function vigentes(?\DateTimeImmutable $momento = null): array
     {
@@ -47,7 +47,7 @@ class EnergiaSuscripcionRepository extends ServiceEntityRepository
      * Sirve para el caso más frecuente del panel —«¿de quién es lo que está gastando ahora?»— y
      * para no abrir una segunda cuenta encima de una viva.
      */
-    public function abiertaDe(EnergiaDispositivo $dispositivo): ?EnergiaSuscripcion
+    public function abiertaDe(DomoticaDispositivo $dispositivo): ?DomoticaSuscripcion
     {
         return $this->createQueryBuilder('s')
             ->andWhere('s.dispositivo = :d')
@@ -65,7 +65,7 @@ class EnergiaSuscripcionRepository extends ServiceEntityRepository
      * ⚠️ El evento se pasa por su UUID y con el tipo `'uuid'` declarado: la columna es BINARY(16) y
      * pasar la entidad a pelo devuelve CERO FILAS SIN ERROR. Ya costó una tarde en `EscaleraDeTemas`.
      *
-     * @return list<EnergiaSuscripcion>
+     * @return list<DomoticaSuscripcion>
      */
     public function delEvento(Uuid $eventoId): array
     {

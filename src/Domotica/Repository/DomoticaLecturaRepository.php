@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace App\Energia\Repository;
+namespace App\Domotica\Repository;
 
-use App\Energia\Entity\EnergiaDispositivo;
-use App\Energia\Entity\EnergiaLectura;
-use App\Energia\Entity\EnergiaSuscripcion;
+use App\Domotica\Entity\DomoticaDispositivo;
+use App\Domotica\Entity\DomoticaLectura;
+use App\Domotica\Entity\DomoticaSuscripcion;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<EnergiaLectura>
+ * @extends ServiceEntityRepository<DomoticaLectura>
  */
-class EnergiaLecturaRepository extends ServiceEntityRepository
+class DomoticaLecturaRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, EnergiaLectura::class);
+        parent::__construct($registry, DomoticaLectura::class);
     }
 
     /**
@@ -26,9 +26,9 @@ class EnergiaLecturaRepository extends ServiceEntityRepository
      * Es lo que se le enseña al huésped, así que va ASCENDENTE: se lee como un extracto, desde que
      * entró hasta ahora.
      *
-     * @return list<EnergiaLectura>
+     * @return list<DomoticaLectura>
      */
-    public function historialDe(EnergiaSuscripcion $suscripcion): array
+    public function historialDe(DomoticaSuscripcion $suscripcion): array
     {
         return $this->createQueryBuilder('l')
             ->andWhere('l.suscripcion = :s')
@@ -47,7 +47,7 @@ class EnergiaLecturaRepository extends ServiceEntityRepository
      * cosmético —`leida_en` tiene precisión de segundo y dos filas de la misma hora ordenarían al
      * azar, que en una suma acumulada significa perder o duplicar un tramo.
      */
-    public function ultimaDe(EnergiaDispositivo $dispositivo): ?EnergiaLectura
+    public function ultimaDe(DomoticaDispositivo $dispositivo): ?DomoticaLectura
     {
         return $this->createQueryBuilder('l')
             ->andWhere('l.dispositivo = :d')
@@ -65,7 +65,7 @@ class EnergiaLecturaRepository extends ServiceEntityRepository
      * La restricción única de la tabla lo impediría igual, pero comprobarlo antes evita gastar una
      * excepción —y una llamada a Tuya— en cada reintento del cron.
      */
-    public function tieneCubo(EnergiaDispositivo $dispositivo, string $cuboHorario): bool
+    public function tieneCubo(DomoticaDispositivo $dispositivo, string $cuboHorario): bool
     {
         return $this->count(['dispositivo' => $dispositivo, 'cuboHorario' => $cuboHorario]) > 0;
     }

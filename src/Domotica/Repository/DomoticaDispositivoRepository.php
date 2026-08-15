@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace App\Energia\Repository;
+namespace App\Domotica\Repository;
 
-use App\Energia\Entity\EnergiaDispositivo;
+use App\Domotica\Entity\DomoticaDispositivo;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<EnergiaDispositivo>
+ * @extends ServiceEntityRepository<DomoticaDispositivo>
  */
-class EnergiaDispositivoRepository extends ServiceEntityRepository
+class DomoticaDispositivoRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, EnergiaDispositivo::class);
+        parent::__construct($registry, DomoticaDispositivo::class);
     }
 
-    public function porTuyaId(string $tuyaDeviceId): ?EnergiaDispositivo
+    public function porTuyaId(string $tuyaDeviceId): ?DomoticaDispositivo
     {
         return $this->findOneBy(['tuyaDeviceId' => $tuyaDeviceId]);
     }
@@ -26,7 +26,7 @@ class EnergiaDispositivoRepository extends ServiceEntityRepository
     /**
      * Los que el cron tiene que muestrear.
      *
-     * @return list<EnergiaDispositivo>
+     * @return list<DomoticaDispositivo>
      */
     public function activos(bool $soloConContometro = false): array
     {
@@ -50,7 +50,7 @@ class EnergiaDispositivoRepository extends ServiceEntityRepository
      * deja de subir, que es exactamente lo que el huésped esperaría ver— y el descubrimiento
      * llegaría el día de cobrar.
      *
-     * @return list<EnergiaDispositivo>
+     * @return list<DomoticaDispositivo>
      */
     public function mudos(int $horas = 2): array
     {

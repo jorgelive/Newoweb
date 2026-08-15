@@ -86,12 +86,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Operacion/Entity'
                 prefix: 'App\Operacion\Entity'
                 alias: pax
-            Energia:
+            Domotica:
                 is_bundle: false
                 type: attribute
-                dir: '%kernel.project_dir%/src/Energia/Entity'
-                prefix: 'App\Energia\Entity'
-                alias: energia
+                dir: '%kernel.project_dir%/src/Domotica/Entity'
+                prefix: 'App\Domotica\Entity'
+                alias: domotica
             gedmo_translatable:
                 type: attribute
                 prefix: Gedmo\Translatable\Entity

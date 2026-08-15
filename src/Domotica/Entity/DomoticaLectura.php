@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Energia\Entity;
+namespace App\Domotica\Entity;
 
-use App\Energia\Enum\EnergiaMotivoLectura;
-use App\Energia\Repository\EnergiaLecturaRepository;
+use App\Domotica\Enum\DomoticaMotivoLectura;
+use App\Domotica\Repository\DomoticaLecturaRepository;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Entity\User;
@@ -42,12 +42,12 @@ use Symfony\Component\Serializer\Attribute\Groups;
  * (`add_ele` es un incremento por hora, no un acumulado) y guardarlo tal cual deja comprobar más
  * tarde si un salto raro venía de la nube o lo introdujimos nosotros al acumular.
  */
-#[ORM\Entity(repositoryClass: EnergiaLecturaRepository::class)]
-#[ORM\Table(name: 'energia_lectura')]
+#[ORM\Entity(repositoryClass: DomoticaLecturaRepository::class)]
+#[ORM\Table(name: 'domotica_lectura')]
 // La consulta de siempre: «el historial de esta estancia, en orden». Sin esto, pintar el
 // desglose obliga a recorrer la tabla entera, que crece 24 filas por aparato y día.
-#[ORM\Index(name: 'idx_energia_lectura_suscripcion', columns: ['suscripcion_id', 'leida_en'])]
-#[ORM\Index(name: 'idx_energia_lectura_dispositivo', columns: ['dispositivo_id', 'leida_en'])]
+#[ORM\Index(name: 'idx_domotica_lectura_suscripcion', columns: ['suscripcion_id', 'leida_en'])]
+#[ORM\Index(name: 'idx_domotica_lectura_dispositivo', columns: ['dispositivo_id', 'leida_en'])]
 // Dos muestreos de la misma hora serían consumo contado dos veces. La nube de Tuya devuelve
 // cubos horarios y un reintento del cron pediría el mismo: lo impide la base, no el buen criterio.
 //
@@ -55,9 +55,9 @@ use Symfony\Component\Serializer\Attribute\Groups;
 // una cuenta abierta a la vez —así que es igual de estricto—, y las filas huérfanas (aparato entre
 // estancias) tienen `suscripcion_id` a NULL, que en MySQL no colisiona con nada y las dejaría
 // duplicarse sin que nadie se entere.
-#[ORM\UniqueConstraint(name: 'uniq_energia_lectura_hora', columns: ['dispositivo_id', 'cubo_horario'])]
+#[ORM\UniqueConstraint(name: 'uniq_domotica_lectura_hora', columns: ['dispositivo_id', 'cubo_horario'])]
 #[ORM\HasLifecycleCallbacks]
-class EnergiaLectura
+class DomoticaLectura
 {
     use IdTrait;
     use TimestampTrait;
@@ -67,19 +67,19 @@ class EnergiaLectura
      * —el contador corre igual y conviene saber si alguien lo enciende entre estancias—, y esas
      * filas no son de nadie.
      */
-    #[ORM\ManyToOne(targetEntity: EnergiaSuscripcion::class)]
+    #[ORM\ManyToOne(targetEntity: DomoticaSuscripcion::class)]
     #[ORM\JoinColumn(name: 'suscripcion_id', nullable: true, onDelete: 'CASCADE')]
-    #[Groups(['energia_lectura:read'])]
-    private ?EnergiaSuscripcion $suscripcion = null;
+    #[Groups(['domotica_lectura:read'])]
+    private ?DomoticaSuscripcion $suscripcion = null;
 
     /** El aparato. Se guarda aunque la suscripción ya lo diga: las filas huérfanas también son suyas. */
-    #[ORM\ManyToOne(targetEntity: EnergiaDispositivo::class)]
+    #[ORM\ManyToOne(targetEntity: DomoticaDispositivo::class)]
     #[ORM\JoinColumn(name: 'dispositivo_id', nullable: false, onDelete: 'CASCADE')]
-    #[Groups(['energia_lectura:read'])]
-    private ?EnergiaDispositivo $dispositivo = null;
+    #[Groups(['domotica_lectura:read'])]
+    private ?DomoticaDispositivo $dispositivo = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
-    #[Groups(['energia_lectura:read'])]
+    #[Groups(['domotica_lectura:read'])]
     private ?DateTimeImmutable $leidaEn = null;
 
     /**
@@ -91,31 +91,31 @@ class EnergiaLectura
      * eso no colisionan entre sí.
      */
     #[ORM\Column(type: 'string', length: 10, nullable: true)]
-    #[Groups(['energia_lectura:read'])]
+    #[Groups(['domotica_lectura:read'])]
     private ?string $cuboHorario = null;
 
     /** Lo que marcaba el contador del aparato. Nunca baja. */
     #[ORM\Column(type: 'decimal', precision: 12, scale: 3)]
-    #[Groups(['energia_lectura:read'])]
+    #[Groups(['domotica_lectura:read'])]
     private string $consumoTotal = '0.000';
 
     /** Lo acumulado a cargo del huésped en ese instante. Vuelve a cero en los reinicios. */
     #[ORM\Column(type: 'decimal', precision: 12, scale: 3)]
-    #[Groups(['energia_lectura:read'])]
+    #[Groups(['domotica_lectura:read'])]
     private string $consumoCliente = '0.000';
 
     /** Los kW·h de este tramo: lo que devolvió Tuya para esa hora, sin tocar. */
     #[ORM\Column(type: 'decimal', precision: 12, scale: 3, options: ['default' => '0.000'])]
-    #[Groups(['energia_lectura:read'])]
+    #[Groups(['domotica_lectura:read'])]
     private string $incremento = '0.000';
 
-    #[ORM\Column(type: 'string', length: 20, enumType: EnergiaMotivoLectura::class)]
-    #[Groups(['energia_lectura:read'])]
-    private EnergiaMotivoLectura $motivo = EnergiaMotivoLectura::Poll;
+    #[ORM\Column(type: 'string', length: 20, enumType: DomoticaMotivoLectura::class)]
+    #[Groups(['domotica_lectura:read'])]
+    private DomoticaMotivoLectura $motivo = DomoticaMotivoLectura::Poll;
 
     /** Por qué lo hizo una persona. Obligatoria de hecho en reinicios y ajustes; ver el enum. */
     #[ORM\Column(type: 'text', nullable: true)]
-    #[Groups(['energia_lectura:read'])]
+    #[Groups(['domotica_lectura:read'])]
     private ?string $nota = null;
 
     /** Quién lo pidió, cuando no fue el cron. Sin esto, un reinicio no se le puede preguntar a nadie. */
@@ -123,24 +123,24 @@ class EnergiaLectura
     #[ORM\JoinColumn(name: 'registrada_por_id', nullable: true, onDelete: 'SET NULL')]
     private ?User $registradaPor = null;
 
-    public function getSuscripcion(): ?EnergiaSuscripcion
+    public function getSuscripcion(): ?DomoticaSuscripcion
     {
         return $this->suscripcion;
     }
 
-    public function setSuscripcion(?EnergiaSuscripcion $suscripcion): self
+    public function setSuscripcion(?DomoticaSuscripcion $suscripcion): self
     {
         $this->suscripcion = $suscripcion;
 
         return $this;
     }
 
-    public function getDispositivo(): ?EnergiaDispositivo
+    public function getDispositivo(): ?DomoticaDispositivo
     {
         return $this->dispositivo;
     }
 
-    public function setDispositivo(?EnergiaDispositivo $dispositivo): self
+    public function setDispositivo(?DomoticaDispositivo $dispositivo): self
     {
         $this->dispositivo = $dispositivo;
 
@@ -207,12 +207,12 @@ class EnergiaLectura
         return $this;
     }
 
-    public function getMotivo(): EnergiaMotivoLectura
+    public function getMotivo(): DomoticaMotivoLectura
     {
         return $this->motivo;
     }
 
-    public function setMotivo(EnergiaMotivoLectura $motivo): self
+    public function setMotivo(DomoticaMotivoLectura $motivo): self
     {
         $this->motivo = $motivo;
 
@@ -257,7 +257,7 @@ class EnergiaLectura
             $this->leidaEn?->format('H:i') ?? '—',
             number_format((float) $this->consumoTotal, 3),
             number_format((float) $this->consumoCliente, 3),
-            $this->motivo === EnergiaMotivoLectura::Poll ? '' : ' (' . $this->motivo->etiqueta() . ')'
+            $this->motivo === DomoticaMotivoLectura::Poll ? '' : ' (' . $this->motivo->etiqueta() . ')'
         );
     }
 }

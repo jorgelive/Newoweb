@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Energia\Service;
+namespace App\Domotica\Service;
 
-use App\Energia\Entity\EnergiaDispositivo;
-use App\Energia\Repository\EnergiaDispositivoRepository;
+use App\Domotica\Entity\DomoticaDispositivo;
+use App\Domotica\Repository\DomoticaDispositivoRepository;
 use App\Repository\UserRepository;
 use App\Security\Roles;
 use App\Service\WebPushNotificationService;
@@ -36,7 +36,7 @@ use Throwable;
  * sesenta notificaciones idénticas, y para la número diez ya nadie las abre — el canal queda
  * quemado para cuando de verdad importe.
  *
- * Por eso decide `EnergiaDispositivo::debeAlertar()` con un módulo: salta en el fallo N, el 2N,
+ * Por eso decide `DomoticaDispositivo::debeAlertar()` con un módulo: salta en el fallo N, el 2N,
  * el 3N… Sigue insistiendo, porque un aparato roto sigue estándolo, pero espaciado.
  *
  * Y el primer aviso llega al fallo N, no al primero: un muestreo perdido por un wifi con hipo se
@@ -45,12 +45,12 @@ use Throwable;
 final readonly class VigilanteDeDispositivos
 {
     public function __construct(
-        private EnergiaDispositivoRepository $dispositivos,
+        private DomoticaDispositivoRepository $dispositivos,
         private WebPushNotificationService $push,
         private UserRepository $usuarios,
         private RoleHierarchyInterface $jerarquia,
         private LoggerInterface $logger,
-        #[Autowire('%energia.fallos_para_alerta%')] private int $fallosParaAlerta,
+        #[Autowire('%domotica.fallos_para_alerta%')] private int $fallosParaAlerta,
     ) {}
 
     /**
@@ -61,12 +61,12 @@ final readonly class VigilanteDeDispositivos
      *
      * @return bool si se disparó el aviso
      */
-    public function anotarFallo(EnergiaDispositivo $dispositivo): bool
+    public function anotarFallo(DomoticaDispositivo $dispositivo): bool
     {
         $fallos = $dispositivo->registrarFallo();
 
         $this->logger->warning(sprintf(
-            '[Energia] «%s» sin lectura (%d seguidas).',
+            '[Domotica] «%s» sin lectura (%d seguidas).',
             $dispositivo->getNombre(),
             $fallos
         ));
@@ -88,7 +88,7 @@ final readonly class VigilanteDeDispositivos
      * muestreo que lo pidió. Perder una notificación es molesto; perder la hora de consumo de
      * todos los aparatos porque el push falló es un agujero en la facturación.
      */
-    private function avisar(EnergiaDispositivo $dispositivo, int $fallos): void
+    private function avisar(DomoticaDispositivo $dispositivo, int $fallos): void
     {
         try {
             $payload = [
@@ -99,7 +99,7 @@ final readonly class VigilanteDeDispositivos
                     $fallos,
                     $dispositivo->getLecturaTomadaEn()?->format('d/m H:i') ?? 'nunca'
                 ),
-                'actionUrl' => '/energia/dispositivos',
+                'actionUrl' => '/domotica/dispositivos',
             ];
 
             foreach ($this->destinatarios() as $usuario) {
@@ -107,7 +107,7 @@ final readonly class VigilanteDeDispositivos
             }
         } catch (Throwable $e) {
             $this->logger->error(
-                '[Energia] No se pudo avisar del enchufe mudo: ' . $e->getMessage(),
+                '[Domotica] No se pudo avisar del enchufe mudo: ' . $e->getMessage(),
                 ['exception' => $e]
             );
         }
@@ -147,7 +147,7 @@ final readonly class VigilanteDeDispositivos
      *
      * Va en una entrada de cron aparte, a propósito.
      *
-     * @return list<EnergiaDispositivo>
+     * @return list<DomoticaDispositivo>
      */
     public function mudosSinMuestrear(int $horas): array
     {
