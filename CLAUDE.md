@@ -77,8 +77,10 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Logging/`, `config/packages/monolog.yaml`, rotación de logs | `docs/Logging.md` |
 | `config/packages/mailer.yaml`, variables `MAILER_*`, envío por Graph | `docs/CorreoSaliente.md` |
 | `src/Domotica/`, `TuyaExchangeClient`, aparatos inteligentes (consumo y estado) | `docs/Domotica.md` |
+| Procesos Node, sidecars, cálculo compartido TS ↔ PHP | `docs/NodeEnElStack.md` |
+| `src/Travel/` (catálogo maestro: servicios, itinerarios, segmentos, componentes, tarifas, proveedores) | `docs/Travel.md` |
 
-Si el módulo que tocas no tiene doc (`src/Travel/`, `src/Agent/`, `src/Pax/`…), **créalo**
+Si el módulo que tocas no tiene doc (`src/Agent/`, `src/Pax/`…), **créalo**
 siguiendo el formato de los existentes y agrégalo a esta tabla.
 
 ### Formato
@@ -189,6 +191,29 @@ más: ni un `match`, ni un `if` por `context_type`, ni tocar el registro.
 - **Lista vacía = sin acotar**, en skills, guía y conocimiento. Va contra la intuición y es
   deliberado: un olvido al clasificar deja el ítem de más —inofensivo— en vez de invisible, y lo
   segundo no se descubre nunca porque nadie echa de menos lo que no sabía que existía.
+
+## Node y PHP: cada lógica en un solo sitio
+
+El stack es PHP, y sigue siéndolo. Pero **algunos trabajos son calles estrechas**: una conexión
+persistente a una cola, un fan-out por SSE, o una regla que ya está escrita en TypeScript. Ahí Node
+entra — no porque sea mejor, sino porque la alternativa es duplicar.
+
+**La regla es una sola: ninguna regla de negocio puede estar escrita dos veces.** De ahí salen dos
+respuestas opuestas para el mismo lenguaje:
+
+- Un **sidecar** que sostiene una conexión va **tonto**: empuja eventos crudos y no sabe qué es una
+  reserva. El dominio ya vive en PHP; meterle conocimiento duplicaría.
+- El **cálculo financiero** va **listo**: ya vive en TypeScript y lo necesitan el editor del
+  operador *y* el agente IA. Reescribirlo en PHP duplicaría.
+
+⚠️ **Node calcula; PHP persiste.** En cuanto un proceso Node escriba en MySQL hay dos autores sobre
+el dinero. Esa frontera es la que mantiene barato el segundo lenguaje.
+
+**Propónlo cuando** haya conexión persistente, lógica que ya existe en TS, o el único cliente
+decente esté fuera de PHP. **No lo propongas** por rendimiento a secas, ni si el proceso tendría que
+escribir en base de datos, ni si la lógica ya vive en PHP y sólo hay que llamarla desde otro sitio.
+
+El detalle, los costes y el porqué de la analogía están en `docs/NodeEnElStack.md`.
 
 ## Qué entra por migración y qué tiene que entrar por comando
 

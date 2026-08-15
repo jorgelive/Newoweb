@@ -264,3 +264,47 @@ cola ya la tiene Tuya**: su API devuelve cubos horarios de las últimas 24 h, as
 perdido se recupera pidiendo el rango otra vez, y `uniq_domotica_lectura_hora` hace que reescribir
 sea un no-op. Una tabla de pendientes sería una segunda copia de un estado que ya guarda el remoto.
 Si algún día hacen falta programaciones de verdad, el camino es `symfony/scheduler`, no una tabla.
+
+---
+
+## 11. Pendiente de comprobar antes de diseñar el vivo
+
+El consumo en tiempo real —para el panel del colaborador y la guía del huésped— **no se ha
+diseñado todavía a propósito**. Hay dos incógnitas que deciden la arquitectura, y contestarlas
+cuesta quince minutos en la consola de Tuya. Construir antes sería apostar.
+
+### 1. ¿Tuya empuja por HTTP, o sólo por cola?
+
+En la configuración de suscripción de mensajes del proyecto, mirar qué métodos de entrega ofrece
+para eventos de **estado de dispositivo**.
+
+| Si… | El diseño es… |
+|---|---|
+| Hay push a un endpoint HTTPS | **Un webhook en Symfony.** Se acabó: sin Pulsar, sin sidecar, sin proceso persistente. Mismo patrón que Beds24 — recibir, auditar, encolar, contestar rápido |
+| Sólo hay cola (Pulsar) | Consumidor persistente. Y ojo: el cliente de Pulsar para Node es un *binding nativo* que necesita libpulsar en el servidor, no un `npm install` |
+
+⚠️ Esta comprobación va **primero**, porque puede eliminar la mitad del trabajo.
+
+### 2. ¿El enchufe reporta `cur_power` por su cuenta?
+
+Ninguna arquitectura arregla esto. Muchos enchufes Tuya emiten el `switch_1` al instante pero la
+potencia sólo en cambios grandes, cada varios minutos, o nunca.
+
+Cómo verlo, sin montar nada: en el depurador de dispositivo del panel de Tuya está el registro de
+DP emitidos. Enchufar una **carga real** —un calefactor, no un cargador de móvil—, dejarlo diez
+minutos y anotar qué aparece y cada cuánto.
+
+- **Si empuja la potencia con buena cadencia** → push como vía principal, y el muestreo horario se
+  queda como reconciliación.
+- **Si no la empuja** → para el «ahora mismo está gastando» hay que consultar igual, y el push sólo
+  sirve para el on/off. Entonces la caché de lectura por demanda vuelve a ser la respuesta buena.
+
+### 3. Cuota y suscripción
+
+Mirar el consumo de API y **si Power Management está en periodo de prueba**. Si caduca sin avisar,
+`statistics-trend` empieza a fallar y la facturación se queda sin datos — escenario que el
+vigilante de §10 ya cubre, porque no distingue causas.
+
+Volumen de referencia con ~15 aparatos: el cron horario son ~360 llamadas/día (irrelevante). El
+vivo escala con **cuánto tiempo hay alguien mirando**, no con el número de aparatos: un aparato
+observado 24 h son ~10.800 llamadas/día a intervalo de 8 s.
