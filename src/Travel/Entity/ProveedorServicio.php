@@ -7,8 +7,12 @@ namespace App\Travel\Entity;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
@@ -40,7 +44,35 @@ use Symfony\Component\Uid\Uuid;
             uriTemplate: '/proveedor-servicios/{id}',
             normalizationContext: ['groups' => ['proveedor_servicio:read', 'proveedor_servicio:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
-        )
+        ),
+
+        // Escritura para el CRUD de catálogo en Vue. `proveedor` es escribible porque el
+        // servicio se crea desde la ficha de su proveedor y llega como IRI.
+        new Post(
+            uriTemplate: '/proveedor-servicios',
+            denormalizationContext: ['groups' => ['proveedor_servicio:write']],
+            securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para crear servicios de proveedor.'
+        ),
+        new Put(
+            uriTemplate: '/proveedor-servicios/{id}',
+            denormalizationContext: ['groups' => ['proveedor_servicio:write']],
+            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar servicios de proveedor.'
+        ),
+        new Patch(
+            uriTemplate: '/proveedor-servicios/{id}',
+            denormalizationContext: ['groups' => ['proveedor_servicio:write']],
+            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar servicios de proveedor.'
+        ),
+        // Ojo: `CotizacionCottarifa` guarda un soft-link `proveedorServicioMaestroId` con su
+        // título e imágenes ya congelados. Borrar aquí no toca las cotizaciones emitidas.
+        new Delete(
+            uriTemplate: '/proveedor-servicios/{id}',
+            security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar servicios de proveedor.'
+        ),
     ],
     routePrefix: '/travel'
 )]
@@ -53,25 +85,35 @@ class ProveedorServicio
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'componente:item:read'])]
+    /**
+     * El id además del `@id`. Sin esto, al leerse anidado dentro de la ficha del proveedor
+     * sólo llegaba la IRI y el front no podía construir las URLs de borrado.
+     */
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read'])]
+    public function getId(): ?Uuid
+    {
+        return $this->id;
+    }
+
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'componente:item:read', 'proveedor_servicio:write'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'proveedor_servicio:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'proveedor_servicio:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $descripcion = [];
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'proveedor_servicio:write'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $url = null;
 
-    #[Groups(['proveedor_servicio:read', 'proveedor_servicio:item:read', 'componente:item:read'])]
+    #[Groups(['proveedor_servicio:read', 'proveedor_servicio:item:read', 'componente:item:read', 'proveedor_servicio:write'])]
     #[ORM\ManyToOne(targetEntity: Proveedor::class, inversedBy: 'proveedorServicios')]
     #[ORM\JoinColumn(name: 'proveedor_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?Proveedor $proveedor = null;

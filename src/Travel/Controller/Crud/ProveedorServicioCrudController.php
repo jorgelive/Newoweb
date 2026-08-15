@@ -145,7 +145,14 @@ class ProveedorServicioCrudController extends BaseCrudController
             ->setRequired(false)
             ->hideOnIndex()
             ->hideOnDetail()
-            ->setColumns(12);
+            ->setColumns(12)
+            // Mismo criterio que el proveedor, y en cascada: sin título aquí, el servicio no
+            // se muestra al cliente aunque su proveedor sí tenga el suyo.
+            ->setHelp(
+                'Sin título, este servicio no se le muestra al cliente. Y si el proveedor '
+                . 'tiene título pero el servicio no, tampoco se muestra el servicio: la '
+                . 'ausencia de título es lo que oculta, no hay casilla que marcar.'
+            );
 
         yield CollectionField::new('descripcion', 'Descripción')
             ->setEntryType(TranslationLongTextType::class)

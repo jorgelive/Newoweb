@@ -6,9 +6,14 @@ namespace App\Travel\Entity;
 
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
@@ -40,7 +45,37 @@ use Symfony\Component\Uid\Uuid;
             uriTemplate: '/proveedores/{id}',
             normalizationContext: ['groups' => ['proveedor:read', 'proveedor:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
-        )
+        ),
+
+        // Escritura desde el editor de cotizaciones: el prestador debe quedar SIEMPRE
+        // identificado contra el maestro. Hasta ahora el recurso era de sólo lectura y la
+        // única salida cuando el proveedor no existía era el campo de texto libre, que deja
+        // `prestadorMaestroId` vacío y rompe el histórico financiero.
+        new Post(
+            uriTemplate: '/proveedores',
+            denormalizationContext: ['groups' => ['proveedor:write']],
+            securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para crear proveedores.'
+        ),
+        new Put(
+            uriTemplate: '/proveedores/{id}',
+            denormalizationContext: ['groups' => ['proveedor:write']],
+            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar proveedores.'
+        ),
+        new Patch(
+            uriTemplate: '/proveedores/{id}',
+            denormalizationContext: ['groups' => ['proveedor:write']],
+            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar proveedores.'
+        ),
+        // Borrar arrastra imágenes y servicios (cascade + orphanRemoval), y deja huérfanos
+        // los soft-links de cotizaciones ya emitidas. Por eso va con permiso de borrado.
+        new Delete(
+            uriTemplate: '/proveedores/{id}',
+            security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar proveedores.'
+        ),
     ],
     routePrefix: '/travel'
 )]
@@ -53,37 +88,37 @@ class Proveedor
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor_servicio:read'])]
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor_servicio:read', 'proveedor:write'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreComercial = null;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $razonSocial = null;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $telefono = null;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $email = null;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
-    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $descripcion = [];
 
-    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $url = null;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $direccion = null;
 
@@ -112,6 +147,27 @@ class Proveedor
     private Collection $proveedorServicios;
 
     /**
+     * Lugares donde opera. Lado DUEÑO.
+     *
+     * Es COBERTURA, no ubicación: un operador de Lima que también despacha Ica lleva las
+     * dos. Por eso es múltiple aunque el componente suela tener una sola — ahí la etiqueta
+     * dice dónde ocurre ese servicio concreto, y aquí dice hasta dónde llega el proveedor.
+     *
+     * Va en `proveedor:read` (la colección) además del item: el listado del catálogo pinta
+     * las etiquetas en cada ficha, y con `readableLink: false` viajan como IRIs.
+     *
+     * @var Collection<int, TravelLugar>
+     */
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[ApiProperty(readableLink: false)]
+    #[ORM\ManyToMany(targetEntity: TravelLugar::class, inversedBy: 'proveedores')]
+    #[ORM\JoinTable(name: 'travel_proveedor_lugar_pool')]
+    #[ORM\JoinColumn(name: 'proveedor_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\InverseJoinColumn(name: 'lugar_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\OrderBy(['orden' => 'ASC', 'nombre' => 'ASC'])]
+    private Collection $lugares;
+
+    /**
      * Constructor de la entidad Proveedor.
      * Inicializa el identificador único UUIDv7 y las colecciones internas.
      */
@@ -120,6 +176,19 @@ class Proveedor
         $this->id = Uuid::v7();
         $this->proveedorImagenes = new ArrayCollection();
         $this->proveedorServicios = new ArrayCollection();
+        $this->lugares = new ArrayCollection();
+    }
+
+    /**
+     * El id, además del `@id`. `IdTrait` no lo expone a la API, así que sin este override
+     * el listado sólo traía la IRI y el front tenía que parsearla — con el resultado de que
+     * `p.id` llegaba `undefined`, las URLs salían como `/proveedores/undefined` y todas las
+     * fichas se marcaban como seleccionadas a la vez. Mismo criterio que TravelComponente.
+     */
+    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    public function getId(): ?Uuid
+    {
+        return $this->id;
     }
 
     /**
@@ -358,6 +427,36 @@ class Proveedor
     }
 
     public function getVirtualGaleria(): string
+    {
+        return '';
+    }
+
+    /**
+     * @return Collection<int, TravelLugar>
+     */
+    public function getLugares(): Collection
+    {
+        return $this->lugares;
+    }
+
+    public function addLugar(TravelLugar $lugar): self
+    {
+        if (!$this->lugares->contains($lugar)) {
+            $this->lugares->add($lugar);
+        }
+
+        return $this;
+    }
+
+    public function removeLugar(TravelLugar $lugar): self
+    {
+        $this->lugares->removeElement($lugar);
+
+        return $this;
+    }
+
+    /** Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
+    public function getVirtualLugares(): string
     {
         return '';
     }

@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace App\Travel\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use App\Security\Roles;
+use App\Travel\State\ProveedorImagenMultipartProcessor;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Panel\Entity\Trait\MediaTrait;
@@ -13,6 +18,7 @@ use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 /**
@@ -22,7 +28,36 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
 #[ApiResource(
     shortName: 'ProveedorImagen',
     operations: [
-        new Get(normalizationContext: ['groups' => ['proveedor:item:read']])
+        new Get(normalizationContext: ['groups' => ['proveedor:item:read']]),
+
+        // Alta por multipart: los escalares (`orden`, `isPortada`, `proveedor`) los
+        // denormaliza API Platform y el binario lo recoge el processor del campo `imagen`.
+        // `disable_type_enforcement` es obligatorio — en multipart todo llega como string,
+        // así que `orden` viaja como "3" y `isPortada` como "1".
+        new Post(
+            inputFormats: [
+                'jsonld' => ['application/ld+json'],
+                'multipart' => ['multipart/form-data'],
+            ],
+            denormalizationContext: [
+                'groups' => ['proveedor_imagen:write'],
+                'disable_type_enforcement' => true,
+            ],
+            securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para subir imágenes de proveedor.',
+            processor: ProveedorImagenMultipartProcessor::class
+        ),
+
+        // Reordenar la galería y marcar portada no reenvían el binario.
+        new Patch(
+            denormalizationContext: ['groups' => ['proveedor_imagen:write']],
+            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar imágenes de proveedor.'
+        ),
+        new Delete(
+            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityMessage: 'No tienes permiso para eliminar imágenes de proveedor.'
+        ),
     ],
     routePrefix: '/travel'
 )]
@@ -36,14 +71,23 @@ class ProveedorImagen
     use TimestampTrait;
     use MediaTrait; // Para el manejo de tokens e inyección de la URL pública
 
+    /** El id además del `@id`: la galería necesita construir URLs de borrado y portada. */
     #[Groups(['proveedor:item:read'])]
+    public function getId(): ?Uuid
+    {
+        return $this->id;
+    }
+
+
+    #[Groups(['proveedor:item:read', 'proveedor_imagen:write'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 0;
 
-    #[Groups(['proveedor:item:read'])]
+    #[Groups(['proveedor:item:read', 'proveedor_imagen:write'])]
     #[ORM\Column(type: 'boolean')]
     private bool $isPortada = false;
 
+    #[Groups(['proveedor_imagen:write'])]
     #[ORM\ManyToOne(targetEntity: Proveedor::class, inversedBy: 'proveedorImagenes')]
     #[ORM\JoinColumn(name: 'proveedor_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?Proveedor $proveedor = null;

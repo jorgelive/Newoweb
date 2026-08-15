@@ -15,6 +15,7 @@ use App\Travel\Entity\ProveedorServicio;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
@@ -146,12 +147,28 @@ class ProveedorCrudController extends BaseCrudController
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')->onlyOnForms()->setColumns(6);
 
+        yield AssociationField::new('lugares', 'Lugares donde opera')
+            ->onlyOnForms()
+            ->autocomplete()
+            ->setColumns(12)
+            // Cobertura, no ubicación: un operador de Lima que también despacha Ica lleva
+            // las dos. Es lo que permite filtrar «qué me da este proveedor en Lima».
+            ->setHelp('Multivaluado: marca TODOS los centros desde los que opera este proveedor.');
+
         yield CollectionField::new('titulo', 'Título')
             ->setEntryType(TranslationTextType::class)
             ->setRequired(false)
             ->hideOnIndex()
             ->hideOnDetail()
-            ->setColumns(12);
+            ->setColumns(12)
+            // La visibilidad al cliente no tiene flag: la gobierna la presencia del título.
+            // Al pasajero sólo le llegan `prestadorTituloSnapshot`, `...Url` e `...Imagenes`;
+            // el nombre comercial, el teléfono y la dirección no llevan el grupo público.
+            ->setHelp(
+                'Es lo ÚNICO que ve el cliente en la propuesta. Si lo dejas vacío, este '
+                . 'proveedor no se le muestra: la ausencia de título es la forma de ocultarlo, '
+                . 'no hace falta ninguna casilla adicional.'
+            );
 
         yield CollectionField::new('descripcion', 'Descripción')
             ->setEntryType(TranslationLongTextType::class)

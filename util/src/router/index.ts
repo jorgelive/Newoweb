@@ -79,6 +79,20 @@ const router = createRouter({
         },
 
         // ============================================================================
+        // CATÁLOGO DE PROVEEDORES (maestro de Travel)
+        //
+        // Fuera de /catalogo a propósito: eso es producto pre-armado para vender, y esto
+        // es el maestro de con quién se opera. Vive aquí para que dar de alta un
+        // proveedor no obligue a salir de la SPA hacia EasyAdmin — que era lo que
+        // empujaba al operador al campo de texto libre.
+        // ============================================================================
+        {
+            path: '/proveedores',
+            name: 'proveedores',
+            component: () => import('../views/Catalogo/ProveedoresView.vue')
+        },
+
+        // ============================================================================
         // MÓDULO DE RESERVAS (Calendario PMS)
         // ============================================================================
         {
