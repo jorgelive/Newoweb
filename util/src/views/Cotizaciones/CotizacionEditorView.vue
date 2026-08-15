@@ -1600,6 +1600,7 @@ store.$onAction(({ name, args }) => {
                     placeholder="Buscar servicio..."
                     @change="val => store.onServicioMaestroChange(val)"
                     @search="val => store.buscarServiciosAsincrono(val)"
+                    :min-chars-busqueda="3"
                 />
               </div>
               <div>
@@ -1636,6 +1637,7 @@ store.$onAction(({ name, args }) => {
                       :darkMode="false"
                       @change="val => store.onPrestadorServicioChange(val)"
                       @search="val => store.buscarProveedoresAsincrono(val)"
+                          :min-chars-busqueda="2"
                       class="flex-1"
                   />
                   <button v-if="store.servicioActivo.prestadorMaestroId"
@@ -1719,6 +1721,20 @@ store.$onAction(({ name, args }) => {
                       {{ !comp.sinHorario ? 'INICIO: ' + formatDateTimeFromISO(comp.fechaHoraInicio) : 'FECHA: ' + formatDateOnlyFromISO(comp.fechaHoraInicio) }}
                     </span>
 
+                    <!--
+                      Prestador: quién OPERA el componente, que no siempre es a quién se le
+                      compra. Sólo aparece si está resuelto — un componente sin prestador es
+                      lo normal (se hereda del día) y una pastilla vacía en cada tarjeta sería
+                      ruido. Sale del snapshot, no consulta el catálogo.
+                    -->
+                    <span v-if="comp.prestadorNombreSnapshot"
+                          class="bg-emerald-50 border border-emerald-100 text-emerald-800 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max max-w-full"
+                          title="PRESTADOR: quién opera el servicio en destino (no necesariamente a quién se le compra)">
+                      <i class="fas fa-truck-field text-emerald-500 shrink-0"></i>
+                      <span class="text-emerald-500 shrink-0">PRESTADOR</span>
+                      <span class="truncate">{{ comp.prestadorNombreSnapshot }}</span>
+                    </span>
+
                     <div v-if="comp.cantidad && comp.cantidad !== 1"
                          class="flex items-center gap-2 pl-4">
                       <div class="w-px h-3 bg-slate-300"></div>
@@ -1770,6 +1786,28 @@ store.$onAction(({ name, args }) => {
                         <span class="text-[9px] font-bold text-slate-400 flex items-center gap-1 leading-none">
                           <i :class="tarifa.esGrupal ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
                           {{ tarifa.esGrupal ? '1 GRUPO' : `${tarifa.cantidad} Pax` }}
+                        </span>
+
+                        <!--
+                          A quién se le compra esta tarifa. Sólo si existe: una tarifa sin
+                          proveedor asignado es lo normal en el catálogo maestro y una línea
+                          vacía o un «sin proveedor» en cada ficha sería ruido. El dato ya
+                          viaja en el snapshot, no hace falta pedir nada al catálogo.
+                        -->
+                        <!--
+                          Icono y color DISTINTOS a los del prestador a propósito: son dos
+                          cosas que suelen coincidir pero no son la misma. Aquí «compra»
+                          (carrito, violeta) = a quién se le paga; en la tarjeta del
+                          componente «prestador» (camión, verde) = quién opera. Se usa la
+                          misma palabra COMPRA que ya emplea el cuadro de tráfico, para que
+                          el vocabulario sea uno solo en toda la aplicación.
+                        -->
+                        <span v-if="tarifa.proveedorNombreSnapshot"
+                              class="text-[9px] font-bold text-violet-600 flex items-center gap-1 leading-none mt-1 truncate"
+                              title="COMPRA: a quién se le compra esta tarifa (no necesariamente quién la opera)">
+                          <i class="fas fa-cart-shopping text-[8px] shrink-0"></i>
+                          <span class="text-violet-400 shrink-0">COMPRA</span>
+                          <span class="truncate">{{ tarifa.proveedorNombreSnapshot }}</span>
                         </span>
                       </div>
                       <div class="text-right shrink-0">
@@ -2033,6 +2071,7 @@ store.$onAction(({ name, args }) => {
                           :darkMode="false"
                           @change="val => store.onPrestadorComponenteChange(val)"
                           @search="val => store.buscarProveedoresAsincrono(val)"
+                          :min-chars-busqueda="2"
                           class="flex-1"
                       />
                       <button v-if="store.componenteActivo.prestadorMaestroId"
@@ -2579,6 +2618,7 @@ store.$onAction(({ name, args }) => {
                           :darkMode="false"
                           @change="val => store.onProveedorChange(val)"
                           @search="val => store.buscarProveedoresAsincrono(val)"
+                          :min-chars-busqueda="2"
                           class="flex-1"
                       />
                       <button v-if="store.tarifaActiva.proveedorMaestroId"
@@ -2633,6 +2673,19 @@ store.$onAction(({ name, args }) => {
                       />
                       <p class="text-[9px] text-slate-400 mt-1 ml-1 flex items-center gap-1">
                         <i class="fas fa-info-circle"></i> Fija la identidad para el historial financiero.
+                      </p>
+                      <!--
+                        Escribirlo a mano deja el soft-link al maestro vacío. Se avisa aquí y
+                        no con una validación porque hay casos legítimos —un proveedor de una
+                        sola vez que no merece catalogarse—, pero conviene que sea una decisión
+                        y no el camino por defecto.
+                      -->
+                      <p class="text-[9px] text-amber-600 mt-1 ml-1 leading-snug">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        Escrito a mano queda sin ficha en el catálogo: no se le puede filtrar en
+                        Operaciones ni acumula histórico. Y al cliente sólo se le muestra lo que
+                        tiene <strong>título público</strong> en el maestro — un nombre suelto
+                        aquí nunca aparece en la propuesta. Prefiere seleccionarlo del catálogo.
                       </p>
                     </div>
                   </fieldset>

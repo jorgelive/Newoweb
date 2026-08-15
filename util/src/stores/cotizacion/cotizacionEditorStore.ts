@@ -121,6 +121,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const modoCatalogo = ref(false);
     const FECHA_BASE_NOMINAL = '2030-01-05';
 
+    /**
+     * Mínimo de letras para lanzar una búsqueda remota en el catálogo.
+     *
+     * Estaba en 3 y era demasiado: los nombres se buscan por prefijos cortos y el
+     * desplegable, mientras tanto, decía «no se encontraron resultados» porque sólo
+     * filtraba lo ya precargado. Si se sube, súbelo también en `SearchableSelect`
+     * (`minCharsBusqueda`) o el usuario volverá a ver un vacío que miente.
+     */
+    const MIN_CHARS_BUSQUEDA = 2;
+
     // ============================================================================
     // 🔥 LÓGICA DE NEGOCIO: ENUMS (Replicado del Backend)
     // ============================================================================
@@ -1598,7 +1608,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const buscarProveedoresAsincrono = async (query: string) => {
-        if (!query || query.trim().length < 3) return;
+        // 2 y no 3: los proveedores se buscan por prefijos cortos («Ga» → Gabrie) y con el
+        // umbral en 3 la petición no salía nunca, mientras el desplegable decía «no se
+        // encontraron resultados» filtrando sólo la lista precargada. Ver MIN_CHARS_BUSQUEDA.
+        if (!query || query.trim().length < MIN_CHARS_BUSQUEDA) return;
 
         try {
             // Asumiendo que quieres buscar por nombre comercial

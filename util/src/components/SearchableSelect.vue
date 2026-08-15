@@ -55,7 +55,16 @@
           <span class="truncate">{{ opt.label }}</span>
           <i v-if="modelValue === opt.value" class="fas fa-check text-[10px]"></i>
         </li>
-        <li v-if="filteredOptions.length === 0" class="px-4 py-8 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+        <!--
+          Distinguir «aún no he buscado» de «no hay nada» importa: con el mensaje único,
+          escribir una letra menos del mínimo mostraba «no se encontraron resultados»
+          sobre un catálogo que sí tenía la respuesta, y el operador daba por hecho que
+          el proveedor no existía.
+        -->
+        <li v-if="filteredOptions.length === 0 && faltanCaracteres" class="px-4 py-8 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+          Escribe al menos {{ minCharsBusqueda }} letras
+        </li>
+        <li v-else-if="filteredOptions.length === 0" class="px-4 py-8 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
           No se encontraron resultados
         </li>
       </ul>
@@ -81,12 +90,18 @@ const props = withDefaults(defineProps<{
   required?: boolean;      // marca error si queda vacío tras interactuar
   invalid?: boolean;       // fuerza el estado de error desde el padre (ej. al enviar)
   errorMessage?: string;   // texto de error bajo el campo
+  /**
+   * Letras que el padre exige para lanzar su búsqueda remota. Sólo cambia el mensaje del
+   * vacío; el filtrado local sigue igual. Por defecto 0 = comportamiento de siempre.
+   */
+  minCharsBusqueda?: number;
 }>(), {
   placeholder: '',
   darkMode: false,
   required: false,
   invalid: false,
   errorMessage: '',
+  minCharsBusqueda: 0,
 });
 
 const emit = defineEmits(['update:modelValue', 'change', 'search', 'blur']);
@@ -142,6 +157,13 @@ const select = (opt: { value: OpcionValor; label: string }) => {
 const selectedLabel = computed(() => {
   return props.options.find(o => o.value === props.modelValue)?.label || '';
 });
+
+/** Se escribió algo, pero aún no lo suficiente para que el padre busque de verdad. */
+const faltanCaracteres = computed(() =>
+    props.minCharsBusqueda > 0
+    && searchQuery.value.trim().length > 0
+    && searchQuery.value.trim().length < props.minCharsBusqueda
+);
 
 const filteredOptions = computed(() => {
   if (!searchQuery.value) return props.options;
