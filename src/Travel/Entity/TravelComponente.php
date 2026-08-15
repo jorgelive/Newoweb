@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -151,6 +152,31 @@ class TravelComponente
     #[ORM\OneToMany(mappedBy: 'componente', targetEntity: TravelSegmentoComponente::class)]
     private Collection $segmentoComponentesInyectados;
 
+    /**
+     * Centros de operación / lugares. Este es el lado DUEÑO.
+     *
+     * Multivaluado a propósito: un servicio de Ica que se despacha desde Lima lleva «Lima»
+     * y «Ica». Ver {@see TravelLugar} para por qué el vocabulario es plano y no un árbol.
+     *
+     * Va también en `componente:read` (la colección, no sólo el item) porque es el grupo que
+     * sirve la carga en lote `?id[]=` con la que el cuadro de tráfico pinta sus badges de una
+     * sola petición. Con `readableLink: false` viajan como IRIs, así que el coste por fila en
+     * la precarga del editor de cotizaciones es mínimo.
+     *
+     * Los JoinColumn van explícitos: la naming strategy generaría `travel_componente_id` /
+     * `travel_lugar_id` y la migración está escrita a mano — si se adivinan, divergen.
+     *
+     * @var Collection<int, TravelLugar>
+     */
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
+    #[ApiProperty(readableLink: false)]
+    #[ORM\ManyToMany(targetEntity: TravelLugar::class, inversedBy: 'componentes')]
+    #[ORM\JoinTable(name: 'travel_componente_lugar_pool')]
+    #[ORM\JoinColumn(name: 'componente_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\InverseJoinColumn(name: 'lugar_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\OrderBy(['orden' => 'ASC', 'nombre' => 'ASC'])]
+    private Collection $lugares;
+
     public function __construct()
     {
         $this->initializeId();
@@ -158,6 +184,7 @@ class TravelComponente
         $this->tarifas = new ArrayCollection();
         $this->servicios = new ArrayCollection();
         $this->segmentoComponentesInyectados = new ArrayCollection();
+        $this->lugares = new ArrayCollection();
     }
 
     /**
@@ -193,6 +220,16 @@ class TravelComponente
 
         // 5. Reiniciar la trazabilidad (Un clon no debe estar vinculado a los servicios del original)
         $this->servicios = new ArrayCollection();
+
+        // 6. Los lugares SÍ se conservan: un clon de «City Tour Cusco» se sigue operando desde
+        // Cusco. Pero hay que copiar la MEMBRESÍA, no la colección: sin esta reasignación el
+        // clon comparte el mismo PersistentCollection que el original y etiquetar a uno
+        // reetiqueta al otro, en silencio. Mismo criterio que TravelServicio::__clone().
+        $lugaresOriginales = $this->lugares;
+        $this->lugares = new ArrayCollection();
+        foreach ($lugaresOriginales as $lugarOriginal) {
+            $this->addLugar($lugarOriginal);
+        }
     }
 
     /**
@@ -406,10 +443,35 @@ class TravelComponente
         return $this->segmentoComponentesInyectados;
     }
 
+    /**
+     * @return Collection<int, TravelLugar>
+     */
+    public function getLugares(): Collection
+    {
+        return $this->lugares;
+    }
+
+    public function addLugar(TravelLugar $lugar): self
+    {
+        if (!$this->lugares->contains($lugar)) {
+            $this->lugares->add($lugar);
+        }
+
+        return $this;
+    }
+
+    public function removeLugar(TravelLugar $lugar): self
+    {
+        $this->lugares->removeElement($lugar);
+
+        return $this;
+    }
+
     // 🔥 VIRTUALES PARA EASYADMIN (Evitan error 500 al usar TextField con renderAsHtml)
     public function getVirtualTitulo(): string { return ''; }
     public function getVirtualServicios(): string { return ''; }
     public function getVirtualItems(): string { return ''; }
     public function getVirtualTarifas(): string { return ''; }
     public function getVirtualSegmentosInyectados(): string { return ''; }
+    public function getVirtualLugares(): string { return ''; }
 }

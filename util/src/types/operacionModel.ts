@@ -194,6 +194,26 @@ export interface FiltrosBiblia {
     tipos?: string[];
     estadoReservaProveedor?: string;
     estadoOperacion?: string;
+    /**
+     * UUIDs de `TravelLugar`, o el centinela `SIN_LUGAR`. Varios se combinan en OR.
+     * No es un SearchFilter: lo resuelve `OperacionServicioLugarExtension`, que cruza a
+     * Travel porque Operaciones no tiene relación con el catálogo.
+     */
+    lugares?: string[];
+}
+
+/**
+ * Centinela del chip «Sin etiqueta»: componentes tecleados a mano en la cotización (sin
+ * `componenteMaestroId`) o cuyo maestro no está etiquetado. Sin este chip desaparecerían
+ * del cuadro al filtrar por lugar, sin ningún aviso — y con ellos, de la orden de servicio.
+ * Debe coincidir con `OperacionServicioLugarExtension::SIN_LUGAR`.
+ */
+export const SIN_LUGAR = '__sin_lugar__';
+
+/** Opción de `/platform/travel/lugares`. */
+export interface LugarOpcion {
+    id: string;
+    nombre: string;
 }
 
 export const construirParamsBiblia = (f: FiltrosBiblia): Record<string, string | string[]> => {
@@ -210,6 +230,9 @@ export const construirParamsBiblia = (f: FiltrosBiblia): Record<string, string |
 
     // SearchFilter admite multivalor con la forma prop[]=a&prop[]=b
     if (f.tipos?.length) params['tipoComponente[]'] = f.tipos;
+
+    // Misma forma multivalor, pero lo atiende una query extension, no un SearchFilter.
+    if (f.lugares?.length) params['lugar[]'] = f.lugares;
 
     return params;
 };

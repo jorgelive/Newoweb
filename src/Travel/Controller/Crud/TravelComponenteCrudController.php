@@ -56,6 +56,8 @@ class TravelComponenteCrudController extends BaseCrudController
         return $filters
             // Filtro por la colección ManyToMany de Servicios (lado inverso, filtrable igual)
             ->add(EntityFilter::new('servicios', 'Servicio (Tour)'))
+            // Lugar / centro de operación: sirve para revisar qué falta por etiquetar
+            ->add(EntityFilter::new('lugares', 'Lugar / Centro'))
             // Filtro por el Enum de Categoría Operativa
             ->add(ChoiceFilter::new('tipo', 'Categoría Operativa')->setChoices(
                 array_reduce(ComponenteTipoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e->value], [])
@@ -247,6 +249,42 @@ class TravelComponenteCrudController extends BaseCrudController
             ->setColumns(4)
             ->hideOnIndex()
             ->formatValue(static fn ($value) => $value ? sprintf('%d Días', $value) : '-');
+
+        yield FormField::addPanel('Lugares / Centros de operación')->setIcon('fa fa-map-marker-alt');
+
+        // Lado DUEÑO de la relación: aquí no hace falta `by_reference: false` (a diferencia
+        // del AssociationField de servicios, que sí es lado inverso).
+        yield AssociationField::new('lugares', 'Lugares')
+            ->onlyOnForms()
+            ->autocomplete()
+            ->setColumns(12)
+            ->setHelp(
+                'Multivaluado y manual. Un servicio de Ica que se opera desde Lima lleva las dos: '
+                . '«Lima» e «Ica». Es lo que permite filtrar el cuadro de tráfico de un clic.'
+            );
+
+        yield TextField::new('virtualLugares', 'Lugares')
+            ->onlyOnIndex()
+            ->formatValue(function ($value, $entity): string {
+                $lugares = $entity->getLugares();
+
+                if ($lugares->isEmpty()) {
+                    return '<span class="badge badge-secondary">Sin etiquetar</span>';
+                }
+
+                $badges = array_map(
+                    static fn ($lugar): string => sprintf(
+                        '<span style="background:#e8f0fe;color:#2b5cad;border-radius:12px;padding:3px 10px;'
+                        . 'font-size:12px;font-weight:600;margin:2px 4px 2px 0;display:inline-block;'
+                        . 'white-space:nowrap;">%s</span>',
+                        htmlspecialchars((string) $lugar, ENT_QUOTES)
+                    ),
+                    $lugares->toArray()
+                );
+
+                return sprintf('<div style="display:flex;flex-wrap:wrap;">%s</div>', implode('', $badges));
+            })
+            ->renderAsHtml();
 
         yield FormField::addPanel('Ítems y Upsells (Lo que incluye)')->setIcon('fa fa-list-check');
 

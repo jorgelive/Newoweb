@@ -35,6 +35,10 @@ use Symfony\Component\Uid\Uuid;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_cotcomponente')]
+// El soft-link al catálogo no tiene FK a propósito, pero sí necesita índice: es la columna
+// contra la que el filtro de lugares del cuadro de tráfico lanza su `IN (...)`.
+// Ver App\Operacion\Filter\OperacionServicioLugarExtension.
+#[ORM\Index(columns: ['componente_maestro_id'], name: 'idx_cotcomponente_maestro')]
 #[ORM\HasLifecycleCallbacks]
 class CotizacionCotcomponente
 {
@@ -92,7 +96,11 @@ class CotizacionCotcomponente
     #[ORM\OneToMany(mappedBy: 'cotcomponente', targetEntity: CotizacionCottarifa::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $cottarifas;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    // `operacion:item:read` está aquí para que el cuadro de tráfico pueda pintar las
+    // etiquetas de lugar de cada fila resolviéndolas EN LOTE: con el id del maestro a mano,
+    // la vista junta los distintos y hace una sola llamada a /travel/componentes?id[]=…
+    // Sin esto haría falta una petición por fila para llegar al catálogo.
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $componenteMaestroId = null;
 

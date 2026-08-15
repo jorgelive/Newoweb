@@ -26,6 +26,7 @@ import {
     ESTADO_RESERVA_PROVEEDOR_CONFIG,
     ESTADO_OPERACION_CONFIG,
     TIPOS_COMPONENTE,
+    SIN_LUGAR,
     type FiltrosBiblia,
     type OperacionServicio,
     type OperacionOrdenServicio,
@@ -61,6 +62,7 @@ const sumarDias = (iso: string, dias: number): string => {
 const desde = ref<string>(`${hoyIso()}T00:00`);
 const hasta = ref<string>(`${sumarDias(hoyIso(), 6)}T00:00`);
 const tiposSeleccionados = ref<string[]>([]);
+const lugaresSeleccionados = ref<string[]>([]);
 const filtroEstadoReservaProveedor = ref<string>('');
 const filtroEstadoOperacion = ref<string>('');
 const mostrarFiltrosAvanzados = ref<boolean>(false);
@@ -79,6 +81,7 @@ const filtrosActivos = computed<FiltrosBiblia>(() => ({
     fileId: expedienteSeleccionado.value?.id,
     cotizacionId: cotizacionSeleccionada.value || undefined,
     tipos: tiposSeleccionados.value.length ? tiposSeleccionados.value : undefined,
+    lugares: lugaresSeleccionados.value.length ? lugaresSeleccionados.value : undefined,
     estadoReservaProveedor: filtroEstadoReservaProveedor.value || undefined,
     estadoOperacion: filtroEstadoOperacion.value || undefined,
 }));
@@ -131,6 +134,7 @@ const aplicarPreset = async (preset: 'hoy' | 'manana' | 'semana') => {
 
 const limpiarFiltros = async () => {
     tiposSeleccionados.value = [];
+    lugaresSeleccionados.value = [];
     filtroEstadoReservaProveedor.value = '';
     filtroEstadoOperacion.value = '';
     expedienteSeleccionado.value = null;
@@ -145,6 +149,13 @@ const alternarTipo = async (tipo: string) => {
     const i = tiposSeleccionados.value.indexOf(tipo);
     if (i === -1) tiposSeleccionados.value.push(tipo);
     else tiposSeleccionados.value.splice(i, 1);
+    await cargarBiblia();
+};
+
+const alternarLugar = async (id: string) => {
+    const i = lugaresSeleccionados.value.indexOf(id);
+    if (i === -1) lugaresSeleccionados.value.push(id);
+    else lugaresSeleccionados.value.splice(i, 1);
     await cargarBiblia();
 };
 
@@ -510,7 +521,11 @@ const formatearFecha = (iso?: string | null): string => {
     return `${iso.slice(8, 10)}/${iso.slice(5, 7)} ${iso.slice(11, 16)}`;
 };
 
-onMounted(cargarBiblia);
+onMounted(async () => {
+    // El vocabulario primero: sin él los chips no existen y el operador no puede filtrar.
+    await operacionStore.fetchLugares();
+    await cargarBiblia();
+});
 </script>
 
 <template>
@@ -619,6 +634,49 @@ onMounted(cargarBiblia);
                                 <span class="hidden sm:inline">Actualizar</span>
                             </button>
                         </div>
+                    </div>
+
+                    <!--
+                        Fila 1.5: lugares / centros de operación.
+
+                        FUERA del panel plegable a propósito. El operador ajusta el rango de
+                        fechas y aprieta «Lima» de un clic; si estuviera dentro de "Filtros"
+                        habría que abrir el panel antes de cada uso, que es justo el paso que
+                        este filtro existe para eliminar.
+                    -->
+                    <div v-if="operacionStore.lugares.length" class="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 mr-1">
+                            <i class="fas fa-map-marker-alt mr-1"></i>Lugar
+                        </span>
+
+                        <button
+                            v-for="l in operacionStore.lugares"
+                            :key="l.id"
+                            @click="alternarLugar(l.id)"
+                            :class="lugaresSeleccionados.includes(l.id)
+                                ? 'bg-[#376875] text-white border-[#376875]'
+                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
+                            class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                        >
+                            {{ l.nombre }}
+                        </button>
+
+                        <!--
+                            Los componentes tecleados a mano en la cotización no tienen maestro,
+                            así que nunca llevan etiqueta. Sin este chip desaparecerían del cuadro
+                            al filtrar por lugar sin ningún aviso — y con ellos, de la orden de
+                            servicio. Ver docs/Operacion.md.
+                        -->
+                        <button
+                            @click="alternarLugar(SIN_LUGAR)"
+                            :class="lugaresSeleccionados.includes(SIN_LUGAR)
+                                ? 'bg-amber-500 text-white border-amber-500'
+                                : 'bg-white text-amber-600 border-amber-200 hover:border-amber-400'"
+                            class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                            title="Servicios sin etiqueta de lugar (componentes manuales o sin catalogar)"
+                        >
+                            <i class="fas fa-circle-question mr-1"></i>Sin etiqueta
+                        </button>
                     </div>
 
                     <!-- Fila 2: filtros avanzados -->
@@ -892,6 +950,18 @@ onMounted(cargarBiblia);
 
                                                         <!-- Badges de clasificación: sólo cuando dicen algo -->
                                                         <div class="flex flex-wrap gap-1 mt-1">
+                                                            <!-- Lugares del catálogo. Resueltos EN LOTE al cargar
+                                                                 el cuadro (una petición, no una por fila): la fila
+                                                                 no tiene relación con Travel, sólo el uuid del
+                                                                 componente maestro. -->
+                                                            <span
+                                                                v-for="lugar in operacionStore.lugaresDeServicio(servicio)"
+                                                                :key="lugar"
+                                                                class="px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border bg-sky-50 text-sky-700 border-sky-200"
+                                                            >
+                                                                <i class="fas fa-map-marker-alt text-[8px]"></i> {{ lugar }}
+                                                            </span>
+
                                                             <!-- La fila está para informar al guía y al
                                                                  transportista, no para comprarla. Se marca en
                                                                  vez de atenuarse: atenuarla diría lo contrario

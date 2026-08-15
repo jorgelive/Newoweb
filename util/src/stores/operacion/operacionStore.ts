@@ -9,7 +9,8 @@ import type {
     OperacionOrdenServicioWrite,
     OperacionServicioWrite,
     OperacionMensajeWrite,
-    FiltrosBiblia
+    FiltrosBiblia,
+    LugarOpcion
 } from '@/types/operacionModel';
 import { construirParamsBiblia } from '@/types/operacionModel';
 
@@ -47,6 +48,17 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      */
     const totalServicios = ref<number>(0);
 
+    // Vocabulario de lugares para los chips de filtro. Se carga una vez por sesión de vista.
+    const lugares = ref<LugarOpcion[]>([]);
+
+    /**
+     * Mapa `componenteMaestroId` → nombres de lugar, para pintar los badges de cada fila.
+     *
+     * Se llena EN LOTE, nunca fila por fila: `OperacionServicio` no tiene relación con el
+     * catálogo, así que resolverlo por fila serían N peticiones cruzando de módulo.
+     */
+    const lugaresPorComponente = ref<Record<string, string[]>>({});
+
     // Panel de Reservas: listado de órdenes agrupadas
     const ordenesServicio = ref<OperacionOrdenServicio[]>([]);
 
@@ -82,12 +94,98 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             totalServicios.value = Number(
                 response.data['hydra:totalItems'] ?? response.data['totalItems'] ?? servicios.value.length
             );
+            await resolverLugaresDeServicios();
         } catch (error) {
             console.error('Error al cargar la Biblia de operaciones:', error);
             throw error;
         } finally {
             isLoading.value = false;
         }
+    };
+
+    /**
+     * Carga el vocabulario de lugares para los chips de filtro.
+     *
+     * Sólo los activos: desactivar un lugar es la forma de retirarlo del cuadro sin destruir
+     * el etiquetado. Si falla, se deja vacío y la vista simplemente no pinta chips — el
+     * cuadro de tráfico tiene que abrirse igual.
+     */
+    const fetchLugares = async (): Promise<void> => {
+        if (lugares.value.length) return;
+
+        try {
+            const res = await apiClient.get('/platform/travel/lugares', {
+                params: { activo: true, itemsPerPage: 100 },
+            });
+            const miembros = res.data['hydra:member'] || res.data['member'] || [];
+
+            lugares.value = miembros.map((l: Record<string, unknown>) => ({
+                // `.split('/').pop()` como cinturón: si algún día el recurso dejara de exponer
+                // `id`, el IRI sigue trayendo el uuid al final.
+                id: String(l.id ?? String(l['@id'] ?? '').split('/').pop() ?? ''),
+                nombre: String(l.nombre ?? ''),
+            }));
+        } catch (error) {
+            console.error('No se pudo cargar el vocabulario de lugares:', error);
+            lugares.value = [];
+        }
+    };
+
+    /**
+     * Resuelve las etiquetas de las filas cargadas, EN UNA SOLA petición.
+     *
+     * Junta los `componenteMaestroId` distintos y los pide en lote con `?id[]=`, que es el
+     * mismo mecanismo que ya usa el editor de cotizaciones para servicios y proveedores
+     * (lo atiende `UuidBatchIdExtension`). Nunca una petición por fila: `OperacionServicio`
+     * no tiene relación con el catálogo y resolverlo fila a fila serían decenas de saltos
+     * entre módulos.
+     */
+    const resolverLugaresDeServicios = async (): Promise<void> => {
+        const ids = new Set<string>();
+
+        servicios.value.forEach((s) => {
+            const maestro = (s.cotizacionComponente as { componenteMaestroId?: string } | undefined)
+                ?.componenteMaestroId;
+            if (maestro) ids.add(maestro);
+        });
+
+        if (!ids.size) {
+            lugaresPorComponente.value = {};
+            return;
+        }
+
+        try {
+            await fetchLugares();
+            const nombrePorIri = new Map(lugares.value.map((l) => [`/platform/travel/lugares/${l.id}`, l.nombre]));
+
+            const query = Array.from(ids).map((id) => `id[]=${id}`).join('&');
+            const res = await apiClient.get(`/platform/travel/componentes?${query}&pagination=false`);
+            const miembros = res.data['hydra:member'] || res.data['member'] || [];
+
+            const mapa: Record<string, string[]> = {};
+
+            miembros.forEach((c: Record<string, unknown>) => {
+                const id = String(c.id ?? String(c['@id'] ?? '').split('/').pop() ?? '');
+                const iris = Array.isArray(c.lugares) ? (c.lugares as string[]) : [];
+                if (id) {
+                    mapa[id] = iris.map((iri) => nombrePorIri.get(iri) ?? '').filter(Boolean);
+                }
+            });
+
+            lugaresPorComponente.value = mapa;
+        } catch (error) {
+            // Los badges son decoración: si el catálogo falla, el cuadro sigue siendo usable.
+            console.error('No se pudieron resolver las etiquetas de lugar:', error);
+            lugaresPorComponente.value = {};
+        }
+    };
+
+    /** Etiquetas de una fila del cuadro, ya resueltas a nombre. */
+    const lugaresDeServicio = (servicio: OperacionServicio): string[] => {
+        const maestro = (servicio.cotizacionComponente as { componenteMaestroId?: string } | undefined)
+            ?.componenteMaestroId;
+
+        return maestro ? (lugaresPorComponente.value[maestro] ?? []) : [];
     };
 
     /**
@@ -278,7 +376,11 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         totalServicios,
         ordenesServicio,
         mensajesActivos,
+        lugares,
+        lugaresPorComponente,
         fetchServicios,
+        fetchLugares,
+        lugaresDeServicio,
         buscarExpedientes,
         fetchCotizacionesDeExpediente,
         actualizarServicio,
