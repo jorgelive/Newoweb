@@ -1339,8 +1339,10 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
                     <!-- Ficha del huésped SOLO en táctil: en escritorio ya la da el
                          tooltip al pasar el ratón. `v-html` con el mismo generador que
                          usa tippy — todo valor sale escapado de tooltipHtml(). -->
+                    <!-- eslint-disable vue/no-v-html -- Lo arma `tooltipHtml()`, que pasa cada valor por `escaparHtml()`. -->
                     <div v-if="ES_TACTIL && menu.eventProps?.cliente" class="fc-tip-menu"
                         v-html="tooltipHtml(menu.eventProps)"></div>
+                    <!-- eslint-enable vue/no-v-html -->
                     <button @click="elegirVerEvento"
                         class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
                         <i class="fas fa-eye w-4 text-slate-400"></i> Ver

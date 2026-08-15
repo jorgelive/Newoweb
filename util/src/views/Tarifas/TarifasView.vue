@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, shallowRef, watch, onBeforeUnmount } from 'vue';
-import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
+import { useRoute, onBeforeRouteLeave } from 'vue-router';
 import FullCalendar from '@fullcalendar/vue3';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -48,7 +48,6 @@ import {
 } from '@/types/pmsTarifaModel';
 import type { PmsEventoExtendedProps } from '@/types/pmsReservaModel';
 
-const router = useRouter();
 const route = useRoute();
 const tarifasStore = useTarifasStore();
 
