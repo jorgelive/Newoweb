@@ -32,7 +32,20 @@
 - **Frontend:** dos apps Vue 3 + TypeScript independientes.
   - `util/` — app interna de operación (calendario de reservas, tarifas, cotizaciones, chat).
   - `pax/` — app pública del huésped (guía, vista cliente de cotizaciones).
-  Verificación: `cd util && npx vue-tsc --noEmit` (idem en `pax/`).
+  Verificación: `cd util && npm run typecheck` **y** `npx eslint .` (idem en `pax/`). Las dos
+  tienen que salir limpias.
+
+  **ESLint** (config plana, `eslint.config.js` en cada app: `eslint-plugin-vue` +
+  `typescript-eslint`). Está afinado para que **cada aviso sea un aviso**: todas las reglas de
+  formato de plantilla —sangría, orden de atributos, saltos de línea— están desactivadas
+  explícitamente y con el motivo escrito en el propio archivo. No es dejadez: mezcladas con las
+  demás sepultaban lo que importa bajo más de mil quejas cosméticas, y una lista así no la revisa
+  nadie. Lo que queda son reglas que cazan **errores**: `v-for` sin `key`, atributos inválidos,
+  claves duplicadas entre prop y ref, `any`, expresiones sin efecto.
+
+  Si una regla molesta de verdad, se desactiva **con el porqué al lado** (`-- motivo`), no se
+  silencia el archivo entero. `src/types/api.d.ts` y `src/vite-env.d.ts` están ignorados porque
+  se generan enteros.
 - **Integraciones:** Beds24 (channel manager) vía el motor genérico de `src/Exchange/`.
 
 ## Documentación — obligatoria

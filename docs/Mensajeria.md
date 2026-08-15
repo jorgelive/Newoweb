@@ -50,6 +50,16 @@ La distinción **mensaje ≠ cola** es la que sostiene todo el módulo: el mensa
 negocio (qué y cuándo), la cola es la ejecución técnica (por dónde y con qué reintentos). El
 estado del mensaje se **deduce** de sus colas, nunca al revés — ver `MessageRuleEngine::resolveMessageStatus()`.
 
+**Espejo PHP ↔ TypeScript de los estados.** La lista cerrada de estados pintables vive también
+en `util/src/types/mensajeEstadoModel.ts` (`EstadoMensaje` + `aEstadoMensaje()`), porque la API
+los expone como `string` —salen de un getter y OpenAPI no ve un enum ahí— y `MessageStatusIcon`
+necesita saber cuáles son para elegir icono. **Si nace un estado nuevo en PHP, hay que tocar los
+dos lados**: si no, el mensaje llega y no se pinta nada.
+
+`aEstadoMensaje()` es un normalizador y no un cast a propósito: lo desconocido cae en `pending`,
+el icono más neutro. Un estado nuevo del backend, o un `null` de una fila a medio migrar,
+pasarían el compilador sin problema y reventarían al buscar el icono.
+
 ---
 
 ## 2. Las tres capas

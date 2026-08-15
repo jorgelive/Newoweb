@@ -23,10 +23,11 @@ pivotes. Tarifas, proveedores e imágenes se cubren sólo en lo que toca a ese m
 5. [Propiedad y radio de impacto: qué rompes al editar](#5-propiedad-y-radio-de-impacto-que-rompes-al-editar)
 6. [Clonación](#6-clonacion)
 7. [Tarifas, proveedores y el diccionario](#7-tarifas-proveedores-y-el-diccionario)
-8. [Frontera con Cotización y Operación](#8-frontera-con-cotizacion-y-operacion)
-9. [Enums](#9-enums)
-10. [Trampas conocidas](#10-trampas-conocidas)
-11. [Dónde tocar para cambiar X](#11-donde-tocar-para-cambiar-x)
+8. [Lugares: el vocabulario geográfico](#8-lugares-el-vocabulario-geografico)
+9. [Frontera con Cotización y Operación](#9-frontera-con-cotizacion-y-operacion)
+10. [Enums](#10-enums)
+11. [Trampas conocidas](#11-trampas-conocidas)
+12. [Dónde tocar para cambiar X](#12-donde-tocar-para-cambiar-x)
 
 ---
 
@@ -201,7 +202,61 @@ sólo preselecciona cuál se propone al instanciar.
 
 ---
 
-## 8. Frontera con Cotización y Operación
+---
+
+## 8. Lugares: el vocabulario geográfico
+
+`TravelLugar` es una lista **plana** de centros turísticos —Lima, Cusco, Valle Sagrado,
+Ica…— con `nombre` único, `orden` (la fila de chips se lee de izquierda a derecha, y el
+alfabético pondría Arequipa antes que Cusco) y `activo`, para retirar una etiqueta del
+cuadro **sin destruir el etiquetado que ya se hizo**.
+
+Cuelga de dos sitios por `ManyToMany`, y en los dos el **dueño es el otro lado**:
+
+| Relación | Tabla pivote | Qué significa |
+|---|---|---|
+| `TravelComponente::$lugares` | `travel_componente_lugar_pool` | Dónde ocurre / desde dónde se opera esa logística |
+| `Proveedor::$lugares` | `travel_proveedor_lugar_pool` | La **cobertura** del proveedor: dónde puede prestar servicio |
+
+### Por qué etiquetas y no una jerarquía
+
+Fue una decisión explícita, y es la que da valor a todo lo demás. Un árbol
+País → Región → Ciudad parece lo correcto hasta que se intenta colocar el primer caso real:
+**Cusco es una ciudad y Valle Sagrado es una región fuera de esa ciudad**. La contención
+sería mentira, y de ahí salen las excepciones que hacen imposible clasificar.
+
+El modelo es el de Gmail, no el de las carpetas de Correos: un componente lleva **varias**
+etiquetas y no hay que decidir en cuál «vive». Un servicio de Ica que sale de Lima lleva
+«Lima» **y** «Ica»; sólo los que se operan con proveedores locales de Ica llevan una.
+
+⚠️ **La etiqueta significa a la vez «ocurre en» y «se opera desde», y esa ambigüedad es
+deliberada.** Separar los dos ejes obligaría al operador a decidir de cuál se trata antes de
+buscar, y él no busca así: busca al ojo. Partirlo en dos campos añadiría pasos que nadie va
+a dar, y un campo que no se rellena es peor que uno impreciso.
+
+### Es un etiquetado VIVO, no un snapshot
+
+Ésta es la excepción a la regla de §9. El etiquetado se va refinando con el uso, y con
+snapshot habría que re-aplicarlo en masa cada vez que se afina una etiqueta. Por eso el
+filtro de Operaciones (`docs/Operacion.md` §6) **resuelve contra el catálogo en cada
+consulta**: renombrar «Ica» a «Ica / Paracas» se ve al instante y sin tocar ni una
+cotización. Va por UUID justamente para que renombrar salga gratis.
+
+Sin `#[AutoTranslate]`: es una etiqueta interna de operaciones que el pasajero nunca ve.
+Meterla en el pipeline de traducción añadiría formulario y una llamada a Google por cada
+«Lima».
+
+⚠️ **`TravelComponente::__clone()` copia la membresía a mano.** Sin eso el clon compartiría
+el mismo `PersistentCollection` y etiquetar la copia reetiquetaría el original.
+
+### Etiquetar en masa
+
+`TravelLugarCrudController` expone el lado inverso (`componentes`) como
+`AssociationField` con autocompletado y **`by_reference: false`**. Se abre «Lima», se
+seleccionan cuarenta componentes de un tirón y se guarda. Sin ese flag —obligatorio por ser
+lado inverso— el formulario no guarda nada **y no avisa**.
+
+## 9. Frontera con Cotización y Operación
 
 **La cotización no tiene claves foráneas hacia Travel.** El enlace es un *soft-link* por
 UUID: `CotizacionCotservicio` guarda el id de la plantilla `TravelItinerario` de la que se
@@ -279,7 +334,7 @@ tono semántico y traducirlo en el front.
 
 ---
 
-## 9. Enums
+## 10. Enums
 
 | Enum | Casos | Dónde manda |
 |---|---|---|
@@ -290,7 +345,7 @@ tono semántico y traducirlo en el front.
 
 ---
 
-## 10. Trampas conocidas
+## 11. Trampas conocidas
 
 - **`travel_tarifa.proveedor_id` está prácticamente vacío** en el catálogo maestro. El filtro
   de proveedores del editor de cotizaciones depende de ese campo, así que hoy filtra poco.
@@ -323,7 +378,7 @@ tono semántico y traducirlo en el front.
 
 ---
 
-## 11. Dónde tocar para cambiar X
+## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
@@ -343,4 +398,8 @@ tono semántico y traducirlo en el front.
 | Ajustar el upsell de un ítem | `src/Travel/Entity/TravelComponenteItem.php` | `$componenteAdicionalVinculado` |
 | Ocultar o mostrar datos de tarifa al cliente | `src/Travel/Entity/TravelComponenteItem.php` | `$tituloTarifaVisible`, `$categoriaTarifaVisible`, `$modalidadTarifaVisible` |
 | Tocar el modal AJAX de logística | `src/Api/Controller/Travel/TravelSegmentoComponenteAjaxController.php` | — |
+| Añadir o retirar un centro turístico | `src/Travel/Entity/TravelLugar.php` | `$nombre`, `$orden`, `$activo` — **desactivar, no borrar** |
+| Cambiar las etiquetas de un componente | `src/Travel/Entity/TravelComponente.php` | `$lugares` (lado dueño) |
+| Cambiar la cobertura de un proveedor | `src/Travel/Entity/Proveedor.php` | `$lugares` (lado dueño) |
+| Etiquetar muchos componentes de golpe | `src/Travel/Controller/Crud/TravelLugarCrudController.php` | `componentes` + `by_reference: false` |
 | Filtrar tarifas por componente o por lote | `src/Travel/Filter/TarifaComponenteExtension.php`, `TarifaBatchIdExtension.php` | — |

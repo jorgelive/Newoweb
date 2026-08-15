@@ -13,6 +13,7 @@ Si un patrón se repite en dos vistas, su sitio es aquí y no duplicado en cada 
 3. [AppSwitcher — saltar entre módulos](#3-appswitcher--saltar-entre-módulos)
 3.b [Enfocar lo que se acaba de abrir — `utils/scrollEnfoque.ts`](#3b-enfocar-lo-que-se-acaba-de-abrir--utilsscrollenfoquets)
 3.c [AsistenteBar — preguntar al PMS en lenguaje natural](#3c-asistentebar--preguntar-al-pms-en-lenguaje-natural)
+3.d [ConversacionVistaPrevia — asomarse a un chat sin abrirlo](#3d-conversacionvistaprevia--asomarse-a-un-chat-sin-abrirlo)
 4. [Dónde tocar para cambiar X](#4-dónde-tocar-para-cambiar-x)
 
 ---
@@ -340,6 +341,66 @@ declara **sólo la superficie que usa** (`ReconocimientoVoz`, `ResultadoVozLike`
 cast a la línea de arriba, que es un diccionario abierto del navegador y no un contrato
 nuestro. `RespuestaAsistente` es espejo de `PanelAssistantController::__invoke()`.
 
+## 3.d ConversacionVistaPrevia — asomarse a un chat sin abrirlo
+
+`util/src/components/common/ConversacionVistaPrevia.vue`. Es el «modo stalker»: ver qué se
+está hablando en una conversación **sin entrar en ella**. Nació dentro de `ChatView` y se
+sacó de ahí porque el gesto no es del inbox — desde el calendario de reservas, antes de
+escribirle a un huésped, hace exactamente la misma falta.
+
+### 🕵️ La regla que le da nombre: previsualizar NO deja rastro
+
+Llama sólo a los métodos de **lectura** del store —`fetchConversacionParaStalk`,
+`fetchConversacionPorContexto` y `fetchLatestMessagesForStalk`—, nunca a `selectConversation()`. Esa última marca la
+conversación como leída, baja el contador global y abre Mercure: con ella, **un simple hover
+le borraba los «sin leer» al compañero que iba a contestar**. Tampoco toca el estado del
+store, para que una previsualización abierta desde el calendario no altere el inbox.
+
+Si añades un método nuevo para este componente, tiene que cumplir lo mismo.
+
+### Se identifica de dos maneras, y la segunda es la que lo hace universal
+
+| Prop | Cuándo |
+|---|---|
+| `conversacion-id` | Quien lo abre ya sabe cuál es |
+| `contexto` | `{ tipo: 'pms_reserva', id }` — el asunto en **su** dominio |
+| `conversacion` | El anfitrión ya la tiene cargada y se ahorra el viaje |
+
+El `tipo` viaja **opaco** hasta el filtro de la API: el componente no sabe qué es una reserva,
+así que sirve igual para cotizaciones o para lo que venga. Es la misma regla que los
+identificadores de dominio del backend (CLAUDE.md, «Dominios y contratos»).
+
+### `accion-chat`: un botón que no lleva a ninguna parte enseña a desconfiar
+
+- `navegar` — empuja a `/chat?id=…`. Lo que quiere cualquier vista que no sea el chat.
+- `delegar` — sólo emite, para que `ChatView` abra la conversación en su panel sin recargar
+  la ruta.
+- `ninguna` — **esconde el botón**. Es para cuando el anfitrión ya *es* el chat y esa
+  conversación ya está abierta: el botón seguiría ahí prometiendo llevarte a donde ya estás.
+
+⚠️ **`/chat/:conversationId` está declarada pero no hace nada.** La ruta existe en
+`router/index.ts` con `props: true`, y aun así `ChatView` **sólo escucha `route.query.id`**: el
+parámetro no lo lee nadie. Navegar a `/chat/<uuid>` abre el chat sin conversación seleccionada,
+y es peor que un 404 porque parece que funciona. Los accesos del portal apuntaban ahí; hoy abren
+la vista previa. Para enlazar a una conversación, **`/chat?id=…`**.
+
+### Dos trampas que ya costaron
+
+- **`mantener`**: en modo hover hay *dos* temporizadores de cierre —el del anfitrión y el del
+  propio componente—. El cursor que viaja del ítem a la ventana dispara el primero, y sin este
+  aviso la ventana se cerraba en la cara justo al llegar a ella, con el extra de que era
+  imposible hacerle scroll — que es para lo que se abre.
+- **El contador `peticion`**: con hover se abren y cierran muchas seguidas. Sin él, la
+  respuesta lenta de la primera pintaba sus mensajes dentro de la segunda: el historial de un
+  huésped bajo el nombre de otro, que en un chat es de lo peor que puede pasar. Mismo patrón
+  que `onEventClick()` en `ReservasView`.
+
+Y una de medir: el scroll al último mensaje va **fuera** del `try`, después de que `cargando`
+pase a `false`. Mientras es `true` el scroller no está en el DOM, así que el `ref` vale `null`,
+no falla nada, y la ventana abre en el mensaje más viejo.
+
+---
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -354,6 +415,8 @@ nuestro. `RespuestaAsistente` es espejo de `PanelAssistantController::__invoke()
 | Que la hora de un campo deje de arrastrar la del otro (§1.6) | Vista que los coloca | `:min-date` — pásale sólo el día |
 | Cambiar el aire o la animación al enfocar un bloque (§3.b) | `utils/scrollEnfoque.ts` | `enfocarEnScroller()` — opciones `margen` / `suave` |
 | Marcar una vista propia en el historial (gesto «atrás») | `ChatView.vue` | `marcarVistaEnHistorial()` — conserva `history.state`, §2 |
+| Abrir la vista previa de un chat desde una vista nueva (§3.d) | `ConversacionVistaPrevia.vue` | `contexto` — `{ tipo, id }`, sin conocer la conversación |
+| Que el botón «Ir al chat» navegue, delegue o desaparezca (§3.d) | Vista que lo monta | `accion-chat` |
 | Añadir un módulo al portal y al selector | `util/src/types/modulosApp.ts` | `MODULOS_APP` — sale en HomeView y en AppSwitcher a la vez |
 | Cambiar el aspecto del selector en una cabecera clara | Vista que lo monta | `<AppSwitcher variante="clara" />` |
 | Usar el logotipo del portal como selector | Vista que lo monta | `<AppSwitcher variante="marca" sin-inicio />` — `sinInicio` para no ofrecer «Inicio» estando en él |

@@ -615,6 +615,43 @@ colección llega en orden arbitrario de la BD y el cuadro de tráfico es ilegibl
 tráfico se planifica por rango. `cotizacionServicio.cotizacion` es un filtro **anidado** que
 navega la asociación; no hace falta relación directa a `Cotizacion`.
 
+
+### El filtro por lugar: el único que cruza a Travel
+
+`?lugar[]=<uuid>` (varios = OR) filtra el cuadro por centro turístico. Lo resuelve
+`src/Operacion/Filter/OperacionServicioLugarExtension.php`, y es la única consulta del módulo
+que mira a Travel. **No es un JOIN**, porque no puede serlo: Operación no tiene ninguna
+relación con Travel, sólo el soft-link escalar `CotizacionCotcomponente::$componenteMaestroId`
+(`VARCHAR(36)`, sin FK). Son tres pasos:
+
+1. **Validar** cada UUID. Si llegó el parámetro y no queda ninguno válido →
+   `andWhere('1 = 0')`, **nunca un `return`**. Ignorar un filtro en silencio es exactamente
+   cómo se acaban emitiendo órdenes de servicio para la ciudad equivocada.
+2. **Resolver lugar → ids de componente maestro** con una consulta a Travel.
+3. **Aplicar** un `IN (...)` sobre el soft-link.
+
+⚠️ **La conversión de identificadores es donde falla.** `travel_componente.id` es `BINARY(16)`
+y `componente_maestro_id` es `VARCHAR(36)` en minúsculas —tal como lo escribe `extractIdStr()`
+del store—. Según cómo vuelva la consulta, el id llega como objeto `Uuid`, como cadena o como
+**los 16 bytes crudos**; el helper contempla las tres formas y normaliza todo con
+`toRfc4122()`. La primera versión devolvía cero resultados por saltarse el caso binario.
+
+El índice `idx_cotcomponente_maestro` sobre `cotizacion_cotcomponente (componente_maestro_id)`
+no es opcional: es la columna contra la que se lanza el `IN`, y sin él cada clic en un chip
+provoca un full scan.
+
+**El chip «Sin etiqueta»** (`lugar[]=__sin_lugar__`) añade en OR los componentes cuyo
+soft-link es `NULL` o **no está en la lista de los etiquetados**. Recoge lo tecleado a mano y
+los soft-links rotos, y es la diferencia entre un filtro fiable y uno que esconde cosas: sin
+él, la suma de todos los chips no da el total y nadie sabe qué falta.
+
+**No se cachea la resolución lugar → componentes.** La caché es justo lo que rompería el
+etiquetado vivo (`docs/Travel.md` §8): renombrar o reetiquetar tiene que verse en el
+siguiente clic.
+
+**Registro: ninguno.** `services_operacion.yaml` ya carga `../../src/Operacion/` con
+autoconfigure y API Platform etiqueta sola la interfaz.
+
 ### Qué viaja embebido y qué no
 
 `file` sí trae `id`, `nombreGrupo` y `pasajeroPrincipal`: `CotizacionFile` los publica en el grupo
@@ -638,6 +675,18 @@ presets Hoy / Mañana / 7 días, expediente por autocompletado,
 cotización (versiones del expediente elegido), chips de tipo de componente, y estados de reserva y
 operación. `construirParamsBiblia()` en `operacionModel.ts` es el único sitio donde viven los
 nombres de los parámetros de query.
+
+**Los chips de lugar van en fila propia, siempre visible**, y eso no es cosmético: el objetivo
+declarado era apretar «Lima» y ver de un clic todo lo que se opera desde ahí. Metidos en el
+panel plegable de filtros avanzados —donde viven los chips de tipo— habría que abrirlo antes de
+cada clic, que es exactamente el paso que se quería quitar. Llevan color distinto al de los
+chips de tipo porque son dos taxonomías distintas y no deben leerse como la misma.
+
+Los badges de lugar por fila se resuelven **en lote**: se juntan los `componenteMaestroId`
+distintos de las filas cargadas y se hace **una sola** llamada a
+`/platform/travel/componentes?id[]=…&pagination=false`. Los `lugares` llegan como IRIs y se
+traducen a nombre contra el vocabulario que ya se cargó para los chips — una consulta por carga
+del cuadro, no una por fila.
 
 **Agrupación:** por día. Dentro del día manda la hora; los servicios sin hora se empujan al final
 ordenados por `prioridadOperativa` (guiado/transporte antes que tickets), porque un cuadro de
@@ -815,6 +864,8 @@ cotizado, no contra la venta real.
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
+| Cambiar cómo se filtra por centro turístico | `src/Operacion/Filter/OperacionServicioLugarExtension.php` | `applyToCollection()` |
+| Cambiar qué recoge el chip «Sin etiqueta» | `src/Operacion/Filter/OperacionServicioLugarExtension.php` | `SIN_LUGAR` |
 | Cambiar qué dispara la generación | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `onFlush()` (el `match` de estados) |
 | Cambiar qué se copia al snapshot | `src/Operacion/Service/BibliaSnapshotService.php` | `generarParaCotizacion()` |
 | **De dónde sale el expediente de la fila** (§3.7) | mismo archivo | `resolverFile()` — y la guarda de raíz en `Cotizacion::setFile()` |
