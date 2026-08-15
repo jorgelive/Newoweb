@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
+import { aEstadoMensaje, type EstadoMensaje } from '@/types/mensajeEstadoModel';
 import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation, type ApiAttachment, type ApiMessageQueue } from '@/stores/chat/chatStore.ts';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
@@ -601,7 +602,7 @@ watch(() => store.error, (v) => {
   if (v) setTimeout(() => store.error = null, 6000);
 });
 
-const getMessageDisplayStatus = (msg: ApiMessage): string => {
+const getMessageDisplayStatus = (msg: ApiMessage): EstadoMensaje => {
   if (msg.status === 'cancelled') return 'cancelled';
 
   const allQueues = [
@@ -613,7 +614,7 @@ const getMessageDisplayStatus = (msg: ApiMessage): string => {
     return 'cancelled';
   }
 
-  return msg.status;
+  return aEstadoMensaje(msg.status);
 };
 
 const isBeds24Allowed = computed(() => {
@@ -1045,7 +1046,7 @@ const getQueueStatus = (queues?: ApiMessageQueue[] | string[]) => {
   return lastQueue.status || 'sent';
 };
 
-const getWhatsappStatus = (msg: ApiMessage) => {
+const getWhatsappStatus = (msg: ApiMessage): EstadoMensaje => {
   const waMeta = msg.metadata?.whatsappMeta;
   if (waMeta && !Array.isArray(waMeta)) {
     if (waMeta.error_code || waMeta.error_reason) return 'failed';
@@ -1053,10 +1054,10 @@ const getWhatsappStatus = (msg: ApiMessage) => {
     if (waMeta.delivered_at) return 'delivered';
     if (waMeta.sent_at) return 'sent';
   }
-  return getQueueStatus(msg.whatsappMetaSendQueues) || 'queued';
+  return aEstadoMensaje(getQueueStatus(msg.whatsappMetaSendQueues) || 'queued');
 };
 
-const getBeds24Status = (msg: ApiMessage) => {
+const getBeds24Status = (msg: ApiMessage): EstadoMensaje => {
   const bedsMeta = msg.metadata?.beds24;
   if (bedsMeta && !Array.isArray(bedsMeta)) {
     if (bedsMeta.error) return 'failed';
@@ -1064,7 +1065,7 @@ const getBeds24Status = (msg: ApiMessage) => {
     if (bedsMeta.delivered_at) return 'delivered';
     if (bedsMeta.sent_at) return 'sent';
   }
-  return getQueueStatus(msg.beds24SendQueues) || 'queued';
+  return aEstadoMensaje(getQueueStatus(msg.beds24SendQueues) || 'queued');
 };
 
 const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
@@ -1376,9 +1377,13 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                           >
                             <template v-if="isShowingTranslation(msg.id)">
                               <i class="fas fa-globe text-[12px] opacity-70 mr-1.5"></i>
+                                   convierte en enlace lo que casa `https?://`. Ver utils/formatoDeTexto.ts. -->
+                              <!-- eslint-disable-next-line vue/no-v-html -- Texto del huésped, pero `formatoAHtml()` escapa ANTES de aplicar marcas y sólo enlaza lo que casa https?://. -->
                               <span v-html="formatMessageText(msg.contentExternal)"></span>
                             </template>
                             <template v-else>
+                                   convierte en enlace lo que casa `https?://`. Ver utils/formatoDeTexto.ts. -->
+                              <!-- eslint-disable-next-line vue/no-v-html -- Texto del huésped, pero `formatoAHtml()` escapa ANTES de aplicar marcas y sólo enlaza lo que casa https?://. -->
                               <span v-html="formatMessageText(msg.contentLocal || msg.contentExternal || 'Mensaje enviado')"></span>
                               <i v-if="hasTranslation(msg)" class="fas fa-language text-[12px] opacity-40 ml-1.5 hover:opacity-100 transition-opacity"></i>
                             </template>

@@ -26,7 +26,7 @@ const RUTA_CHAT = '/chat';
 
 const noLeidos = useNoLeidosStore();
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
     /**
      * Aspecto del botón. Las cabeceras del portal no son iguales: las de los
      * calendarios y el chat son oscuras (slate-900) y las de cotizaciones,

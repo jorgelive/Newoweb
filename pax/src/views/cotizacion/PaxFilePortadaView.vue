@@ -72,14 +72,6 @@ const formatearFecha = (iso?: string | null) => {
   });
 };
 
-const formatearMonto = (monto: string | null, moneda: string) => {
-  if (monto === null) return '';
-  return new Intl.NumberFormat(maestroStore.idiomaActual, {
-    style: 'currency',
-    currency: moneda,
-  }).format(Number(monto));
-};
-
 const seleccionarIdioma = (id: string) => {
   maestroStore.setIdioma(id);
   localStorage.setItem('paxIdiomaManual', '1');
@@ -306,11 +298,13 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
             </div>
 
             <!-- Resumen comercial i18n (HTML) para ayudar a elegir -->
+            <!-- eslint-disable vue/no-v-html -- Resumen de la cotización, redactado por el equipo. HTML a propósito. -->
             <div
                 v-if="store.traducir(v.resumen)"
                 class="prose prose-sm max-w-none text-slate-600 mb-6 prose-strong:text-[#376875] prose-a:text-[#E07845]"
                 v-html="store.traducir(v.resumen)"
             />
+            <!-- eslint-enable vue/no-v-html -->
 
             <!-- CTA protagonista -->
             <button

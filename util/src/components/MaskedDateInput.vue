@@ -63,17 +63,18 @@ const displayToIso = (val: string): string | null => {
 const sanitizePaste = (text: string): { iso: string | null; masked: string } => {
   const t = text.trim();
   // Caso ISO / año primero
-  const ymd = t.match(/^(\d{4})[/.\-](\d{1,2})[/.\-](\d{1,2})/);
+  const ymd = t.match(/^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})/);
   if (ymd) {
     const [, y, mo, d] = ymd;
     const iso = displayToIso(`${d.padStart(2, '0')}${mo.padStart(2, '0')}${y}`);
     if (iso) return { iso, masked: isoToDisplay(iso) };
   }
   // Caso día primero con separadores variados
-  const dmy = t.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})/);
+  const dmy = t.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/);
   if (dmy) {
-    let [, d, mo, y] = dmy;
-    if (y.length === 2) y = (+y > 30 ? '19' : '20') + y; // heurística de siglo
+    const [, d, mo, anio] = dmy;
+    // Heurística de siglo para años de dos cifras.
+    const y = anio.length === 2 ? (+anio > 30 ? '19' : '20') + anio : anio;
     const iso = displayToIso(`${d.padStart(2, '0')}${mo.padStart(2, '0')}${y}`);
     if (iso) return { iso, masked: isoToDisplay(iso) };
   }

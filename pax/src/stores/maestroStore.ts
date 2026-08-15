@@ -44,18 +44,15 @@ export const useMaestroStore = defineStore('maestroStore', () => {
 
             // CASO A: Datos frescos (menos de 30s) -> Usar caché
             if (datosExisten && esFresco) {
-                console.log('⚡ MaestroStore: Cache válida (< 30s).');
                 return;
             }
 
             // CASO C: Ya hay una petición en curso (para evitar llamadas dobles)
             if (loadPromise) {
-                console.log('⏳ MaestroStore: Uniéndome a la petición en curso...');
                 return loadPromise;
             }
 
             // CASO D: Datos caducados y con internet -> Actualizar
-            console.log('🌍 MaestroStore: Actualizando textos e idiomas...');
             loading.value = true;
 
             loadPromise = (async () => {
@@ -70,7 +67,6 @@ export const useMaestroStore = defineStore('maestroStore', () => {
 
                     // Actualizamos la fecha solo si tuvimos éxito
                     lastUpdate.value = Date.now();
-                    console.log('✅ MaestroStore: Actualizado correctamente.');
 
                 } catch (error) {
                     console.error('❌ Error actualizando Maestro:', error);
@@ -78,7 +74,6 @@ export const useMaestroStore = defineStore('maestroStore', () => {
                     // CASO E: Falló el servidor.
                     // Si tenemos datos viejos, NO lanzamos el error para que la App no rompa.
                     if (datosExisten) {
-                        console.log('🛡️ MaestroStore: Manteniendo textos antiguos por seguridad tras fallo del servidor.');
                         return;
                     }
 

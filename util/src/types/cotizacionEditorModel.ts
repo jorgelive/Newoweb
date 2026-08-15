@@ -563,7 +563,6 @@ export interface TotalesInternos extends TotalesVenta {
     gananciaDolares: number;
 }
 
-const totalesVentaVacios = (): TotalesVenta => ({ ventaSoles: 0, ventaDolares: 0 });
 export const totalesInternosVacios = (): TotalesInternos =>
     ({ costoSoles: 0, costoDolares: 0, ventaSoles: 0, ventaDolares: 0, gananciaSoles: 0, gananciaDolares: 0 });
 

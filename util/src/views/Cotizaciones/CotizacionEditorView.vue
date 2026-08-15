@@ -2,7 +2,6 @@
 import { ref, onMounted, computed, watch, onUnmounted, type DirectiveBinding } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
-import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { getUrls } from '@/services/apiClient';
 import { thumbUrl } from '@/services/imageThumb';
 import SearchableSelect from '@/components/SearchableSelect.vue';
@@ -18,36 +17,12 @@ import {
   ESTADO_COTIZACION_CONFIG,
   getModoItemConfig,
   getEstadoComponenteConfig,
-  getEstadoOperativoConfig,
   getProcedenciaUI,
   getTipoNotaUI,
   getRolTarifaUI, Servicio, TarifaSnapshot, ImagenSnapshot, formatRangoEdad,
   CotServicio, CotSegmento, ComponenteCompleto, SnapshotItem, Segmento, OpcionUpgradeInterna, NotaSnapshot,
   MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE
 } from '@/types/cotizacionEditorModel';
-
-// 1. Importa el estado y lógica compartida
-import { isSessionExpired, renewSession } from '@/services/sessionAuth';
-
-// 2. Variables para el formulario de login (idénticas a las del chat)
-const loginUsername = ref('');
-const loginPassword = ref('');
-const isLoggingIn = ref(false);
-
-// 3. Función de re-login
-const handleSessionRenewal = async () => {
-  isLoggingIn.value = true;
-  try {
-    await renewSession({
-      _username: loginUsername.value,
-      _password: loginPassword.value
-    });
-    // Si tienes una función para recargar datos, ejecútala aquí
-    // await store.inicializarEditor(...)
-  } finally {
-    isLoggingIn.value = false;
-  }
-};
 
 defineProps<{
   fileId?: string;
@@ -60,7 +35,6 @@ const verEnSoles = ref(false);
 const route = useRoute();
 const router = useRouter();
 const store = useCotizacionEditorStore();
-const fileStore = useCotizacionFileStore();
 
 // ============================================================================
 // REVISAR CAMBIOS DE OPERACIÓN
@@ -259,7 +233,7 @@ const procesarFechaMascara = (fechaTexto: string, tipo: 'inicio' | 'fin') => {
       store.actualizarInicioManteniendoRango(isoString);
     } else {
       if (store.componenteActivo) store.componenteActivo.fechaHoraFin = isoString;
-      store.onComponenteFechasChange(false);
+      store.onComponenteFechasChange();
     }
   }
 };
@@ -304,7 +278,7 @@ const procesarFechaCortaMascara = (fechaTexto: string, tipo: 'inicio' | 'fin') =
       store.actualizarInicioManteniendoRango(isoString);
     } else {
       if (store.componenteActivo) store.componenteActivo.fechaHoraFin = isoString;
-      store.onComponenteFechasChange(false);
+      store.onComponenteFechasChange();
     }
   }
 };
@@ -388,7 +362,7 @@ const opcionesTarifas = computed(() => {
   return store.catalogos.tarifas
       .map(t => ({
         value: store.extractIdStr(t),
-        label: store.getTarifaLabel(t, store.cotizacion?.idiomaEdicion || 'es')
+        label: store.getTarifaLabel(t)
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
@@ -436,6 +410,22 @@ const opcionesTarifasFiltradas = computed(() => {
   return opcionesTarifas.value.filter(
       o => (o.value !== '' && ids.has(String(o.value))) || o.value === seleccionada
   );
+});
+
+/**
+ * La ficha del catálogo detrás de la tarifa activa, para pintar procedencia y rango
+ * de edad junto al selector.
+ *
+ * Estaba resuelto en la plantilla con un `v-for` sobre un array de un solo elemento
+ * —el truco clásico para tener una variable local en el template—. Funcionaba, pero
+ * el `find()` se re-ejecutaba en cada render y sin `key` Vue no podía reutilizar los
+ * nodos. Como computed se cachea y se lee de un vistazo.
+ */
+const tarifaMaestraDeActiva = computed(() => {
+  const buscada = store.extractIdStr(store.tarifaActiva?.tarifaMaestraId);
+  if (!buscada) return null;
+
+  return store.catalogos.tarifas.find(t => store.extractIdStr(t) === buscada) ?? null;
 });
 
 const filtroTarifasActivo = computed(() =>
@@ -1921,7 +1911,7 @@ store.$onAction(({ name, args }) => {
                       model-type="yyyy-MM-dd'T'HH:mm:ss"
                       auto-apply
                   >
-                    <template #dp-input="{ value, onEnter, onTab, onClear }">
+                    <template #dp-input="{ onEnter, onTab }">
                       <input v-if="!store.componenteActivo.sinHorario"
                              type="text"
                              class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
@@ -1949,14 +1939,14 @@ store.$onAction(({ name, args }) => {
                   <VueDatePicker
                       :key="finPickerKey"
                       v-model="store.componenteActivo.fechaHoraFin"
-                      @update:model-value="store.onComponenteFechasChange(false)"
+                      @update:model-value="store.onComponenteFechasChange()"
                       :is-24="true"
                       :enable-time-picker="!store.componenteActivo.sinHorario"
                       :format="!store.componenteActivo.sinHorario ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'"
                       model-type="yyyy-MM-dd'T'HH:mm:ss"
                       auto-apply
                   >
-                    <template #dp-input="{ value, onEnter, onTab, onClear }">
+                    <template #dp-input="{ onEnter, onTab }">
                       <input v-if="!store.componenteActivo.sinHorario"
                              type="text"
                              class="w-full bg-white border border-slate-300 rounded-lg pl-2 pr-2 py-2 text-[10px] font-bold text-slate-700 tabular-nums tracking-tight outline-none shadow-sm focus:ring-2 focus:ring-sky-500 cursor-text"
@@ -2341,16 +2331,15 @@ store.$onAction(({ name, args }) => {
               </div>
 
               <div v-if="store.tarifaActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
-                <template v-for="catT in [store.catalogos.tarifas.find(t => store.extractIdStr(t) === store.extractIdStr(store.tarifaActiva?.tarifaMaestraId))]">
-              <span v-if="catT" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
-                <span class="mr-1">{{ getProcedenciaUI(catT?.procedencia).icon }}</span>
-                  {{ getProcedenciaUI(catT?.procedencia).label }}
+                <span v-if="tarifaMaestraDeActiva" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
+                  <span class="mr-1">{{ getProcedenciaUI(tarifaMaestraDeActiva.procedencia).icon }}</span>
+                  {{ getProcedenciaUI(tarifaMaestraDeActiva.procedencia).label }}
                 </span>
-                  <span v-if="catT && formatRangoEdad(catT?.edadMinima, catT?.edadMaxima)" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
-                <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
-                {{ formatRangoEdad(catT?.edadMinima, catT?.edadMaxima) }}
-              </span>
-                </template>
+                <span v-if="tarifaMaestraDeActiva && formatRangoEdad(tarifaMaestraDeActiva.edadMinima, tarifaMaestraDeActiva.edadMaxima)"
+                      class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
+                  <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
+                  {{ formatRangoEdad(tarifaMaestraDeActiva.edadMinima, tarifaMaestraDeActiva.edadMaxima) }}
+                </span>
               </div>
             </div>
 
@@ -2899,6 +2888,7 @@ store.$onAction(({ name, args }) => {
                       <div class="flex-1 min-w-0">
                         <div class="text-[9px] font-black text-teal-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
                         <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo, store.cotizacion?.idiomaEdicion || 'es') }}</h4>
+                        <!-- eslint-disable-next-line vue/no-v-html -- Texto enriquecido del catálogo maestro, redactado por el equipo. HTML a propósito, no viene del huésped. -->
                         <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido, store.cotizacion?.idiomaEdicion || 'es')"></div>
                       </div>
                       <button @click="prepararInsercion(seg)" class="text-teal-600 hover:bg-teal-200 bg-teal-50 md:bg-transparent md:hover:bg-teal-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-teal-100"><i class="fas fa-plus"></i></button>
@@ -3217,9 +3207,8 @@ store.$onAction(({ name, args }) => {
             <h4 class="text-lg font-black text-slate-800 mb-4 leading-tight">
               {{ store.getI18nText(modalNota.nota?.titulo, store.cotizacion?.idiomaEdicion || 'es') || modalNota.nota?.nombreInterno }}
             </h4>
-            <div class="prose prose-sm max-w-none text-slate-600 leading-relaxed"
-                 v-html="store.getI18nText(modalNota.nota?.contenido, store.cotizacion?.idiomaEdicion || 'es')">
-            </div>
+            <!-- eslint-disable-next-line vue/no-v-html -- Texto enriquecido del catálogo maestro, redactado por el equipo. HTML a propósito, no viene del huésped. -->
+            <div class="prose prose-sm max-w-none text-slate-600 leading-relaxed" v-html="store.getI18nText(modalNota.nota?.contenido, store.cotizacion?.idiomaEdicion || 'es')"></div>
           </div>
           <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end shrink-0">
             <button @click="modalNota.isOpen = false" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">Cerrar</button>

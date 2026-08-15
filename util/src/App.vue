@@ -48,7 +48,7 @@ const triggerSubscription = async () => {
     if (!success && Notification.permission !== 'denied') {
       showManualSubscriptionButton.value = true;
     }
-  } catch (error) {
+  } catch {
     showManualSubscriptionButton.value = true;
   }
 };

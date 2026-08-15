@@ -12,7 +12,6 @@
  * qué está llegando, después se decide qué se deja de generar.
  */
 import { ref, onMounted, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion } from '@/stores/operacion/operacionStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
@@ -32,7 +31,6 @@ import {
     type OperacionOrdenServicio,
 } from '@/types/operacionModel';
 
-const router = useRouter();
 const operacionStore = useOperacionStore();
 
 const activeTab = ref<'biblia' | 'ordenes'>('biblia');
@@ -1338,7 +1336,14 @@ onMounted(async () => {
                         <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
                             {{ mensaje.tipo }} · {{ formatearFecha(mensaje.createdAt) }}
                         </p>
-                        <div class="text-sm text-slate-700 whitespace-pre-wrap" v-html="mensaje.cuerpoHtml"></div>
+                        <!--
+                          Interpolación y no `v-html`, aunque el campo se llame `cuerpoHtml`:
+                          lo que se guarda es el texto plano del textarea (ver enviarMensaje),
+                          y el `whitespace-pre-wrap` de al lado ya delataba la intención. Con
+                          `v-html` un `<` tecleado por el operador rompía el marcado, y pegar
+                          algo desde el correo podía meter etiquetas en la bitácora.
+                        -->
+                        <div class="text-sm text-slate-700 whitespace-pre-wrap">{{ mensaje.cuerpoHtml }}</div>
                     </article>
                 </div>
 

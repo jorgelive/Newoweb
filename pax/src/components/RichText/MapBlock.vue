@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ src: string }>();
+defineProps<{ src: string }>();
 </script>
 <template>
   <a :href="src" target="_blank" class="block w-full my-6 group">

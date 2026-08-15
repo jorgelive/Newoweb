@@ -1,5 +1,5 @@
 // src/services/apiClient.ts
-import axios, { type InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { isSessionExpired } from './sessionState';
 
 export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -45,7 +45,7 @@ apiClient.interceptors.request.use((config) => {
 // ============================================================================
 // SISTEMA CENTRALIZADO DE COLA (PAUSA Y REANUDACIÓN DE PETICIONES)
 // ============================================================================
-let failedQueue: { resolve: Function, reject: Function, config: CustomAxiosRequestConfig }[] = [];
+let failedQueue: { resolve: (valor: AxiosResponse | PromiseLike<AxiosResponse>) => void, reject: (motivo: unknown) => void, config: CustomAxiosRequestConfig }[] = [];
 
 /**
  * Procesa la cola de peticiones pausadas.

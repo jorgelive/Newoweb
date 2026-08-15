@@ -84,7 +84,7 @@ const fetchIdiomas = async () => {
   try {
     const res = await apiClient.get('/platform/maestro/idiomas?prioridad[gt]=0&order[prioridad]=desc');
     idiomas.value = res.data['hydra:member'] || res.data['member'] || [];
-  } catch (e) {
+  } catch {
     idiomas.value = [{ id: 'es', nombre: 'Español', bandera: '🇪🇸' }];
   }
 };
@@ -141,7 +141,7 @@ const moverCatalogo = async (idx: number, dir: -1 | 1) => {
   [lista[idx], lista[destino]] = [lista[destino], lista[idx]];
   catalogos.value = lista;
 
-  const cambios: Promise<any>[] = [];
+  const cambios: Promise<unknown>[] = [];
   lista.forEach((c, i) => {
     if ((c.orden || 0) !== i) {
       c.orden = i;
@@ -162,7 +162,7 @@ const moverTour = async (idx: number, dir: -1 | 1) => {
   if (destino < 0 || destino >= tours.length) return;
   [tours[idx], tours[destino]] = [tours[destino], tours[idx]];
 
-  const cambios: Promise<any>[] = [];
+  const cambios: Promise<unknown>[] = [];
   tours.forEach((t, i) => {
     if ((t.orden || 0) !== i) {
       t.orden = i;

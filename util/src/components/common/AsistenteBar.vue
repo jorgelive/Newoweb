@@ -491,10 +491,12 @@ onBeforeUnmount(() => reconocimiento?.stop());
           <!-- El modelo responde con el marcado canónico (*negrita*, listas, [texto](url)) y
                `formatoAHtml` lo pinta —escapando antes— igual que el chat de mensajería. Sin
                esto los asteriscos y los enlaces llegaban crudos al operador. -->
+          <!-- eslint-disable vue/no-v-html -- Mismo pipeline escapado del chat (`formatoAHtml`). -->
           <p
             class="asistente-respuesta mt-2 text-sm text-slate-800 whitespace-pre-line leading-relaxed"
             v-html="formatoAHtml(cambio.respuesta.texto)"
           ></p>
+          <!-- eslint-enable vue/no-v-html -->
           <p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
             <template v-if="cambio.respuesta.herramientas?.length">
               <i class="fas fa-database text-[9px] mr-1" aria-hidden="true"></i> Consultado en el PMS

@@ -389,7 +389,10 @@ const desplazarNav = (dir: number) => navDias.value?.scrollBy({ left: dir * 160,
 const descExpandida = ref(new Set<string>());
 const incExpandida = ref(new Set<string>());
 const finanzasAbiertas = ref(false);
-const toggle = (set: Set<string>, key: string) => { set.has(key) ? set.delete(key) : set.add(key); };
+const toggle = (set: Set<string>, key: string) => {
+    if (set.has(key)) set.delete(key);
+    else set.add(key);
+};
 
 // Modo de lectura del itinerario: 'detalle' muestra las descripciones completas;
 // 'resumen' colapsa las narrativas y deja títulos, subtítulos y horas, en tipografía
@@ -528,7 +531,7 @@ const modCatBadges = (o: ClasifBadgeInput) => {
 
 // ── Inclusiones (versión cliente: sin montos) ────────────────────────────────
 const inclusionPorServicio = computed(() => {
-  const m = new Map<string, any>();
+  const m = new Map<string, (typeof store.inclusiones)[number]>();
   for (const srv of store.inclusiones) m.set(srv.servicioId, srv);
   return m;
 });
@@ -1309,11 +1312,13 @@ const adelantoVista = computed(() => {
 
                 <!-- Contenido narrativo (truncable) — oculto en modo Resumen -->
                 <div v-if="!modoResumen" class="relative">
+                  <!-- eslint-disable vue/no-v-html -- Contenido del catálogo maestro, redactado por el equipo. HTML a propósito. -->
                   <div
                       class="prose prose-sm max-w-none text-slate-600 prose-strong:text-[#376875] prose-a:text-[#E07845] prose-p:leading-relaxed transition-all"
                       :class="descEsLarga(item.segmento) && !descExpandida.has(item.key) ? 'max-h-36 overflow-hidden' : ''"
                       v-html="store.traducir(item.segmento.contenidoSnapshot)"
                   />
+                  <!-- eslint-enable vue/no-v-html -->
                   <div
                       v-if="descEsLarga(item.segmento) && !descExpandida.has(item.key)"
                       class="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-white to-transparent pointer-events-none"
@@ -1363,10 +1368,12 @@ const adelantoVista = computed(() => {
                     <span><i class="fas fa-lightbulb mr-2"></i>{{ store.traducir(nota.titulo) }}</span>
                     <i class="fas fa-chevron-down text-amber-400 transition-transform group-open/nota:rotate-180"></i>
                   </summary>
+                  <!-- eslint-disable vue/no-v-html -- Contenido del catálogo maestro, redactado por el equipo. HTML a propósito. -->
                   <div
                       class="px-4 pb-4 prose prose-sm max-w-none text-amber-900/80 prose-p:my-1 prose-p:leading-relaxed"
                       v-html="store.traducir(nota.contenido)"
                   />
+                  <!-- eslint-enable vue/no-v-html -->
                 </details>
               </div>
             </article>

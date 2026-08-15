@@ -264,7 +264,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             // Retorna respetando estrictamente el orden de entrada de los IRIs originales
             return ids.map(id => porId.get(id)).filter((item): item is T => !!item);
-        } catch (e) {
+        } catch {
             // Fallback individual si el batch falla
             const promises = iris.map(iri => apiClient.get(iri).then(r => r.data as T).catch(() => iri as T));
             return Promise.all(promises);
@@ -398,7 +398,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }));
     };
 
-    const getTarifaLabel = (cat: TarifaLike, lang: string): string => {
+    // Sin `lang`: la etiqueta se arma con `nombreInterno`, que no está traducido.
+    const getTarifaLabel = (cat: TarifaLike): string => {
         const nombre = cat.nombreInterno || 'Tarifa sin nombre';
         const moneda = getMonedaTarifa(cat);
         const monto = parseFloat(String(getMontoCostoTarifa(cat))).toFixed(2);
@@ -431,7 +432,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const setI18nText = (arrayI18n: I18nContent[] | undefined, lang: string, text: string): void => {
         if (!arrayI18n || !Array.isArray(arrayI18n)) return;
-        let found = arrayI18n.find((item) => item.language === lang);
+        const found = arrayI18n.find((item) => item.language === lang);
         if (found) {
             if (found.content !== text) found.content = text;
         } else {
@@ -455,7 +456,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const resolverGrupal = (t: TarifaSnapshot): boolean => {
             if (t.esGrupal !== undefined) return t.esGrupal;
             const maestro = todasLasTarifasMaestras.value.find(
-                (cat) => extractIdStr(cat.tarifaId || (cat as Record<string, any>)['@id']) === extractIdStr(t.tarifaMaestraId)
+                (cat) => extractIdStr(cat.tarifaId || (cat as Record<string, unknown>)['@id']) === extractIdStr(t.tarifaMaestraId)
             );
             return maestro ? getEsGrupalTarifa(maestro) : false;
         };
@@ -599,7 +600,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const resolverGrupal = (t: TarifaSnapshot): boolean => {
             if (t.esGrupal !== undefined) return t.esGrupal;
             const maestro = todasLasTarifasMaestras.value.find(
-                (cat) => extractIdStr(cat.tarifaId || (cat as Record<string, any>)['@id']) === extractIdStr(t.tarifaMaestraId)
+                (cat) => extractIdStr(cat.tarifaId || (cat as Record<string, unknown>)['@id']) === extractIdStr(t.tarifaMaestraId)
             );
             return maestro ? getEsGrupalTarifa(maestro) : false;
         };
@@ -1566,7 +1567,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         try {
             const response = await apiClient.get('/platform/maestro/idiomas?prioridad[gt]=0&order[prioridad]=desc');
             idiomasDisponibles.value = response.data['hydra:member'] || response.data['member'] || [];
-        } catch (e) {
+        } catch {
             idiomasDisponibles.value = [{ id: 'es', nombre: 'Español', bandera: '🇪🇸', prioridad: 1 }];
         }
     };
@@ -1712,7 +1713,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (gen !== undefined && gen !== navGen) return;
             catalogos.value.plantillasItinerario = plantillas;
             catalogos.value.poolSegmentos = pool;
-        } catch (e) {}
+        } catch {
+            // Catálogo de apoyo para el panel lateral. Si falla, el editor abre igual con la
+            // cotización cargada y el pool vacío; lo que no puede pasar es que un maestro
+            // caído impida abrir una cotización que ya está en pantalla.
+        }
     };
 
     const fetchComponenteDetalles = async (componenteIriOrId: string, gen?: number) => {
@@ -1766,7 +1771,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     componente.snapshotItems = await Promise.all(itemsRaw.map(mapearItemASnapshot));
                 }
             }
-        } catch (e) {}
+        } catch {
+            // Refresco del detalle contra el maestro. La cotización ya tiene su snapshot
+            // —es una foto congelada, no depende de esta llamada—, así que un fallo aquí
+            // deja los datos que ya se estaban mostrando en vez de vaciarlos.
+        }
     };
 
     const fetchCotizacion = async (id: string) => {
@@ -1833,7 +1842,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
             });
 
-            const fetchPromises: Promise<any>[] = [];
+            const fetchPromises: Promise<unknown>[] = [];
 
             // BATCH: servicios maestros
             if (serviciosToFetch.size > 0) {
@@ -1880,7 +1889,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             cotizacion.value = data;
             estadoPersistido.value = String(data?.estado ?? '');
 
-        } catch (e) {
+        } catch {
             throw new Error("No se encontró la cotización o falló la hidratación.");
         }
     };
@@ -2253,7 +2262,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             const response = await (isUpdate ? apiClient.put : apiClient.post)(endpoint, payload);
-            let savedData = response.data;
+            const savedData = response.data;
 
 
             if (savedData.cotservicios && !Array.isArray(savedData.cotservicios)) {
@@ -2645,6 +2654,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 fechaHoraFin: fechaHoraInicio,
                 cotsegmentoId: null,
                 cotsegmento: null,
+                // Obligatorio en el contrato. `false`: un extra suelto no representa el
+                // horario global del día — esa promoción es única por (plantilla, día).
+                horaServicioCompleto: false,
                 sobreescribirTraduccion: false,
                 snapshotItems: [],
                 cottarifas: [],
@@ -2798,6 +2810,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         fechaHoraFin: componentePadre.fechaHoraFin,
                         cotsegmentoId: componentePadre.cotsegmentoId,
                         cotsegmento: componentePadre.cotsegmento || null,
+                        // El upsell no roba la promoción horaria de su padre: nace en false
+                        // aunque el padre la tenga. Sólo un componente por día puede llevarla.
+                        horaServicioCompleto: false,
                         upsellSourceItemId: item.id,
                         sobreescribirTraduccion: false,
                         snapshotItems: [],
@@ -2811,7 +2826,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         );
                     }
 
-                    let tarifasParaInyectar: TarifaLike[] = [];
+                    const tarifasParaInyectar: TarifaLike[] = [];
                     if (compMaestro.tarifas && compMaestro.tarifas.length === 1) {
                         tarifasParaInyectar.push(compMaestro.tarifas[0]);
                     }
@@ -3333,7 +3348,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     snapshotItems: snapshotItemsPreparados
                 };
 
-                let tarifasParaInyectar: (components['schemas']['Tarifa-componente.item.read'] | Tarifa)[] = [];
+                const tarifasParaInyectar: (components['schemas']['Tarifa-componente.item.read'] | Tarifa)[] = [];
 
                 // La tarifa por defecto llega como id suelto, como objeto embebido o
                 // como IRI, segun el grupo de serializacion de la relacion.
@@ -3767,11 +3782,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const newStartMs = parseNaiveAsUTC(nuevoInicioStr);
         componente.fechaHoraFin = formatNaiveFromUTC(newStartMs + duracionMs);
 
-        onComponenteFechasChange(false);
+        onComponenteFechasChange();
     };
 
 
-    const onComponenteFechasChange = (esCambioInicio: boolean = true): void => {
+    const onComponenteFechasChange = (): void => {
         const componente = componenteActivo.value;
         if (!componente) return;
 

@@ -112,7 +112,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         try {
             const response = await apiClient.get('/platform/maestro/idiomas?prioridad[gt]=0&order[prioridad]=desc');
             idiomasDisponibles.value = response.data['hydra:member'] || response.data['member'] || [];
-        } catch (e) {
+        } catch {
             idiomasDisponibles.value = [{ id: 'es', nombre: 'Español', bandera: '🇪🇸', prioridad: 1 }];
         }
     };
@@ -240,7 +240,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         try {
             await apiClient.delete(iri);
             return true;
-        } catch (err) {
+        } catch {
             return false;
         }
     };
@@ -250,7 +250,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
             await apiClient.delete(iri);
             files.value = files.value.filter(f => f['@id'] !== iri && f.id !== iri);
             return true;
-        } catch (err) {
+        } catch {
             return false;
         }
     };
@@ -315,7 +315,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         try {
             await apiClient.delete(iri);
             return true;
-        } catch (err) {
+        } catch {
             return false;
         }
     };
@@ -346,7 +346,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         try {
             await apiClient.delete(iri);
             return true;
-        } catch (err) {
+        } catch {
             return false;
         }
     };

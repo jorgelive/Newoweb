@@ -33,18 +33,10 @@
   </div>
 </template>
 
-<script setup>
-import { defineProps } from 'vue';
+<script setup lang="ts">
+import type { EstadoMensaje } from '@/types/mensajeEstadoModel';
 
-const props = defineProps({
-  status: {
-    type: String,
-    required: true,
-    validator(value) {
-      return ['pending', 'queued', 'sent', 'delivered', 'read', 'failed', 'received', 'cancelled'].includes(value);
-    }
-  }
-});
+defineProps<{ status: EstadoMensaje }>();
 </script>
 
 <style scoped>

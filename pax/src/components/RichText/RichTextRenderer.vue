@@ -42,11 +42,13 @@ const blocks = computed<RenderBlock[]>(() => {
           class="w-full my-6"
       />
 
+      <!-- eslint-disable vue/no-v-html -- Bloques del editor enriquecido interno; pintar ese HTML es su razón de ser. -->
       <div
           v-else-if="block.content"
           class="prose prose-indigo max-w-none text-gray-600 leading-relaxed"
           v-html="block.content"
       ></div>
+      <!-- eslint-enable vue/no-v-html -->
 
     </template>
   </div>

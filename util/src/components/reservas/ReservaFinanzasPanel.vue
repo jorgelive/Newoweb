@@ -574,25 +574,13 @@ const monedaCargoEsExtranjera = computed(
 );
 
 /**
- * EL TIPO DE CAMBIO SE PIDE SIEMPRE, en cualquier moneda.
- *
- * Antes el campo sólo aparecía cuando la moneda del registro no era la de la
- * cabecera, y eso dejaba los registros COJOS: el día que se cambia la moneda base
- * de la reserva (USD → PEN), todos los que se guardaron «en la moneda de casa» se
- * quedan sin TC y dejan de sumar — hay que ir uno por uno a repararlos.
- *
- * Guardarlo siempre no tiene coste ni riesgo, porque el TC de este módulo NO es
- * «moneda del registro → cabecera»: es la venta **USD→PEN** del día
- * (`PmsInformacionFinancieraRecalculoService::expresionConvertida()` multiplica o
- * divide según el par, y cuando las dos monedas coinciden lo IGNORA). O sea que
- * un TC de más nunca deforma un total; uno de menos sí lo rompe.
- */
-const tcSiempre = true;
-
-/**
  * Motivo por el que el cargo no se puede guardar todavía, o null si está listo.
  * Se valida ANTES de enviar: un cargo en otra moneda sin TC entra en la BD aportando 0.00
  * al saldo, y eso se ve como "el cargo no se reflejó en el precio".
+ *
+ * Por eso el TC se exige SIEMPRE que las monedas difieran, sin excepciones: el servicio
+ * de recálculo ignora el TC cuando ambas coinciden, así que uno de más nunca deforma un
+ * total — pero uno de menos sí lo rompe.
  */
 const errorCargo = computed<string | null>(() => {
     if (!cargoForm.value.totalLinea) return 'Falta el importe.';
@@ -631,6 +619,9 @@ async function guardarCargoOrThrow(): Promise<void> {
             totalLinea: cargoForm.value.totalLinea,
             tipoCambio: cargoForm.value.tipoCambio || null,
             evento: cargoForm.value.evento ? pmsEventoIri(cargoForm.value.evento) : null,
+            // Obligatorio en el contrato de escritura. `false` en un cargo nuevo: no hay
+            // traducción previa que pisar, y el servicio lo apaga solo tras traducir.
+            sobreescribirTraduccion: false,
         };
         await finanzas.createCargo(payload);
     } else if (cargoEditandoId.value) {

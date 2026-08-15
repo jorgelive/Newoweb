@@ -6,7 +6,7 @@ import { useAttachmentStore } from '../attachmentStore.ts';
 import { useNotificationStore } from '../notificationStore.ts';
 import { useNoLeidosStore } from './noLeidosStore.ts';
 import type { components } from '@/types/api';
-import { apiClient, getUrls, processQueue, type CustomAxiosRequestConfig } from '@/services/apiClient.ts';
+import { apiClient, getUrls, type CustomAxiosRequestConfig } from '@/services/apiClient.ts';
 import { esErrorSilencioso } from '@/services/apiError';
 import { miembrosHydra, hayPaginaSiguiente, uuidDe, mismaEntidad, type RecursoHydra } from '@/services/hydra';
 import { isSessionExpired, checkSession } from '@/services/sessionAuth.ts';
@@ -257,7 +257,11 @@ export const useChatStore = defineStore('chatStore', () => {
         try {
             const response = await apiClient.get('/platform/message/templates');
             templates.value = extractData<ApiTemplate>(response);
-        } catch (err) {}
+        } catch {
+            // Las plantillas son un atajo para escribir, no un requisito: si el maestro no
+            // responde, el chat funciona igual y el operador teclea el mensaje. Avisar aquí
+            // sería un error visible por algo que no le impide hacer nada.
+        }
     };
 
     /**
@@ -389,7 +393,7 @@ export const useChatStore = defineStore('chatStore', () => {
                 es.close();
                 scheduleRetry();
             };
-        } catch (err) {
+        } catch {
             scheduleRetry();                                    // FIX #3: antes un fallo de auth
                                                                 // dejaba el túnel muerto sin retry
         }
@@ -465,7 +469,12 @@ export const useChatStore = defineStore('chatStore', () => {
                     else if (uuidOf(currentConversation.value) === conversationId) connectToMercure(conversationId);
                 }, 5000);
             };
-        } catch (err) {}
+        } catch {
+            // El propio EventSource ya trae su reintento en `onerror`. Lo que se atrapa aquí
+            // es que el navegador ni siquiera deje abrirlo (sin red, o bloqueado): en ese
+            // caso el chat se queda sin tiempo real, pero sigue leyéndose y enviándose por
+            // HTTP. Romper la vista por perder el empuje sería peor que no tenerlo.
+        }
     };
 
     // ============================================================================
@@ -541,7 +550,7 @@ export const useChatStore = defineStore('chatStore', () => {
             hasMoreMessages.value = hasNextPage(response);
 
             connectToMercure(id);
-        } catch (err) {
+        } catch {
             error.value = 'Error al cargar historial del chat.';
         } finally {
             loadingMessages.value = false;
@@ -565,7 +574,7 @@ export const useChatStore = defineStore('chatStore', () => {
             messages.value = [...olderMessages, ...messages.value];
             hasMoreMessages.value = hasNextPage(response);
             messagesPage.value = nextPage;
-        } catch (err) {
+        } catch {
             error.value = 'Error al paginar historial.';
         } finally {
             loadingMoreMessages.value = false;
@@ -607,7 +616,7 @@ export const useChatStore = defineStore('chatStore', () => {
 
             await apiClient.post('/platform/message/messages', form, { headers: { 'Content-Type': 'multipart/form-data' } });
             attachmentStore.clear();
-        } catch (err) {
+        } catch {
             error.value = 'Fallo al enviar el mensaje. Intente de nuevo.';
         } finally {
             sendingMessage.value = false;
@@ -634,7 +643,7 @@ export const useChatStore = defineStore('chatStore', () => {
             const latest5 = realHistoryMessages.slice(0, limite);
 
             return latest5.sort((a, b) => new Date(a.effectiveDateTime || a.createdAt as string).getTime() - new Date(b.effectiveDateTime || b.createdAt as string).getTime());
-        } catch (err) { return []; }
+        } catch { return []; }
     };
 
     /**
@@ -699,7 +708,7 @@ export const useChatStore = defineStore('chatStore', () => {
      * @param {Partial<Pick<ApiConversation, 'guestName' | 'guestPhone' | 'idioma' | 'idiomaFijado' | 'whatsappDisabled' | 'whatsappDisabledReason'>>} payload Campos a actualizar.
      * @returns {Promise<boolean>} true si la actualización tuvo éxito.
      */
-    const updateConversation = async (id: string, payload: Record<string, any>): Promise<boolean> => {
+    const updateConversation = async (id: string, payload: Record<string, unknown>): Promise<boolean> => {
         try {
             const response = await apiClient.patch(`/platform/message/conversations/${id}`, payload);
             const updated = response.data as ApiConversation;
@@ -711,7 +720,7 @@ export const useChatStore = defineStore('chatStore', () => {
             if (idx !== -1) Object.assign(conversations.value[idx], updated);
 
             return true;
-        } catch (err) {
+        } catch {
             error.value = 'No se pudo actualizar la conversación.';
             return false;
         }
@@ -737,7 +746,7 @@ export const useChatStore = defineStore('chatStore', () => {
             }
 
             return true;
-        } catch (err) {
+        } catch {
             error.value = 'No se pudo eliminar la conversación.';
             return false;
         }

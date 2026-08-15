@@ -6,7 +6,7 @@ const props = defineProps<{ src: string }>();
 const videoState = computed(() => {
   const url = props.src.trim();
   // YouTube
-  const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/\s]{11})/i);
+  const ytMatch = url.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?/\s]{11})/i);
   if (ytMatch && ytMatch[1]) return { type: 'iframe', url: `https://www.youtube.com/embed/${ytMatch[1]}?rel=0` };
   // Vimeo
   const vimeoMatch = url.match(/(?:vimeo\.com\/)(\d+)/i);

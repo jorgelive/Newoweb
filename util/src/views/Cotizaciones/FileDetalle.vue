@@ -107,7 +107,7 @@ const copiarLink = async () => {
     await navigator.clipboard.writeText(linkPublico.value);
     linkCopiado.value = true;
     setTimeout(() => { linkCopiado.value = false; }, 2000);
-  } catch (e) {
+  } catch {
     alert('No se pudo copiar. Copia manualmente: ' + linkPublico.value);
   }
 };
@@ -329,7 +329,7 @@ const guardarFile = async () => {
     } else {
       alert(fileStore.error || 'Error al guardar el expediente.');
     }
-  } catch (error) {
+  } catch {
     alert('Error de red al actualizar.');
   } finally {
     isSavingFile.value = false;

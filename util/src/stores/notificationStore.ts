@@ -28,7 +28,7 @@ function buildChatUrl(raw: unknown): string {
         if (idParam && UUID_RE.test(idParam)) return `/chat?id=${idParam}`;
         const lastSegment = url.pathname.split('/').pop() || '';
         if (UUID_RE.test(lastSegment)) return `/chat?id=${lastSegment}`;
-    } catch (e) { /* cae al fallback */ }
+    } catch { /* cae al fallback */ }
 
     return '/chat';
 }

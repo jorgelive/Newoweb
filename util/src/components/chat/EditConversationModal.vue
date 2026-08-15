@@ -62,7 +62,7 @@ const handleSave = async () => {
 
   const idiomaObj = maestroStore.idiomas.find((i) => i.id === form.value.idiomaId);
 
-  const payload: Record<string, any> = {
+  const payload: Record<string, unknown> = {
     status: form.value.status,
     guestName: form.value.guestName.trim() || null,
     guestPhone: form.value.guestPhone.trim() || null,
