@@ -87,6 +87,16 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
         /** @var Cotizacion $cotizacion */
         $cotizacion = $this->denormalizer->denormalize($data, $type, $format, $context);
 
+        // Las operaciones custom de Cotizacion declaran su propio `input:` (p. ej.
+        // `/cotizacions/{id}/operacion/aplicar` usa AplicarPlanInput). En esas rutas el
+        // `$type` que llega aquí SIGUE siendo Cotizacion —por eso pasan el `supports()`—
+        // pero el denormalizador interno honra el `input:` y devuelve el DTO. Sin esta
+        // guarda, el post-proceso de abajo le pedía `getCotservicios()` al DTO y rompía
+        // «Aplicar» del panel de reconciliación con un 500.
+        if (!$cotizacion instanceof Cotizacion) {
+            return $cotizacion;
+        }
+
         // Reasignar los UUID del cliente a las entidades recién creadas
         if ($rootId !== null) {
             $cotizacion->setId($rootId);
