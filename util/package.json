@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
     "gen:api": "php ../bin/console api:openapi:export -o .openapi.json && openapi-typescript .openapi.json -o src/types/api.d.ts && rm .openapi.json",
     "build": "vite build && node scripts/pwa-postbuild.mjs",
     "verify:deploy": "node scripts/pwa-verify-deploy.mjs",
@@ -37,9 +39,13 @@
     "@types/node": "^25.2.0",
     "@vitejs/plugin-basic-ssl": "^2.1.4",
     "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/eslint-config-typescript": "^14.9.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-vue": "^10.10.0",
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0",
     "vite": "^6.0.0",
     "vite-plugin-pwa": "^1.2.0",
     "vue-tsc": "^3.2.4"
