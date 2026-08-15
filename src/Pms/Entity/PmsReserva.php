@@ -441,6 +441,10 @@ class PmsReserva
     public function getContacto(): ?MaestroContacto { return $this->contacto; }
     public function setContacto(?MaestroContacto $contacto): self { $this->contacto = $contacto; return $this; }
 
+    // Mismos grupos que `getIdioma()`, su vecino en el formulario. Sin ellos el país no
+    // viajaba en ninguna dirección: el drawer de reservas leía `undefined` y lo que
+    // mandaba al guardar se descartaba en silencio, así que el selector no hacía nada.
+    #[Groups(['pax_reserva:read', 'pms_reserva:read', 'pms_reserva:write'])]
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $val): self { $this->pais = $val; return $this; }
 
