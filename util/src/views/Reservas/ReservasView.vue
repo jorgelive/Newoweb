@@ -22,14 +22,14 @@ import 'tippy.js/dist/tippy.css';
 import '@/assets/fullcalendar-overrides.css';
 import { apiClient, getUrls } from '@/services/apiClient';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
-import { useChatStore, type ApiTemplate } from '@/stores/chat/chatStore';
+
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
+import WhatsappPlantillasLista from '@/components/reservas/WhatsappPlantillasLista.vue';
 import { escaparHtml } from '@/utils/html';
 import { scrollTimelineADia, encuadrarTimeline, hoyLocal } from '@/utils/calendarTimeline';
 import {
     canalInfo,
-    whatsappUrl,
     fechaAInputLocal,
     pmsUnidadIri,
     PMS_ESTADO,
@@ -45,16 +45,9 @@ import {
 } from '@/types/calendarFeedModel';
 import { telefonoParaWhatsapp } from '@/utils/telefono';
 
-// El backend expone `hasWhatsappLinkContent()` pero el serializer de Symfony
-// recorta el prefijo `has`, así que en la API el campo llega como
-// `whatsappLinkContent` (verificado en api:openapi:export). Aún no está en el
-// schema generado de api.d.ts, de ahí la extensión manual del tipo.
-type ApiTemplateWA = ApiTemplate & { whatsappLinkContent?: boolean };
-
 const router = useRouter();
 const route = useRoute();
 const reservasStore = useReservasStore();
-const chatStore = useChatStore();
 
 // ============================================================================
 // SELECTOR DE CALENDARIO (mismas dos vistas del legacy EasyAdmin)
@@ -655,67 +648,11 @@ async function elegirChatInterno(): Promise<void> {
     }
 }
 
-const cargandoPlantillas = ref(false);
-
-const plantillasWhatsapp = computed(() => (chatStore.templates as ApiTemplateWA[]).filter(t => t.whatsappLinkContent));
-
-// ============================================================================
-// PLANTILLAS DE WHATSAPP — POR QUÉ EL ENLACE SE RESUELVE ANTES DE PINTARLO
-//
-// El flujo anterior era: pulsar plantilla → `await` al backend para resolver el
-// texto → `window.open()`. En iOS, y en particular en la PWA instalada (standalone),
-// ese `window.open()` ya no cuenta como parte del gesto del usuario y el sistema lo
-// descarta EN SILENCIO: sin error, sin ventana, el usuario cree que la app se colgó.
-//
-// Solución: al abrir el submenú se resuelven los enlaces de todas las plantillas y
-// cada una se pinta como un `<a href>` de verdad. El toque del usuario navega
-// directamente — no hay ventana emergente que bloquear. Son N peticiones pequeñas en
-// paralelo, y sólo de las plantillas con contenido de enlace (suelen ser un puñado).
-// ============================================================================
-
-/** templateId -> URL de WhatsApp ya resuelta. Vacío mientras carga o si falló. */
-const whatsappLinks = ref<Record<string, string>>({});
-
-async function precargarLinksWhatsapp(reservaId: string): Promise<void> {
-    const plantillas = plantillasWhatsapp.value;
-    // allSettled: que una plantilla rota (variable sin resolver, teléfono ausente)
-    // no deje sin enlace a las demás.
-    const resueltos = await Promise.allSettled(
-        plantillas.map(t => reservasStore.fetchWhatsappLink(reservaId, t.id ?? '')),
-    );
-
-    // El usuario pudo cerrar el menú o cambiar de reserva mientras se resolvía.
-    if (menu.value?.kind !== 'whatsapp' || menu.value.eventProps?.reservaId !== reservaId) return;
-
-    const mapa: Record<string, string> = {};
-    resueltos.forEach((r, i) => {
-        const id = plantillas[i]?.id;
-        if (id && r.status === 'fulfilled') mapa[id] = whatsappUrl(r.value.telefono, r.value.texto);
-    });
-    whatsappLinks.value = mapa;
-
-    if (plantillas.length && !Object.keys(mapa).length) {
-        const primero = resueltos.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
-        avisar(extractApiErrorMessage(primero?.reason, 'No se pudo generar el mensaje de WhatsApp.'));
-    }
-}
-
-async function elegirAbrirWhatsapp(): Promise<void> {
-    // Cambiamos de submenú primero para que el usuario vea feedback inmediato.
+// Las plantillas de WhatsApp (qué sale y cómo se resuelve cada enlace) viven en
+// `WhatsappPlantillasLista`, compartido con ReservaEditDrawer. Aquí sólo se cambia de
+// submenú; la carga la arranca el componente al montarse.
+function elegirAbrirWhatsapp(): void {
     if (menu.value) menu.value = { ...menu.value, kind: 'whatsapp' };
-    const reservaId = menu.value?.eventProps?.reservaId;
-    if (!reservaId) return;
-
-    whatsappLinks.value = {};
-    cargandoPlantillas.value = true;
-    try {
-        if (!chatStore.templates.length) await chatStore.fetchTemplates();
-        await precargarLinksWhatsapp(reservaId);
-    } catch {
-        avisar('No se pudieron cargar las plantillas de WhatsApp.');
-    } finally {
-        cargandoPlantillas.value = false;
-    }
 }
 
 function onGuardado(payload?: { reservaIdCreada?: string; cerrar?: boolean }): void {
@@ -1384,23 +1321,13 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
                         Elegir Plantilla
                     </p>
                     <div class="border-t border-slate-100"></div>
-                    <div v-if="cargandoPlantillas" class="flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-400">
-                        <i class="fas fa-spinner fa-spin w-4"></i> Cargando plantillas…
-                    </div>
-                    <p v-else-if="!plantillasWhatsapp.length" class="px-4 py-2.5 text-xs font-bold text-slate-400">
-                        No hay plantillas de WhatsApp configuradas.
-                    </p>
-                    <!-- <a> real con el enlace ya resuelto: el toque del usuario navega sin
-                         window.open(), que la PWA de iOS bloquea en silencio (ver el bloque
-                         de comentarios del script). Sin enlace, la fila queda inerte. -->
-                    <a v-for="t in plantillasWhatsapp" :key="t.id ?? ''"
-                        :href="whatsappLinks[t.id ?? ''] || undefined"
-                        :target="whatsappLinks[t.id ?? ''] ? '_blank' : undefined" rel="noopener"
-                        @click="whatsappLinks[t.id ?? ''] && cerrarMenu()"
-                        class="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm font-bold text-slate-700"
-                        :class="whatsappLinks[t.id ?? ''] ? 'hover:bg-slate-50 cursor-pointer' : 'opacity-40 cursor-not-allowed'">
-                        <i class="fab fa-whatsapp w-4 text-emerald-500 shrink-0"></i> <span class="truncate">{{ t.name }}</span>
-                    </a>
+                    <!-- Las filas y las reglas (qué plantillas salen, cómo se resuelve el
+                         enlace) las pone el componente compartido con ReservaEditDrawer. -->
+                    <WhatsappPlantillasLista v-if="menu.eventProps?.reservaId"
+                        :reserva-id="menu.eventProps.reservaId"
+                        @elegido="cerrarMenu"
+                        @error="avisar"
+                    />
                 </template>
                 <template v-else>
                     <!-- Sobre qué se está actuando. En una rejilla de 31 columnas el

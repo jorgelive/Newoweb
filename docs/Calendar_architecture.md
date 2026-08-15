@@ -597,6 +597,7 @@ recurso REST de API Platform propio para EDITAR. Ningún dato de edición pasa p
 |---|---|
 | `util/src/views/Reservas/ReservasView.vue` | Calendario + menú contextual + drag & drop + buscador |
 | `util/src/components/reservas/ReservaEditDrawer.vue` | Drawer ver/crear/editar (acordeón de estancias). ⚠️ **Dos consumidores**: también lo monta `ChatView.vue` sin calendario detrás (`docs/Mensajeria.md` §7) — al tocarlo, comprobar los dos |
+| `util/src/components/reservas/WhatsappPlantillasLista.vue` | Filas de plantillas de WhatsApp con el enlace ya resuelto. **Compartido**: submenú del calendario + popover del drawer |
 | `util/src/stores/reservas/reservasStore.ts` | Catálogos + CRUD de evento/reserva + búsqueda |
 | `util/src/types/pmsReservaModel.ts` | Tipos, helpers de IRI/fecha y reglas OTA |
 | `src/Pms/Controller/Api/PmsReservaBuscarController.php` | `GET /pms/reservas/buscar?q=` (buscador del calendario) |
@@ -802,8 +803,8 @@ el `diaPendiente`.
 #### Gotcha PWA iOS — `window.open()` después de un `await` se pierde en silencio
 
 El submenú **"Enviar plantilla"** de WhatsApp resuelve los enlaces de *todas* las plantillas
-al abrirse (`precargarLinksWhatsapp()`, `Promise.allSettled`) y pinta cada una como un `<a
-href>` de verdad. Parece un rodeo — lo natural sería un `<button>` que pida el texto al
+al abrirse (`WhatsappPlantillasLista::cargar()`, `Promise.allSettled`) y pinta cada una como
+un `<a href>` de verdad. Parece un rodeo — lo natural sería un `<button>` que pida el texto al
 backend y abra WhatsApp — pero ese camino **no funciona en la PWA instalada de iOS**:
 
 > Safari solo permite abrir ventanas **dentro del gesto del usuario**. Un `window.open()`
@@ -824,6 +825,27 @@ Reglas que se siguen de esto, aplicables a cualquier vista de `util/`:
 Quedan `window.open()` en `ChatView.vue` (adjuntos) y `CotizacionEditorView.vue` (vista
 previa): esos sí están dentro del gesto, pero si alguna vez se les mete un `await` delante,
 caen en la misma trampa.
+
+#### Las plantillas viven en un componente, no en la vista
+
+`WhatsappPlantillasLista.vue` tiene **dos consumidores**: el submenú del menú contextual del
+calendario y el popover de la subbarra de `ReservaEditDrawer`. Lo que comparten no es el
+aspecto —uno es una fila de menú, el otro un dropdown— sino **las reglas**: qué plantillas
+salen (`whatsappLinkContent`: sólo las que tienen cuerpo de enlace; una plantilla de Beds24 o
+de la API de Meta aquí no significa nada) y cómo se abre cada una (el gotcha de iOS de
+arriba). Por eso el componente pinta **sólo las filas** y el contenedor lo pone cada
+consumidor.
+
+Estaba todo dentro de `ReservasView`. Se extrajo al añadir el menú al drawer: reimplementarlo
+allí habría nacido ya divergido del que lleva tiempo en producción, y el fallo de iOS es
+justo del tipo que no se ve al probar en escritorio.
+
+⚠️ **El popover del drawer cuelga del envoltorio de la subbarra, no de la barra.** La barra
+lleva `overflow-x-auto` para poder desplazar los accesos directos, y en cuanto un eje deja de
+ser `visible` el navegador computa `overflow-y: auto` en el otro: un popover dentro de la
+barra saldría **recortado a la altura del borde**. Por lo mismo se cierra al desplazarla —el
+listener de `scroll` se engancha en el `watch(barraRef)`, no en `onMounted`, porque el drawer
+arranca cargando y ahí la barra todavía no existe.
 
 #### El «atrás» del móvil cierra capas (y su acoplamiento con el drawer)
 

@@ -7,6 +7,7 @@ import { getUrls } from '@/services/apiClient';
 import { formatearTelefono, telefonoParaWhatsapp } from '@/utils/telefono';
 import { enfocarEnScroller } from '@/utils/scrollEnfoque';
 import ReservaFinanzasPanel from '@/components/reservas/ReservaFinanzasPanel.vue';
+import WhatsappPlantillasLista from '@/components/reservas/WhatsappPlantillasLista.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import {
     PMS_ESTADO,
@@ -860,17 +861,29 @@ let observer: ResizeObserver | null = null;
 onMounted(() => {
     observer = new ResizeObserver(() => ajustarBarra());
     if (barraRef.value) observer.observe(barraRef.value);
+
+    // `true` (fase de captura): el popover de plantillas debe cerrarse aunque el clic
+    // caiga sobre algo que detenga la propagación, como los controles del formulario.
+    document.addEventListener('click', cerrarPlantillasSiFuera, true);
 });
 
 onBeforeUnmount(() => {
     observer?.disconnect();
     observer = null;
+    document.removeEventListener('click', cerrarPlantillasSiFuera, true);
+    barraRef.value?.removeEventListener('scroll', cerrarPlantillas);
 });
 
 // La barra se monta con `v-if` (necesita reservaId y datos cargados), así que
 // puede aparecer después del onMounted: se observa en cuanto exista.
-watch(barraRef, (el) => {
+//
+// El listener de scroll va aquí por lo mismo: en `onMounted` la barra todavía no existe
+// —el drawer arranca cargando— y engancharlo allí no haría nada. Un popover abierto
+// mientras se desplaza la barra queda flotando lejos de su botón, así que se cierra.
+watch(barraRef, (el, anterior) => {
+    anterior?.removeEventListener('scroll', cerrarPlantillas);
     if (el && observer) {
+        el.addEventListener('scroll', cerrarPlantillas);
         observer.observe(el);
         remedirBarra();
     }
@@ -919,6 +932,33 @@ const whatsappUrl = computed(() => {
     ));
     return numero ? `https://wa.me/${numero}` : null;
 });
+
+// ============================================================================
+// PLANTILLAS DE WHATSAPP (popover de la subbarra)
+//
+// Las reglas y las filas están en WhatsappPlantillasLista, compartido con el submenú
+// del calendario. Aquí sólo se abre y se cierra.
+// ============================================================================
+const plantillasAbiertas = ref(false);
+
+function onErrorPlantillas(mensaje: string): void {
+    localError.value = mensaje;
+    plantillasAbiertas.value = false;
+}
+
+// La subbarra tiene scroll horizontal: un popover abierto mientras se desplaza queda
+// flotando lejos de su botón. Se cierra también al hacer scroll, no sólo al clicar
+// fuera.
+function cerrarPlantillas(): void {
+    plantillasAbiertas.value = false;
+}
+
+function cerrarPlantillasSiFuera(e: MouseEvent): void {
+    if (!plantillasAbiertas.value) return;
+    const destino = e.target as HTMLElement | null;
+    if (destino?.closest('[data-plantillas-popover]')) return;
+    plantillasAbiertas.value = false;
+}
 
 const abriendoChat = ref(false);
 
@@ -1492,6 +1532,15 @@ async function ejecutarBorrado(): Promise<void> {
                             <template v-else>Editar Estancia</template>
                         </span>
                         <span v-if="hayOta" class="text-amber-400"><i class="fas fa-lock mr-1"></i>OTA</span>
+                        <!-- El localizador subió aquí desde la subbarra para hacerle sitio al
+                             menú de plantillas. No pierde nada por el camino: sigue siendo lo
+                             primero que se lee y ahora convive con el nombre, que es la pareja
+                             que se dicta por teléfono. -->
+                        <span v-if="reservaInfo.localizador"
+                            class="font-mono font-black tracking-wide text-slate-200 normal-case text-[11px]"
+                            title="Localizador de la reserva">
+                            {{ reservaInfo.localizador }}
+                        </span>
                     </p>
                     <h2 class="font-black text-base tracking-tight truncate mt-0.5">
                         {{ tituloCabecera }}
@@ -1527,14 +1576,17 @@ async function ejecutarBorrado(): Promise<void> {
 
                  Se pinta igual en Ver y en Editar: son datos de solo lectura y
                  accesos, nada que dependa del modo. -->
-            <div v-if="reservaId && !isLoadingDrawer" ref="barraRef"
-                class="shrink-0 bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+            <!-- Envoltorio SIN overflow: el popover de plantillas cuelga de aquí y no de la
+                 barra. `overflow-x-auto` recorta también en vertical (el navegador computa
+                 `overflow-y: auto` en cuanto uno de los dos ejes deja de ser `visible`), así
+                 que un popover dentro de la barra saldría cortado a la altura del borde. -->
+            <div v-if="reservaId && !isLoadingDrawer" class="relative shrink-0" data-plantillas-popover>
 
-                <span v-if="reservaInfo.localizador"
-                    class="shrink-0 px-2.5 py-1 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-mono font-black tracking-wide"
-                    title="Localizador de la reserva">
-                    {{ reservaInfo.localizador }}
-                </span>
+            <div ref="barraRef"
+                class="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+
+                <!-- El localizador ya NO va aquí: subió a la cabecera (§ header) para dejar
+                     sitio al menú de plantillas sin que la barra desborde. -->
 
                 <!-- Reserva en el canal: el código de la OTA es el propio enlace a su
                      extranet. Si no hay URL sigue mostrándose como dato, que es lo que
@@ -1589,6 +1641,19 @@ async function ejecutarBorrado(): Promise<void> {
                     <i class="fab fa-whatsapp text-emerald-500 text-sm"></i>
                 </a>
 
+                <!-- Plantillas de WhatsApp: mismas reglas y mismas filas que el submenú del
+                     menú contextual del calendario, porque es literalmente el mismo
+                     componente. Sin él había que cerrar la ficha e ir al calendario a buscar
+                     la reserva otra vez sólo para mandar un mensaje. -->
+                <button v-if="whatsappUrl" type="button" @click="plantillasAbiertas = !plantillasAbiertas"
+                    title="Enviar plantilla de WhatsApp"
+                    class="shrink-0 w-8 h-8 flex items-center justify-center border rounded-lg transition-colors"
+                    :class="plantillasAbiertas
+                        ? 'bg-[#376875]/10 border-[#376875] text-[#376875]'
+                        : 'bg-white border-slate-200 hover:border-[#376875] hover:bg-[#376875]/5 text-slate-500'">
+                    <i class="fas fa-paper-plane text-sm"></i>
+                </button>
+
                 <!--
                   Oculto cuando la ficha se abrió DESDE el chat: ahí este botón sólo
                   cerraría el drawer para llevarte a la conversación en la que ya estás.
@@ -1599,6 +1664,24 @@ async function ejecutarBorrado(): Promise<void> {
                     <i class="fas text-sm text-slate-500"
                         :class="abriendoChat ? 'fa-spinner fa-spin' : 'fa-comment-dots'"></i>
                 </button>
+
+            </div>
+
+            <!-- Fuera de la barra scrollable, anclado al envoltorio. Se monta con v-if para
+                 que la lista resuelva los enlaces cada vez que se abre: el teléfono o el
+                 idioma pueden haber cambiado en esta misma sesión de edición. -->
+            <div v-if="plantillasAbiertas"
+                class="absolute right-4 top-full -mt-1 w-64 max-h-72 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-2xl py-1 z-30">
+                <p class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Elegir Plantilla
+                </p>
+                <div class="border-t border-slate-100"></div>
+                <WhatsappPlantillasLista v-if="reservaId"
+                    :reserva-id="reservaId"
+                    @elegido="cerrarPlantillas"
+                    @error="onErrorPlantillas"
+                />
+            </div>
 
             </div>
 
