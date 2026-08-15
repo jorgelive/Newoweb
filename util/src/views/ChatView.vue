@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation, type ApiAttachment, type ApiMessageQueue } from '@/stores/chat/chatStore.ts';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
+import ConversacionVistaPrevia from '@/components/common/ConversacionVistaPrevia.vue';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import EditConversationModal from '@/components/chat/EditConversationModal.vue';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
@@ -191,15 +192,26 @@ const getReactions = (msg: ApiMessage): { emoji: string; count: number }[] => {
 
 // ============================================================================
 // MODO STALKER
+//
+// Aquí sólo viven los GESTOS del inbox (posarse, pulsar largo, clic derecho): la
+// ventana en sí es `ConversacionVistaPrevia`, compartida con el calendario de
+// reservas. Lo que se fue con ella: el fetch del historial, el scroll al final y
+// el cálculo de la posición —el componente se mide solo—.
 // ============================================================================
 const isStalkMenuOpen = ref(false);
 const stalkMenuPos = ref({ x: 0, y: 0 });
 const stalkConversation = ref<ApiConversation | null>(null);
-const stalkMessages = ref<ApiMessage[]>([]);
-const isLoadingStalk = ref(false);
-const isStalkHoverMode = ref(false);
 
-const stalkScrollContainer = ref<HTMLElement | null>(null);
+/**
+ * ¿La conversación que se está espiando es la que ya está abierta en el panel?
+ *
+ * Cuando lo es, «Ir al chat» no lleva a ninguna parte —ya estás ahí— y se oculta.
+ * Asomarse a la de al lado sigue ofreciendo el botón, que ahí sí hace algo.
+ */
+const stalkEsLaAbierta = computed(() =>
+    !!stalkConversation.value && store.currentConversation?.id === stalkConversation.value.id
+);
+const isStalkHoverMode = ref(false);
 
 let stalkPressTimer: number | null = null;
 let stalkHoverTimer: number | null = null;
@@ -276,47 +288,31 @@ const handleChatClick = (chat: ApiConversation) => {
   if (chat.id) selectChat(chat.id);
 };
 
-const openStalkMenu = async (chat: ApiConversation, event: MouseEvent | TouchEvent) => {
+/**
+ * Ancla la ventana al punto del gesto. Ya no se recorta a la pantalla aquí: eso lo
+ * hace `ConversacionVistaPrevia` midiendo el panel real, que es lo correcto porque
+ * su alto depende de lo que llegue por fetch.
+ */
+const openStalkMenu = (chat: ApiConversation, event: MouseEvent | TouchEvent) => {
   stalkConversation.value = chat;
 
-  let clientX = 0;
-  let clientY = 0;
+  const touch = 'touches' in event ? (event as TouchEvent).touches[0] : null;
+  const punto = touch ?? (event as MouseEvent);
 
-  if ('touches' in event && (event as TouchEvent).touches.length > 0) {
-    clientX = (event as TouchEvent).touches[0].clientX;
-    clientY = (event as TouchEvent).touches[0].clientY;
-  } else if ('clientX' in event) {
-    clientX = (event as MouseEvent).clientX;
-    clientY = (event as MouseEvent).clientY;
-  }
-
-  const screenW = window.innerWidth;
-  const screenH = window.innerHeight;
-  const menuW = 300;
-  const menuH = 250;
-
+  // Con hover se separa del cursor para que el ítem siga viéndose debajo.
   const offset = isStalkHoverMode.value ? 15 : 0;
 
   stalkMenuPos.value = {
-    x: clientX + offset + menuW > screenW ? screenW - menuW - 10 : clientX + offset,
-    y: clientY + offset + menuH > screenH ? screenH - menuH - 10 : clientY + offset
+    x: (Number.isFinite(punto?.clientX) ? punto.clientX : 0) + offset,
+    y: (Number.isFinite(punto?.clientY) ? punto.clientY : 0) + offset,
   };
 
   isStalkMenuOpen.value = true;
-  isLoadingStalk.value = true;
-  stalkMessages.value = [];
+};
 
-  if (chat.id) {
-    try {
-      stalkMessages.value = await store.fetchLatestMessagesForStalk(chat.id);
-      await nextTick();
-      if (stalkScrollContainer.value) {
-        stalkScrollContainer.value.scrollTop = stalkScrollContainer.value.scrollHeight;
-      }
-    } finally {
-      isLoadingStalk.value = false;
-    }
-  }
+/** El botón «Ir al chat» de la vista previa: aquí ya estamos en el chat, se selecciona. */
+const abrirDesdeVistaPrevia = (conversationId: string) => {
+  selectChat(conversationId);
 };
 
 const closeStalkMenu = () => {
@@ -876,25 +872,6 @@ const formatTime = (iso?: string) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-const formatStalkDate = (iso?: string) => {
-  if (!iso) return '';
-  const msgDate = new Date(iso);
-  const today = new Date();
-
-  const isToday = msgDate.getDate() === today.getDate() &&
-      msgDate.getMonth() === today.getMonth() &&
-      msgDate.getFullYear() === today.getFullYear();
-
-  const timeString = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  if (isToday) {
-    return timeString;
-  } else {
-    const dateString = msgDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-    return `${dateString}, ${timeString}`;
-  }
-};
-
 const formatFullDate = (iso?: string) => {
   if (!iso) return '';
   const [year, month, day] = iso.split('T')[0].split('-').map(Number);
@@ -1127,59 +1104,18 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
       </div>
     </Transition>
 
-    <div v-if="isStalkMenuOpen && !isStalkHoverMode" class="fixed inset-0 z-400" @click="closeStalkMenu"></div>
-
-    <Transition name="fade-scale">
-      <div v-if="isStalkMenuOpen"
-           :style="{ top: stalkMenuPos.y + 'px', left: stalkMenuPos.x + 'px' }"
-           @mouseenter="isStalkHoverMode ? cancelStalkCloseTimer() : null"
-           @mouseleave="isStalkHoverMode ? cancelStalkHover() : null"
-           class="fixed z-500 bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 w-72 md:w-80 overflow-hidden transform origin-top-left flex flex-col gap-3 max-h-87.5">
-
-        <h3 class="text-xs font-black uppercase text-slate-500 border-b border-slate-100 pb-2 flex justify-between items-center">
-          <span class="flex items-center gap-2"><i class="fas fa-eye text-[#376875]"></i> Vista Previa</span>
-          <span class="text-[#E07845] bg-orange-50 px-2 py-0.5 rounded-md" v-if="stalkConversation?.unreadCount">
-            {{ stalkConversation.unreadCount }} sin leer
-          </span>
-        </h3>
-
-        <!-- El resumen IA va ARRIBA, antes del historial: la gracia de asomarse a una
-             conversación es saber qué piden sin leerla. Solo con no leídos, porque el
-             resumen es de lo pendiente; si ya se contestó, está vacío. -->
-        <div v-if="stalkConversation?.resumenIa && (stalkConversation?.unreadCount ?? 0) > 0"
-             class="flex gap-2 items-start bg-[#E07845]/8 border border-[#E07845]/20 rounded-xl px-3 py-2">
-          <i class="fas fa-wand-magic-sparkles text-[#E07845] text-[10px] mt-0.5 shrink-0"></i>
-          <p class="text-[11px] font-bold text-slate-700 leading-snug">{{ stalkConversation.resumenIa }}</p>
-        </div>
-
-        <div v-if="isLoadingStalk" class="flex justify-center py-6"><i class="fas fa-circle-notch fa-spin text-slate-300 text-2xl"></i></div>
-        <div v-else-if="stalkMessages.length === 0" class="text-xs text-slate-400 text-center py-4 italic">No hay historial reciente.</div>
-
-        <div ref="stalkScrollContainer" v-else class="overflow-y-auto flex-1 min-h-0 flex flex-col gap-3 scrollbar-hide py-1">
-          <div v-for="m in stalkMessages" :key="m.id" class="text-[12px] p-2.5 rounded-xl border shadow-sm leading-relaxed"
-               :class="m.direction === 'outgoing' ? 'bg-[#376875]/5 border-[#376875]/10 text-slate-700 ml-6 rounded-tr-sm' : 'bg-white border-slate-200 text-slate-800 mr-6 rounded-tl-sm'">
-            <div class="font-black mb-1 flex justify-between text-[9px] uppercase tracking-wider" :class="m.direction === 'outgoing' ? 'text-[#376875]' : 'text-slate-400'">
-              <span>{{ m.direction === 'incoming' ? stalkConversation?.guestName || 'Huésped' : 'Tú' }}</span>
-              <span>{{ formatStalkDate(m.effectiveDateTime || m.createdAt) }}</span>
-            </div>
-
-            <div class="whitespace-pre-wrap wrap-break-word opacity-90 font-medium">
-              <span v-if="m.template" class="block text-[10px] font-black uppercase opacity-80">
-                🤖 {{ getTemplateName(m.template) }}
-              </span>
-              <span v-else>
-                {{ m.contentLocal || m.contentExternal || '📎 [Archivo Adjunto]' }}
-              </span>
-            </div>
-
-          </div>
-        </div>
-
-        <button v-if="!isStalkHoverMode" @click="closeStalkMenu" class="mt-1 w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors">
-          Cerrar
-        </button>
-      </div>
-    </Transition>
+    <!-- La conversación ya está cargada en el inbox: se pasa entera y la vista previa
+         se ahorra el viaje de la cabecera. `delegar` porque aquí «Ir al chat» es
+         seleccionarla en este mismo panel, no navegar. -->
+    <ConversacionVistaPrevia
+        :abierta="isStalkMenuOpen"
+        :ancla="stalkMenuPos"
+        :conversacion="stalkConversation"
+        :modo="isStalkHoverMode ? 'hover' : 'fijado'"
+        :accion-chat="stalkEsLaAbierta ? 'ninguna' : 'delegar'"
+        @mantener="cancelStalkCloseTimer"
+        @abrir-chat="abrirDesdeVistaPrevia"
+        @cerrar="closeStalkMenu" />
 
     <Transition name="fade-slide">
       <div v-if="store.error && !store.isSessionExpired" class="fixed top-8 left-1/2 -translate-x-1/2 z-100 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-xl border border-white/10 max-w-[90vw] text-center">

@@ -8,6 +8,7 @@ import { isSessionExpired } from '@/services/sessionAuth';
 import { MODULOS_APP } from '@/types/modulosApp';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import AsistenteBar from '@/components/common/AsistenteBar.vue';
+import ConversacionVistaPrevia from '@/components/common/ConversacionVistaPrevia.vue';
 import { apiClient } from '@/services/apiClient';
 import { coleccionFeed, type CalendarEventoFeed } from '@/types/calendarFeedModel';
 import type { PmsEventoExtendedProps } from '@/types/pmsReservaModel';
@@ -284,6 +285,20 @@ const handleLogout = async () => {
     window.location.href = '/logout';
   }
 };
+// ── VISTA PREVIA DE CONVERSACIÓN («stalker») ────────────────────────────────
+//
+// Desde el portal el chat se ve, no se abre: casi siempre basta leer el resumen y
+// los últimos mensajes para saber si hace falta entrar. Y de paso arregla el enlace
+// viejo, que apuntaba a `/chat/:id` — una ruta que ChatView no escucha.
+const vistaPreviaConv = ref<{ id: string } | null>(null);
+const vistaPreviaAncla = ref<{ x: number; y: number }>({ x: 0, y: 0 });
+
+const abrirVistaPrevia = (conv: { id: string }, evento: MouseEvent) => {
+    vistaPreviaAncla.value = { x: evento.clientX, y: evento.clientY };
+    vistaPreviaConv.value = conv;
+};
+
+const cerrarVistaPrevia = () => { vistaPreviaConv.value = null; };
 </script>
 
 <template>
@@ -521,10 +536,16 @@ const handleLogout = async () => {
 
             <ul v-else class="divide-y divide-slate-50">
               <li v-for="conv in noLeidos.conversaciones" :key="conv.id">
-                <RouterLink
-                  :to="`/chat/${conv.id}`"
-                  class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors"
-                  :title="`Abrir el chat de ${conv.guestName}`"
+                <!--
+                  Botón y no RouterLink: enlazaba a `/chat/:id`, y ChatView sólo reacciona
+                  a `route.query.id` — el enlace te dejaba en la bandeja sin abrir nada.
+                  Ahora se asoma primero con la vista previa, y desde ella se entra.
+                -->
+                <button
+                  type="button"
+                  @click="abrirVistaPrevia(conv, $event)"
+                  class="w-full text-left flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors"
+                  :title="`Ver la conversación de ${conv.guestName}`"
                 >
                   <span class="w-9 h-9 rounded-xl bg-[#376875] text-white flex items-center justify-center shrink-0 font-black text-sm">
                     {{ conv.guestName?.charAt(0).toUpperCase() || '?' }}
@@ -554,8 +575,8 @@ const handleLogout = async () => {
                   <span class="shrink-0 min-w-[1.5rem] px-2 py-0.5 rounded-full bg-[#E07845] text-white text-[11px] font-black text-center tabular-nums">
                     {{ conv.unreadCount }}
                   </span>
-                  <i class="fas fa-chevron-right text-[10px] text-slate-300 shrink-0" aria-hidden="true"></i>
-                </RouterLink>
+                  <i class="fas fa-eye text-[10px] text-slate-300 shrink-0" aria-hidden="true"></i>
+                </button>
               </li>
             </ul>
           </div>
@@ -632,6 +653,17 @@ const handleLogout = async () => {
         &copy; {{ new Date().getFullYear() }} OpenPeru · Sistema Privado
       </footer>
     </div>
+
+    <!-- Vista previa del chat. `fijado` porque aquí se llega con un clic deliberado,
+         no de pasada: conviene el velo y el botón de cerrar. `navegar` porque desde el
+         portal sí hay a dónde ir. -->
+    <ConversacionVistaPrevia
+        :abierta="vistaPreviaConv !== null"
+        :ancla="vistaPreviaAncla"
+        :conversacion-id="vistaPreviaConv?.id ?? null"
+        modo="fijado"
+        accion-chat="navegar"
+        @cerrar="cerrarVistaPrevia" />
   </div>
 </template>
 

@@ -24,6 +24,7 @@ import { apiClient, getUrls } from '@/services/apiClient';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
+import ConversacionVistaPrevia from '@/components/common/ConversacionVistaPrevia.vue';
 import ReservaEditDrawer from '@/components/reservas/ReservaEditDrawer.vue';
 import WhatsappPlantillasLista from '@/components/reservas/WhatsappPlantillasLista.vue';
 import { escaparHtml } from '@/utils/html';
@@ -601,6 +602,18 @@ function cerrarMenu(): void {
 // intento.
 // ============================================================================
 onBeforeRouteLeave(() => {
+    // La vista previa de la conversación es una capa más, y va primero porque se abre
+    // POR ENCIMA (el menú se cierra al lanzarla).
+    //
+    // ⚠️ Y por eso su botón «Ir al chat» tiene que cerrarla ANTES de navegar: este
+    // guard cancela cualquier salida de ruta, no sólo el back, así que un push con la
+    // capa abierta se lo tragaría. Lo hace `ConversacionVistaPrevia::irAlChat()`,
+    // emitiendo `cerrar` antes del `router.push` — mismo requisito que
+    // `ReservaEditDrawer::abrirChatInterno()`.
+    if (vistaPrevia.value.abierta) {
+        cerrarVistaPrevia();
+        return false;
+    }
     if (menu.value) {
         cerrarMenu();
         return false;
@@ -630,22 +643,47 @@ function elegirCrear(kind: 'bloqueo' | 'reserva'): void {
     cerrarMenu();
 }
 
-async function elegirChatInterno(): Promise<void> {
+// ============================================================================
+// VISTA PREVIA DE LA CONVERSACIÓN
+//
+// Antes este ítem del menú saltaba DIRECTO al chat, y eso obligaba a abandonar el
+// calendario para averiguar algo que casi siempre se resuelve leyendo las cuatro
+// últimas líneas: qué se le prometió al huésped, si ya se le contestó, si la
+// ventana de 24 h sigue abierta. Ahora primero se asoma —sin marcar nada como
+// leído— y el salto al chat es un botón dentro de la propia ventana.
+//
+// La resolución reserva → conversación la hace el componente por su cuenta a
+// partir del contexto; aquí ya no hace falta `fetchConversacionId()`.
+// ============================================================================
+const vistaPrevia = ref<{ abierta: boolean; reservaId: string | null; x: number; y: number }>({
+    abierta: false, reservaId: null, x: 0, y: 0,
+});
+
+/** El asunto en la forma que entiende el chat. Null mientras no haya nada abierto. */
+const contextoVistaPrevia = computed(() => (
+    vistaPrevia.value.reservaId ? { tipo: 'pms_reserva', id: vistaPrevia.value.reservaId } : null
+));
+
+/**
+ * El ancla como computed y no como objeto en la plantilla: escrito inline
+ * (`:ancla="{ x: …, y: … }"`) nace un objeto nuevo en CADA render, y el watch del
+ * componente que recoloca la ventana se dispararía en todos ellos.
+ */
+const anclaVistaPrevia = computed(() => ({ x: vistaPrevia.value.x, y: vistaPrevia.value.y }));
+
+function elegirVerConversacion(): void {
     const reservaId = menu.value?.eventProps?.reservaId;
+    // Se hereda la posición ya ajustada del menú: la ventana nace donde estaba el
+    // menú que se acaba de cerrar, y no de un salto al otro lado de la pantalla.
+    const { x, y } = menuPos.value;
     cerrarMenu();
     if (!reservaId) return;
-    try {
-        const convId = await reservasStore.fetchConversacionId(reservaId);
-        if (!convId) {
-            avisar('Esta reserva todavía no tiene una conversación de chat.');
-            return;
-        }
-        // ChatView.vue solo reacciona a `route.query.id` (ver su watch/onMounted),
-        // no a un param de ruta: /chat/:id no abre nada, hay que usar ?id=.
-        router.push({ path: '/chat', query: { id: convId } });
-    } catch {
-        avisar('No se pudo abrir el chat interno.');
-    }
+
+    vistaPrevia.value = { abierta: true, reservaId, x, y };
+}
+
+function cerrarVistaPrevia(): void {
+    vistaPrevia.value = { abierta: false, reservaId: null, x: 0, y: 0 };
 }
 
 // Las plantillas de WhatsApp (qué sale y cómo se resuelve cada enlace) viven en
@@ -1272,9 +1310,9 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
                         <p class="px-4 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             Mensajería
                         </p>
-                        <button @click="elegirChatInterno"
+                        <button @click="elegirVerConversacion"
                             class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
-                            <i class="fas fa-comment-dots w-4 text-slate-400"></i> Abrir chat interno
+                            <i class="fas fa-eye w-4 text-slate-400"></i> Ver conversación
                         </button>
                         <a v-if="menuWhatsappUrl" :href="menuWhatsappUrl" target="_blank" rel="noopener" @click="cerrarMenu"
                             class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
@@ -1382,6 +1420,18 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
             @close="cerrarDrawer"
             @saved="onGuardado"
             @deleted="onBorrado"
+        />
+
+        <!-- Se le da el asunto y se ocupa de todo: resolver la conversación de esa
+             reserva, traer el historial sin marcarlo como leído y ofrecer el salto al
+             chat. Modo `fijado` porque se abre desde un ítem del menú, no al pasar por
+             encima. -->
+        <ConversacionVistaPrevia
+            :abierta="vistaPrevia.abierta"
+            :ancla="anclaVistaPrevia"
+            :contexto="contextoVistaPrevia"
+            modo="fijado"
+            @cerrar="cerrarVistaPrevia"
         />
     </div>
 </template>

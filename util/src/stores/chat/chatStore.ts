@@ -616,24 +616,78 @@ export const useChatStore = defineStore('chatStore', () => {
 
     /**
      * MODO STALKER:
-     * Trae los últimos 5 mensajes limpios de una conversación SIN disparar el webhook
+     * Trae los últimos mensajes limpios de una conversación SIN disparar el webhook
      * de lectura (No notifica al huésped). Ideal para previsualizaciones.
      * Filtra rigurosamente los mensajes programados o pendientes, y
      * ordena de más antiguo a más nuevo para una visualización top-down correcta.
      *
      * @param {string} conversationId ID de la conversación
+     * @param {number} limite Cuántos mensajes recientes devolver
      * @returns {Promise<ApiMessage[]>} Lista recortada de mensajes
      */
-    const fetchLatestMessagesForStalk = async (conversationId: string): Promise<ApiMessage[]> => {
+    const fetchLatestMessagesForStalk = async (conversationId: string, limite = 5): Promise<ApiMessage[]> => {
         try {
             const response = await apiClient.get(`/platform/message/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
             const data = extractData<ApiMessage>(response);
 
             const realHistoryMessages = data.filter(m => m.scheduledForFuture !== true && m.status !== 'pending' && m.status !== 'queued' && m.status !== 'cancelled');
-            const latest5 = realHistoryMessages.slice(0, 5);
+            const latest5 = realHistoryMessages.slice(0, limite);
 
             return latest5.sort((a, b) => new Date(a.effectiveDateTime || a.createdAt as string).getTime() - new Date(b.effectiveDateTime || b.createdAt as string).getTime());
         } catch (err) { return []; }
+    };
+
+    /**
+     * La cabecera de una conversación, en modo stalker: un GET a secas.
+     *
+     * ⚠️ Existe para NO usar `selectConversation()` en una previsualización: ésa marca la
+     * conversación como leída (`POST …/read`), baja el contador global y abre Mercure. Eso
+     * está bien al abrir el chat y está MAL al asomarse a él — el sentido del modo stalker
+     * es enterarse sin dejar rastro, y con `selectConversation` un simple hover borraba los
+     * «sin leer» del compañero que iba a contestar.
+     *
+     * Tampoco toca el estado del store (`currentConversation`, `messages`): devuelve el dato
+     * y se va, para que una previsualización abierta desde otra vista no altere el inbox.
+     *
+     * @param {string} id UUID de la conversación.
+     * @returns {Promise<ApiConversation | null>} null si no existe o falla.
+     */
+    const fetchConversacionParaStalk = async (id: string): Promise<ApiConversation | null> => {
+        try {
+            const response = await apiClient.get(`/platform/message/conversations/${id}`);
+            return response.data as ApiConversation;
+        } catch {
+            return null;
+        }
+    };
+
+    /**
+     * La conversación vinculada a un asunto de otro dominio, también sin marcar nada.
+     *
+     * `contextType`/`contextId` viajan OPACOS: aquí no se interpreta qué es un `pms_reserva`
+     * ni una `cotizacion`, sólo se filtra la colección por ellos. Es lo que permite que la
+     * vista previa se use desde cualquier módulo del SPA sin que el chat conozca ninguno
+     * (misma regla que los identificadores de dominio en el backend, ver CLAUDE.md).
+     *
+     * Devuelve la conversación ENTERA y no sólo su id, al contrario que
+     * `reservasStore.fetchConversacionId()`: la vista previa necesita además el nombre del
+     * huésped, los no leídos y el resumen IA, y pedirlos después serían dos viajes para lo
+     * que la colección ya trae en uno.
+     *
+     * @param {string} contextType Tipo de asunto, tal como lo guarda el chat ('pms_reserva'…).
+     * @param {string} contextId UUID del asunto en su dominio.
+     * @returns {Promise<ApiConversation | null>} null si ese asunto aún no tiene conversación.
+     */
+    const fetchConversacionPorContexto = async (contextType: string, contextId: string): Promise<ApiConversation | null> => {
+        try {
+            const response = await apiClient.get('/platform/message/conversations', {
+                params: { contextType, contextId },
+            });
+
+            return extractData<ApiConversation>(response)[0] ?? null;
+        } catch {
+            return null;
+        }
     };
 
     /**
@@ -701,6 +755,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, updateConversation, deleteConversation
+        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
     };
 });
