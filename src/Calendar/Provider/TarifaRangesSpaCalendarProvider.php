@@ -380,7 +380,9 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
         if ($time === '') return $default;
         $parts = explode(':', $time);
         if (count($parts) < 2) return $default;
-        return [(int)($parts[0]??$default[0]), (int)($parts[1]??$default[1]), (int)($parts[2]??$default[2])];
+        // Tras la guarda de arriba, 0 y 1 existen seguro. El 2 no —«14:30» sin segundos es
+        // normal— y por eso ése sí conserva su respaldo.
+        return [(int) $parts[0], (int) $parts[1], (int) ($parts[2] ?? $default[2])];
     }
 
     private function resolvePath(mixed $base, string $path): mixed

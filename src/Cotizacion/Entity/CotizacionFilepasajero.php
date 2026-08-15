@@ -114,7 +114,8 @@ class CotizacionFilepasajero
             return null;
         }
         $apellidosArray = explode(' ', $this->apellido, 2);
-        return $apellidosArray[0] ?? null;
+        // `explode()` nunca devuelve vacío y el apellido ya se comprobó arriba.
+        return $apellidosArray[0];
     }
 
     /**

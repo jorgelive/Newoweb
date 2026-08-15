@@ -433,8 +433,9 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
             return $default;
         }
 
-        $h = (int)($parts[0] ?? $default[0]);
-        $m = (int)($parts[1] ?? $default[1]);
+        // Tras la guarda de arriba, 0 y 1 existen seguro; el 2 no.
+        $h = (int) $parts[0];
+        $m = (int) $parts[1];
         $s = (int)($parts[2] ?? $default[2]);
 
         if ($h < 0 || $h > 23) { $h = $default[0]; }

@@ -174,7 +174,7 @@ final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDomini
         // Se comprueba contra el origen real de la reserva: `despedida_airbnb` no se le manda a
         // un huésped de Booking aunque el operador se equivoque de código.
         $origen = $this->origenReserva($conversacion);
-        $permitidos = $plantilla->getAllowedSources() ?? [];
+        $permitidos = $plantilla->getAllowedSources();
 
         if ($permitidos !== [] && $origen !== null && !in_array($origen, $permitidos, true)) {
             return SkillResult::error(sprintf(

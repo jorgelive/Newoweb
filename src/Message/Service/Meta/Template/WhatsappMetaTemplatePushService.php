@@ -330,7 +330,8 @@ final readonly class WhatsappMetaTemplatePushService
     private function generateNamedExamples(string $text, array $previewVars): array
     {
         preg_match_all('/\{\{([a-zA-Z0-9_]+)\}\}/', $text, $matches);
-        $varsInText = $matches[1] ?? [];
+        // `preg_match_all` deja siempre el grupo, vacío si no hubo coincidencias.
+        $varsInText = $matches[1];
 
         if (empty($varsInText)) {
             return [];

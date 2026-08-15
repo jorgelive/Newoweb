@@ -154,7 +154,7 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
         // La correspondencia de OTA, igual que en la skill del operador: si la plantilla está
         // acotada a un origen, la reserva tiene que venir de él.
         $origen = $this->reserva($conversacion)?->getChannel()?->getId();
-        $permitidos = $plantilla->getAllowedSources() ?? [];
+        $permitidos = $plantilla->getAllowedSources();
 
         if ($permitidos !== [] && $origen !== null && !in_array($origen, $permitidos, true)) {
             return SkillResult::error(sprintf(

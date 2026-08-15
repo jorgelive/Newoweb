@@ -31,6 +31,15 @@
 # null, `instanceof` que no pueden fallar, comparaciones siempre ciertas. Se quitan al tocar
 # cada archivo, con criterio y de una en una.
 #
+# ── Sobre los `??` que quedan (30 de los 45 que había) ──────────────────────
+# La regla que se aplicó para quitar los 15: se borra sólo si se puede DECIR EN QUÉ CASO
+# CONCRETO se ejecuta el lado derecho, y la respuesta es «en ninguno». Si no se sabe, se queda.
+#
+# Los 30 que siguen NO son ruido que haya que barrer: casi todos leen de una columna JSON o de
+# un payload de un tercero, donde el tipo declarado es una descripción nuestra, no una garantía
+# del dato. Quitarlos convertiría «esto llegó raro» en un fatal. Los de propiedades hidratadas
+# por Doctrine, igual: el getter puede declarar no-nulo y la columna traer NULL.
+#
 # ⚠️ Lo de las columnas nulables de Doctrine YA NO está aquí: se sacó a una `ignoreErrors` en
 # `phpstan.dist.neon`, acotada a `Entity/`. No era deuda —no se va a «saldar» nunca, porque el
 # análisis estático no puede ver la hidratación del ORM—, y como regla cubre además las entidades
@@ -252,12 +261,6 @@ parameters:
 			path: src/Agent/Skill/Pms/EnviarMensajeHuespedSkill.php
 
 		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 1
-			path: src/Agent/Skill/Pms/EnviarPlantillaSkill.php
-
-		-
 			message: '#^Method App\\Agent\\Skill\\Pms\\EnviarPlantillaSkill\:\:cuerpo\(\) has parameter \$canales with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -274,12 +277,6 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 1
 			path: src/Agent/Skill/Pms/EnviarPlantillaSkill.php
-
-		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 1
-			path: src/Agent/Skill/Pms/EnviarmePlantillaSkill.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
@@ -540,58 +537,10 @@ parameters:
 			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
 
 		-
-			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
-			message: '#^Offset 1 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
 			message: '#^Call to function method_exists\(\) with App\\Pms\\Service\\Tarifa\\Dto\\TarifaLogicalRangeDto and ''getSourceId'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Offset 1 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
-
-		-
-			message: '#^Offset 1 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesRawCalendarProvider.php
-
-		-
-			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
-
-		-
-			message: '#^Offset 1 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Calendar/Provider/TarifaRangesSpaCalendarProvider.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int will always evaluate to true\.$#'
@@ -680,12 +629,6 @@ parameters:
 		-
 			message: '#^Comparison operation "\<\=" between int\<3, 12\> and 12 is always true\.$#'
 			identifier: smallerOrEqual.alwaysTrue
-			count: 1
-			path: src/Cotizacion/Entity/CotizacionFilepasajero.php
-
-		-
-			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
 			count: 1
 			path: src/Cotizacion/Entity/CotizacionFilepasajero.php
 
@@ -1206,12 +1149,6 @@ parameters:
 			path: src/Message/Entity/MessageTemplate.php
 
 		-
-			message: '#^Offset 0 on non\-empty\-list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\}\> on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Message/Entity/MessageTemplate.php
-
-		-
 			message: '#^Strict comparison using \!\=\= between 2 and 2 will always evaluate to false\.$#'
 			identifier: notIdentical.alwaysFalse
 			count: 1
@@ -1286,12 +1223,6 @@ parameters:
 		-
 			message: '#^Method App\\Message\\Service\\Meta\\Template\\WhatsappMetaTemplatePushService\:\:generateNamedExamples\(\) should return array\{list\<string\>, list\<string\>\} but returns non\-empty\-list\<array\{param_name\: non\-empty\-string, example\: string\}\>\.$#'
 			identifier: return.type
-			count: 1
-			path: src/Message/Service/Meta/Template/WhatsappMetaTemplatePushService.php
-
-		-
-			message: '#^Offset 1 on array\{list\<string\>, list\<non\-empty\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
 			count: 1
 			path: src/Message/Service/Meta/Template/WhatsappMetaTemplatePushService.php
 
@@ -1522,12 +1453,6 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Pms/Controller/Crud/PmsUnidadCrudController.php
-
-		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 1
-			path: src/Pms/Controller/Webhook/Beds24WebhookController.php
 
 		-
 			message: '#^Offset ''id'' on non\-empty\-array\<mixed, mixed\> on left side of \?\? always exists and is not nullable\.$#'
@@ -1864,12 +1789,6 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 1
 			path: src/Pms/Service/Queue/Beds24BookingsPushQueueCreator.php
-
-		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 1
-			path: src/Pms/Service/Queue/Beds24RatesPushQueueCreator.php
 
 		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'

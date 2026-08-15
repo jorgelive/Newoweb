@@ -87,7 +87,7 @@ class Beds24RatesPushQueueCreator
             // La tarifa de $52 (otro ID) SE MANTIENE en el array
             $rangos = array_filter($rangos, fn(PmsTarifaRango $r) => (string)$r->getId() !== $dirtyId);
 
-            if (!$isDelete && ($dirtyRango->isActivo() ?? false)) {
+            if (!$isDelete && $dirtyRango->isActivo()) {
                 $rangos[] = $dirtyRango;
             }
             $rangos = array_values($rangos);

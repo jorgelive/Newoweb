@@ -50,7 +50,7 @@ final class Beds24WebhookController extends AbstractController
         $audit->setRemoteIp($request->getClientIp());
         $audit->setHeaders($request->headers->all());
         $audit->setPayloadRaw($rawContent);
-        $audit->setStatus(PmsBeds24WebhookAudit::STATUS_QUEUED ?? 'queued');
+        $audit->setStatus(PmsBeds24WebhookAudit::STATUS_QUEUED);
 
         $this->persistAudit($audit);
 

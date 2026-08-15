@@ -914,7 +914,8 @@ class MessageTemplate
             }
         }
 
-        $finalItem = $foundItem ?? $englishItem ?? ($list[0] ?? null);
+        // El `[0]` existe: la guarda de arriba ya descartó la lista vacía.
+        $finalItem = $foundItem ?? $englishItem ?? $list[0];
 
         return $finalItem[$key] ?? null;
     }
