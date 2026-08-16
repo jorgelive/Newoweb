@@ -1503,12 +1503,6 @@ parameters:
 			path: src/Pms/Entity/PmsCargoFinanciero.php
 
 		-
-			message: '#^Attribute class App\\Pms\\Entity\\Assert\\Valid does not exist\.$#'
-			identifier: attribute.notFound
-			count: 1
-			path: src/Pms/Entity/PmsChannel.php
-
-		-
 			message: '#^Property App\\Pms\\Entity\\PmsChannel\:\:\$eventosCalendario is never written, only read\.$#'
 			identifier: property.onlyRead
 			count: 1
@@ -1525,12 +1519,6 @@ parameters:
 			identifier: arrayValues.list
 			count: 1
 			path: src/Pms/Entity/PmsConversacionEnlace.php
-
-		-
-			message: '#^PHPDoc tag @return with type int is incompatible with native type bool\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Pms/Entity/PmsEventoCalendario.php
 
 		-
 			message: '#^Right side of && is always true\.$#'
@@ -2067,12 +2055,6 @@ parameters:
 			path: src/Service/WebPushNotificationService.php
 
 		-
-			message: '#^Cannot call method isEmpty\(\) on iterable\<App\\Travel\\Entity\\TravelSegmentoComponente\>\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: src/Travel/Controller/Crud/TravelSegmentoCrudController.php
-
-		-
 			message: '#^Match arm comparison between ''OPCIONAL'' and ''OPCIONAL'' is always true\.$#'
 			identifier: match.alwaysTrue
 			count: 1
@@ -2081,12 +2063,6 @@ parameters:
 		-
 			message: '#^Match arm comparison between ''OPCIONAL'' and ''OPCIONAL'' is always true\.$#'
 			identifier: match.alwaysTrue
-			count: 1
-			path: src/Travel/Entity/TravelItemDiccionario.php
-
-		-
-			message: '#^Match arm comparison between \*NEVER\* and ''UPSELL'' is always false\.$#'
-			identifier: match.alwaysFalse
 			count: 1
 			path: src/Travel/Entity/TravelItemDiccionario.php
 

@@ -353,6 +353,13 @@ tono semántico y traducirlo en el front.
 - **`ComponenteItemModoEnum` no lo usa nadie.** Es un duplicado de `ItemModoEnum` con dos
   casos extra (`CORTESIA`, `REEMPLAZADO`); `TravelComponenteItem` usa `ItemModoEnum`. Ojo al
   elegir cuál tocar: el que manda es `ItemModoEnum`.
+- **El duplicado de enums ya produjo código muerto.** `TravelItemDiccionario::badgesModo()`
+  ramificaba sobre `'UPSELL'` —un nombre que no existe en ningún enum de modo— y sobre
+  `'CORTESIA'`, que sólo existe en el gemelo `ComponenteItemModoEnum`. Como `getModo()` devuelve
+  `ItemModoEnum` (INCLUIDO, OPCIONAL, NO_INCLUIDO), ninguno de los dos brazos podía entrar.
+  El de `UPSELL` se retiró; el de `CORTESIA` se dejó anotado, porque revive si algún día se
+  unifican los enums. **Al ramificar por modo, comprueba primero qué enum devuelve el getter**:
+  los nombres de los tres se parecen lo bastante como para escribir un brazo que nunca corre.
 - **`esComisionable()` y `afectaCosto()` están declarados pero no se invocan en ningún sitio.**
   Los tres enums de modo los definen y una búsqueda en todo el repo (PHP, Twig, TS, Vue) no
   encuentra una sola llamada. Los consumidores reimplementan la regla comparando casos a mano:

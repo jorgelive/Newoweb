@@ -804,13 +804,6 @@ class PmsEventoCalendario
         return null;
     }
 
-    /**
-     * Calcula la cantidad de noches (días calendario) de la estancia.
-     * Ignora las horas de check-in y check-out para evitar errores matemáticos
-     * en estancias menores a 24 horas reloj (ej. check-in 14:00, check-out 10:00).
-     *
-     * @return int
-     */
     #[Groups(['pax_reserva:read', 'pms_evento:read'])]
     public function isSalidaTardia(): bool
     {
@@ -866,6 +859,11 @@ class PmsEventoCalendario
         return $this;
     }
 
+    /**
+     * Calcula la cantidad de noches (días calendario) de la estancia.
+     * Ignora las horas de check-in y check-out para evitar errores matemáticos
+     * en estancias menores a 24 horas reloj (ej. check-in 14:00, check-out 10:00).
+     */
     public function getNoches(): int
     {
         if (null === $this->inicio || null === $this->fin) {
