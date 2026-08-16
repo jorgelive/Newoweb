@@ -28,6 +28,23 @@ final class Beds24BookingDto
         public readonly ?string $notes,
         public readonly ?string $comments,
         public readonly ?string $arrivalTime,
+        /**
+         * ⚠️ **`country2`, NUNCA `country`. Beds24 manda LAS DOS y no son lo mismo.**
+         *
+         * Payload real (auditoría del 15/08/2026):
+         *
+         *     "country": "pe",   ← minúsculas, ISO2 en crudo
+         *     "country2": "PE"   ← MAYÚSCULAS, la canónica
+         *
+         * Este DTO expone sólo `country2` a propósito: los identificadores de `MaestroPais` son
+         * mayúsculas (`PE`, `ES`, `DE`), así que casa directo con `find()` sin normalizar nada.
+         *
+         * 🚫 **No lo «corrijas» a `country`.** Ya pasó: `BookingPullPersister` leía
+         * `$dto->country` —propiedad que no existe aquí—, el `??` devolvía cadena vacía y la
+         * inferencia de idioma por país llevaba muerta desde que se escribió, sin dar un solo
+         * error. Se arregló el 15/08/2026. Si vuelves a ver `->country` en algún sitio, es el
+         * fallo, no una mejora.
+         */
         public readonly ?string $country2,
         public readonly ?string $lang,
         public readonly ?string $channel,

@@ -192,6 +192,17 @@ Verificación: `cd util && npm run typecheck` (idem en `pax/`) — es `vue-tsc -
 misma comprobación que corre el build. Sin errores, siempre. Ojo: la inspección propia de
 PhpStorm sobre `.vue` es menos fiable que `vue-tsc`; ante una discrepancia, manda el script.
 
+### Campos que parecen un error y no lo son
+
+Algunos nombres invitan a «corregirlos» y al hacerlo se rompe algo en silencio. Antes de
+renombrar un campo que venga de una API externa, comprueba el payload real.
+
+| Campo | Por qué NO se toca |
+|---|---|
+| `Beds24BookingDto::$country2` | Beds24 manda `country` (minúsculas) **y** `country2` (mayúsculas). El DTO expone sólo la segunda porque `MaestroPais` usa mayúsculas. Cambiarlo a `country` dejó muerta la inferencia de idioma por país, sin un solo error. Ver `docs/PmsBeds24ReservasSync.md` §3.3. |
+
+---
+
 ## Dominios y contratos
 
 **Un servicio transversal nunca lleva dentro conocimiento de un dominio.** Si el núcleo necesita

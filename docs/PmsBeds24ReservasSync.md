@@ -192,6 +192,26 @@ ProcessBeds24WebhookDispatchHandler::__invoke()
 
 ### 3.3 Estructura del payload de Beds24
 
+> ### 🚫 `country2`, nunca `country`
+>
+> Beds24 manda **las dos** y no son lo mismo — payload real de la auditoría, 15/08/2026:
+>
+> ```json
+> "country": "pe",    ← minúsculas, ISO2 en crudo
+> "country2": "PE"    ← MAYÚSCULAS, la canónica
+> ```
+>
+> `Beds24BookingDto` expone **sólo `country2`**, y es deliberado: los identificadores de
+> `MaestroPais` son mayúsculas (`PE`, `ES`, `DE`), así que casa directo con `find()`.
+>
+> **Esto ya se «corrigió» mal una vez.** `BookingPullPersister` leía `$dto->country` —una
+> propiedad que el DTO no declara—, el `??` devolvía cadena vacía, y la inferencia de idioma a
+> partir del país del huésped llevaba muerta desde que se escribió **sin dar un solo error**.
+> Arreglado el 15/08/2026.
+>
+> Si ves `->country` en cualquier sitio del módulo, es el fallo — no una mejora. El aviso está
+> repetido en el propio DTO, junto a la propiedad.
+
 ```json
 {
   "timeStamp": "2025-07-30T14:32:00",
@@ -208,6 +228,7 @@ ProcessBeds24WebhookDispatchHandler::__invoke()
     "lastName": "García",
     "email": "ana@email.com",
     "phone": "+34600000000",
+    "country": "es",
     "country2": "ES",
     "lang": "es",
     "channel": "booking.com",
