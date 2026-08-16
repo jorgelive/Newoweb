@@ -82,7 +82,7 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
     }
 
     /**
-     * Junta los soft-links de proveedor de toda la cotización y los resuelve en LOTE.
+     * Junta los soft-links de prestador de toda la cotización y los resuelve en LOTE.
      *
      * Recorrer las colecciones aquí no añade coste: se van a serializar igualmente unas
      * líneas más abajo, así que la hidratación ya estaba pagada.
@@ -94,8 +94,8 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
 
         foreach ($cotizacion->getCotservicios() as $servicio) {
             foreach ($servicio->getCotcomponentes() as $componente) {
-                $proveedorIds[] = $componente->getProveedorMaestroId();
-                $servicioIds[] = $componente->getProveedorServicioMaestroId();
+                $proveedorIds[] = $componente->getPrestadorMaestroId();
+                $servicioIds[] = $componente->getPrestadorServicioMaestroId();
             }
         }
 

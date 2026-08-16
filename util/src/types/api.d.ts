@@ -6868,7 +6868,7 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
@@ -6884,30 +6884,19 @@ export interface components {
             /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
             prestadorTelefonoSnapshot?: string | null;
             prestadorDireccionSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
-            proveedorMaestroId?: string | null;
-            /** @description Nombre comercial. Operativo: identifica al proveedor en el histórico. */
-            proveedorNombreSnapshot?: string | null;
             /**
-             * @description ¿Se nombra al proveedor en ESTA propuesta?
-             * @default false
+             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
+             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
+             *     le puede mandar la orden esa vez y seguir.
              */
-            proveedorVisible: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorEmailSnapshot?: string | null;
+            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description El servicio concreto que se le compra (ej. el tipo de habitación). */
-            proveedorServicioMaestroId?: string | null;
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
@@ -6991,7 +6980,7 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
@@ -7007,30 +6996,19 @@ export interface components {
             /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
             prestadorTelefonoSnapshot?: string | null;
             prestadorDireccionSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
-            proveedorMaestroId?: string | null;
-            /** @description Nombre comercial. Operativo: identifica al proveedor en el histórico. */
-            proveedorNombreSnapshot?: string | null;
             /**
-             * @description ¿Se nombra al proveedor en ESTA propuesta?
-             * @default false
+             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
+             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
+             *     le puede mandar la orden esa vez y seguir.
              */
-            proveedorVisible: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorEmailSnapshot?: string | null;
+            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description El servicio concreto que se le compra (ej. el tipo de habitación). */
-            proveedorServicioMaestroId?: string | null;
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
@@ -7109,7 +7087,7 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
@@ -7125,30 +7103,19 @@ export interface components {
             /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
             prestadorTelefonoSnapshot?: string | null;
             prestadorDireccionSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
-            proveedorMaestroId?: string | null;
-            /** @description Nombre comercial. Operativo: identifica al proveedor en el histórico. */
-            proveedorNombreSnapshot?: string | null;
             /**
-             * @description ¿Se nombra al proveedor en ESTA propuesta?
-             * @default false
+             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
+             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
+             *     le puede mandar la orden esa vez y seguir.
              */
-            proveedorVisible: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorEmailSnapshot?: string | null;
+            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description El servicio concreto que se le compra (ej. el tipo de habitación). */
-            proveedorServicioMaestroId?: string | null;
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
@@ -7211,19 +7178,11 @@ export interface components {
             prestadorImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
@@ -7268,19 +7227,11 @@ export interface components {
             prestadorImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
@@ -7357,7 +7308,7 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
@@ -7373,30 +7324,19 @@ export interface components {
             /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
             prestadorTelefonoSnapshot?: string | null;
             prestadorDireccionSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
-            proveedorMaestroId?: string | null;
-            /** @description Nombre comercial. Operativo: identifica al proveedor en el histórico. */
-            proveedorNombreSnapshot?: string | null;
             /**
-             * @description ¿Se nombra al proveedor en ESTA propuesta?
-             * @default false
+             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
+             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
+             *     le puede mandar la orden esa vez y seguir.
              */
-            proveedorVisible: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorEmailSnapshot?: string | null;
+            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description El servicio concreto que se le compra (ej. el tipo de habitación). */
-            proveedorServicioMaestroId?: string | null;
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
@@ -7480,7 +7420,7 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
@@ -7496,30 +7436,19 @@ export interface components {
             /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
             prestadorTelefonoSnapshot?: string | null;
             prestadorDireccionSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
-            proveedorMaestroId?: string | null;
-            /** @description Nombre comercial. Operativo: identifica al proveedor en el histórico. */
-            proveedorNombreSnapshot?: string | null;
             /**
-             * @description ¿Se nombra al proveedor en ESTA propuesta?
-             * @default false
+             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
+             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
+             *     le puede mandar la orden esa vez y seguir.
              */
-            proveedorVisible: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorEmailSnapshot?: string | null;
+            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description El servicio concreto que se le compra (ej. el tipo de habitación). */
-            proveedorServicioMaestroId?: string | null;
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
@@ -7586,19 +7515,11 @@ export interface components {
             prestadorImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
@@ -7643,19 +7564,11 @@ export interface components {
             prestadorImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
@@ -7732,7 +7645,7 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
@@ -7748,30 +7661,19 @@ export interface components {
             /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
             prestadorTelefonoSnapshot?: string | null;
             prestadorDireccionSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
-            proveedorMaestroId?: string | null;
-            /** @description Nombre comercial. Operativo: identifica al proveedor en el histórico. */
-            proveedorNombreSnapshot?: string | null;
             /**
-             * @description ¿Se nombra al proveedor en ESTA propuesta?
-             * @default false
+             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
+             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
+             *     le puede mandar la orden esa vez y seguir.
              */
-            proveedorVisible: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorEmailSnapshot?: string | null;
+            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description El servicio concreto que se le compra (ej. el tipo de habitación). */
-            proveedorServicioMaestroId?: string | null;
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
@@ -7856,7 +7758,7 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
@@ -7872,30 +7774,19 @@ export interface components {
             /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
             prestadorTelefonoSnapshot?: string | null;
             prestadorDireccionSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
-            proveedorMaestroId?: string | null;
-            /** @description Nombre comercial. Operativo: identifica al proveedor en el histórico. */
-            proveedorNombreSnapshot?: string | null;
             /**
-             * @description ¿Se nombra al proveedor en ESTA propuesta?
-             * @default false
+             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
+             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
+             *     le puede mandar la orden esa vez y seguir.
              */
-            proveedorVisible: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorEmailSnapshot?: string | null;
+            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description El servicio concreto que se le compra (ej. el tipo de habitación). */
-            proveedorServicioMaestroId?: string | null;
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
@@ -7964,19 +7855,11 @@ export interface components {
             prestadorImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
@@ -8022,19 +7905,11 @@ export interface components {
             prestadorImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
@@ -8111,7 +7986,7 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
@@ -8127,30 +8002,19 @@ export interface components {
             /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
             prestadorTelefonoSnapshot?: string | null;
             prestadorDireccionSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
-            proveedorMaestroId?: string | null;
-            /** @description Nombre comercial. Operativo: identifica al proveedor en el histórico. */
-            proveedorNombreSnapshot?: string | null;
             /**
-             * @description ¿Se nombra al proveedor en ESTA propuesta?
-             * @default false
+             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
+             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
+             *     le puede mandar la orden esa vez y seguir.
              */
-            proveedorVisible: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorEmailSnapshot?: string | null;
+            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description El servicio concreto que se le compra (ej. el tipo de habitación). */
-            proveedorServicioMaestroId?: string | null;
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
@@ -8234,7 +8098,7 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
@@ -8250,30 +8114,19 @@ export interface components {
             /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
             prestadorTelefonoSnapshot?: string | null;
             prestadorDireccionSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
-            proveedorMaestroId?: string | null;
-            /** @description Nombre comercial. Operativo: identifica al proveedor en el histórico. */
-            proveedorNombreSnapshot?: string | null;
             /**
-             * @description ¿Se nombra al proveedor en ESTA propuesta?
-             * @default false
+             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
+             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
+             *     le puede mandar la orden esa vez y seguir.
              */
-            proveedorVisible: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorEmailSnapshot?: string | null;
+            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description El servicio concreto que se le compra (ej. el tipo de habitación). */
-            proveedorServicioMaestroId?: string | null;
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
@@ -8340,19 +8193,11 @@ export interface components {
             prestadorImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
@@ -8397,19 +8242,11 @@ export interface components {
             prestadorImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            proveedorTituloSnapshot?: {
+            prestadorServicioTituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            proveedorUrlSnapshot?: string | null;
-            proveedorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            proveedorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            proveedorServicioUrlSnapshot?: string | null;
-            proveedorServicioImagenesSnapshot?: {
+            prestadorServicioUrlSnapshot?: string | null;
+            prestadorServicioImagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
@@ -8443,9 +8280,6 @@ export interface components {
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
-            /** @description Prestador por defecto del día. OPCIONAL. */
-            prestadorMaestroId?: string | null;
-            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -8485,9 +8319,6 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
-            /** @description Prestador por defecto del día. OPCIONAL. */
-            prestadorMaestroId?: string | null;
-            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -8522,9 +8353,6 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.write"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento-cotizacion.write"][];
             servicioMaestroId?: string | null;
-            /** @description Prestador por defecto del día. OPCIONAL. */
-            prestadorMaestroId?: string | null;
-            prestadorNombreSnapshot?: string | null;
             id?: string;
             /**
              * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
@@ -8586,9 +8414,6 @@ export interface components {
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
-            /** @description Prestador por defecto del día. OPCIONAL. */
-            prestadorMaestroId?: string | null;
-            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -8628,9 +8453,6 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
-            /** @description Prestador por defecto del día. OPCIONAL. */
-            prestadorMaestroId?: string | null;
-            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -8696,9 +8518,6 @@ export interface components {
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
-            /** @description Prestador por defecto del día. OPCIONAL. */
-            prestadorMaestroId?: string | null;
-            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -8738,9 +8557,6 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
-            /** @description Prestador por defecto del día. OPCIONAL. */
-            prestadorMaestroId?: string | null;
-            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -8806,9 +8622,6 @@ export interface components {
             cotcomponentes?: string[];
             cotsegmentos?: string[];
             servicioMaestroId?: string | null;
-            /** @description Prestador por defecto del día. OPCIONAL. */
-            prestadorMaestroId?: string | null;
-            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -8848,9 +8661,6 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
-            /** @description Prestador por defecto del día. OPCIONAL. */
-            prestadorMaestroId?: string | null;
-            prestadorNombreSnapshot?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -8906,9 +8716,6 @@ export interface components {
              */
             moneda?: string;
             tarifaMaestraId?: string | null;
-            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
-            proveedorMaestroId?: string | null;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -8954,9 +8761,6 @@ export interface components {
             montoCosto: string;
             moneda?: components["schemas"]["Moneda-cotizacion.read_timestamp.read"];
             tarifaMaestraId?: string | null;
-            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
-            proveedorMaestroId?: string | null;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9001,9 +8805,6 @@ export interface components {
              */
             moneda?: string;
             tarifaMaestraId?: string | null;
-            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
-            proveedorMaestroId?: string | null;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9040,7 +8841,6 @@ export interface components {
         "CotizacionCottarifa-pax_catalogo.read_pax_cotizacion.read": {
             /** @default 1 */
             cantidad: number;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9062,7 +8862,6 @@ export interface components {
         "CotizacionCottarifa-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             cantidad: number;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9099,9 +8898,6 @@ export interface components {
              */
             moneda?: string;
             tarifaMaestraId?: string | null;
-            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
-            proveedorMaestroId?: string | null;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9147,9 +8943,6 @@ export interface components {
             montoCosto: string;
             moneda?: components["schemas"]["Moneda.html-cotizacion.read_timestamp.read"];
             tarifaMaestraId?: string | null;
-            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
-            proveedorMaestroId?: string | null;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9190,7 +8983,6 @@ export interface components {
         "CotizacionCottarifa.html-pax_catalogo.read_pax_cotizacion.read": {
             /** @default 1 */
             cantidad: number;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9212,7 +9004,6 @@ export interface components {
         "CotizacionCottarifa.html-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             cantidad: number;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9249,9 +9040,6 @@ export interface components {
              */
             moneda?: string;
             tarifaMaestraId?: string | null;
-            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
-            proveedorMaestroId?: string | null;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9297,9 +9085,6 @@ export interface components {
             montoCosto: string;
             moneda?: components["schemas"]["Moneda.jsonld-cotizacion.read_timestamp.read"];
             tarifaMaestraId?: string | null;
-            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
-            proveedorMaestroId?: string | null;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9340,7 +9125,6 @@ export interface components {
         "CotizacionCottarifa.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default 1 */
             cantidad: number;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9362,7 +9146,6 @@ export interface components {
         "CotizacionCottarifa.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default 1 */
             cantidad: number;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9399,9 +9182,6 @@ export interface components {
              */
             moneda?: string;
             tarifaMaestraId?: string | null;
-            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
-            proveedorMaestroId?: string | null;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9447,9 +9227,6 @@ export interface components {
             montoCosto: string;
             moneda?: components["schemas"]["Moneda.multipart-cotizacion.read_timestamp.read"];
             tarifaMaestraId?: string | null;
-            /** @description SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro. */
-            proveedorMaestroId?: string | null;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9490,7 +9267,6 @@ export interface components {
         "CotizacionCottarifa.multipart-pax_catalogo.read_pax_cotizacion.read": {
             /** @default 1 */
             cantidad: number;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -9512,7 +9288,6 @@ export interface components {
         "CotizacionCottarifa.multipart-pax_file.read_pax_cotizacion.read": {
             /** @default 1 */
             cantidad: number;
-            proveedorNombreSnapshot?: string | null;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];

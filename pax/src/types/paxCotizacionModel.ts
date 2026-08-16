@@ -110,37 +110,31 @@ export interface PaxCotComponente {
     detallesParaCliente: PaxDetalleCliente[];
 
     /**
-     * Prestador de referencia: quién presta el servicio que el cliente contrató por
-     * su cuenta (su hotel, su vuelo). Espejo de la cara PÚBLICA de
-     * `CotizacionCotcomponente` — el nombre comercial, el teléfono y la dirección
-     * son operativos y no salen del grupo interno, así que aquí no existen.
+     * PRESTADOR — quién presta este servicio, y su cara pública.
      *
-     * ⚠️ Sólo llega en componentes `modo = no_incluido`:
-     * `CotizacionCotcomponentePrestadorPublicNormalizer` los borra en el resto. En
-     * un componente incluido revelar quién opera es justo lo que el anonimato
-     * white-label evita; en uno no incluido no hay margen que proteger y la
-     * referencia es lo que hace que la propuesta se lea completa.
+     * `Proveedor` es la entidad maestra; el prestador es el papel que juega en el
+     * componente. A nivel de cotización sólo hay dos papeles: éste y el comprador, que
+     * nunca sale de la capa interna.
+     *
+     * ⚠️ Sólo llega si la propuesta decidió nombrarlo:
+     * `CotizacionCotcomponentePrestadorPublicNormalizer` lo borra cuando el flag global de
+     * la cotización oculta proveedores o cuando el componente no está marcado como visible.
+     * La bandera no viaja: llega su efecto, no el motivo.
+     *
+     * ⚠️ Cuando hay maestro, esto viene **resuelto en vivo** contra el catálogo, no del
+     * snapshot: renombrar una empresa se ve sin re-guardar la propuesta. El snapshot es el
+     * respaldo, y el único contenido si el prestador se escribió a mano.
+     *
+     * El nombre comercial, el correo, el teléfono y la dirección son operativos y no salen
+     * del grupo interno, así que aquí no existen.
      */
     prestadorTituloSnapshot?: I18n;
     prestadorUrlSnapshot?: string | null;
     prestadorImagenesSnapshot?: PaxImagenSnapshot[];
-
-    /**
-     * Proveedor — a quién se le compra. Vivía anidado en cada `PaxCottarifa` y subió
-     * aquí con `Version20260816160000`, porque nunca hubo dos por componente y la vista
-     * tenía que volver a juntarlo deduplicando.
-     *
-     * ⚠️ Sólo llega si la propuesta decidió nombrarlo:
-     * `CotizacionCotcomponenteProveedorPublicNormalizer` lo borra cuando el flag global
-     * de la cotización oculta proveedores o cuando el componente no está marcado como
-     * visible. La bandera en sí no viaja: al cliente le llega su efecto, no el motivo.
-     */
-    proveedorTituloSnapshot?: I18n;
-    proveedorUrlSnapshot?: string | null;
-    proveedorImagenesSnapshot?: PaxImagenSnapshot[];
-    proveedorServicioTituloSnapshot?: I18n;
-    proveedorServicioUrlSnapshot?: string | null;
-    proveedorServicioImagenesSnapshot?: PaxImagenSnapshot[];
+    /** El servicio concreto que presta (ej. el tipo de habitación). */
+    prestadorServicioTituloSnapshot?: I18n;
+    prestadorServicioUrlSnapshot?: string | null;
+    prestadorServicioImagenesSnapshot?: PaxImagenSnapshot[];
 
     /** Su hora representa el horario de toda la excursión (servicio completo), no
      *  la del segmento donde está anclado. Ver CotizacionCotcomponente. */

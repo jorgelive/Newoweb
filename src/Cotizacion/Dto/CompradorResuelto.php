@@ -11,14 +11,14 @@ namespace App\Cotizacion\Dto;
  * `origen` deja constancia de cuál ganó para que el editor pueda decir «heredado» en vez de
  * fingir que el campo está vacío.
  *
- * `origen` distingue el encargo real del caso normal: `proveedor` significa que nadie
- * encargó nada y se le compra directamente a quien vende. Es lo que permite a la Orden de
+ * `origen` distingue el encargo real del caso normal: `prestador` significa que nadie
+ * encargó nada y se le pide directamente a quien presta el servicio. Es lo que permite a la Orden de
  * Servicio salir bien sin que haya que llenar el campo en casi ningún componente.
  */
 final readonly class CompradorResuelto
 {
     /**
-     * @param 'componente'|'proveedor' $origen  De dónde salió
+     * @param 'componente'|'prestador' $origen  De dónde salió
      */
     public function __construct(
         public string $origen,
@@ -27,7 +27,7 @@ final readonly class CompradorResuelto
     ) {
     }
 
-    /** Heredado = nadie encargó la compra; se le pide al propio proveedor. */
+    /** Heredado = nadie encargó la compra; se le pide al propio prestador. */
     public function esHeredado(): bool
     {
         return $this->origen !== 'componente';

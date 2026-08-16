@@ -503,12 +503,12 @@ const prestadorComponenteResuelto = computed(() => {
 
   // Ya no hace falta elegir tarifa de referencia: el tercer peldaño de la cascada lee
   // el proveedor del propio componente. Ver resolverPrestador().
-  const p = store.resolverPrestador(comp, servicio);
+  const p = store.resolverPrestador(comp);
 
   // `titulo` sale además del nombre porque son las dos mitades de cosas distintas: el
   // nombre identifica (operativo, siempre hay) y el título es lo ÚNICO que vería el
   // cliente. Sin él, marcar «nombrarlo» no pinta nada, y el panel avisa de ese hueco.
-  return p ? { nombre: p.nombre, titulo: p.titulo ?? [], esHeredado: p.origen !== 'componente' } : null;
+  return p ? { nombre: p.nombre, titulo: p.titulo ?? [], manual: p.manual } : null;
 });
 
 const handleNombreProveedorInput = (event: Event) => {
@@ -518,11 +518,11 @@ const handleNombreProveedorInput = (event: Event) => {
   // Actualizamos el modelo. El proveedor es del COMPONENTE: la tarifa dejó de guardar
   // una referencia propia porque nadie la leía.
   if (store.componenteEnEdicion) {
-    store.componenteEnEdicion.proveedorNombreSnapshot = val;
+    store.componenteEnEdicion.prestadorNombreSnapshot = val;
   }
 
   // Ejecutamos la lógica de limpieza
-  if (!val.trim() && !store.componenteEnEdicion?.proveedorMaestroId) {
+  if (!val.trim() && !store.componenteEnEdicion?.prestadorMaestroId) {
     store.limpiarServicioProveedor();
   }
 };
@@ -947,7 +947,7 @@ const onPoolPointerUp = () => {
 const puedeAplicarPlantilla = computed(() => !store.servicioActivo?.cotsegmentos?.length);
 
 watch(isProveedorOpen, (newVal) => {
-  const proveedorId = store.componenteEnEdicion?.proveedorMaestroId;
+  const proveedorId = store.componenteEnEdicion?.prestadorMaestroId;
   if (newVal && proveedorId && store.catalogos.proveedorServicios.length === 0) {
     store.fetchProveedorServiciosDeProveedor(proveedorId);
   }
@@ -972,7 +972,7 @@ const esUrlValida = (raw: string | null | undefined): boolean => {
 
 // Las dos URLs del proveedor viven en el componente desde que el dato dejó de estar
 // anidado en cada tarifa.
-const onUrlBlur = (campo: 'proveedorUrlSnapshot' | 'proveedorServicioUrlSnapshot') => {
+const onUrlBlur = (campo: 'prestadorUrlSnapshot' | 'prestadorServicioUrlSnapshot') => {
   const comp = store.componenteEnEdicion;
   const valor = comp?.[campo];
   if (comp && valor) comp[campo] = normalizarUrl(valor);
@@ -1632,36 +1632,6 @@ store.$onAction(({ name, args }) => {
                 <input v-model="store.servicioActivo.fechaInicioAbsoluta" @change="store.onServicioFechaChange" type="date" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
               </div>
 
-              <!-- Prestador por defecto del día. Guarda una INTENCIÓN, no contenido:
-                   sus componentes lo heredan si no definen el suyo, y el selector de
-                   proveedores de las tarifas se filtra por él. Nunca sale a pax. -->
-              <div class="col-span-2">
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
-                  <i class="fas fa-hotel mr-1 text-indigo-500"></i> Prestador del día (opcional)
-                </label>
-                <div class="flex gap-2 items-center">
-                  <SearchableSelect
-                      v-model="store.servicioActivo.prestadorMaestroId"
-                      :options="opcionesProveedores"
-                      placeholder="Buscar en el catálogo..."
-                      :darkMode="false"
-                      @change="val => store.onPrestadorServicioChange(val)"
-                      @search="val => store.buscarProveedoresAsincrono(val)"
-                          :min-chars-busqueda="2"
-                      class="flex-1"
-                  />
-                  <button v-if="store.servicioActivo.prestadorMaestroId"
-                          @click="store.onPrestadorServicioChange(null)"
-                          class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
-                          title="Quitar prestador del día">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-                <p class="text-[9px] text-slate-400 mt-1 ml-1 leading-snug">
-                  Se hereda a los componentes que no tengan el suyo y filtra el selector de
-                  proveedores de las tarifas. No se muestra al cliente.
-                </p>
-              </div>
             </div>
 
             <div class="bg-teal-50 border border-teal-100 rounded-xl p-4">
@@ -1812,12 +1782,12 @@ store.$onAction(({ name, args }) => {
                           misma palabra COMPRA que ya emplea el cuadro de tráfico, para que
                           el vocabulario sea uno solo en toda la aplicación.
                         -->
-                        <span v-if="store.componenteActualDeTarifa?.proveedorNombreSnapshot"
+                        <span v-if="store.componenteActualDeTarifa?.prestadorNombreSnapshot"
                               class="text-[9px] font-bold text-violet-600 flex items-center gap-1 leading-none mt-1 truncate"
                               title="COMPRA: a quién se le compra esta tarifa (no necesariamente quién la opera)">
                           <i class="fas fa-cart-shopping text-[8px] shrink-0"></i>
                           <span class="text-violet-400 shrink-0">COMPRA</span>
-                          <span class="truncate">{{ store.componenteActualDeTarifa?.proveedorNombreSnapshot }}</span>
+                          <span class="truncate">{{ store.componenteActualDeTarifa?.prestadorNombreSnapshot }}</span>
                         </span>
                       </div>
                       <div class="text-right shrink-0">
@@ -2049,9 +2019,9 @@ store.$onAction(({ name, args }) => {
                   <summary class="px-3 py-2.5 cursor-pointer list-none flex items-center justify-between gap-2 hover:bg-slate-50 transition-colors">
                     <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                       <i class="fas fa-hotel text-indigo-500"></i> Prestador
-                      <span v-if="prestadorComponenteResuelto?.esHeredado"
+                      <span v-if="prestadorComponenteResuelto?.manual"
                             class="text-[8px] bg-slate-100 text-slate-500 border border-slate-200 rounded px-1.5 py-0.5 normal-case font-bold">
-                        heredado
+                        a mano
                       </span>
                     </span>
                     <span class="flex items-center gap-2 min-w-0">
@@ -2145,9 +2115,9 @@ store.$onAction(({ name, args }) => {
                   <summary class="px-3 py-2.5 cursor-pointer list-none flex items-center justify-between gap-2 hover:bg-slate-50 transition-colors">
                     <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                       <i class="fas fa-cart-shopping text-amber-500"></i> Comprador
-                      <span v-if="compradorResuelto?.origen === 'proveedor'"
+                      <span v-if="compradorResuelto?.origen === 'prestador'"
                             class="text-[8px] bg-slate-100 text-slate-500 border border-slate-200 rounded px-1.5 py-0.5 normal-case font-bold">
-                        al proveedor
+                        al prestador
                       </span>
                     </span>
                     <span class="flex items-center gap-2 min-w-0">
@@ -2199,16 +2169,16 @@ store.$onAction(({ name, args }) => {
                       <i class="fas fa-truck-loading"></i> Datos del Proveedor
 
                     </label>
-                    <p class="text-sm font-bold flex items-center gap-2" :class="store.componenteActivo.proveedorNombreSnapshot ? 'text-slate-800' : 'text-slate-400 italic'">
-                      {{ store.componenteActivo.proveedorNombreSnapshot || 'Sin proveedor asignado' }}
+                    <p class="text-sm font-bold flex items-center gap-2" :class="store.componenteActivo.prestadorNombreSnapshot ? 'text-slate-800' : 'text-slate-400 italic'">
+                      {{ store.componenteActivo.prestadorNombreSnapshot || 'Sin proveedor asignado' }}
                     </p>
                   </div>
 
                   <div class="flex items-center gap-3">
-                <span v-if="store.componenteActivo.proveedorMaestroId" class="text-[8px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded border border-emerald-200 uppercase font-black hidden sm:inline-block">
+                <span v-if="store.componenteActivo.prestadorMaestroId" class="text-[8px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded border border-emerald-200 uppercase font-black hidden sm:inline-block">
                   Catálogo
                 </span>
-                    <span v-else-if="store.componenteActivo.proveedorNombreSnapshot" class="text-[8px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded border border-sky-200 uppercase font-black hidden sm:inline-block">
+                    <span v-else-if="store.componenteActivo.prestadorNombreSnapshot" class="text-[8px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded border border-sky-200 uppercase font-black hidden sm:inline-block">
                   Libre
                 </span>
                     <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0 border border-slate-200">
@@ -2228,7 +2198,7 @@ store.$onAction(({ name, args }) => {
                     <div v-if="store.componenteEnEdicion"
                          class="flex items-center justify-between mb-4 bg-orange-50/50 p-2 rounded-lg border border-orange-100">
                       <label class="flex items-center gap-2 cursor-pointer w-full">
-                        <input type="checkbox" v-model="store.componenteActivo.proveedorVisible" class="w-4 h-4 text-orange-600 border-slate-300 rounded focus:ring-orange-500">
+                        <input type="checkbox" v-model="store.componenteActivo.prestadorVisible" class="w-4 h-4 text-orange-600 border-slate-300 rounded focus:ring-orange-500">
                         <span class="text-[10px] font-bold text-slate-700 uppercase">Nombrar este proveedor al cliente</span>
                       </label>
                     </div>
@@ -2255,7 +2225,7 @@ store.$onAction(({ name, args }) => {
 
                     <div class="flex gap-2 items-center">
                       <SearchableSelect
-                          v-model="store.componenteActivo.proveedorMaestroId"
+                          v-model="store.componenteActivo.prestadorMaestroId"
                           :options="opcionesProveedoresTarifa"
                           placeholder="Seleccionar proveedor del catálogo..."
                           :darkMode="false"
@@ -2264,7 +2234,7 @@ store.$onAction(({ name, args }) => {
                           :min-chars-busqueda="2"
                           class="flex-1"
                       />
-                      <button v-if="store.componenteActivo.proveedorMaestroId"
+                      <button v-if="store.componenteActivo.prestadorMaestroId"
                               @click="store.onProveedorChange(null)"
                               class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
                               title="Deseleccionar Proveedor">
@@ -2277,8 +2247,8 @@ store.$onAction(({ name, args }) => {
                         Título Público del Proveedor
                       </label>
                       <div class="flex gap-2">
-                        <input :value="store.getI18nText(store.componenteActivo.proveedorTituloSnapshot ?? [], store.cotizacion?.idiomaEdicion || 'es')"
-                               @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.proveedorTituloSnapshot ?? [], store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                        <input :value="store.getI18nText(store.componenteActivo.prestadorTituloSnapshot ?? [], store.cotizacion?.idiomaEdicion || 'es')"
+                               @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.prestadorTituloSnapshot ?? [], store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                                type="text"
                                class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
                                placeholder="Nombre del proveedor de cara al cliente..." />
@@ -2292,13 +2262,13 @@ store.$onAction(({ name, args }) => {
                       <div class="flex items-center gap-2 mt-3">
                         <i class="fas fa-building text-slate-400 text-xs w-4 shrink-0 text-center" title="URL a nivel Proveedor"></i>
                         <div class="flex-1">
-                          <input v-if="store.componenteEnEdicion" v-model="store.componenteActivo.proveedorUrlSnapshot"
-                                 @blur="onUrlBlur('proveedorUrlSnapshot')"
+                          <input v-if="store.componenteEnEdicion" v-model="store.componenteActivo.prestadorUrlSnapshot"
+                                 @blur="onUrlBlur('prestadorUrlSnapshot')"
                                  type="url"
-                                 :class="!esUrlValida(store.componenteActivo.proveedorUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-orange-500'"
+                                 :class="!esUrlValida(store.componenteActivo.prestadorUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-orange-500'"
                                  class="w-full bg-white border rounded-lg px-3 py-2 text-xs focus:ring-2 outline-none shadow-sm"
                                  placeholder="URL del proveedor (sitio, microsite, doc)..." />
-                          <p v-if="!esUrlValida(store.componenteActivo.proveedorUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
+                          <p v-if="!esUrlValida(store.componenteActivo.prestadorUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
                             <i class="fas fa-exclamation-circle mr-1"></i> URL inválida.
                           </p>
                         </div>
@@ -2308,7 +2278,7 @@ store.$onAction(({ name, args }) => {
                     <div class="mt-4 pt-3 border-t border-slate-100">
                       <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nombre en Snapshot (Histórico)</label>
                       <input
-                          :value="store.componenteActivo.proveedorNombreSnapshot"
+                          :value="store.componenteActivo.prestadorNombreSnapshot"
                           @input="handleNombreProveedorInput"
                           type="text"
                           class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
@@ -2342,8 +2312,8 @@ store.$onAction(({ name, args }) => {
 
                     <div class="flex gap-2 items-center">
                       <SearchableSelect
-                          v-if="store.componenteActivo.proveedorMaestroId && store.componenteEnEdicion"
-                          v-model="store.componenteActivo.proveedorServicioMaestroId"
+                          v-if="store.componenteActivo.prestadorMaestroId && store.componenteEnEdicion"
+                          v-model="store.componenteActivo.prestadorServicioMaestroId"
                           :options="store.catalogos.proveedorServicios.map(ps => ({ value: ps.id, label: ps.nombre }))"
                           placeholder="Buscar servicio del proveedor..."
                           :darkMode="false"
@@ -2355,7 +2325,7 @@ store.$onAction(({ name, args }) => {
                         <i class="fas fa-info-circle"></i> Selecciona un proveedor arriba para ver sus servicios
                       </div>
 
-                      <button v-if="store.componenteActivo.proveedorServicioMaestroId"
+                      <button v-if="store.componenteActivo.prestadorServicioMaestroId"
                               @click="store.onProveedorServicioChange(null)"
                               class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm"
                               title="Quitar servicio">
@@ -2373,8 +2343,8 @@ store.$onAction(({ name, args }) => {
                         Título Público del Servicio
                       </label>
                       <div class="flex gap-2">
-                        <input :value="store.getI18nText(store.componenteActivo.proveedorServicioTituloSnapshot ?? [], store.cotizacion?.idiomaEdicion || 'es')"
-                               @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.proveedorServicioTituloSnapshot ?? [], store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                        <input :value="store.getI18nText(store.componenteActivo.prestadorServicioTituloSnapshot ?? [], store.cotizacion?.idiomaEdicion || 'es')"
+                               @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.prestadorServicioTituloSnapshot ?? [], store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                                type="text"
                                class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-teal-500 outline-none shadow-sm"
                                placeholder="Título público del servicio..." />
@@ -2389,13 +2359,13 @@ store.$onAction(({ name, args }) => {
                     <div class="flex items-center gap-2 mt-3">
                       <i class="fas fa-door-open text-teal-400 text-xs w-4 shrink-0 text-center" title="URL a nivel Servicio del Proveedor"></i>
                       <div class="flex-1">
-                        <input v-if="store.componenteEnEdicion" v-model="store.componenteActivo.proveedorServicioUrlSnapshot"
-                               @blur="onUrlBlur('proveedorServicioUrlSnapshot')"
+                        <input v-if="store.componenteEnEdicion" v-model="store.componenteActivo.prestadorServicioUrlSnapshot"
+                               @blur="onUrlBlur('prestadorServicioUrlSnapshot')"
                                type="url"
-                               :class="!esUrlValida(store.componenteActivo.proveedorServicioUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-teal-500'"
+                               :class="!esUrlValida(store.componenteActivo.prestadorServicioUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-teal-500'"
                                class="w-full bg-white border rounded-lg px-3 py-2 text-xs focus:ring-2 outline-none shadow-sm"
                                placeholder="URL del servicio (ej: ficha de la habitación)..." />
-                        <p v-if="!esUrlValida(store.componenteActivo.proveedorServicioUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
+                        <p v-if="!esUrlValida(store.componenteActivo.prestadorServicioUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
                           <i class="fas fa-exclamation-circle mr-1"></i> URL inválida.
                         </p>
                       </div>
@@ -2403,7 +2373,7 @@ store.$onAction(({ name, args }) => {
                   </fieldset>
 
 
-                  <template v-if="store.componenteActivo.proveedorNombreSnapshot">
+                  <template v-if="store.componenteActivo.prestadorNombreSnapshot">
                   </template>
                   <div v-else class="mt-5 pt-4 border-t border-slate-200 text-center py-6 text-slate-400">
                     <i class="fas fa-user-slash text-2xl mb-2 opacity-40"></i>
@@ -2565,9 +2535,9 @@ store.$onAction(({ name, args }) => {
                     </div>
                   </div>
 
-                  <div v-if="store.componenteActualDeTarifa?.proveedorNombreSnapshot" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                  <div v-if="store.componenteActualDeTarifa?.prestadorNombreSnapshot" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
                     <span class="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1.5">
-                      <i class="fas fa-truck-loading text-slate-400"></i> {{ store.componenteActualDeTarifa.proveedorNombreSnapshot }}
+                      <i class="fas fa-truck-loading text-slate-400"></i> {{ store.componenteActualDeTarifa.prestadorNombreSnapshot }}
                     </span>
                   </div>
 
@@ -2878,11 +2848,11 @@ store.$onAction(({ name, args }) => {
                   Cómo llama el proveedor a ESTA tarifa. Es el texto que sale en el
                   requerimiento; vacío = la llama igual que nosotros.
                 </p>
-                <p v-if="store.componenteActualDeTarifa?.proveedorNombreSnapshot"
+                <p v-if="store.componenteActualDeTarifa?.prestadorNombreSnapshot"
                    class="text-[9px] text-slate-400 mt-2 pt-2 border-t border-slate-100">
                   <i class="fas fa-truck-loading mr-1"></i>
                   Proveedor del componente:
-                  <b class="text-slate-600">{{ store.componenteActualDeTarifa.proveedorNombreSnapshot }}</b>
+                  <b class="text-slate-600">{{ store.componenteActualDeTarifa.prestadorNombreSnapshot }}</b>
                 </p>
               </div>
 

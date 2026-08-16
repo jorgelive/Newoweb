@@ -9,7 +9,7 @@
  *  - Estadías (componentes sin hora que abarcan varios días, ej. hoteles) se repiten al final
  *    de cada día de su periodo [checkin .. checkout), con sus inclusiones solo el primer día.
  *  - Los números de día son calendario: si un día no tiene nada, se salta (Día 1, 2, 4...).
- *  - Tarifas con proveedor visible (proveedorTituloSnapshot) → botón "ver más" con modal.
+ *  - Tarifas con proveedor visible (prestadorTituloSnapshot) → botón "ver más" con modal.
  *  - Resumen financiero: colapsado en el header; expandido divide header y menú de días.
  *
  * Inclusiones (dos vistas):
@@ -427,14 +427,14 @@ const proveedorPorComponente = computed(() => {
   const m = new Map<string, ProveedorInfo>();
   for (const srv of store.cotizacion?.cotservicios ?? []) {
     for (const comp of srv.cotcomponentes ?? []) {
-      if (!comp.proveedorTituloSnapshot?.length) continue;
+      if (!comp.prestadorTituloSnapshot?.length) continue;
 
       m.set(comp.id, {
-        titulo: comp.proveedorTituloSnapshot,
-        url: comp.proveedorUrlSnapshot ?? null,
-        imagenes: (comp.proveedorImagenesSnapshot ?? []).filter((i) => i.imageUrl),
-        servicioTitulo: comp.proveedorServicioTituloSnapshot ?? [],
-        servicioImagenes: (comp.proveedorServicioImagenesSnapshot ?? []).filter((i) => i.imageUrl),
+        titulo: comp.prestadorTituloSnapshot,
+        url: comp.prestadorUrlSnapshot ?? null,
+        imagenes: (comp.prestadorImagenesSnapshot ?? []).filter((i) => i.imageUrl),
+        servicioTitulo: comp.prestadorServicioTituloSnapshot ?? [],
+        servicioImagenes: (comp.prestadorServicioImagenesSnapshot ?? []).filter((i) => i.imageUrl),
       });
     }
   }

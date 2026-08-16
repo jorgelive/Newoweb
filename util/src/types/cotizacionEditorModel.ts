@@ -444,8 +444,8 @@ export type ComponenteCompleto = Omit<CotComponenteBase,
     // el Omit o la intersección de las dos formas produce un tipo inservible que no
     // falla aquí sino lejos, al usarlo (§2 de docs/Cotizaciones.md).
     | 'prestadorTituloSnapshot' | 'prestadorImagenesSnapshot'
-    | 'proveedorTituloSnapshot' | 'proveedorImagenesSnapshot'
-    | 'proveedorServicioTituloSnapshot' | 'proveedorServicioImagenesSnapshot'
+    | 'prestadorTituloSnapshot' | 'prestadorImagenesSnapshot'
+    | 'prestadorServicioTituloSnapshot' | 'prestadorServicioImagenesSnapshot'
 > & {
     id: string;
     nombreSnapshot: I18nContent[];
@@ -463,26 +463,28 @@ export type ComponenteCompleto = Omit<CotComponenteBase,
     upsellSourceItemId?: string;
     /** La hora del componente representa el horario de toda la excursión (servicio completo). */
     horaServicioCompleto?: boolean;
-    /** Cara pública del prestador (ver el Omit de arriba y `resolverPrestador()`). */
+    /**
+     * Cara pública del PRESTADOR (ver el `Omit` de arriba).
+     *
+     * `Proveedor` es la entidad maestra; el prestador es el papel que juega aquí. A nivel de
+     * cotización sólo hay dos papeles —éste y el comprador—; hubo un tercero llamado
+     * «proveedor» que decía lo mismo y se retiró.
+     *
+     * Cuando hay `prestadorMaestroId`, lo que ve el cliente se resuelve EN VIVO en el
+     * backend contra el catálogo: esto es el respaldo congelado, y el único contenido
+     * cuando el prestador se escribió a mano.
+     */
     prestadorTituloSnapshot?: I18nContent[];
     prestadorImagenesSnapshot?: ImagenProveedorSnapshot[];
+    prestadorServicioTituloSnapshot?: I18nContent[];
+    prestadorServicioImagenesSnapshot?: ImagenProveedorSnapshot[];
+
     /**
-     * COMPRADOR — a quién se le encarga ejecutar la compra. **Siempre un `Proveedor`**,
-     * también los internos: «Openperu tickets» es una parte de la empresa modelada como
-     * proveedor. Sin cara pública: nunca sale a la vista del cliente.
-     * Ver `resolverComprador()`.
+     * COMPRADOR — a quién se le encarga ejecutar la compra. Sin cara pública: nunca sale
+     * a la vista del cliente. Vacío = se le pide al propio prestador.
      */
     compradorMaestroId?: string | null;
     compradorNombreSnapshot?: string | null;
-    /**
-     * Cara pública del PROVEEDOR — a quién se le compra. Vivía anidada en cada tarifa
-     * hasta `Version20260816160000`; la tarifa se quedó sólo con `proveedorMaestroId` y
-     * `proveedorNombreSnapshot`, que son la referencia comercial por línea de precio.
-     */
-    proveedorTituloSnapshot?: I18nContent[];
-    proveedorImagenesSnapshot?: ImagenProveedorSnapshot[];
-    proveedorServicioTituloSnapshot?: I18nContent[];
-    proveedorServicioImagenesSnapshot?: ImagenProveedorSnapshot[];
 };
 
 export type SegmentoComponenteProcesado = components['schemas']['TravelSegmentoComponente-segmento.item.read'] & {

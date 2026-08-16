@@ -573,7 +573,7 @@ Consecuencia práctica: **la OS se agrupa por comprador, no por proveedor.** Dos
 proveedores distintos que compra Futurismo caben ahora en la misma orden; antes se partían
 en dos sin motivo.
 
-La OS se dirigía al **proveedor**, o sea a quien pone el precio. Suele valer porque le
+La OS se dirigía a quien pone el precio. Suele valer porque le
 compras directo, pero no siempre: le encargas a **Futurismo** que compre las entradas a
 Paracas, o que contrate el **Hotel Estelar** porque consigue mejor precio. Ahí el prestador
 es el hotel y el comprador es Futurismo — y eso no tenía dónde escribirse.

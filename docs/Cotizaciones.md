@@ -435,332 +435,111 @@ el "Num Pax (Base)" sí es el tamaño real que se vende y el total es una cifra 
 
 ---
 
-## 6.c Los tres roles: proveedor, prestador y comprador
+## 6.c Dos papeles sobre una sola entidad: prestador y comprador
 
-**No es el mismo dato repetido: son tres hechos distintos**, y el mismo componente puede
-apuntar a tres empresas o personas diferentes.
+**`Proveedor` es la entidad maestra** — el contacto-empresa, el otro lado de `Cliente`. Lo
+que el componente guarda no es esa entidad otra vez: es el **papel** que juega. Y a nivel de
+cotización sólo hacen falta dos.
 
-| | Responde | Naturaleza | Existe si… | ¿Lo ve el cliente? |
-|---|---|---|---|---|
-| `proveedor*` | ¿de quién es el precio / a quién se le paga? | comercial | hay compra | sí, si se decide |
-| `prestador*` | ¿quién presta el servicio / dónde ocurre? | operativa | **siempre** | sí, si se decide |
-| `comprador*` | **¿a quién le encargo ejecutar la compra?** | de gestión | hay que gestionarla | **nunca** |
+| | Responde | ¿Lo ve el cliente? | ¿Lo usa Operación? |
+|---|---|---|---|
+| **prestador** | ¿quién presta este servicio? | sí, si se decide | sí — recojo, teléfono, dirección |
+| **comprador** | ¿a quién le encargo ejecutar la compra? | **nunca** | sí — a quién se dirige la OS |
 
-### El comprador (2026-08-16)
+### Hubo un tercero y sobraba
 
-El caso real: le encargas a **Futurismo** que compre las entradas a San Francisco o a
-Paracas, o que contrate el **Hotel Estelar** porque consigue mejor precio. Ahí
-**prestador = Hotel Estelar** y **comprador = Futurismo**. Y la excursión del propio
-Futurismo **no lleva comprador**, porque ésa se la compras tú directamente.
+Existió `proveedor*` en el componente, respondiendo «a quién le compro». Se retiró en
+`Version20260816260000` tras medir sus lectores: **su único consumidor era la serialización
+pública** —cero en Operación, cero en finanzas— y lo que enseñaba al cliente era, en la
+práctica, quién presta el servicio. Eran **dos caras públicas para un mismo hecho**, cada
+una con su propia bandera.
 
-Antes, la Orden de Servicio se dirigía siempre a `proveedorMaestroId` —a quien pone el
-precio—, y eso falla cuando la tarifa es de un consorcio al que nadie escribe.
+Su bloque rico (título i18n, url, imágenes, servicio contratado, bandera) **es** hoy el
+prestador: se movió tal cual. El prestador conservó lo suyo —teléfono y dirección
+congelados— y ganó un correo.
 
-🔥 **Siempre apunta a un `Proveedor`, nunca a una persona.** También los compradores
-internos: «Openperu tickets» es una parte de la empresa modelada como proveedor. Es la
-decisión que mantiene esto simple, y se tomó tras descartar la alternativa:
+### Por qué hay snapshot si ya está el enlace, y hacia dónde resuelve cada campo
 
-| Se descartó | Por qué |
-|---|---|
-| Soft-link polimórfico a `User` / área / `Proveedor` | Obliga a preguntar «¿de qué clase es este comprador?» **antes** de poder elegir uno — un selector doble para una sola pregunta. Y duplica catálogos para el mismo hecho. |
-| Modelar personas | El chófer Gabriel presta servicio **como empresa de transportes**, no como persona natural. Quien compra siempre factura, y quien factura ya está en el catálogo de proveedores. |
+No es una copia envejecida del maestro. Existe por **dos motivos distintos**:
 
-Un solo campo, un solo catálogo, un solo selector — el mismo que ya usan el proveedor y el
-prestador.
+1. **Prestadores de un solo uso.** Una empresa que no está en el catálogo y no merece
+   entrar. Ahí el snapshot no duplica nada: es el único dato que hay.
+2. **Overrides.** En ESTA propuesta quieres enseñar otro título, otra foto u otra url que
+   la del catálogo.
 
-**Los tres roles se editan en el inspector del COMPONENTE**, que es de quien son. El
-proveedor estuvo en el de tarifa hasta que se mudó: además de ser incoherente, dejaba sin
-salida a los componentes sin tarifas —19 de 150— porque no había panel que abrir. En el
-inspector de tarifa quedó sólo `nombreParaProveedor`, con el proveedor del componente
-mostrado como contexto.
+⚠️ **Y por eso la resolución tiene dos direcciones opuestas.** Confundirlas es el error
+fácil de toda esta zona:
 
-**La cascada es corta y no hereda del día**: `componente → proveedor`. Si nadie encargó la
-compra se le pide a quien vende, así que las cotizaciones anteriores al campo se comportan
-igual que antes. No hereda del día como el prestador porque encargar una compra es una
-decisión por ítem —una entrada la saca una persona y un tren lo compra otra—, y un default
-por día arrastraría el encargo equivocado sin que se note.
-
-**No tiene cara pública, y no es un olvido.** Ningún campo del comprador lleva
-`pax_cotizacion:read` y **no hay bandera de visibilidad**: los otros dos roles la necesitan
-porque pueden mostrarse; éste no puede, así que una bandera sería una decisión que nadie
-debe poder tomar. Lo comprueba `var/probar-comprador.php`, que además verifica que ni
-`compradorVisible` ni `compradorTipo` existan.
-
-Llega a Operación por `BibliaSnapshotService`, que lo congela en
-`OperacionServicio::$comprador*`. Como la cascada cae al proveedor cuando nadie encargó
-nada, **las órdenes se generan igual que siempre en el caso normal**: sólo cambian de
-destinatario donde se haya encargado la compra explícitamente.
-
-Y de paso **simplificó Operación**: `OperacionServicio::$proveedorNombreManual` era este
-mismo dato con el nombre equivocado y llenado a mano. Desapareció, y la OS pasó a agruparse
-por comprador. Ver `docs/Operacion.md`.
-
----
-
-### Proveedor vs. prestador (dos niveles, a propósito)
-
-| | `cotcomponente.proveedor*` | `cotcomponente.prestador*` |
+| | Dirección | Por qué |
 |---|---|---|
-| Responde | ¿a quién le compro? | ¿quién presta el servicio / dónde ocurre? |
-| Naturaleza | comercial | operativa |
-| Existe si… | hay compra | **siempre** |
+| **Contacto** — correo, teléfono, dirección | `maestro ?? snapshot` | Manda lo VIVO. Un teléfono de hace tres meses no es más fiable por estar guardado: es justo el que ya no contesta. La orden se resuelve al enviarla. |
+| **Presentación** — título, url, imágenes | `snapshot ?? maestro` | Manda lo ESCRITO. Un título puesto a mano para esta propuesta es una decisión, no un dato viejo; pisarlo con «lo actual» sería deshacerla sin avisar. |
 
-### El proveedor bajó de la tarifa al componente (2026-08-16)
+Lo primero lo hace `ProveedorVivoResolver::contactoDe()`; lo segundo,
+`CotizacionCotcomponentePrestadorPublicNormalizer::override()`. Sonda que prueba las dos
+direcciones y el caso de un solo uso: `var/probar-prestador-resolucion.php`.
 
-Venía anidado en cada `CotizacionCottarifa`, herencia del sistema antiguo, que lo puso ahí
-para admitir **varios proveedores por componente**. Ese caso nunca se dio: 19 de 19
-componentes con proveedor tienen exactamente uno, y ninguno tiene dos títulos, dos
-servicios ni dos valores de anonimato distintos entre sus tarifas.
-
-El coste sí era real, y en dos frentes:
-
-- **Al capturar**: en el catálogo maestro un componente llega a tener **19 tarifas**, y
-  `travel_tarifa.proveedor_id` está en **5 de 904**. Nadie repite el mismo dato 19 veces,
-  así que el campo quedó abandonado y con él el filtro de proveedores del editor.
-- **Al mostrar**: obligaba a **reconstruir en la vista** una identidad que la estructura
-  había partido, y esa deduplicación traía sus propios fallos (ver abajo).
-
-**El reparto que quedó:**
-
-| Se queda en `cottarifa` | Subió a `cotcomponente` |
-|---|---|
-| `nombreParaProveedorSnapshot` — cómo llama **él** a esta tarifa. Es lo único genuinamente por línea de precio. | **Todo lo demás**: id, nombre, título i18n, url, imágenes, el servicio contratado y la bandera de anonimato. |
-
-⚠️ La tarifa conservó un tiempo `proveedorMaestroId` + `proveedorNombreSnapshot` con el
-argumento de que respondían «¿de quién es ESTE precio?». **No tenían un solo lector** —el
-editor las escribía y ahí morían—, así que se retiraron en `Version20260816250000`. Era el
-mismo patrón que este refactor vino a desmontar, reintroducido con buena intención. Si algún
-día hace falta comparar proveedores dentro de un componente, lo que hay que añadir no es la
-columna sino el sitio donde se vea.
-
-**Dos fallos que desaparecieron sin arreglarlos**, porque sólo existían por la partición:
-
-1. El mapa de pax se indexaba por `servicioId::títuloDeTarifa`, no por id: dos tarifas
-   homónimas del mismo día colisionaban y ganaba la última.
-2. En modo catálogo, `unanime()` comparaba los objetos de proveedor **por referencia**, así
-   que el mismo proveedor alcanzado desde dos títulos distintos daba dos entradas y el chip
-   se quedaba sin proveedor.
-
-Hoy el proveedor viaja **en la línea de inclusión**, igual que el prestador, y la vista no
-deduplica nada.
-
-### El proveedor que ve el cliente está VIVO, no es una foto
-
-Es la excepción deliberada a la regla de snapshots del módulo. Todo lo demás en una
-cotización es una foto del catálogo; **la presentación del proveedor no**. Si un hotel se
-renombra o cambia de logo, tiene que verse en todas las propuestas ya enviadas sin que
-nadie las reabra.
+### El prestador se llena de dos formas
 
 ```
-cotcomponente.proveedorMaestroId  ──┐  soft-link
-                                    ▼
-CotizacionPublicNormalizer   ──►  ProveedorVivoResolver::precargar()   1 query, EN LOTE
-   (al normalizar la raíz,          │
-    ANTES de bajar a los hijos)     ▼
-                              travel_proveedor  ·  travel_proveedor_servicio
-                                    │
-CotizacionCotcomponente…            ▼
-ProveedorPublicNormalizer  ──►  pisa titulo/url/imagenes con lo del maestro
-                                    │
-                                    └─ si el maestro ya no existe → cae al *Snapshot
+CON MAESTRO   prestadorMaestroId → travel_proveedor
+              · la cara pública se resuelve EN VIVO al servir
+              · entra en los filtros automáticos
+
+A MANO        sin maestroId, sólo nombre + correo
+              · NO entra en los filtros: no hay contra qué casarlo
+              · su cara pública es el snapshot, no hay nada vivo que leer
+              · pero con el correo se le manda una orden por única vez
 ```
 
-**El snapshot no desaparece**: se sigue escribiendo y queda de respaldo, porque un
-soft-link no tiene integridad referencial y un proveedor se puede borrar. Pero mientras el
-maestro esté, manda él.
+Lo comprueba `CotizacionCotcomponente::prestadorEsManual()`. Es la excepción deliberada:
+sin ella, una empresa que aún no está en el catálogo sería un callejón sin salida.
 
-⚠️ **Siempre en lote.** `precargar()` se llama UNA vez por cotización desde el normalizer
-raíz, antes de que la serialización baje a los componentes. Resolver dentro del normalizer
-de cada componente sería una consulta por fila. Medido: **1 consulta para 7 proveedores**.
+### La cascada desapareció
+
+Llegó a ser `componente → día → proveedor de la tarifa`, con un DTO que dejaba constancia de
+qué fuente había ganado. Eso existía porque el dato estaba repartido en tres sitios. Hoy
+vive en uno y `resolverPrestador()` es un lector — se conserva como método para que
+Operación y las vistas entren por el mismo punto.
+
+También se retiró **el prestador del día** (`CotizacionCotservicio::$prestador*`): era el
+peldaño intermedio de esa cascada y, sin ella, no tenía a quién alimentar. Estaba en 0 filas.
+
+El comprador sí mantiene dos peldaños: `componente → prestador`. Si nadie encargó la compra,
+se le pide a quien presta, que es el caso normal y lo que hace que la OS salga bien sin
+llenar nada.
+
+### El gate de lo que ve el cliente
+
+```
+se muestra  ⟺  NO (Cotizacion::proveedorOculto)  Y  componente.prestadorVisible
+```
+
+El global es el interruptor white-label de toda la propuesta y gana siempre; la bandera del
+componente sólo afina hacia abajo. ⚠️ Ojo a la asimetría: el global está en negativo y el
+del componente en positivo.
+
+🔥 **Antes esa decisión se re-derivaba de `modo`**, y reclasificar un componente cambiaba la
+propuesta en silencio: pasar a `incluido` borraba al prestador de una propuesta enviada, y
+pasar a `no_incluido` publicaba uno que nadie había revisado. Hoy la regla vieja es sólo el
+**default al asignar**, y lo guardado manda.
+
+### Lo que sirve está VIVO
+
+Con maestro, los campos públicos se sobreescriben al serializar con lo que dice hoy
+`travel_proveedor`: renombrar una empresa se ve en todas las propuestas **sin re-guardar
+ninguna**. El snapshot sigue escribiéndose y es el respaldo si el maestro desaparece.
+
+⚠️ **Siempre en lote.** `ProveedorVivoResolver::precargar()` se llama UNA vez por cotización
+desde `CotizacionPublicNormalizer`, antes de bajar a los componentes.
 
 🔥 **Los UUID de un soft-link no casan solos.** El campo es `VARCHAR(36)` con guiones y la
-clave del maestro es `BINARY(16)`. Compararlos a lo bruto no coincide **nunca** y no da
-error: devuelve cero filas y el proveedor «simplemente no aparece». Pasó durante esta misma
-implementación, en el comando de backfill: `HEX()` devuelve 32 caracteres sin guiones
-mientras el snapshot guarda la forma canónica, y la primera pasada dio **254 líneas sin
-pareja y 0 enlazadas**. Todo id que entre o salga se normaliza con
-`ProveedorVivoResolver::clave()`, y los binarios se convierten con `Uuid::fromBinary()`,
-nunca con `HEX()`.
+clave del maestro es `BINARY(16)`: compararlos no coincide **nunca** y no da error, devuelve
+cero filas y el prestador «no aparece». Pasó durante la implementación —`HEX()` en el
+comando de backfill dio 254 líneas sin pareja y 0 enlazadas—. Todo id se normaliza con
+`ProveedorVivoResolver::clave()` y los binarios con `Uuid::fromBinary()`, nunca con `HEX()`.
 
-#### El puente: `componenteId` en la línea de inclusión
-
-La línea del snapshot financiero no llevaba ningún id, así que pax reconstruía el vínculo
-con una clave natural (`servicioId::títuloDeTarifa`) que colisionaba en silencio. Ahora
-`construirInclusiones()` emite `componenteId` y pax busca el componente vivo por él.
-
-Las propuestas anteriores al campo no lo traen. **No hace falta re-guardarlas**: lo inyecta
-`app:cotizacion:backfill-componente-id` (idempotente, con `--dry-run`). Empareja por
-`(servicio, nombre, fecha)` —0 grupos ambiguos frente a 6 si fuera sólo `(servicio,
-nombre)`— y **se salta lo ambiguo en vez de adivinar**, reportándolo. Esa clave vale para
-una pasada única y verificable; no valdría para resolver en cada render.
-
-Sonda: `var/probar-proveedor-vivo.php`, que renombra un maestro de verdad en transacción y
-comprueba que el cliente recibe el nombre nuevo sin tocar la cotización.
-
-### Cómo se despliega esto (y qué revisar después)
-
-Son dos migraciones seguidas: `Version20260816160000` sube el dato y `Version20260816180000`
-retira las columnas viejas. Van separadas para que la primera sea reversible por sí sola.
-
-**Antes de migrar, correr el pre-vuelo:**
-
-```bash
-php var/auditar-proveedor-anidado.php   # no escribe nada; guardar la salida
-```
-
-Y **después** de migrar, el puente de las propuestas ya guardadas:
-
-```bash
-php bin/console app:cotizacion:backfill-componente-id --dry-run
-php bin/console app:cotizacion:backfill-componente-id
-```
-
-Responde la única pregunta que importa: **¿hay componentes cuyas tarifas tengan proveedores
-distintos entre sí?** En el piloto eran cero. Donde los haya, la migración **elige una
-tarifa y copia sus campos enteros**, y el resto se pierde al soltar las columnas — ésa es la
-lista de componentes a reasignar a mano después.
-
-🔥 **Se copia de UNA tarifa entera, nunca campo a campo.** La primera versión usaba un
-`MAX()` por columna: determinista, pero capaz de juntar el título de una tarifa con la URL
-de otra y construir un proveedor que no corresponde a ninguna empresa real — el
-«Frankenstein» contra el que avisa `PrestadorResuelto`. El criterio de elección es estable
-(primero las que identifican al proveedor contra el maestro, luego las que traen título
-público, y a igualdad el id) para que no dependa del orden físico de las filas. La
-migración **imprime por stdout los componentes donde tuvo que elegir**.
-
-Verificado contra datos ambiguos sintéticos en `var/probar-backfill-proveedor.php`, porque
-los reales no tenían ni una colisión y no habrían probado nada.
-
-El `DROP` suelta **columna a columna y sólo si existe**: un `ALTER` con los ocho juntos es
-todo o nada, y bastaría que faltara una para dejar la base a medias.
-
-⚠️ **El anonimato del proveedor sigue siendo un OR que sólo puede ocultar**, ahora en
-`CotizacionCotcomponenteProveedorPublicNormalizer`:
-
-```
-se muestra  ⟺  NO (Cotizacion::proveedorOculto)  Y  cotcomponente.proveedorVisible
-```
-
-Ojo a la asimetría: el flag global sigue en negativo (`proveedorOculto`, de la cotización)
-y el del componente va en positivo (`proveedorVisible`). Sonda:
-`var/probar-proveedor-componente.php`, que recorre las cuatro combinaciones.
-
-La prueba de que viven en niveles distintos es el hotel `no_incluido`: **existe como hecho
-operativo sin existir como hecho comercial**. Nadie te lo vende —el pasajero lo reservó él— pero
-es el punto de recojo del transportista y la referencia que hace que la propuesta se lea
-completa. Un dato que sobrevive a la desaparición del otro pertenece a otra entidad. El segundo
-caso es el consolidador: le compras la entrada a X pero la opera Y.
-
-Tener dos campos sólo es mala práctica si se llaman igual y no hay regla de precedencia. Por eso:
-nombres distintos (**proveedor** = a quién compro, **prestador** = quién presta) y **una sola
-cascada**, en un solo método.
-
-### La cascada
-
-```
-componente.prestador*   ─┐
-   ↓ si vacío            │  Se toma la primera fuente que diga algo, ENTERA.
-día.prestador*           ├─► PrestadorResuelto{ origen, maestroId, nombre,
-   ↓ si vacío            │                      titulo, url, imagenes,
-componente.proveedor*   ─┘                      telefono, direccion }
-   ↓ si vacío
-null
-```
-
-⚠️ **El tercer peldaño ya no entra en la tarifa.** Leía la presentación del proveedor de la
-«tarifa primaria», lo que obligaba a elegir cuál de varias mandaba (`resolverTarifaPrimaria()`,
-desempate por `grupoTarifa`) y hacía que el prestador dependiera de ese sorteo: **si el
-proveedor estaba puesto en otra tarifa, la cascada devolvía `null` en silencio**. Con el
-proveedor en el componente el peldaño es directo, y por eso `resolverPrestador()` ya **no
-recibe tarifa** — ni en PHP ni en TS.
-
-Nunca se mezclan campos de fuentes distintas —el título de una con el teléfono de otra— porque
-eso produce un prestador Frankenstein que no corresponde a ninguna empresa real. `origen` deja
-constancia de cuál ganó, y es lo que permite al editor decir «heredado» en vez de fingir que el
-campo está vacío.
-
-Por eso el campo es **opcional y blando**: en el caso normal se queda vacío, hereda del proveedor
-del componente y nadie tiene que llenar nada. Las cotizaciones anteriores al campo se comportan
-exactamente igual que antes.
-
-⚠️ **Espejo PHP ↔ TypeScript.** `CotizacionCotcomponente::resolverPrestador()` y
-`resolverPrestador()` en `cotizacionEditorStore.ts`. La regla vive en los dos lados porque el
-editor la previsualiza antes de guardar y el backend la congela en los snapshots. Si cambias el
-orden de la cascada, **se tocan los dos archivos**.
-
-⚠️ La tarifa llega por parámetro en vez de resolverse dentro: elegir cuál de varias tarifas manda
-es una regla de operaciones que ya vive en `BibliaSnapshotService::resolverTarifaPrimaria()`, y
-duplicarla en la entidad garantizaba que las dos copias se separaran.
-
-### Qué guarda cada nivel, y por qué distinto
-
-| Nivel | Guarda | Motivo |
-|---|---|---|
-| **Componente** | todo: id, nombre, título i18n, url, imágenes, teléfono, dirección | es el **hecho**: lo que se muestra y lo que se opera |
-| **Día** (`CotizacionCotservicio`) | sólo id + nombre | es una **intención**: default heredable y filtro del selector de tarifas. Nunca sale a pax |
-
-Teléfono y dirección se congelan en el componente y **no se leen del maestro al operar**: el día
-del servicio, La Biblia tiene que decir el teléfono que valía cuando se vendió, no el que alguien
-cambió después en el catálogo.
-
-### Las dos caras, y el anonimato
-
-| Cara | Campos | Grupo |
-|---|---|---|
-| **Pública** | `prestadorTituloSnapshot` (i18n, `AutoTranslate`), `prestadorUrlSnapshot`, `prestadorImagenesSnapshot` | `pax_cotizacion:read` |
-| **Operativa** | `prestadorNombreSnapshot`, `prestadorTelefonoSnapshot`, `prestadorDireccionSnapshot` | **sin** grupo público: no llegan nunca a pax |
-
-Sobre la cara pública manda **`CotizacionCotcomponente::$prestadorVisible`**, y lo aplica
-`CotizacionCotcomponentePrestadorPublicNormalizer`.
-
-### La visibilidad se decide una vez y se guarda
-
-Hasta 2026-08-16 no había bandera: el normalizer re-derivaba la respuesta de
-`modo !== 'no_incluido'` **en cada serialización**. El modo es una clasificación comercial,
-no una decisión editorial, y reevaluarlo al vuelo producía dos cambios que nadie pedía y de
-los que nadie se enteraba:
-
-| Acción del vendedor | Efecto no anunciado |
-|---|---|
-| Reclasificar a `incluido` | el prestador **desaparecía** de una propuesta ya enviada |
-| Reclasificar a `no_incluido` | se **publicaba** un prestador que nadie había revisado, con fotos y URL |
-
-Y dejaba un caso sin poder expresar: `onPrestadorComponenteChange()` copia siempre el
-título junto al teléfono y la dirección, así que **asignar un prestador sólo para tener el
-contacto del recojo lo publicaba de paso**. La única forma de callarlo era borrar el título
-—la única copia del texto—, o sea ocultar con pérdida de datos.
-
-```
-ANTES   modo ──(se relee al serializar)──► ¿lo ve el cliente?
-AHORA   modo ──(semilla al ASIGNAR)──► prestadorVisible ──(se lee)──► ¿lo ve el cliente?
-              +  Proveedor::visibleParaCliente
-```
-
-La regla no se perdió, cambió de sitio: hoy es el **default con que el editor siembra la
-bandera** al asignar el prestador, y necesita las dos condiciones —que el maestro permita
-nombrar a ese proveedor (`Proveedor::$visibleParaCliente`, `docs/Travel.md` §7) **y** que el
-componente sea `no_incluido`, que es donde la referencia aporta—. A partir de ahí manda lo
-guardado, y el operador puede contradecirlo con la casilla «Nombrarlo al cliente» del
-inspector.
-
-⚠️ **Espejo triple.** La bandera se lee en tres sitios y los tres tienen que decir lo mismo:
-`CotizacionCotcomponentePrestadorPublicNormalizer` (backend, corta los campos),
-`construirInclusiones()` en `cotizacionEditorStore.ts` (decide si el prestador entra en el
-snapshot del cliente) y `onPrestadorComponenteChange()` (siembra el default). Si cambias la
-regla, se tocan los tres.
-
-`Version20260816140000` siembra la columna con la regla vieja (`visible = no_incluido`), y
-además el efecto real era nulo al migrar —0 de 150 componentes tenían prestador propio y
-ninguno de los 19 `no_incluido` resolvía título por la cascada—, así que **no movió ni una
-propuesta viva**. Sonda: `var/probar-prestador-visible.php`, que comprueba explícitamente
-que reclasificar el modo ya no cambia lo que ve el cliente.
-
-🔥 **Ese normalizer NO hereda el flag de anonimato de la tarifa**, y es deliberado.
-`CotizacionCottarifa::proveedorOculto` y el flag global protegen el **margen**: impiden que el
-cliente se salte tu intermediación y contrate directo. Un `no_incluido` no lo necesita porque no
-le estás vendiendo nada — ya lo contrató él y sabe cuál es. Encadenarlo al flag global tendría el
-efecto absurdo de que activar el modo anónimo borrase de la propuesta la referencia del hotel del
-propio pasajero.
+Sondas: `var/probar-prestador-visible.php` y `var/probar-comprador.php`.
 
 ### Los filtros por prestador son BLANDOS
 
@@ -918,9 +697,9 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Precio "desde" del escaparate del catálogo** → `preciosDesde[]` (bloque "Precios de Exhibición" del editor) → `PaxCatalogoPortadaView.vue` / `CatalogoDashboard.vue`. No es lo mismo que el flag anterior (§6.b).
 - **En qué idioma ve el cliente la propuesta** → `idiomaCliente` (§6). Alta: `handleCreate` en `DashboardView.vue`. Cambio posterior: selector de `FileDetalle.vue` → propaga `CotizacionFileIdiomaClienteListener`. Por versión: selector del editor.
 - **Qué pasa al pasar una versión a `confirmado`** → dispara `CotizacionConfirmadaEventListener` y genera el cuadro de tráfico del Centro de Operaciones. Es un **snapshot y sólo en la transición**: lo que edites después no llega. El botón «Revisar cambios de operación» (editor, junto al selector de estado) y el icono de diff de `FileDetalle.vue` abren un panel que compara y aplica **sólo lo que apruebes, campo a campo**: `POST .../operacion/plan` y `POST .../operacion/aplicar`. Detalle completo en `docs/Operacion.md` §3.5 y §7.1. **Ojo:** para llegar a `confirmado` hay que pasar el guard de `publicable` — ver §4.b.
-- **Quién presta un servicio (hotel del pasajero, vuelo no incluido)** → `prestador*` en `CotizacionCotcomponente` (todo) y `CotizacionCotservicio` (sólo default). Cascada en `resolverPrestador()`, **espejo en PHP y TS**. Filtros blandos: `opcionesTarifasFiltradas` (tarifa maestra) y `opcionesProveedoresTarifa` (proveedor) en `CotizacionEditorView.vue`. Ver §6.c — y ojo: el filtro de tarifas necesita `travel_tarifa.proveedor_id`, hoy casi vacío.
+- **Quién presta un servicio (hotel del pasajero, vuelo no incluido)** → `prestador*` en `CotizacionCotcomponente`. Sin cascada y sin default por día: los dos se retiraron. `resolverPrestador()` es un lector, **espejo en PHP y TS**. Filtros blandos: `opcionesTarifasFiltradas` (tarifa maestra) y `opcionesProveedoresTarifa` (proveedor) en `CotizacionEditorView.vue`. Ver §6.c — y ojo: el filtro de tarifas necesita `travel_tarifa.proveedor_id`, hoy casi vacío.
 - **Que al prestador se le nombre (o no) ante el cliente** → `CotizacionCotcomponente::$prestadorVisible`. **Espejo triple**: el normalizer, `construirInclusiones()` y `onPrestadorComponenteChange()` (que lo siembra). Ya **no** se deriva del `modo`; el flag de anonimato global sigue sin taparlo. Ver §6.c.
-- **A quién se le compra un componente** → `CotizacionCotcomponente::$proveedor*` (presentación) + `CotizacionCottarifa::$proveedorMaestroId`/`$proveedorNombreSnapshot` (de quién es cada precio). Asignación: `onProveedorChange()` reparte entre los dos. El selector vive en el inspector de TARIFA pero escribe en el componente, así que usa `store.componenteEnEdicion` (no `componenteActivo`, que es null cuando el inspector está en 'tarifa'). Ver §6.c.
+- **Quién presta un componente** → `CotizacionCotcomponente::$prestador*`, soft-link a `Proveedor` o escrito a mano. Se edita en el inspector del COMPONENTE, junto al comprador. Ver §6.c.
 - **A quién se le encarga ejecutar la compra** → `compradorMaestroId` + `compradorNombreSnapshot` en `CotizacionCotcomponente`, soft-link al catálogo de proveedores. Cascada en `resolverComprador()`, **espejo en PHP y TS**. Llega a Operación por `BibliaSnapshotService`. Ver §6.c — **siempre un `Proveedor`, nunca una persona**, y **nunca** le pongas grupo público.
 - **Que al proveedor se le nombre (o no) ante el cliente** → `$proveedorVisible` del componente, en OR con el global `Cotizacion::$proveedorOculto`. Lo aplica `CotizacionCotcomponenteProveedorPublicNormalizer`. Sonda: `var/probar-proveedor-componente.php`.
 - **De dónde sale el nombre/logo del proveedor que ve el cliente** → `ProveedorVivoResolver`, resuelto contra el catálogo maestro AL SERVIR y precargado en lote desde `CotizacionPublicNormalizer::precargarProveedores()`. **No** es el snapshot: ése es sólo el respaldo si el maestro desaparece. Ver §6.c.

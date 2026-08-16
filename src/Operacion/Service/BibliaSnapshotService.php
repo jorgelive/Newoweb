@@ -192,16 +192,16 @@ class BibliaSnapshotService
             'horaRecojoReal'        => $this->resolverHoraRecojo($cotcomponente),
             // A quién se le MANDA el encargo. Es lo que agrupa y firma la OS.
             //
-            // Sustituye al antiguo `proveedorMaestroId`, que salía de la tarifa y era la
+            // Sustituye al antiguo `proveedorMaestroId` de la tarifa, que era la
             // misma idea con el nombre equivocado: la orden no va a quien pone el precio,
             // va a quien la ejecuta. Cuando nadie encargó nada la cascada cae al
             // proveedor, así que en el caso normal sale exactamente lo mismo que antes.
             'compradorMaestroId'    => $comprador?->maestroId,
             'compradorNombre'       => $comprador?->nombre,
-            'prestadorMaestroId'    => $prestador?->maestroId,
-            'prestadorNombre'       => $prestador?->nombre,
-            'prestadorTelefono'     => $prestador?->telefono,
-            'prestadorDireccion'    => $prestador?->direccion,
+            'prestadorMaestroId'    => $prestador['maestroId'] ?? null,
+            'prestadorNombre'       => $prestador['nombre'] ?? null,
+            'prestadorTelefono'     => $prestador['telefono'] ?? null,
+            'prestadorDireccion'    => $prestador['direccion'] ?? null,
             'descripcionServicio'   => $this->resolverDescripcion($tarifa, $cotcomponente),
             'contextoServicio'      => $this->textoEspanol($cotservicio->getNombreSnapshot()),
             // Clasificación del componente: hoy no filtra nada — entra todo a La Biblia —

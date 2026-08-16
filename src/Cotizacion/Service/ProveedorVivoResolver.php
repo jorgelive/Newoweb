@@ -12,7 +12,7 @@ use Symfony\Component\Uid\Uuid;
 /**
  * Resuelve EN VIVO la cara pública del proveedor desde el catálogo maestro.
  *
- * El componente guarda un soft-link (`proveedorMaestroId`) más una copia congelada del
+ * El componente guarda un soft-link (`prestadorMaestroId`) más una copia congelada del
  * título, la url y las imágenes. La copia existe para sobrevivir al borrado del maestro,
  * pero **no es lo que se le enseña al cliente**: si el proveedor se renombra o cambia de
  * logo, la propuesta tiene que reflejarlo sin que nadie re-guarde nada.
@@ -130,6 +130,48 @@ final class ProveedorVivoResolver
         }
 
         return $out;
+    }
+
+    /**
+     * Contacto del prestador: **el maestro manda, el snapshot rellena el hueco**.
+     *
+     * Es la dirección CONTRARIA a la de la presentación, y no es un descuido:
+     *
+     *   · el contacto quiere estar VIVO — el teléfono que contesta hoy, no el de hace tres
+     *     meses, que es justo el que ya no sirve;
+     *   · la presentación quiere estar ESCRITA — un título puesto a mano para esta
+     *     propuesta es una decisión, no un dato envejecido (ver el normalizer público).
+     *
+     * Sin maestro —prestador de un solo uso, o empresa borrada del catálogo— se devuelve
+     * el snapshot entero, que ahí es el único dato que existe. Es lo que permite mandarle
+     * la orden esa vez al correo que figura.
+     *
+     * @param array{maestroId: string|null, nombre: string|null, email: string|null,
+     *              telefono: string|null, direccion: string|null, manual: bool} $guardado
+     * @return array{nombre: string|null, email: string|null, telefono: string|null,
+     *               direccion: string|null, vivo: bool}
+     */
+    public function contactoDe(array $guardado): array
+    {
+        $maestro = $this->proveedor($guardado['maestroId'] ?? null);
+
+        if ($maestro === null) {
+            return [
+                'nombre' => $guardado['nombre'] ?? null,
+                'email' => $guardado['email'] ?? null,
+                'telefono' => $guardado['telefono'] ?? null,
+                'direccion' => $guardado['direccion'] ?? null,
+                'vivo' => false,
+            ];
+        }
+
+        return [
+            'nombre' => $maestro->getNombreComercial() ?: ($guardado['nombre'] ?? null),
+            'email' => $maestro->getEmail() ?: ($guardado['email'] ?? null),
+            'telefono' => $maestro->getTelefono() ?: ($guardado['telefono'] ?? null),
+            'direccion' => $maestro->getDireccion() ?: ($guardado['direccion'] ?? null),
+            'vivo' => true,
+        ];
     }
 
     /**
