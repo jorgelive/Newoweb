@@ -120,6 +120,15 @@ interface ActorInterface
     public function usuario(): ?User;
 
     /** @param list<string> $roles Vacío ⇒ basta con ser un actor cualquiera. */
+    /**
+     * ¿El actor tiene ESE rol concreto?
+     *
+     * Estaba en `AgentActor` —la única implementación— y lo llaman las skills, pero faltaba en
+     * el contrato: ya era parte de él de hecho, sólo que sin escribir.
+     */
+    public function tieneRol(string $rol): bool;
+
+    /** @param list<string> $roles */
     public function tieneAlguno(array $roles): bool;
 
     /** Para los logs, sin volcar la entidad entera. */

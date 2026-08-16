@@ -89,6 +89,12 @@ final class SkillRegistryTest extends TestCase
             public function usuario(): ?User { return null; }
             public function etiqueta(): string { return 'doble'; }
 
+            public function tieneRol(string $rol): bool
+            {
+                return in_array($rol, $this->roles, true);
+            }
+
+            /** @param list<string> $roles */
             public function tieneAlguno(array $roles): bool
             {
                 return $roles === [] || array_intersect($roles, $this->roles) !== [];

@@ -18,6 +18,15 @@ class EnviarResumenCommand extends Command
 {
     private EntityManagerInterface $entityManager;
 
+    /**
+     * ⚠️ `$mailer` y `$params` no estaban declaradas: el constructor las creaba como
+     * propiedades DINÁMICAS. Funciona, pero PHP 8.2 lo marcó como obsoleto y en PHP 9 deja de
+     * funcionar — el comando entero se caería al construirse. Se declaran.
+     */
+    private TransportInterface $mailer;
+
+    private ParameterBagInterface $params;
+
     public function __construct(EntityManagerInterface $entityManager, TransportInterface $mailer, ParameterBagInterface $params)
     {
         $this->entityManager = $entityManager;

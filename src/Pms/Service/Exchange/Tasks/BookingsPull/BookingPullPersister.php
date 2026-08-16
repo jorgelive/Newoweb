@@ -723,9 +723,15 @@ final class BookingPullPersister implements ResetInterface
         // 1. Intentamos leer el idioma directo de la OTA
         $code = strtolower(trim((string) ($dto->lang ?? '')));
 
-        // 🔥 NUEVO MAGIA: Si el idioma está vacío, inferimos desde el país
+        // Si el idioma está vacío, se infiere desde el país.
+        //
+        // ⚠️ El campo es `country2`, no `country`. Aquí ponía `$dto->country ?? ''` — una
+        // propiedad que NO EXISTE en el DTO—, así que el `??` devolvía siempre '' y esta
+        // inferencia entera llevaba muerta desde que se escribió: ninguna reserva sin idioma
+        // lo dedujo jamás de su país. El `country2` de Beds24 es ISO2 y los ids de
+        // `MaestroPais` también lo son ('ES', 'PE'…), así que el `find()` casa directo.
         if ($code === '') {
-            $countryCode = strtoupper(trim((string) ($dto->country ?? ''))); // Beds24 suele mandar ISO2 o ISO3
+            $countryCode = strtoupper(trim((string) ($dto->country2 ?? '')));
 
             if ($countryCode !== '') {
                 // Buscamos el país. (Usa tu método resolvePais si lo tienes, o el EM directo)

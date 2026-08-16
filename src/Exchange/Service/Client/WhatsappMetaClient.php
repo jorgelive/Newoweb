@@ -154,7 +154,7 @@ final class WhatsappMetaClient implements ExchangeClientInterface
      */
     public function pushTemplateDefinition(MetaConfig $config, ExchangeEndpoint $endpoint, array $templatePayload): array
     {
-        $apiKey = $config->getCredential('apiKey') ?? $config->getToken();
+        $apiKey = $config->getCredential('apiKey') ?? $config->getApiKey();
         $wabaId = $config->getCredential('wabaId');
 
         if (!$apiKey || !$wabaId) {
@@ -201,7 +201,7 @@ final class WhatsappMetaClient implements ExchangeClientInterface
      */
     public function editTemplateDefinition(MetaConfig $config, string $templateId, array $componentsPayload): array
     {
-        $apiKey = $config->getCredential('apiKey') ?? $config->getToken();
+        $apiKey = $config->getCredential('apiKey') ?? $config->getApiKey();
 
         if (!$apiKey) {
             throw new \RuntimeException(sprintf('La configuración de Meta [%s] no tiene API Key.', $config->getNombre()));

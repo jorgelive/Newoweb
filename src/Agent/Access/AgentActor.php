@@ -198,6 +198,7 @@ final readonly class AgentActor implements ActorInterface
             || in_array($rol, $this->roles, true);
     }
 
+    /** @param list<string> $roles */
     public function tieneAlguno(array $roles): bool
     {
         if ($roles === []) {
