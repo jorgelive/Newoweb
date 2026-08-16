@@ -548,6 +548,49 @@ Notas:
 - `OperacionMensaje` guarda `cuerpoHtml` ya renderizado. Es bitácora inmutable para resolver
   disputas con el proveedor, no un borrador editable.
 
+### Con qué nombre se le pide (2026-08-16)
+
+`BibliaSnapshotService::resolverDescripcion()` describía el servicio con **tu código
+interno** («Pool City Lima CT002 (Base 1-4)»). La OS es un documento que se le manda al
+proveedor, así que ahora prefiere `nombreParaProveedor` («Del Origen Al Presente de Lima»)
+y sólo baja al nombre interno si falta.
+
+El campo existía y estaba **escrito pero sin conectar**: se llenaba en el editor, viajaba al
+snapshot y no lo leía nadie. Y se autorrellenaba con el nombre interno, lo que lo dejaba al
+100% e indistinguible; ese relleno se quitó, así que vacío ahora significa «el proveedor la
+llama igual que nosotros».
+
+### A quién va dirigida: el COMPRADOR (2026-08-16)
+
+🔥 **`proveedorNombreManual` era el comprador con el nombre equivocado.** Se documentaba como
+«a quién le mando la solicitud y le pago», que es literalmente la definición del comprador.
+Y que fuera **manual** era la prueba: existía un campo a mano porque el dato automático —el
+proveedor de la tarifa— respondía a otra pregunta. `Version20260816220000` lo renombra en
+`operacion_servicio` y `operacion_orden_servicio`, **conservando el valor**: lo que había
+escrito ya era el comprador.
+
+Consecuencia práctica: **la OS se agrupa por comprador, no por proveedor.** Dos servicios de
+proveedores distintos que compra Futurismo caben ahora en la misma orden; antes se partían
+en dos sin motivo.
+
+La OS se dirigía al **proveedor**, o sea a quien pone el precio. Suele valer porque le
+compras directo, pero no siempre: le encargas a **Futurismo** que compre las entradas a
+Paracas, o que contrate el **Hotel Estelar** porque consigue mejor precio. Ahí el prestador
+es el hotel y el comprador es Futurismo — y eso no tenía dónde escribirse.
+
+`OperacionServicio::$compradorMaestroId` / `$compradorNombre` congelan a quién se le
+encargó, propagados por `BibliaSnapshotService` desde
+`CotizacionCotcomponente::resolverComprador()`. **Siempre es un `Proveedor`**, también
+cuando el comprador es una parte interna de la empresa: ahí también está modelada como
+proveedor, así que no hay un segundo catálogo que consultar.
+
+⚠️ **Mientras el campo esté vacío, la cascada cae al proveedor y la OS se dirige a quien se
+dirigía siempre.** El cambio no altera ninguna fila existente: hay que encargar la compra
+explícitamente para que cambie el destinatario.
+
+Por qué siempre es un `Proveedor` —y por qué se descartó modelar personas o un soft-link
+polimórfico— está en `docs/Cotizaciones.md` §6.c.
+
 ---
 
 ## 6. API: endpoints, grupos y filtros

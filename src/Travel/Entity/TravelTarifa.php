@@ -148,20 +148,6 @@ class TravelTarifa
     private ?string $comisionOverride = null; // null = usa la comisión global de la cotización
 
     #[Groups(['componente:item:read', 'componente:write'])]
-    #[ORM\ManyToOne(targetEntity: Proveedor::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?Proveedor $proveedor = null;
-
-    /**
-     * Relación directa con un servicio específico del proveedor (ej. una habitación o tour exacto).
-     * Permite asociar una tarifa a un recurso físico/lógico del proveedor para que salga por defecto en las cotización.
-     */
-    #[Groups(['componente:item:read', 'componente:write'])]
-    #[ORM\ManyToOne(targetEntity: ProveedorServicio::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?ProveedorServicio $proveedorServicio = null;
-
-    #[Groups(['componente:item:read', 'componente:write'])]
     #[Assert\Length(
         max: 150,
         maxMessage: 'El nombre para el proveedor no puede superar los {{ limit }} caracteres.'
@@ -403,40 +389,6 @@ class TravelTarifa
         return $this;
     }
 
-    public function getProveedor(): ?Proveedor
-    {
-        return $this->proveedor;
-    }
-
-    public function setProveedor(?Proveedor $proveedor): self
-    {
-        $this->proveedor = $proveedor;
-        return $this;
-    }
-
-    /**
-     * Obtiene el servicio específico del proveedor asociado a esta tarifa.
-     * Útil para autocompletar o sugerir el servicio (ej. habitación) por defecto en cotización.
-     *
-     * @return ProveedorServicio|null
-     */
-    public function getProveedorServicio(): ?ProveedorServicio
-    {
-        return $this->proveedorServicio;
-    }
-
-    /**
-     * Establece el servicio específico del proveedor asociado a esta tarifa.
-     *
-     * @param ProveedorServicio|null $proveedorServicio Entidad del servicio a relacionar.
-     * @return self
-     */
-    public function setProveedorServicio(?ProveedorServicio $proveedorServicio): self
-    {
-        $this->proveedorServicio = $proveedorServicio;
-        return $this;
-    }
-
     public function getNombreParaProveedor(): ?string
     {
         return $this->nombreParaProveedor;
@@ -509,13 +461,7 @@ class TravelTarifa
                 ->addViolation();
         }
 
-        // 3. Si se especifica un ProveedorServicio, asegurar que corresponda al mismo Proveedor general
-        if ($this->proveedorServicio !== null && $this->proveedor !== null) {
-            if ($this->proveedorServicio->getProveedor() !== $this->proveedor) {
-                $context->buildViolation('El servicio seleccionado no pertenece al proveedor especificado en la tarifa.')
-                    ->atPath('proveedorServicio')
-                    ->addViolation();
-            }
-        }
+        // La comprobación «el servicio pertenece a ese proveedor» se mudó con los campos a
+        // TravelComponente: ahí es donde viven ahora los dos y donde tiene sentido cruzarlos.
     }
 }

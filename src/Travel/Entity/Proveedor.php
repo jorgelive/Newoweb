@@ -104,6 +104,38 @@ class Proveedor
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $email = null;
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // CARA PÚBLICA — la bandera gobierna, el título sólo aporta el texto
+    //
+    // Antes no había bandera: la regla era «sin título, el cliente no lo ve», y
+    // se documentó como una ventaja (un booleano menos que mantener). No lo era.
+    // Deducir la visibilidad de la presencia de un dato hace que ocultar sea
+    // DESTRUCTIVO —el snapshot del título es la única copia, así que borrarlo
+    // para esconder al proveedor pierde el texto y obliga a reescribirlo para
+    // volver a mostrarlo— y deja el 95% del catálogo (93 de 98 proveedores)
+    // invisible por omisión, sin que nadie lo haya decidido.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * ¿Se puede nombrar a este proveedor delante del cliente?
+     *
+     * ⚠️ Es un DEFAULT que se lee al ASIGNAR, no un veto vivo. Quien decide en
+     * cada propuesta es la bandera del snapshot; ésta sólo la siembra. Si se
+     * consultara al serializar, editar el catálogo cambiaría en silencio lo que
+     * ve un cliente con la propuesta ya abierta — que es justo el defecto que
+     * esta bandera viene a cerrar, y va contra la regla de que la cotización es
+     * una foto del catálogo (docs/Travel.md §9).
+     *
+     * Arranca en `false` a propósito, invirtiendo el criterio de «lista vacía =
+     * sin acotar» que rige en guía y conocimiento. Allí el olvido deja un ítem
+     * de más, que es inofensivo; aquí nombrar a un proveedor que no tocaba
+     * invita al cliente a saltarse la intermediación y contratar directo. El
+     * olvido caro es el contrario, así que se entra por opt-in.
+     */
+    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $visibleParaCliente = false;
+
     /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
@@ -269,6 +301,34 @@ class Proveedor
     {
         $this->email = $email;
         return $this;
+    }
+
+    /**
+     * ¿Se puede nombrar a este proveedor delante del cliente? Ver la propiedad:
+     * es la semilla que se copia al asignar, no un veto que se relea después.
+     */
+    public function isVisibleParaCliente(): bool
+    {
+        return $this->visibleParaCliente;
+    }
+
+    public function setVisibleParaCliente(bool $visibleParaCliente): self
+    {
+        $this->visibleParaCliente = $visibleParaCliente;
+        return $this;
+    }
+
+    /**
+     * ¿Está en condiciones de mostrarse? Bandera puesta Y texto que enseñar.
+     *
+     * El título dejó de ser la bandera, pero sigue siendo el contenido: marcar
+     * visible a un proveedor sin título no da nada que pintar. Se comprueban las
+     * dos cosas juntas para que el editor pueda avisar del hueco en vez de
+     * mostrar una tarjeta vacía.
+     */
+    public function puedeMostrarseAlCliente(): bool
+    {
+        return $this->visibleParaCliente && $this->titulo !== [];
     }
 
     /**

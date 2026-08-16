@@ -23,6 +23,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 
@@ -141,6 +142,33 @@ class TravelComponente
     #[ORM\OneToMany(mappedBy: 'componente', targetEntity: TravelTarifa::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['nombreInterno' => 'ASC'])]
     private Collection $tarifas;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PROVEEDOR — a quién se le compra esta logística
+    //
+    // Colgaba de `TravelTarifa`, y ahí el campo quedó **abandonado: 5 de 904**. No por
+    // desidia — un componente llega a tener 19 tarifas y nadie repite el mismo proveedor
+    // 19 veces. Al subirlo aquí se llena una vez, que es lo que lo hace realista.
+    //
+    // Es el mismo movimiento que ya se hizo en la cotización (`docs/Cotizaciones.md` §6.c),
+    // un nivel más arriba. Y desbloquea el filtro de tarifas por prestador del editor, que
+    // depende de este vínculo y hoy casi nunca se activa por falta de dato.
+    //
+    // `readableLink: false` como el resto: la API devuelve IRIs y corta la recursividad.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
+    #[ApiProperty(readableLink: false)]
+    #[ORM\ManyToOne(targetEntity: Proveedor::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Proveedor $proveedor = null;
+
+    /** El servicio concreto que se le compra (ej. el tipo de habitación). */
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
+    #[ApiProperty(readableLink: false)]
+    #[ORM\ManyToOne(targetEntity: ProveedorServicio::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?ProveedorServicio $proveedorServicio = null;
 
     /**
      * 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs
@@ -384,6 +412,34 @@ class TravelComponente
      *
      * @return Collection<int, TravelTarifa>
      */
+    /**
+     * El servicio elegido tiene que ser de ese proveedor.
+     *
+     * Vivía en `TravelTarifa`, y se mudó con los campos: cruzarlos sólo tiene sentido donde
+     * conviven. Sin esto se puede guardar «Hotel A» con «habitación doble del Hotel B», que
+     * no falla al escribir y sale mal en la cotización.
+     */
+    #[Assert\Callback]
+    public function validarServicioDelProveedor(ExecutionContextInterface $context): void
+    {
+        if ($this->proveedorServicio === null || $this->proveedor === null) {
+            return;
+        }
+
+        if ($this->proveedorServicio->getProveedor() !== $this->proveedor) {
+            $context->buildViolation('El servicio seleccionado no pertenece al proveedor del componente.')
+                ->atPath('proveedorServicio')
+                ->addViolation();
+        }
+    }
+
+    public function getProveedor(): ?Proveedor { return $this->proveedor; }
+    public function setProveedor(?Proveedor $v): self { $this->proveedor = $v; return $this; }
+
+    public function getProveedorServicio(): ?ProveedorServicio { return $this->proveedorServicio; }
+    public function setProveedorServicio(?ProveedorServicio $v): self { $this->proveedorServicio = $v; return $this; }
+
+    /** @return Collection<int, TravelTarifa> */
     public function getTarifas(): Collection
     {
         return $this->tarifas;

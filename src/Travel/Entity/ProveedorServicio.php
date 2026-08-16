@@ -66,8 +66,9 @@ use Symfony\Component\Uid\Uuid;
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar servicios de proveedor.'
         ),
-        // Ojo: `CotizacionCottarifa` guarda un soft-link `proveedorServicioMaestroId` con su
-        // título e imágenes ya congelados. Borrar aquí no toca las cotizaciones emitidas.
+        // Ojo: `CotizacionCotcomponente` guarda un soft-link `proveedorServicioMaestroId`
+        // con su título e imágenes ya congelados. Borrar aquí no toca las cotizaciones
+        // emitidas.
         new Delete(
             uriTemplate: '/proveedor-servicios/{id}',
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",

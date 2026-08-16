@@ -283,8 +283,8 @@ const editarHora = async (servicio: OperacionServicio, evento: Event) => {
  */
 const editarProveedor = async (servicio: OperacionServicio, evento: Event) => {
     const valor = (evento.target as HTMLInputElement).value.trim();
-    if (valor === (servicio.proveedorNombreManual ?? '')) return;
-    await guardarCampo(servicio, { proveedorNombreManual: valor || null });
+    if (valor === (servicio.compradorNombre ?? '')) return;
+    await guardarCampo(servicio, { compradorNombre: valor || null });
 };
 
 /**
@@ -307,17 +307,20 @@ const editarPrestador = async (servicio: OperacionServicio, evento: Event) => {
  * exactamente lo mismo que el prestador. En la mayoría de filas ambos heredan de la
  * misma tarifa y repetirlo en cada línea convertiría el dato en ruido.
  *
- * ⚠️ Vacío NO es redundante, es pendiente. La primera versión de esta función pedía
- * además que el comercial no estuviera vacío, y como los dos campos salen de la misma
- * tarifa, cuando esa tarifa no tiene proveedor **los dos** nacen nulos: el input no se
- * pintaba nunca y el campo quedaba fuera del alcance del operador. Justo el caso más
- * común, y justo el que hace falta para poder agrupar una Orden de Servicio.
+ * ⚠️ Vacío NO es redundante, es pendiente. La primera versión pedía además que el campo
+ * no estuviera vacío, y como salía de la misma tarifa que el prestador, cuando esa tarifa
+ * no tenía proveedor **los dos** nacían nulos: el input no se pintaba nunca y el campo
+ * quedaba fuera del alcance del operador. Justo el caso más común, y justo el que hace
+ * falta para agrupar una Orden de Servicio.
+ *
+ * Con el comprador eso se da mucho menos: la cascada cae al proveedor del componente, así
+ * que el campo llega lleno salvo que no haya proveedor en absoluto.
  */
-const mostrarComercial = (s: OperacionServicio): boolean => {
+const mostrarComprador = (s: OperacionServicio): boolean => {
     if (s.soloReferencia) return false;   // no se compra: no hay proveedor que fijar
 
-    const comercial = (s.proveedorNombreManual ?? '').trim();
-    return comercial === '' || comercial !== (s.prestadorNombre ?? '').trim();
+    const comprador = (s.compradorNombre ?? '').trim();
+    return comprador === '' || comprador !== (s.prestadorNombre ?? '').trim();
 };
 
 /** Teléfono en formato marcable: el operador llama desde el propio cuadro. */
@@ -415,8 +418,11 @@ const conflictoSeleccion = computed<string | null>(() => {
     const files = new Set(sel.map(s => s.file?.id ?? ''));
     if (files.size > 1) return 'Los servicios seleccionados son de expedientes distintos.';
 
-    const proveedores = new Set(sel.map(s => s.proveedorNombreManual ?? ''));
-    if (proveedores.size > 1) return 'Los servicios seleccionados son de proveedores distintos.';
+    // Se agrupa por COMPRADOR, no por proveedor: la orden va a quien la ejecuta. Dos
+    // servicios de proveedores distintos que compra Futurismo caben en la misma orden;
+    // agrupar por proveedor los partía en dos sin motivo.
+    const compradores = new Set(sel.map(s => s.compradorNombre ?? ''));
+    if (compradores.size > 1) return 'Los servicios seleccionados tienen compradores distintos.';
 
     const monedas = new Set(sel.map(s => s.monedaCotizada?.id ?? ''));
     if (monedas.size > 1) return 'Los servicios seleccionados están en monedas distintas.';
@@ -429,7 +435,7 @@ const conflictoSeleccion = computed<string | null>(() => {
 const mostrarModalOs = ref<boolean>(false);
 const guardandoOs = ref<boolean>(false);
 const errorOs = ref<string | null>(null);
-const formOs = ref({ numeroOs: '', proveedorNombreManual: '', totalOs: '0.00', monedaId: '' });
+const formOs = ref({ numeroOs: '', compradorNombre: '', totalOs: '0.00', monedaId: '' });
 
 const abrirModalOs = () => {
     const sel = serviciosSeleccionados.value;
@@ -441,7 +447,7 @@ const abrirModalOs = () => {
     formOs.value = {
         // Sugerencia: numeroOs es unique y no tiene generador en el backend.
         numeroOs: `OS-${hoy}-${String(Math.floor(Math.random() * 900) + 100)}`,
-        proveedorNombreManual: sel[0].proveedorNombreManual ?? '',
+        compradorNombre: sel[0].compradorNombre ?? '',
         totalOs: total.toFixed(2),
         monedaId: sel[0].monedaCotizada?.id ?? '',
     };
@@ -466,8 +472,8 @@ const confirmarOs = async () => {
             {
                 numeroOs: formOs.value.numeroOs,
                 file: `/platform/sales/cotizacion_files/${fileId}`,
-                proveedorMaestroId: sel[0].proveedorMaestroId ?? null,
-                proveedorNombreManual: formOs.value.proveedorNombreManual || null,
+                compradorMaestroId: sel[0].compradorMaestroId ?? null,
+                compradorNombre: formOs.value.compradorNombre || null,
                 estadoOs: 'borrador',
                 monedaOs: `/platform/maestro/monedas/${formOs.value.monedaId}`,
                 totalOs: formOs.value.totalOs,
@@ -1065,12 +1071,12 @@ onMounted(async () => {
                                                 <!-- A quién se le compra. Se edita porque es lo que agrupa
                                                      la OS: sin poder corregirlo aquí, dos filas del mismo
                                                      proveedor escrito distinto no se pueden juntar nunca. -->
-                                                <label v-if="mostrarComercial(servicio)" class="mt-1.5 flex items-center gap-1.5">
+                                                <label v-if="mostrarComprador(servicio)" class="mt-1.5 flex items-center gap-1.5">
                                                     <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider shrink-0" title="Proveedor comercial: a quién se le compra">
                                                         Compra
                                                     </span>
                                                     <input
-                                                        :value="servicio.proveedorNombreManual ?? ''"
+                                                        :value="servicio.compradorNombre ?? ''"
                                                         @change="editarProveedor(servicio, $event)"
                                                         placeholder="Sin definir"
                                                         class="w-full max-w-[8rem] text-[10px] font-bold text-slate-400 bg-transparent px-1 py-0.5 rounded border border-transparent hover:border-slate-200 outline-none focus:ring-1 focus:ring-[#376875] focus:bg-white focus:text-slate-700 placeholder:text-slate-300 placeholder:font-medium"
@@ -1199,7 +1205,7 @@ onMounted(async () => {
 
                                         <td class="px-4 py-4 align-top">
                                             <p class="text-sm font-bold text-slate-800">
-                                                {{ orden.proveedorNombreManual || 'No definido' }}
+                                                {{ orden.compradorNombre || 'No definido' }}
                                             </p>
                                             <p class="text-[10px] font-black text-slate-400 mt-0.5 sm:hidden">
                                                 <span class="text-slate-300">{{ orden.monedaOs?.id || 'USD' }}</span>
@@ -1268,7 +1274,7 @@ onMounted(async () => {
                     <label class="flex flex-col gap-1">
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Proveedor</span>
                         <input
-                            v-model="formOs.proveedorNombreManual"
+                            v-model="formOs.compradorNombre"
                             placeholder="Nombre del proveedor"
                             class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#376875]"
                         />

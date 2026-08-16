@@ -381,6 +381,7 @@ export interface Catalogos {
     monedas: MaestroMoneda[];
 }
 
+
 export interface TarifaSnapshot {
     id: string;
     tarifaMaestraId: string | null;
@@ -401,18 +402,16 @@ export interface TarifaSnapshot {
     edadMaximaSnapshot: number | null;
     capacidadMinimaSnapshot?: number | null;
     capacidadMaximaSnapshot?: number | null;
-    proveedorMaestroId: string | null;
-    proveedorNombreSnapshot: string | null;
-    proveedorTituloSnapshot?: I18nContent[];
-    proveedorUrlSnapshot?: string | null;
-    proveedorImagenesSnapshot: ImagenProveedorSnapshot[];
-    proveedorServicioMaestroId?: string | null;
-    proveedorServicioNombreSnapshot?: string | null;
-    proveedorServicioTituloSnapshot?: I18nContent[];
-    proveedorServicioUrlSnapshot?: string | null;
-    proveedorServicioImagenesSnapshot: ImagenProveedorSnapshot[];
+    /**
+     * Cómo llama el PROVEEDOR a esta tarifa, para el requerimiento que se le manda.
+     *
+     * Es lo ÚNICO del proveedor que queda en la línea de precio, y sí es por línea: el
+     * proveedor en sí es del componente. La tarifa llegó a guardar también su id y su
+     * nombre —«de quién es este precio»— pero nadie los leía y se retiraron.
+     *
+     * Vacío = lo llama igual que nosotros. Ver `resolverDescripcion()` en PHP.
+     */
     nombreParaProveedorSnapshot?: string | null;
-    proveedorOculto: boolean;
     sobreescribirTraduccion: boolean;
 }
 
@@ -439,11 +438,14 @@ type CotComponenteBase = components["schemas"]["CotizacionCotcomponente-cotizaci
 export type ComponenteCompleto = Omit<CotComponenteBase,
     'id' | 'nombreSnapshot' | 'estado' | 'modo' | 'fechaHoraInicio' | 'fechaHoraFin'
     | 'snapshotItems' | 'cottarifas' | 'detallesOperativos' | 'cotsegmento'
-    // Las dos columnas json del prestador salen del schema como `string[]`; se
-    // redeclaran abajo con su forma real. Tienen que ir en el Omit o la
-    // intersección produce `string[] & I18nContent[]`, que no falla aquí sino
-    // lejos, al usarlo (§2 de docs/Cotizaciones.md).
+    // Las columnas json de prestador y proveedor salen del schema con una firma de
+    // índice abierta (`{[k: string]: string | null}[]`), que se parece a la forma real
+    // pero no garantiza `language` ni `content`. Se redeclaran abajo. Tienen que ir en
+    // el Omit o la intersección de las dos formas produce un tipo inservible que no
+    // falla aquí sino lejos, al usarlo (§2 de docs/Cotizaciones.md).
     | 'prestadorTituloSnapshot' | 'prestadorImagenesSnapshot'
+    | 'proveedorTituloSnapshot' | 'proveedorImagenesSnapshot'
+    | 'proveedorServicioTituloSnapshot' | 'proveedorServicioImagenesSnapshot'
 > & {
     id: string;
     nombreSnapshot: I18nContent[];
@@ -464,6 +466,23 @@ export type ComponenteCompleto = Omit<CotComponenteBase,
     /** Cara pública del prestador (ver el Omit de arriba y `resolverPrestador()`). */
     prestadorTituloSnapshot?: I18nContent[];
     prestadorImagenesSnapshot?: ImagenProveedorSnapshot[];
+    /**
+     * COMPRADOR — a quién se le encarga ejecutar la compra. **Siempre un `Proveedor`**,
+     * también los internos: «Openperu tickets» es una parte de la empresa modelada como
+     * proveedor. Sin cara pública: nunca sale a la vista del cliente.
+     * Ver `resolverComprador()`.
+     */
+    compradorMaestroId?: string | null;
+    compradorNombreSnapshot?: string | null;
+    /**
+     * Cara pública del PROVEEDOR — a quién se le compra. Vivía anidada en cada tarifa
+     * hasta `Version20260816160000`; la tarifa se quedó sólo con `proveedorMaestroId` y
+     * `proveedorNombreSnapshot`, que son la referencia comercial por línea de precio.
+     */
+    proveedorTituloSnapshot?: I18nContent[];
+    proveedorImagenesSnapshot?: ImagenProveedorSnapshot[];
+    proveedorServicioTituloSnapshot?: I18nContent[];
+    proveedorServicioImagenesSnapshot?: ImagenProveedorSnapshot[];
 };
 
 export type SegmentoComponenteProcesado = components['schemas']['TravelSegmentoComponente-segmento.item.read'] & {
@@ -749,6 +768,20 @@ export interface InclusionLinea {
     prestadorTitulo?: I18nContent[];
     prestadorUrl?: string | null;
     prestadorImagenes?: ImagenProveedorSnapshot[];
+
+    /**
+     * Id del componente del que salió esta línea.
+     *
+     * Es el ÚNICO enlace fiable entre el snapshot financiero y el árbol vivo. Antes pax
+     * reconstruía el vínculo con una clave natural —`servicioId::títuloDeTarifa`— y dos
+     * tarifas homónimas del mismo día colisionaban en silencio, pintando el proveedor
+     * equivocado. Medido sobre datos reales: `(servicio, nombre)` ya colisionaba 6 veces.
+     *
+     * Con el id, pax busca el componente vivo y lee de ahí el proveedor, que el backend
+     * resuelve contra el catálogo maestro al servir. Por eso el proveedor NO viaja en la
+     * línea: sería una foto, y lo que se quiere es que esté vivo.
+     */
+    componenteId?: string;
 }
 
 export interface InclusionServicio {

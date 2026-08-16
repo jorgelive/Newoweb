@@ -69,13 +69,22 @@ class OperacionOrdenServicio
     #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')]
     private ?CotizacionFile $file = null;
 
+    // A quién va dirigida la orden: el COMPRADOR, no quien pone el precio.
+    //
+    // Se llamaba `proveedor*` y era la misma idea con el nombre equivocado — la propia doc
+    // decía «a quién le mando la solicitud y le pago», que es la definición del comprador.
+    // El nombre viejo hacía creer que la orden iba a quien vende, y eso falla en cuanto la
+    // tarifa es de un consorcio al que nadie escribe: le encargas a Futurismo que compre
+    // las entradas, y la orden tiene que salir a nombre de Futurismo.
+    //
+    // Siempre un `Proveedor` del catálogo, también los internos. Ver docs/Cotizaciones.md §6.c.
     #[Groups(['operacion:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
-    private ?string $proveedorMaestroId = null;
+    private ?string $compradorMaestroId = null;
 
     #[Groups(['operacion:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
-    private ?string $proveedorNombreManual = null;
+    private ?string $compradorNombre = null;
 
     #[Groups(['operacion:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 30, enumType: EstadoOrdenServicioEnum::class, options: ['default' => 'borrador'])]
@@ -141,11 +150,11 @@ class OperacionOrdenServicio
     public function getFile(): ?CotizacionFile { return $this->file; }
     public function setFile(?CotizacionFile $file): self { $this->file = $file; return $this; }
 
-    public function getProveedorMaestroId(): ?string { return $this->proveedorMaestroId; }
-    public function setProveedorMaestroId(?string $proveedorMaestroId): self { $this->proveedorMaestroId = $proveedorMaestroId; return $this; }
+    public function getCompradorMaestroId(): ?string { return $this->compradorMaestroId; }
+    public function setCompradorMaestroId(?string $v): self { $this->compradorMaestroId = $v; return $this; }
 
-    public function getProveedorNombreManual(): ?string { return $this->proveedorNombreManual; }
-    public function setProveedorNombreManual(?string $proveedorNombreManual): self { $this->proveedorNombreManual = $proveedorNombreManual; return $this; }
+    public function getCompradorNombre(): ?string { return $this->compradorNombre; }
+    public function setCompradorNombre(?string $v): self { $this->compradorNombre = $v; return $this; }
 
     public function getEstadoOs(): EstadoOrdenServicioEnum { return $this->estadoOs; }
     public function setEstadoOs(EstadoOrdenServicioEnum $estadoOs): self { $this->estadoOs = $estadoOs; return $this; }

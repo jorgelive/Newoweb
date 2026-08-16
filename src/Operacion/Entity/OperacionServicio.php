@@ -73,7 +73,7 @@ use Symfony\Component\Uid\Uuid;
     'cotizacionServicio.cotizacion' => 'exact',
     'estadoReservaProveedor'                 => 'exact',
     'estadoOperacion'               => 'exact',
-    'proveedorMaestroId'            => 'exact',
+    'compradorMaestroId'            => 'exact',
     'tipoComponente'                => 'exact',
     'modoComponente'                => 'exact',
     'estadoComponente'              => 'exact',
@@ -153,26 +153,18 @@ class OperacionServicio
     #[ORM\Column(type: 'string', length: 10, nullable: true)]
     private ?string $horaRecojoReal = null;
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
-    #[ORM\Column(type: 'string', length: 36, nullable: true)]
-    private ?string $proveedorMaestroId = null;
-
-    #[Groups(['operacion:item:read', 'operacion:write'])]
-    #[ORM\Column(type: 'string', length: 150, nullable: true)]
-    private ?string $proveedorNombreManual = null;
-
     // ─────────────────────────────────────────────────────────────────────────
-    // PRESTADOR — quién opera, frente a proveedor* = a quién se le compra
+    // PRESTADOR — quién opera, frente a comprador* = a quién se le manda el encargo
     //
     // Los dos conviven porque en Operaciones hay dos consumidores con necesidades
-    // opuestas: la Orden de Servicio necesita al proveedor comercial (a quién le
-    // mando la solicitud y le pago) y el cuadro de tráfico necesita al prestador
-    // (dónde recojo, quién opera). Un solo campo haciendo los dos trabajos era lo
-    // que obligaba a escribir el hotel a mano como si fuera una observación.
+    // opuestas: la Orden de Servicio necesita al COMPRADOR (a quién le mando la
+    // solicitud) y el cuadro de tráfico necesita al PRESTADOR (dónde recojo, quién
+    // opera). Un solo campo haciendo los dos trabajos era lo que obligaba a escribir
+    // el hotel a mano como si fuera una observación.
     //
     // Viene resuelto de CotizacionCotcomponente::resolverPrestador() — componente →
-    // día → proveedor de la tarifa — así que en el caso normal coincide con
-    // proveedorNombreManual y nadie tiene que llenar nada.
+    // día → proveedor del componente — así que en el caso normal coincide con el
+    // comprador y nadie tiene que llenar nada.
     // ─────────────────────────────────────────────────────────────────────────
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
@@ -191,6 +183,26 @@ class OperacionServicio
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $prestadorDireccion = null;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // COMPRADOR — a quién se le MANDA el encargo de comprar
+    //
+    // Tercer rol, distinto de los dos de arriba: el proveedor pone el precio, el
+    // prestador presta el servicio y el comprador ejecuta la compra. Suele coincidir con
+    // el proveedor —le compras directo— pero no cuando la tarifa es de un consorcio al
+    // que nadie escribe: ahí el encargo va a una persona de casa o a un tercero.
+    //
+    // Siempre es un `Proveedor`, también los internos: «Openperu tickets» es una parte de
+    // la empresa modelada como proveedor. Un solo catálogo, una sola pregunta.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $compradorMaestroId = null;
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $compradorNombre = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 255)]
@@ -461,11 +473,11 @@ class OperacionServicio
     public function getHoraRecojoReal(): ?string { return $this->horaRecojoReal; }
     public function setHoraRecojoReal(?string $horaRecojoReal): self { $this->horaRecojoReal = $horaRecojoReal; return $this; }
 
-    public function getProveedorMaestroId(): ?string { return $this->proveedorMaestroId; }
-    public function setProveedorMaestroId(?string $proveedorMaestroId): self { $this->proveedorMaestroId = $proveedorMaestroId; return $this; }
+    public function getCompradorMaestroId(): ?string { return $this->compradorMaestroId; }
+    public function setCompradorMaestroId(?string $v): self { $this->compradorMaestroId = $v; return $this; }
 
-    public function getProveedorNombreManual(): ?string { return $this->proveedorNombreManual; }
-    public function setProveedorNombreManual(?string $proveedorNombreManual): self { $this->proveedorNombreManual = $proveedorNombreManual; return $this; }
+    public function getCompradorNombre(): ?string { return $this->compradorNombre; }
+    public function setCompradorNombre(?string $v): self { $this->compradorNombre = $v; return $this; }
 
     public function getPrestadorMaestroId(): ?string { return $this->prestadorMaestroId; }
     public function setPrestadorMaestroId(?string $v): self { $this->prestadorMaestroId = $v; return $this; }

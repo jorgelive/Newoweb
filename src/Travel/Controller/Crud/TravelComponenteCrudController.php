@@ -11,6 +11,7 @@ use App\Travel\Entity\TravelComponenteItem;
 use App\Travel\Entity\TravelTarifa;
 use App\Travel\Enum\ComponenteTipoEnum;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Panel\Helper\AdminFieldHelper;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
@@ -254,6 +255,52 @@ class TravelComponenteCrudController extends BaseCrudController
             ->setColumns(4)
             ->hideOnIndex()
             ->formatValue(static fn ($value) => $value ? sprintf('%d Días', $value) : '-');
+
+        /* ====================================================================
+         * PANEL: PROVEEDOR — a quién se le compra esta logística
+         *
+         * Colgaba de cada TravelTarifa y ahí quedó abandonado (5 de 904): un componente
+         * llega a tener 19 tarifas y nadie repite el proveedor 19 veces. Aquí se llena una
+         * vez. Ver `Version20260816240000` y docs/Travel.md §7.
+         * ==================================================================== */
+        yield FormField::addPanel('Proveedor por defecto')->setIcon('fa fa-truck-loading')
+            ->setHelp('Sugerencia al cotizar: el operador puede cambiarla en el motor. '
+                . 'Poblarlo es lo que hace útil el filtro de tarifas por prestador del editor.');
+
+        yield TextField::new('proveedor', 'Proveedor')
+            ->hideOnForm()
+            ->formatValue(static fn ($value) => $value
+                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-building text-info"></i> %s</span>', htmlspecialchars((string) $value))
+                : '<span class="text-muted small">Cualquiera</span>')
+            ->renderAsHtml();
+
+        // Gatillo AJAX: al elegir proveedor se recargan sus servicios en el campo de abajo.
+        yield AdminFieldHelper::controlsAjax(
+            AssociationField::new('proveedor', 'Proveedor'),
+            'js-proveedor-servicio-api-target',
+            rtrim($this->getParameter('api_host_url'), '/') . '/platform/travel/proveedor-servicios',
+            'proveedor.id',
+            'nombre'
+        )
+            ->hideOnIndex()
+            ->hideOnDetail()
+            ->setRequired(false)
+            ->setColumns(6);
+
+        yield TextField::new('proveedorServicio', 'Servicio Asignado')
+            ->hideOnForm()
+            ->formatValue(static fn ($value) => $value
+                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-concierge-bell text-warning"></i> %s</span>', htmlspecialchars((string) $value))
+                : '<span class="text-muted small">Cualquiera</span>')
+            ->renderAsHtml();
+
+        // Target del AJAX. La entidad valida que el servicio sea de ese proveedor.
+        yield AssociationField::new('proveedorServicio', 'Servicio del Proveedor')
+            ->hideOnIndex()->hideOnDetail()
+            ->setRequired(false)
+            ->setHelp('Ej: Habitación Matrimonial Standard.')
+            ->setColumns(6)
+            ->setFormTypeOptions(['attr' => ['class' => 'js-proveedor-servicio-api-target']]);
 
         yield FormField::addPanel('Lugares / Centros de operación')->setIcon('fa fa-map-marker-alt');
 

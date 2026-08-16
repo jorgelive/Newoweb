@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Cotizacion\Serializer;
 
 use App\Cotizacion\Entity\Cotizacion;
+use App\Cotizacion\Service\ProveedorVivoResolver;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
@@ -24,8 +25,8 @@ use Symfony\Component\Serializer\SerializerInterface;
  *  2. Si proveedorOculto=true (flag GLOBAL a nivel de cotización completa),
  *     inyecta un flag en $context ANTES de delegar al normalizer decorado.
  *     Ese $context viaja automáticamente en toda la recursión de serialización
- *     (Cotizacion -> cotservicios -> cotcomponentes -> cottarifas), así que
- *     CotizacionCottarifaProveedorPublicNormalizer lo puede leer 4 niveles
+ *     (Cotizacion -> cotservicios -> cotcomponentes), así que
+ *     CotizacionCotcomponenteProveedorPublicNormalizer lo puede leer 3 niveles
  *     más abajo sin que este archivo conozca esa entidad directamente.
  *
  * CRÍTICO: supportsNormalization() delega SIEMPRE al normalizer decorado.
@@ -45,6 +46,7 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
     public function __construct(
         #[Autowire(service: 'App\Cotizacion\Serializer\CotizacionPublicNormalizer.inner')]
         private readonly NormalizerInterface $decorated,
+        private readonly ProveedorVivoResolver $proveedorVivo,
     ) {
     }
 
@@ -62,6 +64,14 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
             $context['pax_proveedor_oculto_global'] = true;
         }
 
+        // Mismo criterio, misma razón: se hace ANTES de delegar. Aquí se recorre el árbol
+        // una vez, se juntan los soft-links y se traen todos los maestros de golpe, para
+        // que el normalizer de cada componente sólo tenga que leer del mapa. Resolverlo
+        // ahí abajo sería una consulta por componente.
+        if ($isPublicView && $object instanceof Cotizacion) {
+            $this->precargarProveedores($object);
+        }
+
         $data = $this->decorated->normalize($object, $format, $context);
 
         if ($isPublicView && $object instanceof Cotizacion && \is_array($data) && $object->isPrecioOculto()) {
@@ -69,6 +79,27 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
         }
 
         return $data;
+    }
+
+    /**
+     * Junta los soft-links de proveedor de toda la cotización y los resuelve en LOTE.
+     *
+     * Recorrer las colecciones aquí no añade coste: se van a serializar igualmente unas
+     * líneas más abajo, así que la hidratación ya estaba pagada.
+     */
+    private function precargarProveedores(Cotizacion $cotizacion): void
+    {
+        $proveedorIds = [];
+        $servicioIds = [];
+
+        foreach ($cotizacion->getCotservicios() as $servicio) {
+            foreach ($servicio->getCotcomponentes() as $componente) {
+                $proveedorIds[] = $componente->getProveedorMaestroId();
+                $servicioIds[] = $componente->getProveedorServicioMaestroId();
+            }
+        }
+
+        $this->proveedorVivo->precargar($proveedorIds, $servicioIds);
     }
 
     /**

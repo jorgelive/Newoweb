@@ -1269,24 +1269,6 @@ parameters:
 			path: src/Operacion/Service/BibliaReconciliacionService.php
 
 		-
-			message: '#^Offset ''cotizacionTarifaId''\|''prestadorMaestroId''\|''proveedorMaestroId'' on array\{fechaServicio\: ''Fecha'', horaRecojoReal\: ''Hora de recojo'', descripcionServicio\: ''Servicio'', contextoServicio\: ''Día del itinerario'', prestadorNombre\: ''Prestador'', prestadorTelefono\: ''Teléfono del…'', prestadorDireccion\: ''Dirección del…'', proveedorNombreManual\: ''Proveedor \(compra\)'', \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Operacion/Service/BibliaReconciliacionService.php
-
-		-
-			message: '#^Offset ''cotizacionTarifaId''\|''prestadorMaestroId''\|''proveedorMaestroId'' on array\{proveedorMaestroId\: ''proveedorNombreManu…'', prestadorMaestroId\: ''prestadorNombre'', cotizacionTarifaId\: ''costoCotizado''\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Operacion/Service/BibliaReconciliacionService.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between ''costoCotizado''\|''prestadorNombre''\|''proveedorNombreManu…'' and null will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: src/Operacion/Service/BibliaReconciliacionService.php
-
-		-
 			message: '#^Parameter \#1 \$array \(non\-empty\-list\<App\\Cotizacion\\Entity\\CotizacionCottarifa\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
 			count: 1

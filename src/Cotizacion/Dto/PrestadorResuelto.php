@@ -19,7 +19,7 @@ namespace App\Cotizacion\Dto;
 final readonly class PrestadorResuelto
 {
     /**
-     * @param 'componente'|'servicio'|'tarifa' $origen  De dónde salió
+     * @param 'componente'|'servicio'|'proveedor' $origen  De dónde salió
      * @param array<int, array{content?: string, language?: string}> $titulo  I18n, cara pública
      * @param array<int, mixed> $imagenes
      */

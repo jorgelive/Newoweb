@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use App\Attribute\AutoTranslate;
 use App\Cotizacion\Dto\PrestadorResuelto;
+use App\Cotizacion\Dto\CompradorResuelto;
 use App\Cotizacion\Enum\ComponenteEstadoEnum;
 use App\Cotizacion\Enum\DetalleOperativoTipoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
@@ -135,22 +136,46 @@ class CotizacionCotcomponente
     // ─────────────────────────────────────────────────────────────────────────
     // PRESTADOR — quién presta el servicio, no a quién se le compra
     //
-    // El proveedor vive en la tarifa y responde «¿a quién le compro y a cuánto?»:
-    // es un hecho comercial que sólo existe si hay compra. El prestador responde
-    // «¿quién lo presta / dónde ocurre?», y existe siempre — el hotel que el
-    // pasajero reservó por su cuenta no se le compra a nadie, pero es el punto de
-    // recojo del transportista y la referencia que luce en la propuesta.
+    // El PROVEEDOR (más abajo) responde «¿a quién le compro?»: es un hecho comercial
+    // que sólo existe si hay compra. El PRESTADOR responde «¿quién lo presta / dónde
+    // ocurre?», y existe siempre — el hotel que el pasajero reservó por su cuenta no
+    // se le compra a nadie, pero es el punto de recojo del transportista y la
+    // referencia que hace que la propuesta se lea completa.
     //
-    // Es OPCIONAL y blando: si está vacío se hereda (ver resolverPrestador*()), así
-    // que las cotizaciones existentes se comportan exactamente igual que antes.
+    // Es OPCIONAL y blando: si está vacío se hereda —componente → día → proveedor del
+    // propio componente, ver resolverPrestador()—, así que las cotizaciones existentes
+    // se comportan exactamente igual que antes.
     //
-    // Dos caras, mismo patrón que CotizacionCottarifa:
+    // Dos caras, el mismo patrón que usan los tres roles:
     //   · pública   → titulo (i18n), url, imágenes  ... el cliente las ve
     //   · operativa → nombre comercial, teléfono, dirección ... nunca salen a pax
-    // Por eso los campos operativos NO llevan el grupo pax_cotizacion:read, y los
-    // públicos los filtra CotizacionCotcomponentePrestadorPublicNormalizer para
-    // que sólo se muestren en componentes `no_incluido`. Ver docs/Cotizaciones.md.
+    // Los operativos NO llevan el grupo pax_cotizacion:read. Y de los públicos decide
+    // `$prestadorVisible`, no el modo: ver ahí el porqué y
+    // CotizacionCotcomponentePrestadorPublicNormalizer. Ver docs/Cotizaciones.md §6.c.
     // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * ¿Se nombra al prestador en ESTA propuesta?
+     *
+     * Antes no existía y la respuesta se re-derivaba en cada lectura de `$modo`, que es
+     * una clasificación comercial y no una decisión editorial. Dos efectos que nadie
+     * había decidido: cambiar un componente de `no_incluido` a `incluido` **borraba el
+     * prestador de la vista del cliente en silencio**, y asignar un prestador sólo para
+     * tener el teléfono del recojo lo publicaba de paso, porque el editor copia siempre
+     * el título. No había forma de decir «esto es operativo».
+     *
+     * Ahora es un valor que se decide una vez y se guarda. La regla vieja no desaparece:
+     * pasa a ser el DEFAULT al asignar (ver `onPrestadorComponenteChange()` en el store,
+     * que lo siembra con `modo === no_incluido` Y la bandera del maestro
+     * `Proveedor::$visibleParaCliente`). A partir de ahí manda lo guardado, así que el
+     * modo puede cambiar sin reescribir lo que el cliente ve.
+     *
+     * Arranca en `false` por el mismo motivo que la del maestro: el olvido caro es
+     * nombrar a quien no tocaba, no callar a quien sí.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $prestadorVisible = false;
 
     /** SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
@@ -199,6 +224,135 @@ class CotizacionCotcomponente
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $prestadorDireccionSnapshot = null;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PROVEEDOR — a quién se le compra este componente
+    //
+    // Vivía anidado en cada CotizacionCottarifa, heredado del sistema antiguo, que
+    // lo puso ahí para admitir varios proveedores por componente. **Ese caso nunca
+    // se dio**: 19 de 19 componentes con proveedor tienen exactamente uno, y en el
+    // catálogo maestro el campo está abandonado (5 de 904) porque un componente
+    // llega a tener 19 tarifas y nadie repite el mismo dato 19 veces.
+    //
+    // El coste no era sólo teclear: obligaba a RECONSTRUIR en la vista una identidad
+    // que la estructura había partido, y esa deduplicación traía sus propios fallos
+    // —el mapa de pax se indexaba por título de tarifa, así que dos tarifas homónimas
+    // colisionaban—. Se guarda una vez, donde de verdad ocurre: el componente.
+    //
+    // Qué se queda en la tarifa: `proveedorMaestroId` + `proveedorNombreSnapshot`,
+    // que responden «¿de quién es ESTE precio?» y sí son legítimamente por línea
+    // (puedes comparar la tarifa de Cosituc contra la de un revendedor). Lo que se
+    // mudó aquí es la PRESENTACIÓN, que es lo que se muestra una sola vez.
+    //
+    // Mismo patrón de dos caras que el prestador: pública (título, url, imágenes) y
+    // operativa (nombre). Y misma disciplina que allí — quién lo ve lo dice una
+    // bandera guardada, no la presencia de un dato.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $proveedorMaestroId = null;
+
+    /** Nombre comercial. Operativo: identifica al proveedor en el histórico. */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $proveedorNombreSnapshot = null;
+
+    /**
+     * ¿Se nombra al proveedor en ESTA propuesta?
+     *
+     * Sustituye al `proveedorOculto` por tarifa, y viene en positivo a propósito: la
+     * condición negada obliga a leer dos veces cada vez que se combina con el flag
+     * global. El global (`Cotizacion::$proveedorOculto`) sigue donde estaba y sigue
+     * mandando — es el interruptor white-label de toda la propuesta, y esta bandera
+     * sólo puede afinar hacia abajo, nunca forzar que se muestre.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $proveedorVisible = false;
+
+    /**
+     * Título de cara al cliente (I18nContent[]), traducible.
+     *
+     * @var list<array{language?: string, content?: string|null}>
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $proveedorTituloSnapshot = [];
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $proveedorUrlSnapshot = null;
+
+    /** @var list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'json')]
+    private array $proveedorImagenesSnapshot = [];
+
+    /**
+     * El servicio concreto que se le compra (ej. el tipo de habitación).
+     *
+     * Acompaña al proveedor y no a la tarifa por el mismo motivo: 0 componentes
+     * tienen dos distintos. Si algún día una tarifa necesitara su propio tipo de
+     * habitación, el sitio correcto sería volver a bajarlo a la tarifa — pero
+     * entonces con datos que lo respalden, que hoy no los hay.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $proveedorServicioMaestroId = null;
+
+    /** @var list<array{language?: string, content?: string|null}> */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $proveedorServicioTituloSnapshot = [];
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $proveedorServicioUrlSnapshot = null;
+
+    /** @var list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'json')]
+    private array $proveedorServicioImagenesSnapshot = [];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // COMPRADOR — a quién se le encarga EJECUTAR la compra
+    //
+    // El tercer rol. El proveedor dice de quién es el precio; el prestador, quién presta
+    // el servicio; el comprador, **a quién le mando el encargo**. Suele coincidir con el
+    // proveedor —le compras directo— y por eso el campo se queda vacío casi siempre.
+    //
+    // El caso que lo justifica: le encargas a Futurismo que compre las entradas a San
+    // Francisco o a Paracas, o que contrate el Hotel Estelar porque consigue mejor precio.
+    // Ahí **prestador = Hotel Estelar** y **comprador = Futurismo**. Y la excursión del
+    // propio Futurismo no lleva comprador, porque ésa se la compras tú directamente.
+    //
+    // ⚠️ **Siempre apunta a un `Proveedor`, nunca a una persona.** También los internos:
+    // «Openperu tickets» es una parte de la empresa modelada como proveedor. Es
+    // deliberado y simplifica todo — el chófer Gabriel presta servicio como empresa de
+    // transportes, no como persona natural, así que modelarlo como `User` obligaría a
+    // mantener dos catálogos para el mismo hecho y a preguntar «¿de qué clase es?» antes
+    // de poder elegir.
+    //
+    // ⚠️ **No tiene cara pública, y no es un olvido.** A quién le encargaste la compra no
+    // es asunto del cliente. Por eso ninguno de estos campos lleva `pax_cotizacion:read`
+    // y no hay bandera de visibilidad: los otros dos roles la necesitan porque PUEDEN
+    // mostrarse; éste no puede, así que una bandera sería una decisión que nadie debe
+    // poder tomar.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $compradorMaestroId = null;
+
+    /** Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $compradorNombreSnapshot = null;
 
     public function __construct()
     {
@@ -516,6 +670,10 @@ class CotizacionCotcomponente
     // PRESTADOR
     // ─────────────────────────────────────────────────────────────────────────
 
+    /** ¿Se nombra al prestador en esta propuesta? Valor guardado, no regla viva. */
+    public function isPrestadorVisible(): bool { return $this->prestadorVisible; }
+    public function setPrestadorVisible(bool $v): self { $this->prestadorVisible = $v; return $this; }
+
     public function getPrestadorMaestroId(): ?string { return $this->prestadorMaestroId; }
     public function setPrestadorMaestroId(?string $v): self { $this->prestadorMaestroId = $v; return $this; }
 
@@ -553,6 +711,107 @@ class CotizacionCotcomponente
     public function getPrestadorDireccionSnapshot(): ?string { return $this->prestadorDireccionSnapshot; }
     public function setPrestadorDireccionSnapshot(?string $v): self { $this->prestadorDireccionSnapshot = $v; return $this; }
 
+    public function getProveedorMaestroId(): ?string { return $this->proveedorMaestroId; }
+    public function setProveedorMaestroId(?string $v): self { $this->proveedorMaestroId = $v; return $this; }
+
+    public function getProveedorNombreSnapshot(): ?string { return $this->proveedorNombreSnapshot; }
+    public function setProveedorNombreSnapshot(?string $v): self { $this->proveedorNombreSnapshot = $v; return $this; }
+
+    /** ¿Se nombra al proveedor en esta propuesta? El flag global manda por encima. */
+    public function isProveedorVisible(): bool { return $this->proveedorVisible; }
+    public function setProveedorVisible(bool $v): self { $this->proveedorVisible = $v; return $this; }
+
+    /** @return list<array{language?: string, content?: string|null}> */
+    public function getProveedorTituloSnapshot(): array { return $this->proveedorTituloSnapshot; }
+
+    /** @param list<array{language?: string, content?: string|null}> $v */
+    public function setProveedorTituloSnapshot(array $v): self { $this->proveedorTituloSnapshot = $v; return $this; }
+
+    public function getProveedorUrlSnapshot(): ?string { return $this->proveedorUrlSnapshot; }
+    public function setProveedorUrlSnapshot(?string $v): self { $this->proveedorUrlSnapshot = $v; return $this; }
+
+    /** @return list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
+    public function getProveedorImagenesSnapshot(): array { return $this->proveedorImagenesSnapshot; }
+
+    /** @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v */
+    public function setProveedorImagenesSnapshot(array $v): self { $this->proveedorImagenesSnapshot = $v; return $this; }
+
+    public function getProveedorServicioMaestroId(): ?string { return $this->proveedorServicioMaestroId; }
+    public function setProveedorServicioMaestroId(?string $v): self { $this->proveedorServicioMaestroId = $v; return $this; }
+
+    /** @return list<array{language?: string, content?: string|null}> */
+    public function getProveedorServicioTituloSnapshot(): array { return $this->proveedorServicioTituloSnapshot; }
+
+    /** @param list<array{language?: string, content?: string|null}> $v */
+    public function setProveedorServicioTituloSnapshot(array $v): self { $this->proveedorServicioTituloSnapshot = $v; return $this; }
+
+    public function getProveedorServicioUrlSnapshot(): ?string { return $this->proveedorServicioUrlSnapshot; }
+    public function setProveedorServicioUrlSnapshot(?string $v): self { $this->proveedorServicioUrlSnapshot = $v; return $this; }
+
+    /** @return list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
+    public function getProveedorServicioImagenesSnapshot(): array { return $this->proveedorServicioImagenesSnapshot; }
+
+    /** @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v */
+    public function setProveedorServicioImagenesSnapshot(array $v): self { $this->proveedorServicioImagenesSnapshot = $v; return $this; }
+
+    public function getCompradorMaestroId(): ?string { return $this->compradorMaestroId; }
+    public function setCompradorMaestroId(?string $v): self { $this->compradorMaestroId = $v; return $this; }
+
+    public function getCompradorNombreSnapshot(): ?string { return $this->compradorNombreSnapshot; }
+    public function setCompradorNombreSnapshot(?string $v): self { $this->compradorNombreSnapshot = $v; return $this; }
+
+    /** ¿Este componente encarga la compra a alguien distinto del proveedor? */
+    public function tieneCompradorPropio(): bool
+    {
+        return $this->compradorMaestroId !== null
+            || trim($this->compradorNombreSnapshot ?? '') !== '';
+    }
+
+    /**
+     * Resuelve A QUIÉN se le encarga la compra.
+     *
+     * Cascada corta y deliberada: `componente → proveedor`. Si nadie encargó la compra, se
+     * le pide a quien vende, que es el caso normal — por eso el campo puede quedarse vacío
+     * en casi todos los componentes y las cotizaciones anteriores se comportan igual que
+     * antes de que existiera.
+     *
+     * No hereda del día como el prestador: encargar una compra es una decisión por ítem
+     * —una entrada la saca una persona y un tren lo compra otra—, así que un default por
+     * día invitaría a arrastrar el encargo equivocado sin que se note.
+     *
+     * ⚠️ Espejo en TypeScript: `resolverComprador()` en
+     * `util/src/stores/cotizacion/cotizacionEditorStore.ts`.
+     */
+    public function resolverComprador(): ?CompradorResuelto
+    {
+        if ($this->tieneCompradorPropio()) {
+            return new CompradorResuelto(
+                origen: 'componente',
+                maestroId: $this->compradorMaestroId,
+                nombre: $this->compradorNombreSnapshot,
+            );
+        }
+
+        // Sin encargo explícito se le compra al propio proveedor: es el caso normal, y es
+        // lo que hace que la Orden de Servicio salga bien sin llenar nada.
+        if ($this->tieneProveedorPropio()) {
+            return new CompradorResuelto(
+                origen: 'proveedor',
+                maestroId: $this->proveedorMaestroId,
+                nombre: $this->proveedorNombreSnapshot,
+            );
+        }
+
+        return null;
+    }
+
+    /** ¿Este componente define proveedor propio? */
+    public function tieneProveedorPropio(): bool
+    {
+        return $this->proveedorMaestroId !== null
+            || trim($this->proveedorNombreSnapshot ?? '') !== '';
+    }
+
     /** ¿Este componente define prestador propio, o lo hereda? */
     public function tienePrestadorPropio(): bool
     {
@@ -567,17 +826,18 @@ class CotizacionCotcomponente
      * diga algo, **entera**. No se mezclan campos de fuentes distintas: ver el
      * porqué en PrestadorResuelto.
      *
-     * La tarifa llega por parámetro en vez de resolverse aquí porque elegir cuál de
-     * varias tarifas manda es una regla de operaciones que ya vive en
-     * BibliaSnapshotService::resolverTarifaPrimaria(); duplicarla aquí garantizaba
-     * que las dos copias se separaran. Quien no tenga una, pasa null y la cascada
-     * simplemente se queda en el día.
+     * ⚠️ El tercer peldaño **ya no entra en la tarifa**. Antes leía la presentación
+     * del proveedor de `$tarifaPrimaria`, lo que obligaba a elegir cuál de varias
+     * tarifas mandaba —`BibliaSnapshotService::resolverTarifaPrimaria()`— y hacía que
+     * el prestador dependiera de un desempate por `grupoTarifa`: si el proveedor
+     * estaba puesto en otra tarifa, la cascada devolvía `null` en silencio. Ahora esa
+     * presentación vive en el propio componente y el peldaño es directo.
      *
      * ⚠️ Espejo en TypeScript: `resolverPrestador()` en
      * `util/src/stores/cotizacion/cotizacionEditorStore.ts`. Si cambias el orden de
      * la cascada, se tocan los dos.
      */
-    public function resolverPrestador(?CotizacionCottarifa $tarifaPrimaria = null): ?PrestadorResuelto
+    public function resolverPrestador(): ?PrestadorResuelto
     {
         if ($this->tienePrestadorPropio()) {
             return new PrestadorResuelto(
@@ -605,15 +865,16 @@ class CotizacionCotcomponente
 
         // Último recurso: a quien se le compra también es quien lo presta. Es el
         // caso normal — por eso el campo puede quedarse vacío en el 90% de los
-        // componentes sin que nadie note nada.
-        if ($tarifaPrimaria !== null && $tarifaPrimaria->getProveedorNombreSnapshot() !== null) {
+        // componentes sin que nadie note nada. Se lee del propio componente, que es
+        // donde vive ya la identidad del proveedor: una sola fuente, entera.
+        if ($this->tieneProveedorPropio()) {
             return new PrestadorResuelto(
-                origen: 'tarifa',
-                maestroId: $tarifaPrimaria->getProveedorMaestroId(),
-                nombre: $tarifaPrimaria->getProveedorNombreSnapshot(),
-                titulo: $tarifaPrimaria->getProveedorTituloSnapshot(),
-                url: $tarifaPrimaria->getProveedorUrlSnapshot(),
-                imagenes: $tarifaPrimaria->getProveedorImagenesSnapshot(),
+                origen: 'proveedor',
+                maestroId: $this->proveedorMaestroId,
+                nombre: $this->proveedorNombreSnapshot,
+                titulo: $this->proveedorTituloSnapshot,
+                url: $this->proveedorUrlSnapshot,
+                imagenes: $this->proveedorImagenesSnapshot,
             );
         }
 

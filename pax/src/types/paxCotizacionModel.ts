@@ -72,20 +72,12 @@ export interface PaxCottarifa {
     cantidad: number;
     tituloSnapshot: I18n;
     nombreInternoSnapshot?: string | null;
-    proveedorNombreSnapshot?: string | null;
-    proveedorTituloSnapshot: I18n;
-    proveedorUrlSnapshot?: string | null;
-    proveedorImagenesSnapshot: PaxImagenSnapshot[];
-    proveedorServicioTituloSnapshot: I18n;
-    proveedorServicioUrlSnapshot?: string | null;
-    proveedorServicioImagenesSnapshot: PaxImagenSnapshot[];
     modalidadSnapshot?: string | null; // 'privado' | 'compartido' | null
     categoriaSnapshot?: string | null; // 'superior' | ...
     procedenciaSnapshot?: string | null;
     edadMinimaSnapshot?: number | null;
     edadMaximaSnapshot?: number | null;
     esGrupal: boolean;
-    proveedorOculto: boolean; // 🔥 si true, no mostrar marca del proveedor
     rolSnapshot?: string | null;
     notaRol?: I18n;
 }
@@ -132,6 +124,24 @@ export interface PaxCotComponente {
     prestadorTituloSnapshot?: I18n;
     prestadorUrlSnapshot?: string | null;
     prestadorImagenesSnapshot?: PaxImagenSnapshot[];
+
+    /**
+     * Proveedor — a quién se le compra. Vivía anidado en cada `PaxCottarifa` y subió
+     * aquí con `Version20260816160000`, porque nunca hubo dos por componente y la vista
+     * tenía que volver a juntarlo deduplicando.
+     *
+     * ⚠️ Sólo llega si la propuesta decidió nombrarlo:
+     * `CotizacionCotcomponenteProveedorPublicNormalizer` lo borra cuando el flag global
+     * de la cotización oculta proveedores o cuando el componente no está marcado como
+     * visible. La bandera en sí no viaja: al cliente le llega su efecto, no el motivo.
+     */
+    proveedorTituloSnapshot?: I18n;
+    proveedorUrlSnapshot?: string | null;
+    proveedorImagenesSnapshot?: PaxImagenSnapshot[];
+    proveedorServicioTituloSnapshot?: I18n;
+    proveedorServicioUrlSnapshot?: string | null;
+    proveedorServicioImagenesSnapshot?: PaxImagenSnapshot[];
+
     /** Su hora representa el horario de toda la excursión (servicio completo), no
      *  la del segmento donde está anclado. Ver CotizacionCotcomponente. */
     horaServicioCompleto?: boolean;
@@ -196,6 +206,19 @@ export interface PaxInclusionItem {
     prestadorTitulo?: I18n;
     prestadorUrl?: string | null;
     prestadorImagenes?: PaxImagenSnapshot[];
+
+    /**
+     * Id del componente del que salió la línea. Espejo de `InclusionLinea` en
+     * `util/src/types/cotizacionEditorModel.ts`.
+     *
+     * Es el enlace con el árbol vivo: el proveedor NO viaja en el snapshot, se lee del
+     * componente, que el backend resuelve contra el catálogo maestro al servir. Así,
+     * renombrar un hotel se ve al instante sin re-guardar ninguna propuesta.
+     *
+     * Opcional porque las propuestas anteriores al campo no lo traen; para ésas hay un
+     * backfill (`app:cotizacion:backfill-componente-id`).
+     */
+    componenteId?: string;
 }
 
 export interface PaxInclusionServicio {

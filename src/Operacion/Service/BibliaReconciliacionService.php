@@ -52,8 +52,8 @@ class BibliaReconciliacionService
         'prestadorNombre'       => 'Prestador',
         'prestadorTelefono'     => 'Teléfono del prestador',
         'prestadorDireccion'    => 'Dirección del prestador',
-        'proveedorNombreManual' => 'Proveedor (compra)',
-        'proveedorMaestroId'    => 'Proveedor (catálogo)',
+        'compradorNombre'       => 'Comprador (a quién se le encarga)',
+        'compradorMaestroId'    => 'Comprador (catálogo)',
         'prestadorMaestroId'    => 'Prestador (catálogo)',
         'tipoComponente'        => 'Tipo',
         'modoComponente'        => 'Modo',
@@ -76,14 +76,14 @@ class BibliaReconciliacionService
      * texto legible: ver `describirTecnico()`.
      */
     private const CAMPOS_TECNICOS = [
-        'proveedorMaestroId',
+        'compradorMaestroId',
         'prestadorMaestroId',
         'cotizacionTarifaId',
     ];
 
     /** Campo técnico → campo visible que lo explica; si ese ya salió, no se repite. */
     private const TECNICO_ACOMPANA_A = [
-        'proveedorMaestroId'  => 'proveedorNombreManual',
+        'compradorMaestroId'  => 'compradorNombre',
         'prestadorMaestroId'  => 'prestadorNombre',
         'cotizacionTarifaId'  => 'costoCotizado',
     ];
@@ -370,8 +370,12 @@ class BibliaReconciliacionService
                 continue;
             }
 
-            $acompana = self::TECNICO_ACOMPANA_A[$campo] ?? null;
-            if ($acompana !== null && isset($visiblesCambiados[$acompana])) {
+            // Sin `?? null`: las dos listas declaran las MISMAS tres claves, así que el
+            // acceso siempre acierta. El `?? null` que había fingía una rama que no
+            // existe — y si algún día se añade un técnico sin acompañante, lo que hace
+            // falta es que reviente aquí, no que se cuele en silencio.
+            $acompana = self::TECNICO_ACOMPANA_A[$campo];
+            if (isset($visiblesCambiados[$acompana])) {
                 continue;   // ya se ve, viajará pegado a él en expandirTecnicos()
             }
 
@@ -380,7 +384,7 @@ class BibliaReconciliacionService
 
             $campos[] = new CampoPropuesto(
                 campo: $campo,
-                etiqueta: self::ETIQUETAS[$campo] ?? $campo,
+                etiqueta: self::ETIQUETAS[$campo],
                 // El UUID no dice nada a nadie; lo que importa es que cambió por debajo.
                 valorActual: $this->describirTecnico($campo, $valorActual),
                 valorPropuesto: $this->describirTecnico($campo, $valorPropuesto),
@@ -403,7 +407,7 @@ class BibliaReconciliacionService
 
         return match ($campo) {
             'cotizacionTarifaId' => 'tarifa ' . substr($valor, 0, 8),
-            'proveedorMaestroId' => 'proveedor ' . substr($valor, 0, 8),
+            'compradorMaestroId' => 'comprador ' . substr($valor, 0, 8),
             'prestadorMaestroId' => 'prestador ' . substr($valor, 0, 8),
             default              => $valor,
         };
@@ -417,8 +421,8 @@ class BibliaReconciliacionService
         return [
             'fechaServicio'         => $fila->getFechaServicio()?->format('Y-m-d'),
             'horaRecojoReal'        => $fila->getHoraRecojoReal(),
-            'proveedorMaestroId'    => $fila->getProveedorMaestroId(),
-            'proveedorNombreManual' => $fila->getProveedorNombreManual(),
+            'compradorMaestroId'    => $fila->getCompradorMaestroId(),
+            'compradorNombre'       => $fila->getCompradorNombre(),
             'prestadorMaestroId'    => $fila->getPrestadorMaestroId(),
             'prestadorNombre'       => $fila->getPrestadorNombre(),
             'prestadorTelefono'     => $fila->getPrestadorTelefono(),
@@ -454,8 +458,8 @@ class BibliaReconciliacionService
             $campos[] = 'monedaCotizadaId';
             $campos[] = 'cotizacionTarifaId';
         }
-        if (\in_array('proveedorNombreManual', $campos, true)) {
-            $campos[] = 'proveedorMaestroId';
+        if (\in_array('compradorNombre', $campos, true)) {
+            $campos[] = 'compradorMaestroId';
         }
         if (\in_array('prestadorNombre', $campos, true)) {
             $campos[] = 'prestadorMaestroId';

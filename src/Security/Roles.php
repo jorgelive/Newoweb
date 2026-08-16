@@ -60,6 +60,7 @@ final class Roles
      */
     public const COBRADOR           = 'ROLE_COBRADOR';
 
+
     /**
      * Recibe los avisos cuando el agente promete que responderá una persona.
      *

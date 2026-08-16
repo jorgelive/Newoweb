@@ -200,6 +200,43 @@ sólo preselecciona cuál se propone al instanciar.
 - Los flags `tituloTarifaVisible`, `categoriaTarifaVisible` y `modalidadTarifaVisible`
   controlan qué se le enseña al cliente de la tarifa asociada.
 
+### `Proveedor::$visibleParaCliente` — la bandera manda, el título aporta el texto
+
+Hasta 2026-08-16 no había bandera: la regla era **«sin título, el cliente no lo ve»**, y
+estaba escrita como una ventaja deliberada —un booleano menos que mantener— en
+`util/src/types/proveedorModel.ts`. Se retiró porque deducir la visibilidad de la presencia
+de un dato tiene tres costes que no se ven al decidirlo:
+
+| Coste | Qué pasaba |
+|---|---|
+| Ocultar era **destructivo** | El título es la única copia del texto. Esconder a un proveedor obligaba a borrarlo, y volver a mostrarlo, a reescribirlo. |
+| El estado real **no lo decidió nadie** | 93 de 98 proveedores estaban invisibles por no tener título, no porque se quisiera ocultarlos. |
+| La intención era **inexpresable** | «Tiene título pero aquí no lo nombres» no tenía dónde escribirse. |
+
+Ahora son dos hechos separados, y hacen falta los dos —lo comprueba
+`Proveedor::puedeMostrarseAlCliente()`, con espejo en TS:
+
+```
+visibleParaCliente  ──►  ¿SE PUEDE nombrar?     bandera explícita, opt-in
+titulo (i18n)       ──►  ¿CÓMO se le llama?     contenido, traducible
+```
+
+⚠️ **Es una SEMILLA que se lee al asignar, no un veto vivo.** Quien decide en cada propuesta
+es la bandera del snapshot; ésta sólo la siembra. Si se consultara al serializar, editar el
+catálogo cambiaría en silencio lo que ve un cliente con la propuesta ya abierta — que es el
+mismo defecto que la bandera viene a cerrar, y rompería la regla de §9 de que la cotización
+es una foto del catálogo.
+
+⚠️ **El default es `false`, invirtiendo a propósito el criterio de «lista vacía = sin
+acotar»** que rige en guía y conocimiento. Allí el olvido deja un ítem de más y es
+inofensivo; aquí nombrar a un proveedor que no tocaba invita al cliente a saltarse la
+intermediación y contratar directo. El olvido caro es el contrario, así que se entra por
+opt-in.
+
+`Version20260816120000` siembra la columna con la regla vieja (`visible = tenía título`), así
+que **no cambia lo que ve ningún cliente**: los mismos 5 proveedores que podían mostrarse
+siguen pudiendo. Sonda de verificación: `var/probar-proveedor-visible.php`.
+
 ---
 
 ---
@@ -347,12 +384,28 @@ tono semántico y traducirlo en el front.
 
 ## 11. Trampas conocidas
 
-- **`travel_tarifa.proveedor_id` está prácticamente vacío** en el catálogo maestro. El filtro
-  de proveedores del editor de cotizaciones depende de ese campo, así que hoy filtra poco.
-  Detalle en `docs/Cotizaciones.md` §6.c.
+- **El proveedor subió de `TravelTarifa` a `TravelComponente`** (`Version20260816240000`).
+  Estaba en **5 de 904** tarifas y `proveedor_servicio_id` en **0 de 904** — no por desidia
+  sino porque un componente llega a tener 19 tarifas y nadie repite el mismo proveedor 19
+  veces. El campo no se abandonó: nació impagable. Ahora se llena una vez por componente, y
+  eso desbloquea el filtro de tarifas por prestador del editor de cotizaciones, que depende
+  de este vínculo. Mismo movimiento que ya se hizo en la cotización
+  (`docs/Cotizaciones.md` §6.c), un nivel más arriba.
+
+  Se queda en la tarifa `nombreParaProveedor`: eso **sí** es por línea de precio —cómo llama
+  el proveedor a esa tarifa concreta— y es lo que la Orden de Servicio usa para hablarle en
+  su idioma («Del Origen Al Presente de Lima») en vez de con nuestro código interno («Pool
+  City Lima CT002»).
 - **`ComponenteItemModoEnum` no lo usa nadie.** Es un duplicado de `ItemModoEnum` con dos
   casos extra (`CORTESIA`, `REEMPLAZADO`); `TravelComponenteItem` usa `ItemModoEnum`. Ojo al
   elegir cuál tocar: el que manda es `ItemModoEnum`.
+- **El duplicado de enums ya produjo código muerto.** `TravelItemDiccionario::badgesModo()`
+  ramificaba sobre `'UPSELL'` —un nombre que no existe en ningún enum de modo— y sobre
+  `'CORTESIA'`, que sólo existe en el gemelo `ComponenteItemModoEnum`. Como `getModo()` devuelve
+  `ItemModoEnum` (INCLUIDO, OPCIONAL, NO_INCLUIDO), ninguno de los dos brazos podía entrar.
+  El de `UPSELL` se retiró; el de `CORTESIA` se dejó anotado, porque revive si algún día se
+  unifican los enums. **Al ramificar por modo, comprueba primero qué enum devuelve el getter**:
+  los nombres de los tres se parecen lo bastante como para escribir un brazo que nunca corre.
 - **`esComisionable()` y `afectaCosto()` están declarados pero no se invocan en ningún sitio.**
   Los tres enums de modo los definen y una búsqueda en todo el repo (PHP, Twig, TS, Vue) no
   encuentra una sola llamada. Los consumidores reimplementan la regla comparando casos a mano:
@@ -398,8 +451,11 @@ tono semántico y traducirlo en el front.
 | Ajustar el upsell de un ítem | `src/Travel/Entity/TravelComponenteItem.php` | `$componenteAdicionalVinculado` |
 | Ocultar o mostrar datos de tarifa al cliente | `src/Travel/Entity/TravelComponenteItem.php` | `$tituloTarifaVisible`, `$categoriaTarifaVisible`, `$modalidadTarifaVisible` |
 | Tocar el modal AJAX de logística | `src/Api/Controller/Travel/TravelSegmentoComponenteAjaxController.php` | — |
+| Que un proveedor pueda (o no) nombrarse ante el cliente | `src/Travel/Entity/Proveedor.php` | `$visibleParaCliente` — **semilla, no veto**; espejo TS en `proveedorModel.ts` |
 | Añadir o retirar un centro turístico | `src/Travel/Entity/TravelLugar.php` | `$nombre`, `$orden`, `$activo` — **desactivar, no borrar** |
 | Cambiar las etiquetas de un componente | `src/Travel/Entity/TravelComponente.php` | `$lugares` (lado dueño) |
+| A quién se le compra un componente | `src/Travel/Entity/TravelComponente.php` | `$proveedor`, `$proveedorServicio` — **no** están en la tarifa |
+| Cómo llama el proveedor a una tarifa | `src/Travel/Entity/TravelTarifa.php` | `$nombreParaProveedor` — lo usa la Orden de Servicio |
 | Cambiar la cobertura de un proveedor | `src/Travel/Entity/Proveedor.php` | `$lugares` (lado dueño) |
 | Etiquetar muchos componentes de golpe | `src/Travel/Controller/Crud/TravelLugarCrudController.php` | `componentes` + `by_reference: false` |
 | Filtrar tarifas por componente o por lote | `src/Travel/Filter/TarifaComponenteExtension.php`, `TarifaBatchIdExtension.php` | — |

@@ -13,10 +13,12 @@ import { useProveedorStore } from '@/stores/travel/proveedorStore';
 import {
     portadaDe,
     proveedorVacio,
+    puedeMostrarseAlCliente,
     tituloEs,
     desdeTituloEs,
     AYUDA_TITULO_PUBLICO,
     AYUDA_TITULO_SERVICIO,
+    AYUDA_VISIBLE_PARA_CLIENTE,
     AYUDA_LUGARES_PROVEEDOR,
     type Proveedor,
     type ProveedorWrite,
@@ -76,6 +78,7 @@ const abrirEdicion = async (p: Proveedor) => {
         email: f?.email ?? '',
         url: f?.url ?? '',
         direccion: f?.direccion ?? '',
+        visibleParaCliente: f?.visibleParaCliente ?? false,
     };
     tituloPublico.value = tituloEs(f?.titulo);
     lugaresSel.value = [...(f?.lugares ?? [])];
@@ -91,8 +94,8 @@ const cerrarPanel = () => {
 const guardar = async () => {
     if (!formulario.value.nombreComercial.trim()) return;
 
-    // Vacío se manda como array vacío a propósito: es lo que oculta el proveedor al
-    // cliente. Ver AYUDA_TITULO_PUBLICO.
+    // Vacío se manda como array vacío: ya no oculta —para eso está la bandera— pero deja
+    // al proveedor sin texto que mostrar. Ver el bloque de visibilidad en proveedorModel.
     formulario.value.titulo = desdeTituloEs(tituloPublico.value);
     formulario.value.lugares = [...lugaresSel.value];
 
@@ -224,7 +227,18 @@ onMounted(async () => {
                                     <i class="fas fa-truck-field text-slate-300"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <p class="text-sm font-black text-slate-800 truncate">{{ p.nombreComercial }}</p>
+                                    <p class="text-sm font-black text-slate-800 truncate flex items-center gap-1.5">
+                                        <!-- Con 98 proveedores y opt-in, «cuáles son nombrables» es la
+                                             pregunta que el listado tiene que responder de un vistazo. -->
+                                        <i class="fas text-[10px] shrink-0"
+                                           :class="puedeMostrarseAlCliente(p)
+                                               ? 'fa-eye text-emerald-500'
+                                               : 'fa-eye-slash text-slate-300'"
+                                           :title="puedeMostrarseAlCliente(p)
+                                               ? 'Se puede nombrar ante el cliente'
+                                               : 'No se nombra ante el cliente'"></i>
+                                        <span class="truncate">{{ p.nombreComercial }}</span>
+                                    </p>
                                     <p class="text-[10px] font-bold text-slate-400 truncate">
                                         {{ p.telefono || p.email || p.direccion || 'Sin datos de contacto' }}
                                     </p>
@@ -256,18 +270,38 @@ onMounted(async () => {
                         </p>
                     </div>
 
-                    <!-- El título gobierna la visibilidad al cliente sin necesidad de un flag. -->
+                    <!-- La bandera decide SI se nombra; el título, CÓMO. Hacen falta las dos. -->
+                    <div>
+                        <label class="flex items-start gap-2 cursor-pointer">
+                            <input v-model="formulario.visibleParaCliente" type="checkbox"
+                                   class="mt-0.5 w-4 h-4 accent-[#E07845] cursor-pointer" />
+                            <span>
+                                <span class="block text-[10px] font-black text-slate-500 uppercase">
+                                    Nombrable ante el cliente
+                                </span>
+                                <span class="block text-[10px] text-slate-400 mt-0.5">
+                                    {{ AYUDA_VISIBLE_PARA_CLIENTE }}
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+
                     <div>
                         <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">
                             Título público
                             <span class="text-slate-300 font-bold normal-case">(lo ve el cliente)</span>
                         </label>
-                        <input v-model="tituloPublico" type="text" placeholder="Vacío = no se muestra al cliente"
+                        <input v-model="tituloPublico" type="text" placeholder="Cómo se le llama en la propuesta"
                                class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-[#E07845]"
                                :class="tituloPublico.trim() ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200'" />
-                        <p class="text-[10px] mt-1" :class="tituloPublico.trim() ? 'text-emerald-600' : 'text-amber-600'">
-                            <i class="fas" :class="tituloPublico.trim() ? 'fa-eye' : 'fa-eye-slash'"></i>
-                            {{ AYUDA_TITULO_PUBLICO }}
+                        <p class="text-[10px] mt-1 text-slate-400">
+                            <i class="fas fa-circle-info"></i> {{ AYUDA_TITULO_PUBLICO }}
+                        </p>
+                        <!-- El hueco que la bandera hace posible: marcado y sin nada que pintar. -->
+                        <p v-if="formulario.visibleParaCliente && !tituloPublico.trim()"
+                           class="text-[10px] mt-1 text-amber-600 font-semibold">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            Marcado como nombrable pero sin título: el cliente no verá nada.
                         </p>
                     </div>
 

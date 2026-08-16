@@ -180,14 +180,24 @@ class BibliaSnapshotService
         // Operativo: quién presta. En el caso normal coincide con el comercial —la
         // cascada acaba en la tarifa—, y en un no incluido es el único de los dos que
         // existe: el hotel que reservó el pasajero.
-        $prestador = $cotcomponente->resolverPrestador($tarifa);
+        $prestador = $cotcomponente->resolverPrestador();
+
+        // Gestión: a quién se le encarga la compra. Cae al proveedor cuando nadie lo
+        // encargó, que es el caso normal — así una fila sin comprador se comporta como
+        // antes de que el campo existiera.
+        $comprador = $cotcomponente->resolverComprador();
 
         return [
             'fechaServicio'         => $fechaServicio->format('Y-m-d'),
             'horaRecojoReal'        => $this->resolverHoraRecojo($cotcomponente),
-            // Comercial: a quién se le compra. Es lo que agrupa y firma la OS.
-            'proveedorMaestroId'    => $tarifa?->getProveedorMaestroId(),
-            'proveedorNombreManual' => $tarifa?->getProveedorNombreSnapshot(),
+            // A quién se le MANDA el encargo. Es lo que agrupa y firma la OS.
+            //
+            // Sustituye al antiguo `proveedorMaestroId`, que salía de la tarifa y era la
+            // misma idea con el nombre equivocado: la orden no va a quien pone el precio,
+            // va a quien la ejecuta. Cuando nadie encargó nada la cascada cae al
+            // proveedor, así que en el caso normal sale exactamente lo mismo que antes.
+            'compradorMaestroId'    => $comprador?->maestroId,
+            'compradorNombre'       => $comprador?->nombre,
             'prestadorMaestroId'    => $prestador?->maestroId,
             'prestadorNombre'       => $prestador?->nombre,
             'prestadorTelefono'     => $prestador?->telefono,
@@ -232,11 +242,11 @@ class BibliaSnapshotService
         if ($aplica('horaRecojoReal')) {
             $ops->setHoraRecojoReal($this->comoTexto($valores['horaRecojoReal']));
         }
-        if ($aplica('proveedorMaestroId')) {
-            $ops->setProveedorMaestroId($this->comoTexto($valores['proveedorMaestroId']));
+        if ($aplica('compradorMaestroId')) {
+            $ops->setCompradorMaestroId($this->comoTexto($valores['compradorMaestroId']));
         }
-        if ($aplica('proveedorNombreManual')) {
-            $ops->setProveedorNombreManual($this->comoTexto($valores['proveedorNombreManual']));
+        if ($aplica('compradorNombre')) {
+            $ops->setCompradorNombre($this->comoTexto($valores['compradorNombre']));
         }
         if ($aplica('prestadorMaestroId')) {
             $ops->setPrestadorMaestroId($this->comoTexto($valores['prestadorMaestroId']));
@@ -357,13 +367,27 @@ class BibliaSnapshotService
         ?CotizacionCottarifa $tarifa,
         CotizacionCotcomponente $componente,
     ): string {
-        // Prioridad 1: nombre interno de la tarifa (campo operativo)
+        // Prioridad 1: cómo llama el PROVEEDOR a ese servicio.
+        //
+        // Es el sentido entero de `nombreParaProveedor`: tu tarifa se llama «Pool City Lima
+        // CT002 (Base 1-4)» y él la conoce como «Del Origen Al Presente de Lima». La OS es
+        // un documento que se le manda a él, así que tiene que hablar su idioma — pedirle
+        // un código interno que no reconoce es pedirle que adivine.
+        //
+        // Estuvo escrito y sin conectar: el campo se llenaba en el editor, viajaba al
+        // snapshot y no lo leía nadie, así que la OS salía siempre con el nombre interno.
+        $paraProveedor = trim($tarifa?->getNombreParaProveedorSnapshot() ?? '');
+        if ($paraProveedor !== '') {
+            return $paraProveedor;
+        }
+
+        // Prioridad 2: nombre interno de la tarifa (campo operativo)
         $descripcion = trim($tarifa?->getNombreInternoSnapshot() ?? '');
         if ($descripcion !== '') {
             return $descripcion;
         }
 
-        // Prioridad 2: nombre del componente en español (snapshot i18n)
+        // Prioridad 3: nombre del componente en español (snapshot i18n)
         return $this->textoEspanol($componente->getNombreSnapshot()) ?? 'Servicio sin nombre';
     }
 

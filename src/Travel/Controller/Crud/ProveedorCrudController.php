@@ -124,6 +124,18 @@ class ProveedorCrudController extends BaseCrudController
             ->setColumns(12);
 
         /* ====================================================================
+         * CARA PÚBLICA: la bandera manda, el título sólo aporta el texto.
+         * Antes la visibilidad se deducía de que el título estuviera lleno, lo
+         * que hacía que ocultar exigiera borrar el texto. Ver la entidad.
+         * ==================================================================== */
+        yield BooleanField::new('visibleParaCliente', 'Nombrable ante el cliente')
+            ->setHelp('Permite que este proveedor se muestre en las propuestas. Es el valor '
+                . 'por defecto al asignarlo: cada cotización puede decidir lo contrario, y '
+                . 'cambiarlo aquí NO altera las propuestas ya emitidas. Sin título público '
+                . 'no hay nada que mostrar aunque esté marcado.')
+            ->setColumns(12);
+
+        /* ====================================================================
          * CAMPO VIRTUAL: RENDERIZADO OPTIMIZADO PARA LISTADOS (INDEX / DETAIL)
          * Extrae dinámicamente el título en español desde la estructura JSON.
          * ==================================================================== */

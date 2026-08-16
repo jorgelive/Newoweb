@@ -62,8 +62,7 @@ class TravelTarifaCrudController extends BaseCrudController
         return $filters
             ->add(EntityFilter::new('componente', 'Componente Logístico'))
             ->add(EntityFilter::new('moneda', 'Moneda'))
-            ->add(EntityFilter::new('proveedor', 'Proveedor'))
-            ->add(EntityFilter::new('proveedorServicio', 'Servicio de Proveedor'));
+            ;
     }
 
     /**
@@ -197,48 +196,13 @@ class TravelTarifaCrudController extends BaseCrudController
 
         /* ====================================================================
          * PANEL: OPERACIONES B2B (REQUERIMIENTOS LOGÍSTICOS)
-         * Implementa el encadenamiento dinámico mediante Ajax para los proveedores.
+         *
+         * El PROVEEDOR ya no vive aquí: subió a TravelComponente, porque un componente
+         * llega a tener 19 tarifas y nadie repite el mismo proveedor 19 veces — el campo
+         * acabó en 5 de 904. Lo que sí es por línea de precio es el nombre de abajo.
          * ==================================================================== */
         yield FormField::addPanel('Operaciones B2B (Requerimientos)')->setIcon('fa fa-truck-loading')
-            ->setHelp('Datos sugeridos al momento de cotizar. El operador podrá cambiarlos libremente en el motor operativo.');
-
-        // Lectura Proveedor
-        yield TextField::new('proveedor', 'Proveedor')
-            ->hideOnForm()
-            ->formatValue(static fn($value) => $value ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-building text-info"></i> %s</span>', htmlspecialchars((string) $value)) : '<span class="text-muted small">Cualquiera</span>')
-            ->renderAsHtml();
-
-        // Escritura Proveedor (Gatillo AJAX)
-        yield AdminFieldHelper::controlsAjax(
-            AssociationField::new('proveedor', 'Proveedor por Defecto'),
-            'js-proveedor-servicio-api-target',
-            $endpointProveedorServicio,
-            'proveedor.id',
-            'nombre'
-        )
-            ->hideOnIndex()
-            ->hideOnDetail()
-            ->setRequired(false)
-            ->setHelp('Sugerencia operativa (Ej: Hotel Cusco Splendid).')
-            ->setColumns(6);
-
-        // Lectura ProveedorServicio
-        yield TextField::new('proveedorServicio', 'Servicio Asignado')
-            ->hideOnForm()
-            ->formatValue(static fn($value) => $value ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-concierge-bell text-warning"></i> %s</span>', htmlspecialchars((string) $value)) : '<span class="text-muted small">Cualquiera</span>')
-            ->renderAsHtml();
-
-        // Escritura ProveedorServicio (Target del AJAX)
-        yield AssociationField::new('proveedorServicio', 'Servicio por Defecto')
-            ->hideOnIndex()->hideOnDetail()
-            ->setRequired(false)
-            ->setHelp('Servicio físico/lógico del proveedor (Ej: Habitación Matrimonial Standard).')
-            ->setColumns(6)
-            ->setFormTypeOptions([
-                'attr' => [
-                    'class' => 'js-proveedor-servicio-api-target',
-                ],
-            ]);
+            ->setHelp('El proveedor se define en el Componente. Aquí sólo cómo llama ÉL a esta tarifa.');
 
         yield TextField::new('nombreParaProveedor', 'Nombre en Tarifario del Proveedor')
             ->setRequired(false)

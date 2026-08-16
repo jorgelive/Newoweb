@@ -415,26 +415,34 @@ interface ProveedorInfo {
   servicioImagenes: { imageUrl: string }[];
 }
 
-const proveedorPorTarifa = computed(() => {
+/**
+ * Proveedor por id de componente, leído del árbol VIVO.
+ *
+ * El backend ya decidió dos cosas antes de que esto llegue —si se puede nombrar y cuál es
+ * su presentación actual según el catálogo maestro—, así que aquí no se comprueba nada
+ * más: si hay título, se muestra. Ver `CotizacionCotcomponenteProveedorPublicNormalizer`
+ * y `ProveedorVivoResolver`.
+ */
+const proveedorPorComponente = computed(() => {
   const m = new Map<string, ProveedorInfo>();
-  const cot = store.cotizacion;
-  for (const srv of cot?.cotservicios ?? []) {
+  for (const srv of store.cotizacion?.cotservicios ?? []) {
     for (const comp of srv.cotcomponentes ?? []) {
-      for (const t of comp.cottarifas ?? []) {
-        if (t.proveedorTituloSnapshot?.length && !t.proveedorOculto) {
-          m.set(`${srv.id}::${contenidoEs(t.tituloSnapshot)}`, {
-            titulo: t.proveedorTituloSnapshot,
-            url: t.proveedorUrlSnapshot ?? null,
-            imagenes: (t.proveedorImagenesSnapshot ?? []).filter((i) => i.imageUrl),
-            servicioTitulo: t.proveedorServicioTituloSnapshot ?? [],
-            servicioImagenes: (t.proveedorServicioImagenesSnapshot ?? []).filter((i) => i.imageUrl),
-          });
-        }
-      }
+      if (!comp.proveedorTituloSnapshot?.length) continue;
+
+      m.set(comp.id, {
+        titulo: comp.proveedorTituloSnapshot,
+        url: comp.proveedorUrlSnapshot ?? null,
+        imagenes: (comp.proveedorImagenesSnapshot ?? []).filter((i) => i.imageUrl),
+        servicioTitulo: comp.proveedorServicioTituloSnapshot ?? [],
+        servicioImagenes: (comp.proveedorServicioImagenesSnapshot ?? []).filter((i) => i.imageUrl),
+      });
     }
   }
   return m;
 });
+
+const proveedorDeComponente = (componenteId?: string): ProveedorInfo | null =>
+    componenteId ? proveedorPorComponente.value.get(componenteId) ?? null : null;
 
 const modalProveedor = ref<ProveedorInfo | null>(null);
 const abrirProveedor = (p: ProveedorInfo) => { modalProveedor.value = p; };
@@ -609,9 +617,12 @@ const abrirInclusiones = (servicioId: string, nombre: I18n) => {
  *   omite) y nunca con multiplicador.
  */
 interface ChipLinea { titulo: string; badges: ReturnType<typeof modCatBadges>; proveedor: ProveedorInfo | null; count: number }
-const chipsDeLinea = (l: PaxInclusionItem, servicioId: string): ChipLinea[] => {
-  const conProveedor = (tarifaTitulo: I18n) =>
-      proveedorPorTarifa.value.get(`${servicioId}::${contenidoEs(tarifaTitulo)}`) ?? null;
+const chipsDeLinea = (l: PaxInclusionItem): ChipLinea[] => {
+  // El proveedor se lee del componente VIVO, no del snapshot: el backend lo resuelve
+  // contra el catálogo maestro al servir, así que renombrar un hotel se ve al instante
+  // sin re-guardar la propuesta. El único puente es `componenteId`; la clave natural que
+  // había antes colisionaba en silencio y pintaba el proveedor equivocado.
+  const proveedorLinea = proveedorDeComponente(l.componenteId);
 
   // Datos crudos por tarifa (o la propia línea si no trae tarifas)
   // Si la línea no trae tarifas, la propia línea hace de fuente: ambas
@@ -625,7 +636,7 @@ const chipsDeLinea = (l: PaxInclusionItem, servicioId: string): ChipLinea[] => {
         procedencia: (t.procedencia ?? null) as string | null,
         edadMin: (t.edadMin ?? null) as number | null,
         edadMax: (t.edadMax ?? null) as number | null,
-        proveedor: conProveedor(t.tarifaTitulo),
+        proveedor: proveedorLinea,
       }));
 
   if (esCatalogo.value) {
@@ -1423,7 +1434,7 @@ const adelantoVista = computed(() => {
 
                           <!-- Chips: tarifa + badges + proveedor -->
                           <div
-                              v-for="(chip, ci) in chipsDeLinea(l, inc.servicioId)"
+                              v-for="(chip, ci) in chipsDeLinea(l)"
                               :key="ci"
                               class="ml-6 mt-1 flex flex-wrap items-center gap-1.5"
                           >
@@ -1650,7 +1661,7 @@ const adelantoVista = computed(() => {
 
                   <!-- Chips: tarifa + badges + proveedor -->
                   <div
-                      v-for="(chip, ci) in chipsDeLinea(l, modalInclusiones?.servicioId ?? '')"
+                      v-for="(chip, ci) in chipsDeLinea(l)"
                       :key="ci"
                       class="ml-6 mt-1 flex flex-wrap items-center gap-1.5"
                   >

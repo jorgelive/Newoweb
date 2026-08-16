@@ -58,55 +58,6 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $tarifaMaestraId = null;
 
-    /**
-     * SOFT-LINK: Guarda el UUID del proveedor del catálogo maestro.
-     * Permite al frontend consultar la galería de fotos en tiempo real si el ID aún existe.
-     */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 36, nullable: true)]
-    private ?string $proveedorMaestroId = null;
-
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 150, nullable: true)]
-    private ?string $proveedorNombreSnapshot = null;
-
-    /**
-     * Título público del proveedor (I18nContent[]), traducible.
-     * Snapshot independiente del catálogo maestro — sobrevive aunque el Proveedor cambie o se borre.
-     *
-     * @var list<array{language?: string, content?: string|null}>
-     */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
-    #[ORM\Column(type: 'json')]
-    private array $proveedorTituloSnapshot = [];
-
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $proveedorUrlSnapshot = null;
-
-    /**
-     * Galería de imágenes del proveedor (snapshot). Necesario porque el visor
-     * público no tiene acceso al catálogo maestro para resolverlas en vivo.
-     * Estructura: [{ imageUrl, orden, isPortada }, ...]
-     */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'json')]
-    private array $proveedorImagenesSnapshot = [];
-
-    /** @var list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'json')]
-    private array $proveedorServicioImagenesSnapshot = [];
-
-    /**
-     * SOFT-LINK: Guarda el UUID del ProveedorServicio del catálogo maestro (ej. tipo de habitación).
-     * Permite al frontend resolver título/imágenes en tiempo real si el registro maestro aún existe.
-     */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 36, nullable: true)]
-    private ?string $proveedorServicioMaestroId = null;
-
     /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
@@ -116,18 +67,6 @@ class CotizacionCottarifa
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombreInternoSnapshot = null;
-
-    /**
-     * Título público del servicio del proveedor (I18nContent[]), traducible.
-     */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
-    #[ORM\Column(type: 'json')]
-    private array $proveedorServicioTituloSnapshot = [];
-
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $proveedorServicioUrlSnapshot = null;
 
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
@@ -161,11 +100,6 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $esGrupal = false;
 
-    // 🔥 NUEVO FLAG DE ANONIMATO INDIVIDUAL
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private bool $proveedorOculto = false;
-
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 20, nullable: true)]
     private ?string $rolSnapshot = null;
@@ -183,7 +117,6 @@ class CotizacionCottarifa
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $notaRol = [];
-
 
     public function __construct()
     {
@@ -298,67 +231,6 @@ class CotizacionCottarifa
     public function getTarifaMaestraId(): ?string { return $this->tarifaMaestraId; }
     public function setTarifaMaestraId(?string $tarifaMaestraId): self { $this->tarifaMaestraId = $tarifaMaestraId; return $this; }
 
-    public function getProveedorMaestroId(): ?string { return $this->proveedorMaestroId; }
-    public function setProveedorMaestroId(?string $proveedorMaestroId): self { $this->proveedorMaestroId = $proveedorMaestroId; return $this; }
-
-    public function getProveedorNombreSnapshot(): ?string { return $this->proveedorNombreSnapshot; }
-    public function setProveedorNombreSnapshot(?string $proveedorNombreSnapshot): self { $this->proveedorNombreSnapshot = $proveedorNombreSnapshot; return $this; }
-
-    /**
-     * @return list<array{language?: string, content?: string|null}>
-     */
-    public function getProveedorTituloSnapshot(): array { return $this->proveedorTituloSnapshot; }
-    /**
-     * @param list<array{language?: string, content?: string|null}> $proveedorTituloSnapshot
-     */
-    public function setProveedorTituloSnapshot(array $proveedorTituloSnapshot): self { $this->proveedorTituloSnapshot = $proveedorTituloSnapshot; return $this; }
-
-    public function getProveedorUrlSnapshot(): ?string { return $this->proveedorUrlSnapshot; }
-    public function setProveedorUrlSnapshot(?string $proveedorUrlSnapshot): self { $this->proveedorUrlSnapshot = $proveedorUrlSnapshot; return $this; }
-
-    public function getProveedorServicioMaestroId(): ?string { return $this->proveedorServicioMaestroId; }
-    public function setProveedorServicioMaestroId(?string $proveedorServicioMaestroId): self { $this->proveedorServicioMaestroId = $proveedorServicioMaestroId; return $this; }
-
-    // Aquí había un `getProveedorServicioNombreSnapshot()`/`set…()` sobre una propiedad que NO
-    // EXISTE: ni declarada, ni con columna en la base. Quedó de copiar el bloque del proveedor
-    // —donde `proveedorNombreSnapshot` sí es real y lo usa el editor—. El setter creaba una
-    // propiedad dinámica que no se persistía y el getter leía null; nadie los llamaba, así que
-    // nunca dio la cara. Si algún día hace falta el nombre del servicio, se añade con su columna.
-
-    /**
-     * @return list<array{language?: string, content?: string|null}>
-     */
-    public function getProveedorServicioTituloSnapshot(): array { return $this->proveedorServicioTituloSnapshot; }
-    /**
-     * @param list<array{language?: string, content?: string|null}> $proveedorServicioTituloSnapshot
-     */
-    public function setProveedorServicioTituloSnapshot(array $proveedorServicioTituloSnapshot): self { $this->proveedorServicioTituloSnapshot = $proveedorServicioTituloSnapshot; return $this; }
-
-    public function getProveedorServicioUrlSnapshot(): ?string { return $this->proveedorServicioUrlSnapshot; }
-    public function setProveedorServicioUrlSnapshot(?string $proveedorServicioUrlSnapshot): self { $this->proveedorServicioUrlSnapshot = $proveedorServicioUrlSnapshot; return $this; }
-
-    /**
-     * @return list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}>
-     */
-    public function getProveedorImagenesSnapshot(): array { return $this->proveedorImagenesSnapshot; }
-    /**
-     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v
-     *
-     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v
-     */
-    public function setProveedorImagenesSnapshot(array $v): self { $this->proveedorImagenesSnapshot = $v; return $this; }
-
-    /**
-     * @return list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}>
-     */
-    public function getProveedorServicioImagenesSnapshot(): array { return $this->proveedorServicioImagenesSnapshot; }
-    /**
-     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v
-     *
-     * @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v
-     */
-    public function setProveedorServicioImagenesSnapshot(array $v): self { $this->proveedorServicioImagenesSnapshot = $v; return $this; }
-
     public function getModalidadSnapshot(): ?string { return $this->modalidadSnapshot; }
     public function setModalidadSnapshot(?string $modalidadSnapshot): self { $this->modalidadSnapshot = $modalidadSnapshot; return $this; }
 
@@ -382,32 +254,6 @@ class CotizacionCottarifa
 
     public function isEsGrupal(): bool { return $this->esGrupal; }
     public function setEsGrupal(bool $esGrupal): self { $this->esGrupal = $esGrupal; return $this; }
-
-    /**
-     * Determina si este proveedor debe mantenerse oculto en los vouchers o itinerarios del cliente.
-     *
-     * Este método existe para permitir el anonimato a nivel granular de un ítem
-     * tarifario (ej. un transporte "White Label") cuando la cotización global sí
-     * muestra a otros proveedores.
-     *
-     * @return bool
-     */
-    public function isProveedorOculto(): bool
-    {
-        return $this->proveedorOculto;
-    }
-
-    /**
-     * Define si se oculta o expone el nombre y marca del proveedor logístico en la interfaz pública.
-     *
-     * @param bool $proveedorOculto
-     * @return self
-     */
-    public function setProveedorOculto(bool $proveedorOculto): self
-    {
-        $this->proveedorOculto = $proveedorOculto;
-        return $this;
-    }
 
     public function getRolSnapshot(): ?string { return $this->rolSnapshot; }
     public function setRolSnapshot(?string $rolSnapshot): self { $this->rolSnapshot = $rolSnapshot; return $this; }
