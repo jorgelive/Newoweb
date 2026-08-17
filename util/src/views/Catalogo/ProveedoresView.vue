@@ -14,16 +14,12 @@ import {
     portadaDe,
     proveedorVacio,
     puedeMostrarseAlCliente,
-    tituloEs,
-    desdeTituloEs,
-    AYUDA_TITULO_PUBLICO,
     AYUDA_TITULO_SERVICIO,
-    AYUDA_VISIBLE_PARA_CLIENTE,
-    AYUDA_LUGARES_PROVEEDOR,
     type Proveedor,
     type ProveedorWrite,
 } from '@/types/proveedorModel';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
+import ProveedorFormulario from '@/components/common/ProveedorFormulario.vue';
 
 const store = useProveedorStore();
 
@@ -32,16 +28,9 @@ const formulario = ref<ProveedorWrite>(proveedorVacio());
 const editandoId = ref<string | null>(null);
 const panelAbierto = ref(false);
 const nuevoServicio = ref('');
-/** Se edita como texto plano en español; AutoTranslate rellena el resto al guardar. */
-const tituloPublico = ref('');
 /** IRIs de los lugares marcados. Es la cobertura del proveedor, no su ubicación. */
 const lugaresSel = ref<string[]>([]);
 
-const alternarLugar = (iri: string) => {
-    const i = lugaresSel.value.indexOf(iri);
-    if (i === -1) lugaresSel.value.push(iri);
-    else lugaresSel.value.splice(i, 1);
-};
 const subiendo = ref(false);
 const confirmandoBorrado = ref<string | null>(null);
 const inputArchivo = ref<HTMLInputElement | null>(null);
@@ -59,7 +48,6 @@ watch(termino, (t) => {
 const abrirNuevo = () => {
     editandoId.value = null;
     formulario.value = proveedorVacio();
-    tituloPublico.value = '';
     lugaresSel.value = [];
     store.proveedorActivo = null;
     panelAbierto.value = true;
@@ -79,8 +67,8 @@ const abrirEdicion = async (p: Proveedor) => {
         url: f?.url ?? '',
         direccion: f?.direccion ?? '',
         visibleParaCliente: f?.visibleParaCliente ?? false,
+        titulo: f?.titulo ?? [],
     };
-    tituloPublico.value = tituloEs(f?.titulo);
     lugaresSel.value = [...(f?.lugares ?? [])];
 };
 
@@ -94,9 +82,6 @@ const cerrarPanel = () => {
 const guardar = async () => {
     if (!formulario.value.nombreComercial.trim()) return;
 
-    // Vacío se manda como array vacío: ya no oculta —para eso está la bandera— pero deja
-    // al proveedor sin texto que mostrar. Ver el bloque de visibilidad en proveedorModel.
-    formulario.value.titulo = desdeTituloEs(tituloPublico.value);
     formulario.value.lugares = [...lugaresSel.value];
 
     if (esNuevo.value) {
@@ -261,98 +246,14 @@ onMounted(async () => {
                 </div>
 
                 <div class="flex-1 overflow-y-auto p-4 space-y-4">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">Nombre comercial *</label>
-                        <input v-model="formulario.nombreComercial" type="text"
-                               class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#E07845]" />
-                        <p class="text-[10px] text-slate-400 mt-1">
-                            Uso interno: identidad que queda fijada en el histórico financiero. El cliente no lo ve.
-                        </p>
-                    </div>
-
-                    <!-- La bandera decide SI se nombra; el título, CÓMO. Hacen falta las dos. -->
-                    <div>
-                        <label class="flex items-start gap-2 cursor-pointer">
-                            <input v-model="formulario.visibleParaCliente" type="checkbox"
-                                   class="mt-0.5 w-4 h-4 accent-[#E07845] cursor-pointer" />
-                            <span>
-                                <span class="block text-[10px] font-black text-slate-500 uppercase">
-                                    Nombrable ante el cliente
-                                </span>
-                                <span class="block text-[10px] text-slate-400 mt-0.5">
-                                    {{ AYUDA_VISIBLE_PARA_CLIENTE }}
-                                </span>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">
-                            Título público
-                            <span class="text-slate-300 font-bold normal-case">(lo ve el cliente)</span>
-                        </label>
-                        <input v-model="tituloPublico" type="text" placeholder="Cómo se le llama en la propuesta"
-                               class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-[#E07845]"
-                               :class="tituloPublico.trim() ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200'" />
-                        <p class="text-[10px] mt-1 text-slate-400">
-                            <i class="fas fa-circle-info"></i> {{ AYUDA_TITULO_PUBLICO }}
-                        </p>
-                        <!-- El hueco que la bandera hace posible: marcado y sin nada que pintar. -->
-                        <p v-if="formulario.visibleParaCliente && !tituloPublico.trim()"
-                           class="text-[10px] mt-1 text-amber-600 font-semibold">
-                            <i class="fas fa-triangle-exclamation"></i>
-                            Marcado como nombrable pero sin título: el cliente no verá nada.
-                        </p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">Teléfono</label>
-                            <input v-model="formulario.telefono" type="text"
-                                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#E07845]" />
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">Email</label>
-                            <input v-model="formulario.email" type="email"
-                                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#E07845]" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">Razón social</label>
-                        <input v-model="formulario.razonSocial" type="text"
-                               class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#E07845]" />
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">Dirección</label>
-                        <input v-model="formulario.direccion" type="text"
-                               class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#E07845]" />
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">Web</label>
-                        <input v-model="formulario.url" type="url" placeholder="https://…"
-                               class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#E07845]" />
-                    </div>
-
-                    <!-- Chips y no un multiselect: son pocos y se marcan de un vistazo. -->
-                    <div v-if="store.lugares.length">
-                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">
-                            Lugares donde opera
-                        </label>
-                        <div class="flex flex-wrap gap-1.5">
-                            <button v-for="l in store.lugares" :key="l.id" type="button"
-                                    @click="alternarLugar(l['@id'] ?? '')"
-                                    :class="lugaresSel.includes(l['@id'] ?? '')
-                                        ? 'bg-[#E07845] text-white border-[#E07845]'
-                                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
-                                    class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors">
-                                <i class="fas fa-map-marker-alt mr-1 text-[9px]"></i>{{ l.nombre }}
-                            </button>
-                        </div>
-                        <p class="text-[10px] text-slate-400 mt-1">{{ AYUDA_LUGARES_PROVEEDOR }}</p>
-                    </div>
+                    <!-- Mismo formulario que el alta inline del editor de cotizaciones: uno
+                         solo, para que no diverjan. Servicios y galería se quedan fuera
+                         porque necesitan el IRI del proveedor ya creado. -->
+                    <ProveedorFormulario
+                        v-model="formulario"
+                        :lugares="store.lugares"
+                        v-model:lugaresSeleccionados="lugaresSel"
+                    />
 
                     <!-- Servicios y galería sólo con el proveedor ya creado: ambos necesitan
                          su IRI para colgarse de él. -->

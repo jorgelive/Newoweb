@@ -64,6 +64,7 @@ import {
 } from '@/utils/naiveDate';
 
 import {ApiIdioma} from '@/types/maestroModel';
+import type {ProveedorWrite} from '@/types/proveedorModel';
 import {components} from "@/types/api";
 
 /** Distingue el maestro completo del placeholder ("Sincronizando…") por `tipo`. */
@@ -4047,6 +4048,41 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     /**
+     * Da de alta un `Proveedor` desde el editor y lo deja asignado como prestador.
+     *
+     * Existe para que el prestador quede **SIEMPRE identificado contra el maestro**, que es
+     * la regla que declara `Proveedor::POST`. Sin esto, la salida rápida cuando la empresa
+     * no está en el catálogo era escribir texto libre — y eso deja `prestadorMaestroId`
+     * vacío, rompe el histórico financiero y lo saca de todos los filtros.
+     *
+     * Un prestador de un solo uso también entra: es una fila que no reutilizas, no un
+     * caso aparte. Sale más barato que mantener dos formas de guardar lo mismo.
+     */
+    const crearPrestadorYAsignar = async (datos: ProveedorWrite): Promise<boolean> => {
+        const componente = componenteEnEdicion.value;
+        if (!componente || !datos.nombreComercial.trim()) return false;
+
+        try {
+            const res = await apiClient.post('/platform/travel/proveedores', datos);
+            const creado = res.data;
+            const id = extractIdStr(creado?.id || creado?.['@id'] || '');
+            if (!id) return false;
+
+            // Entra al catálogo en memoria para que el selector lo encuentre sin recargar.
+            catalogos.value.proveedores = [creado, ...catalogos.value.proveedores];
+            onPrestadorComponenteChange(id);
+
+            return true;
+        } catch (e) {
+            // Mismo criterio que el resto del store: se avisa y se devuelve el fallo, en
+            // vez de dejar el modal abierto sin decir por qué.
+            alert(extractApiErrorMessage(e, 'No se pudo crear el proveedor.'));
+
+            return false;
+        }
+    };
+
+    /**
      * Asigna el prestador del COMPONENTE desde el catálogo maestro.
      *
      * Congela las dos caras de una vez: la pública (título, url, imágenes) para la
@@ -4236,7 +4272,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,
         servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,
         buscarServiciosAsincrono, buscarProveedoresAsincrono,
-        onPrestadorComponenteChange, prestadorEsperadoDeTarifaActiva, resolverPrestador,
+        onPrestadorComponenteChange, crearPrestadorYAsignar, prestadorEsperadoDeTarifaActiva, resolverPrestador,
         resolverComprador, onCompradorChange
     };
 });

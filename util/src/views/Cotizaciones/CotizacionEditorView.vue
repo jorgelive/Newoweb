@@ -23,6 +23,8 @@ import {
   CotServicio, CotSegmento, ComponenteCompleto, SnapshotItem, Segmento, OpcionUpgradeInterna, NotaSnapshot,
   MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE
 } from '@/types/cotizacionEditorModel';
+import ProveedorFormulario from '@/components/common/ProveedorFormulario.vue';
+import { proveedorVacio, type ProveedorWrite } from '@/types/proveedorModel';
 
 defineProps<{
   fileId?: string;
@@ -493,6 +495,24 @@ const compradorResuelto = computed(() => {
 
   return comp ? store.resolverComprador(comp) : null;
 });
+
+/** Alta de prestador sin salir del editor. */
+const altaPrestadorAbierta = ref(false);
+const guardandoPrestador = ref(false);
+const formPrestador = ref<ProveedorWrite>(proveedorVacio());
+
+const abrirAltaPrestador = (): void => {
+  formPrestador.value = proveedorVacio();
+  altaPrestadorAbierta.value = true;
+};
+
+const guardarAltaPrestador = async (): Promise<void> => {
+  guardandoPrestador.value = true;
+  const ok = await store.crearPrestadorYAsignar(formPrestador.value);
+  guardandoPrestador.value = false;
+
+  if (ok) altaPrestadorAbierta.value = false;
+};
 
 const prestadorComponenteResuelto = computed(() => {
   const comp = store.componenteActivo;
@@ -2061,6 +2081,14 @@ store.$onAction(({ name, args }) => {
                           :min-chars-busqueda="2"
                           class="flex-1"
                       />
+                      <!-- Alta sin salir del editor. Es lo que hace que el prestador pueda
+                           quedar SIEMPRE contra el maestro: si dar de alta cuesta lo mismo
+                           que escribir texto suelto, nadie escribe texto suelto. -->
+                      <button @click="abrirAltaPrestador"
+                              class="w-9 h-9 shrink-0 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors flex items-center justify-center shadow-sm"
+                              title="Dar de alta una empresa que no está en el catálogo">
+                        <i class="fas fa-plus"></i>
+                      </button>
                       <button v-if="store.componenteActivo.prestadorMaestroId"
                               @click="store.onPrestadorComponenteChange(null)"
                               class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
@@ -3359,6 +3387,47 @@ store.$onAction(({ name, args }) => {
       :titulo="store.cotizacion ? `Versión ${store.cotizacion.version ?? '?'}` : undefined"
       @cerrar="planOperacionId = null"
   />
+
+    <!-- ALTA DE PRESTADOR — mismo formulario que el catálogo, en un componente compartido
+         para que no acaben divergiendo. En modo compacto: aquí sólo hace falta lo
+         imprescindible para poder comprarle y nombrarlo. -->
+    <div v-if="altaPrestadorAbierta"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="altaPrestadorAbierta = false"></div>
+
+      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
+        <div class="px-4 py-3 border-b border-slate-200 flex items-center gap-2 shrink-0">
+          <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">
+            <i class="fas fa-hotel text-indigo-500 mr-1"></i> Nueva empresa
+          </h2>
+          <button @click="altaPrestadorAbierta = false" class="ml-auto text-slate-400 hover:text-slate-700">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4">
+          <p class="text-[10px] text-slate-400 leading-snug mb-3">
+            Entra al catálogo y queda asignada como prestador de este componente. También
+            las de un solo uso: así se le puede volver a comprar y aparece en los filtros.
+          </p>
+
+          <ProveedorFormulario v-model="formPrestador" compacto />
+        </div>
+
+        <div class="px-4 py-3 border-t border-slate-200 flex gap-2 shrink-0">
+          <button @click="altaPrestadorAbierta = false"
+                  class="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700">
+            Cancelar
+          </button>
+          <button @click="guardarAltaPrestador"
+                  :disabled="!formPrestador.nombreComercial.trim() || guardandoPrestador"
+                  class="ml-auto px-4 py-2 bg-[#E07845] hover:bg-[#c96837] disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-white text-[10px] font-black uppercase tracking-widest transition-colors">
+            <i class="fas" :class="guardandoPrestador ? 'fa-circle-notch fa-spin' : 'fa-check'"></i>
+            Crear y asignar
+          </button>
+        </div>
+      </div>
+    </div>
 </template>
 
 <style scoped>

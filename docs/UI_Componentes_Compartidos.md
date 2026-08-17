@@ -14,6 +14,7 @@ Si un patrón se repite en dos vistas, su sitio es aquí y no duplicado en cada 
 3.b [Enfocar lo que se acaba de abrir — `utils/scrollEnfoque.ts`](#3b-enfocar-lo-que-se-acaba-de-abrir--utilsscrollenfoquets)
 3.c [AsistenteBar — preguntar al PMS en lenguaje natural](#3c-asistentebar--preguntar-al-pms-en-lenguaje-natural)
 3.d [ConversacionVistaPrevia — asomarse a un chat sin abrirlo](#3d-conversacionvistaprevia--asomarse-a-un-chat-sin-abrirlo)
+3.e [InfoTooltip — la ayuda detrás de una «i», y el hover que no existe en táctil](#3e-infotooltip--la-ayuda-detrás-de-una-i-y-el-hover-que-no-existe-en-táctil)
 4. [Dónde tocar para cambiar X](#4-dónde-tocar-para-cambiar-x)
 
 ---
@@ -138,6 +139,43 @@ móvil cierre la conversación en vez de salir de la app—, y ya lo hace bien. 
 nueva que quiera el mismo truco: copia ese helper, no el `replaceState` a pelo.
 
 ---
+
+## 2.b ProveedorFormulario — los campos de identidad de una empresa
+
+`util/src/components/common/ProveedorFormulario.vue`. Lo usan dos pantallas:
+
+| Quién | Para qué |
+|---|---|
+| `Catalogo/ProveedoresView.vue` | el alta y edición de siempre |
+| `Cotizaciones/CotizacionEditorView.vue` | alta **inline**, sin salir del editor (`compacto`) |
+
+### Por qué es un componente y no un bloque copiado
+
+Porque de ello depende una regla de datos, no una comodidad. `Proveedor::POST` lo dice:
+**el prestador debe quedar SIEMPRE identificado contra el maestro**; mientras el alta vivía
+sólo en el catálogo, la salida rápida era escribir texto libre, que deja
+`prestadorMaestroId` vacío y rompe el histórico financiero.
+
+La única forma de que nadie escriba texto suelto es que **dar de alta cueste lo mismo**. Y
+en cuanto hay dos sitios que dan de alta, o el formulario es uno o divergen — y el que
+diverge es siempre el de la ventanita.
+
+### Contrato
+
+```
+v-model                        ProveedorWrite
+v-model:lugaresSeleccionados   string[]  · IRIs de TravelLugar (cobertura)
+:lugares                       LugarOpcion[]  · vacío = no se pinta la sección
+:compacto                      oculta razón social, dirección y web
+```
+
+⚠️ **El título público se edita en plano y se convierte dentro.** El campo es
+`I18nContent[]` pero se escribe sólo en español —`AutoTranslate` rellena el resto al
+guardar—. Esa conversión era un paso suelto en el `guardar()` del catálogo, y es
+exactamente lo que se olvida al copiar un formulario: ahora vive en el componente.
+
+⚠️ **Servicios y galería se quedan fuera.** Los dos necesitan el IRI del proveedor ya
+creado para colgarse de él; incluirlos obligaría al alta inline a pintar secciones muertas.
 
 ## 3. AppSwitcher — saltar entre módulos
 
@@ -401,6 +439,79 @@ no falla nada, y la ventana abre en el mensaje más viejo.
 
 ---
 
+## 3.e InfoTooltip — la ayuda detrás de una «i», y el hover que no existe en táctil
+
+`util/src/components/common/InfoTooltip.vue`.
+
+### La regla: la ayuda se lee UNA vez, y luego estorba
+
+El panel financiero llegó a tener **cinco franjas de texto explicativo** apiladas: cómo se
+convierte cada moneda, qué protege el candado de los cargos, qué protege el de los pagos, en qué
+moneda es la contabilidad, qué pasa al editar el depósito. Cada una tenía su motivo. Juntas se
+comían la primera pantalla de un panel cuyo trabajo es enseñar importes.
+
+El criterio que las ordenó:
+
+| Va **a la vista** | Va **detrás de la «i»** |
+|---|---|
+| Un problema **de esta reserva** que hay que ir a arreglar («2 registros no suman: les falta el tipo de cambio») | Cómo funciona el sistema en general |
+| Una consecuencia **de lo que estás a punto de hacer** («al guardar, el depósito deja de cuadrarse») | Por qué existe un candado |
+| Un estado que cambia | Un texto que es idéntico en todas las reservas |
+
+Regla corta: **si el texto es el mismo en todas las reservas, no gana su sitio en pantalla.**
+
+### 👆 El gotcha que le da la mitad del código: en táctil no hay hover
+
+Un tooltip hecho con `:hover` (o `group-hover` de Tailwind) **parece** funcionar en el móvil, y
+es un espejismo: el navegador táctil **emula** el hover en el primer toque. Los síntomas son de
+los que se investigan dos veces antes de sospechar del CSS:
+
+- **Todo pide dos toques.** El primero «hoverea», el segundo dispara el clic. Cualquier botón
+  bajo un elemento con `:hover` deja de responder al primer toque.
+- **El hover se queda pegado.** No hay «salir con el ratón», así que el tooltip persiste tapando
+  lo que hay debajo hasta que tocas en otro sitio.
+- **El toque largo abre el menú contextual** del sistema encima del tooltip.
+- Y hay **300 ms de retardo** heredados del doble toque para hacer zoom.
+
+Por eso el estado de este componente es **explícito** y no una regla de CSS:
+
+```
+pointer: fine   (ratón/trackpad)  → abre en mouseenter, cierra en mouseleave
+táctil                            → abre y cierra al TOCAR (un toque), y cierra al
+                                    tocar fuera o con Escape
+```
+
+Tres detalles que no son opcionales:
+
+1. **`matchMedia('(pointer: fine)')`, no «¿es móvil?».** Un portátil con pantalla táctil tiene
+   las dos cosas; lo que decide el comportamiento correcto es si existe un puntero capaz de
+   pasar por encima sin tocar.
+2. **`preventDefault()` en el toque.** Sin él, el navegador dispara después el hover y el clic
+   emulados, y el mismo gesto abre y cierra la burbuja.
+3. **`touch-action: manipulation` + `-webkit-touch-callout: none`** en el disparador: quitan el
+   retardo de 300 ms y el menú contextual del toque largo. Son la diferencia entre un tooltip y
+   uno que «a veces no sale».
+
+### Uso
+
+```vue
+<InfoTooltip lado="izquierda">
+    Protege los cargos <b class="text-white">sincronizados desde el canal</b>.
+    <span class="block mt-1.5 text-slate-400">Los manuales se editan siempre.</span>
+</InfoTooltip>
+```
+
+- `lado` — `derecha` (por defecto) ancla la burbuja por su borde derecho: es lo que hay que usar
+  cuando la «i» está cerca del borde del panel, porque centrada se saldría de la pantalla.
+  `izquierda` cuando la «i» está al principio de una línea.
+- `texto` para un texto plano; el slot por defecto para algo con formato.
+- `claseIcono` para el color (los candados usan ámbar, el resto gris).
+
+El disparador es un `<button type="button">`: se llega con el tabulador, lo anuncia el lector de
+pantalla, y el `type` evita que envíe el formulario en el que vive.
+
+---
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -420,3 +531,6 @@ no falla nada, y la ventana abre en el mensaje más viejo.
 | Añadir un módulo al portal y al selector | `util/src/types/modulosApp.ts` | `MODULOS_APP` — sale en HomeView y en AppSwitcher a la vez |
 | Cambiar el aspecto del selector en una cabecera clara | Vista que lo monta | `<AppSwitcher variante="clara" />` |
 | Usar el logotipo del portal como selector | Vista que lo monta | `<AppSwitcher variante="marca" sin-inicio />` — `sinInicio` para no ofrecer «Inicio» estando en él |
+| Añadir una ayuda a un panel sin gastarle una franja (§3.e) | `InfoTooltip.vue` | `<InfoTooltip lado="…">` — el slot admite formato |
+| Que un tooltip no se salga por el borde de un panel (§3.e) | Vista que lo monta | `lado="derecha"` (ancla por el borde derecho) |
+| Cambiar cómo se comporta el tooltip en táctil (§3.e) | `InfoTooltip.vue` | `alTocar()` + `conPuntero` — ⚠️ NO se vuelve a `:hover`, lee el gotcha |
