@@ -1034,8 +1034,14 @@ store.$onAction(({ name, args }) => {
     <!-- ⚠️ `min-w-0` en el bloque del título y `shrink-0` en el de acciones, y no es cosmético:
          sin `min-w-0` flexbox se niega a encoger un hijo por debajo del ancho de su contenido, así
          que el `truncate` del nombre del expediente NO recortaba y el título empujaba los botones
-         fuera de la pantalla. En móvil, «Guardar» quedaba cortado. -->
-    <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between gap-2 z-20 shadow-md shrink-0">
+         fuera de la pantalla. En móvil, «Guardar» quedaba cortado.
+
+         🔥 Y DOS FILAS EN MÓVIL, porque arreglar aquello destapó lo contrario: los botones no se
+         encogen (todos llevan `whitespace-nowrap`, y deben llevarlo), así que en una pantalla de
+         390px ocupaban ~330 y al título le quedaban 40 — dos letras y unos puntos suspensivos.
+         Es aritmética, no estilo: con estas acciones no cabe un título legible en la misma fila.
+         En `md:` vuelve a una sola, que ahí sobra sitio. -->
+    <header class="bg-slate-900 text-white px-4 md:px-6 py-2.5 md:py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 z-20 shadow-md shrink-0">
       <div class="flex items-center gap-3 min-w-0 flex-1">
         <button @click="handleVolver" class="w-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
           <i class="fas fa-arrow-left text-sm"></i>
@@ -1044,14 +1050,14 @@ store.$onAction(({ name, args }) => {
           <h1 class="font-black text-base md:text-xl tracking-tight leading-none truncate">
             {{ store.fileActual?.nombreGrupo || 'Cargando Expediente...' }}
           </h1>
-          <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+          <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
             {{ store.modoCatalogo ? 'Catálogo de Tours' : 'Motor Operativo' }}
             <span v-if="store.cotizacion">• {{ store.modoCatalogo ? 'Tour' : 'V' }}{{ store.cotizacion.version ?? 1 }}</span>
           </p>
         </div>
       </div>
 
-      <div class="flex gap-2 md:gap-3 items-center shrink-0" v-if="store.cotizacion">
+      <div class="flex gap-2 md:gap-3 items-center shrink-0 justify-end" v-if="store.cotizacion">
         <div class="flex items-center bg-slate-800 rounded-lg p-1 gap-1 shrink-0">
           <button @click="store.cotizacion.idiomaEdicion = 'es'"
                   :class="store.cotizacion.idiomaEdicion === 'es' ? 'bg-[#376875] text-white shadow' : 'text-slate-400 hover:text-white'"

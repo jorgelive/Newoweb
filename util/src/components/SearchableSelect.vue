@@ -56,9 +56,21 @@
             <!-- Con segunda línea el nombre se ENVUELVE en vez de cortarse: el punto de
                  tener dos líneas es que quepa, no repartir el mismo recorte. -->
             <span class="block" :class="opt.sublabel ? 'leading-snug' : 'truncate'">{{ opt.label }}</span>
-            <span v-if="opt.sublabel"
-                  class="block text-[11px] font-medium mt-0.5 leading-snug"
-                  :class="darkMode ? 'text-slate-400' : 'text-slate-500'">{{ opt.sublabel }}</span>
+            <!--
+              En PASTILLAS y no como una cadena con separadores: con proveedor, modalidad,
+              categoría, procedencia y edad, el texto seguido se envolvía en tres o cuatro
+              renglones donde no se distinguía dónde acababa un dato y empezaba el siguiente.
+              Troceado por ` · ` cada uno cae en su caja y la fila fluye sola: en un móvil se
+              apilan, en pantalla ancha caben en una. Que ocupe varias líneas es lo correcto
+              aquí — recortar es lo que escondía el proveedor.
+            -->
+            <span v-if="opt.sublabel" class="flex flex-wrap gap-1 mt-1">
+              <span v-for="(dato, i) in opt.sublabel.split(' · ')" :key="i"
+                    class="text-[10px] font-bold px-1.5 py-0.5 rounded border leading-tight"
+                    :class="darkMode
+                        ? 'bg-slate-900/60 text-slate-300 border-slate-700'
+                        : 'bg-slate-100 text-slate-600 border-slate-200'">{{ dato }}</span>
+            </span>
           </span>
           <i v-if="modelValue === opt.value" class="fas fa-check text-[10px] mt-1 shrink-0"></i>
         </li>
