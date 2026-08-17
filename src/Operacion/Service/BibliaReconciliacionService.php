@@ -47,7 +47,8 @@ class BibliaReconciliacionService
     private const ETIQUETAS = [
         'fechaServicio'         => 'Fecha',
         'horaRecojoReal'        => 'Hora de recojo',
-        'descripcionServicio'   => 'Servicio',
+        'descripcionServicio'   => 'Servicio (nombre para el proveedor)',
+        'tarifaNombre'          => 'Tarifa (nombre interno)',
         'contextoServicio'      => 'Día del itinerario',
         'prestadorNombre'       => 'Prestador',
         'prestadorTelefono'     => 'Teléfono del prestador',

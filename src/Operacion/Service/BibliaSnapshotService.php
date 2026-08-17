@@ -213,6 +213,9 @@ class BibliaSnapshotService
             'prestadorTelefono'     => null,
             'prestadorDireccion'    => null,
             'descripcionServicio'   => $this->resolverDescripcion($tarifa, $cotcomponente),
+            // El nombre interno, aparte y sin resolver: `descripcionServicio` lo tapa en
+            // cuanto la tarifa tiene `nombreParaProveedor`, y los dos hacen falta a la vez.
+            'tarifaNombre'          => trim($tarifa?->getNombreInternoSnapshot() ?? '') ?: null,
             'contextoServicio'      => $this->textoEspanol($cotservicio->getNombreSnapshot()),
             // Clasificación del componente: hoy no filtra nada — entra todo a La Biblia —
             // pero viaja en el snapshot para que la vista pueda agrupar, priorizar y
@@ -273,6 +276,9 @@ class BibliaSnapshotService
         }
         if ($aplica('prestadorDireccion')) {
             $ops->setPrestadorDireccion($this->comoTexto($valores['prestadorDireccion']));
+        }
+        if ($aplica('tarifaNombre')) {
+            $ops->setTarifaNombre($this->comoTexto($valores['tarifaNombre']));
         }
         if ($aplica('descripcionServicio')) {
             $ops->setDescripcionServicio((string) $valores['descripcionServicio']);

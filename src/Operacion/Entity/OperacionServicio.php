@@ -204,9 +204,34 @@ class OperacionServicio
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $compradorNombre = null;
 
+    /**
+     * Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden.
+     *
+     * Lo resuelve `BibliaSnapshotService::resolverDescripcion()` con respaldo:
+     * `nombreParaProveedor` de la tarifa → nombre interno de la tarifa → nombre del
+     * componente. La orden es el documento que se le manda a él, así que pedirle un código
+     * interno que no reconoce es pedirle que adivine.
+     */
     #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 255)]
     private string $descripcionServicio;
+
+    /**
+     * El nombre INTERNO de la tarifa, siempre, sin resolver nada.
+     *
+     * Existe porque `descripcionServicio` **colapsa los dos nombres en uno**: en cuanto la
+     * tarifa tiene `nombreParaProveedor`, el nombre interno desaparece de la pantalla. Y los
+     * dos hacen falta a la vez — «Del Origen Al Presente de Lima» es lo que él entiende, y
+     * «Pool City Lima CT002 (Base 1-4)» es lo que TÚ buscas en el tarifario cuando te
+     * pregunta por qué le pagas eso.
+     *
+     * Nulo si el componente no tiene tarifa (fila de referencia) o si la tarifa no tiene
+     * nombre interno; en ese caso `descripcionServicio` ya cae al nombre del componente y
+     * repetirlo aquí sería ruido.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $tarifaNombre = null;
 
     /**
      * Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español.
@@ -492,6 +517,9 @@ class OperacionServicio
 
     public function getDescripcionServicio(): string { return $this->descripcionServicio; }
     public function setDescripcionServicio(string $descripcionServicio): self { $this->descripcionServicio = $descripcionServicio; return $this; }
+
+    public function getTarifaNombre(): ?string { return $this->tarifaNombre; }
+    public function setTarifaNombre(?string $tarifaNombre): self { $this->tarifaNombre = $tarifaNombre; return $this; }
 
     public function getContextoServicio(): ?string { return $this->contextoServicio; }
     public function setContextoServicio(?string $contextoServicio): self { $this->contextoServicio = $contextoServicio; return $this; }

@@ -14218,7 +14218,10 @@ export interface components {
             prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
@@ -14261,7 +14264,10 @@ export interface components {
         "OperacionServicio-operacion.read_timestamp.read": {
             /** Format: date-time */
             fechaServicio?: string;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @default 1 */
@@ -14301,7 +14307,10 @@ export interface components {
             prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
@@ -14366,7 +14375,10 @@ export interface components {
             prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
@@ -14423,7 +14435,10 @@ export interface components {
             prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
@@ -14466,7 +14481,10 @@ export interface components {
         "OperacionServicio.html-operacion.read_timestamp.read": {
             /** Format: date-time */
             fechaServicio?: string;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @default 1 */
@@ -14498,7 +14516,10 @@ export interface components {
             prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
@@ -14541,7 +14562,10 @@ export interface components {
         "OperacionServicio.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
             fechaServicio?: string;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @default 1 */
@@ -14573,7 +14597,10 @@ export interface components {
             prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
@@ -14616,7 +14643,10 @@ export interface components {
         "OperacionServicio.multipart-operacion.read_timestamp.read": {
             /** Format: date-time */
             fechaServicio?: string;
+            /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
+            /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
+            tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
             /** @default 1 */

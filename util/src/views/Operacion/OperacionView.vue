@@ -1245,6 +1245,13 @@ onMounted(async () => {
                                                            :class="servicio.contextoServicio ? 'text-[11px] mt-0.5' : 'text-sm font-black text-slate-800'">
                                                             {{ servicio.descripcionServicio }}
                                                         </p>
+                                                        <!-- El nombre interno de la tarifa, sólo si difiere del
+                                                             de arriba: es con el que la buscas en el tarifario. -->
+                                                        <p v-if="servicio.tarifaNombre && servicio.tarifaNombre !== servicio.descripcionServicio"
+                                                           class="text-[10px] font-bold text-slate-400 leading-tight mt-0.5"
+                                                           title="Nombre interno de la tarifa">
+                                                            <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ servicio.tarifaNombre }}
+                                                        </p>
 
                                                         <!-- Badges de clasificación: sólo cuando dicen algo -->
                                                         <div class="flex flex-wrap gap-1 mt-1">
@@ -1580,7 +1587,16 @@ onMounted(async () => {
                                             <p class="text-[11px] font-black text-slate-800 leading-snug">
                                                 {{ s.descripcionServicio }}
                                             </p>
-                                            <p v-if="s.contextoServicio" class="text-[10px] text-slate-500 leading-snug">
+                                            <!-- El nombre INTERNO de la tarifa, sólo cuando aporta algo.
+                                                 Si coincide con el de arriba es que la tarifa no tiene
+                                                 `nombreParaProveedor` y `descripcionServicio` ya cayó a
+                                                 él: repetirlo seria la misma linea dos veces. -->
+                                            <p v-if="s.tarifaNombre && s.tarifaNombre !== s.descripcionServicio"
+                                               class="text-[10px] font-bold text-slate-500 leading-snug"
+                                               title="Nombre interno de la tarifa: con éste la buscas en el tarifario">
+                                                <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ s.tarifaNombre }}
+                                            </p>
+                                            <p v-if="s.contextoServicio" class="text-[10px] text-slate-400 leading-snug">
                                                 {{ s.contextoServicio }}
                                             </p>
                                             <p class="text-[10px] text-slate-400 leading-snug">

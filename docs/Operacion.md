@@ -197,16 +197,30 @@ desaparecer: el prestador ya lo hacía (`md:hidden`), y ahora también el costo 
 
 Una fila tiene **dos nombres** y la pantalla decide cuál manda. No es estética:
 
-| Campo | Qué es | Manda en |
+Una fila tiene **TRES** nombres, y cada pantalla decide cuál manda. No es estética:
+
+| Campo | Qué es | Para qué sirve |
 |---|---|---|
-| `descripcionServicio` | Cómo conoce el PROVEEDOR el servicio. Sale de `nombreParaProveedor` si está puesto, si no del nombre interno de la tarifa (`resolverDescripcion()`) | **La Orden** |
-| `contextoServicio` | El día del itinerario | **La Biblia** |
+| `descripcionServicio` | Cómo conoce el PROVEEDOR el servicio. Resuelto con respaldo: `nombreParaProveedor` → nombre interno → nombre del componente | Pedirle el servicio |
+| `tarifaNombre` | El nombre interno de la tarifa, **sin resolver nada** | Buscarla en el tarifario |
+| `contextoServicio` | El día del itinerario | Ubicar la fila en la jornada |
 
-En La Biblia estás ubicando un servicio dentro de tu día, así que manda el itinerario. En la
-Orden estás describiéndoselo a quien te lo va a vender, y ahí un código interno que él no
-reconoce es pedirle que adivine — la orden es su documento, no el nuestro.
+**Manda `descripcionServicio` en la Orden** y `contextoServicio` en La Biblia. En La Biblia
+estás ubicando un servicio dentro de tu día; en la Orden se lo estás describiendo a quien te lo
+vende, y ahí un código interno que él no reconoce es pedirle que adivine — la orden es su
+documento, no el nuestro. Los otros quedan debajo, más pequeños. Ninguno se esconde.
 
-El otro queda debajo en las dos, más pequeño. Ninguno se esconde.
+⚠️ **`tarifaNombre` existe porque `descripcionServicio` COLAPSA dos nombres en uno.** En cuanto
+la tarifa tiene `nombreParaProveedor`, el nombre interno desaparece de la pantalla — y los dos
+hacen falta a la vez: «Del Origen Al Presente de Lima» es lo que él entiende, y «Pool City Lima
+CT002 (Base 1-4)» es lo que buscas en el tarifario cuando te pregunta por qué le pagas eso.
+
+Las dos pantallas lo esconden **sólo si coincide** con `descripcionServicio`, que es el caso de
+una tarifa sin nombre para el proveedor: ahí la misma línea dos veces no informa de nada.
+
+Se rellena por reconciliación, no por migración: `operacion:resincronizar` lo propone como
+cualquier otro campo de la cotización. Hasta entonces queda nulo y la pantalla enseña lo que
+enseñaba antes.
 
 ### <a id="39"></a>3.9 El costo de una fila: SIEMPRE los dos factores (2026-08-17)
 
