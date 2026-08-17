@@ -41,16 +41,17 @@ class BibliaReconciliacionService
      * Campos que la cotización gobierna, con su etiqueta para el diff.
      *
      * Los que NO están aquí pertenecen al operador y la reconciliación no los toca
-     * jamás: `estadoReservaProveedor`, `estadoOperacion`, `costoRealOperativo`, `montoVenta`,
+     * jamás: `estadoReservaProveedor`, `estadoOperacion`, `costoRealOperativo`, `horaRecojoReal`, `montoVenta`,
      * `monedaReal` y `ordenServicio`. Esa lista corta es media razón de ser del módulo.
      */
     private const ETIQUETAS = [
         'fechaServicio'         => 'Fecha',
-        'horaRecojoReal'        => 'Hora de recojo',
+        'horaComponente'        => 'Hora (como se vendió)',
         'descripcionServicio'   => 'Servicio (nombre para el proveedor)',
         'tarifaNombre'          => 'Tarifa (nombre interno)',
         'contextoServicio'      => 'Día del itinerario',
         'prestadorNombre'       => 'Prestador',
+        'prestadorServicioNombre' => 'Servicio del prestador',
         'prestadorTelefono'     => 'Teléfono del prestador',
         'prestadorDireccion'    => 'Dirección del prestador',
         'compradorNombre'       => 'Comprador (a quién se le encarga)',
@@ -422,11 +423,12 @@ class BibliaReconciliacionService
 
         return [
             'fechaServicio'         => $fila->getFechaServicio()?->format('Y-m-d'),
-            'horaRecojoReal'        => $fila->getHoraRecojoReal(),
+            'horaComponente'        => $fila->getHoraComponente(),
             'compradorMaestroId'    => $fila->getCompradorMaestroId(),
             'compradorNombre'       => $fila->getCompradorNombre(),
             'prestadorMaestroId'    => $fila->getPrestadorMaestroId(),
             'prestadorNombre'       => $fila->getPrestadorNombre(),
+            'prestadorServicioNombre' => $fila->getPrestadorServicioNombre(),
             'prestadorTelefono'     => $fila->getPrestadorTelefono(),
             'prestadorDireccion'    => $fila->getPrestadorDireccion(),
             'descripcionServicio'   => $fila->getDescripcionServicio(),

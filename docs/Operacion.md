@@ -171,6 +171,33 @@ muestra y los deja filtrar.
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
 
+### <a id="315"></a>3.15 La hora de recojo y la vendida son campos distintos (2026-08-17)
+
+`horaRecojoReal` y `horaComponente` eran el mismo campo, así que fijar el recojo pisaba la hora
+con la que se vendió y se perdía la referencia. Separados:
+
+| Campo | Qué es | Quién lo gobierna |
+|---|---|---|
+| `horaComponente` | La hora **como se vendió** al cliente | La cotización (snapshot, reconciliación) |
+| `horaRecojoReal` | La hora de recojo real que fija el operador | El operador — la reconciliación **no la toca** |
+
+La fila muestra la de recojo; si no hay, el placeholder es la vendida (fallback). Y cuando
+difieren, debajo sale «vend. HH:MM». Migración: `horaComponente` se rellena con lo que hoy
+tiene `horaRecojoReal`, que es de donde salía; nada se pierde.
+
+### <a id="316"></a>3.16 El servicio del prestador encabeza el voucher (2026-08-17)
+
+`descripcionServicio` (lo que ve el proveedor) ahora prioriza el **servicio del prestador**:
+«habitación suite superior», no «Hotel 4 estrellas». Sale del `ProveedorServicio` del
+componente. La cadena completa:
+
+```
+servicio del prestador → nombreParaProveedor → nombre interno de la tarifa → nombre del componente
+```
+
+Se guarda además aparte como `prestadorServicioNombre`, para tenerlo disponible al componer el
+voucher sin re-resolver la cadena. Nulo si el componente no especifica servicio de prestador.
+
 ### <a id="314"></a>3.14 Bitácora de cambios de estado (2026-08-17)
 
 Cada cambio de `estadoReservaProveedor` o `estadoOperacion` deja una línea en

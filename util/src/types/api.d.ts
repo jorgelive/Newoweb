@@ -14477,8 +14477,15 @@ export interface components {
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
@@ -14541,6 +14548,13 @@ export interface components {
         "OperacionServicio-operacion.read_timestamp.read": {
             /** Format: date-time */
             fechaServicio?: string;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14590,8 +14604,15 @@ export interface components {
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
@@ -14664,8 +14685,15 @@ export interface components {
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
@@ -14730,8 +14758,15 @@ export interface components {
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
@@ -14794,6 +14829,13 @@ export interface components {
         "OperacionServicio.html-operacion.read_timestamp.read": {
             /** Format: date-time */
             fechaServicio?: string;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14835,8 +14877,15 @@ export interface components {
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
@@ -14899,6 +14948,13 @@ export interface components {
         "OperacionServicio.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
             fechaServicio?: string;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14940,8 +14996,15 @@ export interface components {
             /** Format: date-time */
             fechaServicio?: string;
             horaRecojoReal?: string | null;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
@@ -15004,6 +15067,13 @@ export interface components {
         "OperacionServicio.multipart-operacion.read_timestamp.read": {
             /** Format: date-time */
             fechaServicio?: string;
+            /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
+            horaComponente?: string | null;
+            /**
+             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
+             */
+            prestadorServicioNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */

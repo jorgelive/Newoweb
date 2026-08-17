@@ -1313,15 +1313,25 @@ onMounted(async () => {
                                                 ></i>
                                             </td>
 
-                                            <!-- Hora editable -->
+                                            <!-- Hora de RECOJO (editable) y, debajo, la vendida como
+                                                 referencia. Si no hay recojo puesto, el placeholder es
+                                                 la vendida: vale como fallback hasta que se fije otra.
+                                                 Ver docs/Operacion.md §3.15. -->
                                             <td class="px-3 py-3 whitespace-nowrap align-top">
                                                 <input
                                                     :value="servicio.horaRecojoReal ?? ''"
                                                     @change="editarHora(servicio, $event)"
-                                                    placeholder="--:--"
+                                                    :placeholder="servicio.horaComponente || '--:--'"
                                                     maxlength="5"
                                                     class="w-[3.8rem] text-xs font-black text-slate-900 bg-slate-100 px-1.5 py-1 rounded-lg border border-slate-200 tabular-nums text-center outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
+                                                    :class="{ 'text-slate-400': !servicio.horaRecojoReal }"
+                                                    title="Hora de recojo. Vacía = se usa la hora con la que se vendió."
                                                 />
+                                                <p v-if="servicio.horaComponente && servicio.horaRecojoReal && servicio.horaRecojoReal !== servicio.horaComponente"
+                                                   class="text-[8px] font-bold text-slate-400 text-center mt-0.5 tabular-nums"
+                                                   title="Hora con la que se vendió al cliente">
+                                                    vend. {{ servicio.horaComponente }}
+                                                </p>
                                             </td>
 
                                             <!-- Servicio -->

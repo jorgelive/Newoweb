@@ -153,6 +153,18 @@ class OperacionServicio
     #[ORM\Column(type: 'string', length: 10, nullable: true)]
     private ?string $horaRecojoReal = null;
 
+    /**
+     * La hora del componente TAL COMO SE VENDIÓ al cliente. No editable.
+     *
+     * `horaRecojoReal` es la que el operador fija para el recojo y puede diferir; ésta es la
+     * referencia inmutable de la cotización. La fila muestra la de recojo (o ésta como
+     * fallback si no hay), y debajo ésta siempre, como «vendida». Antes las dos eran el mismo
+     * campo, así que fijar el recojo pisaba la hora vendida y se perdía la referencia.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 10, nullable: true)]
+    private ?string $horaComponente = null;
+
     // ─────────────────────────────────────────────────────────────────────────
     // PRESTADOR — quién opera, frente a comprador* = a quién se le manda el encargo
     //
@@ -174,6 +186,18 @@ class OperacionServicio
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $prestadorNombre = null;
+
+    /**
+     * QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
+     * «Hotel 4 estrellas». Es lo primero que va en el voucher.
+     *
+     * Sale del `ProveedorServicio` del componente maestro. Si el componente no lo especifica,
+     * queda nulo y `descripcionServicio` cae a los otros nombres (nombreParaProveedor, tarifa,
+     * componente). Ver `resolverDescripcion()`.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $prestadorServicioNombre = null;
 
     /** Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
     #[Groups(['operacion:item:read', 'operacion:write'])]
@@ -523,6 +547,12 @@ class OperacionServicio
 
     public function getHoraRecojoReal(): ?string { return $this->horaRecojoReal; }
     public function setHoraRecojoReal(?string $horaRecojoReal): self { $this->horaRecojoReal = $horaRecojoReal; return $this; }
+
+    public function getHoraComponente(): ?string { return $this->horaComponente; }
+    public function setHoraComponente(?string $h): self { $this->horaComponente = $h; return $this; }
+
+    public function getPrestadorServicioNombre(): ?string { return $this->prestadorServicioNombre; }
+    public function setPrestadorServicioNombre(?string $n): self { $this->prestadorServicioNombre = $n; return $this; }
 
     public function getCompradorMaestroId(): ?string { return $this->compradorMaestroId; }
     public function setCompradorMaestroId(?string $v): self { $this->compradorMaestroId = $v; return $this; }

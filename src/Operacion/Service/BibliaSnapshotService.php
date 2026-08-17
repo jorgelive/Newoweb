@@ -189,7 +189,9 @@ class BibliaSnapshotService
 
         return [
             'fechaServicio'         => $fechaServicio->format('Y-m-d'),
-            'horaRecojoReal'        => $this->resolverHoraRecojo($cotcomponente),
+            // La hora VENDIDA. `horaRecojoReal` ya no se snapshotea: es del operador, como el
+            // costo real, y la reconciliación no lo toca. Ver docs/Operacion.md §3.15.
+            'horaComponente'        => $this->resolverHoraRecojo($cotcomponente),
             // A quién se le MANDA el encargo. Es lo que agrupa y firma la OS.
             //
             // Sustituye al antiguo `proveedorMaestroId` de la tarifa, que era la
@@ -200,6 +202,8 @@ class BibliaSnapshotService
             'compradorNombre'       => $comprador?->nombre,
             'prestadorMaestroId'    => $prestador['maestroId'] ?? null,
             'prestadorNombre'       => $prestador['nombre'] ?? null,
+            // Qué servicio del prestador, para el voucher. Nulo si el componente no lo fija.
+            'prestadorServicioNombre' => trim($prestador['servicioNombre'] ?? '') ?: null,
             // Nulos A PROPÓSITO, y son el único par de campos que se deja así.
             //
             // El nombre se congela porque es la identidad con la que se vendió; el teléfono
@@ -259,8 +263,11 @@ class BibliaSnapshotService
         if ($aplica('fechaServicio')) {
             $ops->setFechaServicio(new DateTimeImmutable((string) $valores['fechaServicio']));
         }
-        if ($aplica('horaRecojoReal')) {
-            $ops->setHoraRecojoReal($this->comoTexto($valores['horaRecojoReal']));
+        if ($aplica('horaComponente')) {
+            $ops->setHoraComponente($this->comoTexto($valores['horaComponente']));
+        }
+        if ($aplica('prestadorServicioNombre')) {
+            $ops->setPrestadorServicioNombre($this->comoTexto($valores['prestadorServicioNombre']));
         }
         if ($aplica('compradorMaestroId')) {
             $ops->setCompradorMaestroId($this->comoTexto($valores['compradorMaestroId']));
@@ -444,6 +451,14 @@ class BibliaSnapshotService
         ?CotizacionCottarifa $tarifa,
         CotizacionCotcomponente $componente,
     ): string {
+        // Prioridad 0: QUÉ le provee el prestador, con su nombre de servicio. «Habitación
+        // suite superior», no «Hotel 4 estrellas». Es lo que de verdad se le encarga, y por
+        // eso encabeza el voucher. Sale del ProveedorServicio del componente.
+        $servicioPrestador = trim($componente->resolverPrestador()['servicioNombre'] ?? '');
+        if ($servicioPrestador !== '') {
+            return $servicioPrestador;
+        }
+
         // Prioridad 1: cómo llama el PROVEEDOR a ese servicio.
         //
         // Es el sentido entero de `nombreParaProveedor`: tu tarifa se llama «Pool City Lima
