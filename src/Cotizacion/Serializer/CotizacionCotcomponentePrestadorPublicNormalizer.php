@@ -63,13 +63,14 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
     private const GRUPO_PUBLICO = 'pax_cotizacion:read';
 
     /** Cara pública del prestador. La operativa ni siquiera llega hasta aquí. */
+    /**
+     * Lo que se retira cuando NO se puede nombrar. Son los ids —lo único del prestador que
+     * viaja en la entidad— porque con ellos el cliente podría hidratar la ficha por su
+     * cuenta contra el endpoint público.
+     */
     private const PRESTADOR_SNAPSHOT_FIELDS = [
-        'prestadorTituloSnapshot',
-        'prestadorUrlSnapshot',
-        'prestadorImagenesSnapshot',
-        'prestadorServicioTituloSnapshot',
-        'prestadorServicioUrlSnapshot',
-        'prestadorServicioImagenesSnapshot',
+        'prestadorMaestroId',
+        'prestadorServicioMaestroId',
     ];
 
     public function __construct(
@@ -106,17 +107,15 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
     }
 
     /**
-     * Resuelve la cara pública: **el snapshot manda, el maestro rellena**.
+     * Inyecta la cara pública leyéndola del catálogo. No pisa nada: estos campos ya no
+     * existen en la cotización, que sólo guarda el enlace y el nombre histórico.
      *
-     * Es la dirección contraria a la del contacto, y confundirlas es el error fácil. Aquí
-     * el snapshot no es una copia envejecida: es un **override escrito a propósito**. Si
-     * alguien puso otro título para esta propuesta, es porque quería ése y no el del
-     * catálogo — pisarlo con lo «actual» sería deshacer su decisión sin avisar.
+     * Una sola dirección —el maestro manda— desde que se retiraron los overrides. Antes
+     * había dos opuestas (maestro para el contacto, snapshot para la presentación) y era
+     * lo más confuso de esta zona.
      *
-     * El maestro cubre el hueco cuando no se tocó nada, que es el caso normal: así
-     * renombrar una empresa se ve en todas las propuestas que no la hayan sobreescrito.
-     *
-     * Sin maestro —prestador de un solo uso— sólo queda el snapshot, y con eso basta.
+     * Si el maestro ya no existe, no se inyecta nada: el cliente ve el nombre histórico
+     * que viaja en la línea y no una tarjeta a medias. Es la degradación buscada.
      *
      * Los datos vienen precargados en lote desde `CotizacionPublicNormalizer`: aquí no se
      * consulta nada.
@@ -129,53 +128,19 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
         $maestro = $this->proveedorVivo->proveedor($componente->getPrestadorMaestroId());
 
         if ($maestro !== null) {
-            $data['prestadorTituloSnapshot'] = self::override(
-                $componente->getPrestadorTituloSnapshot(),
-                $maestro->getTitulo(),
-            );
-            $data['prestadorUrlSnapshot'] = self::override(
-                $componente->getPrestadorUrlSnapshot(),
-                $maestro->getUrl(),
-            );
-            $data['prestadorImagenesSnapshot'] = self::override(
-                $componente->getPrestadorImagenesSnapshot(),
-                $this->proveedorVivo->imagenesDe($maestro),
-            );
+            $data['prestadorTitulo'] = $maestro->getTitulo();
+            $data['prestadorUrl'] = $maestro->getUrl();
+            $data['prestadorImagenes'] = $this->proveedorVivo->imagenesDe($maestro);
         }
 
         $servicio = $this->proveedorVivo->servicio($componente->getPrestadorServicioMaestroId());
 
         if ($servicio !== null) {
-            $data['prestadorServicioTituloSnapshot'] = self::override(
-                $componente->getPrestadorServicioTituloSnapshot(),
-                $servicio->getTitulo(),
-            );
-            $data['prestadorServicioUrlSnapshot'] = self::override(
-                $componente->getPrestadorServicioUrlSnapshot(),
-                $servicio->getUrl(),
-            );
-            $data['prestadorServicioImagenesSnapshot'] = self::override(
-                $componente->getPrestadorServicioImagenesSnapshot(),
-                $this->proveedorVivo->imagenesDeServicio($servicio),
-            );
+            $data['prestadorServicioTitulo'] = $servicio->getTitulo();
+            $data['prestadorServicioImagenes'] = $this->proveedorVivo->imagenesDeServicio($servicio);
         }
 
         return $data;
-    }
-
-    /**
-     * Lo escrito gana; si no se escribió nada, lo del catálogo.
-     *
-     * «Nada» es null, cadena vacía o array vacío — un título i18n sin tocar llega como
-     * `[]`, no como null, así que comprobar sólo `null` dejaría pasar el hueco.
-     */
-    private static function override(mixed $escrito, mixed $delCatalogo): mixed
-    {
-        if ($escrito === null || $escrito === '' || $escrito === []) {
-            return $delCatalogo;
-        }
-
-        return $escrito;
     }
 
     public function supportsNormalization($data, ?string $format = null, array $context = []): bool

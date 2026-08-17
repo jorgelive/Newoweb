@@ -110,31 +110,29 @@ export interface PaxCotComponente {
     detallesParaCliente: PaxDetalleCliente[];
 
     /**
-     * PRESTADOR — quién presta este servicio, y su cara pública.
+     * PRESTADOR — quién presta este servicio.
      *
-     * `Proveedor` es la entidad maestra; el prestador es el papel que juega en el
-     * componente. A nivel de cotización sólo hay dos papeles: éste y el comprador, que
-     * nunca sale de la capa interna.
+     * `Proveedor` es la entidad maestra; el prestador es el papel que juega aquí. La
+     * cotización sólo guarda el enlace y el nombre histórico: **el título, la url y las
+     * fotos las INYECTA el backend leyendo el catálogo al servir**, así que lo que llega
+     * es lo que dice hoy la ficha de la empresa, no una copia del día en que se cotizó.
      *
-     * ⚠️ Sólo llega si la propuesta decidió nombrarlo:
-     * `CotizacionCotcomponentePrestadorPublicNormalizer` lo borra cuando el flag global de
-     * la cotización oculta proveedores o cuando el componente no está marcado como visible.
-     * La bandera no viaja: llega su efecto, no el motivo.
+     * Si el maestro ya no existe no llega nada de esto — sólo el nombre histórico en la
+     * línea de inclusión. Es la degradación buscada: la propuesta antigua sigue contando
+     * quién prestó el servicio, sin tarjeta a medias.
      *
-     * ⚠️ Cuando hay maestro, esto viene **resuelto en vivo** contra el catálogo, no del
-     * snapshot: renombrar una empresa se ve sin re-guardar la propuesta. El snapshot es el
-     * respaldo, y el único contenido si el prestador se escribió a mano.
+     * ⚠️ Sólo llega si la propuesta decidió nombrarlo: el normalizer lo borra cuando el
+     * flag global oculta proveedores o el componente no está marcado. La bandera no viaja.
      *
-     * El nombre comercial, el correo, el teléfono y la dirección son operativos y no salen
-     * del grupo interno, así que aquí no existen.
+     * El nombre comercial, el correo, el teléfono y la dirección son operativos y nunca
+     * salen del grupo interno.
      */
-    prestadorTituloSnapshot?: I18n;
-    prestadorUrlSnapshot?: string | null;
-    prestadorImagenesSnapshot?: PaxImagenSnapshot[];
-    /** El servicio concreto que presta (ej. el tipo de habitación). */
-    prestadorServicioTituloSnapshot?: I18n;
-    prestadorServicioUrlSnapshot?: string | null;
-    prestadorServicioImagenesSnapshot?: PaxImagenSnapshot[];
+    prestadorTitulo?: I18n;
+    prestadorUrl?: string | null;
+    prestadorImagenes?: PaxImagenSnapshot[];
+    /** El servicio contratado (ej. el tipo de habitación), también inyectado. */
+    prestadorServicioTitulo?: I18n;
+    prestadorServicioImagenes?: PaxImagenSnapshot[];
 
     /** Su hora representa el horario de toda la excursión (servicio completo), no
      *  la del segmento donde está anclado. Ver CotizacionCotcomponente. */
@@ -197,9 +195,8 @@ export interface PaxInclusionItem {
      * `clasificacionFinancieraCliente`. Sólo la cara pública: nombre comercial,
      * teléfono y dirección son operativos y no salen del backend.
      */
-    prestadorTitulo?: I18n;
-    prestadorUrl?: string | null;
-    prestadorImagenes?: PaxImagenSnapshot[];
+    /** Nombre histórico del prestador: lo que se ve si la empresa ya no está. */
+    prestadorNombre?: string | null;
 
     /**
      * Id del componente del que salió la línea. Espejo de `InclusionLinea` en

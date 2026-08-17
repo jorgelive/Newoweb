@@ -458,56 +458,38 @@ Su bloque rico (título i18n, url, imágenes, servicio contratado, bandera) **es
 prestador: se movió tal cual. El prestador conservó lo suyo —teléfono y dirección
 congelados— y ganó un correo.
 
-### Por qué hay snapshot si ya está el enlace, y hacia dónde resuelve cada campo
+### Campos planos: enlace + nombre histórico, y nada más
 
-No es una copia envejecida del maestro. Existe por **dos motivos distintos**:
-
-1. **Prestadores de un solo uso.** Una empresa que no está en el catálogo y no merece
-   entrar. Ahí el snapshot no duplica nada: es el único dato que hay.
-2. **Overrides.** En ESTA propuesta quieres enseñar otro título, otra foto u otra url que
-   la del catálogo.
-
-⚠️ **Y por eso la resolución tiene dos direcciones opuestas.** Confundirlas es el error
-fácil de toda esta zona:
-
-| | Dirección | Por qué |
-|---|---|---|
-| **Contacto** — correo, teléfono, dirección | `maestro ?? snapshot` | Manda lo VIVO. Un teléfono de hace tres meses no es más fiable por estar guardado: es justo el que ya no contesta. La orden se resuelve al enviarla. |
-| **Presentación** — título, url, imágenes | `snapshot ?? maestro` | Manda lo ESCRITO. Un título puesto a mano para esta propuesta es una decisión, no un dato viejo; pisarlo con «lo actual» sería deshacerla sin avisar. |
-
-Lo primero lo hace `ProveedorVivoResolver::contactoDe()`; lo segundo,
-`CotizacionCotcomponentePrestadorPublicNormalizer::override()`. Sonda que prueba las dos
-direcciones y el caso de un solo uso: `var/probar-prestador-resolucion.php`.
-
-### El prestador se llena de dos formas
+El componente guarda **cinco cosas**:
 
 ```
-CON MAESTRO   prestadorMaestroId → travel_proveedor
-              · la cara pública se resuelve EN VIVO al servir
-              · entra en los filtros automáticos
-
-A MANO        sin maestroId, sólo nombre + correo
-              · NO entra en los filtros: no hay contra qué casarlo
-              · su cara pública es el snapshot, no hay nada vivo que leer
-              · pero con el correo se le manda una orden por única vez
+prestadorMaestroId               enlace al catálogo
+prestadorNombreSnapshot          nombre histórico
+prestadorServicioMaestroId       enlace al servicio contratado
+prestadorServicioNombreSnapshot  nombre histórico del servicio
+prestadorVisible                 bandera
 ```
 
-Lo comprueba `CotizacionCotcomponente::prestadorEsManual()`. Es la excepción deliberada:
-sin ella, una empresa que aún no está en el catálogo sería un callejón sin salida.
+Título, url, imágenes y contacto **no se guardan**: los inyecta el backend leyendo el
+catálogo al servir, y la orden los resuelve al enviarse.
 
-### La cascada desapareció
+Llegaron a estar copiados en nueve columnas y el problema no era el tamaño —se midió:
+5,8 KB sobre 815, el 0,7%— sino que **filtrar era ambiguo**: la misma empresa estaba en
+trece columnas del componente y, si alguien la renombraba en el catálogo, ninguna coincidía
+con las otras. Con un id hay una sola cosa contra la que filtrar.
 
-Llegó a ser `componente → día → proveedor de la tarifa`, con un DTO que dejaba constancia de
-qué fuente había ganado. Eso existía porque el dato estaba repartido en tres sitios. Hoy
-vive en uno y `resolverPrestador()` es un lector — se conserva como método para que
-Operación y las vistas entren por el mismo punto.
+⚠️ **Se perdieron los overrides.** Ya no se puede enseñar en una propuesta un título
+distinto al del catálogo: se edita el maestro y cambia en todas. Es la contrapartida
+deliberada de que todos los prestadores se den de alta.
 
-También se retiró **el prestador del día** (`CotizacionCotservicio::$prestador*`): era el
-peldaño intermedio de esa cascada y, sin ella, no tenía a quién alimentar. Estaba en 0 filas.
+### El nombre no es una copia: es la degradación
 
-El comprador sí mantiene dos peldaños: `componente → prestador`. Si nadie encargó la compra,
-se le pide a quien presta, que es el caso normal y lo que hace que la OS salga bien sin
-llenar nada.
+El soft-link no tiene integridad referencial a propósito. Si borran la empresa del
+catálogo, **el nombre guardado es el último dato que sobrevive** — y con él la propuesta
+antigua sigue contando quién prestó el servicio, sin tarjeta a medias. Lo mismo el nombre
+del servicio, que hasta `Version20260816280000` ni siquiera se guardaba.
+
+Por eso se guarda aunque se pueda resolver.
 
 ### El gate de lo que ve el cliente
 

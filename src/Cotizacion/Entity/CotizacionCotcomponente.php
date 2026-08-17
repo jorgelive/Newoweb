@@ -133,39 +133,34 @@ class CotizacionCotcomponente
     private bool $horaServicioCompleto = false;
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PRESTADOR — la empresa de este componente
+    // PRESTADOR — la empresa de este componente, en CAMPOS PLANOS
     //
     // `Proveedor` es la entidad maestra: el contacto-empresa, el otro lado de `Cliente`.
-    // Aquí no se repite esa entidad, se le da un PAPEL. A nivel de cotización sólo hacen
-    // falta dos: quién presta (esto) y a quién se le encarga la compra (el comprador).
+    // Aquí no se copia esa entidad, se guarda **el enlace y su nombre**, nada más.
     //
-    // ── Por qué hay snapshot si ya está el enlace ────────────────────────────
-    // Por dos motivos que no son el mismo:
+    // ── Todo se resuelve en vivo ─────────────────────────────────────────────
+    // Título, url, imágenes, correo, teléfono y dirección salen del maestro cuando hacen
+    // falta —al servir la propuesta y al mandar la orden—. Llegaron a estar copiados aquí
+    // en nueve columnas y eso traía tres problemas a la vez:
     //
-    //   1. **Prestadores de un solo uso.** Una empresa que no está en el catálogo y no
-    //      merece entrar: se escribe a mano, sin `prestadorMaestroId`. Ahí el snapshot no
-    //      es una copia, es el único dato que existe.
-    //   2. **Overrides.** En ESTA propuesta quieres enseñar otro título, otra foto u otra
-    //      url que la del catálogo. El snapshot es la excepción escrita a propósito.
+    //   · **filtrar era ambiguo**: la misma empresa estaba en trece columnas y, si alguien
+    //     la renombraba en el catálogo, ninguna coincidía con las otras;
+    //   · había que mantener sincronizados unos overrides que casi nadie usaba;
+    //   · un correo de confirmación salía con el dato del día en que se cotizó.
     //
-    // ⚠️ **Y por eso la resolución tiene DOS direcciones opuestas.** Confundirlas es el
-    // error fácil aquí:
+    // ── Degradación: qué pasa si borran la empresa ───────────────────────────
+    // El soft-link no tiene integridad referencial a propósito. Si el maestro desaparece,
+    // esto degrada solo a lo que queda escrito: **el uuid histórico y el nombre
+    // histórico**, del prestador y de su servicio. Con eso la propuesta antigua sigue
+    // contando quién prestó el servicio, que es lo único que hace falta de un proveedor
+    // que ya no trabaja contigo.
     //
-    //   CONTACTO (correo, teléfono, dirección)   maestro ?? snapshot
-    //     Manda lo VIVO: quieres el número que contesta hoy, no el de hace tres meses. El
-    //     snapshot cubre el hueco cuando no hay maestro —el caso a mano— o cuando lo
-    //     borraron del catálogo.
+    // Por eso el nombre se guarda aunque se pueda resolver: no es una copia por si acaso,
+    // es el último dato que sobrevive.
     //
-    //   PRESENTACIÓN (título, url, imágenes)     snapshot ?? maestro
-    //     Manda lo ESCRITO: si alguien puso un título distinto para esta propuesta, es
-    //     porque quería ese y no el del catálogo. El maestro cubre el hueco cuando no se
-    //     ha tocado nada, que es el caso normal.
-    //
-    // Lo resuelve `ProveedorVivoResolver` al servir y al mandar la orden; aquí sólo se
-    // guarda. Ver docs/Cotizaciones.md §6.c.
-    //
-    // ⚠️ El prestador **a mano no entra en los filtros automáticos**: no hay maestro
-    // contra el que casarlo. A cambio, con su correo se le manda la orden esa vez.
+    // ⚠️ Se acabó el prestador «a mano». Todos se dan de alta —el editor tiene el alta
+    // inline— así que `prestadorMaestroId` siempre está lleno mientras la empresa exista.
+    // Ver docs/Cotizaciones.md §6.c.
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
@@ -179,8 +174,11 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $prestadorVisible = false;
 
-    /** SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    /**
+     * SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+     * hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $prestadorMaestroId = null;
 
@@ -190,68 +188,19 @@ class CotizacionCotcomponente
     private ?string $prestadorNombreSnapshot = null;
 
     /**
-     * Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
-     * en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
-     * le puede mandar la orden esa vez y seguir.
-     */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 100, nullable: true)]
-    private ?string $prestadorEmailSnapshot = null;
-
-    /**
      * El servicio concreto que presta (ej. el tipo de habitación).
      *
      * @see $prestadorServicioTituloSnapshot para su cara pública.
      */
-    /** Teléfono. Respaldo del maestro; único dato si es a mano. */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 50, nullable: true)]
-    private ?string $prestadorTelefonoSnapshot = null;
-
-    /** Dirección. Respaldo del maestro; único dato si es a mano. */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $prestadorDireccionSnapshot = null;
-
-    /**
-     * Título de cara al cliente. **Override**: si está, gana al del catálogo.
-     *
-     * @var list<array{language?: string, content?: string|null}>
-     */
+    /** El servicio contratado (ej. el tipo de habitación). Enlace. */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
-    #[ORM\Column(type: 'json')]
-    private array $prestadorTituloSnapshot = [];
-
-    /** Override de la url. */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $prestadorUrlSnapshot = null;
-
-    /** @var list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'json')]
-    private array $prestadorImagenesSnapshot = [];
-
-    /** El servicio contratado (ej. el tipo de habitación). */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $prestadorServicioMaestroId = null;
 
-    /** @var list<array{language?: string, content?: string|null}> */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
-    #[ORM\Column(type: 'json')]
-    private array $prestadorServicioTituloSnapshot = [];
-
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $prestadorServicioUrlSnapshot = null;
-
-    /** @var list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'json')]
-    private array $prestadorServicioImagenesSnapshot = [];
+    /** Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $prestadorServicioNombreSnapshot = null;
 
     // ─────────────────────────────────────────────────────────────────────────
     // COMPRADOR — a quién se le encarga EJECUTAR la compra
@@ -615,66 +564,30 @@ class CotizacionCotcomponente
     public function getPrestadorNombreSnapshot(): ?string { return $this->prestadorNombreSnapshot; }
     public function setPrestadorNombreSnapshot(?string $v): self { $this->prestadorNombreSnapshot = $v; return $this; }
 
-    public function getPrestadorEmailSnapshot(): ?string { return $this->prestadorEmailSnapshot; }
-    public function setPrestadorEmailSnapshot(?string $v): self { $this->prestadorEmailSnapshot = $v; return $this; }
 
-    public function getPrestadorTelefonoSnapshot(): ?string { return $this->prestadorTelefonoSnapshot; }
-    public function setPrestadorTelefonoSnapshot(?string $v): self { $this->prestadorTelefonoSnapshot = $v; return $this; }
 
-    public function getPrestadorDireccionSnapshot(): ?string { return $this->prestadorDireccionSnapshot; }
-    public function setPrestadorDireccionSnapshot(?string $v): self { $this->prestadorDireccionSnapshot = $v; return $this; }
 
-    /** @return list<array{language?: string, content?: string|null}> */
-    public function getPrestadorTituloSnapshot(): array { return $this->prestadorTituloSnapshot; }
 
-    /** @param list<array{language?: string, content?: string|null}> $v */
-    public function setPrestadorTituloSnapshot(array $v): self { $this->prestadorTituloSnapshot = $v; return $this; }
 
-    public function getPrestadorUrlSnapshot(): ?string { return $this->prestadorUrlSnapshot; }
-    public function setPrestadorUrlSnapshot(?string $v): self { $this->prestadorUrlSnapshot = $v; return $this; }
 
-    /** @return list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
-    public function getPrestadorImagenesSnapshot(): array { return $this->prestadorImagenesSnapshot; }
 
-    /** @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v */
-    public function setPrestadorImagenesSnapshot(array $v): self { $this->prestadorImagenesSnapshot = $v; return $this; }
 
-    /** @return list<array{language?: string, content?: string|null}> */
-    public function getPrestadorServicioTituloSnapshot(): array { return $this->prestadorServicioTituloSnapshot; }
 
-    /** @param list<array{language?: string, content?: string|null}> $v */
-    public function setPrestadorServicioTituloSnapshot(array $v): self { $this->prestadorServicioTituloSnapshot = $v; return $this; }
 
-    public function getPrestadorServicioUrlSnapshot(): ?string { return $this->prestadorServicioUrlSnapshot; }
-    public function setPrestadorServicioUrlSnapshot(?string $v): self { $this->prestadorServicioUrlSnapshot = $v; return $this; }
 
-    /** @return list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> */
-    public function getPrestadorServicioImagenesSnapshot(): array { return $this->prestadorServicioImagenesSnapshot; }
 
-    /** @param list<array{orden?: int, imageUrl?: string, imageName?: string, imageSize?: int, isPortada?: bool}> $v */
-    public function setPrestadorServicioImagenesSnapshot(array $v): self { $this->prestadorServicioImagenesSnapshot = $v; return $this; }
 
     public function getPrestadorServicioMaestroId(): ?string { return $this->prestadorServicioMaestroId; }
     public function setPrestadorServicioMaestroId(?string $v): self { $this->prestadorServicioMaestroId = $v; return $this; }
+
+    public function getPrestadorServicioNombreSnapshot(): ?string { return $this->prestadorServicioNombreSnapshot; }
+    public function setPrestadorServicioNombreSnapshot(?string $v): self { $this->prestadorServicioNombreSnapshot = $v; return $this; }
 
     /** ¿Este componente tiene prestador, del catálogo o escrito a mano? */
     public function tienePrestador(): bool
     {
         return $this->prestadorMaestroId !== null
             || trim($this->prestadorNombreSnapshot ?? '') !== '';
-    }
-
-    /**
-     * ¿Se llenó a mano, sin casarlo con el catálogo?
-     *
-     * Es la excepción: no entra en los filtros automáticos —no hay maestro contra el que
-     * casarlo— y su cara pública no se resuelve en vivo, se queda con lo que se escribió.
-     * A cambio, con el correo se le puede mandar una orden por única vez.
-     */
-    public function prestadorEsManual(): bool
-    {
-        return $this->prestadorMaestroId === null
-            && trim($this->prestadorNombreSnapshot ?? '') !== '';
     }
 
     public function getCompradorMaestroId(): ?string { return $this->compradorMaestroId; }
@@ -729,18 +642,18 @@ class CotizacionCotcomponente
     }
 
     /**
-     * El prestador de este componente, **sin resolver** contra el catálogo.
+     * El prestador tal y como está guardado: enlace + nombres históricos.
      *
-     * Devuelve lo guardado tal cual. Quien necesite el contacto vivo —la Orden de
-     * Servicio— tiene que pasar por `ProveedorVivoResolver::contactoDe()`, que aplica la
-     * dirección correcta: **maestro ?? snapshot**. Aquí no se hace porque una entidad no
-     * consulta la base; y hacerlo por su cuenta sería una consulta por componente.
+     * No resuelve nada contra el catálogo — una entidad no consulta la base, y hacerlo por
+     * su cuenta sería una consulta por componente. Quien necesite el dato vivo pasa por
+     * `ProveedorVivoResolver`, que trae los maestros en lote.
      *
-     * `manual` es lo que le dice a Operación que este prestador no entra en los filtros
-     * automáticos y que su correo es el único al que se puede escribir.
+     * Si el maestro ya no existe, esto **es** el prestador: el uuid y el nombre que
+     * quedaron escritos. Con eso una propuesta antigua sigue contando quién prestó el
+     * servicio, que es lo único que hace falta de un proveedor que ya no trabaja contigo.
      *
-     * @return array{maestroId: string|null, nombre: string|null, email: string|null,
-     *               telefono: string|null, direccion: string|null, manual: bool}|null
+     * @return array{maestroId: string|null, nombre: string|null,
+     *               servicioMaestroId: string|null, servicioNombre: string|null}|null
      */
     public function resolverPrestador(): ?array
     {
@@ -751,10 +664,8 @@ class CotizacionCotcomponente
         return [
             'maestroId' => $this->prestadorMaestroId,
             'nombre' => $this->prestadorNombreSnapshot,
-            'email' => $this->prestadorEmailSnapshot,
-            'telefono' => $this->prestadorTelefonoSnapshot,
-            'direccion' => $this->prestadorDireccionSnapshot,
-            'manual' => $this->prestadorEsManual(),
+            'servicioMaestroId' => $this->prestadorServicioMaestroId,
+            'servicioNombre' => $this->prestadorServicioNombreSnapshot,
         ];
     }
 }

@@ -6868,37 +6868,17 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
-            prestadorTelefonoSnapshot?: string | null;
-            prestadorDireccionSnapshot?: string | null;
-            /**
-             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
-             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
-             *     le puede mandar la orden esa vez y seguir.
-             */
-            prestadorEmailSnapshot?: string | null;
-            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
@@ -6980,37 +6960,17 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
-            prestadorTelefonoSnapshot?: string | null;
-            prestadorDireccionSnapshot?: string | null;
-            /**
-             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
-             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
-             *     le puede mandar la orden esa vez y seguir.
-             */
-            prestadorEmailSnapshot?: string | null;
-            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
@@ -7087,37 +7047,17 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
-            prestadorTelefonoSnapshot?: string | null;
-            prestadorDireccionSnapshot?: string | null;
-            /**
-             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
-             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
-             *     le puede mandar la orden esa vez y seguir.
-             */
-            prestadorEmailSnapshot?: string | null;
-            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
@@ -7169,22 +7109,13 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
+            prestadorMaestroId?: string | null;
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: (string | null)[];
         };
@@ -7218,22 +7149,13 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
+            prestadorMaestroId?: string | null;
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: (string | null)[];
         };
@@ -7308,37 +7230,17 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
-            prestadorTelefonoSnapshot?: string | null;
-            prestadorDireccionSnapshot?: string | null;
-            /**
-             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
-             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
-             *     le puede mandar la orden esa vez y seguir.
-             */
-            prestadorEmailSnapshot?: string | null;
-            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
@@ -7420,37 +7322,17 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
-            prestadorTelefonoSnapshot?: string | null;
-            prestadorDireccionSnapshot?: string | null;
-            /**
-             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
-             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
-             *     le puede mandar la orden esa vez y seguir.
-             */
-            prestadorEmailSnapshot?: string | null;
-            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
@@ -7506,22 +7388,13 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
+            prestadorMaestroId?: string | null;
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: (string | null)[];
         };
@@ -7555,22 +7428,13 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
+            prestadorMaestroId?: string | null;
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: (string | null)[];
         };
@@ -7645,37 +7509,17 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
-            prestadorTelefonoSnapshot?: string | null;
-            prestadorDireccionSnapshot?: string | null;
-            /**
-             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
-             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
-             *     le puede mandar la orden esa vez y seguir.
-             */
-            prestadorEmailSnapshot?: string | null;
-            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
@@ -7758,37 +7602,17 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
-            prestadorTelefonoSnapshot?: string | null;
-            prestadorDireccionSnapshot?: string | null;
-            /**
-             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
-             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
-             *     le puede mandar la orden esa vez y seguir.
-             */
-            prestadorEmailSnapshot?: string | null;
-            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
@@ -7846,22 +7670,13 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
+            prestadorMaestroId?: string | null;
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: (string | null)[];
         };
@@ -7896,22 +7711,13 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
+            prestadorMaestroId?: string | null;
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: (string | null)[];
         };
@@ -7986,37 +7792,17 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
-            prestadorTelefonoSnapshot?: string | null;
-            prestadorDireccionSnapshot?: string | null;
-            /**
-             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
-             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
-             *     le puede mandar la orden esa vez y seguir.
-             */
-            prestadorEmailSnapshot?: string | null;
-            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
@@ -8098,37 +7884,17 @@ export interface components {
              * @default false
              */
             prestadorVisible: boolean;
-            /** @description SOFT-LINK al catálogo maestro. Vacío = se llenó a mano (ver prestadorEsManual()). */
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
             prestadorMaestroId?: string | null;
             /** @description Nombre comercial. Operativo: identifica al prestador en La Biblia. */
             prestadorNombreSnapshot?: string | null;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            /** @description Teléfono y dirección: lo que el transportista necesita para el recojo. */
-            prestadorTelefonoSnapshot?: string | null;
-            prestadorDireccionSnapshot?: string | null;
-            /**
-             * @description Correo del prestador. Es lo que hace viable el caso MANUAL: una empresa que no está
-             *     en el catálogo no se puede filtrar ni resolver en vivo, pero si tienes su correo se
-             *     le puede mandar la orden esa vez y seguir.
-             */
-            prestadorEmailSnapshot?: string | null;
-            /** @description El servicio concreto que presta (ej. el tipo de habitación). */
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
@@ -8184,22 +7950,13 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
+            prestadorMaestroId?: string | null;
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: (string | null)[];
         };
@@ -8233,22 +7990,13 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /** @description Título de cara al cliente (I18nContent[]), traducible. */
-            prestadorTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorUrlSnapshot?: string | null;
-            /** @description Galería del prestador (snapshot), para la tarjeta de referencia en pax. */
-            prestadorImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
-            prestadorServicioTituloSnapshot?: {
-                [key: string]: string | null;
-            }[];
-            prestadorServicioUrlSnapshot?: string | null;
-            prestadorServicioImagenesSnapshot?: {
-                [key: string]: boolean | number | string;
-            }[];
+            /**
+             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
+             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
+             */
+            prestadorMaestroId?: string | null;
+            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
             readonly detallesParaCliente?: (string | null)[];
         };

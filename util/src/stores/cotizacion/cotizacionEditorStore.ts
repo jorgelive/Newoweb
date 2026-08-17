@@ -26,7 +26,7 @@ import {
     formatRangoEdad,
     getProcedenciaUI,
     I18nContent,
-    ImagenProveedorSnapshot, ImagenSnapshot,
+    ImagenSnapshot,
     InclusionLinea,
     InclusionServicio,
     InclusionTarifa,
@@ -327,15 +327,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             modalidadTarifaVisible: item.modalidadTarifaVisible ?? false,
             sobreescribirTraduccion: false
         };
-    };
-
-    const mapearImagenesSnapshot = (imagenes: ImagenProveedorSnapshot[] | undefined | null): ImagenProveedorSnapshot[] => {
-        if (!imagenes || !Array.isArray(imagenes)) return [];
-        return imagenes.map(img => ({
-            imageUrl: img.imageUrl ?? null,
-            orden: img.orden ?? 0,
-            isPortada: img.isPortada ?? false
-        }));
     };
 
     // Los campos i18n (incluidos los de `notas`) ya vienen corregidos en el tipo
@@ -1134,29 +1125,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // sin tarifas y aplana los items con herencia condicional por flags.
     // ────────────────────────────────────────────────────────────────────────────
     /**
-     * El prestador del componente. Espejo de `CotizacionCotcomponente::resolverPrestador()`.
+     * El prestador del componente: enlace y nombre, que es todo lo que guarda.
      *
-     * **Ya no hay cascada.** Llegó a ser `componente → día → proveedor de la tarifa`, con un
-     * `origen` para saber cuál había ganado. Eso existía porque el dato estaba repartido en
-     * tres sitios; ahora vive en uno y esto es un lector. Se conserva como función para que
-     * las vistas y el snapshot entren por el mismo sitio.
+     * El editor no necesita la ficha —título, fotos— para trabajar: eso lo resuelve el
+     * backend contra el catálogo al servir la propuesta. Aquí basta con saber quién es.
      */
     const resolverPrestador = (
         componente: ComponenteCompleto
-    ): { nombre: string | null; titulo: I18nContent[]; url: string | null; imagenes: ImagenProveedorSnapshot[]; manual: boolean } | null => {
+    ): { maestroId: string | null; nombre: string | null } | null => {
         const tieneMaestro = Boolean(componente.prestadorMaestroId);
         const tieneNombre = (componente.prestadorNombreSnapshot || '').trim() !== '';
 
         if (!tieneMaestro && !tieneNombre) return null;
 
         return {
-            nombre: componente.prestadorNombreSnapshot ?? null,
-            titulo: componente.prestadorTituloSnapshot || [],
-            url: componente.prestadorUrlSnapshot ?? null,
-            imagenes: componente.prestadorImagenesSnapshot || [],
-            // A mano = sin maestro. No entra en los filtros automáticos y su cara pública
-            // no se resuelve en vivo, pero con el correo se le puede mandar una orden.
-            manual: !tieneMaestro && tieneNombre
+            maestroId: componente.prestadorMaestroId ?? null,
+            nombre: componente.prestadorNombreSnapshot ?? null
         };
     };
 
@@ -1329,9 +1313,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             edadMax: tarifaRef?.edadMaximaSnapshot ?? null,
                             tarifaTitulo: [],
                             tarifas: estandares.map(mapearTarifaInclusion),
-                            prestadorTitulo: prestador?.titulo,
-                            prestadorUrl: prestador?.url,
-                            prestadorImagenes: prestador?.imagenes,
+                            // Sólo el nombre histórico: la ficha del prestador la hidrata
+                            // pax en lote contra el catálogo, no viaja repetida por línea.
+                            prestadorNombre: prestador?.nombre,
                             // El proveedor NO se copia aquí: sería una foto. Sólo viaja el
                             // id, y pax lee el proveedor del componente vivo, que el
                             // backend resuelve contra el maestro al servir.
@@ -2440,9 +2424,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const componente = componenteEnEdicion.value;
         if (componente) {
             componente.prestadorServicioMaestroId = null;
-            componente.prestadorServicioTituloSnapshot = [];
-            componente.prestadorServicioUrlSnapshot = null;
-            componente.prestadorServicioImagenesSnapshot = [];
+            componente.prestadorServicioNombreSnapshot = null;
         }
     };
 
@@ -3878,106 +3860,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     /**
-     * El usuario eligió un servicio-proveedor del dropdown. Como la colección no trae 'titulo'
-     * ni imágenes (solo el Get individual lo expone), hacemos un fetch de detalle para hidratar
-     * el snapshot completo, incluyendo la galería.
-     */
-    const onProveedorServicioChange = async (val: string | null): Promise<void> => {
-        const componente = componenteEnEdicion.value;
-        if (!componente) return;
-
-        if (!val || val === 'null') {
-            componente.prestadorServicioMaestroId = null;
-            componente.prestadorServicioTituloSnapshot = [];
-            componente.prestadorServicioUrlSnapshot = null;
-            componente.prestadorServicioImagenesSnapshot = [];
-            return;
-        }
-
-        const targetId = extractIdStr(val);
-        componente.prestadorServicioMaestroId = targetId;
-
-        try {
-            const res = await apiClient.get(`/platform/travel/proveedor-servicios/${targetId}`);
-            // El nodo se captura al entrar y NO se relee tras el await: si el usuario
-            // navegó a otro componente con el fetch en vuelo, la escritura cae sobre el
-            // que estaba abierto al lanzar la acción. Mismo criterio que `navGen`.
-            componente.prestadorServicioTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(res.data)));
-            componente.prestadorServicioUrlSnapshot = res.data.url || null;
-            componente.prestadorServicioImagenesSnapshot = mapearImagenesSnapshot(res.data.proveedorServicioImagenes);
-        } catch (e) {
-            console.error('No se pudo hidratar el servicio-proveedor', e);
-        }
-    };
-
-    /**
-     * Asigna el proveedor. El reparto es el que da sentido a todo el movimiento:
+     * Copia el prestador del componente maestro al instanciarlo en la cotización.
      *
-     * Es un dato del COMPONENTE, entero. La tarifa llegó a guardar una referencia propia
-     * —«de quién es este precio»— pero nadie la leía y se retiró: cero componentes tenían
-     * dos proveedores distintos entre sus tarifas.
-     *
-     * ⚠️ Espejo de la cascada en `CotizacionCotcomponente::resolverPrestador()`.
-     */
-    const onProveedorChange = (val: string | null): void => {
-        const componente = componenteEnEdicion.value;
-
-        if (componente) {
-            // El servicio (tipo de habitación) cuelga del proveedor: cambiar de proveedor
-            // lo invalida siempre, se elija otro o ninguno.
-            componente.prestadorServicioMaestroId = null;
-            componente.prestadorServicioTituloSnapshot = [];
-            componente.prestadorServicioUrlSnapshot = null;
-            componente.prestadorServicioImagenesSnapshot = [];
-        }
-
-        if (!val || val === 'null') {
-            if (componente) {
-                componente.prestadorMaestroId = null;
-                componente.prestadorNombreSnapshot = null;
-                componente.prestadorTituloSnapshot = [];
-                componente.prestadorUrlSnapshot = null;
-                componente.prestadorImagenesSnapshot = [];
-                componente.prestadorVisible = false;
-            }
-            catalogos.value.proveedorServicios = [];
-            return;
-        }
-
-        const targetId = extractIdStr(val);
-        const provCat = catalogos.value.proveedores.find((p) => extractIdStr(p) === targetId);
-        if (!provCat) return;
-
-        if (componente) {
-            componente.prestadorMaestroId = targetId;
-            componente.prestadorNombreSnapshot = provCat.nombreComercial ?? null;
-            componente.prestadorTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(provCat)));
-            componente.prestadorUrlSnapshot = provCat.url || null;
-            componente.prestadorImagenesSnapshot = mapearImagenesSnapshot(provCat.proveedorImagenes);
-
-            // Semilla, igual que con el prestador: el maestro dice si a este proveedor se
-            // le puede nombrar siquiera. Nombrar al proveedor es lo que arriesga que el
-            // cliente se salte la intermediación, así que aquí el opt-in pesa más todavía.
-            componente.prestadorVisible = Boolean(provCat.visibleParaCliente);
-        }
-
-        fetchProveedorServiciosDeProveedor(targetId);
-    };
-
-    // ────────────────────────────────────────────────────────────────────────────
-    // PRESTADOR — quién presta, frente al proveedor de la tarifa (a quién se compra)
-    //
-    // Ambos apuntan al mismo catálogo maestro y se llenan igual; lo que cambia es la
-    // pregunta que responden. Ver resolverPrestador() y docs/Cotizaciones.md.
-    // ────────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Copia el proveedor del componente maestro al que se instancia en la cotización.
-     *
-     * Vive aparte porque lo usan dos sitios —la creación desde plantilla y la resincronización—
-     * y porque devuelve un fragmento: así el literal del componente no se llena de ramas.
-     * El proveedor del catálogo puede llegar como IRI o como objeto embebido según el grupo
-     * de lectura, de ahí el `extractIdStr`.
+     * Sólo enlace + nombre: lo demás se resuelve contra el catálogo cuando hace falta.
      */
     const sembrarPrestadorDesdeMaestro = (
         compMaestro: unknown
@@ -3990,73 +3875,60 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             return { prestadorVisible: false };
         }
 
+        const servRaw = (compMaestro as { proveedorServicio?: unknown })?.proveedorServicio;
+
         return {
             prestadorMaestroId: provId,
             prestadorNombreSnapshot: prov?.nombreComercial ?? null,
-            prestadorTituloSnapshot: prov ? JSON.parse(JSON.stringify(getTituloSafe(prov))) : [],
-            prestadorUrlSnapshot: prov?.url || null,
-            prestadorImagenesSnapshot: prov ? mapearImagenesSnapshot(prov.proveedorImagenes) : [],
-            prestadorServicioMaestroId: extractIdStr((compMaestro as { proveedorServicio?: unknown })?.proveedorServicio) || null,
+            prestadorServicioMaestroId: servRaw ? extractIdStr(servRaw) : null,
             prestadorVisible: Boolean(prov?.visibleParaCliente),
         };
     };
 
     /**
-     * Espejo de `CotizacionCotcomponente::resolverComprador()`.
+     * Asigna el prestador. Sólo se guarda el enlace y el nombre: lo demás se resuelve
+     * contra el catálogo cuando hace falta, así que copiarlo aquí sería crear una segunda
+     * versión del mismo dato que envejece sola.
      *
-     * Cascada corta y a propósito: `componente → proveedor`. Si nadie encargó la compra se
-     * le pide a quien vende, que es el caso normal y lo que hace que la Orden de Servicio
-     * salga bien sin llenar nada. NO hereda del día como el prestador: encargar una compra
-     * es una decisión por ítem —las entradas las saca uno y el hotel lo contrata otro—, así
-     * que un default por día arrastraría el encargo equivocado.
-     *
-     * ⚠️ Si cambias el orden, se tocan los dos lados.
+     * El nombre sí se guarda, y no es una copia por si acaso: es lo que queda si borran la
+     * empresa del catálogo.
      */
-    const resolverComprador = (
-        componente: ComponenteCompleto
-    ): { origen: 'componente' | 'prestador'; nombre: string | null } | null => {
-        if (componente.compradorMaestroId || (componente.compradorNombreSnapshot || '').trim()) {
-            return { origen: 'componente', nombre: componente.compradorNombreSnapshot ?? null };
-        }
-
-        if (componente.prestadorMaestroId || (componente.prestadorNombreSnapshot || '').trim()) {
-            return { origen: 'prestador', nombre: componente.prestadorNombreSnapshot ?? null };
-        }
-
-        return null;
-    };
-
-    /**
-     * Asigna a quién se le encarga la compra. Sale del MISMO catálogo que el proveedor y el
-     * prestador: los tres roles apuntan a empresas, así que no hay que elegir tipo primero.
-     */
-    const onCompradorChange = (val: string | null): void => {
+    const onPrestadorComponenteChange = (val: string | null): void => {
         const componente = componenteEnEdicion.value;
         if (!componente) return;
 
+        // Cambiar de empresa invalida su servicio: son catálogos encadenados.
+        componente.prestadorServicioMaestroId = null;
+        componente.prestadorServicioNombreSnapshot = null;
+        catalogos.value.proveedorServicios = [];
+
         if (!val || val === 'null') {
-            componente.compradorMaestroId = null;
-            componente.compradorNombreSnapshot = null;
+            componente.prestadorMaestroId = null;
+            componente.prestadorNombreSnapshot = null;
+            componente.prestadorVisible = false;
+
             return;
         }
 
         const targetId = extractIdStr(val);
         const prov = catalogos.value.proveedores.find((p) => extractIdStr(p) === targetId);
+        if (!prov) return;
 
-        componente.compradorMaestroId = targetId;
-        componente.compradorNombreSnapshot = prov?.nombreComercial ?? null;
+        componente.prestadorMaestroId = targetId;
+        componente.prestadorNombreSnapshot = prov.nombreComercial ?? null;
+        // Semilla: el maestro dice si a esta empresa se le puede nombrar siquiera.
+        componente.prestadorVisible = Boolean(prov.visibleParaCliente);
+
+        void fetchProveedorServiciosDeProveedor(targetId);
     };
 
     /**
      * Da de alta un `Proveedor` desde el editor y lo deja asignado como prestador.
      *
-     * Existe para que el prestador quede **SIEMPRE identificado contra el maestro**, que es
-     * la regla que declara `Proveedor::POST`. Sin esto, la salida rápida cuando la empresa
-     * no está en el catálogo era escribir texto libre — y eso deja `prestadorMaestroId`
-     * vacío, rompe el histórico financiero y lo saca de todos los filtros.
-     *
-     * Un prestador de un solo uso también entra: es una fila que no reutilizas, no un
-     * caso aparte. Sale más barato que mantener dos formas de guardar lo mismo.
+     * Existe para que el prestador quede SIEMPRE identificado contra el maestro, que es la
+     * regla que declara `Proveedor::POST`. Sin esto, la salida rápida cuando la empresa no
+     * está en el catálogo era escribir texto libre — y eso deja `prestadorMaestroId` vacío,
+     * lo saca de los filtros y rompe el histórico financiero.
      */
     const crearPrestadorYAsignar = async (datos: ProveedorWrite): Promise<boolean> => {
         const componente = componenteEnEdicion.value;
@@ -4074,8 +3946,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             return true;
         } catch (e) {
-            // Mismo criterio que el resto del store: se avisa y se devuelve el fallo, en
-            // vez de dejar el modal abierto sin decir por qué.
             alert(extractApiErrorMessage(e, 'No se pudo crear el proveedor.'));
 
             return false;
@@ -4083,54 +3953,65 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     /**
-     * Asigna el prestador del COMPONENTE desde el catálogo maestro.
-     *
-     * Congela las dos caras de una vez: la pública (título, url, imágenes) para la
-     * propuesta del cliente y la operativa (nombre, teléfono, dirección) para el
-     * cuadro de tráfico. El teléfono y la dirección se copian aquí y no se leen del
-     * maestro al operar porque el día del servicio tiene que decir el teléfono que
-     * valía cuando se vendió, no el que alguien cambió después en el catálogo.
+     * A quién se le encarga la compra. Cascada corta: `componente → prestador`. Si nadie
+     * la encargó, se le pide a quien presta, que es el caso normal.
      */
-    const onPrestadorComponenteChange = (val: string | null): void => {
-        const componente = componenteActivo.value;
+    const resolverComprador = (
+        componente: ComponenteCompleto
+    ): { origen: 'componente' | 'prestador'; nombre: string | null } | null => {
+        if (componente.compradorMaestroId || (componente.compradorNombreSnapshot || '').trim()) {
+            return { origen: 'componente', nombre: componente.compradorNombreSnapshot ?? null };
+        }
+
+        if (componente.prestadorMaestroId || (componente.prestadorNombreSnapshot || '').trim()) {
+            return { origen: 'prestador', nombre: componente.prestadorNombreSnapshot ?? null };
+        }
+
+        return null;
+    };
+
+    /** Asigna el comprador. Sale del mismo catálogo que el prestador: son empresas. */
+    const onCompradorChange = (val: string | null): void => {
+        const componente = componenteEnEdicion.value;
         if (!componente) return;
 
         if (!val || val === 'null') {
-            componente.prestadorMaestroId = null;
-            componente.prestadorNombreSnapshot = null;
-            componente.prestadorTituloSnapshot = [];
-            componente.prestadorUrlSnapshot = null;
-            componente.prestadorImagenesSnapshot = [];
-            componente.prestadorTelefonoSnapshot = null;
-            componente.prestadorDireccionSnapshot = null;
-            componente.prestadorVisible = false;
+            componente.compradorMaestroId = null;
+            componente.compradorNombreSnapshot = null;
+
             return;
         }
 
         const targetId = extractIdStr(val);
         const prov = catalogos.value.proveedores.find((p) => extractIdStr(p) === targetId);
-        if (!prov) return;
 
-        componente.prestadorMaestroId = targetId;
-        componente.prestadorNombreSnapshot = prov.nombreComercial ?? null;
-        componente.prestadorTituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(prov)));
-        componente.prestadorUrlSnapshot = prov.url || null;
-        componente.prestadorImagenesSnapshot = mapearImagenesSnapshot(prov.proveedorImagenes);
-        componente.prestadorTelefonoSnapshot = prov.telefono || null;
-        componente.prestadorDireccionSnapshot = prov.direccion || null;
+        componente.compradorMaestroId = targetId;
+        componente.compradorNombreSnapshot = prov?.nombreComercial ?? null;
+    };
 
-        // Aquí es donde vive ahora la regla que antes se re-derivaba al serializar: se
-        // SIEMBRA la bandera y a partir de este momento manda lo guardado, así que
-        // reclasificar el componente ya no reescribe lo que ve el cliente.
-        //
-        // Las dos condiciones son distintas y hacen falta las dos:
-        //   · el maestro dice si a este proveedor se le puede nombrar siquiera;
-        //   · el modo dice si aquí aporta — en un `no_incluido` la referencia completa el
-        //     itinerario, en un `incluido` sería revelar quién opera lo que sí vendes.
-        // El operador puede contradecir el default con la casilla del inspector; para eso
-        // es un valor y no una regla.
-        componente.prestadorVisible = Boolean(prov.visibleParaCliente)
-            && (componente.modo || '').toLowerCase() === 'no_incluido';
+    /**
+     * Elige el servicio del prestador (ej. el tipo de habitación).
+     *
+     * Guarda enlace + nombre y nada más: título e imágenes se resuelven contra el catálogo
+     * al servir. Antes esto pedía el detalle completo para congelarlo, y era una llamada
+     * por cada vez que se cambiaba de servicio.
+     */
+    const onProveedorServicioChange = (val: string | null): void => {
+        const componente = componenteEnEdicion.value;
+        if (!componente) return;
+
+        if (!val || val === 'null') {
+            componente.prestadorServicioMaestroId = null;
+            componente.prestadorServicioNombreSnapshot = null;
+
+            return;
+        }
+
+        const targetId = extractIdStr(val);
+        const opcion = catalogos.value.proveedorServicios.find((ps) => ps.id === targetId);
+
+        componente.prestadorServicioMaestroId = targetId;
+        componente.prestadorServicioNombreSnapshot = opcion?.nombre ?? null;
     };
 
     /**
@@ -4267,7 +4148,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarSegmentoIndividual, reordenarSegmentos, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange, onCambioModoComponente,
-        actualizarInicioManteniendoRango, onProveedorChange, agregarDetalleOperativo, eliminarDetalleOperativo,
+        actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,
         servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,

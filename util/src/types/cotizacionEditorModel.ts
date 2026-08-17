@@ -438,14 +438,7 @@ type CotComponenteBase = components["schemas"]["CotizacionCotcomponente-cotizaci
 export type ComponenteCompleto = Omit<CotComponenteBase,
     'id' | 'nombreSnapshot' | 'estado' | 'modo' | 'fechaHoraInicio' | 'fechaHoraFin'
     | 'snapshotItems' | 'cottarifas' | 'detallesOperativos' | 'cotsegmento'
-    // Las columnas json de prestador y proveedor salen del schema con una firma de
-    // índice abierta (`{[k: string]: string | null}[]`), que se parece a la forma real
-    // pero no garantiza `language` ni `content`. Se redeclaran abajo. Tienen que ir en
-    // el Omit o la intersección de las dos formas produce un tipo inservible que no
-    // falla aquí sino lejos, al usarlo (§2 de docs/Cotizaciones.md).
     | 'prestadorTituloSnapshot' | 'prestadorImagenesSnapshot'
-    | 'prestadorTituloSnapshot' | 'prestadorImagenesSnapshot'
-    | 'prestadorServicioTituloSnapshot' | 'prestadorServicioImagenesSnapshot'
 > & {
     id: string;
     nombreSnapshot: I18nContent[];
@@ -464,20 +457,21 @@ export type ComponenteCompleto = Omit<CotComponenteBase,
     /** La hora del componente representa el horario de toda la excursión (servicio completo). */
     horaServicioCompleto?: boolean;
     /**
-     * Cara pública del PRESTADOR (ver el `Omit` de arriba).
+     * PRESTADOR — enlace y nombre histórico, nada más.
      *
-     * `Proveedor` es la entidad maestra; el prestador es el papel que juega aquí. A nivel de
-     * cotización sólo hay dos papeles —éste y el comprador—; hubo un tercero llamado
-     * «proveedor» que decía lo mismo y se retiró.
+     * `Proveedor` es la entidad maestra; esto es el papel que juega aquí. Título, url,
+     * imágenes y contacto NO se guardan: se resuelven contra el catálogo al servir y al
+     * mandar la orden. Lo que queda escrito es la degradación — si borran la empresa, el
+     * uuid y el nombre son lo único que sobrevive, y con eso la propuesta antigua sigue
+     * contando quién prestó el servicio.
      *
-     * Cuando hay `prestadorMaestroId`, lo que ve el cliente se resuelve EN VIVO en el
-     * backend contra el catálogo: esto es el respaldo congelado, y el único contenido
-     * cuando el prestador se escribió a mano.
+     * Filtrar es por `prestadorMaestroId` y sólo por ahí: antes la misma empresa estaba en
+     * trece columnas que podían discrepar entre sí.
      */
-    prestadorTituloSnapshot?: I18nContent[];
-    prestadorImagenesSnapshot?: ImagenProveedorSnapshot[];
-    prestadorServicioTituloSnapshot?: I18nContent[];
-    prestadorServicioImagenesSnapshot?: ImagenProveedorSnapshot[];
+    prestadorMaestroId?: string | null;
+    prestadorNombreSnapshot?: string | null;
+    prestadorServicioMaestroId?: string | null;
+    prestadorServicioNombreSnapshot?: string | null;
 
     /**
      * COMPRADOR — a quién se le encarga ejecutar la compra. Sin cara pública: nunca sale
@@ -767,9 +761,12 @@ export interface InclusionLinea {
      * `CotizacionCotcomponente::resolverPrestador()` (ver `resolverPrestador()` en
      * `cotizacionEditorStore.ts`).
      */
-    prestadorTitulo?: I18nContent[];
-    prestadorUrl?: string | null;
-    prestadorImagenes?: ImagenProveedorSnapshot[];
+    /**
+     * Nombre histórico del prestador. La ficha —título, url, fotos— NO viaja aquí: pax la
+     * hidrata en lote contra el catálogo con el id del componente, así no se repite por
+     * cada línea. Esto es lo que se ve si la empresa ya no existe.
+     */
+    prestadorNombre?: string | null;
 
     /**
      * Id del componente del que salió esta línea.

@@ -448,53 +448,8 @@ const opcionesProveedores = computed(() => {
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
 
-// ── Filtro BLANDO del selector de proveedores de una tarifa ──────────────────
-//
-// Si el componente (o su día) fija un prestador, el selector arranca mostrando
-// sólo ese proveedor. Es comodidad y calidad de datos, NUNCA una validación:
-//
-//  · Se puede desactivar con un clic. Prestador y proveedor comercial no siempre
-//    coinciden — la entrada de tren la opera PeruRail y se la compras a un
-//    consolidador. Un filtro duro haría esa tarifa inseleccionable.
-//  · No toca lo ya asignado: las tarifas existentes se muestran y se calculan
-//    igual aunque su proveedor no case con el prestador. Ocultarlas convertiría
-//    una ayuda en pérdida de datos silenciosa.
-const verTodosLosProveedores = ref(false);
 
 const prestadorParaFiltro = computed(() => store.prestadorEsperadoDeTarifaActiva);
-
-const opcionesProveedoresTarifa = computed(() => {
-  const esperado = prestadorParaFiltro.value;
-  if (verTodosLosProveedores.value || !esperado?.maestroId) return opcionesProveedores.value;
-
-  const soloDelPrestador = opcionesProveedores.value.filter(o => o.value === esperado.maestroId);
-
-  // Si el prestador no está en el catálogo cargado, filtrar dejaría la lista
-  // vacía y el operador sin salida: mejor no filtrar nada.
-  return soloDelPrestador.length ? soloDelPrestador : opcionesProveedores.value;
-});
-
-const filtroProveedorActivo = computed(() =>
-    !verTodosLosProveedores.value
-    && !!prestadorParaFiltro.value?.maestroId
-    && opcionesProveedoresTarifa.value.length < opcionesProveedores.value.length
-);
-
-/**
- * Prestador que aplica al componente abierto, ya resuelta la cascada
- * componente → día → proveedor de la tarifa. Sirve para que el panel diga
- * «heredado» en vez de fingir que el campo está vacío cuando en realidad sí hay
- * un prestador, solo que puesto más arriba.
- */
-/**
- * A quién se le encarga la compra, ya resuelta la cascada `componente → proveedor`.
- * Espejo de `CotizacionCotcomponente::resolverComprador()`.
- */
-const compradorResuelto = computed(() => {
-  const comp = store.componenteEnEdicion;
-
-  return comp ? store.resolverComprador(comp) : null;
-});
 
 /** Alta de prestador sin salir del editor. */
 const altaPrestadorAbierta = ref(false);
@@ -514,6 +469,13 @@ const guardarAltaPrestador = async (): Promise<void> => {
   if (ok) altaPrestadorAbierta.value = false;
 };
 
+/** A quién se le encarga la compra, ya resuelta la cascada `componente → prestador`. */
+const compradorResuelto = computed(() => {
+  const comp = store.componenteEnEdicion;
+
+  return comp ? store.resolverComprador(comp) : null;
+});
+
 const prestadorComponenteResuelto = computed(() => {
   const comp = store.componenteActivo;
   if (!comp) return null;
@@ -525,27 +487,8 @@ const prestadorComponenteResuelto = computed(() => {
   // el proveedor del propio componente. Ver resolverPrestador().
   const p = store.resolverPrestador(comp);
 
-  // `titulo` sale además del nombre porque son las dos mitades de cosas distintas: el
-  // nombre identifica (operativo, siempre hay) y el título es lo ÚNICO que vería el
-  // cliente. Sin él, marcar «nombrarlo» no pinta nada, y el panel avisa de ese hueco.
-  return p ? { nombre: p.nombre, titulo: p.titulo ?? [], manual: p.manual } : null;
+  return p ? { nombre: p.nombre, maestroId: p.maestroId } : null;
 });
-
-const handleNombreProveedorInput = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const val = target.value;
-
-  // Actualizamos el modelo. El proveedor es del COMPONENTE: la tarifa dejó de guardar
-  // una referencia propia porque nadie la leía.
-  if (store.componenteEnEdicion) {
-    store.componenteEnEdicion.prestadorNombreSnapshot = val;
-  }
-
-  // Ejecutamos la lógica de limpieza
-  if (!val.trim() && !store.componenteEnEdicion?.prestadorMaestroId) {
-    store.limpiarServicioProveedor();
-  }
-};
 
 const opcionesPlantillas = computed(() => {
   return store.catalogos.plantillasItinerario
@@ -972,31 +915,6 @@ watch(isProveedorOpen, (newVal) => {
     store.fetchProveedorServiciosDeProveedor(proveedorId);
   }
 });
-
-const normalizarUrl = (raw: string): string => {
-  const val = raw.trim();
-  if (!val) return '';
-  if (!/^https?:\/\//i.test(val)) return `https://${val}`;
-  return val;
-};
-
-const esUrlValida = (raw: string | null | undefined): boolean => {
-  if (!raw) return true; // vacío no es error, el campo es opcional
-  try {
-    new URL(raw);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-// Las dos URLs del proveedor viven en el componente desde que el dato dejó de estar
-// anidado en cada tarifa.
-const onUrlBlur = (campo: 'prestadorUrlSnapshot' | 'prestadorServicioUrlSnapshot') => {
-  const comp = store.componenteEnEdicion;
-  const valor = comp?.[campo];
-  if (comp && valor) comp[campo] = normalizarUrl(valor);
-};
 
 // Todas las imágenes de los segmentos del tour, en orden de itinerario
 const imagenesDelTour = computed<ImagenSnapshot[]>(() => {
@@ -2039,10 +1957,6 @@ store.$onAction(({ name, args }) => {
                   <summary class="px-3 py-2.5 cursor-pointer list-none flex items-center justify-between gap-2 hover:bg-slate-50 transition-colors">
                     <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                       <i class="fas fa-hotel text-indigo-500"></i> Prestador
-                      <span v-if="prestadorComponenteResuelto?.manual"
-                            class="text-[8px] bg-slate-100 text-slate-500 border border-slate-200 rounded px-1.5 py-0.5 normal-case font-bold">
-                        a mano
-                      </span>
                     </span>
                     <span class="flex items-center gap-2 min-w-0">
                       <!-- Si se le nombra o no es lo que más se consulta, y estaba escondido
@@ -2097,6 +2011,26 @@ store.$onAction(({ name, args }) => {
                       </button>
                     </div>
 
+                    <!-- El servicio cuelga del prestador: el desplegable se carga filtrado
+                         por él, y cambiar de empresa lo invalida. Sólo se guarda el enlace
+                         y el nombre; título y fotos salen del catálogo al servir. -->
+                    <div v-if="store.componenteActivo.prestadorMaestroId" class="flex gap-2 items-center mt-2">
+                      <SearchableSelect
+                          v-model="store.componenteActivo.prestadorServicioMaestroId"
+                          :options="store.catalogos.proveedorServicios.map(ps => ({ value: ps.id, label: ps.nombre }))"
+                          placeholder="Servicio del prestador (ej. tipo de habitación)…"
+                          :darkMode="false"
+                          @change="val => store.onProveedorServicioChange(val)"
+                          class="flex-1"
+                      />
+                      <button v-if="store.componenteActivo.prestadorServicioMaestroId"
+                              @click="store.onProveedorServicioChange(null)"
+                              class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
+                              title="Quitar servicio">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+
                     <!-- La decisión editorial, separada del hecho operativo. Antes se
                          deducía del modo y por eso reclasificar el componente cambiaba la
                          propuesta en silencio; ahora es un valor que se guarda. Se siembra
@@ -2115,24 +2049,18 @@ store.$onAction(({ name, args }) => {
                       </span>
                     </label>
 
-                    <p v-if="store.componenteActivo.prestadorVisible && !prestadorComponenteResuelto?.titulo?.length"
-                       class="mt-1.5 text-[9px] font-bold text-amber-600 leading-snug">
-                      <i class="fas fa-triangle-exclamation"></i>
-                      Marcado para nombrarlo, pero el prestador no tiene título público: el
-                      cliente no verá nada. Se rellena en el catálogo de proveedores.
+                    <!-- El aviso de «marcado sin título» vive ahora en la ficha de la
+                         empresa (ProveedorFormulario), que es donde se puede arreglar. -->
+
+                    <!-- El contacto ya no se copia aquí: sale del catálogo cuando se
+                         despacha y cuando se manda la orden, así que el número que se marca
+                         es el que contesta hoy. Se edita en la ficha de la empresa. -->
+                    <p v-if="store.componenteActivo.prestadorMaestroId"
+                       class="text-[9px] text-slate-400 mt-2 leading-snug">
+                      <i class="fas fa-circle-info"></i>
+                      Teléfono, correo y dirección salen de la ficha de la empresa.
                     </p>
 
-                    <!-- Contacto congelado: es lo que el transportista lee el día del
-                         servicio, y por eso se muestra aquí en vez de esconderlo. -->
-                    <div v-if="store.componenteActivo.prestadorTelefonoSnapshot || store.componenteActivo.prestadorDireccionSnapshot"
-                         class="mt-2 flex flex-col gap-1 text-[10px] font-bold text-slate-500">
-                      <span v-if="store.componenteActivo.prestadorTelefonoSnapshot">
-                        <i class="fas fa-phone text-slate-300 mr-1.5"></i>{{ store.componenteActivo.prestadorTelefonoSnapshot }}
-                      </span>
-                      <span v-if="store.componenteActivo.prestadorDireccionSnapshot">
-                        <i class="fas fa-location-dot text-slate-300 mr-1.5"></i>{{ store.componenteActivo.prestadorDireccionSnapshot }}
-                      </span>
-                    </div>
                   </div>
                 </details>
 
@@ -2188,227 +2116,6 @@ store.$onAction(({ name, args }) => {
               </div>
             </div>
 
-              <div class="col-span-2 bg-white border border-orange-200 rounded-2xl mt-2 relative overflow-hidden transition-all duration-300 shadow-sm">
-                <div class="absolute left-0 top-0 bottom-0 w-1 bg-orange-400 z-10"></div>
-
-                <div @click="isProveedorOpen = !isProveedorOpen" class="p-4 pl-5 cursor-pointer flex items-center justify-between hover:bg-orange-50/50 transition-colors relative">
-                  <div>
-                    <label class="text-[10px] font-black text-orange-500 uppercase tracking-widest cursor-pointer mb-0.5 flex items-center gap-1.5">
-                      <i class="fas fa-truck-loading"></i> Datos del Proveedor
-
-                    </label>
-                    <p class="text-sm font-bold flex items-center gap-2" :class="store.componenteActivo.prestadorNombreSnapshot ? 'text-slate-800' : 'text-slate-400 italic'">
-                      {{ store.componenteActivo.prestadorNombreSnapshot || 'Sin proveedor asignado' }}
-                    </p>
-                  </div>
-
-                  <div class="flex items-center gap-3">
-                <span v-if="store.componenteActivo.prestadorMaestroId" class="text-[8px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded border border-emerald-200 uppercase font-black hidden sm:inline-block">
-                  Catálogo
-                </span>
-                    <span v-else-if="store.componenteActivo.prestadorNombreSnapshot" class="text-[8px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded border border-sky-200 uppercase font-black hidden sm:inline-block">
-                  Libre
-                </span>
-                    <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0 border border-slate-200">
-                      <i class="fas transition-transform" :class="isProveedorOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-show="isProveedorOpen" class="p-4 pt-2 border-t border-slate-100 bg-slate-50/50">
-
-                  <fieldset class="border border-slate-200 bg-white rounded-xl p-4 mb-5 shadow-sm">
-                    <legend class="text-[10px] font-black text-slate-500 uppercase px-2 bg-white rounded border border-slate-100">1. Proveedor Logístico</legend>
-
-                    <!-- En positivo y sobre el COMPONENTE: el proveedor es uno por
-                         componente, no uno por línea de precio. El flag global de la
-                         cotización manda por encima de esta casilla. -->
-                    <div v-if="store.componenteEnEdicion"
-                         class="flex items-center justify-between mb-4 bg-orange-50/50 p-2 rounded-lg border border-orange-100">
-                      <label class="flex items-center gap-2 cursor-pointer w-full">
-                        <input type="checkbox" v-model="store.componenteActivo.prestadorVisible" class="w-4 h-4 text-orange-600 border-slate-300 rounded focus:ring-orange-500">
-                        <span class="text-[10px] font-bold text-slate-700 uppercase">Nombrar este proveedor al cliente</span>
-                      </label>
-                    </div>
-
-                    <!-- Filtro blando por el prestador del componente/día. Se anuncia
-                         y se puede quitar: nunca bloquea elegir otro proveedor. -->
-                    <div v-if="filtroProveedorActivo"
-                         class="flex items-center gap-2 mb-2 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1.5">
-                      <i class="fas fa-filter"></i>
-                      <span class="flex-1 min-w-0 truncate">
-                        Filtrado por el prestador: {{ prestadorParaFiltro?.nombre || 'definido arriba' }}
-                      </span>
-                      <button @click="verTodosLosProveedores = true"
-                              class="shrink-0 underline hover:text-indigo-800 uppercase tracking-wide">
-                        Ver todos
-                      </button>
-                    </div>
-                    <div v-else-if="verTodosLosProveedores && prestadorParaFiltro?.maestroId"
-                         class="flex items-center gap-2 mb-2 text-[10px] font-bold text-slate-400">
-                      <button @click="verTodosLosProveedores = false" class="underline hover:text-indigo-600 uppercase tracking-wide">
-                        <i class="fas fa-filter mr-1"></i> Volver a filtrar por el prestador
-                      </button>
-                    </div>
-
-                    <div class="flex gap-2 items-center">
-                      <SearchableSelect
-                          v-model="store.componenteActivo.prestadorMaestroId"
-                          :options="opcionesProveedoresTarifa"
-                          placeholder="Seleccionar proveedor del catálogo..."
-                          :darkMode="false"
-                          @change="val => store.onProveedorChange(val)"
-                          @search="val => store.buscarProveedoresAsincrono(val)"
-                          :min-chars-busqueda="2"
-                          class="flex-1"
-                      />
-                      <button v-if="store.componenteActivo.prestadorMaestroId"
-                              @click="store.onProveedorChange(null)"
-                              class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-200 transition-colors flex items-center justify-center shadow-sm"
-                              title="Deseleccionar Proveedor">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </div>
-
-                    <div class="mt-4">
-                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                        Título Público del Proveedor
-                      </label>
-                      <div class="flex gap-2">
-                        <input :value="store.getI18nText(store.componenteActivo.prestadorTituloSnapshot ?? [], store.cotizacion?.idiomaEdicion || 'es')"
-                               @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.prestadorTituloSnapshot ?? [], store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
-                               type="text"
-                               class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
-                               placeholder="Nombre del proveedor de cara al cliente..." />
-                        <button @click="store.componenteActivo.sobreescribirTraduccion = !store.componenteActivo.sobreescribirTraduccion"
-                                :class="store.componenteActivo.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200'"
-                                class="px-3 border rounded-lg transition-colors shadow-sm" title="Forzar traducción">
-                          <i class="fas fa-language"></i>
-                        </button>
-                      </div>
-
-                      <div class="flex items-center gap-2 mt-3">
-                        <i class="fas fa-building text-slate-400 text-xs w-4 shrink-0 text-center" title="URL a nivel Proveedor"></i>
-                        <div class="flex-1">
-                          <input v-if="store.componenteEnEdicion" v-model="store.componenteActivo.prestadorUrlSnapshot"
-                                 @blur="onUrlBlur('prestadorUrlSnapshot')"
-                                 type="url"
-                                 :class="!esUrlValida(store.componenteActivo.prestadorUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-orange-500'"
-                                 class="w-full bg-white border rounded-lg px-3 py-2 text-xs focus:ring-2 outline-none shadow-sm"
-                                 placeholder="URL del proveedor (sitio, microsite, doc)..." />
-                          <p v-if="!esUrlValida(store.componenteActivo.prestadorUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
-                            <i class="fas fa-exclamation-circle mr-1"></i> URL inválida.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="mt-4 pt-3 border-t border-slate-100">
-                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">Nombre en Snapshot (Histórico)</label>
-                      <input
-                          :value="store.componenteActivo.prestadorNombreSnapshot"
-                          @input="handleNombreProveedorInput"
-                          type="text"
-                          class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
-                          placeholder="Nombre del proveedor o servicio libre..."
-                      />
-                      <p class="text-[9px] text-slate-400 mt-1 ml-1 flex items-center gap-1">
-                        <i class="fas fa-info-circle"></i> Fija la identidad para el historial financiero.
-                      </p>
-                      <!--
-                        Escribirlo a mano deja el soft-link al maestro vacío. Se avisa aquí y
-                        no con una validación porque hay casos legítimos —un proveedor de una
-                        sola vez que no merece catalogarse—, pero conviene que sea una decisión
-                        y no el camino por defecto.
-                      -->
-                      <p class="text-[9px] text-amber-600 mt-1 ml-1 leading-snug">
-                        <i class="fas fa-triangle-exclamation"></i>
-                        Escrito a mano queda sin ficha en el catálogo: no se le puede filtrar en
-                        Operaciones ni acumula histórico. Y al cliente sólo se le muestra lo que
-                        tiene <strong>título público</strong> en el maestro — un nombre suelto
-                        aquí nunca aparece en la propuesta. Prefiere seleccionarlo del catálogo.
-                      </p>
-                    </div>
-                  </fieldset>
-
-                  <fieldset class="border border-slate-200 bg-white rounded-xl p-4 mb-4 shadow-sm">
-                    <legend class="text-[10px] font-black text-slate-500 uppercase px-2 bg-white rounded border border-slate-100">2. Servicio Contratado</legend>
-
-                    <label class="text-[9px] font-bold text-slate-500 uppercase mb-2 ml-1 flex items-center gap-1">
-                      <i class="fas fa-concierge-bell text-teal-500"></i> Buscar en el catálogo del proveedor (Opcional)
-                    </label>
-
-                    <div class="flex gap-2 items-center">
-                      <SearchableSelect
-                          v-if="store.componenteActivo.prestadorMaestroId && store.componenteEnEdicion"
-                          v-model="store.componenteActivo.prestadorServicioMaestroId"
-                          :options="store.catalogos.proveedorServicios.map(ps => ({ value: ps.id, label: ps.nombre }))"
-                          placeholder="Buscar servicio del proveedor..."
-                          :darkMode="false"
-                          @change="val => store.onProveedorServicioChange(val)"
-                          class="flex-1"
-                      />
-
-                      <div v-else class="flex-1 bg-slate-50 border border-slate-200 text-slate-400 rounded-lg px-3 py-2.5 text-xs font-bold flex items-center gap-2 shadow-inner">
-                        <i class="fas fa-info-circle"></i> Selecciona un proveedor arriba para ver sus servicios
-                      </div>
-
-                      <button v-if="store.componenteActivo.prestadorServicioMaestroId"
-                              @click="store.onProveedorServicioChange(null)"
-                              class="w-9 h-9 shrink-0 bg-red-50 text-red-500 rounded-lg border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm"
-                              title="Quitar servicio">
-                        <i class="fas fa-times"></i>
-                      </button>
-                      <div v-else class="w-full bg-slate-50 border border-slate-200 text-slate-400 rounded-lg px-3 py-2.5 text-xs font-bold flex items-center gap-2 shadow-inner">
-                        <i class="fas fa-info-circle"></i> Selecciona un proveedor arriba para ver sus servicios
-                      </div>
-
-                    </div>
-
-
-                    <div class="mt-3">
-                      <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1 ml-1">
-                        Título Público del Servicio
-                      </label>
-                      <div class="flex gap-2">
-                        <input :value="store.getI18nText(store.componenteActivo.prestadorServicioTituloSnapshot ?? [], store.cotizacion?.idiomaEdicion || 'es')"
-                               @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.prestadorServicioTituloSnapshot ?? [], store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
-                               type="text"
-                               class="flex-1 bg-white border border-slate-300 text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-teal-500 outline-none shadow-sm"
-                               placeholder="Título público del servicio..." />
-                        <button @click="store.componenteActivo.sobreescribirTraduccion = !store.componenteActivo.sobreescribirTraduccion"
-                                :class="store.componenteActivo.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200'"
-                                class="px-3 border rounded-lg transition-colors shadow-sm" title="Forzar traducción">
-                          <i class="fas fa-language"></i>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 mt-3">
-                      <i class="fas fa-door-open text-teal-400 text-xs w-4 shrink-0 text-center" title="URL a nivel Servicio del Proveedor"></i>
-                      <div class="flex-1">
-                        <input v-if="store.componenteEnEdicion" v-model="store.componenteActivo.prestadorServicioUrlSnapshot"
-                               @blur="onUrlBlur('prestadorServicioUrlSnapshot')"
-                               type="url"
-                               :class="!esUrlValida(store.componenteActivo.prestadorServicioUrlSnapshot) ? 'border-red-400 focus:ring-red-500 text-red-600' : 'border-slate-300 text-sky-600 focus:ring-teal-500'"
-                               class="w-full bg-white border rounded-lg px-3 py-2 text-xs focus:ring-2 outline-none shadow-sm"
-                               placeholder="URL del servicio (ej: ficha de la habitación)..." />
-                        <p v-if="!esUrlValida(store.componenteActivo.prestadorServicioUrlSnapshot)" class="text-[9px] text-red-500 mt-1 ml-1">
-                          <i class="fas fa-exclamation-circle mr-1"></i> URL inválida.
-                        </p>
-                      </div>
-                    </div>
-                  </fieldset>
-
-
-                  <template v-if="store.componenteActivo.prestadorNombreSnapshot">
-                  </template>
-                  <div v-else class="mt-5 pt-4 border-t border-slate-200 text-center py-6 text-slate-400">
-                    <i class="fas fa-user-slash text-2xl mb-2 opacity-40"></i>
-                    <p class="text-[10px] font-bold uppercase tracking-widest">Asigna un proveedor para gestionar la reserva</p>
-                  </div>
-                </div>
-              </div>
 
             <div class="border-t border-sky-100 pt-5 mt-4">
               <h3 class="text-[10px] font-black text-sky-700 uppercase tracking-widest mb-3 flex items-center justify-between">

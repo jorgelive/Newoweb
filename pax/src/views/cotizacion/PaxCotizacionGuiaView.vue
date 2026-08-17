@@ -9,7 +9,7 @@
  *  - Estadías (componentes sin hora que abarcan varios días, ej. hoteles) se repiten al final
  *    de cada día de su periodo [checkin .. checkout), con sus inclusiones solo el primer día.
  *  - Los números de día son calendario: si un día no tiene nada, se salta (Día 1, 2, 4...).
- *  - Tarifas con proveedor visible (prestadorTituloSnapshot) → botón "ver más" con modal.
+ *  - Tarifas con proveedor visible (prestadorTitulo) → botón "ver más" con modal.
  *  - Resumen financiero: colapsado en el header; expandido divide header y menú de días.
  *
  * Inclusiones (dos vistas):
@@ -427,14 +427,14 @@ const proveedorPorComponente = computed(() => {
   const m = new Map<string, ProveedorInfo>();
   for (const srv of store.cotizacion?.cotservicios ?? []) {
     for (const comp of srv.cotcomponentes ?? []) {
-      if (!comp.prestadorTituloSnapshot?.length) continue;
+      if (!comp.prestadorTitulo?.length) continue;
 
       m.set(comp.id, {
-        titulo: comp.prestadorTituloSnapshot,
-        url: comp.prestadorUrlSnapshot ?? null,
-        imagenes: (comp.prestadorImagenesSnapshot ?? []).filter((i) => i.imageUrl),
-        servicioTitulo: comp.prestadorServicioTituloSnapshot ?? [],
-        servicioImagenes: (comp.prestadorServicioImagenesSnapshot ?? []).filter((i) => i.imageUrl),
+        titulo: comp.prestadorTitulo,
+        url: comp.prestadorUrl ?? null,
+        imagenes: (comp.prestadorImagenes ?? []).filter((i) => i.imageUrl),
+        servicioTitulo: comp.prestadorServicioTitulo ?? [],
+        servicioImagenes: (comp.prestadorServicioImagenes ?? []).filter((i) => i.imageUrl),
       });
     }
   }
@@ -461,12 +461,20 @@ const abrirProveedor = (p: ProveedorInfo) => { modalProveedor.value = p; };
  * comprobación de `modo` aquí es defensa en profundidad, no la regla.
  */
 const prestadorDeLinea = (l: PaxInclusionItem): ProveedorInfo | null => {
-  if (l.modo !== 'no_incluido' || !l.prestadorTitulo?.length) return null;
+  if (l.modo !== 'no_incluido') return null;
+
+  // La ficha ya no viaja en la línea: se busca por el id del componente, que es donde el
+  // backend la inyecta resuelta contra el catálogo. Si la empresa ya no existe queda el
+  // nombre histórico y se pinta sin tarjeta.
+  const delComponente = proveedorDeComponente(l.componenteId);
+  if (delComponente) return delComponente;
+
+  if (!l.prestadorNombre) return null;
 
   return {
-    titulo: l.prestadorTitulo,
-    url: l.prestadorUrl ?? null,
-    imagenes: (l.prestadorImagenes ?? []).filter((i) => i.imageUrl) as { imageUrl: string }[],
+    titulo: [{ content: l.prestadorNombre, language: 'es' }],
+    url: null,
+    imagenes: [],
     servicioTitulo: [],
     servicioImagenes: [],
   };

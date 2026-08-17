@@ -200,8 +200,10 @@ class BibliaSnapshotService
             'compradorNombre'       => $comprador?->nombre,
             'prestadorMaestroId'    => $prestador['maestroId'] ?? null,
             'prestadorNombre'       => $prestador['nombre'] ?? null,
-            'prestadorTelefono'     => $prestador['telefono'] ?? null,
-            'prestadorDireccion'    => $prestador['direccion'] ?? null,
+            // Teléfono y dirección ya no viven en la cotización: se resuelven contra el
+            // maestro cuando se despacha. Aquí se dejan nulos y La Biblia los hidrata.
+            'prestadorTelefono'     => null,
+            'prestadorDireccion'    => null,
             'descripcionServicio'   => $this->resolverDescripcion($tarifa, $cotcomponente),
             'contextoServicio'      => $this->textoEspanol($cotservicio->getNombreSnapshot()),
             // Clasificación del componente: hoy no filtra nada — entra todo a La Biblia —
