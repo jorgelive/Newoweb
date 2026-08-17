@@ -171,6 +171,28 @@ muestra y los deja filtrar.
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
 
+### <a id="310"></a>3.10 Los puntos de corte esconden columnas enteras (2026-08-17)
+
+El cuadro es una tabla y cada columna se retira a un ancho distinto:
+
+| Columna | Aparece desde |
+|---|---|
+| Hora, Servicio, Reserva | siempre |
+| Pax | `sm` (640px) |
+| Prestador | `md` (768px) |
+| Expediente | `lg` (1024px) |
+| **Costo** | **`xl` (1280px)** |
+
+⚠️ **Un campo escondido detrás de un punto de corte no es «menos visible»: no existe.** El
+costo real y su moneda son editables desde el primer día y **en un teléfono no se habían
+podido tocar nunca** — la columna que los contiene arranca en 1280px. El único síntoma era
+que el operador no los encontraba.
+
+Por eso lo que se retira tiene que **reaparecer en la tarjeta móvil**, no simplemente
+desaparecer: el prestador ya lo hacía (`md:hidden`), y ahora también el costo negociado
+(`xl:hidden`). Si añades una columna, decide dónde vive en móvil antes de ponerle el
+`hidden`.
+
 ### <a id="39"></a>3.9 El costo de una fila: SIEMPRE los dos factores (2026-08-17)
 
 ```

@@ -1276,6 +1276,32 @@ onMounted(async () => {
                                                         <p class="text-[10px] font-bold text-slate-400 mt-0.5 md:hidden">
                                                             <i class="fas fa-user mr-1"></i>{{ servicio.prestadorNombre || (servicio.soloReferencia ? 'Referencia' : 'Por asignar') }}
                                                         </p>
+
+                                                        <!-- 🔥 EL COSTO NEGOCIADO, EN MÓVIL.
+                                                             La columna «Costo» es `hidden xl:table-cell`: sólo
+                                                             existe a partir de 1280px, así que en el teléfono
+                                                             —la herramienta principal— este campo no se había
+                                                             podido tocar nunca. Se negocia de pie y con el móvil
+                                                             en la mano; era justo donde tenía que estar. -->
+                                                        <div v-if="!servicio.soloReferencia"
+                                                             class="mt-1.5 flex items-center gap-1 xl:hidden">
+                                                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider shrink-0">Pagado</span>
+                                                            <select
+                                                                :value="servicio.monedaReal?.id ?? servicio.monedaCotizada?.id ?? ''"
+                                                                @change="editarMonedaReal(servicio, $event)"
+                                                                class="text-[9px] font-black text-slate-500 bg-slate-100 border border-slate-200 rounded px-1 py-1 outline-none focus:ring-2 focus:ring-[#376875]"
+                                                            >
+                                                                <option v-for="m in operacionStore.monedas" :key="m" :value="m">{{ m }}</option>
+                                                            </select>
+                                                            <input
+                                                                :value="Number(servicio.costoRealOperativo ?? 0) === 0 ? '' : importe(servicio.costoRealOperativo)"
+                                                                @change="editarCostoReal(servicio, $event)"
+                                                                :placeholder="importe(servicio.costoCotizado)"
+                                                                inputmode="decimal"
+                                                                maxlength="13"
+                                                                class="w-[5rem] text-[11px] font-black text-slate-800 bg-slate-100 px-2 py-1 rounded border border-slate-200 tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
