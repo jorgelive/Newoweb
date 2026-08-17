@@ -14542,6 +14542,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -14586,6 +14588,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description El id como texto, EMBEBIDO en la orden. */
             readonly servicioId?: string | null;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
         };
         "OperacionServicio-operacion.write": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.write"] | null;
@@ -14823,6 +14827,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -14867,6 +14873,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description El id como texto, EMBEBIDO en la orden. */
             readonly servicioId?: string | null;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
         };
         "OperacionServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read"] | null;
@@ -14942,6 +14950,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -14986,6 +14996,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description El id como texto, EMBEBIDO en la orden. */
             readonly servicioId?: string | null;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
         };
         "OperacionServicio.multipart-operacion.item.read_timestamp.read": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read"] | null;
@@ -15061,6 +15073,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -15105,6 +15119,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description El id como texto, EMBEBIDO en la orden. */
             readonly servicioId?: string | null;
+            /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
+            readonly cotizacionId?: string | null;
         };
         /**
          * @description Entidad MaestroPais.

@@ -11,10 +11,11 @@
  * eso la vista muestra tipo/modo/estado del componente y deja filtrar: primero se ve
  * qué está llegando, después se decide qué se deja de generar.
  */
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { useRouter, onBeforeRouteLeave } from 'vue-router';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import EditorCostoNegociado from '@/components/operacion/EditorCostoNegociado.vue';
-import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado, type PagoProveedor } from '@/stores/operacion/operacionStore';
+import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado, type PagoProveedor, type ExpedienteDetalle } from '@/stores/operacion/operacionStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import {
@@ -35,6 +36,7 @@ import {
 } from '@/types/operacionModel';
 
 const operacionStore = useOperacionStore();
+const router = useRouter();
 
 const activeTab = ref<'biblia' | 'ordenes'>('biblia');
 
@@ -657,6 +659,86 @@ const desdeHace = (iso: string | null | undefined): string => {
 const fechaHora = (iso: string): string =>
     new Date(iso).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
+// ── EL BOTÓN «ATRÁS» CIERRA EL MODAL, NO SALE DE LA VISTA ─────────────────────
+//
+// Sin esto, con un modal abierto el gesto de volver del móvil disparaba la navegación del
+// router y mandaba al menú, perdiendo dónde estabas. Cada modal empuja una entrada de
+// history al abrirse; «atrás» (popstate) la consume cerrando el modal. Cerrar con la X hace
+// lo mismo por código (`history.back()`), así la entrada nunca queda colgando.
+const hayModalAbierto = computed(() => !!(
+    expedienteAbierto.value || pagosOrden.value || bitacoraServicio.value ||
+    ordenEditando.value || ordenActiva.value || mostrarModalOs.value
+));
+
+const cerrarTodosLosModales = (): void => {
+    expedienteAbierto.value = null;
+    pagosOrden.value = null;
+    bitacoraServicio.value = null;
+    ordenEditando.value = null;
+    ordenActiva.value = null;
+    mostrarModalOs.value = false;
+};
+
+let modalEnHistory = false;
+
+watch(hayModalAbierto, (abierto) => {
+    if (abierto && !modalEnHistory) {
+        history.pushState({ modalOperacion: true }, '');
+        modalEnHistory = true;
+    }
+});
+
+/** Cierra el modal activo consumiendo su entrada de history, para que «atrás» no sobre. */
+const cerrarModal = (): void => {
+    if (modalEnHistory) {
+        history.back();          // dispara popstate → cierra
+    } else {
+        cerrarTodosLosModales();
+    }
+};
+
+const onPopstateModal = (): void => {
+    modalEnHistory = false;
+    if (hayModalAbierto.value) cerrarTodosLosModales();
+};
+
+// ── MODAL DE EXPEDIENTE (namelist + documentos + salto a cotización) ─────────
+const expedienteAbierto = ref<{ fileId: string; nombre: string; cotizacionId: string | null; fileIdParaRuta: string } | null>(null);
+const expedienteDetalle = ref<ExpedienteDetalle | null>(null);
+const cargandoExpediente = ref(false);
+const panelDocumentos = ref(true);
+const panelNamelist = ref(true);
+
+const abrirExpediente = async (servicio: OperacionServicio): Promise<void> => {
+    const fileId = servicio.file?.id;
+    if (!fileId) return;
+
+    expedienteAbierto.value = {
+        fileId,
+        fileIdParaRuta: fileId,
+        nombre: servicio.file?.nombreGrupo || 'Expediente',
+        cotizacionId: (servicio as { cotizacionId?: string }).cotizacionId ?? null,
+    };
+    expedienteDetalle.value = null;
+    cargandoExpediente.value = true;
+    try {
+        expedienteDetalle.value = await operacionStore.fetchExpedienteDetalle(fileId);
+    } finally {
+        cargandoExpediente.value = false;
+    }
+};
+
+/** Salta al editor de la cotización de la que cuelga el servicio clicado. */
+const irACotizacion = (): void => {
+    const e = expedienteAbierto.value;
+    if (!e?.cotizacionId) return;
+    router.push({ name: 'cotizaciones_editor', params: { fileId: e.fileIdParaRuta, cotizacionId: e.cotizacionId } });
+};
+
+/** Nombre completo de un pasajero del namelist, con lo que haya. */
+const nombrePasajero = (p: Record<string, unknown>): string =>
+    [p.nombre, p.apellido].filter(Boolean).join(' ') || 'Sin nombre';
+
 // ── PAGOS A CUENTA AL PROVEEDOR ──────────────────────────────────────────────
 const pagosOrden = ref<OperacionOrdenServicio | null>(null);
 const pagos = ref<PagoProveedor[]>([]);
@@ -886,6 +968,13 @@ onMounted(async () => {
     await Promise.all([operacionStore.fetchLugares(), operacionStore.fetchMonedas()]);
     await cargarBiblia();
 });
+
+onMounted(() => window.addEventListener('popstate', onPopstateModal));
+onUnmounted(() => window.removeEventListener('popstate', onPopstateModal));
+
+// Si se navega fuera con un modal abierto (un enlace, «abrir cotización»), se limpia la
+// entrada fantasma para no dejar un «atrás» que no hace nada al volver.
+onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
 </script>
 
 <template>
@@ -1412,7 +1501,10 @@ onMounted(async () => {
 
                                                         <!-- Contexto compacto en móvil -->
                                                         <p class="text-[10px] font-bold text-slate-400 mt-1 lg:hidden">
-                                                            <i class="fas fa-folder-open mr-1"></i>{{ servicio.file?.nombreGrupo || 'Sin expediente' }}
+                                                            <button v-if="servicio.file?.id" @click="abrirExpediente(servicio)" class="hover:underline decoration-dotted text-[#376875]">
+                                                                <i class="fas fa-folder-open mr-1"></i>{{ servicio.file?.nombreGrupo || 'Sin expediente' }}
+                                                            </button>
+                                                            <template v-else><i class="fas fa-folder-open mr-1"></i>Sin expediente</template>
                                                         </p>
                                                         <!-- En móvil la columna del prestador está oculta, así que
                                                              el nombre se repite aquí. El TELÉFONO no: sigue vivo en
@@ -1445,14 +1537,19 @@ onMounted(async () => {
                                                 </div>
                                             </td>
 
-                                            <!-- Expediente -->
+                                            <!-- Expediente: clic → modal con namelist, documentos y
+                                                 salto a la cotización. Ver §3.17. -->
                                             <td class="px-3 py-3 hidden lg:table-cell align-top">
-                                                <p class="text-sm font-bold text-slate-700 truncate max-w-[12rem]">
-                                                    {{ servicio.file?.nombreGrupo || '—' }}
-                                                </p>
-                                                <p v-if="servicio.file?.pasajeroPrincipal" class="text-[10px] font-bold text-slate-400 truncate max-w-[12rem]">
-                                                    {{ servicio.file.pasajeroPrincipal }}
-                                                </p>
+                                                <button v-if="servicio.file?.id" @click="abrirExpediente(servicio)"
+                                                        class="text-left max-w-[12rem] group/exp">
+                                                    <p class="text-sm font-bold text-[#376875] truncate group-hover/exp:underline decoration-dotted">
+                                                        <i class="fas fa-folder-open text-[10px] mr-1 text-slate-300"></i>{{ servicio.file?.nombreGrupo || '—' }}
+                                                    </p>
+                                                    <p v-if="servicio.file?.pasajeroPrincipal" class="text-[10px] font-bold text-slate-400 truncate">
+                                                        {{ servicio.file.pasajeroPrincipal }}
+                                                    </p>
+                                                </button>
+                                                <span v-else class="text-sm font-bold text-slate-400">—</span>
                                             </td>
 
                                             <!-- Pax -->
@@ -1769,13 +1866,106 @@ onMounted(async () => {
         </main>
 
         <!-- ================================================================
+             MODAL: EXPEDIENTE (namelist + documentos + salto a cotización)
+
+             Dos paneles colapsables. Mobile-first: hoja inferior en móvil, tarjeta en ancho.
+             El botón de cotización salta al editor de la versión de la que cuelga el servicio
+             clicado, que es lo que pidió el operador.
+             ================================================================ -->
+        <div v-if="expedienteAbierto" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50" @click.self="cerrarModal()">
+            <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-lg max-h-[88vh] flex flex-col overflow-hidden">
+                <header class="bg-slate-900 text-white px-5 py-3 flex items-center gap-2 shrink-0">
+                    <i class="fas fa-folder-open text-[#E07845]"></i>
+                    <div class="min-w-0">
+                        <h3 class="font-black text-sm tracking-tight leading-tight truncate">{{ expedienteAbierto.nombre }}</h3>
+                        <p v-if="expedienteDetalle?.pasajeroPrincipal" class="text-[10px] text-slate-400 truncate">{{ expedienteDetalle.pasajeroPrincipal }}</p>
+                    </div>
+                    <button @click="cerrarModal()" class="ml-auto text-slate-400 hover:text-white shrink-0">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </header>
+
+                <div class="overflow-y-auto">
+                    <p v-if="cargandoExpediente" class="text-xs text-slate-400 text-center py-8">
+                        <i class="fas fa-spinner fa-spin mr-1"></i> Cargando…
+                    </p>
+                    <template v-else>
+                        <!-- Panel: NAMELIST -->
+                        <div class="border-b border-slate-100">
+                            <button @click="panelNamelist = !panelNamelist"
+                                    class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                    <i class="fas fa-users mr-1 text-slate-300"></i>
+                                    Namelist ({{ (expedienteDetalle?.filepasajeros ?? []).length }})
+                                </span>
+                                <i class="fas text-[10px] text-slate-300" :class="panelNamelist ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                            </button>
+                            <div v-if="panelNamelist" class="px-4 pb-3">
+                                <p v-if="!(expedienteDetalle?.filepasajeros ?? []).length" class="text-[11px] text-slate-400 py-2">
+                                    Sin pasajeros cargados.
+                                </p>
+                                <div v-else class="flex flex-col divide-y divide-slate-100">
+                                    <div v-for="(pax, i) in (expedienteDetalle?.filepasajeros ?? [])" :key="i" class="py-2">
+                                        <p class="text-sm font-bold text-slate-800">{{ nombrePasajero(pax) }}</p>
+                                        <p class="text-[10px] text-slate-400">
+                                            <span v-if="pax.numerodocumento">{{ pax.tipodocumento || 'Doc' }}: {{ pax.numerodocumento }}</span>
+                                            <span v-if="pax.pais && typeof pax.pais === 'object'"> · {{ (pax.pais as { nombre?: string }).nombre }}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel: DOCUMENTOS -->
+                        <div>
+                            <button @click="panelDocumentos = !panelDocumentos"
+                                    class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                    <i class="fas fa-paperclip mr-1 text-slate-300"></i>
+                                    Documentos ({{ (expedienteDetalle?.filedocumentos ?? []).length }})
+                                </span>
+                                <i class="fas text-[10px] text-slate-300" :class="panelDocumentos ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                            </button>
+                            <div v-if="panelDocumentos" class="px-4 pb-3">
+                                <p v-if="!(expedienteDetalle?.filedocumentos ?? []).length" class="text-[11px] text-slate-400 py-2">
+                                    Sin archivos cargados.
+                                </p>
+                                <div v-else class="grid grid-cols-1 gap-2">
+                                    <a v-for="(doc, i) in (expedienteDetalle?.filedocumentos ?? [])" :key="i"
+                                       :href="(doc.imageUrl as string) || '#'" target="_blank" rel="noopener"
+                                       class="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 rounded-lg px-3 py-2 transition-colors">
+                                        <i class="fas fa-file-lines text-[#376875]"></i>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-bold text-slate-700 truncate">{{ (doc.tipodocumento as string) || 'Documento' }}</p>
+                                            <p v-if="doc.vencimiento" class="text-[10px] text-slate-400">vence {{ String(doc.vencimiento).slice(0, 10) }}</p>
+                                        </div>
+                                        <i class="fas fa-arrow-up-right-from-square text-[10px] text-slate-300"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Salto a la cotización del servicio -->
+                <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 shrink-0">
+                    <button @click="irACotizacion" :disabled="!expedienteAbierto.cotizacionId"
+                            class="w-full py-2.5 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-40 text-white rounded-lg text-xs font-black uppercase tracking-widest shadow-sm transition-colors">
+                        <i class="fas fa-file-invoice-dollar mr-1"></i>
+                        Abrir la cotización
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================
              MODAL: PAGOS A CUENTA AL PROVEEDOR
 
              Mobile-first: hoja inferior en móvil, tarjeta centrada en ancho. Saldo por moneda
              arriba, historial de pagos, y el alta abajo. La moneda del alta se limita a las de
              la orden — no se convierte, así que un pago sólo tiene sentido en una de ellas.
              ================================================================ -->
-        <div v-if="pagosOrden" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50" @click.self="pagosOrden = null">
+        <div v-if="pagosOrden" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50" @click.self="cerrarModal()">
             <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md max-h-[88vh] flex flex-col overflow-hidden">
                 <header class="bg-slate-900 text-white px-5 py-3 flex items-center gap-2 shrink-0">
                     <i class="fas fa-hand-holding-dollar text-emerald-400"></i>
@@ -1783,7 +1973,7 @@ onMounted(async () => {
                         <h3 class="font-black text-sm tracking-tight leading-tight">Pagos al proveedor</h3>
                         <p class="text-[10px] text-slate-400 truncate">{{ pagosOrden.compradorNombre || pagosOrden.numeroOs }}</p>
                     </div>
-                    <button @click="pagosOrden = null" class="ml-auto text-slate-400 hover:text-white shrink-0">
+                    <button @click="cerrarModal()" class="ml-auto text-slate-400 hover:text-white shrink-0">
                         <i class="fas fa-xmark"></i>
                     </button>
                 </header>
@@ -1867,7 +2057,7 @@ onMounted(async () => {
              El «desde hace X» de la fila responde «¿cuánto lleva así?»; esto responde «¿por
              dónde pasó y quién lo movió?». Se abre desde el reloj bajo el estado.
              ================================================================ -->
-        <div v-if="bitacoraServicio" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50" @click.self="bitacoraServicio = null">
+        <div v-if="bitacoraServicio" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50" @click.self="cerrarModal()">
             <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md max-h-[80vh] flex flex-col overflow-hidden">
                 <header class="bg-slate-900 text-white px-5 py-3 flex items-center gap-2 shrink-0">
                     <i class="fas fa-clock-rotate-left text-[#E07845]"></i>
@@ -1875,7 +2065,7 @@ onMounted(async () => {
                         <h3 class="font-black text-sm tracking-tight leading-tight">Historial de estados</h3>
                         <p class="text-[10px] text-slate-400 truncate">{{ bitacoraServicio.descripcionServicio }}</p>
                     </div>
-                    <button @click="bitacoraServicio = null" class="ml-auto text-slate-400 hover:text-white shrink-0">
+                    <button @click="cerrarModal()" class="ml-auto text-slate-400 hover:text-white shrink-0">
                         <i class="fas fa-xmark"></i>
                     </button>
                 </header>

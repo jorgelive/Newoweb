@@ -591,6 +591,19 @@ class OperacionServicio
         return $this->getId()?->toRfc4122();
     }
 
+    /**
+     * El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor.
+     *
+     * En `operacion:read` (embebido en la orden) y en `item:read` (La Biblia): desde las dos
+     * pantallas se abre el expediente y desde ahí, la cotización. Sale navegando
+     * servicio → cotservicio → cotización; se expone resuelto para no arrastrar el árbol.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getCotizacionId(): ?string
+    {
+        return $this->cotizacionServicio?->getCotizacion()?->getId()?->toRfc4122();
+    }
+
     public function getDescripcionServicio(): string { return $this->descripcionServicio; }
     public function setDescripcionServicio(string $descripcionServicio): self { $this->descripcionServicio = $descripcionServicio; return $this; }
 

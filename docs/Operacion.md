@@ -171,6 +171,20 @@ muestra y los deja filtrar.
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
 
+### <a id="317"></a>3.17 Modal de expediente y «atrás» que cierra el modal (2026-08-17)
+
+Clic en el nombre del expediente (o del cliente) → modal con dos paneles colapsables —namelist
+y documentos cargados— y un botón que salta al editor de la **cotización de la que cuelga ese
+servicio** (`getCotizacionId()` la resuelve). El detalle se pide bajo demanda (`file:item:read`),
+no en cada fila del cuadro.
+
+⚠️ **El botón «atrás» del móvil cierra el modal, no sale de la vista.** Cada modal empuja una
+entrada de history al abrirse; `popstate` la consume cerrándolo. Cerrar con la X hace lo mismo
+por código (`history.back()`), así la entrada nunca queda colgando —un «atrás» que no hace
+nada—. Aplica a los seis modales de la pantalla (expediente, pagos, bitácora, edición, alta,
+mensajes), no sólo al nuevo. Sin esto, volver con un modal abierto mandaba al menú y perdía
+dónde estabas.
+
 ### <a id="315"></a>3.15 La hora de recojo y la vendida son campos distintos (2026-08-17)
 
 `horaRecojoReal` y `horaComponente` eran el mismo campo, así que fijar el recojo pisaba la hora

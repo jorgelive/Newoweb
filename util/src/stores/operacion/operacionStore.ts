@@ -27,6 +27,14 @@ export interface ContactoProveedor {
     email: string | null;
 }
 
+/** Ficha de expediente para el modal: namelist + documentos. Forma laxa del file:item:read. */
+export interface ExpedienteDetalle {
+    nombreGrupo?: string | null;
+    pasajeroPrincipal?: string | null;
+    filepasajeros?: Array<Record<string, unknown>>;
+    filedocumentos?: Array<Record<string, unknown>>;
+}
+
 /** Un pago a cuenta hecho al proveedor. */
 export interface PagoProveedor {
     id?: string;
@@ -552,6 +560,23 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         return data;
     };
 
+    /**
+     * El detalle del expediente: pasajeros (namelist) y documentos cargados.
+     *
+     * Se pide al abrir el modal, no antes: es el `file:item:read` completo, que trae toda la
+     * ficha. Cargarlo para las 200 filas del cuadro sería traer cientos de expedientes que
+     * nadie va a abrir.
+     */
+    const fetchExpedienteDetalle = async (fileId: string): Promise<ExpedienteDetalle | null> => {
+        try {
+            const { data } = await apiClient.get(`/platform/sales/cotizacion_files/${fileId}`);
+            return data;
+        } catch (error) {
+            console.error('No se pudo cargar el expediente:', error);
+            return null;
+        }
+    };
+
     /** Los pagos a cuenta de una orden. Bajo demanda: se ven al abrir el modal de pagos. */
     const fetchPagos = async (ordenId: string): Promise<PagoProveedor[]> => {
         try {
@@ -664,6 +689,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         proveedores,
         fetchProveedores,
         fetchBitacoraEstado,
+        fetchExpedienteDetalle,
         fetchPagos,
         crearPago,
         eliminarPago,
