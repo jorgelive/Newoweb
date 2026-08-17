@@ -40,6 +40,29 @@ use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
  */
 final readonly class AgentActorFactory
 {
+    /**
+     * Los que se le retiran a un usuario deshabilitado. Ver `delEquipoPorChat()`.
+     *
+     * Enumerados y no deducidos del sufijo `_WRITE`/`_DELETE`: un rol nuevo que conceda
+     * escritura sin llamarse así se colaría en silencio, y el fallo sería invisible. Si añades
+     * un rol que permita escribir, añádelo aquí — `SUPER_ADMIN` está por lo mismo, porque la
+     * jerarquía lo expande a todo.
+     *
+     * @var list<string>
+     */
+    private const array ROLES_DE_ESCRITURA = [
+        Roles::SUPER_ADMIN,
+        Roles::ADMIN,
+        Roles::OPERACIONES_WRITE,
+        Roles::OPERACIONES_DELETE,
+        Roles::RESERVAS_WRITE,
+        Roles::RESERVAS_DELETE,
+        Roles::MENSAJES_WRITE,
+        Roles::MENSAJES_DELETE,
+        Roles::MAESTROS_WRITE,
+        Roles::MAESTROS_DELETE,
+    ];
+
     public function __construct(
         private RoleHierarchyInterface $jerarquia,
         private EnumeradorDeFrentes $frentes,
@@ -78,6 +101,29 @@ final readonly class AgentActorFactory
         ?string $conversacionId = null
     ): AgentActor {
         $roles = $this->rolesEfectivos($usuario);
+
+        // 🔒 DESHABILITADO ⇒ SE QUEDA SIN ESCRITURA. Es la revocación.
+        //
+        // `findByTelefono()` devuelve al usuario aunque esté deshabilitado, y con razón: en
+        // este sistema `enabled = false` significa DOS cosas distintas —«se le retiró el
+        // acceso» y «nunca tuvo login», como la limpiadora que cobra (§11.5.1 de
+        // PmsBeds24ReservasSync)—. Filtrarlo allí dejaría a la segunda como desconocida.
+        //
+        // Su docblock decía que «identificar no es autorizar, quien decide es el actor con sus
+        // roles», y era verdad mientras el canal fuese de sólo lectura. Desde que el equipo
+        // escribe por WhatsApp dejó de serlo: nadie entre identificar y ejecutar miraba
+        // `enabled`, así que deshabilitar a alguien en el panel —el gesto natural de
+        // revocación— NO le quitaba nada por WhatsApp. Un ex-empleado conservaba
+        // `registrar_pago`, `cambiar_codigo_caja` y `enviar_mensaje_huesped` indefinidamente.
+        //
+        // Se resuelve aquí y no en el repositorio para no romper la identificación: sigue
+        // siendo del equipo, sigue saliendo su nombre, sigue pudiendo consultar. Sólo pierde
+        // lo que escribe. La limpiadora sin login no pierde nada, porque nunca tuvo estos
+        // roles. Ojo al contraste: el canal de VOZ ya lo comprobaba
+        // ({@see \App\Agent\Alexa\AlexaUsuarios}) siendo de sólo lectura.
+        if (!$usuario->isEnabled()) {
+            $roles = array_values(array_diff($roles, self::ROLES_DE_ESCRITURA));
+        }
 
         if ($tambienHuesped) {
             $roles[] = Roles::HUESPED;

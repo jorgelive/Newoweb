@@ -1852,7 +1852,7 @@ a limpiar se le podía soltar el saldo de un huésped por no haberle dicho que n
 |---|---|---|---|
 | `Prospecto` | Número desconocido, sin reserva | Vender, de usted | Nombrar a otros huéspedes; comprometer precios |
 | `Huesped` | Con reserva viva | Asistir, de usted | Conceder lo que se PIDE (eso escala) |
-| `Personal` | Equipo, grupo **OFICINA** | Compañero, tuteo, al grano | Escribir nada: por este canal sólo se consulta |
+| `Personal` | Equipo, grupo **OFICINA** | Compañero, tuteo, al grano | Lo que le den sus roles, **incluida la escritura** (desde 2026-08-17) — previa previsualización y su «sí». Un usuario deshabilitado conserva la consulta y pierde la escritura |
 | `Colaborador` | Equipo, grupo **CAMPO** | Directo y muy breve | Dinero, deudas o contacto de un huésped |
 
 **La frontera personal/colaborador es la que ya existía**: `Roles::getChoices('OFICINA')` frente

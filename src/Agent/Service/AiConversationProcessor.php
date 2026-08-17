@@ -485,9 +485,13 @@ final readonly class AiConversationProcessor
         // contraseña adivinada — y desde luego es más fuerte que una contraseña compartida,
         // porque es un factor de posesión que Meta verifica en cada mensaje.
         //
-        // Por eso `permitirEscritura` sigue en `false` más abajo, pero NO porque el canal sea
-        // inseguro: es que abrir la escritura merece un segundo factor para el tramo que hace
-        // daño. Ese segundo factor no existe todavía: hay que construirlo, no cablearlo.
+        // Sobre esa base se abrió la escritura al equipo por este canal (ver el
+        // `permitirEscritura` de más abajo). Lo que queda sin cubrir es la TRANSFERENCIA
+        // —móvil robado y desbloqueado, WhatsApp Web abierto—, y se asume por proporción.
+        //
+        // 🔒 Lo que NO se asume es la revocación: un usuario deshabilitado pierde sus roles de
+        // escritura en `AgentActorFactory::delEquipoPorChat()`. Sin eso, deshabilitar a alguien
+        // en el panel no le habría quitado nada por aquí.
         $delEquipo = $this->usuarios->findByTelefono($conversacion->getGuestPhone(), $this->telefonos);
 
         // `tambienHuesped: true` — los privilegios se ACUMULAN. Alguien del equipo con una

@@ -103,9 +103,16 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
      * la columna está «51987654321», así que un `findOneBy` a pelo no encuentra nada y falla
      * en silencio —el operador quedaría como huésped sin que nada lo delate—.
      *
-     * ⚠️ Devuelve al usuario aunque esté deshabilitado: identificar no es autorizar, y quien
-     * decide qué puede hacer es el actor con sus roles. Filtrar aquí por `enabled` haría que
-     * una limpiadora sin login (que sí puede cobrar, §11.5.1) apareciera como desconocida.
+     * ⚠️ Devuelve al usuario aunque esté deshabilitado, y eso es deliberado: en este sistema
+     * `enabled = false` significa DOS cosas —«se le retiró el acceso» y «nunca tuvo login»,
+     * como la limpiadora que sí puede cobrar (§11.5.1)—. Filtrar aquí dejaría a la segunda
+     * como desconocida.
+     *
+     * 🔒 Pero identificar SÍ sería autorizar si nadie mirase `enabled` después, y durante un
+     * tiempo nadie lo miraba. Quien lo cierra es
+     * {@see \App\Agent\Access\AgentActorFactory::delEquipoPorChat()}: a un deshabilitado le
+     * retira los roles de escritura. **Si añades otra ruta que construya un actor desde este
+     * método, tiene que hacer lo mismo** — aquí sólo se identifica.
      */
     public function findByTelefono(?string $telefono, PhoneSanitizer $sanitizer): ?User
     {
