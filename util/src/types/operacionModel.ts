@@ -46,7 +46,12 @@ export type OperacionOrdenServicioWrite = Omit<
     components['schemas']['OperacionOrdenServicio-operacion.write'],
     'monedaOs'
 > & {
-    monedaOs: string;   // IRI, e.g. '/platform/maestro/maestro_monedas/PEN'
+    /**
+     * IRI, p.ej. '/platform/maestro/maestro_monedas/PEN'. **Opcional**: el importe de la
+     * orden dejó de fijarse en la cabecera —vive en cada ítem con su propia moneda—, así que
+     * una orden nace sin total ni moneda y esto sólo se usa como apunte de conciliación.
+     */
+    monedaOs?: string;
 };
 
 export type OperacionServicioWrite = Omit<
@@ -55,7 +60,7 @@ export type OperacionServicioWrite = Omit<
 > & {
     ordenServicio?: string | null;  // IRI OperacionOrdenServicio
     monedaCotizada: string;         // IRI MaestroMoneda
-    monedaReal: string;             // IRI MaestroMoneda
+    monedaReal: string;             // IRI MaestroMoneda — la NEGOCIADA, editable por ítem
 };
 
 export type OperacionMensajeWrite = Omit<

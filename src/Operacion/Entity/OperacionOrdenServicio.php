@@ -90,14 +90,31 @@ class OperacionOrdenServicio
     #[ORM\Column(type: 'string', length: 30, enumType: EstadoOrdenServicioEnum::class, options: ['default' => 'borrador'])]
     private EstadoOrdenServicioEnum $estadoOs = EstadoOrdenServicioEnum::BORRADOR;
 
+    /**
+     * El importe de la orden, a nivel de cabecera. **Opcional, y ya no se pide al crearla.**
+     *
+     * Era obligatorio y con una sola moneda, y eso obligaba a que toda la orden fuese de una
+     * moneda: la guarda decía «mezclar monedas deja un total que no suma». El problema no era
+     * mezclar — es que el importe estaba en el sitio equivocado. Un proveedor cobra unos
+     * servicios en soles y otros en dólares, y partir eso en dos órdenes es partir una gestión
+     * que en la vida real es una sola.
+     *
+     * El dinero vive AHORA en cada ítem, que es donde tiene sentido: `costoCotizado` con su
+     * moneda (lo que dijo el cotizador, referencial) y `costoRealOperativo` con la suya (lo
+     * que se negoció, editable). La pantalla suma POR MONEDA a partir de ahí.
+     *
+     * Estos dos campos se conservan sólo como apunte manual de conciliación —al proveedor no
+     * se le manda un total— y por eso pasan a ser nulos: un `0.00` obligatorio se lee como un
+     * importe, y era mentira.
+     */
     #[Groups(['operacion:read', 'operacion:write'])]
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
-    #[ORM\JoinColumn(name: 'moneda_os', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(name: 'moneda_os', referencedColumnName: 'id', nullable: true)]
     private ?MaestroMoneda $monedaOs = null;
 
     #[Groups(['operacion:read', 'operacion:write'])]
-    #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
-    private string $totalOs = '0.00';
+    #[ORM\Column(type: 'decimal', precision: 12, scale: 2, nullable: true)]
+    private ?string $totalOs = null;
 
     /**
      * @var Collection<int, OperacionServicio>
@@ -162,8 +179,8 @@ class OperacionOrdenServicio
     public function getMonedaOs(): ?MaestroMoneda { return $this->monedaOs; }
     public function setMonedaOs(?MaestroMoneda $monedaOs): self { $this->monedaOs = $monedaOs; return $this; }
 
-    public function getTotalOs(): string { return $this->totalOs; }
-    public function setTotalOs(string $totalOs): self { $this->totalOs = $totalOs; return $this; }
+    public function getTotalOs(): ?string { return $this->totalOs; }
+    public function setTotalOs(?string $totalOs): self { $this->totalOs = $totalOs; return $this; }
 
     public function getOperacionServicios(): Collection { return $this->operacionServicios; }
 

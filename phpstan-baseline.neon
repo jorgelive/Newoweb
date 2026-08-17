@@ -1187,7 +1187,7 @@ parameters:
 		-
 			message: '#^Expression on left side of \?\? is not nullable\.$#'
 			identifier: nullCoalesce.expr
-			count: 3
+			count: 2
 			path: src/Operacion/Entity/OperacionServicio.php
 
 		-

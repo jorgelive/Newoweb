@@ -135,6 +135,30 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     /**
+     * Las monedas del maestro, para elegir en qué se cerró con el proveedor.
+     *
+     * Sólo los códigos (`PEN`, `USD`…): es lo único que se pinta y lo único que hace falta
+     * para componer el IRI al guardar.
+     */
+    const monedas = ref<string[]>([]);
+
+    const fetchMonedas = async (): Promise<void> => {
+        if (monedas.value.length) return;
+
+        try {
+            const res = await apiClient.get('/platform/maestro/monedas?pagination=false');
+            const miembros = res.data['hydra:member'] || res.data['member'] || [];
+            monedas.value = miembros
+                .map((m: Record<string, unknown>) => String(m.id ?? ''))
+                .filter(Boolean);
+        } catch (error) {
+            // Sin lista no se puede cambiar la moneda, pero el resto del cuadro funciona.
+            console.error('No se pudieron cargar las monedas:', error);
+            monedas.value = [];
+        }
+    };
+
+    /**
      * El catálogo de proveedores, para elegir a quién va dirigida la Orden de Servicio.
      *
      * Antes el destinatario era un `<input>` de texto libre, y eso rompía justo lo que la OS
@@ -524,6 +548,8 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         lugaresPorComponente,
         proveedores,
         fetchProveedores,
+        monedas,
+        fetchMonedas,
         contactoPorProveedor,
         contactoDePrestador,
         fetchServicios,

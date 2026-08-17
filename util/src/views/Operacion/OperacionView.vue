@@ -402,6 +402,19 @@ const direccionDe = (s: OperacionServicio): string | null => operacionStore.cont
 // ============================================================================
 const PATRON_IMPORTE = /^\d{1,10}([.,]\d{1,2})?$/;
 
+/**
+ * La moneda de lo NEGOCIADO. Se guarda como IRI, igual que el resto de relaciones.
+ *
+ * Cambiarla no toca el cotizado: son dos hechos distintos —lo que dijo el cotizador y lo que
+ * se cerró— y machacar el primero borraría la referencia con la que se concilia.
+ */
+const editarMonedaReal = async (servicio: OperacionServicio, evento: Event) => {
+    const id = (evento.target as HTMLSelectElement).value;
+    if (!id || id === servicio.monedaReal?.id) return;
+
+    await guardarCampo(servicio, { monedaReal: `/platform/maestro/monedas/${id}` });
+};
+
 const editarCostoReal = async (servicio: OperacionServicio, evento: Event) => {
     const input = evento.target as HTMLInputElement;
     const valor = input.value.trim().replace(',', '.');
@@ -486,8 +499,10 @@ const conflictoSeleccion = computed<string | null>(() => {
     const compradores = new Set(sel.map(s => s.compradorNombre ?? ''));
     if (compradores.size > 1) return 'Los servicios seleccionados tienen compradores distintos.';
 
-    const monedas = new Set(sel.map(s => s.monedaCotizada?.id ?? ''));
-    if (monedas.size > 1) return 'Los servicios seleccionados están en monedas distintas.';
+    // 🔓 Las monedas distintas YA NO bloquean. Bloqueaban porque el total vivía en la
+    // cabecera de la orden y mezclar dejaba una suma sin sentido; ahora el importe vive en
+    // cada ítem con su moneda y la pantalla suma por moneda. Un proveedor que cobra unos
+    // servicios en soles y otros en dólares es una sola gestión, no dos órdenes.
 
     if (sel.some(s => s.ordenServicio)) return 'Algún servicio ya pertenece a una Orden de Servicio.';
 
@@ -510,13 +525,31 @@ const onDestinatarioChange = (id: unknown): void => {
     formOs.value.compradorNombre = elegido?.nombreComercial ?? '';
 };
 
-const formOs = ref({ numeroOs: '', compradorMaestroId: '' as string | null, compradorNombre: '', totalOs: '0.00', monedaId: '' });
+const formOs = ref({ numeroOs: '', compradorMaestroId: '' as string | null, compradorNombre: '' });
+
+/**
+ * Lo que suma la selección, POR MONEDA. Nunca un solo número.
+ *
+ * Sumar monedas distintas es el error que la conversión disimula: aquí no se convierte
+ * —eso es criterio de la casa— así que salen tantas líneas como monedas haya.
+ */
+const totalesPorMoneda = computed<{ moneda: string; total: number }[]>(() => {
+    const mapa = new Map<string, number>();
+
+    for (const s of serviciosSeleccionados.value) {
+        const m = s.monedaCotizada?.id ?? '—';
+        mapa.set(m, (mapa.get(m) ?? 0) + Number(s.costoCotizado ?? 0));
+    }
+
+    return [...mapa.entries()]
+        .map(([moneda, total]) => ({ moneda, total }))
+        .sort((a, b) => a.moneda.localeCompare(b.moneda));
+});
 
 const abrirModalOs = () => {
     const sel = serviciosSeleccionados.value;
     if (sel.length === 0 || conflictoSeleccion.value) return;
 
-    const total = sel.reduce((acc, s) => acc + Number(s.costoCotizado ?? 0), 0);
     const hoy = hoyIso().replace(/-/g, '');
 
     formOs.value = {
@@ -524,8 +557,6 @@ const abrirModalOs = () => {
         numeroOs: `OS-${hoy}-${String(Math.floor(Math.random() * 900) + 100)}`,
         compradorMaestroId: sel[0].compradorMaestroId ?? '',
         compradorNombre: sel[0].compradorNombre ?? '',
-        totalOs: total.toFixed(2),
-        monedaId: sel[0].monedaCotizada?.id ?? '',
     };
     errorOs.value = null;
     mostrarModalOs.value = true;
@@ -537,7 +568,7 @@ const confirmarOs = async () => {
     if (sel.length === 0) return;
 
     const fileId = sel[0].file?.id;
-    if (!fileId || !formOs.value.monedaId) {
+    if (!fileId) {
         errorOs.value = 'Faltan el expediente o la moneda del servicio; revisa el snapshot.';
         return;
     }
@@ -552,8 +583,6 @@ const confirmarOs = async () => {
                 compradorMaestroId: formOs.value.compradorMaestroId || null,
                 compradorNombre: formOs.value.compradorNombre || null,
                 estadoOs: 'borrador',
-                monedaOs: `/platform/maestro/monedas/${formOs.value.monedaId}`,
-                totalOs: formOs.value.totalOs,
             },
             sel.map(s => s.id!).filter(Boolean)
         );
@@ -604,7 +633,8 @@ const formatearFecha = (iso?: string | null): string => {
 
 onMounted(async () => {
     // El vocabulario primero: sin él los chips no existen y el operador no puede filtrar.
-    await operacionStore.fetchLugares();
+    // Las monedas van en paralelo: hacen falta para el selector de la moneda negociada.
+    await Promise.all([operacionStore.fetchLugares(), operacionStore.fetchMonedas()]);
     await cargarBiblia();
 });
 </script>
@@ -1202,14 +1232,28 @@ onMounted(async () => {
                                                 <!-- Una fila de referencia no se compra: no hay costo real que
                                                      registrar, y ofrecer el campo invitaría a inventarlo. -->
                                                 <template v-if="!servicio.soloReferencia">
-                                                    <input
-                                                        :value="Number(servicio.costoRealOperativo ?? 0) === 0 ? '' : importe(servicio.costoRealOperativo)"
-                                                        @change="editarCostoReal(servicio, $event)"
-                                                        placeholder="real"
-                                                        inputmode="decimal"
-                                                        maxlength="13"
-                                                        class="mt-1 w-[5.5rem] text-sm font-black text-slate-800 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
-                                                    />
+                                                    <!-- Lo NEGOCIADO: importe y moneda, los dos editables.
+                                                         La moneda también, porque se puede cotizar en dólares
+                                                         y cerrar en soles con el mismo proveedor; heredarla
+                                                         del cotizador obligaba a que coincidieran. -->
+                                                    <div class="mt-1 flex items-center justify-end gap-1">
+                                                        <select
+                                                            :value="servicio.monedaReal?.id ?? servicio.monedaCotizada?.id ?? ''"
+                                                            @change="editarMonedaReal(servicio, $event)"
+                                                            class="text-[10px] font-black text-slate-500 bg-slate-100 border border-slate-200 rounded-lg px-1 py-1 outline-none focus:ring-2 focus:ring-[#376875]"
+                                                            title="Moneda en la que se cerró con el proveedor"
+                                                        >
+                                                            <option v-for="m in operacionStore.monedas" :key="m" :value="m">{{ m }}</option>
+                                                        </select>
+                                                        <input
+                                                            :value="Number(servicio.costoRealOperativo ?? 0) === 0 ? '' : importe(servicio.costoRealOperativo)"
+                                                            @change="editarCostoReal(servicio, $event)"
+                                                            placeholder="real"
+                                                            inputmode="decimal"
+                                                            maxlength="13"
+                                                            class="w-[5.5rem] text-sm font-black text-slate-800 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
+                                                        />
+                                                    </div>
                                                     <p
                                                         v-if="deltaOperativo(servicio) !== null && deltaOperativo(servicio) !== 0"
                                                         class="mt-0.5 text-[10px] font-black tabular-nums"
@@ -1432,16 +1476,25 @@ onMounted(async () => {
                         </span>
                     </label>
 
-                    <label class="flex flex-col gap-1">
+                    <!--
+                      SIN campo de total. El importe no se fija aquí: vive en cada ítem con su
+                      moneda —cotizado (referencial) y negociado (editable)—. Esto es sólo el
+                      resumen de lo que dice el cotizador, POR MONEDA y sin convertir, para que
+                      se vea de dónde sale antes de crear la orden.
+                    -->
+                    <div class="rounded-lg bg-slate-800 text-white px-3 py-2 flex flex-col gap-1">
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                            Total ({{ formOs.monedaId || '—' }})
+                            Referencial del cotizador
                         </span>
-                        <input
-                            v-model="formOs.totalOs"
-                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-black text-slate-700 tabular-nums outline-none focus:ring-2 focus:ring-[#376875]"
-                        />
-                        <span class="text-[10px] text-slate-400">Suma de los costos cotizados; ajústalo si negociaste otro precio.</span>
-                    </label>
+                        <div v-for="t in totalesPorMoneda" :key="t.moneda"
+                             class="flex items-baseline justify-between gap-3">
+                            <span class="text-[10px] font-bold text-slate-400">{{ t.moneda }}</span>
+                            <span class="text-base font-black tabular-nums">{{ importe(t.total.toFixed(2)) }}</span>
+                        </div>
+                        <span class="text-[10px] text-slate-400 leading-snug mt-0.5">
+                            Se ajusta servicio por servicio en el cuadro, en la columna de costo real.
+                        </span>
+                    </div>
 
                     <p v-if="errorOs" class="text-xs font-bold text-rose-600">
                         <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorOs }}

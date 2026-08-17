@@ -14026,9 +14026,8 @@ export interface components {
              * @enum {string}
              */
             estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
-            monedaOs?: components["schemas"]["Moneda-operacion.read_timestamp.read"];
-            /** @default 0.00 */
-            totalOs: string;
+            monedaOs?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
+            totalOs?: string | null;
             operacionServicios?: components["schemas"]["OperacionServicio-operacion.read_timestamp.read"][];
             mensajes?: components["schemas"]["OperacionMensaje-operacion.read_timestamp.read"][];
             id?: string;
@@ -14053,11 +14052,11 @@ export interface components {
             estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
             /**
              * Format: iri-reference
+             * @description El importe de la orden, a nivel de cabecera. **Opcional, y ya no se pide al crearla.**
              * @example https://example.com/
              */
-            monedaOs?: string;
-            /** @default 0.00 */
-            totalOs: string;
+            monedaOs?: string | null;
+            totalOs?: string | null;
             id?: string;
         };
         "OperacionOrdenServicio-operacion.write.jsonMergePatch": {
@@ -14076,11 +14075,11 @@ export interface components {
             estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
             /**
              * Format: iri-reference
+             * @description El importe de la orden, a nivel de cabecera. **Opcional, y ya no se pide al crearla.**
              * @example https://example.com/
              */
-            monedaOs?: string;
-            /** @default 0.00 */
-            totalOs: string;
+            monedaOs?: string | null;
+            totalOs?: string | null;
             id?: string;
         };
         "OperacionOrdenServicio.html-operacion.item.read_timestamp.read": {
@@ -14105,9 +14104,8 @@ export interface components {
              * @enum {string}
              */
             estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
-            monedaOs?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"];
-            /** @default 0.00 */
-            totalOs: string;
+            monedaOs?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
+            totalOs?: string | null;
             operacionServicios?: components["schemas"]["OperacionServicio.html-operacion.read_timestamp.read"][];
             mensajes?: components["schemas"]["OperacionMensaje.html-operacion.read_timestamp.read"][];
             id?: string;
@@ -14138,9 +14136,8 @@ export interface components {
              * @enum {string}
              */
             estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
-            monedaOs?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"];
-            /** @default 0.00 */
-            totalOs: string;
+            monedaOs?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
+            totalOs?: string | null;
             operacionServicios?: components["schemas"]["OperacionServicio.jsonld-operacion.read_timestamp.read"][];
             mensajes?: components["schemas"]["OperacionMensaje.jsonld-operacion.read_timestamp.read"][];
             id?: string;
@@ -14171,9 +14168,8 @@ export interface components {
              * @enum {string}
              */
             estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
-            monedaOs?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"];
-            /** @default 0.00 */
-            totalOs: string;
+            monedaOs?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
+            totalOs?: string | null;
             operacionServicios?: components["schemas"]["OperacionServicio.multipart-operacion.read_timestamp.read"][];
             mensajes?: components["schemas"]["OperacionMensaje.multipart-operacion.read_timestamp.read"][];
             id?: string;

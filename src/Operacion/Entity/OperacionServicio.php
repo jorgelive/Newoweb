@@ -407,16 +407,15 @@ class OperacionServicio
                 ));
             }
 
-            $monedaOs = $ordenServicio->getMonedaOs();
-            if ($monedaOs !== null && $this->monedaCotizada !== null && $monedaOs->getId() !== $this->monedaCotizada->getId()) {
-                throw new \DomainException(sprintf(
-                    'La Orden de Servicio %s está en %s y «%s» está cotizado en %s. Mezclar monedas en una misma orden deja un total que no suma.',
-                    $ordenServicio->getNumeroOs() ?? '(sin número)',
-                    $monedaOs->getId(),
-                    $this->descripcionServicio ?? 'este servicio',
-                    $this->monedaCotizada->getId()
-                ));
-            }
+            // 🔓 Las MONEDAS DISTINTAS ya no bloquean, y el motivo desapareció con la causa.
+            //
+            // Esto impedía meter en una orden un servicio en soles y otro en dólares, porque
+            // «deja un total que no suma». El problema no era mezclar: era que el total vivía
+            // en la cabecera. Un proveedor cobra unos servicios en soles y otros en dólares, y
+            // partir eso en dos órdenes parte una gestión que en la vida real es una sola.
+            //
+            // El importe vive ahora en cada ítem con su propia moneda —cotizado y negociado— y
+            // la pantalla suma por moneda. Ver `OperacionOrdenServicio::$totalOs`.
         }
 
         $this->ordenServicio = $ordenServicio;

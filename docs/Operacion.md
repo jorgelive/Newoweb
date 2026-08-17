@@ -570,9 +570,38 @@ va a usar.
 está** en una OS no deje de ser comprable. Sin la segunda, aprobar en el panel un
 `modoComponente → no_incluido`, o que la tarifa desapareciera del árbol, convertía la fila en
 referencia **dentro** de una orden ya emitida: la OS acababa conteniendo un importe que no se
-debe y `totalOs` seguía sumándolo. Una OS es una solicitud a un proveedor sobre un
+debe (hoy ese importe está en el ítem, ver §5.4). Una OS es una solicitud a un proveedor sobre un
 expediente; mezclarlos produciría un documento que nadie puede firmar, y meterle una fila que
 nadie compra (§3.3) produciría un importe que no se debe.
+
+### <a id="54"></a>5.4 El dinero vive en los ÍTEMS, no en la cabecera (2026-08-17)
+
+`OperacionOrdenServicio` tenía `totalOs` y `monedaOs` obligatorios, y de ahí colgaba una
+regla: **una orden no podía mezclar monedas**, porque «deja un total que no suma». La guarda
+estaba en tres sitios —el front, `setOrdenServicio()` y la coherencia—.
+
+El problema no era mezclar: era que el importe estaba en el sitio equivocado. Un proveedor
+cobra unos servicios en soles y otros en dólares, y partir eso en dos órdenes parte una gestión
+que en la vida real es una sola.
+
+| Dónde | Campo | Qué es |
+|---|---|---|
+| **Ítem** | `costoCotizado` + `monedaCotizada` | Lo que dijo el cotizador. **Referencial**, sólo lectura |
+| **Ítem** | `costoRealOperativo` + `monedaReal` | Lo que se negoció. **Editable, moneda incluida** |
+| Cabecera | `totalOs` + `monedaOs` | Apunte manual de conciliación. **Opcional**, no se pide al crear |
+
+La moneda negociada es editable **a propósito**: se puede cotizar en dólares y cerrar en soles
+con el mismo proveedor, y heredarla del cotizador obligaba a que coincidieran. Cambiarla no
+toca el cotizado — son dos hechos distintos, y machacar el primero borraría la referencia con
+la que se concilia.
+
+⚠️ **La pantalla suma POR MONEDA y no convierte.** Es el criterio de la casa: al proveedor no
+se le manda un total, así que no hay ninguna razón para inventar un tipo de cambio. El modal de
+creación enseña el referencial desglosado por moneda y no tiene campo de total.
+
+Lo que se retiró: el bloqueo por monedas distintas en `setOrdenServicio()` y en
+`conflictoSeleccion`. Lo que **no** se retiró: expediente único, comprador único, nada de
+referencias ni cancelados, y nada que ya esté en otra orden.
 
 Notas:
 
