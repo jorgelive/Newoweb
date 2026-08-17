@@ -1589,7 +1589,7 @@ store.$onAction(({ name, args }) => {
                 Edición de Servicio
               </p>
               <h2 class="text-sm font-black truncate">
-                {{ store.getI18nText(store.servicioActivo?.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) || store.getI18nText(store.servicioActivo?.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                {{ store.getI18nText(store.servicioActivo?.nombreSnapshot, 'es') || store.getI18nText(store.servicioActivo?.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) }}
               </h2>
               <p v-if="store.serviciosOrdenados.length > 1" class="text-[11px] font-bold text-emerald-600/70 mt-0.5">
                 Servicio {{ store.serviciosOrdenados.findIndex(s => s.id === store.servicioActivo?.id) + 1 }} de {{ store.serviciosOrdenados.length }}
@@ -1613,12 +1613,6 @@ store.$onAction(({ name, args }) => {
             <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-4">
               <div>
                 <label class="block text-[10px] font-black text-[#E07845] uppercase tracking-widest mb-2"><i class="fas fa-book mr-1"></i> Catálogo Maestro</label>
-
-                <div v-if="store.servicioActivo.servicioMaestroId && (store.servicioActivo.cotcomponentes?.length ?? 0) > 0"
-                     class="w-full bg-slate-100 border border-slate-200 text-slate-500 rounded-lg px-3 py-2.5 text-sm font-bold flex justify-between items-center cursor-not-allowed shadow-inner">
-                  <span>{{ store.getI18nText(store.servicioActivo.nombreSnapshot, 'es') || 'Servicio del catálogo' }}</span>
-                  <i class="fas fa-lock text-orange-400"></i>
-                </div>
 
                 <SearchableSelect
                     v-model="store.servicioActivo.servicioMaestroId"
