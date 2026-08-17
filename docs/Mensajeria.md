@@ -2131,6 +2131,47 @@ preguntar** — es quien acaba de escribir. Una conversación soporta la confirm
 dos turnos mejor que un panel, porque el historial ya viaja en cada petición. Si un canal cierra
 la escritura, el motivo será otro; nunca que falte el interlocutor.
 
+#### Las tres capas, y cuál es el cierre de verdad (2026-08-17)
+
+Que una skill se ejecute pasa por tres comprobaciones, y conviene no confundirlas porque dos
+son de **catálogo** y sólo una es de **ejecución**:
+
+| | Dónde | Qué pregunta | Cuándo |
+|---|---|---|---|
+| 1 | `AiConversationProcessor` → `permitirEscritura` | ¿Este canal admite escrituras para este actor? | Al armar el catálogo |
+| 2 | `SkillRegistry::paraActor()` | ¿Qué herramientas le corresponden por rol y dominio? | Al armar el catálogo |
+| 3 | **`GuardiaDeSkills::motivoDeBloqueo()`** | ¿Se le permite ejecutar ÉSTA? | Justo antes de `ejecutar()` |
+
+Las dos primeras deciden **qué se le enseña** al modelo. La tercera es la única que decide **qué
+se ejecuta**, y es la que faltaba.
+
+##### Por qué hace falta la tercera si las otras dos ya filtran
+
+Porque el catálogo es una **oferta**, no un cierre. Se arma una vez por turno, y detrás no había
+nada: si algo lo ensanchaba —un canal que pasa `permitirEscritura: true` de más, una skill que
+se cuela por un dominio mal declarado, o que alguien toque la búsqueda por nombre de los
+adaptadores sin saber que ésa era la única barrera— no había segunda línea.
+
+Es la regla de la casa aplicada al pie de la letra: **el prompt es una petición, el cierre es
+código.** Que la descripción de una skill diga «pide confirmación» no impide nada.
+
+##### Qué comprueba: los roles, y sólo eso
+
+Una comparación, `null` = adelante. Devuelve el motivo **en texto** y no un booleano porque
+quien se lo come es el modelo: necesita saber qué decirle al usuario, y un «no puedes» a secas
+produce una disculpa vaga y un reintento.
+
+Lo llaman los tres puntos que ejecutan skills: `AnthropicSkillAdapter`, `GoogleAISkillAdapter` y
+`AgentSkillCommand`. La CLI hacía esa comprobación por su cuenta —la misma política escrita dos
+veces— y se retiró en favor de ésta.
+
+⚠️ **Lo que NO comprueba: la confirmación de escritura.** El paso «previsualiza y espera el sí»
+sigue dependiendo de que el modelo llame primero con `confirmado: false`, porque nada recuerda
+entre llamadas si hubo previsualización. Está asumido (ver §11 A): forzarlo en servidor sería
+complejidad real para cubrir un caso cuyo único perjudicado es el operador que acaba de pedirlo.
+
+Tests en `tests/Agent/Access/GuardiaDeSkillsTest.php`.
+
 #### 🔥 `Interna`: por qué el filtro no es «¿escribe algo?»
 
 Por WhatsApp se pasa `permitirEscritura: $actor->esDelEquipo()`, y conviene separar a quién
@@ -5265,6 +5306,10 @@ arreglar** — ver el aviso al final de esta sección.
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
+| **Impedir que una skill se EJECUTE** (el cierre real) | `src/Agent/Access/GuardiaDeSkills.php` | `motivoDeBloqueo()` — lo llaman los 3 adaptadores/CLI |
+| **Abrir o cerrar la escritura de un canal** | el que arma la petición (`AiConversationProcessor`, `VoiceAssistant`, `PanelAssistant`…) | el argumento `permitirEscritura:` de `ConversationRequest` — **no hay sitio central, cada canal trae el suyo** |
+| Cambiar qué herramientas se le OFRECEN al modelo | `src/Agent/Skill/SkillRegistry.php` | `paraActor()` |
+| Cambiar el trato según el daño de una skill | `src/Agent/Access/NivelRiesgo.php` | los tres `case` — no hay nivel destructivo, y su ausencia es deliberada |
 | Añadir un hito nuevo (ej. "pago recibido") | `src/Message/Contract/ConversationMilestoneInterface.php` | constante + `MessageConversation::addContextMilestone()` + `MessageRule::setMilestone()` + choices del CRUD |
 | Cambiar de dónde sale una fecha del PMS | `src/Pms/Service/Message/PmsReservaMessageContext.php` | `getMilestones()` |
 | Ajustar cuándo caduca o se rescata un mensaje | `src/Message/Service/Queue/MessageRuleEngine.php` | constantes `PAST_THRESHOLD`, `RESCUE_WINDOW`, `EXPIRY_WINDOW` |
