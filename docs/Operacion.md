@@ -622,6 +622,25 @@ Dos detalles que parecen caprichos y no lo son:
 `cuerpoHtml` y quién lo escribió. Se anota lo que se le dijo al proveedor; no manda correo ni
 WhatsApp. Si algún día se automatiza, el contacto sale del maestro (§3.8), no de la fila.
 
+#### 5.4.b Editar una orden (2026-08-17)
+
+Una orden se creaba y ya no se podía tocar: ni corregir el número, ni cambiar el
+destinatario, ni moverla de estado. Lo único a mano era la bitácora, que no edita nada.
+
+El panel (`abrirEdicion()` en `OperacionView`) edita por **PATCH**, no PUT: se mandan sólo los
+campos tocados, porque con PUT un campo ausente se lee como «ponlo a null».
+
+| Se edita | No se edita |
+|---|---|
+| `numeroOs`, destinatario (`compradorMaestroId` + `compradorNombre`), `estadoOs` | El importe |
+
+El importe no está ahí a propósito —vive en cada ítem con su moneda— y el panel **lo dice**,
+para que nadie lo busque y crea que falta.
+
+Al desplegar una orden se piden sus servicios aparte
+(`fetchServiciosDeOrden()` → `?ordenServicio=<iri>`): en el listado viajan como IRI y traerlos
+todos de antemano sería cargar el cuadro entero para enseñar tres líneas.
+
 Notas:
 
 - `numeroOs` es `unique` y **no tiene generador**: hoy lo propone la vista

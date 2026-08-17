@@ -496,6 +496,53 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         }
     };
 
+    /**
+     * Edita la cabecera de una orden ya creada.
+     *
+     * PATCH y no PUT: se mandan sólo los campos tocados. Con PUT, un campo ausente se
+     * interpreta como «ponlo a null», y aquí se editan de uno en uno.
+     */
+    const actualizarOrdenServicio = async (
+        id: string,
+        payload: Partial<OperacionOrdenServicioWrite>
+    ): Promise<OperacionOrdenServicio> => {
+        const { data } = await apiClient.patch(
+            `/platform/ops/operacion_orden_servicios/${id}`,
+            payload,
+            { headers: { 'Content-Type': 'application/merge-patch+json' } }
+        );
+
+        // Se reemplaza en la lista para que la pantalla refleje lo guardado sin recargar
+        // todo: el servidor devuelve la orden entera, incluidos los totales recalculados.
+        const i = ordenesServicio.value.findIndex(o => o.id === id);
+        if (i !== -1) ordenesServicio.value[i] = data;
+
+        return data;
+    };
+
+    /**
+     * Los servicios que agrupa una orden, para poder ver su detalle.
+     *
+     * No salen del listado: allí `operacionServicios` viaja como IRI. Se piden aparte y sólo
+     * cuando alguien despliega una orden — cargarlos todos de antemano sería traer el cuadro
+     * entero para enseñar tres líneas.
+     */
+    const fetchServiciosDeOrden = async (ordenId: string): Promise<OperacionServicio[]> => {
+        try {
+            const { data } = await apiClient.get('/platform/ops/operacion_servicios', {
+                params: {
+                    ordenServicio: `/platform/ops/operacion_orden_servicios/${ordenId}`,
+                    pagination: false,
+                },
+            });
+
+            return data['hydra:member'] || data['member'] || [];
+        } catch (error) {
+            console.error('No se pudieron cargar los servicios de la orden:', error);
+            return [];
+        }
+    };
+
     // ============================================================================
     // ACCIONES: MENSAJERÍA MULTICANAL
     // ============================================================================
@@ -560,6 +607,8 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         actualizarServicio,
         fetchOrdenesServicio,
         crearOrdenServicio,
+        actualizarOrdenServicio,
+        fetchServiciosDeOrden,
         fetchMensajesPorOrden,
         registrarMensaje
     };

@@ -23,6 +23,7 @@ import {
     getTipoComponenteConfig,
     getModoComponenteConfig,
     getEstadoComponenteConfig,
+    ESTADO_OS_CONFIG,
     ESTADO_RESERVA_PROVEEDOR_CONFIG,
     ESTADO_OPERACION_CONFIG,
     TIPOS_COMPONENTE,
@@ -603,6 +604,73 @@ const ordenActiva = ref<OperacionOrdenServicio | null>(null);
 
 /** Qué orden tiene el detalle abierto. Sólo una a la vez. */
 const ordenExpandida = ref<string | null>(null);
+
+/** Los servicios de la orden desplegada. Se piden al abrirla, no antes. */
+const serviciosDeOrden = ref<OperacionServicio[]>([]);
+const cargandoDetalle = ref(false);
+
+const alternarDetalle = async (orden: OperacionOrdenServicio) => {
+    if (ordenExpandida.value === orden.id) {
+        ordenExpandida.value = null;
+        return;
+    }
+
+    ordenExpandida.value = orden.id ?? null;
+    serviciosDeOrden.value = [];
+
+    if (!orden.id) return;
+
+    cargandoDetalle.value = true;
+    try {
+        serviciosDeOrden.value = await operacionStore.fetchServiciosDeOrden(orden.id);
+    } finally {
+        cargandoDetalle.value = false;
+    }
+};
+
+// ── EDICIÓN DE LA CABECERA ───────────────────────────────────────────────────
+const ordenEditando = ref<OperacionOrdenServicio | null>(null);
+const formEdicion = ref({ numeroOs: '', compradorMaestroId: '' as string | null, compradorNombre: '', estadoOs: 'borrador' });
+const guardandoEdicion = ref(false);
+const errorEdicion = ref<string | null>(null);
+
+const abrirEdicion = (orden: OperacionOrdenServicio) => {
+    ordenEditando.value = orden;
+    formEdicion.value = {
+        numeroOs: orden.numeroOs ?? '',
+        compradorMaestroId: orden.compradorMaestroId ?? '',
+        compradorNombre: orden.compradorNombre ?? '',
+        estadoOs: orden.estadoOs ?? 'borrador',
+    };
+    errorEdicion.value = null;
+    void operacionStore.fetchProveedores();
+};
+
+const onDestinatarioEdicion = (id: unknown): void => {
+    const elegido = operacionStore.proveedores.find(p => p.id === String(id ?? ''));
+    formEdicion.value.compradorNombre = elegido?.nombreComercial ?? '';
+};
+
+const guardarEdicion = async () => {
+    const orden = ordenEditando.value;
+    if (!orden?.id) return;
+
+    guardandoEdicion.value = true;
+    errorEdicion.value = null;
+    try {
+        await operacionStore.actualizarOrdenServicio(orden.id, {
+            numeroOs: formEdicion.value.numeroOs,
+            compradorMaestroId: formEdicion.value.compradorMaestroId || null,
+            compradorNombre: formEdicion.value.compradorNombre || null,
+            estadoOs: formEdicion.value.estadoOs as OperacionOrdenServicio['estadoOs'],
+        });
+        ordenEditando.value = null;
+    } catch {
+        errorEdicion.value = 'No se pudo guardar. Comprueba que el número de OS no esté repetido.';
+    } finally {
+        guardandoEdicion.value = false;
+    }
+};
 const cuerpoMensaje = ref<string>('');
 const enviandoMensaje = ref<boolean>(false);
 
@@ -1349,7 +1417,7 @@ onMounted(async () => {
                     >
                         <!-- Fila 1: identidad y estado -->
                         <div class="px-3 py-2.5 flex items-center justify-between gap-2 border-b border-slate-100">
-                            <button @click="ordenExpandida = ordenExpandida === orden.id ? null : (orden.id ?? null)"
+                            <button @click="alternarDetalle(orden)"
                                     class="flex items-center gap-2 min-w-0 text-left">
                                 <i class="fas text-[10px] text-slate-300 shrink-0"
                                    :class="ordenExpandida === orden.id ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
@@ -1390,15 +1458,47 @@ onMounted(async () => {
 
                         <!-- Detalle: los servicios que agrupa. Estaba sin forma de verse. -->
                         <div v-if="ordenExpandida === orden.id" class="px-3 pb-2.5 border-t border-slate-100 pt-2">
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                                {{ (orden.operacionServicios ?? []).length }} servicio(s) en esta orden
+                            <p v-if="cargandoDetalle" class="text-[10px] font-bold text-slate-400">
+                                <i class="fas fa-spinner fa-spin mr-1"></i> Cargando…
                             </p>
-                            <p class="text-[10px] text-slate-400 leading-snug">
-                                Los importes se ajustan en La Biblia, en la columna de costo real de cada servicio.
-                            </p>
+                            <template v-else>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                    {{ serviciosDeOrden.length }} servicio(s)
+                                </p>
+                                <div class="flex flex-col gap-1.5">
+                                    <div v-for="s in serviciosDeOrden" :key="s.id ?? ''"
+                                         class="flex items-start justify-between gap-2 bg-slate-50 rounded-lg px-2 py-1.5">
+                                        <div class="min-w-0">
+                                            <p class="text-[11px] font-bold text-slate-700 leading-snug">
+                                                {{ s.contextoServicio || s.descripcionServicio }}
+                                            </p>
+                                            <p class="text-[10px] text-slate-400 leading-snug">
+                                                {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ s.cantidadPax }} pax
+                                            </p>
+                                        </div>
+                                        <div class="shrink-0 text-right">
+                                            <p class="text-[11px] font-black text-slate-700 tabular-nums">
+                                                <span class="text-[9px] font-bold text-slate-400 mr-1">{{ s.monedaReal?.id || s.monedaCotizada?.id || '?' }}</span>{{ importe(Number(s.costoRealOperativo ?? 0) > 0 ? s.costoRealOperativo : s.costoCotizado) }}
+                                            </p>
+                                            <p v-if="Number(s.costoRealOperativo ?? 0) > 0" class="text-[9px] text-slate-400 tabular-nums">
+                                                cotizado {{ s.monedaCotizada?.id }} {{ importe(s.costoCotizado) }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-slate-400 leading-snug mt-1.5">
+                                    Los importes se ajustan en La Biblia, en la columna de costo real de cada servicio.
+                                </p>
+                            </template>
                         </div>
 
-                        <div class="px-3 py-2 bg-slate-50 border-t border-slate-100 flex justify-end">
+                        <div class="px-3 py-2 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                            <button
+                                @click="abrirEdicion(orden)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#376875] hover:text-white hover:border-[#376875] text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
+                            >
+                                <i class="fas fa-pen text-[9px]"></i> Editar
+                            </button>
                             <button
                                 @click="abrirMensajes(orden)"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#376875] hover:text-white hover:border-[#376875] text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
@@ -1411,6 +1511,88 @@ onMounted(async () => {
             </section>
 
         </main>
+
+        <!-- ================================================================
+             MODAL: EDITAR LA CABECERA DE UNA ORDEN
+
+             Una orden se creaba y ya no se podía tocar: ni corregir el número, ni cambiar el
+             destinatario, ni moverla de estado. Lo único a mano era la bitácora, que no edita
+             nada. El importe NO se edita aquí — sale de los ítems (§5.4).
+             ================================================================ -->
+        <div v-if="ordenEditando" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+                <header class="bg-slate-900 text-white px-5 py-3 flex items-center gap-2">
+                    <i class="fas fa-pen text-[#E07845]"></i>
+                    <h3 class="font-black text-sm tracking-tight">Editar Orden de Servicio</h3>
+                </header>
+
+                <div class="p-5 flex flex-col gap-3">
+                    <label class="flex flex-col gap-1">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Número de OS</span>
+                        <input
+                            v-model="formEdicion.numeroOs"
+                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#376875]"
+                        />
+                    </label>
+
+                    <label class="flex flex-col gap-1">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            Destinatario <span class="text-slate-300 normal-case font-bold">(a quién se le manda)</span>
+                        </span>
+                        <SearchableSelect
+                            v-model="formEdicion.compradorMaestroId"
+                            :options="opcionesProveedores"
+                            placeholder="Buscar proveedor..."
+                            @update:model-value="onDestinatarioEdicion"
+                        />
+                        <span v-if="!formEdicion.compradorMaestroId && formEdicion.compradorNombre"
+                              class="text-[10px] font-bold text-amber-600 flex items-start gap-1">
+                            <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                            <span>Va a nombre de <b>{{ formEdicion.compradorNombre }}</b>, que no está en el catálogo.</span>
+                        </span>
+                    </label>
+
+                    <label class="flex flex-col gap-1">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Estado</span>
+                        <select
+                            v-model="formEdicion.estadoOs"
+                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#376875]"
+                        >
+                            <option v-for="(cfg, k) in ESTADO_OS_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+                        </select>
+                    </label>
+
+                    <!-- El importe no se toca aquí a propósito: vive en cada servicio, con su
+                         moneda. Decirlo evita que alguien lo busque y lo eche de menos. -->
+                    <p class="text-[10px] text-slate-400 leading-snug bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                        <i class="fas fa-circle-info mr-1"></i>
+                        Los importes se ajustan servicio por servicio en La Biblia, en la columna de
+                        costo real. Aquí no hay un total que editar.
+                    </p>
+
+                    <p v-if="errorEdicion" class="text-xs font-bold text-rose-600">
+                        <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorEdicion }}
+                    </p>
+                </div>
+
+                <footer class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                    <button
+                        @click="ordenEditando = null"
+                        class="px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-800"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        @click="guardarEdicion"
+                        :disabled="guardandoEdicion || !formEdicion.numeroOs.trim()"
+                        class="px-5 py-2 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-50 text-white rounded-lg text-xs font-black uppercase tracking-widest shadow-sm transition-colors"
+                    >
+                        <i v-if="guardandoEdicion" class="fas fa-spinner fa-spin mr-1"></i>
+                        Guardar
+                    </button>
+                </footer>
+            </div>
+        </div>
 
         <!-- ================================================================
              MODAL: GENERAR ORDEN DE SERVICIO
