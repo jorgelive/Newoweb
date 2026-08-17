@@ -19,9 +19,12 @@ import {
     type ProveedorWrite,
 } from '@/types/proveedorModel';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
+import { usePermisosStore } from '@/stores/permisosStore';
 import ProveedorFormulario from '@/components/common/ProveedorFormulario.vue';
 
 const store = useProveedorStore();
+// Sólo para pintar el botón: quien decide es el #[IsGranted] del endpoint. Ver el store.
+const permisos = usePermisosStore();
 
 const termino = ref('');
 const formulario = ref<ProveedorWrite>(proveedorVacio());
@@ -150,6 +153,7 @@ const ponerPortada = async (id: string) => {
 };
 
 onMounted(async () => {
+    void permisos.cargar();
     await store.fetchLugares();
     await store.fetchProveedores();
 });
@@ -167,6 +171,9 @@ onMounted(async () => {
                 </p>
             </div>
             <button @click="abrirNuevo"
+                    :disabled="!permisos.puede('ROLE_MAESTROS_WRITE')"
+                    :title="permisos.motivo('ROLE_MAESTROS_WRITE', 'dar de alta empresas en el catálogo')"
+                    :class="permisos.puede('ROLE_MAESTROS_WRITE') ? '' : 'opacity-40 cursor-not-allowed'"
                     class="ml-auto flex items-center gap-2 px-4 py-2 bg-[#E07845] hover:bg-[#c96837] rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors">
                 <i class="fas fa-plus"></i>
                 <span class="hidden sm:inline">Nuevo proveedor</span>

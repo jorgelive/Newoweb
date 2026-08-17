@@ -177,6 +177,39 @@ exactamente lo que se olvida al copiar un formulario: ahora vive en el component
 ⚠️ **Servicios y galería se quedan fuera.** Los dos necesitan el IRI del proveedor ya
 creado para colgarse de él; incluirlos obligaría al alta inline a pintar secciones muertas.
 
+## 2.c Permisos en la UI — botón apagado, nunca error al pulsar
+
+`util/src/stores/permisosStore.ts` + `GET /tipo/user/enum/permisos`.
+
+Hasta 2026-08-16 el SPA no sabía nada de roles: el backend rechazaba lo que no tocaba y el
+usuario se enteraba **al pulsar**. Para un botón de alta eso se lee como «la aplicación
+está rota», no como «no tienes permiso».
+
+```ts
+const permisos = usePermisosStore();
+onMounted(() => permisos.cargar());   // idempotente, se llama en cada vista
+
+:disabled="!permisos.puede('ROLE_MAESTROS_WRITE')"
+:title="permisos.motivo('ROLE_MAESTROS_WRITE', 'dar de alta empresas en el catálogo')"
+```
+
+**Este es el comportamiento para todas las altas**, no sólo la de proveedores: control
+apagado + `title` explicando por qué. Apagar sin decir el motivo genera más consultas que
+el error que se quería evitar, así que `motivo()` obliga a escribirlo.
+
+⚠️ **No es el candado.** Sólo sirve para pintar; quien decide es el `#[IsGranted]` de cada
+endpoint, porque cualquiera puede mentirle a su propio navegador. Si una comprobación vive
+**sólo** aquí, deja de ser una comprobación.
+
+⚠️ **Optimista mientras carga**: antes de la primera respuesta `puede()` devuelve `true`.
+Devolver `false` haría parpadear cada pantalla con todo deshabilitado, y eso se lee como
+«no tengo permisos» en vez de «aún no lo sé». El peor caso de equivocarse hacia este lado
+es un error del backend — exactamente lo que había antes.
+
+⚠️ Los permisos se resuelven con `isGranted()`, **no** leyendo `user.roles`. Jorge tiene
+`ROLE_MAESTROS_DELETE` y no tiene escrito `ROLE_MAESTROS_WRITE`: lo hereda por
+`role_hierarchy`. Mirar la columna diría que no puede crear proveedores, y sí puede.
+
 ## 3. AppSwitcher — saltar entre módulos
 
 **Archivos:** `util/src/components/common/AppSwitcher.vue` · `util/src/types/modulosApp.ts`

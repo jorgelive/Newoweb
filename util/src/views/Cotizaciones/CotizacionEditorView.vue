@@ -25,6 +25,7 @@ import {
 } from '@/types/cotizacionEditorModel';
 import ProveedorFormulario from '@/components/common/ProveedorFormulario.vue';
 import { proveedorVacio, type ProveedorWrite } from '@/types/proveedorModel';
+import { usePermisosStore } from '@/stores/permisosStore';
 
 defineProps<{
   fileId?: string;
@@ -88,6 +89,7 @@ const actualizarResumen = (texto: string) => {
 
 onMounted(() => {
   window.addEventListener('beforeunload', onBeforeUnload);
+  void permisos.cargar();
 
   const fileId = route.params.fileId as string;
   const cotizacionId = route.params.cotizacionId as string;
@@ -450,6 +452,9 @@ const opcionesProveedores = computed(() => {
 
 
 const prestadorParaFiltro = computed(() => store.prestadorEsperadoDeTarifaActiva);
+
+// Sólo para pintar: quien decide es el #[IsGranted] del endpoint. Ver el store.
+const permisos = usePermisosStore();
 
 /** Alta de prestador sin salir del editor. */
 const altaPrestadorAbierta = ref(false);
@@ -1999,8 +2004,12 @@ store.$onAction(({ name, args }) => {
                            quedar SIEMPRE contra el maestro: si dar de alta cuesta lo mismo
                            que escribir texto suelto, nadie escribe texto suelto. -->
                       <button @click="abrirAltaPrestador"
-                              class="w-9 h-9 shrink-0 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors flex items-center justify-center shadow-sm"
-                              title="Dar de alta una empresa que no está en el catálogo">
+                              :disabled="!permisos.puede('ROLE_MAESTROS_WRITE')"
+                              :title="permisos.motivo('ROLE_MAESTROS_WRITE', 'dar de alta empresas en el catálogo')"
+                              class="w-9 h-9 shrink-0 rounded-lg border transition-colors flex items-center justify-center shadow-sm"
+                              :class="permisos.puede('ROLE_MAESTROS_WRITE')
+                                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed'">
                         <i class="fas fa-plus"></i>
                       </button>
                       <button v-if="store.componenteActivo.prestadorMaestroId"
