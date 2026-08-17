@@ -30,6 +30,7 @@ import {
     SIN_LUGAR,
     type FiltrosBiblia,
     type OperacionServicio,
+    type OperacionServicioWrite,
     type OperacionOrdenServicio,
 } from '@/types/operacionModel';
 
@@ -626,6 +627,55 @@ const alternarDetalle = async (orden: OperacionOrdenServicio) => {
     } finally {
         cargandoDetalle.value = false;
     }
+};
+
+/**
+ * Ajustar lo NEGOCIADO sin salir de la orden.
+ *
+ * Antes había que volver a La Biblia, encontrar la fila y editarla allí — ir y venir entre
+ * dos pantallas justo cuando estás cerrando el precio con el proveedor, que es el momento en
+ * que tienes la orden delante.
+ *
+ * Toca `costoRealOperativo` y `monedaReal`, que son campos DEL OPERADOR: la reconciliación no
+ * los pisa jamás. El cotizado no se toca, que es la referencia con la que se concilia.
+ */
+const guardarNegociadoDeOrden = async (
+    servicio: OperacionServicio,
+    payload: Partial<OperacionServicioWrite>,
+): Promise<void> => {
+    if (!servicio.id) return;
+
+    await operacionStore.actualizarServicio(servicio.id, payload);
+
+    // Se recargan las dos cosas: el detalle, y el listado —donde vive
+    // `totalesPorMoneda`, que lo calcula el servidor y quedaría desfasado—.
+    if (ordenExpandida.value) {
+        serviciosDeOrden.value = await operacionStore.fetchServiciosDeOrden(ordenExpandida.value);
+    }
+    await operacionStore.fetchOrdenesServicio();
+};
+
+const editarCostoDeOrden = async (servicio: OperacionServicio, evento: Event) => {
+    const input = evento.target as HTMLInputElement;
+    const valor = input.value.trim().replace(',', '.');
+
+    if (valor === '') {
+        await guardarNegociadoDeOrden(servicio, { costoRealOperativo: '0.00' });
+        return;
+    }
+    if (!/^\d+(\.\d{1,2})?$/.test(valor)) {
+        input.value = servicio.costoRealOperativo ?? '';
+        return;
+    }
+
+    await guardarNegociadoDeOrden(servicio, { costoRealOperativo: Number(valor).toFixed(2) });
+};
+
+const editarMonedaDeOrden = async (servicio: OperacionServicio, evento: Event) => {
+    const id = (evento.target as HTMLSelectElement).value;
+    if (!id || id === servicio.monedaReal?.id) return;
+
+    await guardarNegociadoDeOrden(servicio, { monedaReal: `/platform/maestro/monedas/${id}` });
 };
 
 // ── EDICIÓN DE LA CABECERA ───────────────────────────────────────────────────
@@ -1476,18 +1526,38 @@ onMounted(async () => {
                                                 {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ s.cantidadPax }} pax
                                             </p>
                                         </div>
+                                        <!-- Lo NEGOCIADO, editable aquí mismo: es el momento en que
+                                             tienes al proveedor al teléfono y la orden delante. El
+                                             cotizado queda debajo como referencia y no se toca. -->
                                         <div class="shrink-0 text-right">
-                                            <p class="text-[11px] font-black text-slate-700 tabular-nums">
-                                                <span class="text-[9px] font-bold text-slate-400 mr-1">{{ s.monedaReal?.id || s.monedaCotizada?.id || '?' }}</span>{{ importe(Number(s.costoRealOperativo ?? 0) > 0 ? s.costoRealOperativo : s.costoCotizado) }}
-                                            </p>
-                                            <p v-if="Number(s.costoRealOperativo ?? 0) > 0" class="text-[9px] text-slate-400 tabular-nums">
+                                            <div class="flex items-center justify-end gap-1">
+                                                <select
+                                                    :value="s.monedaReal?.id ?? s.monedaCotizada?.id ?? ''"
+                                                    @change="editarMonedaDeOrden(s, $event)"
+                                                    class="text-[9px] font-black text-slate-500 bg-white border border-slate-200 rounded px-1 py-1 outline-none focus:ring-2 focus:ring-[#376875]"
+                                                    title="Moneda en la que se cerró"
+                                                >
+                                                    <option v-for="m in operacionStore.monedas" :key="m" :value="m">{{ m }}</option>
+                                                </select>
+                                                <input
+                                                    :value="Number(s.costoRealOperativo ?? 0) === 0 ? '' : importe(s.costoRealOperativo)"
+                                                    @change="editarCostoDeOrden(s, $event)"
+                                                    :placeholder="importe(s.costoCotizado)"
+                                                    inputmode="decimal"
+                                                    maxlength="13"
+                                                    class="w-[5.5rem] text-[11px] font-black text-slate-800 bg-white px-2 py-1 rounded border border-slate-200 tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] placeholder:text-slate-300 placeholder:font-medium"
+                                                />
+                                            </div>
+                                            <p class="text-[9px] text-slate-400 tabular-nums mt-0.5">
                                                 cotizado {{ s.monedaCotizada?.id }} {{ importe(s.costoCotizado) }}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
                                 <p class="text-[10px] text-slate-400 leading-snug mt-1.5">
-                                    Los importes se ajustan en La Biblia, en la columna de costo real de cada servicio.
+                                    <i class="fas fa-circle-info mr-1"></i>
+                                    Vacío = todavía sin negociar; vale el cotizado. Estos campos son tuyos:
+                                    una resincronización de la cotización nunca los pisa.
                                 </p>
                             </template>
                         </div>

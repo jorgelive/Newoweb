@@ -661,8 +661,18 @@ campos tocados, porque con PUT un campo ausente se lee como «ponlo a null».
 |---|---|
 | `numeroOs`, destinatario (`compradorMaestroId` + `compradorNombre`), `estadoOs` | El importe |
 
-El importe no está ahí a propósito —vive en cada ítem con su moneda— y el panel **lo dice**,
-para que nadie lo busque y crea que falta.
+El importe no está en la cabecera a propósito —vive en cada ítem con su moneda—, pero **sí se
+edita en el detalle**: al desplegar la orden, cada servicio trae su importe y su moneda
+negociados en campos editables. Antes había que volver a La Biblia, encontrar la fila y
+tocarla allí, que es ir y venir entre dos pantallas justo cuando estás cerrando el precio con
+el proveedor y tienes la orden delante.
+
+Lo que se edita ahí es `costoRealOperativo` y `monedaReal`, que son **campos del operador**: la
+reconciliación no los pisa jamás. El cotizado queda debajo como referencia y no se toca — es
+con lo que se concilia.
+
+Al guardar se recargan dos cosas: el detalle y el listado. `totalesPorMoneda` lo calcula el
+servidor, así que sin recargar el listado la cabecera se quedaría con la suma vieja.
 
 Al desplegar una orden se piden sus servicios aparte
 (`fetchServiciosDeOrden()` → `?ordenServicio=<iri>`): en el listado viajan como IRI y traerlos
