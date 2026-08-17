@@ -284,3 +284,39 @@ En orden, porque cada paso descarta el anterior:
 | Que un dispositivo caído no calle a los demás | `WebPushNotificationService::sendToUser()` | No lanza excepciones a propósito, §6 |
 | Verificar un deploy de la PWA | — | `cd util && npm run verify:deploy [url]`, §3 |
 | Mandar un push de prueba | — | `php bin/console app:test-push` — usa la primera suscripción que encuentre |
+
+---
+
+## El despliegue que el operador no veía (2026-08-17)
+
+Tres despliegues seguidos con el bundle correcto en el servidor, y el operador viendo la
+pantalla de antes. Cerrar la app y volver a abrirla no lo arreglaba.
+
+**No era el caché HTTP ni el build.** El shell registraba el SW y llamaba a `reg.update()`
+**una sola vez, al arrancar**. Con `skipWaiting` + `clientsClaim` el SW nuevo se activa
+enseguida, pero **la página ya cargada sigue con su JS en memoria**: lo nuevo sólo aparecía en
+la carga siguiente. Y como el usuario cerraba y abría para «forzarlo», la secuencia era
+siempre la misma — esa apertura descargaba la versión nueva y mostraba la vieja.
+
+`registerType: 'autoUpdate'` de VitePWA no lo cubría: con `injectRegister: null` la
+registración es nuestra, así que ese ajuste no llega a hacer nada.
+
+Dos líneas en `pwa-postbuild.mjs`:
+
+- **`controllerchange` → `location.reload()`.** Cuando el SW nuevo toma el control, la página
+  se recarga sola. Con dos guardas: un `recargando` para no entrar en bucle, y `teniaControlador`
+  para no recargar en la primera instalación —ahí no hay nada viejo que sustituir y sería un
+  parpadeo gratis en la primera visita—.
+- **`reg.update()` cada 60s.** Una PWA instalada que no se cierra nunca no vuelve a preguntar
+  si hay versión nueva. En un piloto con varios despliegues al día, eso deja al operador
+  trabajando sobre una versión de hace horas.
+
+⚠️ Ojo al diagnosticar esto: el síntoma («no veo el cambio») apunta a build o despliegue, y los
+dos estaban bien. La comprobación que lo descarta en un minuto es buscar un texto del código
+nuevo dentro del bundle servido:
+
+```bash
+grep -l "un texto que sólo esté en lo nuevo" public/app_util/assets/*.js
+```
+
+Si aparece, el problema está en el cliente y no en el servidor.

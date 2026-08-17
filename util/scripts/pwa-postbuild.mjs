@@ -67,7 +67,29 @@ const shellHtml = `<!doctype html>
       // push-sw.js (importScripts) en cada chequeo; sin esto un SW viejo con la
       // navegación corrupta (host + undefined) puede sobrevivir en el caché HTTP.
       navigator.serviceWorker.register('/util-service-worker.js', { scope: '/', updateViaCache: 'none' })
-        .then(reg => reg.update());
+        .then(function (reg) {
+          reg.update();
+          // Chequeo periodico: una PWA instalada que no se cierra nunca no vuelve a
+          // preguntar si hay version nueva, porque el update() de arriba corre una sola
+          // vez al arrancar. En un piloto con varios despliegues al dia eso deja al
+          // operador trabajando sobre una version de hace horas.
+          setInterval(function () { reg.update(); }, 60000);
+        });
+
+      // RECARGA AL TOMAR EL CONTROL EL SW NUEVO. Este era el agujero: con skipWaiting y
+      // clientsClaim el SW nuevo se activa enseguida, pero la pagina ya cargada sigue con
+      // el JS viejo en memoria, asi que lo nuevo solo aparecia en la carga SIGUIENTE. El
+      // sintoma era cerrar la app, volver a abrir y ver lo mismo, con el bundle correcto
+      // ya en el servidor.
+      var recargando = false;
+      var teniaControlador = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        // En la PRIMERA instalacion no habia controlador y esto tambien dispara: recargar
+        // ahi seria un parpadeo gratis en la primera visita de cada usuario.
+        if (recargando || !teniaControlador) return;
+        recargando = true;
+        window.location.reload();
+      });
     }
   <\/script>
 </body>
