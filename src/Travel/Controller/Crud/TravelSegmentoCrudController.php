@@ -250,7 +250,10 @@ class TravelSegmentoCrudController extends BaseCrudController
         yield TextField::new('virtualLogistica', 'Logística Inyectada')
             ->onlyOnIndex()
             ->formatValue(function ($value, TravelSegmento $entity) {
-                /** @var iterable<TravelSegmentoComponente> $coleccion */
+                // Sin `@var`: el getter ya declara `Collection<int, TravelSegmentoComponente>`.
+                // La anotación que había aquí lo rebajaba a `iterable`, y con eso `isEmpty()`
+                // —que es de `Collection`, no de `iterable`— pasaba a ser una llamada sin
+                // respaldo en el tipo.
                 $coleccion = $entity->getSegmentoComponentes();
                 if ($coleccion->isEmpty()) return '<span class="badge bg-light text-muted border">Sin logística</span>';
 
