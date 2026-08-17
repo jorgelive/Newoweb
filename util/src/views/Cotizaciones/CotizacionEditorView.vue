@@ -1624,12 +1624,24 @@ store.$onAction(({ name, args }) => {
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
                   Nombre operativo <span class="text-slate-300 normal-case font-bold">(interno / proveedor · no lo ve el cliente)</span>
                 </label>
-                <input :value="store.getI18nText(store.servicioActivo.nombreSnapshot, 'es')"
-                       @input="e => { if(store.servicioActivo) store.setI18nText(store.servicioActivo.nombreSnapshot, 'es', (e.target as HTMLInputElement).value) }"
-                       type="text" placeholder="Cómo lo nombras tú y lo pides al proveedor"
-                       class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
+                <div class="flex gap-2">
+                  <input :value="store.getI18nText(store.servicioActivo.nombreSnapshot, 'es')"
+                         @input="e => { if(store.servicioActivo) store.setI18nText(store.servicioActivo.nombreSnapshot, 'es', (e.target as HTMLInputElement).value) }"
+                         type="text" placeholder="Cómo lo nombras tú y lo pides al proveedor"
+                         class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
+                  <!-- Copia el nombre público al operativo. Para los servicios genéricos —«Vuelo»,
+                       «Alojamiento»— el detalle está en el público («Vuelo Lima Cusco») y el operador
+                       se quedaba sin él. Un toque lo iguala; sigue siendo editable después. -->
+                  <button v-if="store.getI18nText(store.servicioActivo.nombrePublicoSnapshot, 'es') && store.getI18nText(store.servicioActivo.nombrePublicoSnapshot, 'es') !== store.getI18nText(store.servicioActivo.nombreSnapshot, 'es')"
+                          @click="store.servicioActivo && store.setI18nText(store.servicioActivo.nombreSnapshot, 'es', store.getI18nText(store.servicioActivo.nombrePublicoSnapshot, 'es'))"
+                          class="px-3 shrink-0 bg-slate-100 hover:bg-[#376875] hover:text-white text-slate-500 border border-slate-200 rounded-lg transition-colors shadow-sm"
+                          title="Copiar el nombre público aquí">
+                    <i class="fas fa-arrow-up"></i>
+                  </button>
+                </div>
                 <p class="text-[9px] text-slate-400 mt-1 ml-1">
-                  Nace del nombre del servicio; al aplicar una plantilla toma el suyo. En un solo idioma.
+                  Nace del nombre del servicio; al aplicar una plantilla toma el suyo. La flecha copia
+                  el nombre público, útil en servicios genéricos («Vuelo» → «Vuelo Lima Cusco»). Un idioma.
                 </p>
               </div>
               <div>
