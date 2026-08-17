@@ -55,6 +55,37 @@ Cada nodo guarda **copias congeladas** (`*Snapshot`) tomadas de los **maestros**
 - El **nombre interno** de un componente **no** está en su snapshot: viene del **maestro** (`componenteMaestroId` → `catalogos.allComponentes[].nombre`). Siempre existe.
 - `nombreSnapshot` del componente = **título público** (opcional; para el cliente). Un componente sin `nombreSnapshot` es un "contenedor solo-ítems" (`isComponenteSoloItems`).
 
+### Los nombres de un servicio, resueltos (2026-08-17)
+
+Tras el análisis de la asimetría (abajo), el modelo quedó en tres ejes limpios:
+
+| Eje | Campo | Idioma | Editable | Cliente lo ve |
+|---|---|---|---|---|
+| **Código / slug** | `TravelItinerario.slug` (maestro) | uno | EasyAdmin | no |
+| **Operativo** (interno + proveedor) | `nombreSnapshot` (cotservicio) | **uno (es)** | ✅ sí (cotizador) | no |
+| **Comercial** | `nombrePublicoSnapshot` (cotservicio) | i18n (7) | ✅ sí | ✅ sí |
+
+Cambios que lo implementaron:
+
+- **`TravelItinerario.slug`** (migración): el código (`HD-COMBINADA-POOL-AM`) sale de
+  `nombreInterno` a un campo propio, copiado. En EasyAdmin el slug va primero y `nombreInterno`
+  —ahora un nombre operativo de verdad— a continuación. `nombreInterno` se queda con el código
+  hasta que se edite plantilla por plantilla.
+- **`nombreSnapshot` = nombre operativo, no título.** Nace del `nombreInterno` del servicio; al
+  aplicar plantilla se transforma en el `nombreInterno` de la plantilla (más específica). En un
+  solo idioma —al proveedor se le habla en uno— vía `nombreOperativoComoI18n`. Ya no se copia
+  del título ni el título se copia de él.
+- **Editable en el cotizador**: campo «Nombre operativo» propio, separado del «Nombre Público».
+  Antes salía bloqueado con candado.
+
+⚠️ **`nombreSnapshot` sigue con `#[AutoTranslate]` en la entidad**, pero se llena con un solo
+idioma a propósito. Si se quiere prohibir la traducción de raíz, hay que quitarle el atributo
+—decisión pendiente, no bloquea—.
+
+La Biblia (`contextoServicio`) lee `nombreSnapshot`, así que el operador ve ahora el nombre
+operativo, no el título comercial. Las cotizaciones existentes conservan su `nombreSnapshot`
+viejo (título) hasta que se reediten: sólo cambia el comportamiento de las nuevas.
+
 ### ⚠️ Los tres nombres de un SERVICIO, y la asimetría interno/público (2026-08-17)
 
 Un `CotizacionCotservicio` tiene **tres** campos de nombre, y no dan lo mismo:

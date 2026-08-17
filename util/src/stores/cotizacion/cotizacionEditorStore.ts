@@ -275,6 +275,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     /** Título i18n de un maestro, o array vacío si no lo trae (nunca undefined). */
+    /**
+     * Un `nombreInterno` (string simple) puesto en el formato i18n que usa `nombreSnapshot`.
+     *
+     * `nombreSnapshot` pasó a ser el NOMBRE OPERATIVO (no el título): nace del `nombreInterno`
+     * del servicio y, al aplicar plantilla, del de la plantilla. Como es operativo va en un solo
+     * idioma —el español—, no traducido: al proveedor se le habla en uno.
+     */
+    const nombreOperativoComoI18n = (nombre: string | null | undefined): I18nContent[] =>
+        nombre ? [{ language: 'es', content: nombre }] : [];
+
     const getTituloSafe = (entity: { titulo?: unknown } | null | undefined): I18nContent[] => {
         if (entity && Array.isArray(entity.titulo) && entity.titulo.length > 0) return entity.titulo as I18nContent[];
         return [];
@@ -3401,6 +3411,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (!servicio) return;
 
             servicio.itinerarioNombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda)));
+            // El NOMBRE operativo se transforma en el de la plantilla (más específica que el
+            // servicio). El título público sigue su propia vía, más abajo.
+            servicio.nombreSnapshot = nombreOperativoComoI18n(
+                (plantillaProfunda as { nombreInterno?: string }).nombreInterno
+            );
             // Referencia interna a la plantilla: habilita el re-sync exacto de flags
             // (p.ej. "hora de servicio completo") por el botón Actualizar.
             servicio.itinerarioMaestroId = extractIdStr(plantillaId)
@@ -3646,9 +3661,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const maestro = catalogos.value.servicios.find((s: Servicio) => extractIdStr(s.id || s['@id']) === targetId);
 
         if (maestro && servicio) {
-            const titulo = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
-            servicio.nombreSnapshot = titulo;
-            servicio.nombrePublicoSnapshot = JSON.parse(JSON.stringify(titulo));
+            // El NOMBRE (operativo, un idioma) sale del nombreInterno; el TÍTULO (comercial,
+            // i18n, cliente) sale del titulo. Son ejes distintos y ya no se copian entre sí.
+            servicio.nombreSnapshot = nombreOperativoComoI18n(maestro.nombreInterno);
+            servicio.nombrePublicoSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
             await fetchServicioDetalles(val);
         }
     };

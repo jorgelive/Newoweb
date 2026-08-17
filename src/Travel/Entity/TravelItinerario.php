@@ -50,6 +50,17 @@ class TravelItinerario
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelServicio $servicio = null;
 
+    /**
+     * Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG.
+     *
+     * Se separó de `nombreInterno` (2026-08-17): éste último quedó como el código que Jorge usa
+     * para identificar, y `nombreInterno` pasa a ser un nombre operativo de verdad. Nace copiado
+     * del código por migración; se edita después.
+     */
+    #[Groups(['itinerario:read', 'itinerario:item:read', 'itinerario:write', 'servicio:item:read'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $slug = null;
+
     #[Groups(['itinerario:read', 'itinerario:item:read', 'itinerario:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
@@ -114,6 +125,9 @@ class TravelItinerario
         $this->servicio = $servicio;
         return $this;
     }
+
+    public function getSlug(): ?string { return $this->slug; }
+    public function setSlug(?string $slug): self { $this->slug = $slug; return $this; }
 
     public function getNombreInterno(): ?string
     {

@@ -47,7 +47,7 @@ class TravelItinerarioCrudController extends BaseCrudController
             ->showEntityActionsInlined()
             ->setEntityLabelInSingular('Plantilla de Itinerario')
             ->setEntityLabelInPlural('Plantillas Comerciales')
-            ->setSearchFields(['id', 'nombreInterno'])
+            ->setSearchFields(['id', 'slug', 'nombreInterno'])
             ->setDefaultSort(['createdAt' => 'DESC']);
     }
 
@@ -124,7 +124,10 @@ class TravelItinerarioCrudController extends BaseCrudController
     {
         yield FormField::addPanel('Definición de Plantilla')->setIcon('fa fa-book');
 
-        yield TextField::new('nombreInterno', 'Nombre de Plantilla')->setColumns(6);
+        yield TextField::new('slug', 'Slug / Código')->setColumns(6)
+            ->setHelp('Código de identificación (ej. HD-COMBINADA-POOL-AM). No se envía a nadie.');
+        yield TextField::new('nombreInterno', 'Nombre de Plantilla')->setColumns(6)
+            ->setHelp('Nombre operativo, el que puede ir al proveedor.');
 
         yield IntegerField::new('duracionDias', 'Duración Total')
             ->setColumns(4)

@@ -1616,7 +1616,7 @@ store.$onAction(({ name, args }) => {
 
                 <div v-if="store.servicioActivo.servicioMaestroId && (store.servicioActivo.cotcomponentes?.length ?? 0) > 0"
                      class="w-full bg-slate-100 border border-slate-200 text-slate-500 rounded-lg px-3 py-2.5 text-sm font-bold flex justify-between items-center cursor-not-allowed shadow-inner">
-                  <span>{{ store.getI18nText(store.servicioActivo.nombreSnapshot, store.cotizacion.idiomaEdicion) || 'Servicio Bloqueado' }}</span>
+                  <span>{{ store.getI18nText(store.servicioActivo.nombreSnapshot, 'es') || 'Servicio del catálogo' }}</span>
                   <i class="fas fa-lock text-orange-400"></i>
                 </div>
 
@@ -1628,6 +1628,18 @@ store.$onAction(({ name, args }) => {
                     @search="val => store.buscarServiciosAsincrono(val)"
                     :min-chars-busqueda="3"
                 />
+              </div>
+              <div>
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
+                  Nombre operativo <span class="text-slate-300 normal-case font-bold">(interno / proveedor · no lo ve el cliente)</span>
+                </label>
+                <input :value="store.getI18nText(store.servicioActivo.nombreSnapshot, 'es')"
+                       @input="e => { if(store.servicioActivo) store.setI18nText(store.servicioActivo.nombreSnapshot, 'es', (e.target as HTMLInputElement).value) }"
+                       type="text" placeholder="Cómo lo nombras tú y lo pides al proveedor"
+                       class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
+                <p class="text-[9px] text-slate-400 mt-1 ml-1">
+                  Nace del nombre del servicio; al aplicar una plantilla toma el suyo. En un solo idioma.
+                </p>
               </div>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
