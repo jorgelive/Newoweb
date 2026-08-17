@@ -21,7 +21,8 @@ import {
   getTipoNotaUI,
   getRolTarifaUI, Servicio, TarifaSnapshot, ImagenSnapshot, formatRangoEdad,
   CotServicio, CotSegmento, ComponenteCompleto, SnapshotItem, Segmento, OpcionUpgradeInterna, NotaSnapshot,
-  MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE
+  MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE,
+  type TarifaModalidadValue, type TarifaCategoriaValue
 } from '@/types/cotizacionEditorModel';
 import ProveedorFormulario from '@/components/common/ProveedorFormulario.vue';
 import { proveedorVacio, type ProveedorWrite } from '@/types/proveedorModel';
@@ -437,6 +438,17 @@ const opcionesTarifasFiltradas = computed(() => {
  * (precio local), otras para extranjeros, otras para la CAN. Sin valor = vale para todos, que
  * es el caso normal — y decirlo en positivo evita leerlo como si faltara un dato.
  */
+/** Modalidad y categoría de una ficha de tarifa, listas para pintar. */
+const getModalidadTarifaUI = (t: { modalidad?: string | null } | null) => {
+  const v = t?.modalidad as TarifaModalidadValue | null | undefined;
+  return v ? (MODALIDAD_CONFIG[v] ?? null) : null;
+};
+
+const getCategoriaTarifaUI = (t: { categoria?: string | null } | null) => {
+  const v = t?.categoria as TarifaCategoriaValue | null | undefined;
+  return v ? (CATEGORIA_CONFIG[v] ?? null) : null;
+};
+
 const etiquetaProcedencia = (procedencia?: string | null): string =>
     procedencia ? getProcedenciaUI(procedencia).label : 'Toda nacionalidad';
 
@@ -2422,56 +2434,52 @@ store.$onAction(({ name, args }) => {
               </div>
 
               <!--
-                LA PASTILLA. Fija en pantalla QUÉ tarifa está elegida, y sobre todo DE QUIÉN.
-                Antes eran dos badges sueltos y el proveedor no salía por ningún lado: se
-                sabía la procedencia de la tarifa pero no a quién había que pedírsela.
+                LAS PASTILLAS de la tarifa elegida. Compactas a propósito: son de un vistazo,
+                no un párrafo. La PRIMERA es el proveedor —el dato que decide si es la tarifa
+                que toca— y se pone en rojo cuando no es el prestador del componente.
               -->
-              <div v-if="store.tarifaActiva.tarifaMaestraId"
-                   class="mt-3 rounded-xl border p-3 transition-colors"
-                   :class="tarifaDeOtroProveedor
-                       ? 'border-2 border-red-400 bg-red-50/60'
-                       : 'border-slate-200 bg-slate-50'">
+              <div v-if="store.tarifaActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-1.5">
 
-                <div class="flex items-start gap-2">
-                  <i class="fas fa-truck-loading mt-0.5 text-[11px]"
-                     :class="tarifaDeOtroProveedor ? 'text-red-500' : 'text-slate-400'"></i>
-                  <div class="min-w-0 flex-1">
-                    <p class="text-[9px] font-black uppercase tracking-widest"
-                       :class="tarifaDeOtroProveedor ? 'text-red-500' : 'text-slate-400'">
-                      Tarifa de
-                    </p>
-                    <p class="text-xs font-black leading-snug"
-                       :class="tarifaDeOtroProveedor ? 'text-red-700' : 'text-slate-700'">
-                      {{ proveedorDeTarifaActiva?.nombre || 'Proveedor sin identificar' }}
-                    </p>
-                  </div>
-                </div>
+                <!-- Avisa, no bloquea: comprarle al consolidador lo que opera otro es legítimo,
+                     y un candado dejaría esa tarifa inseleccionable. El porqué va en el tooltip
+                     para no gastar tres líneas en el caso raro. -->
+                <span v-if="proveedorDeTarifaActiva?.nombre"
+                      class="text-[9px] font-bold px-2 py-1 rounded border uppercase max-w-[14rem] truncate"
+                      :class="tarifaDeOtroProveedor
+                          ? 'bg-red-50 text-red-700 border-red-300'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'"
+                      :title="tarifaDeOtroProveedor
+                          ? `Esta tarifa es de ${proveedorDeTarifaActiva.nombre}, pero el prestador del componente es ${prestadorParaFiltro?.nombre || 'otro'}. Puede ser correcto —a veces se le compra a uno lo que opera otro—, pero compruébalo.`
+                          : `Tarifa de ${proveedorDeTarifaActiva.nombre}`">
+                  <i class="mr-1" :class="tarifaDeOtroProveedor ? 'fas fa-triangle-exclamation' : 'fas fa-truck-loading text-slate-400'"></i>
+                  {{ proveedorDeTarifaActiva.nombre }}
+                </span>
 
-                <!-- Avisa, no bloquea: comprar al consolidador lo que opera otro es legítimo. -->
-                <p v-if="tarifaDeOtroProveedor"
-                   class="mt-2 text-[10px] font-bold text-red-700 leading-snug flex items-start gap-1.5">
-                  <i class="fas fa-triangle-exclamation mt-0.5 shrink-0"></i>
-                  <span>
-                    El prestador de este componente es
-                    <b>{{ prestadorParaFiltro?.nombre || 'otro' }}</b>, no
-                    <b>{{ tarifaDeOtroProveedor }}</b>. Puede ser correcto —a veces se le
-                    compra a uno lo que opera otro—, pero compruébalo.
+                <template v-if="tarifaMaestraDeActiva">
+                  <span v-if="getModalidadTarifaUI(tarifaMaestraDeActiva)"
+                        class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
+                    <span class="mr-1">{{ getModalidadTarifaUI(tarifaMaestraDeActiva)!.icon }}</span>
+                    {{ getModalidadTarifaUI(tarifaMaestraDeActiva)!.label }}
                   </span>
-                </p>
 
-                <div v-if="tarifaMaestraDeActiva" class="mt-2 pt-2 border-t flex flex-wrap gap-2"
-                     :class="tarifaDeOtroProveedor ? 'border-red-200' : 'border-slate-200'">
-                  <span class="text-[9px] font-bold text-slate-600 bg-white px-2 py-1 rounded border border-slate-200 uppercase"
+                  <span v-if="getCategoriaTarifaUI(tarifaMaestraDeActiva)"
+                        class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
+                    <span class="mr-1">{{ getCategoriaTarifaUI(tarifaMaestraDeActiva)!.icon }}</span>
+                    {{ getCategoriaTarifaUI(tarifaMaestraDeActiva)!.label }}
+                  </span>
+
+                  <span class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase"
                         :title="ayudaProcedencia(tarifaMaestraDeActiva.procedencia)">
                     <span class="mr-1">{{ getProcedenciaUI(tarifaMaestraDeActiva.procedencia).icon }}</span>
                     {{ etiquetaProcedencia(tarifaMaestraDeActiva.procedencia) }}
                   </span>
+
                   <span v-if="formatRangoEdad(tarifaMaestraDeActiva.edadMinima, tarifaMaestraDeActiva.edadMaxima)"
-                        class="text-[9px] font-bold text-slate-600 bg-white px-2 py-1 rounded border border-slate-200 uppercase">
+                        class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
                     <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
                     {{ formatRangoEdad(tarifaMaestraDeActiva.edadMinima, tarifaMaestraDeActiva.edadMaxima) }}
                   </span>
-                </div>
+                </template>
               </div>
             </div>
 

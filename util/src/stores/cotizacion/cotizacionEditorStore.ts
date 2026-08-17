@@ -25,6 +25,8 @@ import {
     expurgarParaCliente,
     formatRangoEdad,
     getProcedenciaUI,
+    MODALIDAD_CONFIG,
+    CATEGORIA_CONFIG,
     I18nContent,
     ImagenSnapshot,
     InclusionLinea,
@@ -447,8 +449,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const getTarifaSublabel = (t: TarifaLike): string => {
         const partes: string[] = [];
 
+        // El proveedor primero: es lo que decide si esta tarifa es la que toca.
         const prov = getProveedorDeTarifa(t);
         if (prov?.nombre) partes.push(prov.nombre);
+
+        // Luego las CONDICIONES, que es lo que hace que dos tarifas del mismo servicio no
+        // sean intercambiables. Sin verlas, elegir entre «Base 2 Pax» y «Base 3 Pax» es
+        // adivinar: el nombre interno no dice para quién vale ninguna.
+        const modalidad = getModalidadTarifa(t);
+        if (modalidad && MODALIDAD_CONFIG[modalidad]) {
+            partes.push(`${MODALIDAD_CONFIG[modalidad].icon} ${MODALIDAD_CONFIG[modalidad].label}`);
+        }
+
+        const categoria = getCategoriaTarifa(t);
+        if (categoria && CATEGORIA_CONFIG[categoria]) {
+            partes.push(`${CATEGORIA_CONFIG[categoria].icon} ${CATEGORIA_CONFIG[categoria].label}`);
+        }
 
         const proc = getProcedenciaTarifa(t);
         if (proc) {
@@ -457,7 +473,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
 
         const edad = formatRangoEdad(getEdadMinimaTarifa(t), getEdadMaximaTarifa(t));
-        if (edad) partes.push(edad);
+        if (edad) partes.push(`🎂 ${edad}`);
 
         return partes.join(' · ');
     };
