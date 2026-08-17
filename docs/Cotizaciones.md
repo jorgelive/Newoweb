@@ -55,6 +55,38 @@ Cada nodo guarda **copias congeladas** (`*Snapshot`) tomadas de los **maestros**
 - El **nombre interno** de un componente **no** está en su snapshot: viene del **maestro** (`componenteMaestroId` → `catalogos.allComponentes[].nombre`). Siempre existe.
 - `nombreSnapshot` del componente = **título público** (opcional; para el cliente). Un componente sin `nombreSnapshot` es un "contenedor solo-ítems" (`isComponenteSoloItems`).
 
+### El nombre de un SEGMENTO: un solo campo, y por qué no se contamina (2026-08-17)
+
+A diferencia del servicio —que tiene tres nombres (código, operativo, comercial)—, un
+`CotizacionSegmento` tiene **uno solo**: `nombreSnapshot`. No hay `nombrePublicoSnapshot`
+separado. El motivo es semántico: un segmento es **narrativa para el pasajero** (storytelling),
+no algo que se le pida a un proveedor. No tiene un «lado interno» distinto del público.
+
+**Copia el TÍTULO del maestro, nunca el `nombreInterno`.** El maestro `TravelSegmento` tiene
+`nombreInterno` (código, `VIS-VALLE_VIP…-CHINCHERO`) y `titulo` (comercial, «Visita a
+Chinchero»). El snapshot toma `getTituloSafe(seg)` = el **título**. Por eso NO está
+contaminado con el código: éste se queda en el catálogo, igual que el slug del itinerario.
+
+El título se copia a `nombreSnapshot` en **cuatro** puntos del store, que son todas las formas
+de meter un segmento en el servicio:
+
+| Función | Cuándo |
+|---|---|
+| `aplicarPlantilla()` | al aplicar una plantilla, cada segmento que trae |
+| `agregarSegmentoIndividual()` | añadir un segmento suelto (sin plantilla) |
+| `procesarInsercionSegmento()` (replace) | sustituir un segmento por otro |
+| `procesarInsercionSegmento()` (insert/append) | insertar o encolar un segmento |
+
+**Quién lo lee:** el `nombreSnapshot` del segmento está en `pax_cotizacion:read` —el cliente
+SÍ lo ve— y lo pinta la app pax (`PaxCotizacionGuiaView`, cuatro usos). En el editor, la lista
+del itinerario lo usaba como nombre del servicio **sólo cuando el servicio no tenía plantilla**
+(sin plantilla → se listan los segmentos; con plantilla → manda el nombre del servicio).
+
+**Conclusión: el segmento NO necesita el tratamiento del servicio.** Su nombre ya es el título
+comercial legible que ve el cliente, en un solo eje. La dualidad interno/operativo del servicio
+—que obligó a separar `nombreSnapshot` del título— aquí no existe ni hace falta. El código del
+segmento (`nombreInterno`) sólo molesta, si acaso, en EasyAdmin; no viaja a ninguna cotización.
+
 ### Los nombres de un servicio, resueltos (2026-08-17)
 
 Tras el análisis de la asimetría (abajo), el modelo quedó en tres ejes limpios:
