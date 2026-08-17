@@ -80,6 +80,11 @@ class TipocambioManager
         ]);
     }
 
+    /**
+     * Las cotizaciones que devuelve SUNAT, indexadas por fecha `Y-m-d`.
+     *
+     * @return array<string, ExchangeRateDto>
+     */
     private function fetchExternalData(DateTime $fecha): array
     {
         // Intento A: Mes completo
@@ -102,6 +107,17 @@ class TipocambioManager
         return $this->parseResponse($data);
     }
 
+    /**
+     * Llama a la API y devuelve SIEMPRE una lista de filas, venga una o vengan treinta.
+     *
+     * La API contesta de dos formas según se le pida un día o un mes: un objeto suelto
+     * (`{fecha, compra, venta}`) o una lista de esos objetos. Normalizar aquí es lo que le
+     * permite a `parseResponse()` recorrer sin preguntarse cuál de las dos le tocó.
+     *
+     * @param array<string, string> $queryParams
+     *
+     * @return list<array<string, mixed>>
+     */
     private function callApi(array $queryParams): array
     {
         try {
@@ -117,7 +133,15 @@ class TipocambioManager
 
             if ($response->getStatusCode() === 200) {
                 $raw = $response->toArray();
-                return isset($raw['fecha']) ? [$raw] : $raw;
+
+                if (isset($raw['fecha'])) {
+                    return [$raw];
+                }
+
+                // Lo que no sea una fila se descarta aquí en vez de más adelante: `parseResponse()`
+                // ya lo ignoraba —un `isset($item['fecha'])` sobre un escalar es falso—, así que
+                // no cambia lo que entra, sólo dónde se decide.
+                return array_values(array_filter($raw, 'is_array'));
             }
         } catch (Exception $e) {
             $this->logger->error('Error API SUNAT: ' . $e->getMessage());
@@ -126,6 +150,11 @@ class TipocambioManager
         return [];
     }
 
+    /**
+     * @param list<array<string, mixed>> $lista
+     *
+     * @return array<string, ExchangeRateDto> Indexadas por fecha `Y-m-d`.
+     */
     private function parseResponse(array $lista): array
     {
         $dtos = [];
@@ -145,6 +174,9 @@ class TipocambioManager
         return $dtos;
     }
 
+    /**
+     * @param array<string, ExchangeRateDto> $dtos Indexadas por fecha `Y-m-d`.
+     */
     private function persistMonthData(array $dtos, DateTime $fechaReferencia): void
     {
         $inicio = (clone $fechaReferencia)->modify('first day of this month')->setTime(0,0,0);
@@ -173,7 +205,10 @@ class TipocambioManager
         $i = 0;
 
         foreach ($dtos as $dateKey => $dto) {
-            if ($dto->currencyCode !== 'USD' && $dto->currencyCode !== self::MONEDA_TARGET) {
+            // `MONEDA_TARGET` ES 'USD' (MaestroMoneda::DB_ID_USD), así que comparar contra las dos
+            // era la misma comprobación escrita dos veces. Se queda la constante, que es la que
+            // sigue al maestro si algún día ese id deja de ser el literal.
+            if ($dto->currencyCode !== self::MONEDA_TARGET) {
                 continue;
             }
             if (isset($existingMap[$dateKey])) {
@@ -199,6 +234,12 @@ class TipocambioManager
         }
     }
 
+    /**
+     * La cotización del día pedido o, si no la hay, la del día hábil anterior más cercano
+     * dentro de una semana. SUNAT no publica fines de semana ni feriados.
+     *
+     * @param array<string, ExchangeRateDto> $dtos Indexadas por fecha `Y-m-d`.
+     */
     private function findBestMatch(array $dtos, DateTime $targetDate): ?ExchangeRateDto
     {
         $tempDate = clone $targetDate;

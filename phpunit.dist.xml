@@ -13,6 +13,16 @@
     <php>
         <ini name="display_errors" value="1" />
         <ini name="error_reporting" value="-1" />
+        <!-- La suite construye fechas SIN zona y las compara con lo que guarda la aplicación,
+             que opera en hora de Lima. En un entorno en UTC —un CI, sin ir más lejos— el
+             esperado sale +00:00 y el guardado -05:00, y `PmsSincronizadorDeEnlaceTest` falla
+             sin que nada haya cambiado en el código.
+
+             Se fija aquí y no se documenta como «acuérdate de exportar TZ»: un requisito que
+             hay que recordar es un requisito que alguien va a olvidar. Pasa igual que con la
+             hora de pared de los check-in (§12.5.5 de docs/PmsBeds24ReservasSync.md). -->
+        <ini name="date.timezone" value="America/Lima" />
+
         <server name="APP_ENV" value="test" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>

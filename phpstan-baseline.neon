@@ -1,4 +1,4 @@
-# DEUDA CONGELADA — no es una lista de perdonados
+             # DEUDA CONGELADA — no es una lista de perdonados
 #
 # Foto del 15/08/2026, el día que el proyecto pasó del nivel 2 al 6, para que a partir de aquí
 # salte SÓLO lo nuevo. Si tocas un archivo con entradas aquí dentro, arréglalas y quítalas.
@@ -34,7 +34,7 @@
 # ── Sobre los `??` que quedan (30 de los 45 que había) ──────────────────────
 # La regla que se aplicó para quitar los 15: se borra sólo si se puede DECIR EN QUÉ CASO
 # CONCRETO se ejecuta el lado derecho, y la respuesta es «en ninguno». Si no se sabe, se queda.
-#
+# 
 # Los 30 que siguen NO son ruido que haya que barrer: casi todos leen de una columna JSON o de
 # un payload de un tercero, donde el tipo declarado es una descripción nuestra, no una garantía
 # del dato. Quitarlos convertiría «esto llegó raro» en un fatal. Los de propiedades hidratadas
@@ -217,12 +217,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Agent/Skill/Pms/CrearEstanciaSkill.php
-
-		-
-			message: '#^Method App\\Agent\\Skill\\Pms\\CrearReservaSkill\:\:ajustarCargos\(\) has parameter \$entrada with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Agent/Skill/Pms/CrearReservaSkill.php
 
 		-
 			message: '#^Method App\\Agent\\Skill\\Pms\\CrearReservaSkill\:\:cargosPrevistos\(\) has parameter \$entrada with no value type specified in iterable type array\.$#'
@@ -435,18 +429,6 @@ parameters:
 			path: src/Api/Provider/Pms/PmsGuiaHuespedProvider.php
 
 		-
-			message: '#^Class App\\Api\\Provider\\Pms\\PmsInformacionFinancieraPorReservaProvider implements generic interface ApiPlatform\\State\\ProviderInterface but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Api/Provider/Pms/PmsInformacionFinancieraPorReservaProvider.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between App\\Pms\\Entity\\PmsInformacionFinanciera and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: src/Api/Provider/Pms/PmsInformacionFinancieraPorReservaProvider.php
-
-		-
 			message: '#^Class App\\Api\\Provider\\Pms\\PmsReservaByLocalizadorProvider implements generic interface ApiPlatform\\State\\ProviderInterface but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
@@ -461,12 +443,6 @@ parameters:
 		-
 			message: '#^Class App\\Api\\Provider\\Pms\\PmsReservaPaxProvider implements generic interface ApiPlatform\\State\\ProviderInterface but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: src/Api/Provider/Pms/PmsReservaPaxProvider.php
-
-		-
-			message: '#^Method App\\Api\\Provider\\Pms\\PmsReservaPaxProvider\:\:cifras\(\) should return array\<string, bool\|string\> but returns array\<string, array\<int\<0, max\>\|string, array\<string, list\<array\<string, string\>\>\|string\|null\>\|string\>\|string\|null\>\.$#'
-			identifier: return.type
 			count: 1
 			path: src/Api/Provider/Pms/PmsReservaPaxProvider.php
 
@@ -745,42 +721,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Exchange/Entity/MetaConfig.php
-
-		-
-			message: '#^Method App\\Exchange\\Repository\\AbstractExchangeRepository\:\:claimRunnable\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Repository/AbstractExchangeRepository.php
-
-		-
-			message: '#^Method App\\Exchange\\Repository\\AbstractExchangeRepository\:\:claimSpecificItems\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Repository/AbstractExchangeRepository.php
-
-		-
-			message: '#^Method App\\Exchange\\Repository\\AbstractExchangeRepository\:\:claimSpecificItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Repository/AbstractExchangeRepository.php
-
-		-
-			message: '#^Method App\\Exchange\\Repository\\AbstractExchangeRepository\:\:getGroupingMetadata\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Repository/AbstractExchangeRepository.php
-
-		-
-			message: '#^Method App\\Exchange\\Repository\\AbstractExchangeRepository\:\:lockItems\(\) has parameter \$binaryIds with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Repository/AbstractExchangeRepository.php
-
-		-
-			message: '#^Method App\\Exchange\\Repository\\AbstractExchangeRepository\:\:normalizeToBinary\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Repository/AbstractExchangeRepository.php
 
 		-
 			message: '#^Method App\\Exchange\\Service\\Auth\\Beds24AuthService\:\:getAuthHeaders\(\) return type has no value type specified in iterable type array\.$#'
@@ -1347,12 +1287,6 @@ parameters:
 			path: src/Pms/ApiPlatform/State/PmsTarifaMasivaProcessor.php
 
 		-
-			message: '#^Cannot cast App\\Pms\\Enum\\PmsMedioPago to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Pms/Command/PmsAuditarReservaCommand.php
-
-		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
@@ -1473,12 +1407,6 @@ parameters:
 			path: src/Pms/Entity/PmsCargoFinanciero.php
 
 		-
-			message: '#^Attribute class App\\Pms\\Entity\\Assert\\Valid does not exist\.$#'
-			identifier: attribute.notFound
-			count: 1
-			path: src/Pms/Entity/PmsChannel.php
-
-		-
 			message: '#^Property App\\Pms\\Entity\\PmsChannel\:\:\$eventosCalendario is never written, only read\.$#'
 			identifier: property.onlyRead
 			count: 1
@@ -1495,12 +1423,6 @@ parameters:
 			identifier: arrayValues.list
 			count: 1
 			path: src/Pms/Entity/PmsConversacionEnlace.php
-
-		-
-			message: '#^PHPDoc tag @return with type int is incompatible with native type bool\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Pms/Entity/PmsEventoCalendario.php
 
 		-
 			message: '#^Right side of && is always true\.$#'
@@ -1671,12 +1593,6 @@ parameters:
 			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveMappingStrategy.php
 
 		-
-			message: '#^Offset ''price'' on array\{price\: float, minStay\: int, currency\: string\|null, sourceId\: string\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Pms/Service/Finance/PmsCargosAutomaticosService.php
-
-		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
@@ -1837,168 +1753,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Serializer/Decoder/MultipartDecoder.php
-
-		-
-			message: '#^Method App\\Service\\TipocambioManager\:\:callApi\(\) has parameter \$queryParams with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/TipocambioManager.php
-
-		-
-			message: '#^Method App\\Service\\TipocambioManager\:\:callApi\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/TipocambioManager.php
-
-		-
-			message: '#^Method App\\Service\\TipocambioManager\:\:fetchExternalData\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/TipocambioManager.php
-
-		-
-			message: '#^Method App\\Service\\TipocambioManager\:\:findBestMatch\(\) has parameter \$dtos with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/TipocambioManager.php
-
-		-
-			message: '#^Method App\\Service\\TipocambioManager\:\:parseResponse\(\) has parameter \$lista with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/TipocambioManager.php
-
-		-
-			message: '#^Method App\\Service\\TipocambioManager\:\:parseResponse\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/TipocambioManager.php
-
-		-
-			message: '#^Method App\\Service\\TipocambioManager\:\:persistMonthData\(\) has parameter \$dtos with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/TipocambioManager.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between mixed~''USD'' and ''USD'' will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: src/Service/TipocambioManager.php
-
-		-
-			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectManager\:\:getUnitOfWork\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Call to function method_exists\(\) with App\\Attribute\\AutoTranslate and ''getFormat'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Call to function property_exists\(\) with App\\Attribute\\AutoTranslate and ''preventOverwriteIf'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:listToMapRows\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:mapRowsToList\(\) has parameter \$map with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:mapRowsToList\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:normalizeNestedFieldToRowMap\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:peekLocalOverwrite\(\) has parameter \$container with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:processNestedStructure\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:processNestedStructure\(\) has parameter \$targetKeys with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:processNestedStructure\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:resetOverwriteFlags\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:resetOverwriteFlags\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:resolveLocalOverwrite\(\) has parameter \$container with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:translateAndCloneRows\(\) has parameter \$valuesMap with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:translateAndCloneRows\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:traverseAndTranslate\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:traverseAndTranslate\(\) has parameter \$pathParts with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\AutoTranslationService\:\:traverseAndTranslate\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/AutoTranslationService.php
 
 		-
 			message: '#^Method App\\Service\\Translate\\GoogleTranslateService\:\:__construct\(\) has parameter \$googleTranslateCredentials with no value type specified in iterable type array\.$#'

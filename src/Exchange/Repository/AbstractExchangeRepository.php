@@ -36,8 +36,15 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
      * Al usar UUID v7, el componente de tiempo ya está al principio del string ("019c...").
      * Por lo tanto, NO debemos reordenar bytes (byte-swapping) como se hacía con UUID v1
      * en implementaciones antiguas de Doctrine. La conversión es DIRECTA.
-     * * @param string[] $ids Lista de UUIDs en texto.
-     * @return string[] Lista de UUIDs en binario puro (16 bytes).
+     *
+     * El parámetro va como `mixed` y no como `string[]` a propósito, aunque
+     * `RunExchangeTaskDispatch` lo declare así: esta lista viaja por un transporte de Messenger,
+     * y lo que se declara en el DTO no lo comprueba PHP al deserializar. Éste es el saneador —
+     * su trabajo es sobrevivir a la basura, así que tiene que poder recibirla.
+     *
+     * @param array<array-key, mixed> $ids Lista de UUIDs en texto.
+     *
+     * @return list<string> Lista de UUIDs en binario puro (16 bytes), sin repetidos.
      */
     protected function normalizeToBinary(array $ids): array
     {
@@ -56,8 +63,12 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
             }
         }
 
-        // Eliminamos duplicados para optimizar la query SQL
-        return array_unique($binaryIds);
+        // Eliminamos duplicados para optimizar la query SQL.
+        //
+        // ⚠️ El `array_values` no es decorativo: `array_unique` CONSERVA las claves, así que con
+        // un id repetido devolvía un array con huecos (0, 2, 3…) y no una lista. `hydrateItems()`
+        // pide `list<string>` en su contrato, y quien recibía los huecos era ese.
+        return array_values(array_unique($binaryIds));
     }
 
     /**
@@ -70,6 +81,8 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
      * 4. Fetch: Busca N ítems con bloqueo FOR UPDATE.
      * 5. Lock: Ejecuta el UPDATE atómico.
      * 6. Transaction Commit.
+     *
+     * @return list<T> El lote reclamado, ya hidratado y sincronizado con Doctrine.
      */
     public function claimRunnable(int $limit, string $workerId, \DateTimeImmutable $now, int $ttl = 90): array
     {
@@ -169,6 +182,10 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
      * ⚡ MODO MANUAL / REAL-TIME.
      * Reclama IDs específicos solicitados por el usuario o un evento de forma transaccional.
      * AHORA RESPETA EL RUN_AT: No procesará ítems programados para el futuro.
+     *
+     * @param array<array-key, mixed> $ids UUIDs en texto, tal como llegan del transporte.
+     *
+     * @return list<T> Sólo los que estaban libres y en hora; los demás se ignoran en silencio.
      */
     public function claimSpecificItems(array $ids, string $workerId, \DateTimeImmutable $now, int $ttl = 300): array
     {
@@ -247,6 +264,8 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
      * Helper privado para aplicar el bloqueo (UPDATE) masivo.
      * Incrementa retry_count y asigna el worker.
      * Nota: Este método asume que se llama DENTRO de una transacción activa.
+     *
+     * @param list<string> $binaryIds UUIDs en binario (16 bytes).
      */
     private function lockItems(array $binaryIds, string $workerId, string $nowSql, string $table): void
     {
@@ -265,6 +284,8 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
     /**
      * Obtiene metadatos ligeros para agrupación (Pre-Sorting) en el MessageHandler.
      * Devuelve los IDs y Configs en formato TEXTO (UUID con guiones) para PHP.
+     *
+     * @param array<array-key, mixed> $ids UUIDs en texto, tal como llegan del transporte.
      *
      * @return array<string, array{config_id: string, endpoint_id: string}>
      */

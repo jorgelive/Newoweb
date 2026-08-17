@@ -7,7 +7,6 @@ namespace App\Service\Translate;
 use App\Attribute\AutoTranslate;
 use App\Entity\Maestro\MaestroIdioma;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ObjectManager;
 use ReflectionClass;
 use ReflectionProperty;
 use RuntimeException;
@@ -17,41 +16,27 @@ use Psr\Log\LoggerInterface;
  * Servicio encargado de procesar la autotraducción de entidades.
  * Centraliza la lógica para poder ser invocado tanto por Listeners de Doctrine
  * como por Comandos de consola de forma directa.
+ *
+ * ── Las tres formas que se mueven por aquí ──────────────────────────────────
+ * `Fila` es a propósito `array<string, mixed>` y no `array{language: string, content: string}`:
+ * el contenido llega de EasyAdmin y de columnas JSON, donde `content` puede venir `null` —por
+ * eso existe la normalización de `listToMapRows()`— y donde una fila puede traer claves de más
+ * que hay que conservar (ver el `array_merge()` de `translateAndCloneRows()`). Un tipo más
+ * estrecho aquí sería mentira, y un tipo mentiroso es peor que ninguno: le haría creer al
+ * analizador que las comprobaciones en runtime sobran.
+ *
+ * `Estructura` es el JSON anidado tal cual: puede ser lista de objetos o mapa, según el campo.
+ *
+ * @phpstan-type Fila array<string, mixed>
+ * @phpstan-type MapaPorIdioma array<string, Fila>
+ * @phpstan-type Estructura array<array-key, mixed>
  */
 class AutoTranslationService
 {
-
-
-    /** @var string[] Códigos de idioma en minúsculas (ej: 'en', 'pt', 'es') */
+    /** @var list<string> Códigos de idioma en minúsculas (ej: 'en', 'pt', 'es') */
     private array $validLanguageCodes = [];
 
     private const string OVERWRITE_FLAG_KEY = 'sobreescribirTraduccion';
-
-    /**
-     * Resuelve el flag de sobrescritura a nivel de contenedor (item anidado o nodo intermedio).
-     * Si el contenedor trae su propia llave "sobreescribirTraduccion", esta tiene prioridad
-     * sobre el flag heredado del nivel padre, y se auto-apaga (true -> false) en memoria,
-     * igual que el flag de la entidad, para que no se quede "pegado".
-     *
-     * @param array $container Contenedor a inspeccionar/mutar (por referencia).
-     * @param bool  $inheritedOverwrite Flag heredado del nivel superior.
-     *
-     * @return bool Flag efectivo para procesar este contenedor.
-     */
-    private function resolveLocalOverwrite(array &$container, bool $inheritedOverwrite): bool
-    {
-        if (!array_key_exists(self::OVERWRITE_FLAG_KEY, $container)) {
-            return $inheritedOverwrite;
-        }
-
-        $localFlag = (bool) $container[self::OVERWRITE_FLAG_KEY];
-
-        if ($localFlag) {
-            $container[self::OVERWRITE_FLAG_KEY] = false;
-        }
-
-        return $localFlag;
-    }
 
     public function __construct(
         private readonly GoogleTranslateService $translator,
@@ -66,11 +51,15 @@ class AutoTranslationService
      * @param object $entity La entidad a procesar.
      * @param bool $forceExecution Si es true, ignora el flag del Trait y ejecuta la traducción obligatoriamente.
      * @param bool|null $overrideOverwrite Si se define, sobreescribe el comportamiento de sobrescritura de la entidad.
-     * @param ObjectManager|null $emToRecompute Si se envía (desde un preUpdate), recalcula el ChangeSet de Doctrine.
+     * @param EntityManagerInterface|null $emToRecompute Si se envía (desde un preUpdate), recalcula el ChangeSet de Doctrine.
+     *                                                   Es el `EntityManagerInterface` y no el `ObjectManager` de la
+     *                                                   interfaz genérica porque aquí hace falta `getUnitOfWork()`, que
+     *                                                   sólo existe en el del ORM. Los eventos de `Doctrine\ORM\Event`
+     *                                                   ya lo entregan así.
      *
      * @return void
      */
-    public function processEntity(object $entity, bool $forceExecution = false, ?bool $overrideOverwrite = null, ?ObjectManager $emToRecompute = null): void
+    public function processEntity(object $entity, bool $forceExecution = false, ?bool $overrideOverwrite = null, ?EntityManagerInterface $emToRecompute = null): void
     {
         // 1. Decidir si ejecutamos o no el proceso
         $execute = $forceExecution;
@@ -121,7 +110,7 @@ class AutoTranslationService
 
             $sourceLang = strtolower($attr->sourceLanguage);
             $nestedFields = $attr->nestedFields;
-            $mimeType = method_exists($attr, 'getFormat') ? $attr->getFormat() : 'text/html';
+            $mimeType = $attr->getFormat();
 
             // =========================================================================
             // 🛡️ BARRERA DE SEGURIDAD DINÁMICA (El Veto Declarativo)
@@ -129,7 +118,7 @@ class AutoTranslationService
             $currentOverwrite = $globalOverwrite;
 
             // Si el atributo dice que un método puede vetar la sobrescritura, lo evaluamos
-            if ($currentOverwrite && property_exists($attr, 'preventOverwriteIf') && $attr->preventOverwriteIf !== null) {
+            if ($currentOverwrite && $attr->preventOverwriteIf !== null) {
                 $vetoMethod = $attr->preventOverwriteIf;
                 if (method_exists($entity, $vetoMethod) && $entity->$vetoMethod() === true) {
                     $currentOverwrite = false; // Se apaga la sobrescritura solo para esta propiedad
@@ -184,8 +173,8 @@ class AutoTranslationService
      * con varios campos traducibles vea el flag activo durante todo el proceso
      * y no se "gaste" en el primer campo que lo consulta.
      *
-     * @param array $data Estructura ya traducida.
-     * @return array Estructura con los flags apagados.
+     * @param Estructura $data Estructura ya traducida.
+     * @return Estructura Estructura con los flags apagados.
      */
     private function resetOverwriteFlags(array $data): array
     {
@@ -205,14 +194,14 @@ class AutoTranslationService
     /**
      * Inicia la travesía de los campos anidados leyendo la notación de flecha (->).
      *
-     * @param array $data Los datos estructurados a procesar.
-     * @param array $targetKeys Claves objetivo en notación de flechas.
+     * @param Estructura $data Los datos estructurados a procesar.
+     * @param list<string> $targetKeys Claves objetivo en notación de flechas.
      * @param string $sourceLang Idioma origen (ej. 'es').
      * @param string $mimeType Tipo mime para el traductor (ej. 'text/html').
      * @param bool $overwrite Si debe sobrescribir o no.
      * @param string $propName Nombre de la propiedad original para mensajes de error.
      *
-     * @return array Los datos procesados.
+     * @return Estructura Los datos procesados.
      */
     private function processNestedStructure(array $data, array $targetKeys, string $sourceLang, string $mimeType, bool $overwrite, string $propName): array
     {
@@ -228,7 +217,7 @@ class AutoTranslationService
      * Lee (sin mutar) el flag de sobrescritura de un contenedor específico.
      * Si el contenedor no trae su propia llave, se hereda el flag del nivel padre.
      *
-     * @param array $container Contenedor a inspeccionar.
+     * @param Estructura $container Contenedor a inspeccionar.
      * @param bool  $inheritedOverwrite Flag heredado del nivel superior.
      *
      * @return bool Flag efectivo para procesar este contenedor.
@@ -245,14 +234,14 @@ class AutoTranslationService
     /**
      * Función recursiva que navega en el array hasta encontrar la llave final a traducir.
      *
-     * @param array $data Los datos del nivel actual.
-     * @param array $pathParts Las claves restantes por navegar.
+     * @param Estructura $data Los datos del nivel actual.
+     * @param list<string> $pathParts Las claves restantes por navegar.
      * @param string $sourceLang Idioma de origen.
      * @param string $mimeType Tipo Mime.
      * @param bool $overwrite Bandera de sobrescritura.
      * @param string $fullPath Path completo para contexto de depuración.
      *
-     * @return array
+     * @return Estructura
      */
     private function traverseAndTranslate(array $data, array $pathParts, string $sourceLang, string $mimeType, bool $overwrite, string $fullPath): array
     {
@@ -300,12 +289,12 @@ class AutoTranslationService
      * Traduce y clona las filas iterando sobre los idiomas soportados.
      * Genera las filas vacantes inyectando nuevas llaves cuando es necesario.
      *
-     * @param array $valuesMap Mapa asociativo indexado por idioma (ej. ['es' => [...]]).
+     * @param MapaPorIdioma $valuesMap Mapa asociativo indexado por idioma (ej. ['es' => [...]]).
      * @param string $sourceLang Idioma de origen.
      * @param string $mimeType Tipo de contenido.
      * @param bool $overwrite Si es verdadero, fuerza la traducción en elementos no vacíos.
      *
-     * @return array
+     * @return MapaPorIdioma
      */
     private function translateAndCloneRows(array $valuesMap, string $sourceLang, string $mimeType, bool $overwrite): array
     {
@@ -392,7 +381,7 @@ class AutoTranslationService
      * @param string $propName Nombre de la propiedad original.
      *
      * @throws RuntimeException Si el formato es inválido.
-     * @return array
+     * @return MapaPorIdioma
      */
     private function listToMapRows(mixed $values, string $propName): array
     {
@@ -419,8 +408,8 @@ class AutoTranslationService
     /**
      * Convierte el mapa asociativo nuevamente en una lista para guardarse en BD.
      *
-     * @param array $map
-     * @return array
+     * @param MapaPorIdioma $map
+     * @return list<Fila>
      */
     private function mapRowsToList(array $map): array
     {
@@ -436,7 +425,7 @@ class AutoTranslationService
      * @param string $propName
      *
      * @throws RuntimeException
-     * @return array
+     * @return MapaPorIdioma
      */
     private function normalizeNestedFieldToRowMap(mixed $value, string $sourceLang, string $propName): array
     {

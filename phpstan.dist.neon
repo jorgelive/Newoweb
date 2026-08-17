@@ -14,11 +14,17 @@
 # lleva dentro**. Es exactamente la regla que faltaba — el valor que reventó salía de un `array`
 # pelado, y con el 6 esa firma no habría pasado.
 #
-# ⚠️ Quedan ~760 anotaciones pendientes en el baseline, y NO es una lista de perdonados: es que
-# escribir 760 `@var` a mano de golpe garantiza escribir algunos mal, y un tipo mentiroso es peor
-# que ninguno —le hace creer al analizador algo falso—. Se van quitando por módulo, al tocarlos.
+# ⚠️ Quedan 126 anotaciones pendientes en el baseline, y NO es una lista de perdonados: es que
+# escribirlas a mano de golpe garantiza escribir algunas mal, y un tipo mentiroso es peor que
+# ninguno —le hace creer al analizador algo falso—. Se van quitando por módulo, al tocarlos.
 # Las 33 colecciones de Doctrine ya están hechas: su `targetEntity` estaba al lado y se pudo
-# derivar sin adivinar.
+# derivar sin adivinar. Dónde están las que faltan, por si se ataca un módulo entero:
+# Exchange 31 · Agent 28 · Api 10 · Message 9 · Repository 9 · Service 6, y el resto suelto.
+#
+# 🔒 Lo que el baseline NO puede tragarse: `tests/Calidad/PhpstanBaselineTest.php`. El baseline
+# nació de `--generate-baseline` y por ahí se coló un `cast.string` sobre un enum que reventaba
+# `pms:reserva:auditar` en cuanto la reserva tenía un cobro. Ese test prohíbe las familias que
+# fallan en EJECUCIÓN (no las de tipado) y pone tope a las heredadas para que no crezcan.
 #
 # Lo que el nivel 6 SÍ hace desde hoy, que es el 90% del valor: **el código nuevo no puede
 # escribir un `array` sin tipo**. La deuda vieja no crece.
@@ -57,6 +63,23 @@ parameters:
                 - src/*/Entity/*
                 - src/Entity/*
             # Es preventiva: vale que hoy alguna de esas rutas no tenga ninguna coincidencia.
+            reportUnmatched: false
+
+        # El MISMO hecho, en el otro sentido: «a esta propiedad nunca se le asigna X, quita X del
+        # tipo». Pasa en las entidades de SOLO LECTURA —las que llena el ORM y ningún setter
+        # toca—, y quitar el tipo las dejaría declarando que sólo pueden ser `null`, que es
+        # justo lo contrario de lo que son.
+        #
+        # El caso que lo destapó: `PmsFinanzasTotalMoneda`, cuyas dos relaciones las escribe un
+        # `INSERT … SELECT` y las lee Doctrine hidratando. Añadirle setters para callar el aviso
+        # sería peor que el aviso: invitaría a escribirla por el ORM, que es exactamente lo que
+        # esa tabla no admite.
+        -
+            identifier: property.unusedType
+            message: '#is never assigned App\\.+ so it can be removed from the property type\.$#'
+            paths:
+                - src/*/Entity/*
+                - src/Entity/*
             reportUnmatched: false
 
     # Cachés y código generado: no es nuestro y no se corrige aquí.
