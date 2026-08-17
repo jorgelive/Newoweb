@@ -1147,37 +1147,34 @@ store.$onAction(({ name, args }) => {
                       <i class="far fa-calendar-check text-[#E07845]"></i> FECHA BASE: {{ formatFecha(servicio.fechaInicioAbsoluta) }}
                     </p>
 
+                    <!-- Los tres nombres, ordenados por a quién sirven:
+                         1) OPERATIVO (nombreSnapshot) grande — el que tú usas y editas.
+                         2) CLIENTE (nombrePublicoSnapshot) debajo — lo que ve el pasajero.
+                         3) PLANTILLA (itinerarioNombreSnapshot) como etiqueta de procedencia. -->
                     <div class="font-black text-lg text-slate-900 leading-tight">
                       <i v-if="store.isServicioConAlerta(servicio)" class="fas fa-exclamation-triangle text-red-500 mr-2" title="Faltan cuadrar tarifas"></i>
-
-                      <span v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
-                        {{ store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}
-                      </span>
-
-                      <ul v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0" class="flex flex-col gap-0 leading-[1.15] mt-1">
-                        <li v-for="seg in [...servicio.cotsegmentos].sort((a, b) => (a.orden || 0) - (b.orden || 0))" :key="seg.id" class="text-[16px] text-slate-800 tracking-tight">
-                          <span v-if="servicio.cotsegmentos.length > 1">- </span>{{ store.getI18nText(seg.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
-                        </li>
-                      </ul>
-
-                      <span v-else>
-                        {{ store.getI18nText(servicio.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
-                      </span>
+                      {{ store.getI18nText(servicio.nombreSnapshot, 'es') || store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}
                     </div>
 
-                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
-                      <i class="fas fa-map-signs mr-1"></i> Plantilla Aplicada
+                    <!-- El nombre del cliente, sólo si aporta algo distinto del operativo. -->
+                    <p v-if="store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) && store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) !== store.getI18nText(servicio.nombreSnapshot, 'es')"
+                       class="text-[11px] font-bold text-slate-500 mt-1 leading-snug">
+                      <i class="fas fa-user mr-1 text-slate-300"></i> Cliente: {{ store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) }}
                     </p>
-                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0">
-                      <i class="fas fa-layer-group mr-1"></i> Storytelling a medida ({{ servicio.cotsegmentos.length }} párrafos)
+
+                    <p class="text-[11px] font-bold text-slate-500 mt-1" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
+                      <i class="fas fa-map-signs mr-1 text-slate-300"></i> Plantilla: {{ store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}
                     </p>
-                    <p class="text-[11px] font-bold text-slate-500 mt-1.5" v-else>
-                      <i class="fas fa-pen-nib mr-1"></i> Sin Storytelling
+                    <p class="text-[11px] font-bold text-slate-500 mt-1" v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0">
+                      <i class="fas fa-layer-group mr-1 text-slate-300"></i> Storytelling a medida ({{ servicio.cotsegmentos.length }} párrafos)
+                    </p>
+                    <p class="text-[11px] font-bold text-slate-500 mt-1" v-else>
+                      <i class="fas fa-pen-nib mr-1 text-slate-300"></i> Sin Storytelling
                     </p>
 
                     <div class="flex flex-wrap items-center gap-2 mt-4">
                         <span class="text-[9px] font-black bg-teal-600 text-white px-2 py-1.5 rounded uppercase tracking-widest shadow-sm">
-                            <i class="far fa-clock mr-1 text-teal-200"></i> Programación
+                            <i class="far fa-clock mr-1 text-teal-200"></i> Horario
                         </span>
                       <span class="text-[11px] font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-md border border-slate-200 shadow-sm whitespace-nowrap">
                             {{ formatRangoServicio(servicio) }}
