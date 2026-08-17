@@ -14260,6 +14260,19 @@ export interface components {
         };
         "OperacionServicio-operacion.read_timestamp.read": {
             /** Format: date-time */
+            fechaServicio?: string;
+            descripcionServicio?: string;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @default 1 */
+            cantidadPax: number;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
+            /** @default 0.00 */
+            costoRealOperativo: string;
+            monedaReal?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
+            /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
@@ -14452,6 +14465,19 @@ export interface components {
         };
         "OperacionServicio.html-operacion.read_timestamp.read": {
             /** Format: date-time */
+            fechaServicio?: string;
+            descripcionServicio?: string;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @default 1 */
+            cantidadPax: number;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
+            /** @default 0.00 */
+            costoRealOperativo: string;
+            monedaReal?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
+            /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
@@ -14514,6 +14540,19 @@ export interface components {
         };
         "OperacionServicio.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
+            fechaServicio?: string;
+            descripcionServicio?: string;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @default 1 */
+            cantidadPax: number;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
+            /** @default 0.00 */
+            costoRealOperativo: string;
+            monedaReal?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
+            /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
@@ -14575,6 +14614,19 @@ export interface components {
             readonly prioridadOperativa?: number;
         };
         "OperacionServicio.multipart-operacion.read_timestamp.read": {
+            /** Format: date-time */
+            fechaServicio?: string;
+            descripcionServicio?: string;
+            /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
+            contextoServicio?: string | null;
+            /** @default 1 */
+            cantidadPax: number;
+            /** @default 0.00 */
+            costoCotizado: string;
+            monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
+            /** @default 0.00 */
+            costoRealOperativo: string;
+            monedaReal?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */

@@ -145,7 +145,7 @@ class OperacionServicio
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?CotizacionCottarifa $cotizacionTarifa = null;
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'date_immutable')]
     private ?\DateTimeImmutable $fechaServicio = null;
 
@@ -204,7 +204,7 @@ class OperacionServicio
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $compradorNombre = null;
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 255)]
     private string $descripcionServicio;
 
@@ -215,7 +215,7 @@ class OperacionServicio
      * un array i18n; el tráfico sólo necesita la etiqueta en español para saber a qué bloque
      * del itinerario pertenece la fila.
      */
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $contextoServicio = null;
 
@@ -240,7 +240,7 @@ class OperacionServicio
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $estadoComponente = null;
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'integer')]
     private int $cantidadPax = 1;
 
@@ -248,21 +248,21 @@ class OperacionServicio
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
     private string $montoVenta = '0.00';
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
     private string $costoCotizado = '0.00';
 
     /** Nullable por la misma razón que $cotizacionTarifa: sin tarifa no hay moneda. */
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'moneda_cotizada', referencedColumnName: 'id', nullable: true)]
     private ?MaestroMoneda $monedaCotizada = null;
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
     private string $costoRealOperativo = '0.00';
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'moneda_real', referencedColumnName: 'id', nullable: true)]
     private ?MaestroMoneda $monedaReal = null;

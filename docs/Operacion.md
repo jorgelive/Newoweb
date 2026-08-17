@@ -696,9 +696,24 @@ con lo que se concilia.
 Al guardar se recargan dos cosas: el detalle y el listado. `totalesPorMoneda` lo calcula el
 servidor, así que sin recargar el listado la cabecera se quedaría con la suma vieja.
 
-Al desplegar una orden se piden sus servicios aparte
-(`fetchServiciosDeOrden()` → `?ordenServicio=<iri>`): en el listado viajan como IRI y traerlos
-todos de antemano sería cargar el cuadro entero para enseñar tres líneas.
+#### Los servicios vienen EMBEBIDOS, no se piden aparte
+
+La primera versión los pedía con `?ordenServicio=<iri>`. El endpoint devolvía **200 y una
+colección vacía**, así que el detalle decía «0 servicio(s)» con tres dentro — y con el filtro
+declarado en el `SearchFilter` y el uuid correcto en la petición, verificado en el access log.
+
+En vez de perseguir el filtro se llevaron los ocho campos que el detalle necesita al grupo
+`operacion:read`, que es el que usa la orden al serializar su colección. Sale mejor por tres
+lados: una petición menos, ninguna dependencia de un filtro, y el detalle abre instantáneo
+porque el dato ya está en memoria.
+
+El payload aguanta: ~8 campos por servicio, y el listado de órdenes es corto por naturaleza
+—una orden por proveedor y expediente—. No es el caso de La Biblia, que sí puede traer cientos
+de filas.
+
+⚠️ Ojo al añadir campos a `operacion:read` en `OperacionServicio`: ese grupo ya no es sólo «lo
+que se lista», es **lo que viaja dentro de cada orden**. `ordenServicio` NO está ahí a
+propósito — metería un ciclo servicio → orden → servicios.
 
 Notas:
 

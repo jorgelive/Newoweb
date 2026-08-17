@@ -125,6 +125,16 @@ const onCambiarDesde = (v: string): void => {
   const anterior = desde.value;
   desde.value = v;
 
+  // 🔥 BORRAR la fecha es una acción legítima (la X del campo), y con `v` vacío el arrastre
+  // hacía `new Date('')` → NaN, y salía a la API un `fechaServicio[before]=NaN-NaN-Na`.
+  // El servidor lo aceptaba con un 200 y devolvía cualquier cosa, así que el síntoma era un
+  // cuadro con datos que no correspondían al filtro. Visto en el access log al diagnosticar
+  // otra cosa: nadie lo habría reportado, porque no falla — miente.
+  if (!v) {
+    cargarBiblia();   // no pide nada: `faltaAcotar` lo frena y la barra avisa
+    return;
+  }
+
   if (!hasta.value) {
     hasta.value = v;
   } else if (anterior && hasta.value >= anterior) {
@@ -607,27 +617,28 @@ const ordenActiva = ref<OperacionOrdenServicio | null>(null);
 const ordenExpandida = ref<string | null>(null);
 
 /** Los servicios de la orden desplegada. Se piden al abrirla, no antes. */
-const serviciosDeOrden = ref<OperacionServicio[]>([]);
-const cargandoDetalle = ref(false);
 
-const alternarDetalle = async (orden: OperacionOrdenServicio) => {
-    if (ordenExpandida.value === orden.id) {
-        ordenExpandida.value = null;
-        return;
-    }
-
-    ordenExpandida.value = orden.id ?? null;
-    serviciosDeOrden.value = [];
-
-    if (!orden.id) return;
-
-    cargandoDetalle.value = true;
-    try {
-        serviciosDeOrden.value = await operacionStore.fetchServiciosDeOrden(orden.id);
-    } finally {
-        cargandoDetalle.value = false;
-    }
+/**
+ * Los servicios vienen EMBEBIDOS en la orden, no se piden aparte.
+ *
+ * La primera versión los pedía con `?ordenServicio=<iri>`: el endpoint devolvía 200 y una
+ * colección vacía, así que el detalle decía «0 servicio(s)» con tres dentro. En vez de
+ * perseguir el filtro se llevaron los campos al grupo `operacion:read`, que es lo que usa la
+ * orden al serializar su colección. Sale más simple: una petición menos, ninguna dependencia
+ * de un filtro, y el detalle abre instantáneo porque el dato ya está en memoria.
+ *
+ * El payload aguanta: son ~8 campos por servicio y el listado de órdenes es corto por
+ * naturaleza —una orden por proveedor y expediente—.
+ */
+const alternarDetalle = (orden: OperacionOrdenServicio) => {
+    ordenExpandida.value = ordenExpandida.value === orden.id ? null : (orden.id ?? null);
 };
+
+/** Los servicios de la orden abierta, tal como vinieron en el listado. */
+const serviciosDeOrdenAbierta = computed<OperacionServicio[]>(() => {
+    const orden = operacionStore.ordenesServicio.find(o => o.id === ordenExpandida.value);
+    return (orden?.operacionServicios ?? []) as unknown as OperacionServicio[];
+});
 
 /**
  * Ajustar lo NEGOCIADO sin salir de la orden.
@@ -647,11 +658,8 @@ const guardarNegociadoDeOrden = async (
 
     await operacionStore.actualizarServicio(servicio.id, payload);
 
-    // Se recargan las dos cosas: el detalle, y el listado —donde vive
-    // `totalesPorMoneda`, que lo calcula el servidor y quedaría desfasado—.
-    if (ordenExpandida.value) {
-        serviciosDeOrden.value = await operacionStore.fetchServiciosDeOrden(ordenExpandida.value);
-    }
+    // Con recargar el listado basta: trae los servicios dentro y `totalesPorMoneda`
+    // recalculado por el servidor. Antes hacían falta dos peticiones.
     await operacionStore.fetchOrdenesServicio();
 };
 
@@ -1534,15 +1542,11 @@ onMounted(async () => {
 
                         <!-- Detalle: los servicios que agrupa. Estaba sin forma de verse. -->
                         <div v-if="ordenExpandida === orden.id" class="px-3 pb-2.5 border-t border-slate-100 pt-2">
-                            <p v-if="cargandoDetalle" class="text-[10px] font-bold text-slate-400">
-                                <i class="fas fa-spinner fa-spin mr-1"></i> Cargando…
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                {{ serviciosDeOrdenAbierta.length }} servicio(s)
                             </p>
-                            <template v-else>
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                                    {{ serviciosDeOrden.length }} servicio(s)
-                                </p>
                                 <div class="flex flex-col gap-1.5">
-                                    <div v-for="s in serviciosDeOrden" :key="s.id ?? ''"
+                                    <div v-for="s in serviciosDeOrdenAbierta" :key="s.id ?? ''"
                                          class="flex items-start justify-between gap-2 bg-slate-50 rounded-lg px-2 py-1.5">
                                         <div class="min-w-0">
                                             <p class="text-[11px] font-bold text-slate-700 leading-snug">
@@ -1585,7 +1589,6 @@ onMounted(async () => {
                                     Vacío = todavía sin negociar; vale el cotizado. Estos campos son tuyos:
                                     una resincronización de la cotización nunca los pisa.
                                 </p>
-                            </template>
                         </div>
 
                         <div class="px-3 py-2 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
