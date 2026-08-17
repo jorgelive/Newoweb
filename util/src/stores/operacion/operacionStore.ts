@@ -14,6 +14,19 @@ import type {
 } from '@/types/operacionModel';
 import { construirParamsBiblia } from '@/types/operacionModel';
 
+/**
+ * Datos de contacto vivos de un `Proveedor`, resueltos contra el catálogo.
+ *
+ * No sale de `api.d.ts` a propósito: es el subconjunto que La Biblia consume del maestro,
+ * no la forma del recurso. Declararlo como el `Proveedor` entero obligaría a arrastrar
+ * imágenes, servicios y títulos i18n que aquí no se pintan.
+ */
+export interface ContactoProveedor {
+    telefono: string | null;
+    direccion: string | null;
+    email: string | null;
+}
+
 /** Expediente reducido para el selector de filtros de La Biblia. */
 export interface ExpedienteOpcion {
     id: string;
@@ -59,6 +72,10 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      */
     const lugaresPorComponente = ref<Record<string, string[]>>({});
 
+    // Contacto vivo de los proveedores del cuadro, por uuid de maestro. Lo llena
+    // `resolverContactoDeProveedores()` en cada carga; ver su docblock.
+    const contactoPorProveedor = ref<Record<string, ContactoProveedor>>({});
+
     // Panel de Reservas: listado de órdenes agrupadas
     const ordenesServicio = ref<OperacionOrdenServicio[]>([]);
 
@@ -94,7 +111,14 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             totalServicios.value = Number(
                 response.data['hydra:totalItems'] ?? response.data['totalItems'] ?? servicios.value.length
             );
-            await resolverLugaresDeServicios();
+            // Los dos van DENTRO del try y antes del `finally`, así que `isLoading` sigue
+            // en alto mientras se resuelven: la tabla no llega a pintarse sin teléfono
+            // para rellenarlo medio segundo después. Vale para cada filtro y cada recarga,
+            // porque todo el cuadro entra por aquí.
+            await Promise.all([
+                resolverLugaresDeServicios(),
+                resolverContactoDeProveedores(),
+            ]);
         } catch (error) {
             console.error('Error al cargar la Biblia de operaciones:', error);
             throw error;
@@ -186,6 +210,83 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             ?.componenteMaestroId;
 
         return maestro ? (lugaresPorComponente.value[maestro] ?? []) : [];
+    };
+
+    /**
+     * Teléfono y dirección de los proveedores del cuadro, EN UNA SOLA petición.
+     *
+     * ── Por qué no está en el snapshot ──────────────────────────────────────────
+     * El snapshot congela lo que hay que congelar —qué se vendió, a cuánto, a nombre de
+     * quién— porque cambiar el catálogo no puede reescribir una propuesta ya enviada. El
+     * teléfono es lo contrario: cuando el conductor no aparece, el número que sirve es el
+     * de HOY, no el del día que se cotizó. Congelarlo sería un dato caducado con apariencia
+     * de bueno, que en el cuadro de tráfico es peor que no tener nada.
+     *
+     * Por eso `BibliaSnapshotService` los deja nulos y se resuelven aquí. Se piden en lote
+     * con `?id[]=`, igual que las etiquetas de lugar: son 12 proveedores distintos en 42
+     * filas, así que fila a fila serían decenas de peticiones para repetir doce respuestas.
+     *
+     * Prestador y comprador van en la MISMA petición: los dos son `Proveedor` desde que se
+     * unificaron los papeles, así que separarlos serían dos llamadas al mismo endpoint.
+     */
+    const resolverContactoDeProveedores = async (): Promise<void> => {
+        const ids = new Set<string>();
+
+        servicios.value.forEach((s) => {
+            if (s.prestadorMaestroId) ids.add(s.prestadorMaestroId);
+            if (s.compradorMaestroId) ids.add(s.compradorMaestroId);
+        });
+
+        if (!ids.size) {
+            contactoPorProveedor.value = {};
+            return;
+        }
+
+        try {
+            const query = Array.from(ids).map((id) => `id[]=${id}`).join('&');
+            const res = await apiClient.get(`/platform/travel/proveedores?${query}&pagination=false`);
+            const miembros = res.data['hydra:member'] || res.data['member'] || [];
+
+            const mapa: Record<string, ContactoProveedor> = {};
+
+            miembros.forEach((p: Record<string, unknown>) => {
+                const id = String(p.id ?? String(p['@id'] ?? '').split('/').pop() ?? '');
+                if (!id) return;
+
+                mapa[id] = {
+                    telefono: (p.telefono as string | null) ?? null,
+                    direccion: (p.direccion as string | null) ?? null,
+                    email: (p.email as string | null) ?? null,
+                };
+            });
+
+            contactoPorProveedor.value = mapa;
+        } catch (error) {
+            // Sin contacto el cuadro sigue siendo usable: la fila conserva nombre, hora y
+            // pax, que es lo que la ubica. Se cae al dato guardado, si lo hubiera.
+            console.error('No se pudo resolver el contacto de los proveedores:', error);
+            contactoPorProveedor.value = {};
+        }
+    };
+
+    /**
+     * El contacto del prestador de una fila: **el maestro manda, lo guardado es la red**.
+     *
+     * Ese orden es la degradación que sostiene a los proveedores de un solo uso. Si el
+     * proveedor está en el catálogo se usa su dato vivo; si se dio de baja, se borró, o
+     * nunca estuvo, queda lo que la fila tenga congelado. Al revés —guardado primero— un
+     * número viejo taparía para siempre al corregido en el catálogo.
+     */
+    const contactoDePrestador = (servicio: OperacionServicio): ContactoProveedor => {
+        const vivo = servicio.prestadorMaestroId
+            ? contactoPorProveedor.value[servicio.prestadorMaestroId]
+            : undefined;
+
+        return {
+            telefono: vivo?.telefono || servicio.prestadorTelefono || null,
+            direccion: vivo?.direccion || servicio.prestadorDireccion || null,
+            email: vivo?.email || null,
+        };
     };
 
     /**
@@ -378,6 +479,8 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         mensajesActivos,
         lugares,
         lugaresPorComponente,
+        contactoPorProveedor,
+        contactoDePrestador,
         fetchServicios,
         fetchLugares,
         lugaresDeServicio,

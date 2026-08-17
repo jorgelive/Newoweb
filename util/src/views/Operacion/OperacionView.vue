@@ -326,6 +326,15 @@ const mostrarComprador = (s: OperacionServicio): boolean => {
 /** Teléfono en formato marcable: el operador llama desde el propio cuadro. */
 const telHref = (telefono?: string | null): string => `tel:${(telefono ?? '').replace(/[^\d+]/g, '')}`;
 
+/**
+ * El contacto del recojo NO sale de la fila: sale del catálogo, resuelto en lote al cargar
+ * el cuadro (`operacionStore.resolverContactoDeProveedores`). Se lee por aquí, y no
+ * `servicio.prestadorTelefono` a pelo, porque ese campo hoy llega siempre vacío —el
+ * snapshot dejó de congelarlo— y sólo sirve como respaldo de proveedores sin maestro.
+ */
+const telefonoDe = (s: OperacionServicio): string | null => operacionStore.contactoDePrestador(s).telefono;
+const direccionDe = (s: OperacionServicio): string | null => operacionStore.contactoDePrestador(s).direccion;
+
 // ============================================================================
 // COSTO REAL — lo que de verdad se pagó, frente a lo que decía la cotización
 //
@@ -1011,12 +1020,12 @@ onMounted(async () => {
                                                             <i class="fas fa-user mr-1"></i>{{ servicio.prestadorNombre || (servicio.soloReferencia ? 'Referencia' : 'Por asignar') }}
                                                         </p>
                                                         <a
-                                                            v-if="servicio.prestadorTelefono"
-                                                            :href="telHref(servicio.prestadorTelefono)"
+                                                            v-if="telefonoDe(servicio)"
+                                                            :href="telHref(telefonoDe(servicio))"
                                                             class="text-[10px] font-bold text-[#376875] mt-0.5 md:hidden flex items-center gap-1"
                                                         >
                                                             <i class="fas fa-phone text-[9px]"></i>
-                                                            <span class="tabular-nums">{{ servicio.prestadorTelefono }}</span>
+                                                            <span class="tabular-nums">{{ telefonoDe(servicio) }}</span>
                                                         </a>
                                                     </div>
                                                 </div>
@@ -1052,20 +1061,22 @@ onMounted(async () => {
                                                 <!-- Los datos del recojo: es para lo que existe la fila
                                                      de referencia. El teléfono se marca desde aquí. -->
                                                 <a
-                                                    v-if="servicio.prestadorTelefono"
-                                                    :href="telHref(servicio.prestadorTelefono)"
+                                                    v-if="telefonoDe(servicio)"
+                                                    :href="telHref(telefonoDe(servicio))"
                                                     class="mt-1 ml-2 flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-[#376875] transition-colors"
                                                 >
                                                     <i class="fas fa-phone text-slate-300 text-[9px]"></i>
-                                                    <span class="tabular-nums">{{ servicio.prestadorTelefono }}</span>
+                                                    <span class="tabular-nums">{{ telefonoDe(servicio) }}</span>
                                                 </a>
+                                                <!-- En el `title` va `?? ''` y no el valor a secas: el `v-if`
+                                                     no estrecha el tipo dentro de las demás bindings. -->
                                                 <p
-                                                    v-if="servicio.prestadorDireccion"
+                                                    v-if="direccionDe(servicio)"
                                                     class="mt-0.5 ml-2 flex items-start gap-1.5 text-[10px] font-medium text-slate-400 max-w-[11rem]"
-                                                    :title="servicio.prestadorDireccion"
+                                                    :title="direccionDe(servicio) ?? ''"
                                                 >
                                                     <i class="fas fa-location-dot text-slate-300 text-[9px] mt-0.5 shrink-0"></i>
-                                                    <span class="truncate">{{ servicio.prestadorDireccion }}</span>
+                                                    <span class="truncate">{{ direccionDe(servicio) }}</span>
                                                 </p>
 
                                                 <!-- A quién se le compra. Se edita porque es lo que agrupa

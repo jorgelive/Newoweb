@@ -13,7 +13,7 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 
 1. [Vocabulario](#1-vocabulario)
 2. [Flujo: de cotización confirmada a La Biblia](#2-flujo-de-cotización-confirmada-a-la-biblia)
-3. [Reglas del snapshot](#3-reglas-del-snapshot) — incluye [3.3 comprable vs. referencia](#33), [3.5 reconciliación](#35), [3.4 consola](#34), [3.7 el file de la fila](#37)
+3. [Reglas del snapshot](#3-reglas-del-snapshot) — incluye [3.3 comprable vs. referencia](#33), [3.5 reconciliación](#35), [3.4 consola](#34), [3.7 el file de la fila](#37), [3.8 congelado vs. vivo](#38)
 3.bis [Por qué La Biblia aparece vacía](#3bis-por-qué-la-biblia-aparece-vacía)
 4. [Los tres estados y por qué son tres](#4-los-tres-estados-y-por-qué-son-tres)
 5. [Órdenes de Servicio y bitácora](#5-órdenes-de-servicio-y-bitácora)
@@ -170,6 +170,45 @@ muestra y los deja filtrar.
 `"Americana Royal Class"`), pensado para negociar con el proveedor. Por sí solo no identifica el
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
+
+### <a id="38"></a>3.8 Qué se congela y qué se resuelve vivo (2026-08-17)
+
+No todo lo que la fila enseña sale del snapshot, y la línea que los separa es **si el dato
+envejece bien**:
+
+| Dato | Dónde vive | Por qué |
+|---|---|---|
+| Nombre del prestador y del comprador | Congelado en la fila | Es la identidad con la que se vendió y con la que se firma la OS. Además **es editable en el cuadro**, y esa corrección es lo que permite agrupar dos filas del mismo proveedor escrito distinto. |
+| Descripción, contexto, pax, importes | Congelado | Cambiar el catálogo no puede reescribir lo ya vendido. |
+| **Teléfono y dirección del prestador** | **Vivo, contra el maestro** | Cuando el conductor no aparece sirve el número de HOY, no el del día que se cotizó. Un teléfono caducado con apariencia de bueno es peor que no tener ninguno. |
+
+Por eso `BibliaSnapshotService::construirValores()` escribe `prestadorTelefono` y
+`prestadorDireccion` a `null`, y quien los rellena es el front.
+
+#### El hidratador en lote
+
+`operacionStore.resolverContactoDeProveedores()` junta los `prestadorMaestroId` y
+`compradorMaestroId` distintos y los pide de una vez con `?id[]=` a
+`/platform/travel/proveedores` — el mismo mecanismo que las etiquetas de lugar (§3.3.b), que
+atiende `UuidBatchIdExtension`. Los dos papeles van en la **misma** petición porque desde la
+unificación ambos son `Proveedor`. Medido en producción: 12 proveedores distintos en 42 filas,
+así que fila a fila serían decenas de peticiones para repetir doce respuestas.
+
+⚠️ **Se llama DENTRO de `fetchServicios()`, antes del `finally`**, en paralelo con el de
+lugares. Es lo que evita el efecto que se quería evitar: si se llamara después, la tabla se
+pintaría sin teléfonos y se rellenaría medio segundo más tarde. Como todo el cuadro entra por
+`fetchServicios()`, vale igual para cada filtro y cada recarga — **cualquier carga nueva de
+filas tiene que pasar por ahí o saldrá incompleta**.
+
+#### La degradación: el maestro manda, lo guardado es la red
+
+`contactoDePrestador()` devuelve el dato del catálogo y, si no hay, el congelado en la fila.
+Ese orden sostiene a los proveedores de un solo uso: si el proveedor se dio de baja, se borró
+o nunca estuvo en el catálogo, queda lo que la fila tenga. Al revés —guardado primero— un
+número viejo taparía para siempre al corregido en el maestro.
+
+Si el catálogo no responde, el cuadro se abre igual: la fila conserva nombre, hora y pax, que
+es lo que la ubica.
 
 ### <a id="36"></a>3.6 Las FK: por qué CASCADE y no RESTRICT
 
@@ -914,6 +953,7 @@ cotizado, no contra la venta real.
 | **De dónde sale el expediente de la fila** (§3.7) | mismo archivo | `resolverFile()` — y la guarda de raíz en `Cotizacion::setFile()` |
 | **Filtrar qué componentes entran** (§9) | mismo archivo | `generarParaCotizacion()`, guard del bucle |
 | **Cambiar qué fila es "sólo referencia"** (§3.3) | `src/Operacion/Entity/OperacionServicio.php` | `isSoloReferencia()` — y regenerar `api.d.ts` |
+| **Cambiar el teléfono/dirección que ve el tráfico** (§3.8) | `util/src/stores/operacion/operacionStore.ts` | `resolverContactoDeProveedores()` / `contactoDePrestador()` — **no** el snapshot: llega nulo a propósito |
 | Cambiar de dónde sale el prestador (§3.3.b) | `src/Cotizacion/Entity/CotizacionCotcomponente.php` **y** `util/src/stores/cotizacion/cotizacionEditorStore.ts` | `resolverPrestador()` (espejo, se tocan los dos) |
 | Qué puede entrar en una Orden de Servicio | mismo archivo | `esComprable()` / `motivoNoComprable()`, y las DOS guardas: `setOrdenServicio()` + `verificarCoherenciaConOrdenServicio()` |
 | Qué pasa al salir o entrar en `confirmado` (§4) | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `confirmar()`, `propagarEstadoOperacion()` |

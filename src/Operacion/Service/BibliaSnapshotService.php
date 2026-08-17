@@ -200,8 +200,16 @@ class BibliaSnapshotService
             'compradorNombre'       => $comprador?->nombre,
             'prestadorMaestroId'    => $prestador['maestroId'] ?? null,
             'prestadorNombre'       => $prestador['nombre'] ?? null,
-            // Teléfono y dirección ya no viven en la cotización: se resuelven contra el
-            // maestro cuando se despacha. Aquí se dejan nulos y La Biblia los hidrata.
+            // Nulos A PROPÓSITO, y son el único par de campos que se deja así.
+            //
+            // El nombre se congela porque es la identidad con la que se vendió; el teléfono
+            // es lo contrario: cuando el conductor no aparece sirve el número de HOY, no el
+            // del día que se cotizó. Un teléfono caducado con apariencia de bueno es peor en
+            // el cuadro de tráfico que no tener ninguno.
+            //
+            // Quien los rellena es `operacionStore.resolverContactoDeProveedores()`, en lote
+            // contra el maestro al cargar el cuadro. Las columnas siguen existiendo como
+            // respaldo de los proveedores sin maestro. Ver docs/Operacion.md §3.8.
             'prestadorTelefono'     => null,
             'prestadorDireccion'    => null,
             'descripcionServicio'   => $this->resolverDescripcion($tarifa, $cotcomponente),
