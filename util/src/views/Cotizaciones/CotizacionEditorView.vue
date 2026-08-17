@@ -366,7 +366,8 @@ const opcionesTarifas = computed(() => {
   return store.catalogos.tarifas
       .map(t => ({
         value: store.extractIdStr(t),
-        label: store.getTarifaLabel(t)
+        label: store.getTarifaLabel(t),
+        sublabel: store.getTarifaSublabel(t),
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
@@ -429,11 +430,65 @@ const opcionesTarifasFiltradas = computed(() => {
  * el `find()` se re-ejecutaba en cada render y sin `key` Vue no podía reutilizar los
  * nodos. Como computed se cachea y se lee de un vistazo.
  */
+/**
+ * «Sin restricción» no decía de QUÉ, y era la pregunta obvia al verlo.
+ *
+ * La procedencia es la NACIONALIDAD del pasajero: hay tarifas que sólo valen para peruanos
+ * (precio local), otras para extranjeros, otras para la CAN. Sin valor = vale para todos, que
+ * es el caso normal — y decirlo en positivo evita leerlo como si faltara un dato.
+ */
+const etiquetaProcedencia = (procedencia?: string | null): string =>
+    procedencia ? getProcedenciaUI(procedencia).label : 'Toda nacionalidad';
+
+const ayudaProcedencia = (procedencia?: string | null): string =>
+    procedencia
+        ? `Tarifa sólo para pasajeros de procedencia: ${getProcedenciaUI(procedencia).label}`
+        : 'Sin restricción de nacionalidad: vale para cualquier pasajero';
+
 const tarifaMaestraDeActiva = computed(() => {
   const buscada = store.extractIdStr(store.tarifaActiva?.tarifaMaestraId);
   if (!buscada) return null;
 
-  return store.catalogos.tarifas.find(t => store.extractIdStr(t) === buscada) ?? null;
+  // 🔥 Se busca en TODO el catálogo, no sólo en `catalogos.tarifas`.
+  //
+  // Ése tiene las tarifas del componente maestro que está abierto, y la tarifa asignada
+  // puede ser de otro —el filtro por prestador es blando y se salta a propósito—. Al
+  // abrir una cotización guardada eso dejaba las pastillas en blanco: el dato estaba
+  // guardado, pero la ficha del catálogo no aparecía y la pantalla no pintaba nada.
+  type FichaTarifa = (typeof store.catalogos.tarifas)[number];
+
+  const enElActual = store.catalogos.tarifas.find(t => store.extractIdStr(t) === buscada);
+  if (enElActual) return enElActual;
+
+  for (const c of store.catalogos.allComponentes) {
+    const tarifas = ('tarifas' in c ? c.tarifas ?? [] : []) as FichaTarifa[];
+    const hallada = tarifas.find(t => store.extractIdStr(t) === buscada);
+    if (hallada) return hallada;
+  }
+
+  return null;
+});
+
+/** El proveedor de la tarifa elegida, resuelto a través de su componente maestro. */
+const proveedorDeTarifaActiva = computed(() =>
+    store.getProveedorDeTarifa(store.tarifaActiva?.tarifaMaestraId));
+
+/**
+ * ⚠️ La tarifa elegida es de un proveedor distinto al prestador del componente.
+ *
+ * NO se bloquea: hay razones legítimas —le compras al consolidador lo que opera otro— y un
+ * candado dejaría esa tarifa inseleccionable. Pero es también el error más caro de cotizar
+ * cuando es un despiste, porque no se nota hasta que hay que pedirle el servicio a alguien
+ * que nunca la cotizó. Por eso se avisa y se deja pasar.
+ */
+const tarifaDeOtroProveedor = computed<string | null>(() => {
+  const prov = proveedorDeTarifaActiva.value;
+  const prestador = prestadorParaFiltro.value;
+
+  if (!prov?.id || !prestador?.maestroId) return null;
+  if (prov.id === prestador.maestroId) return null;
+
+  return prov.nombre || 'otro proveedor';
 });
 
 const filtroTarifasActivo = computed(() =>
@@ -2125,6 +2180,69 @@ store.$onAction(({ name, args }) => {
               </div>
             </div>
 
+            <div class="border-t border-sky-100 pt-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest">
+                  <span>Tarifas / Costos</span>
+                </h3>
+                <span v-if="store.isComponenteConAlerta(store.componenteActivo)" class="bg-red-100 text-red-600 px-2 py-1 rounded text-[9px] font-bold border border-red-200">
+                    <i class="fas fa-exclamation-circle mr-1"></i> Faltan Pax
+                </span>
+                <button @click="store.agregarTarifa(store.componenteActivo.id)" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold transition-colors">+ Añadir Tarifa</button>
+              </div>
+              <div class="space-y-3">
+                <div v-for="(tarifa, idx) in cottarifasOrdenadas" :key="tarifa.id || idx" @click="store.abrirNivel('tarifa', tarifa)"
+                     class="bg-white border-2 border-orange-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-orange-400 relative group overflow-hidden transition-all">
+                  <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="getRolTarifaUI(tarifa.rolSnapshot).bg.replace('bg-', 'bg-').replace('-50','-400')"></div>
+
+                  <button @click.stop="store.eliminarTarifa(store.componenteActivo.id, tarifa.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 p-1 bg-slate-50 w-6 h-6 rounded-full flex items-center justify-center">
+                    <i class="fas fa-trash-alt text-xs"></i>
+                  </button>
+
+                  <div class="flex justify-between items-start pr-8">
+                    <div>
+                      <span class="text-[10px] font-black text-slate-500 uppercase mb-0.5 block">
+                        {{ tarifa.nombreInternoSnapshot || 'Tarifa Manual' }}
+                      </span>
+                      <div class="flex gap-2 mt-1 flex-wrap">
+                        <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                           <i :class="tarifa.esGrupal ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
+                           {{ tarifa.esGrupal ? 'Costo Grupal (Fijo)' : `${tarifa.cantidad} Pax` }}
+                        </span>
+                        <span class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase flex items-center gap-1"
+                              :class="[getRolTarifaUI(tarifa.rolSnapshot).bg, getRolTarifaUI(tarifa.rolSnapshot).text, getRolTarifaUI(tarifa.rolSnapshot).border]">
+                          <i class="fas" :class="getRolTarifaUI(tarifa.rolSnapshot).icon"></i>
+                          {{ getRolTarifaUI(tarifa.rolSnapshot).label }}
+                        </span>
+
+                        <span v-if="tarifa.grupoTarifa != null" class="text-[9px] font-black bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100 uppercase">
+                          Grupo {{ tarifa.grupoTarifa }}
+                        </span>
+
+                      </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                      <span class="font-black text-orange-600 text-base block">{{ formatMoneda(Number(tarifa.montoCosto) * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
+                      <p class="text-xs font-black text-emerald-600 mt-0.5 flex items-center justify-end gap-1">
+                        <i class="fas fa-tag text-[9px]"></i>
+                        {{ formatMoneda(calcularVentaTarifa(tarifa), tarifa.moneda) }}
+                        <span class="text-slate-400 font-bold normal-case">
+                          ({{ tarifa.comisionOverrideSnapshot ? `${tarifa.comisionOverrideSnapshot}%` : 'global' }})
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div v-if="store.componenteActualDeTarifa?.prestadorNombreSnapshot" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                    <span class="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1.5">
+                      <i class="fas fa-truck-loading text-slate-400"></i> {{ store.componenteActualDeTarifa.prestadorNombreSnapshot }}
+                    </span>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
 
             <div class="border-t border-sky-100 pt-5 mt-4">
               <h3 class="text-[10px] font-black text-sky-700 uppercase tracking-widest mb-3 flex items-center justify-between">
@@ -2226,68 +2344,6 @@ store.$onAction(({ name, args }) => {
               </div>
             </div>
 
-            <div class="border-t border-sky-100 pt-5">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest">
-                  <span>Tarifas / Costos</span>
-                </h3>
-                <span v-if="store.isComponenteConAlerta(store.componenteActivo)" class="bg-red-100 text-red-600 px-2 py-1 rounded text-[9px] font-bold border border-red-200">
-                    <i class="fas fa-exclamation-circle mr-1"></i> Faltan Pax
-                </span>
-                <button @click="store.agregarTarifa(store.componenteActivo.id)" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold transition-colors">+ Añadir Tarifa</button>
-              </div>
-              <div class="space-y-3">
-                <div v-for="(tarifa, idx) in cottarifasOrdenadas" :key="tarifa.id || idx" @click="store.abrirNivel('tarifa', tarifa)"
-                     class="bg-white border-2 border-orange-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-orange-400 relative group overflow-hidden transition-all">
-                  <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="getRolTarifaUI(tarifa.rolSnapshot).bg.replace('bg-', 'bg-').replace('-50','-400')"></div>
-
-                  <button @click.stop="store.eliminarTarifa(store.componenteActivo.id, tarifa.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 p-1 bg-slate-50 w-6 h-6 rounded-full flex items-center justify-center">
-                    <i class="fas fa-trash-alt text-xs"></i>
-                  </button>
-
-                  <div class="flex justify-between items-start pr-8">
-                    <div>
-                      <span class="text-[10px] font-black text-slate-500 uppercase mb-0.5 block">
-                        {{ tarifa.nombreInternoSnapshot || 'Tarifa Manual' }}
-                      </span>
-                      <div class="flex gap-2 mt-1 flex-wrap">
-                        <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
-                           <i :class="tarifa.esGrupal ? 'fas fa-users text-orange-400' : 'fas fa-user text-sky-400'"></i>
-                           {{ tarifa.esGrupal ? 'Costo Grupal (Fijo)' : `${tarifa.cantidad} Pax` }}
-                        </span>
-                        <span class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase flex items-center gap-1"
-                              :class="[getRolTarifaUI(tarifa.rolSnapshot).bg, getRolTarifaUI(tarifa.rolSnapshot).text, getRolTarifaUI(tarifa.rolSnapshot).border]">
-                          <i class="fas" :class="getRolTarifaUI(tarifa.rolSnapshot).icon"></i>
-                          {{ getRolTarifaUI(tarifa.rolSnapshot).label }}
-                        </span>
-
-                        <span v-if="tarifa.grupoTarifa != null" class="text-[9px] font-black bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100 uppercase">
-                          Grupo {{ tarifa.grupoTarifa }}
-                        </span>
-
-                      </div>
-                    </div>
-                    <div class="text-right shrink-0">
-                      <span class="font-black text-orange-600 text-base block">{{ formatMoneda(Number(tarifa.montoCosto) * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
-                      <p class="text-xs font-black text-emerald-600 mt-0.5 flex items-center justify-end gap-1">
-                        <i class="fas fa-tag text-[9px]"></i>
-                        {{ formatMoneda(calcularVentaTarifa(tarifa), tarifa.moneda) }}
-                        <span class="text-slate-400 font-bold normal-case">
-                          ({{ tarifa.comisionOverrideSnapshot ? `${tarifa.comisionOverrideSnapshot}%` : 'global' }})
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div v-if="store.componenteActualDeTarifa?.prestadorNombreSnapshot" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
-                    <span class="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1.5">
-                      <i class="fas fa-truck-loading text-slate-400"></i> {{ store.componenteActualDeTarifa.prestadorNombreSnapshot }}
-                    </span>
-                  </div>
-
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -2365,16 +2421,57 @@ store.$onAction(({ name, args }) => {
                 </button>
               </div>
 
-              <div v-if="store.tarifaActiva.tarifaMaestraId" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
-                <span v-if="tarifaMaestraDeActiva" class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
-                  <span class="mr-1">{{ getProcedenciaUI(tarifaMaestraDeActiva.procedencia).icon }}</span>
-                  {{ getProcedenciaUI(tarifaMaestraDeActiva.procedencia).label }}
-                </span>
-                <span v-if="tarifaMaestraDeActiva && formatRangoEdad(tarifaMaestraDeActiva.edadMinima, tarifaMaestraDeActiva.edadMaxima)"
-                      class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 uppercase">
-                  <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
-                  {{ formatRangoEdad(tarifaMaestraDeActiva.edadMinima, tarifaMaestraDeActiva.edadMaxima) }}
-                </span>
+              <!--
+                LA PASTILLA. Fija en pantalla QUÉ tarifa está elegida, y sobre todo DE QUIÉN.
+                Antes eran dos badges sueltos y el proveedor no salía por ningún lado: se
+                sabía la procedencia de la tarifa pero no a quién había que pedírsela.
+              -->
+              <div v-if="store.tarifaActiva.tarifaMaestraId"
+                   class="mt-3 rounded-xl border p-3 transition-colors"
+                   :class="tarifaDeOtroProveedor
+                       ? 'border-2 border-red-400 bg-red-50/60'
+                       : 'border-slate-200 bg-slate-50'">
+
+                <div class="flex items-start gap-2">
+                  <i class="fas fa-truck-loading mt-0.5 text-[11px]"
+                     :class="tarifaDeOtroProveedor ? 'text-red-500' : 'text-slate-400'"></i>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[9px] font-black uppercase tracking-widest"
+                       :class="tarifaDeOtroProveedor ? 'text-red-500' : 'text-slate-400'">
+                      Tarifa de
+                    </p>
+                    <p class="text-xs font-black leading-snug"
+                       :class="tarifaDeOtroProveedor ? 'text-red-700' : 'text-slate-700'">
+                      {{ proveedorDeTarifaActiva?.nombre || 'Proveedor sin identificar' }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Avisa, no bloquea: comprar al consolidador lo que opera otro es legítimo. -->
+                <p v-if="tarifaDeOtroProveedor"
+                   class="mt-2 text-[10px] font-bold text-red-700 leading-snug flex items-start gap-1.5">
+                  <i class="fas fa-triangle-exclamation mt-0.5 shrink-0"></i>
+                  <span>
+                    El prestador de este componente es
+                    <b>{{ prestadorParaFiltro?.nombre || 'otro' }}</b>, no
+                    <b>{{ tarifaDeOtroProveedor }}</b>. Puede ser correcto —a veces se le
+                    compra a uno lo que opera otro—, pero compruébalo.
+                  </span>
+                </p>
+
+                <div v-if="tarifaMaestraDeActiva" class="mt-2 pt-2 border-t flex flex-wrap gap-2"
+                     :class="tarifaDeOtroProveedor ? 'border-red-200' : 'border-slate-200'">
+                  <span class="text-[9px] font-bold text-slate-600 bg-white px-2 py-1 rounded border border-slate-200 uppercase"
+                        :title="ayudaProcedencia(tarifaMaestraDeActiva.procedencia)">
+                    <span class="mr-1">{{ getProcedenciaUI(tarifaMaestraDeActiva.procedencia).icon }}</span>
+                    {{ etiquetaProcedencia(tarifaMaestraDeActiva.procedencia) }}
+                  </span>
+                  <span v-if="formatRangoEdad(tarifaMaestraDeActiva.edadMinima, tarifaMaestraDeActiva.edadMaxima)"
+                        class="text-[9px] font-bold text-slate-600 bg-white px-2 py-1 rounded border border-slate-200 uppercase">
+                    <i class="fas fa-birthday-cake text-orange-500 mr-1"></i>
+                    {{ formatRangoEdad(tarifaMaestraDeActiva.edadMinima, tarifaMaestraDeActiva.edadMaxima) }}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -2595,7 +2692,7 @@ store.$onAction(({ name, args }) => {
                 <p v-if="store.componenteActualDeTarifa?.prestadorNombreSnapshot"
                    class="text-[9px] text-slate-400 mt-2 pt-2 border-t border-slate-100">
                   <i class="fas fa-truck-loading mr-1"></i>
-                  Proveedor del componente:
+                  Prestador del componente:
                   <b class="text-slate-600">{{ store.componenteActualDeTarifa.prestadorNombreSnapshot }}</b>
                 </p>
               </div>

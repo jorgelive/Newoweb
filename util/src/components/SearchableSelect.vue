@@ -46,14 +46,21 @@
             v-for="opt in filteredOptions"
             :key="opt.value ?? opt.label"
             @click="select(opt)"
-            class="px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between"
+            class="px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-start justify-between gap-2"
             :class="[
             darkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-50 text-slate-700',
             modelValue === opt.value ? (darkMode ? 'bg-orange-500/10 text-orange-400 font-black' : 'bg-orange-50 text-orange-600 font-black') : ''
           ]"
         >
-          <span class="truncate">{{ opt.label }}</span>
-          <i v-if="modelValue === opt.value" class="fas fa-check text-[10px]"></i>
+          <span class="min-w-0 flex-1">
+            <!-- Con segunda línea el nombre se ENVUELVE en vez de cortarse: el punto de
+                 tener dos líneas es que quepa, no repartir el mismo recorte. -->
+            <span class="block" :class="opt.sublabel ? 'leading-snug' : 'truncate'">{{ opt.label }}</span>
+            <span v-if="opt.sublabel"
+                  class="block text-[11px] font-medium mt-0.5 leading-snug"
+                  :class="darkMode ? 'text-slate-400' : 'text-slate-500'">{{ opt.sublabel }}</span>
+          </span>
+          <i v-if="modelValue === opt.value" class="fas fa-check text-[10px] mt-1 shrink-0"></i>
         </li>
         <!--
           Distinguir «aún no he buscado» de «no hay nada» importa: con el mensaje único,
@@ -83,7 +90,14 @@ type OpcionValor = string | number | null | undefined;
 
 const props = withDefaults(defineProps<{
   modelValue: OpcionValor;
-  options: { value: OpcionValor, label: string }[];
+  /**
+   * `sublabel` es opcional y sólo pinta una segunda línea bajo el nombre. Existe porque
+   * las tarifas necesitaban meter proveedor, procedencia y edad en una sola cadena y se
+   * cortaba a la mitad en el móvil: la información estaba, pero no se leía.
+   *
+   * La búsqueda mira las DOS líneas, así que se puede teclear el proveedor.
+   */
+  options: { value: OpcionValor, label: string, sublabel?: string }[];
   placeholder?: string;
   darkMode?: boolean;
   // 🆕 opcionales — no afectan a las instancias existentes
@@ -147,7 +161,7 @@ const close = () => {
   isOpen.value = false;
 };
 
-const select = (opt: { value: OpcionValor; label: string }) => {
+const select = (opt: { value: OpcionValor; label: string; sublabel?: string }) => {
   emit('update:modelValue', opt.value);
   emit('change', opt.value);
   touched.value = true;
@@ -168,7 +182,7 @@ const faltanCaracteres = computed(() =>
 const filteredOptions = computed(() => {
   if (!searchQuery.value) return props.options;
   const q = searchQuery.value.toLowerCase();
-  return props.options.filter(o => o.label.toLowerCase().includes(q));
+  return props.options.filter(o => `${o.label} ${o.sublabel ?? ''}`.toLowerCase().includes(q));
 });
 
 /**

@@ -399,6 +399,69 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return `${nombre}${edadStr}${indicadorMatematica}${indicadorProcedencia} (${moneda} ${monto})`;
     };
 
+    /**
+     * De qué proveedor es cada tarifa del catálogo, por id de tarifa.
+     *
+     * ⚠️ La tarifa ya NO tiene proveedor propio: se mudó al COMPONENTE maestro. Así que «el
+     * proveedor de esta tarifa» se resuelve a través del componente del que cuelga, y por eso
+     * hay que recorrer `allComponentes` en vez de mirar la tarifa. Es el mismo camino que usa
+     * el filtro blando del selector.
+     */
+    const proveedorPorTarifa = computed<Map<string, { id: string; nombre: string }>>(() => {
+        const mapa = new Map<string, { id: string; nombre: string }>();
+
+        catalogos.value.allComponentes.forEach(c => {
+            const prov = 'proveedor' in c ? c.proveedor : null;
+            if (!prov) return;
+
+            const id = extractIdStr(prov);
+            const nombre = typeof prov === 'object'
+                ? String((prov as { nombreComercial?: string }).nombreComercial ?? '')
+                : '';
+
+            if (!id && !nombre) return;
+
+            const tarifas = ('tarifas' in c ? c.tarifas ?? [] : []) as TarifaLike[];
+            tarifas.forEach(t => {
+                const tid = extractIdStr(t);
+                if (tid) mapa.set(tid, { id, nombre });
+            });
+        });
+
+        return mapa;
+    });
+
+    /** El proveedor de una tarifa del catálogo, o null si no se puede resolver. */
+    const getProveedorDeTarifa = (t: TarifaLike | string | null | undefined): { id: string; nombre: string } | null => {
+        const id = typeof t === 'string' ? extractIdStr(t) : extractIdStr(t);
+        return id ? (proveedorPorTarifa.value.get(id) ?? null) : null;
+    };
+
+    /**
+     * La SEGUNDA línea de una opción de tarifa: proveedor · procedencia · edad.
+     *
+     * Iba todo apelotonado en `getTarifaLabel()` y en el móvil se cortaba a la mitad. El
+     * proveedor —que es lo que evita colgar de un componente la tarifa de otro— no llegaba a
+     * verse nunca. Separarlo en dos líneas es lo que hace que quepa.
+     */
+    const getTarifaSublabel = (t: TarifaLike): string => {
+        const partes: string[] = [];
+
+        const prov = getProveedorDeTarifa(t);
+        if (prov?.nombre) partes.push(prov.nombre);
+
+        const proc = getProcedenciaTarifa(t);
+        if (proc) {
+            const ui = getProcedenciaUI(proc);
+            partes.push(`${ui.icon} ${ui.label}`);
+        }
+
+        const edad = formatRangoEdad(getEdadMinimaTarifa(t), getEdadMaximaTarifa(t));
+        if (edad) partes.push(edad);
+
+        return partes.join(' · ');
+    };
+
     const calcularPernoctes = (inicioStr: string, finStr: string): number => {
         if (!inicioStr || !finStr) return 1;
         const DIA = 24 * 60 * 60 * 1000;
@@ -4138,7 +4201,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,
         resumenFinanciero, gruposUpgrade, itinerarioDinamico, totalCostoNeto, ventaSugerida,
         getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, calcularPernoctes,
-        isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, extractIdStr,
+        isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, getTarifaSublabel, getProveedorDeTarifa, extractIdStr,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,
         updateNumPaxGlobal, agregarServicio, eliminarServicio, agregarComponente, eliminarComponente,
         agregarSnapshotItem, eliminarSnapshotItem, toggleUpsellComponent, isComponenteBloqueado,
