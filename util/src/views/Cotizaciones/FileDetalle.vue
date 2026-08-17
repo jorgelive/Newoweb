@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {ref, onMounted, onUnmounted, watch, computed} from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
+import { useVolverAtras } from '@/composables/useVolverAtras';
 import MaskedDateInput from '@/components/MaskedDateInput.vue';   // ajusta ruta
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import PlanOperacionModal from '@/components/operacion/PlanOperacionModal.vue';
@@ -30,6 +31,7 @@ defineProps<{
 
 const route = useRoute();
 const router = useRouter();
+const volverAtras = useVolverAtras();
 const fileStore = useCotizacionFileStore();
 
 const isLoading = ref(true);
@@ -301,7 +303,7 @@ const cargarFile = async () => {
 };
 
 const handleVolver = () => {
-  router.push('/cotizacion');
+  volverAtras('/cotizacion');   // vuelve a donde estabas; el dashboard sólo si no hay historial
 };
 
 const guardarFile = async () => {

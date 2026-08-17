@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, onUnmounted, type DirectiveBinding } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
+import { useVolverAtras } from '@/composables/useVolverAtras';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
 import { getUrls } from '@/services/apiClient';
 import { thumbUrl } from '@/services/imageThumb';
@@ -38,6 +39,7 @@ const verEnSoles = ref(false);
 
 const route = useRoute();
 const router = useRouter();
+const volverAtras = useVolverAtras();
 const store = useCotizacionEditorStore();
 
 // ============================================================================
@@ -167,16 +169,14 @@ onBeforeRouteLeave((to, from, next) => {
 });
 
 const handleVolver = () => {
+  // Vuelve a DONDE ESTABAS (La Biblia, el detalle del file, el dashboard…). Sólo si no hay
+  // historial —entraste por un enlace directo— cae al destino fijo. Ver useVolverAtras.
   if (store.modoCatalogo) {
-    router.push('/catalogo');
+    volverAtras('/catalogo');
     return;
   }
   const fileId = route.params.fileId || store.fileActual?.id;
-  if (fileId) {
-    router.push(`/cotizacion/${fileId}`);
-  } else {
-    router.push('/cotizacion');
-  }
+  volverAtras(fileId ? `/cotizacion/${fileId}` : '/cotizacion');
 };
 
 const handleGuardar = async (): Promise<boolean> => {

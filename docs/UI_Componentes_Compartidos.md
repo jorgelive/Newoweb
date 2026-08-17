@@ -545,6 +545,33 @@ pantalla, y el `type` evita que envíe el formulario en el que vive.
 
 ---
 
+## 3.f `useVolverAtras` — «atrás» vuelve a donde estabas (2026-08-17)
+
+`util/src/composables/useVolverAtras.ts`. Directiva para **toda** la app: un botón de volver
+regresa a la pantalla ANTERIOR del usuario, no a una ruta fija que eligió el programador.
+
+El fallo que corrige: los `handleVolver` navegaban a `/cotizacion` a secas, así que llegar al
+editor desde La Biblia y pulsar atrás te dejaba en el dashboard de cotizaciones —un sitio en el
+que nunca estuviste—.
+
+```ts
+const volver = useVolverAtras();
+const handleVolver = () => volver('/cotizacion');   // el fallback del deep link
+```
+
+Si hay historial de SPA (`history.state.back != null`) hace `router.back()`; si no —entraste
+por un enlace directo— cae al destino fijo, que ahí es lo correcto porque no hay «atrás»
+posible. Se usa `history.state.back` y no `window.history.length`, que cuenta también páginas
+de fuera del SPA.
+
+**Al añadir un botón de volver, usa esto, no un `router.push` a ruta fija.** Excepción: una
+navegación FORZADA —tras eliminar el recurso, tras un error de carga— sí va a ruta fija, porque
+volver a donde estabas no tiene sentido si eso ya no existe.
+
+⚠️ Los **modales** son otro caso: no navegan con el router, así que empujan su propia entrada
+de history con `pushState` y cierran en `popstate`. Ver docs/Operacion.md §3.17 — mismo
+objetivo (el «atrás» hace lo esperado), mecánica distinta.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
