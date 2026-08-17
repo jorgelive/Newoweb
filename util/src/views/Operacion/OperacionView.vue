@@ -12,6 +12,7 @@
  * qué está llegando, después se decide qué se deja de generar.
  */
 import { ref, onMounted, computed, watch } from 'vue';
+import SearchableSelect from '@/components/SearchableSelect.vue';
 import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion } from '@/stores/operacion/operacionStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
@@ -444,7 +445,20 @@ const conflictoSeleccion = computed<string | null>(() => {
 const mostrarModalOs = ref<boolean>(false);
 const guardandoOs = ref<boolean>(false);
 const errorOs = ref<string | null>(null);
-const formOs = ref({ numeroOs: '', compradorNombre: '', totalOs: '0.00', monedaId: '' });
+/** El catálogo, en la forma que pide el selector. */
+const opcionesProveedores = computed(() =>
+    operacionStore.proveedores.map(p => ({ value: p.id, label: p.nombreComercial })));
+
+/**
+ * Al elegir destinatario se guardan las DOS cosas: el id, que es lo que permite enviarle la
+ * orden, y el nombre, que es lo que queda escrito si algún día se borra del catálogo.
+ */
+const onDestinatarioChange = (id: unknown): void => {
+    const elegido = operacionStore.proveedores.find(p => p.id === String(id ?? ''));
+    formOs.value.compradorNombre = elegido?.nombreComercial ?? '';
+};
+
+const formOs = ref({ numeroOs: '', compradorMaestroId: '' as string | null, compradorNombre: '', totalOs: '0.00', monedaId: '' });
 
 const abrirModalOs = () => {
     const sel = serviciosSeleccionados.value;
@@ -456,12 +470,14 @@ const abrirModalOs = () => {
     formOs.value = {
         // Sugerencia: numeroOs es unique y no tiene generador en el backend.
         numeroOs: `OS-${hoy}-${String(Math.floor(Math.random() * 900) + 100)}`,
+        compradorMaestroId: sel[0].compradorMaestroId ?? '',
         compradorNombre: sel[0].compradorNombre ?? '',
         totalOs: total.toFixed(2),
         monedaId: sel[0].monedaCotizada?.id ?? '',
     };
     errorOs.value = null;
     mostrarModalOs.value = true;
+    void operacionStore.fetchProveedores();   // idempotente: sólo pega la primera vez
 };
 
 const confirmarOs = async () => {
@@ -481,7 +497,7 @@ const confirmarOs = async () => {
             {
                 numeroOs: formOs.value.numeroOs,
                 file: `/platform/sales/cotizacion_files/${fileId}`,
-                compradorMaestroId: sel[0].compradorMaestroId ?? null,
+                compradorMaestroId: formOs.value.compradorMaestroId || null,
                 compradorNombre: formOs.value.compradorNombre || null,
                 estadoOs: 'borrador',
                 monedaOs: `/platform/maestro/monedas/${formOs.value.monedaId}`,
@@ -942,7 +958,7 @@ onMounted(async () => {
                                                     @change="editarHora(servicio, $event)"
                                                     placeholder="--:--"
                                                     maxlength="5"
-                                                    class="w-[4.5rem] text-sm font-black text-slate-900 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 tabular-nums text-center outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
+                                                    class="w-[3.8rem] text-xs font-black text-slate-900 bg-slate-100 px-1.5 py-1 rounded-lg border border-slate-200 tabular-nums text-center outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
                                                 />
                                             </td>
 
@@ -954,11 +970,17 @@ onMounted(async () => {
                                                         :title="getTipoComponenteConfig(servicio.tipoComponente).label"
                                                     ></i>
                                                     <div class="min-w-0">
-                                                        <p class="text-sm font-black text-slate-800 leading-tight">
-                                                            {{ servicio.descripcionServicio }}
+                                                        <!-- El SERVICIO manda y la tarifa es el detalle, no al revés.
+                                                             `descripcionServicio` es el nombre interno de la tarifa
+                                                             («Auto a Miraflores Noche»), pensado para negociar con el
+                                                             proveedor; `contextoServicio` es el día del itinerario, que
+                                                             es lo que ubica la fila de un vistazo. -->
+                                                        <p v-if="servicio.contextoServicio" class="text-sm font-black text-slate-800 leading-tight">
+                                                            {{ servicio.contextoServicio }}
                                                         </p>
-                                                        <p v-if="servicio.contextoServicio" class="text-[10px] font-bold text-slate-400 mt-0.5 truncate">
-                                                            <i class="fas fa-diagram-project mr-1"></i>{{ servicio.contextoServicio }}
+                                                        <p class="font-bold text-slate-500 leading-tight"
+                                                           :class="servicio.contextoServicio ? 'text-[11px] mt-0.5' : 'text-sm font-black text-slate-800'">
+                                                            {{ servicio.descripcionServicio }}
                                                         </p>
 
                                                         <!-- Badges de clasificación: sólo cuando dicen algo -->
@@ -1013,20 +1035,13 @@ onMounted(async () => {
                                                         <p class="text-[10px] font-bold text-slate-400 mt-1 lg:hidden">
                                                             <i class="fas fa-folder-open mr-1"></i>{{ servicio.file?.nombreGrupo || 'Sin expediente' }}
                                                         </p>
-                                                        <!-- En móvil la columna del prestador está oculta, así
-                                                             que el nombre y el teléfono del recojo se repiten
-                                                             aquí: son el dato que se consulta a pie de calle. -->
+                                                        <!-- En móvil la columna del prestador está oculta, así que
+                                                             el nombre se repite aquí. El TELÉFONO no: sigue vivo en
+                                                             la columna de prestador (donde es el dato del recojo) y
+                                                             aquí sólo alargaba la tarjeta. -->
                                                         <p class="text-[10px] font-bold text-slate-400 mt-0.5 md:hidden">
                                                             <i class="fas fa-user mr-1"></i>{{ servicio.prestadorNombre || (servicio.soloReferencia ? 'Referencia' : 'Por asignar') }}
                                                         </p>
-                                                        <a
-                                                            v-if="telefonoDe(servicio)"
-                                                            :href="telHref(telefonoDe(servicio))"
-                                                            class="text-[10px] font-bold text-[#376875] mt-0.5 md:hidden flex items-center gap-1"
-                                                        >
-                                                            <i class="fas fa-phone text-[9px]"></i>
-                                                            <span class="tabular-nums">{{ telefonoDe(servicio) }}</span>
-                                                        </a>
                                                     </div>
                                                 </div>
                                             </td>
@@ -1282,13 +1297,30 @@ onMounted(async () => {
                         />
                     </label>
 
+                    <!--
+                      Selector del catálogo, no texto libre. La OS existe para MANDARSE a
+                      alguien: escrito a mano, «Gabrie Aime» y «Gabriel Aimé» son dos
+                      proveedores distintos para cualquier filtro, y no hay a quién enviarla
+                      porque detrás no queda un id, sólo una cadena.
+                    -->
                     <label class="flex flex-col gap-1">
-                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Proveedor</span>
-                        <input
-                            v-model="formOs.compradorNombre"
-                            placeholder="Nombre del proveedor"
-                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#376875]"
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            Destinatario <span class="text-slate-300 normal-case font-bold">(a quién se le manda)</span>
+                        </span>
+                        <SearchableSelect
+                            v-model="formOs.compradorMaestroId"
+                            :options="opcionesProveedores"
+                            placeholder="Buscar proveedor..."
+                            @update:model-value="onDestinatarioChange"
                         />
+                        <span v-if="!formOs.compradorMaestroId && formOs.compradorNombre"
+                              class="text-[10px] font-bold text-amber-600 flex items-start gap-1 mt-0.5">
+                            <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                            <span>
+                                Estos servicios están a nombre de <b>{{ formOs.compradorNombre }}</b>, que no
+                                está en el catálogo. Elige uno para poder enviarle la orden.
+                            </span>
+                        </span>
                     </label>
 
                     <label class="flex flex-col gap-1">

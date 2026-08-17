@@ -27,6 +27,13 @@ export interface ContactoProveedor {
     email: string | null;
 }
 
+/** Proveedor reducido para el selector de destinatario de la Orden de Servicio. */
+export interface ProveedorOpcion {
+    id: string;
+    nombreComercial: string;
+    email?: string | null;
+}
+
 /** Expediente reducido para el selector de filtros de La Biblia. */
 export interface ExpedienteOpcion {
     id: string;
@@ -124,6 +131,42 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             throw error;
         } finally {
             isLoading.value = false;
+        }
+    };
+
+    /**
+     * El catálogo de proveedores, para elegir a quién va dirigida la Orden de Servicio.
+     *
+     * Antes el destinatario era un `<input>` de texto libre, y eso rompía justo lo que la OS
+     * tiene que garantizar: a quién se le manda. Escrito a mano, «Gabrie Aime» y «Gabriel
+     * Aimé» son dos proveedores distintos para cualquier agrupación o filtro, y la orden no
+     * tenía a quién enviarse porque no había id detrás — sólo una cadena.
+     *
+     * Se piden todos de una vez: son ~100 y el selector filtra en local.
+     */
+    const proveedores = ref<ProveedorOpcion[]>([]);
+
+    const fetchProveedores = async (): Promise<void> => {
+        if (proveedores.value.length) return;   // idempotente: el modal puede abrirse muchas veces
+
+        try {
+            const res = await apiClient.get('/platform/travel/proveedores?pagination=false');
+            const miembros = res.data['hydra:member'] || res.data['member'] || [];
+
+            proveedores.value = miembros
+                .map((p: Record<string, unknown>) => ({
+                    id: String(p.id ?? String(p['@id'] ?? '').split('/').pop() ?? ''),
+                    nombreComercial: String(p.nombreComercial ?? ''),
+                    email: (p.email as string | null) ?? null,
+                }))
+                .filter((p: ProveedorOpcion) => p.id && p.nombreComercial)
+                .sort((a: ProveedorOpcion, b: ProveedorOpcion) =>
+                    a.nombreComercial.localeCompare(b.nombreComercial, 'es'));
+        } catch (error) {
+            // Sin catálogo el modal sigue abriéndose: mejor una lista vacía y un aviso que
+            // impedir crear la orden.
+            console.error('No se pudieron cargar los proveedores:', error);
+            proveedores.value = [];
         }
     };
 
@@ -479,6 +522,8 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         mensajesActivos,
         lugares,
         lugaresPorComponente,
+        proveedores,
+        fetchProveedores,
         contactoPorProveedor,
         contactoDePrestador,
         fetchServicios,
