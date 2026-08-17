@@ -193,6 +193,21 @@ desaparecer: el prestador ya lo hacía (`md:hidden`), y ahora también el costo 
 (`xl:hidden`). Si añades una columna, decide dónde vive en móvil antes de ponerle el
 `hidden`.
 
+### <a id="39bis"></a>3.9 bis Qué nombre lleva cada pantalla (2026-08-17)
+
+Una fila tiene **dos nombres** y la pantalla decide cuál manda. No es estética:
+
+| Campo | Qué es | Manda en |
+|---|---|---|
+| `descripcionServicio` | Cómo conoce el PROVEEDOR el servicio. Sale de `nombreParaProveedor` si está puesto, si no del nombre interno de la tarifa (`resolverDescripcion()`) | **La Orden** |
+| `contextoServicio` | El día del itinerario | **La Biblia** |
+
+En La Biblia estás ubicando un servicio dentro de tu día, así que manda el itinerario. En la
+Orden estás describiéndoselo a quien te lo va a vender, y ahí un código interno que él no
+reconoce es pedirle que adivine — la orden es su documento, no el nuestro.
+
+El otro queda debajo en las dos, más pequeño. Ninguno se esconde.
+
 ### <a id="39"></a>3.9 El costo de una fila: SIEMPRE los dos factores (2026-08-17)
 
 ```

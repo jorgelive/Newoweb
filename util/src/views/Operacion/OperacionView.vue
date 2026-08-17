@@ -650,17 +650,38 @@ const serviciosDeOrdenAbierta = computed<OperacionServicio[]>(() => {
  * Toca `costoRealOperativo` y `monedaReal`, que son campos DEL OPERADOR: la reconciliación no
  * los pisa jamás. El cotizado no se toca, que es la referencia con la que se concilia.
  */
+/**
+ * Qué servicio acaba de guardarse, para poder decirlo. `null` = nada pendiente de avisar.
+ *
+ * Sin esto el campo se guardaba y no pasaba nada visible: en un móvil, con el teclado tapando
+ * media pantalla, «he escrito el número y no sé si se ha grabado» es indistinguible de «esto
+ * no guarda». Y no guardaba en el momento que uno espera: `@change` sólo dispara al SALIR del
+ * campo, así que hasta tocar fuera no se enviaba nada.
+ */
+const guardadoOk = ref<string | null>(null);
+const errorGuardado = ref<string | null>(null);
+
 const guardarNegociadoDeOrden = async (
     servicio: OperacionServicio,
     payload: Partial<OperacionServicioWrite>,
 ): Promise<void> => {
     if (!servicio.id) return;
 
-    await operacionStore.actualizarServicio(servicio.id, payload);
+    errorGuardado.value = null;
+    try {
+        await operacionStore.actualizarServicio(servicio.id, payload);
 
-    // Con recargar el listado basta: trae los servicios dentro y `totalesPorMoneda`
-    // recalculado por el servidor. Antes hacían falta dos peticiones.
-    await operacionStore.fetchOrdenesServicio();
+        // Con recargar el listado basta: trae los servicios dentro y `totalesPorMoneda`
+        // recalculado por el servidor. Antes hacían falta dos peticiones.
+        await operacionStore.fetchOrdenesServicio();
+
+        guardadoOk.value = servicio.id;
+        setTimeout(() => { if (guardadoOk.value === servicio.id) guardadoOk.value = null; }, 2500);
+    } catch {
+        // `actualizarServicio` relanza el error: sin este catch quedaba como promesa
+        // rechazada sin dueño y el usuario no veía absolutamente nada.
+        errorGuardado.value = 'No se pudo guardar. Revisa la conexión e inténtalo otra vez.';
+    }
 };
 
 const editarCostoDeOrden = async (servicio: OperacionServicio, evento: Event) => {
@@ -1304,6 +1325,7 @@ onMounted(async () => {
                                                             <input
                                                                 :value="Number(servicio.costoRealOperativo ?? 0) === 0 ? '' : importe(servicio.costoRealOperativo)"
                                                                 @change="editarCostoReal(servicio, $event)"
+                                                                @keyup.enter="($event.target as HTMLInputElement).blur()"
                                                                 :placeholder="importe(servicio.costoCotizado)"
                                                                 inputmode="decimal"
                                                                 maxlength="13"
@@ -1548,12 +1570,24 @@ onMounted(async () => {
                                 <div class="flex flex-col gap-1.5">
                                     <div v-for="s in serviciosDeOrdenAbierta" :key="s.id ?? ''"
                                          class="flex items-start justify-between gap-2 bg-slate-50 rounded-lg px-2 py-1.5">
+                                        <!-- Aquí manda `descripcionServicio`, al contrario que en La
+                                             Biblia. Es el nombre con el que el PROVEEDOR conoce el
+                                             servicio —sale de `nombreParaProveedor` si está puesto— y
+                                             la orden es el documento que se le manda a él. El día del
+                                             itinerario queda debajo: sirve para ubicarlo, no para
+                                             pedirlo. Ver docs/Operacion.md §3.9 bis. -->
                                         <div class="min-w-0">
-                                            <p class="text-[11px] font-bold text-slate-700 leading-snug">
-                                                {{ s.contextoServicio || s.descripcionServicio }}
+                                            <p class="text-[11px] font-black text-slate-800 leading-snug">
+                                                {{ s.descripcionServicio }}
+                                            </p>
+                                            <p v-if="s.contextoServicio" class="text-[10px] text-slate-500 leading-snug">
+                                                {{ s.contextoServicio }}
                                             </p>
                                             <p class="text-[10px] text-slate-400 leading-snug">
                                                 {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ s.cantidadPax }} pax
+                                                <span v-if="guardadoOk === s.id" class="text-emerald-600 font-black ml-1">
+                                                    <i class="fas fa-check"></i> guardado
+                                                </span>
                                             </p>
                                         </div>
                                         <!-- Lo NEGOCIADO, editable aquí mismo: es el momento en que
@@ -1572,6 +1606,7 @@ onMounted(async () => {
                                                 <input
                                                     :value="Number(s.costoRealOperativo ?? 0) === 0 ? '' : importe(s.costoRealOperativo)"
                                                     @change="editarCostoDeOrden(s, $event)"
+                                                    @keyup.enter="($event.target as HTMLInputElement).blur()"
                                                     :placeholder="importe(s.costoCotizado)"
                                                     inputmode="decimal"
                                                     maxlength="13"
@@ -1584,10 +1619,14 @@ onMounted(async () => {
                                         </div>
                                     </div>
                                 </div>
+                                <p v-if="errorGuardado" class="text-[10px] font-bold text-rose-600 mt-1.5">
+                                    <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorGuardado }}
+                                </p>
                                 <p class="text-[10px] text-slate-400 leading-snug mt-1.5">
                                     <i class="fas fa-circle-info mr-1"></i>
-                                    Vacío = todavía sin negociar; vale el cotizado. Estos campos son tuyos:
-                                    una resincronización de la cotización nunca los pisa.
+                                    Se guarda al salir del campo. Vacío = todavía sin negociar, vale el
+                                    cotizado. Estos campos son tuyos: una resincronización de la cotización
+                                    nunca los pisa.
                                 </p>
                         </div>
 
