@@ -145,11 +145,21 @@ class OperacionOrdenServicio
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $mensajes;
 
+    /**
+     * Pagos a cuenta hechos al proveedor. No se serializan en el listado (se piden aparte al
+     * abrir el modal de pagos): son de una orden a la vez, no de las 3 que caben en pantalla.
+     * @var Collection<int, OperacionPago>
+     */
+    #[ORM\OneToMany(mappedBy: 'ordenServicio', targetEntity: OperacionPago::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['fecha' => 'DESC'])]
+    private Collection $pagos;
+
     public function __construct()
     {
         $this->initializeId();
         $this->operacionServicios = new ArrayCollection();
         $this->mensajes = new ArrayCollection();
+        $this->pagos = new ArrayCollection();
     }
 
     #[Groups(['operacion:read'])]
@@ -199,7 +209,7 @@ class OperacionOrdenServicio
      * soles y en dólares —es una sola gestión con el mismo proveedor— y reducirlo a un número
      * exigiría un tipo de cambio que nadie pactó. Ver docs/Operacion.md §5.4.
      *
-     * @return list<array{moneda: string, cotizado: string, real: string}>
+     * @return list<array{moneda: string, cotizado: string, real: string, pagado: string, saldo: string}>
      */
     #[Groups(['operacion:read'])]
     #[ApiProperty(openapiContext: [
@@ -210,13 +220,23 @@ class OperacionOrdenServicio
                 'moneda'   => ['type' => 'string'],
                 'cotizado' => ['type' => 'string'],
                 'real'     => ['type' => 'string'],
+                'pagado'   => ['type' => 'string'],
+                'saldo'    => ['type' => 'string'],
             ],
         ],
     ])]
     public function getTotalesPorMoneda(): array
     {
-        /** @var array<string, array{cotizado: float, real: float}> $acumulado */
+        /** @var array<string, array{cotizado: float, real: float, pagado: float}> $acumulado */
         $acumulado = [];
+
+        // Los pagos primero, para que una moneda con pagos pero sin servicio (raro, pero
+        // posible tras editar) aparezca igual en el desglose y no esconda un abono.
+        foreach ($this->pagos as $pago) {
+            $m = $pago->getMoneda()?->getId() ?? '—';
+            $acumulado[$m] ??= ['cotizado' => 0.0, 'real' => 0.0, 'pagado' => 0.0];
+            $acumulado[$m]['pagado'] += (float) $pago->getMonto();
+        }
 
         foreach ($this->operacionServicios as $servicio) {
             $cotizado = (float) $servicio->getCostoCotizado();
@@ -227,10 +247,10 @@ class OperacionOrdenServicio
             // soles. Sin este reparto, ese importe se sumaría bajo la moneda equivocada.
             $monedaReal = $servicio->getMonedaReal()?->getId() ?? $monedaCotizada;
 
-            $acumulado[$monedaCotizada] ??= ['cotizado' => 0.0, 'real' => 0.0];
+            $acumulado[$monedaCotizada] ??= ['cotizado' => 0.0, 'real' => 0.0, 'pagado' => 0.0];
             $acumulado[$monedaCotizada]['cotizado'] += $cotizado;
 
-            $acumulado[$monedaReal] ??= ['cotizado' => 0.0, 'real' => 0.0];
+            $acumulado[$monedaReal] ??= ['cotizado' => 0.0, 'real' => 0.0, 'pagado' => 0.0];
             // Mientras nadie negocie, «real» es el cotizado: un cero ahí se leería como
             // «pactado en cero», que es lo contrario de «todavía sin pactar».
             $acumulado[$monedaReal]['real'] += $real > 0.0 ? $real : ($monedaReal === $monedaCotizada ? $cotizado : 0.0);
@@ -240,10 +260,14 @@ class OperacionOrdenServicio
 
         $salida = [];
         foreach ($acumulado as $moneda => $montos) {
+            // Saldo = lo negociado − lo ya pagado. Es lo que falta por abonar al proveedor.
+            $saldo = $montos['real'] - $montos['pagado'];
             $salida[] = [
                 'moneda'   => (string) $moneda,
                 'cotizado' => number_format($montos['cotizado'], 2, '.', ''),
                 'real'     => number_format($montos['real'], 2, '.', ''),
+                'pagado'   => number_format($montos['pagado'], 2, '.', ''),
+                'saldo'    => number_format($saldo, 2, '.', ''),
             ];
         }
 

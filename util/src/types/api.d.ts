@@ -1120,6 +1120,50 @@ export interface paths {
         patch: operations["api_opsoperacion_orden_servicios_id_patch"];
         trace?: never;
     };
+    "/platform/ops/operacion_pagos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of OperacionPago resources.
+         * @description Retrieves the collection of OperacionPago resources.
+         */
+        get: operations["api_opsoperacion_pagos_get_collection"];
+        put?: never;
+        /**
+         * Creates a OperacionPago resource.
+         * @description Creates a OperacionPago resource.
+         */
+        post: operations["api_opsoperacion_pagos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/ops/operacion_pagos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Removes the OperacionPago resource.
+         * @description Removes the OperacionPago resource.
+         */
+        delete: operations["api_opsoperacion_pagos_id_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/ops/operacion_servicios": {
         parameters: {
             query?: never;
@@ -13181,6 +13225,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "Moneda-operacion.pago.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Moneda-operacion.read_timestamp.read": {
             id?: string;
             nombre?: string;
@@ -13237,6 +13287,12 @@ export interface components {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.html-operacion.pago.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -13303,6 +13359,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "Moneda.jsonld-operacion.pago.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Moneda.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
@@ -13359,6 +13421,12 @@ export interface components {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Moneda.multipart-operacion.pago.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14100,6 +14168,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "OperacionOrdenServicio-operacion.pago.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "OperacionOrdenServicio-operacion.read_timestamp.read": {
             numeroOs?: string;
             file?: components["schemas"]["CotizacionFile-operacion.read_timestamp.read"];
@@ -14124,6 +14198,8 @@ export interface components {
                 moneda?: string;
                 cotizado?: string;
                 real?: string;
+                pagado?: string;
+                saldo?: string;
             }[];
         };
         "OperacionOrdenServicio-operacion.write": {
@@ -14184,6 +14260,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "OperacionOrdenServicio.html-operacion.pago.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "OperacionOrdenServicio.html-operacion.read_timestamp.read": {
             numeroOs?: string;
             file?: components["schemas"]["CotizacionFile.html-operacion.read_timestamp.read"];
@@ -14208,6 +14290,8 @@ export interface components {
                 moneda?: string;
                 cotizado?: string;
                 real?: string;
+                pagado?: string;
+                saldo?: string;
             }[];
         };
         "OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -14217,6 +14301,12 @@ export interface components {
             updatedAt?: string | null;
         };
         "OperacionOrdenServicio.jsonld-operacion.mensaje.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio.jsonld-operacion.pago.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14246,6 +14336,8 @@ export interface components {
                 moneda?: string;
                 cotizado?: string;
                 real?: string;
+                pagado?: string;
+                saldo?: string;
             }[];
         };
         "OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read": {
@@ -14255,6 +14347,12 @@ export interface components {
             updatedAt?: string | null;
         };
         "OperacionOrdenServicio.multipart-operacion.mensaje.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicio.multipart-operacion.pago.read_timestamp.read": {
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14284,7 +14382,91 @@ export interface components {
                 moneda?: string;
                 cotizado?: string;
                 real?: string;
+                pagado?: string;
+                saldo?: string;
             }[];
+        };
+        /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
+        "OperacionPago-operacion.pago.read_timestamp.read": {
+            ordenServicio: components["schemas"]["OperacionOrdenServicio-operacion.pago.read_timestamp.read"];
+            /** @default 0.00 */
+            monto: string;
+            moneda: components["schemas"]["Moneda-operacion.pago.read_timestamp.read"];
+            /** Format: date-time */
+            fecha: string;
+            notas?: string | null;
+            /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
+            usuarioNombre?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
+        "OperacionPago-operacion.pago.write": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            ordenServicio: string;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            moneda: string;
+            /** Format: date-time */
+            fecha: string;
+            notas?: string | null;
+        };
+        /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
+        "OperacionPago.html-operacion.pago.read_timestamp.read": {
+            ordenServicio: components["schemas"]["OperacionOrdenServicio.html-operacion.pago.read_timestamp.read"];
+            /** @default 0.00 */
+            monto: string;
+            moneda: components["schemas"]["Moneda.html-operacion.pago.read_timestamp.read"];
+            /** Format: date-time */
+            fecha: string;
+            notas?: string | null;
+            /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
+            usuarioNombre?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
+        "OperacionPago.jsonld-operacion.pago.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            ordenServicio: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.pago.read_timestamp.read"];
+            /** @default 0.00 */
+            monto: string;
+            moneda: components["schemas"]["Moneda.jsonld-operacion.pago.read_timestamp.read"];
+            /** Format: date-time */
+            fecha: string;
+            notas?: string | null;
+            /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
+            usuarioNombre?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
+        "OperacionPago.multipart-operacion.pago.read_timestamp.read": {
+            ordenServicio: components["schemas"]["OperacionOrdenServicio.multipart-operacion.pago.read_timestamp.read"];
+            /** @default 0.00 */
+            monto: string;
+            moneda: components["schemas"]["Moneda.multipart-operacion.pago.read_timestamp.read"];
+            /** Format: date-time */
+            fecha: string;
+            notas?: string | null;
+            /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
+            usuarioNombre?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "OperacionServicio-operacion.item.read_timestamp.read": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.item.read_timestamp.read"] | null;
@@ -32564,6 +32746,142 @@ export interface operations {
                     "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
                     "application/problem+json": components["schemas"]["ConstraintViolation"];
                     "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_pagos_get_collection: {
+        parameters: {
+            query?: {
+                ordenServicio?: string;
+                "ordenServicio[]"?: string[];
+                "order[fecha]"?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionPago collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["OperacionPago.jsonld-operacion.pago.read_timestamp.read"][];
+                    };
+                    "application/json": components["schemas"]["OperacionPago-operacion.pago.read_timestamp.read"][];
+                    "text/html": components["schemas"]["OperacionPago.html-operacion.pago.read_timestamp.read"][];
+                    "multipart/form-data": components["schemas"]["OperacionPago.multipart-operacion.pago.read_timestamp.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_pagos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new OperacionPago resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionPago-operacion.pago.write"];
+                "application/json": components["schemas"]["OperacionPago-operacion.pago.write"];
+                "text/html": components["schemas"]["OperacionPago-operacion.pago.write"];
+                "multipart/form-data": components["schemas"]["OperacionPago-operacion.pago.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionPago resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionPago.jsonld-operacion.pago.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionPago-operacion.pago.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionPago.html-operacion.pago.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionPago.multipart-operacion.pago.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_pagos_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionPago identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionPago resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };

@@ -27,6 +27,16 @@ export interface ContactoProveedor {
     email: string | null;
 }
 
+/** Un pago a cuenta hecho al proveedor. */
+export interface PagoProveedor {
+    id?: string;
+    monto: string;
+    moneda?: { id?: string } | null;
+    fecha: string;
+    notas: string | null;
+    usuarioNombre: string | null;
+}
+
 /** Una línea de la bitácora de estados de un servicio. */
 export interface BitacoraEstado {
     campo: string;
@@ -427,22 +437,18 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * @param {Partial<OperacionServicioWrite>} payload - Los campos a parchear.
      */
     const actualizarServicio = async (id: string, payload: Partial<OperacionServicioWrite>): Promise<void> => {
-        isLoading.value = true;
-        try {
-            const response = await apiClient.patch(
-                `/platform/ops/operacion_servicios/${id}`,
-                payload
-            );
+        // 🔥 SIN `isLoading` global. Editar un campo de una fila es una operación puntual, y
+        // encender el spinner de pantalla completa por un número hacía parpadear todo el
+        // cuadro —«¿se recargó?»— por un cambio que sólo afecta a esa fila. El editor da su
+        // propio feedback (✓), y la respuesta reemplaza la fila en su sitio sin refetch.
+        const response = await apiClient.patch(
+            `/platform/ops/operacion_servicios/${id}`,
+            payload
+        );
 
-            const index = servicios.value.findIndex(s => s.id === id);
-            if (index !== -1) {
-                servicios.value[index] = response.data;
-            }
-        } catch (error) {
-            console.error(`Error al actualizar el servicio ${id}:`, error);
-            throw error;
-        } finally {
-            isLoading.value = false;
+        const index = servicios.value.findIndex(s => s.id === id);
+        if (index !== -1) {
+            servicios.value[index] = response.data;
         }
     };
 
@@ -458,6 +464,23 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      *
      * @param {Record<string, string>} filtros - Parámetros de búsqueda.
      */
+    /**
+     * Recarga UNA orden y la reemplaza en la lista, sin tocar el resto.
+     *
+     * Al guardar el costo de un servicio hay que refrescar su orden —`totalesPorMoneda` lo
+     * recalcula el servidor— pero recargar la colección entera hacía parpadear toda la
+     * pantalla por un número. Esto sustituye sólo la afectada.
+     */
+    const refrescarOrden = async (ordenId: string): Promise<void> => {
+        try {
+            const { data } = await apiClient.get(`/platform/ops/operacion_orden_servicios/${ordenId}`);
+            const i = ordenesServicio.value.findIndex(o => o.id === ordenId);
+            if (i !== -1) ordenesServicio.value[i] = data;
+        } catch (error) {
+            console.error('No se pudo refrescar la orden:', error);
+        }
+    };
+
     const fetchOrdenesServicio = async (filtros: Record<string, string> = {}): Promise<void> => {
         isLoading.value = true;
         try {
@@ -527,6 +550,46 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         if (i !== -1) ordenesServicio.value[i] = data;
 
         return data;
+    };
+
+    /** Los pagos a cuenta de una orden. Bajo demanda: se ven al abrir el modal de pagos. */
+    const fetchPagos = async (ordenId: string): Promise<PagoProveedor[]> => {
+        try {
+            const { data } = await apiClient.get('/platform/ops/operacion_pagos', {
+                params: { ordenServicio: `/platform/ops/operacion_orden_servicios/${ordenId}` },
+            });
+            return data['hydra:member'] || data['member'] || [];
+        } catch (error) {
+            console.error('No se pudieron cargar los pagos:', error);
+            return [];
+        }
+    };
+
+    /** Registra un pago a cuenta. Devuelve true si se guardó. */
+    const crearPago = async (payload: {
+        ordenServicio: string;
+        monto: string;
+        moneda: string;
+        fecha: string;
+        notas: string | null;
+    }): Promise<boolean> => {
+        try {
+            await apiClient.post('/platform/ops/operacion_pagos', payload);
+            return true;
+        } catch (error) {
+            console.error('No se pudo registrar el pago:', error);
+            return false;
+        }
+    };
+
+    const eliminarPago = async (pagoId: string): Promise<boolean> => {
+        try {
+            await apiClient.delete(`/platform/ops/operacion_pagos/${pagoId}`);
+            return true;
+        } catch (error) {
+            console.error('No se pudo eliminar el pago:', error);
+            return false;
+        }
     };
 
     /**
@@ -601,6 +664,10 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         proveedores,
         fetchProveedores,
         fetchBitacoraEstado,
+        fetchPagos,
+        crearPago,
+        eliminarPago,
+        refrescarOrden,
         monedas,
         fetchMonedas,
         contactoPorProveedor,

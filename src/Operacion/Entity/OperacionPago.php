@@ -1,0 +1,120 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Operacion\Entity;
+
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use App\Entity\Maestro\MaestroMoneda;
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+
+/**
+ * Un pago a cuenta hecho al proveedor por una Orden de Servicio.
+ *
+ * ── Para qué ────────────────────────────────────────────────────────────────
+ * El operador va abonando al proveedor en partes; esto lleva la cuenta. El saldo no se guarda:
+ * se calcula (negociado − Σ pagos) en `OperacionOrdenServicio::getTotalesPorMoneda()`, por
+ * moneda. Guardar un saldo sería un dato que hay que mantener a mano y que se desincroniza en
+ * cuanto se añade o borra un pago.
+ *
+ * ── Una moneda, la de la negociación ────────────────────────────────────────
+ * El pago va en la moneda en que se cerró el servicio. No se convierte —criterio de la casa—
+ * así que cada pago se resta del saldo de SU moneda. La UI limita el selector a las monedas
+ * que la orden realmente tiene; aquí sólo se exige que haya moneda.
+ *
+ * ── Se puede borrar, no editar ──────────────────────────────────────────────
+ * Un pago mal metido se borra y se rehace: es un hecho puntual, no un documento que se
+ * corrige. Sin PUT/PATCH — editar el monto de un pago ya registrado invita a cuadrar la caja
+ * cambiando la historia.
+ */
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            security: "is_granted('" . Roles::OPERACIONES_SHOW . "')"
+        ),
+        new Post(
+            securityPostDenormalize: "is_granted('" . Roles::OPERACIONES_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para registrar pagos.'
+        ),
+        new Delete(
+            security: "is_granted('" . Roles::OPERACIONES_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar pagos.'
+        ),
+    ],
+    routePrefix: '/ops',
+    normalizationContext: ['groups' => ['operacion:pago:read', 'timestamp:read']],
+    denormalizationContext: ['groups' => ['operacion:pago:write']],
+    order: ['fecha' => 'DESC'],
+    paginationEnabled: false,
+)]
+#[ApiFilter(SearchFilter::class, properties: ['ordenServicio' => 'exact'])]
+#[ApiFilter(OrderFilter::class, properties: ['fecha'])]
+#[ORM\Entity]
+#[ORM\Table(name: 'operacion_pago')]
+#[ORM\Index(columns: ['orden_servicio_id'], name: 'idx_pago_orden')]
+class OperacionPago
+{
+    use IdTrait;
+    use TimestampTrait;
+
+    #[Assert\NotNull(message: 'El pago tiene que pertenecer a una orden.')]
+    #[Groups(['operacion:pago:read', 'operacion:pago:write'])]
+    #[ORM\ManyToOne(targetEntity: OperacionOrdenServicio::class, inversedBy: 'pagos')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    private ?OperacionOrdenServicio $ordenServicio = null;
+
+    #[Assert\NotBlank(message: 'El monto es obligatorio.')]
+    #[Assert\Positive(message: 'El monto tiene que ser mayor que cero.')]
+    #[Groups(['operacion:pago:read', 'operacion:pago:write'])]
+    #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
+    private string $monto = '0.00';
+
+    #[Assert\NotNull(message: 'El pago tiene que llevar moneda.')]
+    #[Groups(['operacion:pago:read', 'operacion:pago:write'])]
+    #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
+    #[ORM\JoinColumn(name: 'moneda', referencedColumnName: 'id', nullable: false)]
+    private ?MaestroMoneda $moneda = null;
+
+    #[Assert\NotNull(message: 'La fecha del pago es obligatoria.')]
+    #[Groups(['operacion:pago:read', 'operacion:pago:write'])]
+    #[ORM\Column(type: 'date_immutable')]
+    private ?\DateTimeImmutable $fecha = null;
+
+    #[Groups(['operacion:pago:read', 'operacion:pago:write'])]
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $notas = null;
+
+    /** Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
+    #[Groups(['operacion:pago:read'])]
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
+    private ?string $usuarioNombre = null;
+
+    public function getOrdenServicio(): ?OperacionOrdenServicio { return $this->ordenServicio; }
+    public function setOrdenServicio(?OperacionOrdenServicio $o): self { $this->ordenServicio = $o; return $this; }
+
+    public function getMonto(): string { return $this->monto; }
+    public function setMonto(string $monto): self { $this->monto = $monto; return $this; }
+
+    public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
+    public function setMoneda(?MaestroMoneda $moneda): self { $this->moneda = $moneda; return $this; }
+
+    public function getFecha(): ?\DateTimeImmutable { return $this->fecha; }
+    public function setFecha(?\DateTimeImmutable $fecha): self { $this->fecha = $fecha; return $this; }
+
+    public function getNotas(): ?string { return $this->notas; }
+    public function setNotas(?string $notas): self { $this->notas = $notas; return $this; }
+
+    public function getUsuarioNombre(): ?string { return $this->usuarioNombre; }
+    public function setUsuarioNombre(?string $n): self { $this->usuarioNombre = $n; return $this; }
+}

@@ -14,7 +14,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import EditorCostoNegociado from '@/components/operacion/EditorCostoNegociado.vue';
-import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado } from '@/stores/operacion/operacionStore';
+import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado, type PagoProveedor } from '@/stores/operacion/operacionStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import {
@@ -657,6 +657,84 @@ const desdeHace = (iso: string | null | undefined): string => {
 const fechaHora = (iso: string): string =>
     new Date(iso).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
+// ── PAGOS A CUENTA AL PROVEEDOR ──────────────────────────────────────────────
+const pagosOrden = ref<OperacionOrdenServicio | null>(null);
+const pagos = ref<PagoProveedor[]>([]);
+const cargandoPagos = ref(false);
+const guardandoPago = ref(false);
+const errorPago = ref<string | null>(null);
+const formPago = ref({ monto: '', moneda: '', fecha: hoyIso(), notas: '' });
+
+/** Las monedas que la orden tiene, para no dejar pagar en una divisa que no le corresponde. */
+const monedasDeOrden = computed<string[]>(() =>
+    (pagosOrden.value?.totalesPorMoneda ?? [])
+        .map(t => t.moneda ?? '')
+        .filter((m): m is string => m !== '' && m !== '—'));
+
+const abrirPagos = async (orden: OperacionOrdenServicio): Promise<void> => {
+    pagosOrden.value = orden;
+    pagos.value = [];
+    errorPago.value = null;
+    const primera = (orden.totalesPorMoneda ?? []).map(t => t.moneda ?? '').filter(m => m && m !== '—')[0] ?? '';
+    formPago.value = { monto: '', moneda: primera, fecha: hoyIso(), notas: '' };
+
+    if (!orden.id) return;
+    cargandoPagos.value = true;
+    try {
+        pagos.value = await operacionStore.fetchPagos(orden.id);
+    } finally {
+        cargandoPagos.value = false;
+    }
+};
+
+const registrarPago = async (): Promise<void> => {
+    const orden = pagosOrden.value;
+    if (!orden?.id) return;
+
+    const monto = formPago.value.monto.trim().replace(',', '.');
+    if (!/^\d+(\.\d{1,2})?$/.test(monto) || Number(monto) <= 0) {
+        errorPago.value = 'El monto tiene que ser un número mayor que cero.';
+        return;
+    }
+    if (!formPago.value.moneda) {
+        errorPago.value = 'Elige la moneda del pago.';
+        return;
+    }
+
+    guardandoPago.value = true;
+    errorPago.value = null;
+    try {
+        const ok = await operacionStore.crearPago({
+            ordenServicio: `/platform/ops/operacion_orden_servicios/${orden.id}`,
+            monto: Number(monto).toFixed(2),
+            moneda: `/platform/maestro/monedas/${formPago.value.moneda}`,
+            fecha: formPago.value.fecha,
+            notas: formPago.value.notas.trim() || null,
+        });
+        if (!ok) { errorPago.value = 'No se pudo registrar el pago.'; return; }
+
+        // Recargar los pagos y la orden (su saldo lo recalcula el servidor).
+        pagos.value = await operacionStore.fetchPagos(orden.id);
+        await operacionStore.refrescarOrden(orden.id);
+        pagosOrden.value = operacionStore.ordenesServicio.find(o => o.id === orden.id) ?? pagosOrden.value;
+        formPago.value = { monto: '', moneda: formPago.value.moneda, fecha: hoyIso(), notas: '' };
+    } finally {
+        guardandoPago.value = false;
+    }
+};
+
+const borrarPago = async (pago: PagoProveedor): Promise<void> => {
+    const orden = pagosOrden.value;
+    if (!pago.id || !orden?.id) return;
+
+    const ok = await operacionStore.eliminarPago(pago.id);
+    if (!ok) { errorPago.value = 'No se pudo eliminar el pago.'; return; }
+
+    pagos.value = await operacionStore.fetchPagos(orden.id);
+    await operacionStore.refrescarOrden(orden.id);
+    pagosOrden.value = operacionStore.ordenesServicio.find(o => o.id === orden.id) ?? pagosOrden.value;
+};
+
 // ── HISTORIAL DE ESTADOS (bitácora) ──────────────────────────────────────────
 const bitacoraServicio = ref<OperacionServicio | null>(null);
 const bitacora = ref<BitacoraEstado[]>([]);
@@ -717,11 +795,11 @@ const onGuardarCosto = async (
             monedaReal: `/platform/maestro/monedas/${payload.monedaReal}`,
         });
 
-        // En Órdenes hay que recargar el listado: trae los servicios embebidos y
-        // `totalesPorMoneda` recalculado por el servidor, así la cabecera de la orden se
-        // pone al día. La Biblia no lo necesita: `actualizarServicio` reemplaza la fila viva.
-        if (activeTab.value === 'ordenes') {
-            await operacionStore.fetchOrdenesServicio();
+        // En Órdenes se refresca SÓLO la orden tocada —no la lista entera— para que
+        // `totalesPorMoneda` (que calcula el servidor) se ponga al día sin parpadear toda la
+        // pantalla. La Biblia no lo necesita: `actualizarServicio` reemplaza la fila viva.
+        if (activeTab.value === 'ordenes' && ordenExpandida.value) {
+            await operacionStore.refrescarOrden(ordenExpandida.value);
         }
     } catch {
         editores.value[id]?.marcarError('No se pudo guardar. Revisa la conexión.');
@@ -1576,10 +1654,16 @@ onMounted(async () => {
 
                             <!-- Una línea por moneda, sin convertir. Ver §5.4. -->
                             <div class="shrink-0 text-right">
-                                <div v-for="t in (orden.totalesPorMoneda ?? [])" :key="t.moneda" class="leading-tight">
+                                <div v-for="t in (orden.totalesPorMoneda ?? [])" :key="t.moneda" class="leading-tight mb-0.5">
                                     <span class="text-[10px] font-bold text-slate-400 mr-1">{{ t.moneda }}</span>
                                     <span class="text-sm font-black text-slate-800 tabular-nums">{{ importe(t.real) }}</span>
-                                    <p v-if="t.real !== t.cotizado" class="text-[9px] font-bold text-slate-400 tabular-nums">
+                                    <!-- Con pagos: se ve el SALDO, que es lo que de verdad falta abonar. -->
+                                    <p v-if="Number(t.pagado ?? 0) > 0"
+                                       class="text-[9px] font-black tabular-nums"
+                                       :class="Number(t.saldo ?? 0) <= 0 ? 'text-emerald-600' : 'text-[#E07845]'">
+                                        {{ Number(t.saldo ?? 0) <= 0 ? 'pagado' : `saldo ${importe(t.saldo)}` }}
+                                    </p>
+                                    <p v-else-if="t.real !== t.cotizado" class="text-[9px] font-bold text-slate-400 tabular-nums">
                                         cotizado {{ importe(t.cotizado) }}
                                     </p>
                                 </div>
@@ -1656,6 +1740,12 @@ onMounted(async () => {
                                 <i class="fas fa-pen text-[9px]"></i> Editar
                             </button>
                             <button
+                                @click="abrirPagos(orden)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-600 hover:text-white hover:border-emerald-600 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
+                            >
+                                <i class="fas fa-hand-holding-dollar text-[9px]"></i> Pagos
+                            </button>
+                            <button
                                 @click="abrirMensajes(orden)"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#376875] hover:text-white hover:border-[#376875] text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
                             >
@@ -1667,6 +1757,99 @@ onMounted(async () => {
             </section>
 
         </main>
+
+        <!-- ================================================================
+             MODAL: PAGOS A CUENTA AL PROVEEDOR
+
+             Mobile-first: hoja inferior en móvil, tarjeta centrada en ancho. Saldo por moneda
+             arriba, historial de pagos, y el alta abajo. La moneda del alta se limita a las de
+             la orden — no se convierte, así que un pago sólo tiene sentido en una de ellas.
+             ================================================================ -->
+        <div v-if="pagosOrden" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50" @click.self="pagosOrden = null">
+            <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md max-h-[88vh] flex flex-col overflow-hidden">
+                <header class="bg-slate-900 text-white px-5 py-3 flex items-center gap-2 shrink-0">
+                    <i class="fas fa-hand-holding-dollar text-emerald-400"></i>
+                    <div class="min-w-0">
+                        <h3 class="font-black text-sm tracking-tight leading-tight">Pagos al proveedor</h3>
+                        <p class="text-[10px] text-slate-400 truncate">{{ pagosOrden.compradorNombre || pagosOrden.numeroOs }}</p>
+                    </div>
+                    <button @click="pagosOrden = null" class="ml-auto text-slate-400 hover:text-white shrink-0">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </header>
+
+                <div class="overflow-y-auto">
+                    <!-- SALDO por moneda: negociado − pagado -->
+                    <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-col gap-1">
+                        <div v-for="t in (pagosOrden.totalesPorMoneda ?? [])" :key="t.moneda"
+                             class="flex items-center justify-between gap-3 text-sm">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ t.moneda }}</span>
+                            <div class="flex items-baseline gap-3 tabular-nums">
+                                <span class="text-[10px] text-slate-400">neg. {{ importe(t.real) }}</span>
+                                <span class="text-[10px] text-slate-400">pag. {{ importe(t.pagado ?? '0') }}</span>
+                                <span class="font-black" :class="Number(t.saldo ?? 0) <= 0 ? 'text-emerald-600' : 'text-[#E07845]'">
+                                    {{ Number(t.saldo ?? 0) <= 0 ? 'saldado' : importe(t.saldo) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historial de pagos -->
+                    <div class="px-4 py-3">
+                        <p v-if="cargandoPagos" class="text-xs text-slate-400 text-center py-4">
+                            <i class="fas fa-spinner fa-spin mr-1"></i> Cargando…
+                        </p>
+                        <p v-else-if="!pagos.length" class="text-xs text-slate-400 text-center py-4">
+                            Sin pagos registrados todavía.
+                        </p>
+                        <div v-else class="flex flex-col gap-2">
+                            <div v-for="pago in pagos" :key="pago.id ?? ''"
+                                 class="flex items-start justify-between gap-2 bg-slate-50 rounded-lg px-3 py-2">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-black text-slate-800 tabular-nums">
+                                        <span class="text-[10px] font-bold text-slate-400 mr-1">{{ pago.moneda?.id }}</span>{{ importe(pago.monto) }}
+                                    </p>
+                                    <p class="text-[10px] text-slate-400">
+                                        {{ (pago.fecha ?? '').slice(0, 10) }}<span v-if="pago.usuarioNombre"> · {{ pago.usuarioNombre }}</span>
+                                    </p>
+                                    <p v-if="pago.notas" class="text-[10px] text-slate-500 leading-snug mt-0.5">{{ pago.notas }}</p>
+                                </div>
+                                <button @click="borrarPago(pago)"
+                                        class="shrink-0 w-7 h-7 rounded bg-white hover:bg-rose-500 hover:text-white text-slate-400 border border-slate-200 flex items-center justify-center transition-all"
+                                        title="Eliminar pago">
+                                    <i class="fas fa-trash-alt text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ALTA de pago -->
+                <div class="px-4 py-3 border-t border-slate-200 bg-white shrink-0 flex flex-col gap-2">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Registrar pago</p>
+                    <div class="flex gap-2">
+                        <select v-model="formPago.moneda"
+                                class="text-xs font-black text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option v-for="m in monedasDeOrden" :key="m" :value="m">{{ m }}</option>
+                        </select>
+                        <input v-model="formPago.monto" inputmode="decimal" placeholder="Monto"
+                               class="flex-1 min-w-0 text-sm font-black text-slate-800 tabular-nums text-right bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500" />
+                        <input v-model="formPago.fecha" type="date"
+                               class="text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-emerald-500" />
+                    </div>
+                    <input v-model="formPago.notas" placeholder="Notas (opcional): nº operación, banco…"
+                           class="text-sm text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <p v-if="errorPago" class="text-[11px] font-bold text-rose-600">
+                        <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorPago }}
+                    </p>
+                    <button @click="registrarPago" :disabled="guardandoPago"
+                            class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-black uppercase tracking-widest shadow-sm transition-colors">
+                        <i v-if="guardandoPago" class="fas fa-spinner fa-spin mr-1"></i>
+                        Registrar pago
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <!-- ================================================================
              MODAL: HISTORIAL DE ESTADOS (bitácora)

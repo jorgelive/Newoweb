@@ -892,6 +892,26 @@ polimórfico— está en `docs/Cotizaciones.md` §6.c.
 
 ---
 
+## 5.5 Pagos a cuenta al proveedor (2026-08-17)
+
+`OperacionPago`: los abonos que se le van haciendo al proveedor por una Orden de Servicio.
+
+| | |
+|---|---|
+| Campos | monto, moneda, fecha, notas, y quién lo registró (nombre, sellado en `prePersist`) |
+| Saldo | **NO se guarda**: se calcula `negociado − Σ pagos` por moneda en `getTotalesPorMoneda()` |
+| Moneda | la del pago; no se convierte, así que cada pago resta del saldo de SU moneda. La UI limita el selector a las monedas que la orden tiene |
+| API | GetCollection (filtrable por orden) + Post + Delete. **Sin PUT/PATCH**: un pago mal metido se borra y se rehace; editar el monto invita a cuadrar caja cambiando la historia |
+
+El saldo aparece en la cabecera de la orden («saldo X» o «pagado») y, con el detalle, en el
+modal de pagos: hoja inferior en móvil, tarjeta centrada en ancho. El modal recarga sólo su
+orden al añadir o borrar (`refrescarOrden`), no la lista entera.
+
+⚠️ Nota de rendimiento que salió aquí: `actualizarServicio` ya **no** enciende el `isLoading`
+global. Lo hacía, y editar un número disparaba el spinner de pantalla completa —parecía que
+todo se recargaba por cambiar un importe—. La fila se reemplaza en su sitio y el editor da su
+propio ✓; ningún PATCH de un campo justifica un spinner global.
+
 ## 6. API: endpoints, grupos y filtros
 
 `routePrefix: '/ops'`, todo bajo `/platform/ops/`:
