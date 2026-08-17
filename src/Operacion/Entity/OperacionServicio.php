@@ -269,6 +269,18 @@ class OperacionServicio
     #[ORM\Column(type: 'integer')]
     private int $cantidadPax = 1;
 
+    /**
+     * Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+     * `CotizacionCotcomponente::$cantidad`.
+     *
+     * Se guarda aparte de `cantidadPax` porque son cosas distintas: 4 noches para 2 personas.
+     * Sin esto, la orden decía «Hotel 4 estrellas» sin decir de cuántas noches, que es la
+     * mitad de lo que se le encarga al hotel.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'integer', options: ['default' => 1])]
+    private int $cantidadComponente = 1;
+
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
     private string $montoVenta = '0.00';
@@ -567,6 +579,9 @@ class OperacionServicio
 
     public function getCantidadPax(): int { return $this->cantidadPax; }
     public function setCantidadPax(int $cantidadPax): self { $this->cantidadPax = $cantidadPax; return $this; }
+
+    public function getCantidadComponente(): int { return $this->cantidadComponente; }
+    public function setCantidadComponente(int $cantidadComponente): self { $this->cantidadComponente = $cantidadComponente; return $this; }
 
     public function getMontoVenta(): string { return $this->montoVenta; }
     public function setMontoVenta(string $montoVenta): self { $this->montoVenta = $montoVenta; return $this; }

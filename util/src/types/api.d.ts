@@ -14232,6 +14232,12 @@ export interface components {
             estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -14272,6 +14278,12 @@ export interface components {
             contextoServicio?: string | null;
             /** @default 1 */
             cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
             /** @default 0.00 */
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
@@ -14323,6 +14335,12 @@ export interface components {
             estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -14391,6 +14409,12 @@ export interface components {
             estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -14451,6 +14475,12 @@ export interface components {
             estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -14491,6 +14521,12 @@ export interface components {
             contextoServicio?: string | null;
             /** @default 1 */
             cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
             /** @default 0.00 */
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
@@ -14534,6 +14570,12 @@ export interface components {
             estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -14574,6 +14616,12 @@ export interface components {
             contextoServicio?: string | null;
             /** @default 1 */
             cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
             /** @default 0.00 */
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
@@ -14617,6 +14665,12 @@ export interface components {
             estadoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
             /** @default 0.00 */
             montoVenta: string;
             /** @default 0.00 */
@@ -14657,6 +14711,12 @@ export interface components {
             contextoServicio?: string | null;
             /** @default 1 */
             cantidadPax: number;
+            /**
+             * @description Cuántas UNIDADES del componente: noches de hotel, días de alquiler, tramos. Snapshot de
+             *     `CotizacionCotcomponente::$cantidad`.
+             * @default 1
+             */
+            cantidadComponente: number;
             /** @default 0.00 */
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;

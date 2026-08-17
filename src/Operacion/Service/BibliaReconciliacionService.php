@@ -59,6 +59,7 @@ class BibliaReconciliacionService
         'tipoComponente'        => 'Tipo',
         'modoComponente'        => 'Modo',
         'estadoComponente'      => 'Estado en la cotización',
+        'cantidadComponente'    => 'Cantidad (noches/días)',
         'cantidadPax'           => 'Pax',
         'costoCotizado'         => 'Costo cotizado',
         'monedaCotizadaId'      => 'Moneda',

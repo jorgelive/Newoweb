@@ -224,6 +224,9 @@ class BibliaSnapshotService
             'modoComponente'        => $cotcomponente->getModo()->value,
             'estadoComponente'      => $cotcomponente->getEstado()->value,
             'cantidadPax'           => $cantidadPax,
+            // Noches / días / tramos: lo que se multiplica por el precio y lo que hay que
+            // decirle al proveedor («4 noches»), no sólo «un hotel».
+            'cantidadComponente'    => max(1, $cotcomponente->getCantidad()),
             // Sin tarifa el costo es 0 y no null: la fila es referencia, no una compra
             // de importe desconocido. Un null aquí obligaría a comprobarlo en cada suma.
             //
@@ -297,6 +300,9 @@ class BibliaSnapshotService
         }
         if ($aplica('cantidadPax')) {
             $ops->setCantidadPax((int) $valores['cantidadPax']);
+        }
+        if ($aplica('cantidadComponente')) {
+            $ops->setCantidadComponente((int) $valores['cantidadComponente']);
         }
         if ($aplica('costoCotizado')) {
             $ops->setCostoCotizado((string) $valores['costoCotizado']);

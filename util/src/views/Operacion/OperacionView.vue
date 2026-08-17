@@ -628,6 +628,19 @@ const serviciosDeOrdenAbierta = computed<OperacionServicio[]>(() => {
  * Toca `costoRealOperativo` y `monedaReal`, que son campos DEL OPERADOR: la reconciliación no
  * los pisa jamás. El cotizado no se toca, que es la referencia con la que se concilia.
  */
+/**
+ * «4 noches · » o «» — la cantidad del componente en palabras, y sólo si aporta.
+ *
+ * Un `1` no se muestra: «1 noche» es ruido para un traslado o una entrada, donde la unidad es
+ * implícita. La palabra depende del tipo: un alojamiento son noches, lo demás son «uds».
+ */
+const nochesTexto = (cantidad: number | undefined, tipo: string | null | undefined): string => {
+    const n = cantidad ?? 1;
+    if (n <= 1) return '';
+    const palabra = tipo === 'alojamiento' ? 'noches' : 'uds';
+    return `${n} ${palabra} · `;
+};
+
 /** El id de una fila, venga de donde venga: La Biblia trae `id`, la orden `servicioId`. */
 const idDe = (s: OperacionServicio): string =>
     s.id ?? (s as { servicioId?: string }).servicioId ?? '';
@@ -1285,7 +1298,7 @@ onMounted(async () => {
                                                              podido tocar nunca. Se negocia de pie y con el móvil
                                                              en la mano; era justo donde tenía que estar. -->
                                                         <div v-if="!servicio.soloReferencia" class="mt-1.5 flex items-center gap-1.5 xl:hidden">
-                                                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider shrink-0">Pagado</span>
+                                                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider shrink-0">Negociado</span>
                                                             <EditorCostoNegociado
                                                                 :ref="(el) => registrarEditor(idDe(servicio), el)"
                                                                 denso
@@ -1551,7 +1564,7 @@ onMounted(async () => {
                                                 {{ s.contextoServicio }}
                                             </p>
                                             <p class="text-[10px] text-slate-400 leading-snug">
-                                                {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ s.cantidadPax }} pax
+                                                {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ nochesTexto(s.cantidadComponente, s.tipoComponente) }}{{ s.cantidadPax }} pax
                                             </p>
                                         </div>
                                         <!-- Lo NEGOCIADO, editable aquí mismo: es el momento en que
@@ -1714,7 +1727,7 @@ onMounted(async () => {
                                     {{ s.descripcionServicio }}
                                 </p>
                                 <p class="text-[10px] text-slate-400">
-                                    {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ s.cantidadPax }} pax
+                                    {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ nochesTexto(s.cantidadComponente, s.tipoComponente) }}{{ s.cantidadPax }} pax
                                 </p>
                             </div>
                             <span class="text-xs font-black text-slate-700 tabular-nums shrink-0">

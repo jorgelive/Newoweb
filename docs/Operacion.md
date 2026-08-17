@@ -171,6 +171,21 @@ muestra y los deja filtrar.
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
 
+### <a id="313"></a>3.13 «Pagado» era mentira, y faltaban las noches (2026-08-17)
+
+Dos arreglos de lectura sobre la fila:
+
+- El editable se rotulaba **«Pagado»** en la tarjeta móvil. No se ha pagado nada — es el costo
+  **negociado**, y en una orden en borrador aún puede que no exista pago. Renombrado a
+  «Negociado».
+- La fila decía «Hotel 4 estrellas» sin las **noches**. `cantidadComponente` (snapshot de
+  `CotizacionCotcomponente::$cantidad`) ya se multiplicaba en el costo (§3.9) pero no se
+  guardaba aparte, así que no se podía mostrar. Ahora sale junto al pax: «4 noches · 2 pax».
+  Un `1` no se pinta —«1 noche» para un traslado es ruido— y la palabra depende del tipo:
+  `alojamiento` → noches, el resto → uds.
+
+Se rellena por reconciliación como el resto de campos de la cotización; nace en 1.
+
 ### <a id="312"></a>3.12 El editor de costo es UN componente, con estado local (2026-08-17)
 
 El importe replicado en todas las filas de una orden —escribes en una y aparece el mismo
