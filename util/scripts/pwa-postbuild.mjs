@@ -69,27 +69,17 @@ const shellHtml = `<!doctype html>
       navigator.serviceWorker.register('/util-service-worker.js', { scope: '/', updateViaCache: 'none' })
         .then(function (reg) {
           reg.update();
-          // Chequeo periodico: una PWA instalada que no se cierra nunca no vuelve a
-          // preguntar si hay version nueva, porque el update() de arriba corre una sola
-          // vez al arrancar. En un piloto con varios despliegues al dia eso deja al
-          // operador trabajando sobre una version de hace horas.
+          // ESTO ES LO QUE FALTABA. El aviso de "nueva version disponible" de App.vue
+          // escucha controllerchange, que solo dispara cuando un SW NUEVO toma el control
+          // — y para que exista un SW nuevo, alguien tiene que preguntar. El update() de
+          // arriba corre UNA SOLA VEZ al arrancar: una PWA instalada que se queda abierta
+          // no volvia a preguntar nunca, asi que el cartel no salia y el operador seguia
+          // sobre una version de hace horas creyendo que era la ultima.
+          //
+          // No se recarga por nuestra cuenta: manda el cartel de App.vue, que espera a que
+          // la persona toque. Recargar de golpe puede cortar una edicion a medias.
           setInterval(function () { reg.update(); }, 60000);
         });
-
-      // RECARGA AL TOMAR EL CONTROL EL SW NUEVO. Este era el agujero: con skipWaiting y
-      // clientsClaim el SW nuevo se activa enseguida, pero la pagina ya cargada sigue con
-      // el JS viejo en memoria, asi que lo nuevo solo aparecia en la carga SIGUIENTE. El
-      // sintoma era cerrar la app, volver a abrir y ver lo mismo, con el bundle correcto
-      // ya en el servidor.
-      var recargando = false;
-      var teniaControlador = !!navigator.serviceWorker.controller;
-      navigator.serviceWorker.addEventListener('controllerchange', function () {
-        // En la PRIMERA instalacion no habia controlador y esto tambien dispara: recargar
-        // ahi seria un parpadeo gratis en la primera visita de cada usuario.
-        if (recargando || !teniaControlador) return;
-        recargando = true;
-        window.location.reload();
-      });
     }
   <\/script>
 </body>

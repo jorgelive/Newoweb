@@ -292,28 +292,28 @@ En orden, porque cada paso descarta el anterior:
 Tres despliegues seguidos con el bundle correcto en el servidor, y el operador viendo la
 pantalla de antes. Cerrar la app y volver a abrirla no lo arreglaba.
 
-**No era el caché HTTP ni el build.** El shell registraba el SW y llamaba a `reg.update()`
-**una sola vez, al arrancar**. Con `skipWaiting` + `clientsClaim` el SW nuevo se activa
-enseguida, pero **la página ya cargada sigue con su JS en memoria**: lo nuevo sólo aparecía en
-la carga siguiente. Y como el usuario cerraba y abría para «forzarlo», la secuencia era
-siempre la misma — esa apertura descargaba la versión nueva y mostraba la vieja.
+**No era el build, ni el caché HTTP, ni el cartel de §5.1 — que está bien montado en las dos
+apps.** Era que **nadie volvía a preguntar si había versión nueva.**
 
-`registerType: 'autoUpdate'` de VitePWA no lo cubría: con `injectRegister: null` la
-registración es nuestra, así que ese ajuste no llega a hacer nada.
+El cartel escucha `controllerchange`, y eso sólo dispara cuando un SW **nuevo** toma el
+control. Para que exista un SW nuevo alguien tiene que comprobarlo, y el shell llamaba a
+`reg.update()` **una sola vez, al arrancar**. Una PWA instalada que se queda abierta no volvía
+a preguntar nunca: no había SW nuevo, no había `controllerchange`, no había cartel.
 
-Dos líneas en `pwa-postbuild.mjs`:
+Arreglo, una línea en `pwa-postbuild.mjs`:
 
-- **`controllerchange` → `location.reload()`.** Cuando el SW nuevo toma el control, la página
-  se recarga sola. Con dos guardas: un `recargando` para no entrar en bucle, y `teniaControlador`
-  para no recargar en la primera instalación —ahí no hay nada viejo que sustituir y sería un
-  parpadeo gratis en la primera visita—.
-- **`reg.update()` cada 60s.** Una PWA instalada que no se cierra nunca no vuelve a preguntar
-  si hay versión nueva. En un piloto con varios despliegues al día, eso deja al operador
-  trabajando sobre una versión de hace horas.
+```js
+setInterval(function () { reg.update(); }, 60000);
+```
 
-⚠️ Ojo al diagnosticar esto: el síntoma («no veo el cambio») apunta a build o despliegue, y los
-dos estaban bien. La comprobación que lo descarta en un minuto es buscar un texto del código
-nuevo dentro del bundle servido:
+⚠️ **Y NO se recarga por nuestra cuenta.** La primera versión de este arreglo enganchaba
+`controllerchange` en el propio shell y hacía `location.reload()`. Funcionaba, y estaba mal:
+llegaba antes que el cartel, lo dejaba muerto, y una recarga de golpe puede cortar una edición
+a medias. Manda el cartel, que espera a que la persona toque.
+
+⚠️ Al diagnosticar esto, el síntoma («no veo el cambio») apunta a build o despliegue, y los dos
+estaban bien. La comprobación que lo descarta en un minuto es buscar un texto del código nuevo
+dentro del bundle **ya servido**:
 
 ```bash
 grep -l "un texto que sólo esté en lo nuevo" public/app_util/assets/*.js
