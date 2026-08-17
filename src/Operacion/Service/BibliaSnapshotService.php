@@ -369,6 +369,15 @@ class BibliaSnapshotService
      * no son ALTERNATIVA. Es exactamente lo que hace `cotizacionEditorStore` al calcular el
      * costo de una línea — si algún día cambia allí, tiene que cambiar aquí.
      *
+     * ⚠️ **SIEMPRE los dos factores, no uno u otro.** No es que los hoteles multipliquen por
+     * noches y el resto por pax: es una sola fórmula con tres términos. Que en los datos de
+     * hoy uno de los dos multiplicadores valga casi siempre 1 es casualidad del expediente,
+     * no una regla — un hotel de 3 noches con 2 habitaciones da ×6.
+     *
+     * Y ésa es la razón de que el fallo viejo (`montoCosto` a secas) aguantara tanto sin que
+     * nadie lo viera: acertaba **siempre que los dos factores fuesen 1**, que es el caso
+     * mayoritario. Parecía funcionar la mayor parte del tiempo.
+     *
      * ⚠️ Suma sin convertir, y puede hacerlo porque un componente NO mezcla monedas
      * (verificado en producción: cero casos). Si algún día los mezclara, esto sumaría peras
      * con manzanas: la moneda se toma de la tarifa primaria y sería la de una sola de ellas.

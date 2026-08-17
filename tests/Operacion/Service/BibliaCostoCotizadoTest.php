@@ -67,6 +67,21 @@ final class BibliaCostoCotizadoTest extends TestCase
         self::assertSame('1150.00', $this->servicio()->calcularCostoCotizado($componente));
     }
 
+    /**
+     * Los DOS factores a la vez, que es el caso que ningún dato de hoy cubre.
+     *
+     * En producción uno de los dos vale casi siempre 1, y por eso el fallo viejo parecía
+     * funcionar. Un hotel de 3 noches con 2 habitaciones es ×6, no ×3 ni ×2.
+     */
+    #[Test]
+    public function multiplica_por_los_dos_factores_a_la_vez(): void
+    {
+        $componente = (new CotizacionCotcomponente())->setCantidad(3);   // noches
+        $componente->addCottarifa($this->tarifa('100.00', 2));           // habitaciones
+
+        self::assertSame('600.00', $this->servicio()->calcularCostoCotizado($componente));
+    }
+
     /** Venta opcional que nadie compró: ni se encarga ni se paga. */
     #[Test]
     public function la_alternativa_no_suma(): void

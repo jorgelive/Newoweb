@@ -171,6 +171,33 @@ muestra y los deja filtrar.
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
 
+### <a id="39"></a>3.9 El costo de una fila: SIEMPRE los dos factores (2026-08-17)
+
+```
+costoCotizado = Σ (monto × cantidad_de_la_tarifa × cantidad_del_componente)
+                  sobre las tarifas que no son ALTERNATIVA
+```
+
+Es la fórmula del cotizador (`cotizacionEditorStore`), no una propia. Si cambia allí, cambia
+aquí.
+
+⚠️ **No es que unos multipliquen por noches y otros por pax.** Es una sola fórmula con tres
+términos, siempre. Que en los datos de hoy uno de los dos multiplicadores valga casi siempre 1
+es casualidad del expediente:
+
+| Servicio | monto | × tarifa | × componente | = |
+|---|---|---|---|---|
+| Hotel 4 estrellas | 115.00 | 1 | 4 noches | 460.00 |
+| Tacama | 260.00 | 2 pax | 1 | 520.00 |
+| Hotel 3 noches, 2 habitaciones | 100.00 | 2 | 3 | **600.00** |
+
+Y ésa es la razón de que el fallo anterior —`tarifaPrimaria->getMontoCosto()` a secas—
+aguantara sin que nadie lo viera: **acertaba siempre que los dos factores fuesen 1**, que es el
+caso mayoritario. Parecía funcionar la mayor parte del tiempo. Cuando no, guardaba un número
+menor y bien formado, y ése es el que suma la Orden de Servicio.
+
+Medido al corregirlo: 25 filas cortas en producción, entre 12 y 1.375 soles cada una.
+
 ### <a id="38"></a>3.8 Qué se congela y qué se resuelve vivo (2026-08-17)
 
 No todo lo que la fila enseña sale del snapshot, y la línea que los separa es **si el dato
