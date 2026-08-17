@@ -14282,6 +14282,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El id como texto, EMBEBIDO en la orden. */
+            readonly servicioId?: string | null;
         };
         "OperacionServicio-operacion.write": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.write"] | null;
@@ -14499,6 +14501,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El id como texto, EMBEBIDO en la orden. */
+            readonly servicioId?: string | null;
         };
         "OperacionServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read"] | null;
@@ -14580,6 +14584,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El id como texto, EMBEBIDO en la orden. */
+            readonly servicioId?: string | null;
         };
         "OperacionServicio.multipart-operacion.item.read_timestamp.read": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read"] | null;
@@ -14661,6 +14667,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El id como texto, EMBEBIDO en la orden. */
+            readonly servicioId?: string | null;
         };
         /**
          * @description Entidad MaestroPais.

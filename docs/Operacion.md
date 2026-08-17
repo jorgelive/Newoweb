@@ -171,6 +171,33 @@ muestra y los deja filtrar.
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
 
+### <a id="312"></a>3.12 El editor de costo es UN componente, con estado local (2026-08-17)
+
+El importe replicado en todas las filas de una orden —escribes en una y aparece el mismo
+número en las demás— era el síntoma. La causa: el editor vivía **tres veces** (columna de
+escritorio, tarjeta móvil, detalle de orden) compartiendo dos `Record` globales indexados por
+id de servicio. Cuando la orden empezó a traer los servicios embebidos con `operacion:read`,
+que NO lleva el id del recurso, todas las filas cayeron en la clave vacía `''`: un solo
+borrador para todas.
+
+Dos arreglos, y hacían falta los dos:
+
+1. **`OperacionServicio::getServicioId()`** expone el id en `operacion:read`. Sin él, el
+   embebido no se puede distinguir ni guardar (el PATCH no tiene destino). El front lo unifica
+   con `idDe()`: La Biblia trae `id`, la orden `servicioId`.
+2. **`EditorCostoNegociado.vue`**, con estado LOCAL por instancia. Cada fila conoce sólo lo
+   suyo, así que la colisión de claves es imposible por construcción. El padre no gestiona
+   borradores: recibe un `@guardar` con el payload validado y hace el PATCH.
+
+El editor es **click-to-edit**: en reposo se ve sólo el valor (subrayado punteado, «registrar»
+si está vacío); un toque abre select + input + guardar/cancelar, con autofocus. Es lo que pidió
+el operador —«que el campo sólo aparezca al editar»— y en un móvil quita el ruido de N
+formularios abiertos a la vez.
+
+⚠️ La regla que sale de aquí: **un editor que se repite en tres sitios es un componente, no
+tres bloques con helpers compartidos.** El estado global por id fue exactamente lo que
+convirtió un id ausente en corrupción cruzada entre filas.
+
 ### <a id="311"></a>3.11 Los importes se guardan con BOTÓN, no al salir del campo (2026-08-17)
 
 Estuvieron con `@change`, que dispara al perder el foco. En un móvil eso es invisible: escribes

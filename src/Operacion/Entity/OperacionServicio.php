@@ -515,6 +515,25 @@ class OperacionServicio
     public function getPrestadorDireccion(): ?string { return $this->prestadorDireccion; }
     public function setPrestadorDireccion(?string $v): self { $this->prestadorDireccion = $v; return $this; }
 
+    /**
+     * El id como texto, EMBEBIDO en la orden.
+     *
+     * Los servicios de una orden se serializan con `operacion:read`, que —al contrario que
+     * `operacion:item:read`, el de La Biblia— NO lleva el `id` del `IdTrait`. Sin él, el
+     * detalle de la orden no podía distinguir una fila de otra: todos los editores de importe
+     * compartían la misma clave vacía y escribir en uno los pintaba todos iguales, y el PATCH
+     * de guardado se quedaba sin a quién apuntar.
+     *
+     * Se expone aparte y no se mete el `id` entero en `operacion:read` para no cambiar la
+     * forma del identificador del recurso —el `@id` de JSON-LD— sólo por esto. El front lo lee
+     * con el mismo helper que el id de La Biblia.
+     */
+    #[Groups(['operacion:read'])]
+    public function getServicioId(): ?string
+    {
+        return $this->getId()?->toRfc4122();
+    }
+
     public function getDescripcionServicio(): string { return $this->descripcionServicio; }
     public function setDescripcionServicio(string $descripcionServicio): self { $this->descripcionServicio = $descripcionServicio; return $this; }
 
