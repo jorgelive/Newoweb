@@ -14,7 +14,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import EditorCostoNegociado from '@/components/operacion/EditorCostoNegociado.vue';
-import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion } from '@/stores/operacion/operacionStore';
+import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado } from '@/stores/operacion/operacionStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import {
@@ -639,6 +639,49 @@ const nochesTexto = (cantidad: number | undefined, tipo: string | null | undefin
     if (n <= 1) return '';
     const palabra = tipo === 'alojamiento' ? 'noches' : 'uds';
     return `${n} ${palabra} · `;
+};
+
+/** «hace 3 h», «hace 2 días», «hace un momento» — legible, no una fecha ISO. */
+const desdeHace = (iso: string | null | undefined): string => {
+    if (!iso) return '';
+    const ms = Date.now() - new Date(iso).getTime();
+    const min = Math.floor(ms / 60000);
+    if (min < 1) return 'hace un momento';
+    if (min < 60) return `hace ${min} min`;
+    const h = Math.floor(min / 60);
+    if (h < 24) return `hace ${h} h`;
+    const d = Math.floor(h / 24);
+    return `hace ${d} día${d !== 1 ? 's' : ''}`;
+};
+
+const fechaHora = (iso: string): string =>
+    new Date(iso).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+// ── HISTORIAL DE ESTADOS (bitácora) ──────────────────────────────────────────
+const bitacoraServicio = ref<OperacionServicio | null>(null);
+const bitacora = ref<BitacoraEstado[]>([]);
+const cargandoBitacora = ref(false);
+
+const abrirBitacora = async (servicio: OperacionServicio): Promise<void> => {
+    bitacoraServicio.value = servicio;
+    bitacora.value = [];
+    const id = idDe(servicio);
+    if (!id) return;
+
+    cargandoBitacora.value = true;
+    try {
+        bitacora.value = await operacionStore.fetchBitacoraEstado(id);
+    } finally {
+        cargandoBitacora.value = false;
+    }
+};
+
+/** El label legible de un valor de estado, sea de reserva u operación. */
+const etiquetaEstado = (campo: string, valor: string): string => {
+    const cfg = campo === 'reserva'
+        ? ESTADO_RESERVA_PROVEEDOR_CONFIG[valor as keyof typeof ESTADO_RESERVA_PROVEEDOR_CONFIG]
+        : ESTADO_OPERACION_CONFIG[valor as keyof typeof ESTADO_OPERACION_CONFIG];
+    return cfg?.label ?? valor;
 };
 
 /** El id de una fila, venga de donde venga: La Biblia trae `id`, la orden `servicioId`. */
@@ -1424,6 +1467,19 @@ onMounted(async () => {
                                                 >
                                                     <option v-for="(cfg, k) in ESTADO_RESERVA_PROVEEDOR_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
                                                 </select>
+
+                                                <!-- Desde cuándo en ESTE estado + acceso al historial.
+                                                     El «desde» es un campo directo del servicio; la
+                                                     bitácora completa se pide al abrir. Ver §3.14. -->
+                                                <button
+                                                    v-if="servicio.estadoReservaProveedorDesde"
+                                                    @click="abrirBitacora(servicio)"
+                                                    class="mt-1 flex items-center gap-1 text-[9px] font-bold text-slate-400 hover:text-[#376875] transition-colors"
+                                                    title="Ver el historial de estados"
+                                                >
+                                                    <i class="fas fa-clock-rotate-left text-[8px]"></i>
+                                                    {{ desdeHace(servicio.estadoReservaProveedorDesde) }}
+                                                </button>
                                             </td>
 
                                             <!-- Estado operación editable -->
@@ -1611,6 +1667,54 @@ onMounted(async () => {
             </section>
 
         </main>
+
+        <!-- ================================================================
+             MODAL: HISTORIAL DE ESTADOS (bitácora)
+
+             El «desde hace X» de la fila responde «¿cuánto lleva así?»; esto responde «¿por
+             dónde pasó y quién lo movió?». Se abre desde el reloj bajo el estado.
+             ================================================================ -->
+        <div v-if="bitacoraServicio" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50" @click.self="bitacoraServicio = null">
+            <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md max-h-[80vh] flex flex-col overflow-hidden">
+                <header class="bg-slate-900 text-white px-5 py-3 flex items-center gap-2 shrink-0">
+                    <i class="fas fa-clock-rotate-left text-[#E07845]"></i>
+                    <div class="min-w-0">
+                        <h3 class="font-black text-sm tracking-tight leading-tight">Historial de estados</h3>
+                        <p class="text-[10px] text-slate-400 truncate">{{ bitacoraServicio.descripcionServicio }}</p>
+                    </div>
+                    <button @click="bitacoraServicio = null" class="ml-auto text-slate-400 hover:text-white shrink-0">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </header>
+
+                <div class="p-4 overflow-y-auto">
+                    <p v-if="cargandoBitacora" class="text-xs text-slate-400 text-center py-6">
+                        <i class="fas fa-spinner fa-spin mr-1"></i> Cargando…
+                    </p>
+                    <p v-else-if="!bitacora.length" class="text-xs text-slate-400 text-center py-6">
+                        Sin cambios registrados todavía. La historia se registra desde ahora.
+                    </p>
+                    <ol v-else class="relative border-l-2 border-slate-200 ml-2">
+                        <li v-for="(b, i) in bitacora" :key="i" class="ml-4 pb-4 last:pb-0 relative">
+                            <span class="absolute -left-[1.35rem] top-1 w-3 h-3 rounded-full border-2 border-white"
+                                  :class="i === 0 ? 'bg-[#E07845]' : 'bg-slate-300'"></span>
+                            <p class="text-[9px] font-black uppercase tracking-widest"
+                               :class="b.campo === 'reserva' ? 'text-[#376875]' : 'text-slate-400'">
+                                {{ b.campo === 'reserva' ? 'Reserva' : 'Operación' }}
+                            </p>
+                            <p class="text-sm font-bold text-slate-800 leading-snug">
+                                <span v-if="b.valorAnterior" class="text-slate-400 font-medium">{{ etiquetaEstado(b.campo, b.valorAnterior) }} → </span>
+                                {{ etiquetaEstado(b.campo, b.valorNuevo) }}
+                            </p>
+                            <p class="text-[10px] text-slate-400">
+                                {{ fechaHora(b.createdAt) }}
+                                <span v-if="b.usuarioNombre"> · {{ b.usuarioNombre }}</span>
+                            </p>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </div>
 
         <!-- ================================================================
              MODAL: EDITAR LA CABECERA DE UNA ORDEN

@@ -171,6 +171,29 @@ muestra y los deja filtrar.
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
 
+### <a id="314"></a>3.14 Bitácora de cambios de estado (2026-08-17)
+
+Cada cambio de `estadoReservaProveedor` o `estadoOperacion` deja una línea en
+`operacion_estado_bitacora`. Responde dos preguntas distintas:
+
+- **«¿cuánto lleva así?»** — el campo `estadoReservaProveedorDesde` en el propio servicio, que
+  el listener actualiza en cada cambio. Directo, sin join, porque se pinta en cada fila del
+  cuadro («hace 3 h» bajo el estado).
+- **«¿por dónde pasó y quién?»** — la bitácora completa, a un clic en el reloj. Se pide bajo
+  demanda (`fetchBitacoraEstado`), nunca embebida: es una serie temporal que sólo se mira de
+  una fila a la vez.
+
+Lo escribe `EstadoBitacoraListener` en `onFlush`, no a mano: así el cambio y su rastro entran
+en la misma transacción, y ningún estado se mueve sin quedar registrado. El usuario se resuelve
+del token; si no hay sesión (comando, reconciliación) queda sin firma, pero el hecho se anota
+igual.
+
+⚠️ **La historia empieza aquí.** Los cambios anteriores al despliegue no existen —no se pueden
+inventar— así que las filas viejas no tienen «desde» hasta su próximo cambio.
+
+⚠️ Un `UPDATE` en SQL se salta el listener y no deja rastro. Es la misma razón por la que las
+correcciones de estado van por el ORM, nunca por consola de MySQL.
+
 ### <a id="313"></a>3.13 «Pagado» era mentira, y faltaban las noches (2026-08-17)
 
 Dos arreglos de lectura sobre la fila:

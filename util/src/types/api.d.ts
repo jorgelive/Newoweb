@@ -996,6 +996,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/ops/operacion_estado_bitacoras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of OperacionEstadoBitacora resources.
+         * @description Retrieves the collection of OperacionEstadoBitacora resources.
+         */
+        get: operations["api_opsoperacion_estado_bitacoras_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/ops/operacion_mensajes": {
         parameters: {
             query?: never;
@@ -13927,6 +13947,70 @@ export interface components {
                 [key: string]: string | null;
             }[];
         };
+        /** @description El historial de estados de un servicio de La Biblia. Una línea por cambio. */
+        "OperacionEstadoBitacora-operacion.bitacora.read_timestamp.read": {
+            campo?: string;
+            /** @description El estado del que venía. `null` en el primer registro: antes no había nada. */
+            valorAnterior?: string | null;
+            valorNuevo?: string;
+            /**
+             * @description Quién lo cambió, como uuid en texto. Nulo si no había sesión (un comando, la
+             *     reconciliación): el hecho ocurrió igual, sólo que no lo firmó una persona.
+             */
+            usuarioId?: string | null;
+            /** @description El nombre para pintar, resuelto al escribir: el uuid no se le enseña a nadie. */
+            usuarioNombre?: string | null;
+            /** Format: date-time */
+            readonly createdAt?: string;
+        };
+        /** @description El historial de estados de un servicio de La Biblia. Una línea por cambio. */
+        "OperacionEstadoBitacora.html-operacion.bitacora.read_timestamp.read": {
+            campo?: string;
+            /** @description El estado del que venía. `null` en el primer registro: antes no había nada. */
+            valorAnterior?: string | null;
+            valorNuevo?: string;
+            /**
+             * @description Quién lo cambió, como uuid en texto. Nulo si no había sesión (un comando, la
+             *     reconciliación): el hecho ocurrió igual, sólo que no lo firmó una persona.
+             */
+            usuarioId?: string | null;
+            /** @description El nombre para pintar, resuelto al escribir: el uuid no se le enseña a nadie. */
+            usuarioNombre?: string | null;
+            /** Format: date-time */
+            readonly createdAt?: string;
+        };
+        /** @description El historial de estados de un servicio de La Biblia. Una línea por cambio. */
+        "OperacionEstadoBitacora.jsonld-operacion.bitacora.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            campo?: string;
+            /** @description El estado del que venía. `null` en el primer registro: antes no había nada. */
+            valorAnterior?: string | null;
+            valorNuevo?: string;
+            /**
+             * @description Quién lo cambió, como uuid en texto. Nulo si no había sesión (un comando, la
+             *     reconciliación): el hecho ocurrió igual, sólo que no lo firmó una persona.
+             */
+            usuarioId?: string | null;
+            /** @description El nombre para pintar, resuelto al escribir: el uuid no se le enseña a nadie. */
+            usuarioNombre?: string | null;
+            /** Format: date-time */
+            readonly createdAt?: string;
+        };
+        /** @description El historial de estados de un servicio de La Biblia. Una línea por cambio. */
+        "OperacionEstadoBitacora.multipart-operacion.bitacora.read_timestamp.read": {
+            campo?: string;
+            /** @description El estado del que venía. `null` en el primer registro: antes no había nada. */
+            valorAnterior?: string | null;
+            valorNuevo?: string;
+            /**
+             * @description Quién lo cambió, como uuid en texto. Nulo si no había sesión (un comando, la
+             *     reconciliación): el hecho ocurrió igual, sólo que no lo firmó una persona.
+             */
+            usuarioId?: string | null;
+            /** @description El nombre para pintar, resuelto al escribir: el uuid no se le enseña a nadie. */
+            usuarioNombre?: string | null;
+            /** Format: date-time */
+            readonly createdAt?: string;
+        };
         "OperacionMensaje-operacion.mensaje.read_timestamp.read": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.mensaje.read_timestamp.read"];
             tipo?: string;
@@ -14253,6 +14337,11 @@ export interface components {
              */
             estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
             /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
+            /**
              * @default pendiente
              * @enum {string}
              */
@@ -14290,6 +14379,11 @@ export interface components {
             /** @default 0.00 */
             costoRealOperativo: string;
             monedaReal?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
+            /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14496,6 +14590,11 @@ export interface components {
              */
             estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
             /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
+            /**
              * @default pendiente
              * @enum {string}
              */
@@ -14533,6 +14632,11 @@ export interface components {
             /** @default 0.00 */
             costoRealOperativo: string;
             monedaReal?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
+            /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14591,6 +14695,11 @@ export interface components {
              */
             estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
             /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
+            /**
              * @default pendiente
              * @enum {string}
              */
@@ -14628,6 +14737,11 @@ export interface components {
             /** @default 0.00 */
             costoRealOperativo: string;
             monedaReal?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
+            /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -14686,6 +14800,11 @@ export interface components {
              */
             estadoReservaProveedor: "sin-solicitar" | "solicitado" | "confirmado" | "reconfirmado" | "pendiente-pago";
             /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
+            /**
              * @default pendiente
              * @enum {string}
              */
@@ -14723,6 +14842,11 @@ export interface components {
             /** @default 0.00 */
             costoRealOperativo: string;
             monedaReal?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
+            /**
+             * Format: date-time
+             * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
+             */
+            estadoReservaProveedorDesde?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -31870,6 +31994,48 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_opsoperacion_estado_bitacoras_get_collection: {
+        parameters: {
+            query?: {
+                operacionServicio?: string;
+                "operacionServicio[]"?: string[];
+                campo?: string;
+                "campo[]"?: string[];
+                "order[createdAt]"?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OperacionEstadoBitacora collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["OperacionEstadoBitacora.jsonld-operacion.bitacora.read_timestamp.read"][];
+                    };
+                    "application/json": components["schemas"]["OperacionEstadoBitacora-operacion.bitacora.read_timestamp.read"][];
+                    "text/html": components["schemas"]["OperacionEstadoBitacora.html-operacion.bitacora.read_timestamp.read"][];
+                    "multipart/form-data": components["schemas"]["OperacionEstadoBitacora.multipart-operacion.bitacora.read_timestamp.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

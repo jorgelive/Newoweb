@@ -27,6 +27,15 @@ export interface ContactoProveedor {
     email: string | null;
 }
 
+/** Una línea de la bitácora de estados de un servicio. */
+export interface BitacoraEstado {
+    campo: string;
+    valorAnterior: string | null;
+    valorNuevo: string;
+    usuarioNombre: string | null;
+    createdAt: string;
+}
+
 /** Proveedor reducido para el selector de destinatario de la Orden de Servicio. */
 export interface ProveedorOpcion {
     id: string;
@@ -520,6 +529,25 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         return data;
     };
 
+    /**
+     * El historial de estados de un servicio, bajo demanda.
+     *
+     * No viaja en el listado: es una serie temporal que sólo se mira al pulsar «ver historial»
+     * de una fila concreta. Traerla para las 200 filas del cuadro sería cargar toneladas de
+     * registros que nadie va a ver.
+     */
+    const fetchBitacoraEstado = async (servicioId: string): Promise<BitacoraEstado[]> => {
+        try {
+            const { data } = await apiClient.get('/platform/ops/operacion_estado_bitacoras', {
+                params: { operacionServicio: `/platform/ops/operacion_servicios/${servicioId}` },
+            });
+            return data['hydra:member'] || data['member'] || [];
+        } catch (error) {
+            console.error('No se pudo cargar la bitácora de estados:', error);
+            return [];
+        }
+    };
+
     // ============================================================================
     // ACCIONES: MENSAJERÍA MULTICANAL
     // ============================================================================
@@ -572,6 +600,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         lugaresPorComponente,
         proveedores,
         fetchProveedores,
+        fetchBitacoraEstado,
         monedas,
         fetchMonedas,
         contactoPorProveedor,

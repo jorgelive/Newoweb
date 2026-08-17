@@ -319,6 +319,18 @@ class OperacionServicio
     #[ORM\Column(name: 'estado_reserva_proveedor', type: 'string', length: 30, enumType: EstadoReservaProveedorEnum::class, options: ['default' => 'sin-solicitar'])]
     private EstadoReservaProveedorEnum $estadoReservaProveedor = EstadoReservaProveedorEnum::SIN_SOLICITAR;
 
+    /**
+     * Desde cuándo el servicio está en el estado de reserva ACTUAL.
+     *
+     * Lo actualiza el listener de bitácora en cada cambio. Es un campo directo y no una
+     * consulta a la bitácora porque «desde hace 3h» se pinta en cada fila del cuadro: mirarlo
+     * en una tabla aparte por fila serían N joins para el caso más común. La historia completa
+     * sí vive en la bitácora, a un clic.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $estadoReservaProveedorDesde = null;
+
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 30, enumType: EstadoOperacionEnum::class, options: ['default' => 'pendiente'])]
     private EstadoOperacionEnum $estadoOperacion = EstadoOperacionEnum::PENDIENTE;
@@ -505,6 +517,9 @@ class OperacionServicio
 
     public function getFechaServicio(): ?\DateTimeImmutable { return $this->fechaServicio; }
     public function setFechaServicio(\DateTimeImmutable $fechaServicio): self { $this->fechaServicio = $fechaServicio; return $this; }
+
+    public function getEstadoReservaProveedorDesde(): ?\DateTimeImmutable { return $this->estadoReservaProveedorDesde; }
+    public function setEstadoReservaProveedorDesde(?\DateTimeImmutable $d): self { $this->estadoReservaProveedorDesde = $d; return $this; }
 
     public function getHoraRecojoReal(): ?string { return $this->horaRecojoReal; }
     public function setHoraRecojoReal(?string $horaRecojoReal): self { $this->horaRecojoReal = $horaRecojoReal; return $this; }
