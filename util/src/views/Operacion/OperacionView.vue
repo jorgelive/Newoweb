@@ -408,39 +408,15 @@ const direccionDe = (s: OperacionServicio): string | null => operacionStore.cont
 // ni el snapshot ni la reconciliación—, porque es el único sitio donde vive lo que
 // el proveedor acabó cobrando. El delta entre ambos es el margen operativo.
 //
-// La moneda no se edita aquí: nace igual a la cotizada y cambiarla desde una celda
-// de tabla, sin conversión ni tipo de cambio, sería invitar a mezclar divisas en la
-// misma columna. Si hay que cambiarla, es un caso raro que merece su propio flujo.
+// La MONEDA también se edita, desde 2026-08-17. Antes no, con el argumento de que
+// mezclar divisas en la misma columna era invitar al error — pero el importe dejó de
+// vivir en la cabecera de la orden y ahora se suma POR MONEDA sin convertir, así que
+// mezclarlas es correcto: se cotiza en dólares y se cierra en soles con el mismo
+// proveedor. Ver docs/Operacion.md §5.4.
 // ============================================================================
 const PATRON_IMPORTE = /^\d{1,10}([.,]\d{1,2})?$/;
 
-/**
- * La moneda de lo NEGOCIADO. Se guarda como IRI, igual que el resto de relaciones.
- *
- * Cambiarla no toca el cotizado: son dos hechos distintos —lo que dijo el cotizador y lo que
- * se cerró— y machacar el primero borraría la referencia con la que se concilia.
- */
-const editarMonedaReal = async (servicio: OperacionServicio, evento: Event) => {
-    const id = (evento.target as HTMLSelectElement).value;
-    if (!id || id === servicio.monedaReal?.id) return;
 
-    await guardarCampo(servicio, { monedaReal: `/platform/maestro/monedas/${id}` });
-};
-
-const editarCostoReal = async (servicio: OperacionServicio, evento: Event) => {
-    const input = evento.target as HTMLInputElement;
-    const valor = input.value.trim().replace(',', '.');
-
-    if (valor === '') {
-        await guardarCampo(servicio, { costoRealOperativo: '0.00' });
-        return;
-    }
-    if (!PATRON_IMPORTE.test(input.value.trim())) {
-        input.value = servicio.costoRealOperativo ?? '';
-        return;
-    }
-    await guardarCampo(servicio, { costoRealOperativo: Number(valor).toFixed(2) });
-};
 
 /** Diferencia real − cotizado. Positiva = costó más de lo previsto. */
 const deltaOperativo = (s: OperacionServicio): number | null => {
@@ -658,6 +634,43 @@ const serviciosDeOrdenAbierta = computed<OperacionServicio[]>(() => {
  * no guarda». Y no guardaba en el momento que uno espera: `@change` sólo dispara al SALIR del
  * campo, así que hasta tocar fuera no se enviaba nada.
  */
+/**
+ * Lo que se ha escrito y aún no se ha guardado, por id de servicio.
+ *
+ * ── Por qué hace falta un botón ─────────────────────────────────────────────
+ * Antes se guardaba con `@change`, que dispara al SALIR del campo. En un móvil eso es
+ * invisible: escribes el número, el teclado tapa media pantalla, y no hay nada que diga que
+ * haya pasado algo — ni forma evidente de provocar el guardado, porque «tocar fuera» no es un
+ * gesto que nadie asocie a guardar. El síntoma era «no guarda nada», y era exacto desde el
+ * punto de vista del que lo usa.
+ *
+ * Con borrador aparte: el campo se puede escribir con calma, el botón aparece SÓLO cuando hay
+ * algo distinto que guardar, y al guardar se limpia. Nada se envía por accidente.
+ */
+const borradorCosto = ref<Record<string, string>>({});
+const borradorMoneda = ref<Record<string, string>>({});
+
+/** El valor que toca pintar: el borrador si se está editando, si no lo guardado. */
+const costoDe = (s: OperacionServicio): string =>
+    borradorCosto.value[s.id ?? ''] ?? (Number(s.costoRealOperativo ?? 0) === 0 ? '' : importe(s.costoRealOperativo));
+
+const monedaDe = (s: OperacionServicio): string =>
+    borradorMoneda.value[s.id ?? ''] ?? (s.monedaReal?.id ?? s.monedaCotizada?.id ?? '');
+
+/** ¿Hay algo pendiente de guardar en esta fila? Es lo que enciende el botón. */
+const tienePendiente = (s: OperacionServicio): boolean => {
+    const id = s.id ?? '';
+    return borradorCosto.value[id] !== undefined || borradorMoneda.value[id] !== undefined;
+};
+
+const anotarCosto = (s: OperacionServicio, evento: Event): void => {
+    borradorCosto.value[s.id ?? ''] = (evento.target as HTMLInputElement).value;
+};
+
+const anotarMoneda = (s: OperacionServicio, evento: Event): void => {
+    borradorMoneda.value[s.id ?? ''] = (evento.target as HTMLSelectElement).value;
+};
+
 const guardadoOk = ref<string | null>(null);
 const errorGuardado = ref<string | null>(null);
 
@@ -684,27 +697,45 @@ const guardarNegociadoDeOrden = async (
     }
 };
 
-const editarCostoDeOrden = async (servicio: OperacionServicio, evento: Event) => {
-    const input = evento.target as HTMLInputElement;
-    const valor = input.value.trim().replace(',', '.');
+/**
+ * Guarda lo pendiente de una fila: importe y moneda juntos, en una sola petición.
+ *
+ * Juntos y no por separado porque cambiar la moneda sin el importe casi nunca es lo que se
+ * quiere —se negocia «250 soles», no «soles» y luego «250»— y dos PATCH seguidos dejaban un
+ * estado intermedio guardado que nadie pidió.
+ */
+const guardarFila = async (servicio: OperacionServicio): Promise<void> => {
+    const id = servicio.id ?? '';
+    if (!tienePendiente(servicio)) return;
 
-    if (valor === '') {
-        await guardarNegociadoDeOrden(servicio, { costoRealOperativo: '0.00' });
-        return;
+    const payload: Partial<OperacionServicioWrite> = {};
+
+    const costo = borradorCosto.value[id];
+    if (costo !== undefined) {
+        const valor = costo.trim().replace(',', '.');
+        if (valor === '') {
+            payload.costoRealOperativo = '0.00';   // vaciarlo es «vuelve a no estar negociado»
+        } else if (PATRON_IMPORTE.test(valor)) {
+            payload.costoRealOperativo = Number(valor).toFixed(2);
+        } else {
+            errorGuardado.value = `«${costo}» no es un importe. Usa sólo números, con punto o coma.`;
+            return;
+        }
     }
-    if (!/^\d+(\.\d{1,2})?$/.test(valor)) {
-        input.value = servicio.costoRealOperativo ?? '';
-        return;
+
+    const moneda = borradorMoneda.value[id];
+    if (moneda !== undefined && moneda !== '') {
+        payload.monedaReal = `/platform/maestro/monedas/${moneda}`;
     }
 
-    await guardarNegociadoDeOrden(servicio, { costoRealOperativo: Number(valor).toFixed(2) });
-};
+    await guardarNegociadoDeOrden(servicio, payload);
 
-const editarMonedaDeOrden = async (servicio: OperacionServicio, evento: Event) => {
-    const id = (evento.target as HTMLSelectElement).value;
-    if (!id || id === servicio.monedaReal?.id) return;
-
-    await guardarNegociadoDeOrden(servicio, { monedaReal: `/platform/maestro/monedas/${id}` });
+    // El borrador se limpia SÓLO si se guardó: si falló, lo escrito sigue en pantalla y el
+    // botón sigue encendido para reintentar. Perderlo por un fallo de red sería lo peor.
+    if (!errorGuardado.value) {
+        delete borradorCosto.value[id];
+        delete borradorMoneda.value[id];
+    }
 };
 
 // ── EDICIÓN DE LA CABECERA ───────────────────────────────────────────────────
@@ -1323,21 +1354,34 @@ onMounted(async () => {
                                                              class="mt-1.5 flex items-center gap-1 xl:hidden">
                                                             <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider shrink-0">Pagado</span>
                                                             <select
-                                                                :value="servicio.monedaReal?.id ?? servicio.monedaCotizada?.id ?? ''"
-                                                                @change="editarMonedaReal(servicio, $event)"
+                                                                :value="monedaDe(servicio)"
+                                                                @change="anotarMoneda(servicio, $event)"
                                                                 class="text-[9px] font-black text-slate-500 bg-slate-100 border border-slate-200 rounded px-1 py-1 outline-none focus:ring-2 focus:ring-[#376875]"
                                                             >
                                                                 <option v-for="m in operacionStore.monedas" :key="m" :value="m">{{ m }}</option>
                                                             </select>
                                                             <input
-                                                                :value="Number(servicio.costoRealOperativo ?? 0) === 0 ? '' : importe(servicio.costoRealOperativo)"
-                                                                @change="editarCostoReal(servicio, $event)"
-                                                                @keyup.enter="($event.target as HTMLInputElement).blur()"
+                                                                :value="costoDe(servicio)"
+                                                                @input="anotarCosto(servicio, $event)"
+                                                                @keyup.enter="guardarFila(servicio)"
                                                                 :placeholder="importe(servicio.costoCotizado)"
                                                                 inputmode="decimal"
                                                                 maxlength="13"
-                                                                class="w-[5rem] text-[11px] font-black text-slate-800 bg-slate-100 px-2 py-1 rounded border border-slate-200 tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
+                                                                class="w-[4.5rem] text-[11px] font-black text-slate-800 px-2 py-1 rounded border tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
+                                                                :class="tienePendiente(servicio) ? 'border-amber-400 bg-amber-50' : 'border-slate-200 bg-slate-100'"
                                                             />
+                                                            <button
+                                                                v-if="tienePendiente(servicio)"
+                                                                @click="guardarFila(servicio)"
+                                                                class="w-7 h-7 shrink-0 rounded bg-[#E07845] hover:bg-[#c96636] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all"
+                                                                title="Guardar"
+                                                            >
+                                                                <i class="fas fa-check text-[11px]"></i>
+                                                            </button>
+                                                            <span v-else-if="guardadoOk === servicio.id"
+                                                                  class="w-7 h-7 shrink-0 flex items-center justify-center text-emerald-600">
+                                                                <i class="fas fa-check text-[11px]"></i>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1422,21 +1466,36 @@ onMounted(async () => {
                                                          del cotizador obligaba a que coincidieran. -->
                                                     <div class="mt-1 flex items-center justify-end gap-1">
                                                         <select
-                                                            :value="servicio.monedaReal?.id ?? servicio.monedaCotizada?.id ?? ''"
-                                                            @change="editarMonedaReal(servicio, $event)"
+                                                            :value="monedaDe(servicio)"
+                                                            @change="anotarMoneda(servicio, $event)"
                                                             class="text-[10px] font-black text-slate-500 bg-slate-100 border border-slate-200 rounded-lg px-1 py-1 outline-none focus:ring-2 focus:ring-[#376875]"
                                                             title="Moneda en la que se cerró con el proveedor"
                                                         >
                                                             <option v-for="m in operacionStore.monedas" :key="m" :value="m">{{ m }}</option>
                                                         </select>
                                                         <input
-                                                            :value="Number(servicio.costoRealOperativo ?? 0) === 0 ? '' : importe(servicio.costoRealOperativo)"
-                                                            @change="editarCostoReal(servicio, $event)"
+                                                            :value="costoDe(servicio)"
+                                                            @input="anotarCosto(servicio, $event)"
+                                                            @keyup.enter="guardarFila(servicio)"
                                                             placeholder="real"
                                                             inputmode="decimal"
                                                             maxlength="13"
-                                                            class="w-[5.5rem] text-sm font-black text-slate-800 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
+                                                            class="w-[5rem] text-sm font-black text-slate-800 px-2 py-1 rounded-lg border tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
+                                                            :class="tienePendiente(servicio) ? 'border-amber-400 bg-amber-50' : 'border-slate-200 bg-slate-100'"
                                                         />
+                                                        <button
+                                                            v-if="tienePendiente(servicio)"
+                                                            @click="guardarFila(servicio)"
+                                                            class="w-7 h-7 shrink-0 rounded-lg bg-[#E07845] hover:bg-[#c96636] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all"
+                                                            title="Guardar"
+                                                        >
+                                                            <i class="fas fa-check text-[11px]"></i>
+                                                        </button>
+                                                        <span v-else-if="guardadoOk === servicio.id"
+                                                              class="w-7 h-7 shrink-0 flex items-center justify-center text-emerald-600">
+                                                            <i class="fas fa-check text-[11px]"></i>
+                                                        </span>
+                                                        <span v-else class="w-7 shrink-0"></span>
                                                     </div>
                                                     <p
                                                         v-if="deltaOperativo(servicio) !== null && deltaOperativo(servicio) !== 0"
@@ -1601,33 +1660,49 @@ onMounted(async () => {
                                             </p>
                                             <p class="text-[10px] text-slate-400 leading-snug">
                                                 {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ s.cantidadPax }} pax
-                                                <span v-if="guardadoOk === s.id" class="text-emerald-600 font-black ml-1">
-                                                    <i class="fas fa-check"></i> guardado
-                                                </span>
                                             </p>
                                         </div>
                                         <!-- Lo NEGOCIADO, editable aquí mismo: es el momento en que
                                              tienes al proveedor al teléfono y la orden delante. El
                                              cotizado queda debajo como referencia y no se toca. -->
                                         <div class="shrink-0 text-right">
+                                            <!-- Con BOTÓN, no al salir del campo. «Tocar fuera» no es un
+                                                 gesto que nadie asocie a guardar, y en un móvil con el
+                                                 teclado abierto ni se ve que haya pasado algo: el síntoma
+                                                 era «no guarda nada», y era exacto. Aparece sólo cuando
+                                                 hay algo distinto que enviar. -->
                                             <div class="flex items-center justify-end gap-1">
                                                 <select
-                                                    :value="s.monedaReal?.id ?? s.monedaCotizada?.id ?? ''"
-                                                    @change="editarMonedaDeOrden(s, $event)"
+                                                    :value="monedaDe(s)"
+                                                    @change="anotarMoneda(s, $event)"
                                                     class="text-[9px] font-black text-slate-500 bg-white border border-slate-200 rounded px-1 py-1 outline-none focus:ring-2 focus:ring-[#376875]"
                                                     title="Moneda en la que se cerró"
                                                 >
                                                     <option v-for="m in operacionStore.monedas" :key="m" :value="m">{{ m }}</option>
                                                 </select>
                                                 <input
-                                                    :value="Number(s.costoRealOperativo ?? 0) === 0 ? '' : importe(s.costoRealOperativo)"
-                                                    @change="editarCostoDeOrden(s, $event)"
-                                                    @keyup.enter="($event.target as HTMLInputElement).blur()"
+                                                    :value="costoDe(s)"
+                                                    @input="anotarCosto(s, $event)"
+                                                    @keyup.enter="guardarFila(s)"
                                                     :placeholder="importe(s.costoCotizado)"
                                                     inputmode="decimal"
                                                     maxlength="13"
-                                                    class="w-[5.5rem] text-[11px] font-black text-slate-800 bg-white px-2 py-1 rounded border border-slate-200 tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] placeholder:text-slate-300 placeholder:font-medium"
+                                                    class="w-[5rem] text-[11px] font-black text-slate-800 bg-white px-2 py-1 rounded border tabular-nums text-right outline-none focus:ring-2 focus:ring-[#376875] placeholder:text-slate-300 placeholder:font-medium"
+                                                    :class="tienePendiente(s) ? 'border-amber-400 bg-amber-50' : 'border-slate-200'"
                                                 />
+                                                <button
+                                                    v-if="tienePendiente(s)"
+                                                    @click="guardarFila(s)"
+                                                    class="w-7 h-7 shrink-0 rounded bg-[#E07845] hover:bg-[#c96636] text-white flex items-center justify-center shadow-sm active:scale-95 transition-all"
+                                                    title="Guardar"
+                                                >
+                                                    <i class="fas fa-check text-[11px]"></i>
+                                                </button>
+                                                <span v-else-if="guardadoOk === s.id"
+                                                      class="w-7 h-7 shrink-0 flex items-center justify-center text-emerald-600">
+                                                    <i class="fas fa-check text-[11px]"></i>
+                                                </span>
+                                                <span v-else class="w-7 shrink-0"></span>
                                             </div>
                                             <p class="text-[9px] text-slate-400 tabular-nums mt-0.5">
                                                 cotizado {{ s.monedaCotizada?.id }} {{ importe(s.costoCotizado) }}
@@ -1640,7 +1715,7 @@ onMounted(async () => {
                                 </p>
                                 <p class="text-[10px] text-slate-400 leading-snug mt-1.5">
                                     <i class="fas fa-circle-info mr-1"></i>
-                                    Se guarda al salir del campo. Vacío = todavía sin negociar, vale el
+                                    Escribe y pulsa el botón naranja. Vacío = todavía sin negociar, vale el
                                     cotizado. Estos campos son tuyos: una resincronización de la cotización
                                     nunca los pisa.
                                 </p>

@@ -171,6 +171,31 @@ muestra y los deja filtrar.
 servicio: por eso la fila lleva además `contextoServicio` (el nombre del día del itinerario),
 `tipoComponente` y el expediente.
 
+### <a id="311"></a>3.11 Los importes se guardan con BOTÓN, no al salir del campo (2026-08-17)
+
+Estuvieron con `@change`, que dispara al perder el foco. En un móvil eso es invisible: escribes
+el número, el teclado tapa media pantalla, y no hay nada que diga que pasó algo — ni un gesto
+evidente para provocarlo, porque «tocar fuera» no lo asocia nadie con guardar.
+
+El síntoma reportado fue **«no guarda nada»**, y era exacto desde el punto de vista de quien lo
+usa. De hecho no guardaba: comprobado en el access log, cero PATCH mientras se editaba, porque
+el campo nunca perdía el foco.
+
+Cómo funciona ahora:
+
+- Lo escrito vive en un **borrador aparte** (`borradorCosto`, `borradorMoneda`), por id de fila.
+- El campo se pone **ámbar** y aparece un **botón naranja** en cuanto hay algo distinto que
+  enviar. Sin cambios, no hay botón: nada se envía por accidente.
+- `Enter` guarda, para no obligar a apuntar a un botón de 28px.
+- **Importe y moneda van juntos en un solo PATCH.** Se negocia «250 soles», no «soles» y luego
+  «250»; dos peticiones seguidas dejaban guardado un estado intermedio que nadie pidió.
+- ⚠️ **El borrador se limpia sólo si se guardó.** Si falla, lo escrito sigue en pantalla y el
+  botón encendido para reintentar — perder el número por un fallo de red sería lo peor que
+  podría hacer esta pantalla.
+
+Vale para los tres sitios donde se edita: la columna de escritorio de La Biblia, su tarjeta
+móvil (§3.10) y el detalle de la orden.
+
 ### <a id="310"></a>3.10 Los puntos de corte esconden columnas enteras (2026-08-17)
 
 El cuadro es una tabla y cada columna se retira a un ancho distinto:
