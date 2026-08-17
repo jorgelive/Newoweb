@@ -66,6 +66,16 @@ const filtroEstadoReservaProveedor = ref<string>('');
 const filtroEstadoOperacion = ref<string>('');
 const mostrarFiltrosAvanzados = ref<boolean>(false);
 
+/**
+ * Si la fila ya está en una Orden de Servicio. `''` = todas.
+ *
+ * Se filtra EN LOCAL sobre lo ya cargado y no en el servidor: es un interruptor de lectura
+ * —«qué me falta por encargar»— y pedir de nuevo por él haría esperar para esconder filas
+ * que ya están en pantalla. Ojo: actúa sobre la página cargada, así que con el aviso de
+ * «hay más servicios de los que caben» el recuento sigue siendo el del servidor.
+ */
+const filtroOs = ref<'' | 'sin' | 'con'>('');
+
 // Expediente / cotización
 const terminoExpediente = ref<string>('');
 const resultadosExpediente = ref<ExpedienteOpcion[]>([]);
@@ -100,7 +110,45 @@ const hayFiltrosExtra = computed(() =>
 // ============================================================================
 // CARGA
 // ============================================================================
+/**
+ * Mover el inicio ARRASTRA el fin, conservando el ancho de la ventana.
+ *
+ * Antes sólo se corregía el caso imposible (`hasta < desde`). El resultado era que adelantar
+ * el inicio un mes dejaba el fin donde estaba y la consulta pasaba de una semana a cinco sin
+ * que nadie lo pidiera. Un rango se mueve entero: es lo que uno espera al cambiar «desde».
+ *
+ * Y si el fin está vacío se copia el inicio, que es la lectura natural de «quiero ver ese día».
+ */
+const onCambiarDesde = (v: string): void => {
+  const anterior = desde.value;
+  desde.value = v;
+
+  if (!hasta.value) {
+    hasta.value = v;
+  } else if (anterior && hasta.value >= anterior) {
+    const dias = Math.round(
+        (new Date(hasta.value.slice(0, 10)).getTime() - new Date(anterior.slice(0, 10)).getTime())
+        / 86400000
+    );
+    hasta.value = `${sumarDias(v.slice(0, 10), dias)}T00:00`;
+  } else if (hasta.value < v) {
+    hasta.value = v;
+  }
+
+  cargarBiblia();
+};
+
+/**
+ * Sin fechas sólo se busca si hay expediente. Es la única acotación que queda cuando no hay
+ * rango: sin ninguna de las dos, la consulta trae la operación entera de la historia y el
+ * cuadro deja de ser un cuadro de tráfico.
+ */
+const faltaAcotar = computed(() =>
+    !expedienteSeleccionado.value && (!desde.value || !hasta.value));
+
 const cargarBiblia = async () => {
+    if (faltaAcotar.value) return;   // el aviso lo pinta la barra; aquí sólo no se pide
+
     seleccionados.value = [];
     await operacionStore.fetchServicios(filtrosActivos.value);
 };
@@ -207,6 +255,10 @@ const serviciosPorDia = computed<GrupoDia[]>(() => {
     const mapa = new Map<string, OperacionServicio[]>();
 
     for (const s of operacionStore.servicios) {
+        // El toggle de OS filtra AQUÍ y no en el servidor: es lectura sobre lo ya cargado.
+        if (filtroOs.value === 'sin' && s.ordenServicio) continue;
+        if (filtroOs.value === 'con' && !s.ordenServicio) continue;
+
         const fecha = (s.fechaServicio ?? '').slice(0, 10) || 'sin-fecha';
         if (!mapa.has(fecha)) mapa.set(fecha, []);
         mapa.get(fecha)!.push(s);
@@ -613,13 +665,15 @@ onMounted(async () => {
 
                     <!-- Fila 1: rango + presets + acciones -->
                     <div class="flex flex-wrap items-center gap-2">
-                        <div class="grid gap-2 shrink-0" style="grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr))">
+                        <!-- Las dos SIEMPRE en la misma fila: son un rango, y partido en dos
+                             renglones deja de leerse como tal. Caben de sobra. -->
+                        <div class="grid grid-cols-2 gap-2 flex-1 min-w-[15rem] md:flex-none md:w-[23rem]">
                             <label class="flex flex-col gap-1">
                                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</span>
                                 <FechaHoraPicker
                                     :model-value="desde"
                                     solo-fecha
-                                    @update:model-value="(v: string) => { desde = v; if (hasta < v) hasta = v; cargarBiblia(); }"
+                                    @update:model-value="onCambiarDesde"
                                 />
                             </label>
                             <label class="flex flex-col gap-1">
@@ -709,10 +763,10 @@ onMounted(async () => {
                     </div>
 
                     <!-- Fila 2: filtros avanzados -->
-                    <div v-if="mostrarFiltrosAvanzados" class="mt-3 pt-3 border-t border-slate-200 flex flex-col gap-3">
-
-                        <!-- Expediente y cotización -->
-                        <div class="flex flex-wrap items-end gap-2">
+                    <!-- EXPEDIENTE, fuera de «Filtros» y en la barra fija.
+                         Es lo único que permite consultar SIN rango de fechas, así que
+                         esconderlo tras un desplegable era esconder la salida. -->
+                    <div class="mt-2 flex flex-wrap items-end gap-2">
                             <div class="relative flex flex-col gap-1 min-w-[16rem]">
                                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Expediente</span>
 
@@ -751,6 +805,29 @@ onMounted(async () => {
                                 </template>
                             </div>
 
+                        <!-- Ya está / falta por encargar. En local sobre lo cargado. -->
+                        <div class="flex items-center gap-1 self-end bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                            <button v-for="o in [{ k: '', l: 'Todas' }, { k: 'sin', l: 'Sin OS' }, { k: 'con', l: 'En OS' }]"
+                                    :key="o.k"
+                                    @click="filtroOs = o.k as '' | 'sin' | 'con'"
+                                    :class="filtroOs === o.k ? 'bg-[#376875] text-white' : 'text-slate-500 hover:bg-slate-100'"
+                                    class="px-2.5 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-colors">
+                                {{ o.l }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sin rango y sin expediente no se consulta: sería la operación entera. -->
+                    <p v-if="faltaAcotar"
+                       class="mt-2 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-2">
+                        <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                        <span>Pon un rango de fechas, o elige un expediente para verlo entero sin fechas.</span>
+                    </p>
+
+                    <div v-if="mostrarFiltrosAvanzados" class="mt-3 pt-3 border-t border-slate-200 flex flex-col gap-3">
+
+                        <!-- Expediente y cotización -->
+                        <div class="flex flex-wrap items-end gap-2">
                             <label v-if="cotizacionesDelExpediente.length" class="flex flex-col gap-1 min-w-[14rem]">
                                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cotización</span>
                                 <select
