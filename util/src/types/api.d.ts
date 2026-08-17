@@ -14035,6 +14035,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
+            readonly totalesPorMoneda?: {
+                moneda?: string;
+                cotizado?: string;
+                real?: string;
+            }[];
         };
         "OperacionOrdenServicio-operacion.write": {
             numeroOs?: string;
@@ -14113,6 +14119,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
+            readonly totalesPorMoneda?: {
+                moneda?: string;
+                cotizado?: string;
+                real?: string;
+            }[];
         };
         "OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
@@ -14145,6 +14157,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
+            readonly totalesPorMoneda?: {
+                moneda?: string;
+                cotizado?: string;
+                real?: string;
+            }[];
         };
         "OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read": {
             /** Format: date-time */
@@ -14177,6 +14195,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
+            readonly totalesPorMoneda?: {
+                moneda?: string;
+                cotizado?: string;
+                real?: string;
+            }[];
         };
         "OperacionServicio-operacion.item.read_timestamp.read": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.item.read_timestamp.read"] | null;

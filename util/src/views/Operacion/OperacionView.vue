@@ -600,6 +600,9 @@ const confirmarOs = async () => {
 // BITÁCORA DE MENSAJES DE UNA OS
 // ============================================================================
 const ordenActiva = ref<OperacionOrdenServicio | null>(null);
+
+/** Qué orden tiene el detalle abierto. Sólo una a la vez. */
+const ordenExpandida = ref<string | null>(null);
 const cuerpoMensaje = ref<string>('');
 const enviandoMensaje = ref<boolean>(false);
 
@@ -1333,66 +1336,75 @@ onMounted(async () => {
                     </div>
                 </div>
 
-                <div v-else class="px-4 md:px-6 py-4">
-                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-slate-50 border-b border-slate-200">
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">OS #</th>
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Proveedor</th>
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:table-cell">Total</th>
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Estado</th>
-                                        <th class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    <tr
-                                        v-for="orden in operacionStore.ordenesServicio"
-                                        :key="orden.id"
-                                        class="hover:bg-slate-50/80 transition-colors"
-                                    >
-                                        <td class="px-4 py-4 whitespace-nowrap align-top">
-                                            <span class="text-sm font-black text-[#376875]">{{ orden.numeroOs }}</span>
-                                        </td>
+                <!--
+                  TARJETAS, no tabla. Eran cinco columnas y en móvil se cortaban por la mitad:
+                  el estado y las acciones quedaban fuera de la pantalla y no había forma de
+                  llegar a ellos. Aquí cada orden fluye en dos filas y cabe entera.
+                -->
+                <div v-else class="px-3 md:px-6 py-3 md:py-4 flex flex-col gap-2">
+                    <div
+                        v-for="orden in operacionStore.ordenesServicio"
+                        :key="orden.id"
+                        class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+                    >
+                        <!-- Fila 1: identidad y estado -->
+                        <div class="px-3 py-2.5 flex items-center justify-between gap-2 border-b border-slate-100">
+                            <button @click="ordenExpandida = ordenExpandida === orden.id ? null : (orden.id ?? null)"
+                                    class="flex items-center gap-2 min-w-0 text-left">
+                                <i class="fas text-[10px] text-slate-300 shrink-0"
+                                   :class="ordenExpandida === orden.id ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                <span class="text-sm font-black text-[#376875] truncate">{{ orden.numeroOs }}</span>
+                            </button>
 
-                                        <td class="px-4 py-4 align-top">
-                                            <p class="text-sm font-bold text-slate-800">
-                                                {{ orden.compradorNombre || 'No definido' }}
-                                            </p>
-                                            <p class="text-[10px] font-black text-slate-400 mt-0.5 sm:hidden">
-                                                <span class="text-slate-300">{{ orden.monedaOs?.id || 'USD' }}</span>
-                                                {{ orden.totalOs }}
-                                            </p>
-                                        </td>
+                            <span
+                                :class="['px-2 py-1 inline-flex items-center gap-1 text-[9px] font-black rounded-lg border shrink-0', getEstadoOsConfig(orden.estadoOs).bg, getEstadoOsConfig(orden.estadoOs).text, getEstadoOsConfig(orden.estadoOs).border]"
+                            >
+                                <i :class="['fas text-[9px]', getEstadoOsConfig(orden.estadoOs).icon]"></i>
+                                {{ getEstadoOsConfig(orden.estadoOs).label }}
+                            </span>
+                        </div>
 
-                                        <td class="px-4 py-4 hidden sm:table-cell whitespace-nowrap align-top">
-                                            <span class="text-sm font-black text-slate-800">
-                                                <span class="text-[10px] font-bold text-slate-400 mr-1">{{ orden.monedaOs?.id || 'USD' }}</span>{{ orden.totalOs }}
-                                            </span>
-                                        </td>
+                        <!-- Fila 2: destinatario e importes por moneda -->
+                        <div class="px-3 py-2.5 flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Destinatario</p>
+                                <p class="text-sm font-bold text-slate-800 leading-snug">
+                                    {{ orden.compradorNombre || 'No definido' }}
+                                </p>
+                            </div>
 
-                                        <td class="px-4 py-4 whitespace-nowrap align-top">
-                                            <span
-                                                :class="['px-2 py-1 inline-flex items-center gap-1 text-[10px] font-black rounded-lg border', getEstadoOsConfig(orden.estadoOs).bg, getEstadoOsConfig(orden.estadoOs).text, getEstadoOsConfig(orden.estadoOs).border]"
-                                            >
-                                                <i :class="['fas text-[9px]', getEstadoOsConfig(orden.estadoOs).icon]"></i>
-                                                {{ getEstadoOsConfig(orden.estadoOs).label }}
-                                            </span>
-                                        </td>
+                            <!-- Una línea por moneda, sin convertir. Ver §5.4. -->
+                            <div class="shrink-0 text-right">
+                                <div v-for="t in (orden.totalesPorMoneda ?? [])" :key="t.moneda" class="leading-tight">
+                                    <span class="text-[10px] font-bold text-slate-400 mr-1">{{ t.moneda }}</span>
+                                    <span class="text-sm font-black text-slate-800 tabular-nums">{{ importe(t.real) }}</span>
+                                    <p v-if="t.real !== t.cotizado" class="text-[9px] font-bold text-slate-400 tabular-nums">
+                                        cotizado {{ importe(t.cotizado) }}
+                                    </p>
+                                </div>
+                                <p v-if="!(orden.totalesPorMoneda ?? []).length" class="text-[10px] font-bold text-slate-300">
+                                    Sin importes
+                                </p>
+                            </div>
+                        </div>
 
-                                        <td class="px-4 py-4 text-right align-top">
-                                            <button
-                                                @click="abrirMensajes(orden)"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-[#376875] hover:text-white hover:border-[#376875] text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
-                                            >
-                                                <i class="fas fa-message text-[9px]"></i>
-                                                <span class="hidden sm:inline">Mensajes</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <!-- Detalle: los servicios que agrupa. Estaba sin forma de verse. -->
+                        <div v-if="ordenExpandida === orden.id" class="px-3 pb-2.5 border-t border-slate-100 pt-2">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                {{ (orden.operacionServicios ?? []).length }} servicio(s) en esta orden
+                            </p>
+                            <p class="text-[10px] text-slate-400 leading-snug">
+                                Los importes se ajustan en La Biblia, en la columna de costo real de cada servicio.
+                            </p>
+                        </div>
+
+                        <div class="px-3 py-2 bg-slate-50 border-t border-slate-100 flex justify-end">
+                            <button
+                                @click="abrirMensajes(orden)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#376875] hover:text-white hover:border-[#376875] text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
+                            >
+                                <i class="fas fa-message text-[9px]"></i> Bitácora
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1437,7 +1449,10 @@ onMounted(async () => {
                                 </p>
                             </div>
                             <span class="text-xs font-black text-slate-700 tabular-nums shrink-0">
-                                {{ importe(s.costoCotizado) }}
+                                <!-- La moneda va SIEMPRE pegada al número: «12.00» a secas no
+                                     dice si son soles o dólares, y en una orden que ahora puede
+                                     mezclarlas es la mitad del dato. -->
+                                <span class="text-[10px] font-bold text-slate-400 mr-1">{{ s.monedaCotizada?.id || '?' }}</span>{{ importe(s.costoCotizado) }}
                             </span>
                         </div>
                     </div>

@@ -603,6 +603,25 @@ Lo que se retiró: el bloqueo por monedas distintas en `setOrdenServicio()` y en
 `conflictoSeleccion`. Lo que **no** se retiró: expediente único, comprador único, nada de
 referencias ni cancelados, y nada que ya esté en otra orden.
 
+#### La suma se calcula en el servidor, no en la pantalla
+
+`OperacionOrdenServicio::getTotalesPorMoneda()` devuelve una línea por moneda con dos
+columnas: `cotizado` (referencial) y `real` (negociado). Vive en el backend porque en el
+listado los ítems viajan como IRI —la pantalla no tiene los importes— y engordarlo con cada
+servicio entero sería pagar el payload de todos para pintar dos números.
+
+Dos detalles que parecen caprichos y no lo son:
+
+- **Un importe negociado se acumula bajo SU moneda**, que puede no ser la del cotizado: se
+  cotiza en dólares y se cierra en soles. Sumarlo bajo la del cotizador lo pondría en la
+  columna equivocada.
+- **Mientras nadie negocie, `real` vale lo cotizado.** Un cero ahí se leería como «pactado en
+  cero», que es lo contrario de «todavía sin pactar».
+
+⚠️ **No hay ningún medio de envío de la orden.** `OperacionMensaje` es una **bitácora**: `tipo`,
+`cuerpoHtml` y quién lo escribió. Se anota lo que se le dijo al proveedor; no manda correo ni
+WhatsApp. Si algún día se automatiza, el contacto sale del maestro (§3.8), no de la fila.
+
 Notas:
 
 - `numeroOs` es `unique` y **no tiene generador**: hoy lo propone la vista

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -181,6 +182,73 @@ class OperacionOrdenServicio
 
     public function getTotalOs(): ?string { return $this->totalOs; }
     public function setTotalOs(?string $totalOs): self { $this->totalOs = $totalOs; return $this; }
+
+    /**
+     * Lo que suma la orden, POR MONEDA y sin convertir.
+     *
+     * Se calcula aquí y no en el front porque los ítems viajan como IRI en el listado: la
+     * pantalla no tiene los importes para sumarlos, y engordar el listado con cada servicio
+     * entero sería pagar el payload de todos para pintar dos números.
+     *
+     * Dos columnas por moneda, que son los dos hechos que conviven en una orden:
+     *   · `cotizado` — lo que dijo el cotizador. Referencial, no se toca.
+     *   · `real`     — lo que se negoció. Cae al cotizado mientras nadie lo cambie, para que
+     *                  una orden recién creada no muestre ceros donde hay importes.
+     *
+     * ⚠️ NO se convierte ni se totaliza en una sola cifra. Una orden puede llevar servicios en
+     * soles y en dólares —es una sola gestión con el mismo proveedor— y reducirlo a un número
+     * exigiría un tipo de cambio que nadie pactó. Ver docs/Operacion.md §5.4.
+     *
+     * @return list<array{moneda: string, cotizado: string, real: string}>
+     */
+    #[Groups(['operacion:read'])]
+    #[ApiProperty(openapiContext: [
+        'type' => 'array',
+        'items' => [
+            'type' => 'object',
+            'properties' => [
+                'moneda'   => ['type' => 'string'],
+                'cotizado' => ['type' => 'string'],
+                'real'     => ['type' => 'string'],
+            ],
+        ],
+    ])]
+    public function getTotalesPorMoneda(): array
+    {
+        /** @var array<string, array{cotizado: float, real: float}> $acumulado */
+        $acumulado = [];
+
+        foreach ($this->operacionServicios as $servicio) {
+            $cotizado = (float) $servicio->getCostoCotizado();
+            $real     = (float) $servicio->getCostoRealOperativo();
+
+            $monedaCotizada = $servicio->getMonedaCotizada()?->getId() ?? '—';
+            // La moneda de lo negociado puede ser OTRA: se cotiza en dólares y se cierra en
+            // soles. Sin este reparto, ese importe se sumaría bajo la moneda equivocada.
+            $monedaReal = $servicio->getMonedaReal()?->getId() ?? $monedaCotizada;
+
+            $acumulado[$monedaCotizada] ??= ['cotizado' => 0.0, 'real' => 0.0];
+            $acumulado[$monedaCotizada]['cotizado'] += $cotizado;
+
+            $acumulado[$monedaReal] ??= ['cotizado' => 0.0, 'real' => 0.0];
+            // Mientras nadie negocie, «real» es el cotizado: un cero ahí se leería como
+            // «pactado en cero», que es lo contrario de «todavía sin pactar».
+            $acumulado[$monedaReal]['real'] += $real > 0.0 ? $real : ($monedaReal === $monedaCotizada ? $cotizado : 0.0);
+        }
+
+        ksort($acumulado);
+
+        $salida = [];
+        foreach ($acumulado as $moneda => $montos) {
+            $salida[] = [
+                'moneda'   => (string) $moneda,
+                'cotizado' => number_format($montos['cotizado'], 2, '.', ''),
+                'real'     => number_format($montos['real'], 2, '.', ''),
+            ];
+        }
+
+        return $salida;
+    }
 
     public function getOperacionServicios(): Collection { return $this->operacionServicios; }
 
