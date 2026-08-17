@@ -661,14 +661,14 @@ onMounted(async () => {
             <section v-if="activeTab === 'biblia'" class="flex flex-col min-h-full">
 
                 <!-- Barra de filtros pegajosa -->
-                <div class="sticky top-0 z-10 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200 px-4 md:px-6 py-3 shrink-0">
+                <div class="sticky top-0 z-10 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200 px-3 md:px-6 py-2 md:py-3 shrink-0">
 
                     <!-- Fila 1: rango + presets + acciones -->
                     <div class="flex flex-wrap items-center gap-2">
                         <!-- Las dos SIEMPRE en la misma fila: son un rango, y partido en dos
                              renglones deja de leerse como tal. Caben de sobra. -->
                         <div class="grid grid-cols-2 gap-2 flex-1 min-w-[15rem] md:flex-none md:w-[23rem]">
-                            <label class="flex flex-col gap-1">
+                            <label class="flex flex-col gap-0.5">
                                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</span>
                                 <FechaHoraPicker
                                     :model-value="desde"
@@ -676,7 +676,7 @@ onMounted(async () => {
                                     @update:model-value="onCambiarDesde"
                                 />
                             </label>
-                            <label class="flex flex-col gap-1">
+                            <label class="flex flex-col gap-0.5">
                                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hasta</span>
                                 <FechaHoraPicker
                                     :model-value="hasta"
@@ -699,6 +699,11 @@ onMounted(async () => {
                         </div>
 
                         <div class="flex items-center gap-2 ml-auto self-end">
+                            <!-- El contador vive aquí y no en su propia franja: una línea sólo
+                                 para «0 servicios» es cuadro de tráfico que no se ve. -->
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest tabular-nums hidden sm:inline">
+                                {{ operacionStore.servicios.length }}
+                            </span>
                             <button
                                 @click="mostrarFiltrosAvanzados = !mostrarFiltrosAvanzados"
                                 :class="hayFiltrosExtra ? 'bg-[#376875] text-white border-[#376875]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'"
@@ -766,9 +771,8 @@ onMounted(async () => {
                     <!-- EXPEDIENTE, fuera de «Filtros» y en la barra fija.
                          Es lo único que permite consultar SIN rango de fechas, así que
                          esconderlo tras un desplegable era esconder la salida. -->
-                    <div class="mt-2 flex flex-wrap items-end gap-2">
-                            <div class="relative flex flex-col gap-1 min-w-[16rem]">
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Expediente</span>
+                    <div class="mt-1.5 flex flex-wrap items-center gap-2">
+                            <div class="relative flex flex-col gap-1 flex-1 min-w-[11rem]">
 
                                 <div v-if="expedienteSeleccionado" class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
                                     <i class="fas fa-folder-open text-[#376875] text-xs"></i>
@@ -805,23 +809,24 @@ onMounted(async () => {
                                 </template>
                             </div>
 
-                        <!-- Ya está / falta por encargar. En local sobre lo cargado. -->
-                        <div class="flex items-center gap-1 self-end bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                        <!-- Ya está / falta por encargar. En local sobre lo cargado.
+                             Comparte fila con el expediente: en móvil cada bloque suelto de la
+                             barra es una franja menos de cuadro, que es lo que se viene a ver. -->
+                        <div class="flex items-center gap-0.5 shrink-0 bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm">
                             <button v-for="o in [{ k: '', l: 'Todas' }, { k: 'sin', l: 'Sin OS' }, { k: 'con', l: 'En OS' }]"
                                     :key="o.k"
                                     @click="filtroOs = o.k as '' | 'sin' | 'con'"
                                     :class="filtroOs === o.k ? 'bg-[#376875] text-white' : 'text-slate-500 hover:bg-slate-100'"
-                                    class="px-2.5 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-colors">
+                                    class="px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest transition-colors whitespace-nowrap">
                                 {{ o.l }}
                             </button>
                         </div>
                     </div>
 
                     <!-- Sin rango y sin expediente no se consulta: sería la operación entera. -->
-                    <p v-if="faltaAcotar"
-                       class="mt-2 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-2">
-                        <i class="fas fa-triangle-exclamation mt-0.5"></i>
-                        <span>Pon un rango de fechas, o elige un expediente para verlo entero sin fechas.</span>
+                    <p v-if="faltaAcotar" class="mt-1.5 text-[10px] font-bold text-amber-700 flex items-center gap-1.5">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        Pon fechas, o elige un expediente para verlo entero sin ellas.
                     </p>
 
                     <div v-if="mostrarFiltrosAvanzados" class="mt-3 pt-3 border-t border-slate-200 flex flex-col gap-3">
@@ -891,9 +896,10 @@ onMounted(async () => {
                         </div>
                     </div>
 
-                    <!-- Fila 3: contador y selección -->
-                    <div class="mt-2 flex items-center gap-3">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <!-- Fila 3: sólo si hay algo que decir. Con el cuadro vacío y sin
+                         seleccionar, esta franja era espacio en blanco fijo. -->
+                    <div v-if="seleccionados.length || hayServiciosOcultos" class="mt-2 flex items-center gap-3">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest sm:hidden">
                             {{ operacionStore.servicios.length }} servicio{{ operacionStore.servicios.length !== 1 ? 's' : '' }}
                         </span>
 
