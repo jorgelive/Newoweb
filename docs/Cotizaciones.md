@@ -55,6 +55,48 @@ Cada nodo guarda **copias congeladas** (`*Snapshot`) tomadas de los **maestros**
 - El **nombre interno** de un componente **no** está en su snapshot: viene del **maestro** (`componenteMaestroId` → `catalogos.allComponentes[].nombre`). Siempre existe.
 - `nombreSnapshot` del componente = **título público** (opcional; para el cliente). Un componente sin `nombreSnapshot` es un "contenedor solo-ítems" (`isComponenteSoloItems`).
 
+### ⚠️ Los tres nombres de un SERVICIO, y la asimetría interno/público (2026-08-17)
+
+Un `CotizacionCotservicio` tiene **tres** campos de nombre, y no dan lo mismo:
+
+| Campo | Qué es | Grupo | Editable |
+|---|---|---|---|
+| `nombreSnapshot` | Nombre del servicio del catálogo. **INTERNO** (Biblia, voucher) | no pax | ❌ bloqueado (candado) |
+| `itinerarioNombreSnapshot` | Nombre de la **plantilla** (`TravelItinerario`) aplicada. Interno | no pax | ❌ sólo etiqueta |
+| `nombrePublicoSnapshot` | **TÍTULO público** (lo ve el cliente) | pax | ✅ sí |
+
+**La plantilla es más específica que el servicio, y por eso debe ganar.** Un servicio genérico
+«Alojamiento» tomado de la plantilla «Alojamiento en Lima» debería llamarse por la plantilla,
+no por el genérico. Cómo está hoy:
+
+| | Título PÚBLICO (`nombrePublicoSnapshot`) | Nombre INTERNO (`nombreSnapshot`) |
+|---|---|---|
+| Override de la plantilla al aplicarla | ✅ **sí** (`aplicarPlantilla`, store: se copia el título del itinerario) | ❌ **no** — queda el genérico del servicio |
+| Fallback al servicio si no hay plantilla | ✅ sí (`nombrePublicoSnapshot \|\| nombreSnapshot`) | (es el propio servicio) |
+| Editable en la cotización | ✅ sí (input) | ❌ **no** — sale con candado (`servicioMaestroId` + componentes ⇒ bloqueado) |
+
+**El hueco, confirmado (lo reportó Jorge, 2026-08-17):**
+
+1. **El nombre interno NO recibe el override de la plantilla.** El público sí (`nombrePublicoSnapshot`
+   se sobrescribe con el título del itinerario al aplicarlo); el interno se queda con el nombre
+   genérico del servicio. Y ese interno es el que usa **La Biblia** (`contextoServicio` =
+   `getNombreSnapshot()`) y el que alimenta el voucher — así que el operador ve «Alojamiento» y
+   no «Alojamiento en Lima».
+2. **El nombre interno no es editable** a nivel servicio: cuando el servicio viene del maestro,
+   el editor lo pinta bloqueado. Sólo el componente tiene su nombre editable, no el servicio.
+
+**Corrección propuesta (no aplicada — cambia el comportamiento de nombres):**
+
+- El nombre interno efectivo debería resolverse con la misma prioridad que el público:
+  `plantilla (itinerarioNombreSnapshot) → servicio (nombreSnapshot)`. Un helper único que las dos
+  caras usen, para que no vuelvan a divergir.
+- Hacer editable el nombre interno del servicio en la cotización, con la plantilla como valor
+  sembrado y el servicio como fallback — igual que ya funciona el título público.
+
+Dónde vive cada pieza: se aplica la plantilla en `cotizacionEditorStore.aplicarPlantilla()`
+(copia título → `itinerarioNombreSnapshot` y `nombrePublicoSnapshot`, NO `nombreSnapshot`); el
+nombre interno lo lee `BibliaSnapshotService::calcularValores()` (`contextoServicio`).
+
 ### Textos i18n
 Los textos multi-idioma son `I18nContent[]` = `[{ language, content }]`.
 - util: `store.getI18nText(arr, lang)` (con fallback).
