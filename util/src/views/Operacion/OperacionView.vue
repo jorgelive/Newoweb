@@ -1366,6 +1366,32 @@ onMounted(async () => {
                         del expediente <strong class="text-slate-800">{{ serviciosSeleccionados[0]?.file?.nombreGrupo }}</strong>.
                     </p>
 
+                    <!--
+                      EL DESGLOSE. El total salía solo, sin decir de dónde, y con un número
+                      que no cuadra con nada visible sólo queda confiar o rehacerlo a mano.
+                      Cada línea es un COMPONENTE —que es la unidad de la orden— con lo que
+                      aporta.
+                    -->
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 divide-y divide-slate-200 max-h-40 overflow-y-auto">
+                        <div v-for="s in serviciosSeleccionados" :key="s.id ?? ''"
+                             class="flex items-start justify-between gap-2 px-3 py-2">
+                            <div class="min-w-0">
+                                <p class="text-[11px] font-bold text-slate-700 leading-snug">
+                                    {{ s.contextoServicio || s.descripcionServicio }}
+                                </p>
+                                <p v-if="s.contextoServicio" class="text-[10px] text-slate-400 leading-snug truncate">
+                                    {{ s.descripcionServicio }}
+                                </p>
+                                <p class="text-[10px] text-slate-400">
+                                    {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ s.cantidadPax }} pax
+                                </p>
+                            </div>
+                            <span class="text-xs font-black text-slate-700 tabular-nums shrink-0">
+                                {{ importe(s.costoCotizado) }}
+                            </span>
+                        </div>
+                    </div>
+
                     <label class="flex flex-col gap-1">
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Número de OS</span>
                         <input

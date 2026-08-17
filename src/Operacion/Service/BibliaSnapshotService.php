@@ -223,7 +223,11 @@ class BibliaSnapshotService
             'cantidadPax'           => $cantidadPax,
             // Sin tarifa el costo es 0 y no null: la fila es referencia, no una compra
             // de importe desconocido. Un null aquí obligaría a comprobarlo en cada suma.
-            'costoCotizado'         => $tarifa?->getMontoCosto() ?? '0.00',
+            //
+            // 🔥 El TOTAL del componente, no el precio unitario de una tarifa. Ver
+            // `calcularCostoCotizado()`: multiplica por las cantidades y suma todas las
+            // tarifas, que es lo que la Orden de Servicio le va a pedir al proveedor.
+            'costoCotizado'         => $this->calcularCostoCotizado($cotcomponente),
             'monedaCotizadaId'      => $tarifa?->getMoneda()?->getId(),
             'cotizacionTarifaId'    => $tarifa !== null ? (string) $tarifa->getId() : null,
         ];
@@ -343,6 +347,48 @@ class BibliaSnapshotService
         );
 
         return array_values($tarifas)[0];
+    }
+
+    /**
+     * Lo que cuesta el componente ENTERO: todas sus tarifas, con sus cantidades.
+     *
+     * ── El fallo que corrige ────────────────────────────────────────────────────
+     * Antes era `tarifaPrimaria->getMontoCosto()` a secas, y eso es el precio UNITARIO de
+     * UNA de las tarifas. Dos errores encima del mismo campo:
+     *
+     *  · No multiplicaba. Un hotel de 2 noches a 106 se guardaba como 106. Medido en
+     *    producción: 5 filas con `componente.cantidad <> 1`, todas cortas.
+     *  · Sólo miraba una tarifa. Un componente con «Individual ×1» y «Doble ×8» declaraba
+     *    el precio de la individual y se comía el resto.
+     *
+     * Y ese número es el que suma el total de la Orden de Servicio, así que se le pedía al
+     * proveedor un importe menor que lo cotizado sin que nada lo delatara.
+     *
+     * ── La fórmula es la del cotizador, no una nueva ────────────────────────────
+     * `monto × cantidad_de_la_tarifa × cantidad_del_componente`, sumado sobre las tarifas que
+     * no son ALTERNATIVA. Es exactamente lo que hace `cotizacionEditorStore` al calcular el
+     * costo de una línea — si algún día cambia allí, tiene que cambiar aquí.
+     *
+     * ⚠️ Suma sin convertir, y puede hacerlo porque un componente NO mezcla monedas
+     * (verificado en producción: cero casos). Si algún día los mezclara, esto sumaría peras
+     * con manzanas: la moneda se toma de la tarifa primaria y sería la de una sola de ellas.
+     */
+    public function calcularCostoCotizado(CotizacionCotcomponente $componente): string
+    {
+        $unidadesComponente = max(1, $componente->getCantidad());
+        $total = 0.0;
+
+        foreach ($componente->getCottarifas() as $tarifa) {
+            if (TarifaRolEnum::tryFrom($tarifa->getRolSnapshot() ?? '') === TarifaRolEnum::ALTERNATIVA) {
+                continue;   // venta opcional que nadie compró: no se encarga ni se paga
+            }
+
+            $total += (float) $tarifa->getMontoCosto()
+                * max(1, $tarifa->getCantidad())
+                * $unidadesComponente;
+        }
+
+        return number_format($total, 2, '.', '');
     }
 
     public function resolverFechaServicio(
