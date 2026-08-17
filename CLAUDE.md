@@ -192,6 +192,28 @@ Verificación: `cd util && npm run typecheck` (idem en `pax/`) — es `vue-tsc -
 misma comprobación que corre el build. Sin errores, siempre. Ojo: la inspección propia de
 PhpStorm sobre `.vue` es menos fiable que `vue-tsc`; ante una discrepancia, manda el script.
 
+### ⚠️ Un atributo mal puesto NO falla: deja de hacer su trabajo
+
+Es el fallo más caro de este código, porque no produce ni un error. Tres casos reales, todos
+encontrados por herramientas y ninguno por leer el archivo:
+
+| Qué pasó | Consecuencia | Lo cazó |
+|---|---|---|
+| `#[Assert\Valid]` en `PmsChannel` **sin el `use`** de `Validator\Constraints` | Resolvía a `App\Pms\Entity\Assert\Valid`, que no existe: **la validación en cascada de la colección llevaba tiempo apagada** | PHPStan (`attribute.notFound`) |
+| `getTipoCambio()` insertado **entre el docblock de `getSaldo()` y su `#[Groups]`** | El grupo se lo quedó el getter equivocado y **`saldo` desapareció del esquema de la API** | `npm run typecheck`, tras regenerar `api.d.ts` |
+| El docblock de `getNoches()` pegado a `isSalidaTardia()` | Un `@return int` sobre un método `bool`, documentando el cálculo equivocado | PHPStan (`return.phpDocType`) |
+
+Las reglas que salen de ahí:
+
+- **El docblock va encima del bloque de atributos ENTERO.** Insertar un método «justo antes» de
+  otro es la forma más fácil de robarle sus atributos al de abajo. Al añadir un getter, mira qué
+  hay inmediatamente encima antes de escribir.
+- **Un atributo sin su `use` no es un error de sintaxis**: PHP lo resuelve contra el namespace
+  actual y se queda tan tranquilo. Si añades `#[Assert\…]`, `#[Groups]` o `#[ApiProperty]` a un
+  archivo, comprueba que el `use` está.
+- **Corre PHPStan y el typecheck del front antes de cerrar.** Los tres se cazaron así, y ninguno
+  habría salido en una revisión a ojo ni en los tests.
+
 ### Campos que parecen un error y no lo son
 
 Algunos nombres invitan a «corregirlos» y al hacerlo se rompe algo en silencio. Antes de

@@ -299,6 +299,23 @@ export interface PmsEventoExtendedProps {
      * `null` cuando no hay cabecera o el total es 0 (bloqueos, reservas nuevas).
      */
     simbolo?: string | null;
+    /**
+     * ¿La cifra de la barra pasó por un tipo de cambio?
+     *
+     * Sólo cuando la reserva tiene movimiento en dos monedas. La pastilla la marca con `≈` y el
+     * tooltip enseña `totales`, que es el desglose exacto y sin convertir. Con una sola moneda
+     * —313 de 317 reservas— esto es `false` y la barra se lee igual que siempre.
+     */
+    convertido?: boolean | null;
+    /**
+     * ¿Está saldada dentro de la tolerancia del cuadre?
+     *
+     * Es lo que decide el color de la pastilla en vez de comparar el saldo contra cero: sin esto,
+     * diez céntimos de redondeo del cambio pintaban de rojo una reserva pagada.
+     */
+    cuadra?: boolean | null;
+    /** Desglose exacto por moneda, para el tooltip. Sólo llega en reservas de dos monedas. */
+    totales?: { moneda: string; cargos: string; saldo: string }[] | null;
     /** Decimal en texto («1250.00»): viene tal cual del backend, sin redondear. */
     total?: string | null;
     /** Positivo = queda por cobrar. Cero o negativo = cobrada. */
@@ -370,17 +387,27 @@ export const PMS_CHANNEL = {
 export interface CanalInfo {
     texto: string;
     icono: string;
+    /**
+     * Clase de color del icono. Los de marca van a su color reconocible —Booking azul, Airbnb
+     * rojo— y el directo a verde, que es «nuestro», no de nadie de fuera.
+     *
+     * ⚠️ Clase completa y no interpolada (`text-rose-500`, nunca `text-${x}-500`): Tailwind
+     * compila leyendo el código fuente y una clase construida en tiempo de ejecución no llega
+     * nunca al CSS. Es el mismo motivo por el que los colores que vienen de la API tampoco
+     * pueden ser nombres de clase.
+     */
+    color: string;
 }
 
 const CANAL_INFO: Record<string, CanalInfo> = {
-    [PMS_CHANNEL.AIRBNB]:  { texto: 'Airbnb', icono: 'fab fa-airbnb' },
-    [PMS_CHANNEL.BOOKING]: { texto: 'Booking', icono: 'fas fa-hotel' },
-    [PMS_CHANNEL.VRBO]:    { texto: 'VRBO', icono: 'fas fa-umbrella-beach' },
-    [PMS_CHANNEL.DIRECTO]: { texto: 'Directo', icono: 'fas fa-handshake' },
+    [PMS_CHANNEL.AIRBNB]:  { texto: 'Airbnb', icono: 'fab fa-airbnb', color: 'text-rose-500' },
+    [PMS_CHANNEL.BOOKING]: { texto: 'Booking', icono: 'fas fa-hotel', color: 'text-blue-600' },
+    [PMS_CHANNEL.VRBO]:    { texto: 'VRBO', icono: 'fas fa-umbrella-beach', color: 'text-sky-500' },
+    [PMS_CHANNEL.DIRECTO]: { texto: 'Directo', icono: 'fas fa-handshake', color: 'text-emerald-600' },
 };
 
-/** Canal desconocido: enlace genérico, sin inventarle una marca. */
-const CANAL_FALLBACK: CanalInfo = { texto: 'Canal', icono: 'fas fa-external-link-alt' };
+/** Canal desconocido: enlace genérico, sin inventarle una marca ni un color. */
+const CANAL_FALLBACK: CanalInfo = { texto: 'Canal', icono: 'fas fa-external-link-alt', color: 'text-slate-400' };
 
 export function canalInfo(canalId?: string | null): CanalInfo {
     return (canalId && CANAL_INFO[canalId]) || CANAL_FALLBACK;

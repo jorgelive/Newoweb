@@ -44,8 +44,10 @@ use Symfony\Component\Uid\Uuid;
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear cargos.',
         ),
-        // `pms_cargo:patch` excluye moneda y tipoCambio: quedan fijos al registrar el
-        // importe (el listener de coherencia bloquea el cambio de moneda de todas formas).
+        // `pms_cargo:patch` deja pasar moneda y tipoCambio, pero quien decide de verdad es
+        // el listener de coherencia: los dos quedan fijos al registrar el importe, y sólo se
+        // admiten mientras el cargo siga en 0.00 (moneda) o vacío (tipoCambio). El grupo no
+        // puede ser el candado porque la regla depende del ESTADO de la fila, no del campo.
         new Patch(
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar cargos.',
@@ -170,10 +172,22 @@ class PmsCargoFinanciero
     #[Groups(['pms_cargo:read'])]
     private bool $esAutomatico = false;
 
-    /** Moneda del importe (resolver contra maestro; default USD si no llega). */
+    /**
+     * Moneda del importe (resolver contra maestro; default USD si no llega).
+     *
+     * Está en `pms_cargo:patch` desde el 15/08/2026, y **el candado sigue puesto**: quien lo
+     * aplica es `PmsInformacionFinancieraCoherenciaListener::assertMonedaNoBloqueada()`, que
+     * la deja cambiar sólo mientras el cargo valga `0.00` — o sea, mientras no haya ningún
+     * importe registrado al que la moneda esté atada.
+     *
+     * Hizo falta porque una estancia directa nace con una línea en cero en la moneda de la
+     * cabecera (normalmente USD) para que el operador escriba el precio acordado, y ese precio
+     * se cierra a menudo en soles. Con la moneda fuera del grupo, la única salida era borrar la
+     * línea y crear otra.
+     */
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: true)]
-    #[Groups(['pms_cargo:read', 'pms_cargo:write'])]
+    #[Groups(['pms_cargo:read', 'pms_cargo:write', 'pms_cargo:patch'])]
     private ?MaestroMoneda $moneda = null;
 
     /**
@@ -210,7 +224,7 @@ class PmsCargoFinanciero
      *
      * Se traduce sola vía {@see \App\Attribute\AutoTranslate}: se escribe en español y el
      * resto de idiomas los rellena el traductor automático, igual que
-     * `CotizacionCottarifa::$proveedorTituloSnapshot`.
+     * `CotizacionCotcomponente::$prestadorTituloSnapshot`.
      *
      * Nullable en base de datos —no `NOT NULL DEFAULT '[]'`— para que añadir la columna a una
      * tabla con miles de cargos no exija reescribirlos todos.

@@ -19,6 +19,7 @@ use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Service\Finance\MonedaResolver;
 use App\Pms\Service\Finance\PmsCuentaSimulador;
+use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Pms\Service\Finance\TipoCambioDelDia;
 use App\Security\Roles;
 use DateTimeImmutable;
@@ -131,6 +132,12 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                     . 'soles, USD si dice dólares. NO la adivines: si sólo te dan un número, '
                     . 'omítela y la skill te dirá cuánto sale de cada forma para que preguntes.',
                     requerido: false),
+                SkillParameter::texto('salda_deuda_en', 'A qué deuda se aplica el dinero cuando '
+                    . 'el cobro entra en una moneda SIN cargos. NO lo mandes de entrada: la '
+                    . 'skill te preguntará si hace falta, y entonces respondes con la moneda '
+                    . '(«USD») o con «no» si ese dinero es otra cosa —una propina, un extra sin '
+                    . 'cargar— y debe quedar como saldo a favor en la moneda en que entró.',
+                    requerido: false),
                 SkillParameter::texto('importe_incluye_comision', 'Sólo para medios con '
                     . 'comisión. "si" = el importe es lo que se pasó por el POS; "no" = es lo '
                     . 'que debe abonar a la deuda. Omítelo para que la skill te dé las dos '
@@ -231,6 +238,48 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         // No depende del medio, así que se pregunta en la misma tanda.
         if ($monedaIndicada === '' && $monedaCuenta->getId() !== self::MONEDA_LOCAL) {
             $faltan[] = 'moneda';
+        }
+
+        // 🎯 ¿A QUÉ DEUDA SE APLICA ESTE DINERO?
+        //
+        // Aparece cuando el cobro entra en una moneda donde NO hay ningún cargo: ese dinero no
+        // puede saldar nada suyo. Es el caso real de GASUNN —cargos de Booking en dólares, cobro
+        // por Yape en soles— y es la razón de que esta skill NO se simplificara al dejar de
+        // convertir: sin la pregunta, el agente contestaría «saldo US$ 65.97 pendiente y
+        // S/ 223.70 a favor del huésped», que es justo lo falso.
+        //
+        // Se pregunta, no se decide: a veces esos soles son de verdad otra cosa —una propina, un
+        // extra que todavía no se ha cargado—, y darlos por aplicados sería cobrar algo que nadie
+        // acordó.
+        //
+        // ⚠️ Va en ESTA tanda y no en un viaje aparte. Es la regla de la skill: si faltan tres
+        // datos se piden los tres juntos. Sólo se puede plantear cuando la moneda del cobro ya se
+        // conoce — si está en `$faltan`, la candidata sale null y la pregunta espera al siguiente
+        // turno, que es cuando de verdad se puede formular.
+        $monedaOrigen = $monedaIndicada !== ''
+            ? $this->monedas->resolve($monedaIndicada)
+            : $monedaCuenta;
+
+        $totales = PmsTotalesPorMoneda::de($info);
+        $conDeuda = array_keys(array_filter(
+            $totales->porMoneda,
+            static fn (array $c): bool => (float) $c['cargos'] > 0.0,
+        ));
+
+        // Sólo con UNA candidata: con deuda en dos monedas distintas de la del cobro, elegir por
+        // el operador sería adivinar a cuál se aplica.
+        $candidata = !in_array($monedaOrigen->getId(), $conDeuda, true) && count($conDeuda) === 1
+            ? $conDeuda[0]
+            : null;
+
+        $imputacion = strtolower(trim((string) ($entrada['salda_deuda_en'] ?? '')));
+        // Se consulta aquí y no más abajo porque la PREGUNTA ya necesita enseñar la equivalencia:
+        // «¿va contra la deuda en USD? abonaría 65.97» se responde mucho mejor que «¿va contra la
+        // deuda en USD?» a secas.
+        $tipoDelDiaParaPreview = $this->tipoCambio->venta();
+
+        if ($candidata !== null && $imputacion === '') {
+            $faltan[] = 'salda_deuda_en';
         }
 
         // 💳 Con comisión, «20» tampoco dice si es lo del POS o lo que abona. Sólo se puede
@@ -346,7 +395,18 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                     $monedaCuenta->getId(),
                     $cobradorIndicado,
                     $candidatos,
-                    $porqueFaltaCobrador
+                    $porqueFaltaCobrador,
+                    $monedaOrigen->getId(),
+                    $candidata,
+                    $candidata !== null && $tipoDelDiaParaPreview !== null
+                        ? sprintf(
+                            '%.2f %s',
+                            $monedaOrigen->getId() === 'PEN'
+                                ? $importe / (float) $tipoDelDiaParaPreview
+                                : $importe * (float) $tipoDelDiaParaPreview,
+                            $candidata,
+                        )
+                        : null,
                 ),
             ], static fn ($v) => $v !== null));
         }
@@ -361,50 +421,60 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         $cobrado = $pct > 0.0 && $incluye !== 'no' ? $importe : $importe * (1 + $pct / 100);
         $neto = $pct > 0.0 && $incluye !== 'no' ? $importe / (1 + $pct / 100) : $importe;
 
-        // Conversión: el pago se guarda en la moneda de la cuenta, con el tipo aplicado
-        // registrado para poder auditarlo. Mismo criterio que RegistrarCargoSkill, incluido
-        // el consultarlo SIEMPRE: un pago sin TC deja de restar el día que se cambie la moneda
-        // base de la cuenta (aporta 0, §12.2), aunque hoy su moneda sea la de la cabecera.
-        $monedaOrigen = $monedaIndicada !== ''
-            ? $this->monedas->resolve($monedaIndicada)
-            : $monedaCuenta;
-
-        $tipoDelDia = $this->tipoCambio->venta();
-        $huboConversion = $monedaOrigen->getId() !== $monedaCuenta->getId();
-
-        if ($huboConversion) {
-            if ($tipoDelDia === null) {
-                return SkillResult::error(sprintf(
-                    'No hay tipo de cambio disponible para pasar de %s a %s. Registra el pago '
-                    . 'desde el panel indicando el tipo a mano.',
-                    $monedaOrigen->getId(),
-                    $monedaCuenta->getId()
-                ));
-            }
-
-            $factor = $monedaOrigen->getId() === 'PEN'
-                ? 1 / (float) $tipoDelDia
-                : (float) $tipoDelDia;
-
-            $cobrado *= $factor;
-            $neto *= $factor;
-        }
-
-        // Al modelo se le reporta sólo el tipo que se USÓ para convertir; el que se sella en
-        // el registro es $tipoDelDia. Ver el mismo par en RegistrarCargoSkill.
-        $tipoAplicado = $huboConversion ? $tipoDelDia : null;
+        // 💱 EL COBRO SE GUARDA EN LA MONEDA EN QUE ENTRÓ. Ya no se convierte.
+        //
+        // Antes se pasaba a la moneda de la cuenta con el tipo del día. El importe resultante era
+        // correcto y aun así **el huésped no lo reconocía**: quien abonó S/ 223.70 por Yape no
+        // entiende «pagaste US$ 65.97». Desde el 16/08/2026 los importes se suman por moneda y no
+        // se convierten (§12.2b), así que aquí sólo hay que registrar lo que pasó.
+        // Ya resuelto arriba, para poder enseñar la equivalencia en la pregunta.
+        $tipoDelDia = $tipoDelDiaParaPreview;
 
         $cobrado = round($cobrado, 2);
         $neto = round($neto, 2);
 
-        $saldoAntes = (float) $info->getSaldo();
-        $saldoDespues = round($saldoAntes - $neto, 2);
+        $totales = PmsTotalesPorMoneda::de($info);
+
+        $monedaSaldada = $candidata !== null && !in_array($imputacion, ['', 'no', 'nada', 'ninguna'], true)
+            ? $this->monedas->resolve(strtoupper($imputacion))
+            : null;
+
+        // El saldo de la moneda en la que de verdad se va a aplicar el dinero.
+        $monedaAfectada = ($monedaSaldada ?? $monedaOrigen)->getId();
+        $saldoAntes = (float) ($totales->porMoneda[$monedaAfectada]['saldo'] ?? '0');
+
+        $aplicado = $monedaSaldada === null
+            ? $neto
+            : ($monedaOrigen->getId() === 'PEN' ? $neto / (float) $tipoDelDia : $neto * (float) $tipoDelDia);
+
+        $saldoDespues = round($saldoAntes - $aplicado, 2);
 
         // Un número raro no se señala solo: si queda a favor del huésped hay que DECIRLO, o el
         // modelo lo lee como un dato más y el operador confirma sin fijarse.
         $advertencia = null;
 
-        if ($saldoDespues < 0.0) {
+        // ⚠️ Un cobro IMPUTADO deja casi siempre un residuo: el cambio del mostrador no es el de
+        // los cargos, y sobre 66 dólares eso son 45 céntimos. Avisar de «el pago excede lo
+        // pendiente» por eso convierte la alarma en ruido, y una alarma que salta siempre deja de
+        // leerse — que es justo lo que no puede pasar con la única señal de sobrepago que hay.
+        //
+        // Se usa la MISMA tolerancia que el cuadre del panel, por el mismo motivo: la holgura la
+        // concede haber pasado por una tasa de cambio.
+        $tolerancia = $monedaSaldada === null ? 0.0 : max(
+            (float) PmsTotalesPorMoneda::UMBRAL_CUADRE_MINIMO,
+            abs($aplicado) * (float) PmsTotalesPorMoneda::UMBRAL_CUADRE_PROPORCION,
+        );
+
+        if ($saldoDespues < 0.0 && abs($saldoDespues) <= $tolerancia) {
+            $advertencia = sprintf(
+                'El saldo queda en %.2f %s. Es el redondeo del cambio —se cobró en %s y la deuda '
+                . 'estaba en %s—, no un sobrepago: dalo por saldado.',
+                $saldoDespues,
+                $monedaAfectada,
+                $monedaOrigen->getId(),
+                $monedaAfectada,
+            );
+        } elseif ($saldoDespues < 0.0) {
             $advertencia = $saldoAntes <= 0.0
                 ? sprintf(
                     'ATENCIÓN: esta cuenta YA estaba saldada (saldo %.2f). Este pago la deja en '
@@ -412,7 +482,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                     . 'registrar algún cargo antes.',
                     $saldoAntes,
                     $saldoDespues,
-                    $monedaCuenta->getId()
+                    $monedaAfectada
                 )
                 : sprintf(
                     'ATENCIÓN: el pago excede lo pendiente (%.2f %s). La cuenta queda en %.2f a '
@@ -429,12 +499,16 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
             'localizador' => $reserva->getLocalizador(),
             'medio' => $medio->label(),
             'cobrado_por' => $cobrador?->getFullname(),
-            'cobrado_al_huesped' => sprintf('%.2f %s', $cobrado, $monedaCuenta->getId()),
+            // En la moneda en que ENTRÓ el dinero: es lo que el huésped reconoce de su recibo.
+            'cobrado_al_huesped' => sprintf('%.2f %s', $cobrado, $monedaOrigen->getId()),
             'comision_porcentaje' => $medio->comisionPorcentaje(),
-            'abona_a_la_deuda' => sprintf('%.2f %s', $neto, $monedaCuenta->getId()),
-            'tipo_cambio_aplicado' => $tipoAplicado,
-            'saldo_antes' => sprintf('%.2f %s', $saldoAntes, $monedaCuenta->getId()),
-            'saldo_despues' => sprintf('%.2f %s', $saldoDespues, $monedaCuenta->getId()),
+            'abona_a_la_deuda' => sprintf('%.2f %s', $aplicado, $monedaAfectada),
+            // Sólo cuando el dinero cruzó de moneda de verdad. En un cobro que salda lo suyo no
+            // hay ningún cambio aplicado, y decir uno invitaría a explicárselo al huésped.
+            'tipo_cambio_aplicado' => $monedaSaldada !== null ? $tipoDelDia : null,
+            'salda_deuda_en' => $monedaSaldada?->getId(),
+            'saldo_antes' => sprintf('%.2f %s', $saldoAntes, $monedaAfectada),
+            'saldo_despues' => sprintf('%.2f %s', $saldoDespues, $monedaAfectada),
             'advertencia' => $advertencia,
         ];
 
@@ -446,7 +520,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                 'motivo' => 'falta_confirmacion',
                 // La foto entera de la cuenta, no sólo el saldo: el operador aprueba mejor
                 // viendo en qué queda todo que leyendo una frase.
-                'simulacion' => $this->simulador->simular($info, deltaPagos: $neto),
+                'simulacion' => $this->simulador->simular($info, deltaPagos: $aplicado, moneda: $monedaAfectada),
                 'pregunta_aprobacion' => '¿Apruebas el cambio?',
                 'previsualizacion' => sprintf(
                     'Se registrará un pago de %s por %s a nombre de %s (%s)%s. Abona %s y el '
@@ -465,7 +539,8 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
 
         $pago = new PmsPagoFinanciero();
         $pago->setMonto(sprintf('%.2f', $neto));
-        $pago->setMoneda($monedaCuenta);
+        // En la moneda en que ENTRÓ el dinero, no en la de la cuenta.
+        $pago->setMoneda($monedaOrigen);
         $pago->setMedioPago($medio);
         $pago->setComisionPorcentaje($medio->comisionPorcentaje());
         $pago->setFechaPago(new DateTimeImmutable());
@@ -485,6 +560,10 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
             $pago->setTipoCambio($tipoDelDia);
         }
 
+        if ($monedaSaldada !== null) {
+            $pago->setMonedaSaldada($monedaSaldada);
+        }
+
         $info->addPago($pago);
         $this->em->persist($pago);
         $this->em->flush();
@@ -492,9 +571,19 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         return SkillResult::ok($resumen + [
             'registrado' => true,
             'pago_id' => (string) $pago->getId(),
-            // El saldo se relee tras el flush: lo recalcula el listener de coherencia, así que
-            // devolver la resta de antes sería contar lo que creemos, no lo que quedó.
-            'saldo_real' => sprintf('%.2f %s', (float) $info->getSaldo(), $monedaCuenta->getId()),
+            // El saldo REAL de la moneda a la que fue el dinero, recalculado desde las
+            // colecciones tras el flush.
+            //
+            // ⚠️ Era `$info->getSaldo()`, y el comentario decía «lo recalcula el listener de
+            // coherencia» — **y no es cierto**: el rollup es SQL crudo y la entidad gestionada
+            // conserva los escalares con los que se cargó. Devolvía el saldo de ANTES del pago,
+            // y encima convertido a la moneda de la cabecera. El value object suma desde
+            // `$info->getPagos()`, que ya incluye el que se acaba de añadir.
+            'saldo_real' => sprintf(
+                '%.2f %s',
+                (float) (PmsTotalesPorMoneda::de($info)->porMoneda[$monedaAfectada]['saldo'] ?? '0'),
+                $monedaAfectada,
+            ),
             'mensaje' => sprintf('Registrado el pago de %s de %s.', $resumen['cobrado_al_huesped'], $huesped),
         ]);
     }
@@ -534,7 +623,10 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         string $monedaCuenta,
         string $cobradorIndicado = '',
         array $candidatos = [],
-        ?string $porqueFaltaCobrador = null
+        ?string $porqueFaltaCobrador = null,
+        string $monedaCobro = '',
+        ?string $candidata = null,
+        ?string $equivalente = null
     ): string {
         $partes = [];
 
@@ -554,6 +646,18 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                 $importe,
                 $monedaCuenta,
                 $monedaCuenta
+            );
+        }
+
+        if (in_array('salda_deuda_en', $faltan, true) && $candidata !== null) {
+            $partes[] = sprintf(
+                'el cobro entra en %s y en esa moneda no hay ningún cargo, así que no puede '
+                . 'saldar nada suyo: ¿va contra la deuda en %s?%s Si no —es una propina, o un '
+                . 'extra que todavía no se ha cargado—, dilo y queda como saldo a favor en %s',
+                $monedaCobro,
+                $candidata,
+                $equivalente !== null ? sprintf(' Al cambio de hoy abonaría %s.', $equivalente) : '',
+                $monedaCobro,
             );
         }
 

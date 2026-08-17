@@ -21,14 +21,26 @@ use App\Pms\Entity\PmsInformacionFinanciera;
  * redondeara distinto para que la previsualización dejara de coincidir con lo que se guarda —
  * que es exactamente el fallo que una previsualización existe para evitar.
  *
- * 🪞 El saldo se calcula **igual** que `PmsInformacionFinanciera::getSaldo()`: cargos menos
- * pagos con `number_format(…, 2)`. Si allí cambia la fórmula, aquí también.
+ * ### Simula UNA moneda, la del movimiento
+ *
+ * Desde el 16/08/2026 la contabilidad va por moneda y no se convierte (§12.2b). Un pago en soles
+ * mueve la fila de soles y no toca la de dólares, así que simular «la cuenta» entera sería
+ * enseñar cifras que ese movimiento no cambia — y en una previsualización eso es peor que no
+ * enseñar nada: el operador aprueba mirando lo que se mueve.
+ *
+ * Por eso recibe la moneda a la que se aplica el delta. Quien la conoce es la skill: es la moneda
+ * en que entró el dinero, o aquella a la que se imputó.
+ *
+ * 🪞 Las cifras salen de {@see PmsTotalesPorMoneda}, el mismo objeto que alimenta el panel. Antes
+ * se leían de `getTotalCargos()`/`getSaldo()`, que son los escalares convertidos del modelo viejo
+ * — y encima rancios dentro de la petición que acababa de escribir.
  */
 final readonly class PmsCuentaSimulador
 {
     /**
-     * @param float $deltaCargos Lo que se sumaría a los cargos, en la moneda de la cabecera.
-     * @param float $deltaPagos  Lo que se sumaría a lo pagado, en la moneda de la cabecera.
+     * @param float       $deltaCargos Lo que se sumaría a los cargos, en `$moneda`.
+     * @param float       $deltaPagos  Lo que se sumaría a lo pagado, en `$moneda`.
+     * @param string|null $moneda      Moneda del movimiento. `null` = la de cotización de la ficha.
      *
      * @return array{
      *     moneda: string,
@@ -40,10 +52,14 @@ final readonly class PmsCuentaSimulador
     public function simular(
         PmsInformacionFinanciera $info,
         float $deltaCargos = 0.0,
-        float $deltaPagos = 0.0
+        float $deltaPagos = 0.0,
+        ?string $moneda = null,
     ): array {
-        $cargosAntes = (float) $info->getTotalCargos();
-        $pagosAntes  = (float) $info->getTotalPagos();
+        $moneda ??= $info->getMoneda()?->getId() ?? 'USD';
+        $fila = PmsTotalesPorMoneda::de($info)->porMoneda[$moneda] ?? null;
+
+        $cargosAntes = (float) ($fila['cargos'] ?? '0');
+        $pagosAntes  = (float) ($fila['pagos'] ?? '0');
 
         $cargosDespues = $cargosAntes + $deltaCargos;
         $pagosDespues  = $pagosAntes + $deltaPagos;
@@ -51,12 +67,11 @@ final readonly class PmsCuentaSimulador
         $saldoDespues = $cargosDespues - $pagosDespues;
 
         return [
-            'moneda' => $info->getMoneda()?->getId() ?? '',
+            'moneda' => $moneda,
             'antes' => [
                 'cargos' => $this->cifra($cargosAntes),
                 'pagado' => $this->cifra($pagosAntes),
-                // El de la entidad, no uno recalculado: es el que el operador ve en el panel.
-                'saldo'  => $info->getSaldo(),
+                'saldo'  => $this->cifra($cargosAntes - $pagosAntes),
             ],
             'despues' => [
                 'cargos' => $this->cifra($cargosDespues),

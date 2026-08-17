@@ -17,6 +17,7 @@ use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Pms\Enum\PmsTipoCargo;
+use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Pms\Repository\PmsInformacionFinancieraRepository;
 use App\Security\Roles;
 use DateTimeInterface;
@@ -105,24 +106,61 @@ class PmsInformacionFinanciera
     #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: false)]
     private ?PmsReserva $reserva = null;
 
-    /** Moneda principal de la reserva (resolver contra maestro; default USD). */
+    /**
+     * La moneda en la que **cotizamos y cobramos por defecto** esta reserva.
+     *
+     * ⚠️ Ya NO significa «la moneda a la que se convierte todo». Desde el 16/08/2026 los importes
+     * se suman por moneda y no se convierten (§12.2): quien manda son las filas de
+     * `pms_finanzas_total_moneda`, y esta columna se quedó siendo lo que de verdad siempre fue —
+     * el defecto con el que se abre un cargo nuevo, la moneda del prepago, la del enlace de pago
+     * y la que usa `PmsCargosAutomaticosService`.
+     *
+     * No la borres pensando que sobra: la necesitan cinco sitios y ninguno tiene otra fuente.
+     */
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: true)]
     #[Groups(['pms_finanzas:read'])]
     private ?MaestroMoneda $moneda = null;
 
     /**
-     * Cache de la suma de los cargos de Beds24 (PmsCargoFinanciero con tipo=charge), convertidos
-     * a esta moneda. Recalculado por PmsInformacionFinancieraCoherenciaListener.
+     * Tipo de cambio con el que se **cuadra** esta reserva. No es contabilidad: es el cierre.
+     *
+     * Los totales por moneda dicen qué se debe. Esto responde la otra pregunta, la del mostrador:
+     * *«te pago en soles lo que falta, ¿cuánto es?»*. Con un solo cambio para la reserva entera
+     * sale un **balance soles↔dólares** que en una reserva cerrada tiene que dar ≈ 0.
+     *
+     * Tres cosas que lo separan del modelo viejo:
+     *
+     *   1. **No sustituye a nada.** La contabilidad siguen siendo los totales por moneda; el
+     *      cuadre se calcula al vuelo desde ellos y **no se guarda**.
+     *   2. **Es UNO para toda la reserva**, no el congelado de cada registro. Justo por eso sirve
+     *      para cerrar: es el cambio con el que se pacta, y el operador puede ponerlo. Por defecto,
+     *      la venta del día en que se abrió la ficha.
+     *   3. **Puede dar distinto de cero, y eso es información.** ±0.20 es el redondeo del cambio
+     *      —el cargo «Descuento tipo de cambio −0.20» que alguien tecleó a mano en GASUNN—; ±40
+     *      es que alguien se equivocó.
+     *
+     * 🔴 **El cuadre NO decide `pago-total`.** Esa decisión sigue siendo estricta por moneda, y no
+     * es cuestión de gusto: `pago-total` → `confirmarPorPago()` → `ESTADOS_PAGO_CONFIABLES` → se
+     * le abren al huésped los códigos de acceso de la casa. Un umbral no puede estar en esa
+     * cadena. Lo que hace el cuadre es **proponer** al operador que impute el cobro (§12.2b, «La imputación en el panel»).
+     */
+    #[ORM\Column(name: 'tipo_cambio', type: 'decimal', precision: 10, scale: 3, nullable: true)]
+    #[Groups(['pms_finanzas:read', 'pms_finanzas:write'])]
+    private ?string $tipoCambio = null;
+
+    /**
+     * ⚠️ **EN RETIRADA.** Cache de los cargos convertidos a la moneda de la cabecera.
+     *
+     * La verdad son ahora las filas de `pms_finanzas_total_moneda` (§12.2). Esta columna se sigue
+     * escribiendo mientras dure la transición, para que un `git revert` del código no necesite
+     * revertir la base; se elimina en la migración de retirada. **No la uses en código nuevo.**
      */
     #[ORM\Column(name: 'total_cargos', type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
     #[Groups(['pms_finanzas:read'])]
     private string $totalCargos = '0.00';
 
-    /**
-     * Cache de la suma de nuestros pagos propios (PmsPagoFinanciero), convertidos a esta moneda.
-     * Recalculado por PmsInformacionFinancieraCoherenciaListener.
-     */
+    /** ⚠️ **EN RETIRADA**, igual que `$totalCargos`. La verdad son los totales por moneda. */
     #[ORM\Column(name: 'total_pagos', type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
     #[Groups(['pms_finanzas:read'])]
     private string $totalPagos = '0.00';
@@ -203,6 +241,13 @@ class PmsInformacionFinanciera
     {
         return number_format((float) $this->totalCargos - (float) $this->totalPagos, 2, '.', '');
     }
+
+    // El getter NO lleva `#[Groups]`: el campo ya se serializa desde la propiedad `$tipoCambio`.
+    // Ponerlo aquí, entre el docblock de `getSaldo()` y su atributo, se lo robó — y `saldo`
+    // desapareció del esquema sin un solo error hasta que `npm run typecheck` lo cazó.
+    public function getTipoCambio(): ?string { return $this->tipoCambio; }
+
+    public function setTipoCambio(?string $tipoCambio): self { $this->tipoCambio = $tipoCambio; return $this; }
 
     /**
      * Prepago que todavía hay que pedir. Transitorio: NO es una columna.
@@ -345,26 +390,46 @@ class PmsInformacionFinanciera
      */
     public function getTotalCargosDelCanal(): string
     {
-        $total = 0.0;
+        $porMoneda = $this->getTotalCargosDelCanalPorMoneda();
+        $base = $this->moneda?->getId() ?? 'USD';
+
+        return $porMoneda[$base] ?? '0.00';
+    }
+
+    /**
+     * Los cargos que puso el CANAL, agrupados por su moneda y sin convertir.
+     *
+     * Es lo que persigue el depósito automático (§12.4.5). Va por moneda porque un canal puede
+     * facturar en dólares y la ampliación directa cobrarse en soles: un solo depósito con la
+     * suma convertida diría que la OTA remitió un importe que nunca remitió.
+     *
+     * @return array<string, string> Importe por id de moneda, en orden alfabético.
+     */
+    public function getTotalCargosDelCanalPorMoneda(): array
+    {
+        $porMoneda = [];
 
         foreach ($this->cargos as $cargo) {
             if (!$cargo->esCargo() || !$cargo->isEsAutomatico()) {
                 continue;
             }
 
-            $tipo = $cargo->getTipoCargo() ?? PmsTipoCargo::OTRO;
-            if (!$this->activa && $tipo !== PmsTipoCargo::PENALIZACION) {
+            // Cabecera ANULADA: sólo la penalización cuenta, igual que en el rollup (§12.7).
+            if (!$this->activa && $cargo->getTipoCargo() !== PmsTipoCargo::PENALIZACION) {
                 continue;
             }
 
-            $total += $this->aMonedaBase(
-                (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0'),
-                $cargo->getMoneda()?->getId(),
-                $cargo->getTipoCambio(),
-            );
+            $moneda = $cargo->getMoneda()?->getId() ?? 'USD';
+            $porMoneda[$moneda] = ($porMoneda[$moneda] ?? 0.0)
+                + (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0');
         }
 
-        return number_format($total, 2, '.', '');
+        ksort($porMoneda);
+
+        return array_map(
+            static fn (float $v): string => number_format($v, 2, '.', ''),
+            $porMoneda,
+        );
     }
 
     /**
@@ -555,6 +620,27 @@ class PmsInformacionFinanciera
     }
 
     /**
+     * Coste teórico por estancia, indexado por `eventoId`. Transitorio: NO es una columna.
+     *
+     * Mismo mecanismo que {@see self::$prepagoPendiente} y por el mismo motivo: depende del
+     * tarifario y de la ficha de la casita, y eso es un servicio. Lo rellena
+     * `PmsInformacionFinancieraPorReservaProvider` antes de serializar.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    private array $costosTeoricos = [];
+
+    /**
+     * @param array<string, array<string, mixed>> $costos Indexados por `eventoId`.
+     */
+    public function setCostosTeoricos(array $costos): self
+    {
+        $this->costosTeoricos = $costos;
+
+        return $this;
+    }
+
+    /**
      * Estancias de la reserva indexadas por su ID de booking en Beds24.
      *
      * Necesario para las RESERVAS AGRUPADAS (§11.6): un grupo de Booking.com genera una sola
@@ -568,7 +654,19 @@ class PmsInformacionFinanciera
      * manuales se le imputan por `eventoId`. Ese `eventoId` es la clave con la que la UI
      * agrupa, venga el cargo del canal o lo haya escrito un operador.
      *
-     * @return array<int, array{eventoId: string, beds24BookingId: string|null, unidad: string|null, inicio: string|null, fin: string|null}>
+     * El `canal` viaja para que la ficha pueda pintar de qué procedencia es cada estancia sin
+     * una segunda llamada. Va el id crudo (`airbnb`, `booking`, `directo`) y no una etiqueta:
+     * el texto y el icono los decide el front en `canalInfo()`, que ya es la tabla única para
+     * la barra del calendario y su tooltip.
+     *
+     * El `costoTeorico` es lo que esa estancia costaría según el tarifario y la ficha de la
+     * casita, desglosado. Sólo viaja en las estancias DIRECTAS, y sólo por la operación
+     * `por-reserva`: es el provider quien lo inyecta, porque calcularlo es un servicio
+     * (`PmsCargosAutomaticosService::costoTeorico()`) y una entidad no puede llamarlo. En el
+     * resto de operaciones llega `null`, que aquí significa «nadie lo ha calculado», no «no
+     * hay tarifario».
+     *
+     * @return array<int, array{eventoId: string, beds24BookingId: string|null, unidad: string|null, inicio: string|null, fin: string|null, canal: string|null, costoTeorico: array<string, mixed>|null}>
      */
     #[Groups(['pms_finanzas:read'])]
     public function getEstancias(): array
@@ -592,10 +690,137 @@ class PmsInformacionFinanciera
                 'unidad' => $evento->getPmsUnidad()?->getNombre(),
                 'inicio' => $evento->getInicio()?->format('Y-m-d'),
                 'fin' => $evento->getFin()?->format('Y-m-d'),
+                'canal' => $evento->getChannel()?->getId(),
+                'costoTeorico' => $this->costosTeoricos[(string) $evento->getId()] ?? null,
             ];
         }
 
         return $estancias;
+    }
+
+    /**
+     * Lo que se debe y lo que se ha cobrado **en cada moneda**, sin convertir.
+     *
+     * Es la contabilidad de verdad desde el 16/08/2026 (§12.2b). `totalCargos`/`totalPagos`, que
+     * convierten todo a la moneda de la cabecera, están en retirada.
+     *
+     * Se calcula desde las colecciones con {@see PmsTotalesPorMoneda}, no leyendo
+     * `pms_finanzas_total_moneda`: esa tabla la escribe SQL crudo en `postFlush` y **puede ir un
+     * paso por detrás dentro de la misma petición** que acaba de registrar un cobro — que es
+     * justo cuando el panel la pide.
+     *
+     * El símbolo sale de las propias monedas de los cargos y cobros: son las entidades que ya
+     * están hidratadas, así que no cuesta una consulta más.
+     *
+     * @return list<array{moneda: string, simbolo: string|null, cargos: string, pagos: string, saldo: string}>
+     */
+    #[ApiProperty(openapiContext: [
+        'type' => 'array',
+        'description' => 'Totales por moneda, sin convertir. Una entrada por moneda con movimiento.',
+        'items' => [
+            'type' => 'object',
+            // Sin `required`, openapi-typescript marca todo opcional y el espejo TS obliga a
+            // comprobar campos que siempre viajan.
+            'required' => ['moneda', 'cargos', 'pagos', 'saldo'],
+            'properties' => [
+                'moneda' => ['type' => 'string', 'example' => 'USD'],
+                'simbolo' => ['type' => 'string', 'nullable' => true, 'example' => 'US$'],
+                'cargos' => ['type' => 'string', 'example' => '65.97'],
+                'pagos' => ['type' => 'string', 'example' => '65.97'],
+                'saldo' => ['type' => 'string', 'example' => '0.00'],
+            ],
+        ],
+    ])]
+    #[Groups(['pms_finanzas:read'])]
+    public function getTotalesPorMoneda(): array
+    {
+        $simbolos = $this->simbolosDeLasMonedas();
+        $salida = [];
+
+        foreach (PmsTotalesPorMoneda::de($this)->porMoneda as $moneda => $cifras) {
+            $salida[] = [
+                'moneda' => $moneda,
+                'simbolo' => $simbolos[$moneda] ?? null,
+                'cargos' => $cifras['cargos'],
+                'pagos' => $cifras['pagos'],
+                'saldo' => $cifras['saldo'],
+            ];
+        }
+
+        return $salida;
+    }
+
+    /**
+     * El CUADRE: los saldos de todas las monedas en una sola cifra, para poder cerrar.
+     *
+     * Responde la pregunta del mostrador —*«te pago en soles lo que falta, ¿cuánto es?»*— y **no
+     * es contabilidad**: la contabilidad son los totales por moneda. Se calcula al vuelo con el
+     * tipo de cambio de la ficha y no se guarda en ninguna parte.
+     *
+     * `tolerancia` viaja para que el panel pueda explicar por qué algo cuadra o no, en vez de
+     * enseñar un booleano sin argumento. Y `saldoAFavor` es una señal aparte de `cuadra`, porque
+     * un sobrepago **está pagado** y aun así hay dinero del huésped en nuestra caja.
+     *
+     * @return array{moneda: string, diferencia: string, tolerancia: string, cuadra: bool, saldoAFavor: bool, mixta: bool, sugiereImputacion: bool, tipoCambio: string|null}
+     */
+    #[ApiProperty(openapiContext: [
+        'type' => 'object',
+        'description' => 'Balance soles↔dólares de la reserva. Referencia para cerrar, no contabilidad.',
+        'required' => ['moneda', 'diferencia', 'tolerancia', 'cuadra', 'saldoAFavor', 'mixta', 'sugiereImputacion'],
+        'properties' => [
+            'moneda' => ['type' => 'string', 'example' => 'USD'],
+            'diferencia' => ['type' => 'string', 'example' => '0.10'],
+            'tolerancia' => ['type' => 'string', 'example' => '1.00'],
+            'cuadra' => ['type' => 'boolean'],
+            'saldoAFavor' => ['type' => 'boolean', 'description' => 'El huésped pagó de más, más allá del redondeo.'],
+            'mixta' => ['type' => 'boolean', 'description' => 'Hay movimiento en más de una moneda.'],
+            'sugiereImputacion' => ['type' => 'boolean', 'description' => 'Un clic cerraría el cruce.'],
+            'tipoCambio' => ['type' => 'string', 'nullable' => true, 'example' => '3.391'],
+        ],
+    ])]
+    #[Groups(['pms_finanzas:read'])]
+    public function getCuadre(): array
+    {
+        $totales = PmsTotalesPorMoneda::de($this);
+
+        return [
+            'moneda' => $totales->monedaCuadre,
+            'diferencia' => $totales->cuadre,
+            'tolerancia' => $totales->tolerancia,
+            'cuadra' => $totales->cuadra(),
+            'saldoAFavor' => $totales->haySaldoAFavor(),
+            'mixta' => $totales->esMixta(),
+            'sugiereImputacion' => $totales->sugiereImputacion(),
+            'tipoCambio' => $totales->tipoCambio,
+        ];
+    }
+
+    /**
+     * Símbolo de cada moneda que aparece en esta ficha, indexado por id.
+     *
+     * @return array<string, string|null>
+     */
+    private function simbolosDeLasMonedas(): array
+    {
+        $simbolos = [];
+
+        foreach ($this->cargos as $cargo) {
+            $moneda = $cargo->getMoneda();
+
+            if ($moneda?->getId() !== null) {
+                $simbolos[$moneda->getId()] = $moneda->getSimbolo();
+            }
+        }
+
+        foreach ($this->pagos as $pago) {
+            $moneda = $pago->getMoneda();
+
+            if ($moneda?->getId() !== null) {
+                $simbolos[$moneda->getId()] = $moneda->getSimbolo();
+            }
+        }
+
+        return $simbolos;
     }
 
     // NOTA: total_cargos y total_pagos NO se recalculan aquí. Los mantiene

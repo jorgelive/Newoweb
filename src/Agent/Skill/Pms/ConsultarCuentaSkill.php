@@ -21,6 +21,7 @@ use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Enum\PmsPoliticaPrepago;
 use App\Pms\Enum\PmsTipoCargo;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
+use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -153,6 +154,7 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
 
         $moneda = $info->getMoneda()?->getId() ?? '';
         $idioma = $reserva->getIdioma()?->getId();
+        $totales = PmsTotalesPorMoneda::de($info);
 
         // 🪞 CANALES QUE COBRAN POR NOSOTROS: la misma regla que ya aplica la guía del huésped.
         //
@@ -193,17 +195,26 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
                 : 'Si dice que en la app del canal ve OTRA cifra, NO improvises la explicación: '
                     . 'pídeme el tema de pagos con consultar_guia poniendo «ya_lo_intento», y te '
                     . 'daré lo que hay que contarle.',
-            'moneda' => $moneda,
-            'total_cargos' => $info->getTotalCargos(),
-            'total_pagado' => $info->getTotalPagos(),
-            'saldo_pendiente' => $info->getSaldo(),
+            // 💱 UNA ENTRADA POR MONEDA, sin convertir nada.
+            //
+            // Antes iba un `total_cargos` / `saldo_pendiente` escalar con todo convertido a la
+            // moneda de la ficha, y ahí el modelo tenía que recitar un número que **el huésped
+            // no había pagado nunca**: quien abonó S/ 223.70 por Yape no reconoce «debes
+            // US$ 65.97». Con el desglose, el modelo puede decir exactamente lo que pasó.
+            'moneda_de_cotizacion' => $moneda,
+            'por_moneda' => $this->porMoneda($totales),
             // El saldo es lo que se mira primero, pero un «0.00» significa cosas distintas
             // según si hay cargos: sin cargos no es que esté pagada, es que no se ha cobrado.
-            'esta_saldada' => (float) $info->getTotalCargos() > 0.0
-                && (float) $info->getSaldo() <= 0.0,
+            'esta_saldada' => $totales->hayCargos() && $totales->cuadra(),
+            // El CUADRE, sólo cuando hay dos monedas en juego. Es lo que contesta «te pago en
+            // soles lo que falta, ¿cuánto es?» sin que el desglose deje al modelo sumando de
+            // cabeza — que es exactamente lo que no puede hacer con dinero.
+            'cuadre' => $this->cuadre($totales),
             'cargos' => $this->cargos($info, $idioma),
             'pagos' => $this->pagos($info),
-            'pago_con_tarjeta' => $this->conRecargoTarjeta($info->getSaldo(), $moneda),
+            // El recargo se calcula sobre el CUADRE, no sobre una moneda suelta: es lo que se
+            // le va a cobrar si lo cierra todo de una vez con la tarjeta.
+            'pago_con_tarjeta' => $this->conRecargoTarjeta($totales->cuadre, $totales->monedaCuadre),
             // Solo viaja si hay algo que pedir; `array_filter` lo quita cuando es null. El
             // saldo total y el prepago responden a preguntas distintas —«cuánto debes» y
             // «cuánto hay que adelantar ahora»— y confundirlos es cobrar de más.
@@ -216,6 +227,61 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             // datos y quien redacta es el modelo, que es lo que mejor hace.
             'idioma_huesped' => $idioma,
         ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * Lo que se debe y lo que se ha cobrado, moneda a moneda.
+     *
+     * Se le da al modelo **con el saldo ya restado** para que no tenga que hacer aritmética: un
+     * modelo resta bien casi siempre, y «casi siempre» no vale hablando de dinero.
+     *
+     * @return list<array{moneda: string, cargos: string, pagado: string, saldo: string}>
+     */
+    private function porMoneda(PmsTotalesPorMoneda $totales): array
+    {
+        $salida = [];
+
+        foreach ($totales->porMoneda as $moneda => $cifras) {
+            $salida[] = [
+                'moneda' => $moneda,
+                'cargos' => $cifras['cargos'],
+                'pagado' => $cifras['pagos'],
+                'saldo' => $cifras['saldo'],
+            ];
+        }
+
+        return $salida;
+    }
+
+    /**
+     * El balance de las dos monedas en una sola cifra, o `null` si sólo hay una.
+     *
+     * Con una moneda el desglose ya lo dice todo y esto sería repetirlo. Con dos, en cambio, el
+     * modelo necesita una cifra para contestar «¿cuánto falta?» — y necesita saber que es
+     * **aproximada**, o se la recitará al huésped como si fuera exacta.
+     *
+     * `saldo_a_favor` va aparte de `esta_saldada` a propósito: un sobrepago está pagado, y aun
+     * así hay dinero del huésped en nuestra caja. Son dos hechos y los dos hay que poder decirlos.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function cuadre(PmsTotalesPorMoneda $totales): ?array
+    {
+        if (!$totales->esMixta()) {
+            return null;
+        }
+
+        return array_filter([
+            'importe' => $totales->cuadre,
+            'moneda' => $totales->monedaCuadre,
+            'tipo_cambio' => $totales->tipoCambio,
+            'cuadra' => $totales->cuadra(),
+            'saldo_a_favor_del_huesped' => $totales->haySaldoAFavor() ?: null,
+            'nota' => 'Esta reserva tiene movimientos en dos monedas. El desglose de `por_moneda` '
+                . 'es lo exacto; este importe es el equivalente al cambio de la reserva, para '
+                . 'poder cerrarlo todo en una sola. Si se lo dices al huésped, dile que es '
+                . 'aproximado y en qué moneda.',
+        ], static fn ($v) => $v !== null);
     }
 
     /**
@@ -248,10 +314,50 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             'monto' => $prepago['monto'],
             'moneda' => $moneda,
             'politica' => $politica?->etiqueta(),
+            // El saldo de SU moneda, no el convertido: si el prepago se pide en dólares, «lo
+            // que queda» tiene que ser en dólares o el modelo le canta al huésped dos cifras
+            // que no casan entre sí.
             'nota' => 'Es el adelanto para asegurar la reserva, no el total: quedan '
-                . sprintf('%s %s', $info->getSaldo(), $moneda) . ' de saldo. Todavía no se ha '
-                . 'cobrado nada de esta reserva.',
+                . sprintf(
+                    '%s %s',
+                    PmsTotalesPorMoneda::de($info)->porMoneda[$moneda]['saldo'] ?? '0.00',
+                    $moneda,
+                )
+                . ' de saldo. Todavía no se ha cobrado nada de esta reserva.',
         ], static fn ($v) => $v !== null && $v !== '');
+    }
+
+    /**
+     * Los extras agrupados por su propia moneda.
+     *
+     * `$hayExtras` viene de fuera porque la sospecha de alojamiento mal marcado ya puso el total
+     * a cero, y ese caso NO puede acabar dando cifras: es el único que no puede mentir.
+     *
+     * @param list<array<string, mixed>> $cargos
+     *
+     * @return list<array{moneda: string, total: string}>
+     */
+    private function extrasPorMoneda(array $cargos, bool $hayExtras): array
+    {
+        if (!$hayExtras) {
+            return [];
+        }
+
+        $porMoneda = [];
+
+        foreach ($cargos as $fila) {
+            $moneda = (string) ($fila['moneda'] ?? 'USD');
+            $porMoneda[$moneda] = ($porMoneda[$moneda] ?? 0.0) + (float) ($fila['importe'] ?? 0);
+        }
+
+        ksort($porMoneda);
+
+        $salida = [];
+        foreach ($porMoneda as $moneda => $total) {
+            $salida[] = ['moneda' => $moneda, 'total' => number_format($total, 2, '.', '')];
+        }
+
+        return $salida;
     }
 
     /**
@@ -281,7 +387,12 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
         }
 
         $politica = PmsPoliticaPrepago::tryFrom($prepago['politica']);
-        $cubierto = (float) $info->getTotalPagos() > 0.0;
+        // «¿Hay algún pago?», no «cuánto». Se pregunta al VO para no depender de un escalar en
+        // retirada; la respuesta es la misma.
+        $cubierto = array_filter(
+            PmsTotalesPorMoneda::de($info)->porMoneda,
+            static fn (array $c): bool => (float) $c['pagos'] > 0.0,
+        ) !== [];
 
         return array_filter([
             'monto' => $prepago['monto'],
@@ -399,10 +510,15 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
         }
 
         return SkillResult::ok(array_filter($base + [
-            'moneda' => $moneda,
+            'moneda_de_cotizacion' => $moneda,
             'cargos' => $cargos,
             'pagos' => $pagos,
-            'total_extras' => number_format($totalExtras, 2, '.', ''),
+            // ⚠️ POR MONEDA, y no una suma. Era `number_format($totalExtras)`, que sumaba los
+            // importes sin mirar en qué moneda estaban: un extra de S/ 50 y otro de US$ 12 daban
+            // «62.00» etiquetado con la moneda de la ficha. Al huésped se le acaba diciendo una
+            // cifra que no existe, y en el único bloque de esta skill que SÍ le puede dar
+            // importes — los extras son lo que se nos paga a nosotros.
+            'extras_por_moneda' => $this->extrasPorMoneda($cargos, $totalExtras > 0.0),
             'mensaje' => 'El alojamiento ya lo cobró la plataforma donde reservó. Lo que ves '
                 . 'aquí son SÓLO los extras consumidos aquí, que se pagan a nosotros. No '
                 . 'menciones el total de la reserva ni el saldo global: esas cifras son '

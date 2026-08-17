@@ -11,6 +11,7 @@ use App\Message\Contract\VinculoComercial;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use DateTimeImmutable;
 use DateTimeZone;
 use Throwable;
@@ -260,9 +261,29 @@ class PmsReservaMessageContext implements MessageContextInterface
      * Sale de la cabecera financiera (§12): `montoTotal` sólo se rellena en las OTA, así que
      * en una reserva directa daba 0 aunque tuviera cargos registrados.
      */
+    /**
+     * ⚠️ Sigue siendo UN float sin moneda, y no se puede cambiar sin arrastrar medio módulo: es
+     * contrato de `MessageContextInterface`, se persiste en `MessageConversation::$contextFinancialTotal`
+     * (columna float) y viaja por Mercure en `MercureConversationDto`.
+     *
+     * Con la contabilidad por moneda (§12.2b) eso ya no es «el total»: es el de la moneda con más
+     * cargos. Sirve para lo que se usa —ordenar y filtrar hilos— y no para decirle una cifra a
+     * nadie. Quien tenga que hablar de dinero usa `consultar_cuenta`, que lo da desglosado.
+     */
     public function getFinancialTotal(): ?float
     {
-        return (float) ($this->informacionFinanciera?->getTotalCargos() ?? $this->reserva->getMontoTotal());
+        $info = $this->informacionFinanciera;
+
+        if ($info === null) {
+            return (float) $this->reserva->getMontoTotal();
+        }
+
+        $cargos = array_map(
+            static fn (array $c): float => (float) $c['cargos'],
+            PmsTotalesPorMoneda::de($info)->porMoneda,
+        );
+
+        return $cargos === [] ? 0.0 : max($cargos);
     }
 
     /**
@@ -274,11 +295,17 @@ class PmsReservaMessageContext implements MessageContextInterface
     public function isFinancialCleared(): bool
     {
         $info = $this->informacionFinanciera;
-        if (!$info || (float) $info->getTotalCargos() <= 0.0) {
+
+        if ($info === null) {
             return false;
         }
 
-        return (float) $info->getSaldo() <= 0.0;
+        // Por moneda, y con la tolerancia del cuadre: una reserva pagada en soles una deuda en
+        // dólares está saldada aunque sobren diez céntimos de redondeo del cambio, y si el chat
+        // no lo entiende así le sigue mandando recordatorios de cobro a alguien que ya pagó.
+        $totales = PmsTotalesPorMoneda::de($info);
+
+        return $totales->hayCargos() && $totales->cuadra();
     }
 
     // =========================================================================

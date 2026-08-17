@@ -10,6 +10,7 @@ use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Enum\PmsPoliticaPrepago;
 use App\Pms\Finanzas\PmsPrepagoEnlaceService;
 use App\Pms\Repository\PmsInformacionFinancieraRepository;
+use App\Pms\Service\Finance\PmsCargosAutomaticosService;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use Symfony\Component\Uid\Uuid;
 
@@ -23,6 +24,8 @@ use Symfony\Component\Uid\Uuid;
  * Delega en `PmsInformacionFinancieraRepository::findOneByReservaId()`, que sí tipa el
  * parámetro. Devolver el recurso en singular es además más honesto que una colección:
  * la relación es 1:1 con la reserva.
+ *
+ * @implements ProviderInterface<PmsInformacionFinanciera>
  */
 final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterface
 {
@@ -30,6 +33,7 @@ final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterf
         private readonly PmsInformacionFinancieraRepository $repository,
         private readonly PmsPrepagoCalculador $prepagoCalculador,
         private readonly PmsPrepagoEnlaceService $prepagoEnlaces,
+        private readonly PmsCargosAutomaticosService $cargosAutomaticos,
     ) {}
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PmsInformacionFinanciera
@@ -54,9 +58,39 @@ final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterf
         // null → API Platform responde 404, que es lo correcto: esa reserva no tiene cabecera.
         $info = $this->repository->findOneByReservaId($reservaId);
 
-        $info?->setPrepagoPendiente($info === null ? null : $this->prepago($info));
+        // Sin `$info === null ? … : …` dentro: el `?->` ya lo cubre y la rama muerta sólo
+        // servía para hacer creer que aquí podía llegar un null.
+        if ($info !== null) {
+            $info->setPrepagoPendiente($this->prepago($info));
+            $info->setCostosTeoricos($this->costosTeoricos($info));
+        }
 
         return $info;
+    }
+
+    /**
+     * Lo que costaría cada estancia DIRECTA según el tarifario, para enseñarlo junto al cargo.
+     *
+     * Se calcula aquí y no en la entidad porque hace falta el tarifario, que es un servicio.
+     * `costoTeorico()` devuelve `null` en todo lo que no sea una venta directa calculable —una
+     * estancia de Booking, un bloqueo, una sin fechas—, así que el filtro no está escrito dos
+     * veces: manda el servicio y aquí sólo se descartan los nulos.
+     *
+     * @return array<string, array<string, mixed>> Indexados por `eventoId`.
+     */
+    private function costosTeoricos(PmsInformacionFinanciera $info): array
+    {
+        $costos = [];
+
+        foreach ($info->getReserva()?->getEventosCalendario() ?? [] as $evento) {
+            $teorico = $this->cargosAutomaticos->costoTeorico($evento);
+
+            if ($teorico !== null) {
+                $costos[(string) $evento->getId()] = $teorico;
+            }
+        }
+
+        return $costos;
     }
 
     /**

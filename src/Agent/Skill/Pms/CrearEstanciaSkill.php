@@ -13,8 +13,10 @@ use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoEstado;
+use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidad;
+use App\Pms\Enum\PmsTipoCargo;
 use App\Pms\Service\Finance\PmsCargosAutomaticosService;
 use App\Pms\Service\Reserva\PmsEstanciaCreator;
 use App\Security\Roles;
@@ -255,6 +257,40 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
         $suplemento = $unidad->suplementoPorPax($adultos + $ninos, $noches);
         $limpieza = $unidad->costoLimpieza($noches, $alojamiento + $suplemento);
 
+        // ⚠️ Estas líneas NO son sólo una previsualización: son los cargos que se escriben.
+        // `PmsCargosAutomaticosService::generarParaEvento()` sólo abre una línea en cero —el
+        // precio de una venta directa lo pone quien vende—, así que lo que el operador aprueba
+        // aquí es literalmente lo que va a la cuenta. Se calcula una vez y se usa para las dos
+        // cosas: enseñarlo y escribirlo. Con dos cálculos ya se separaron una vez.
+        $lineas = array_values(array_filter([
+            [
+                'concepto' => 'Alojamiento',
+                'importe' => sprintf('%.2f', $alojamiento),
+                'origen' => $alojamiento > 0
+                    ? 'tarifario, noche a noche'
+                    : '⚠️ el tarifario no cubre estas noches: quedará en 0.00 y habrá que ponerlo a mano',
+                'tipo' => PmsTipoCargo::ALOJAMIENTO,
+            ],
+            $suplemento > 0.0 ? [
+                'concepto' => sprintf(
+                    'Persona adicional (%d × %s por noche)',
+                    max(0, ($adultos + $ninos) - $unidad->getPaxIncluidos()),
+                    $unidad->getPrecioPaxAdicional()
+                ),
+                'importe' => sprintf('%.2f', $suplemento),
+                'origen' => 'regla de la unidad',
+                'tipo' => PmsTipoCargo::ALOJAMIENTO,
+            ] : null,
+            $limpieza > 0.0 ? [
+                'concepto' => 'Suplemento de limpieza',
+                'importe' => sprintf('%.2f', $limpieza),
+                'origen' => $unidad->limpiezaEsPorcentaje()
+                    ? sprintf('%s%% sobre alojamiento + suplemento', rtrim(rtrim($unidad->getPrecioLimpieza(), '0'), '.'))
+                    : 'importe fijo de la unidad',
+                'tipo' => PmsTipoCargo::LIMPIEZA,
+            ] : null,
+        ], static fn ($v) => $v !== null));
+
         $resumen = array_filter([
             'reserva_id' => (string) $reserva->getId(),
             'huesped' => $reserva->getNombreApellido(),
@@ -267,31 +303,7 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
             'ninos' => $ninos ?: null,
             'estado' => $estadoId,
             'estancias_actuales' => $this->estanciasActuales($reserva),
-            'cargos_previstos' => array_values(array_filter([
-                [
-                    'concepto' => 'Alojamiento',
-                    'importe' => sprintf('%.2f', $alojamiento),
-                    'origen' => $alojamiento > 0
-                        ? 'tarifario, noche a noche'
-                        : '⚠️ el tarifario no cubre estas noches: quedará en 0.00 y habrá que ponerlo a mano',
-                ],
-                $suplemento > 0.0 ? [
-                    'concepto' => sprintf(
-                        'Persona adicional (%d × %s por noche)',
-                        max(0, ($adultos + $ninos) - $unidad->getPaxIncluidos()),
-                        $unidad->getPrecioPaxAdicional()
-                    ),
-                    'importe' => sprintf('%.2f', $suplemento),
-                    'origen' => 'regla de la unidad',
-                ] : null,
-                $limpieza > 0.0 ? [
-                    'concepto' => 'Suplemento de limpieza',
-                    'importe' => sprintf('%.2f', $limpieza),
-                    'origen' => $unidad->limpiezaEsPorcentaje()
-                        ? sprintf('%s%% sobre alojamiento + suplemento', rtrim(rtrim($unidad->getPrecioLimpieza(), '0'), '.'))
-                        : 'importe fijo de la unidad',
-                ] : null,
-            ], static fn ($v) => $v !== null)),
+            'cargos_previstos' => $lineas,
             'total_previsto' => sprintf(
                 '%.2f %s',
                 $alojamiento + $suplemento + $limpieza,
@@ -327,9 +339,24 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
 
         $this->em->flush();
 
+        // Los cargos aprobados, por la misma puerta que usa `crear_reserva`. Sin esto la
+        // estancia quedaría con la línea en cero que abre el generador y el operador habría
+        // aprobado unos importes que no aparecen en ninguna parte.
+        $info = $this->em->getRepository(PmsInformacionFinanciera::class)
+            ->findOneBy(['reserva' => $reserva]);
+
+        $escritos = $info === null
+            ? ['⚠️ no se encontró la cuenta: revisa los cargos a mano en el panel']
+            : $this->cargos->escribirAprobados($evento, $info, $lineas);
+
+        if ($info !== null) {
+            $this->em->flush();
+        }
+
         return SkillResult::ok($resumen + [
             'creada' => true,
             'evento_id' => (string) $evento->getId(),
+            'cargos_escritos' => $escritos,
             'que_ha_pasado' => $this->consecuencias($reserva, $unidad, $desde, $hasta),
         ]);
     }

@@ -9,6 +9,7 @@ import { enfocarEnScroller } from '@/utils/scrollEnfoque';
 import ReservaFinanzasPanel from '@/components/reservas/ReservaFinanzasPanel.vue';
 import WhatsappPlantillasLista from '@/components/reservas/WhatsappPlantillasLista.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import {
     PMS_ESTADO,
     PMS_ESTADO_PAGO,
@@ -28,6 +29,7 @@ import {
     resolveEventoColor,
     contrastText,
     puedeBorrarseYa,
+    canalInfo,
     COLOR_ESTADO_FALLBACK,
     type PmsSyncStatus,
     type PmsEventoCalendario,
@@ -146,6 +148,14 @@ interface EventoEntry {
      */
     estadoPagoActualId: string | null;
     channelNombre: string;
+    /**
+     * Id del canal (`booking`, `airbnb`, `directo`), aparte del nombre.
+     *
+     * El nombre ya estaba, pero no sirve para pintar: el icono y el color salen de
+     * `canalInfo()`, que indexa por id. Y el id es lo estable — el nombre de un canal se
+     * puede editar en el maestro y la cabecera se quedaría sin icono sin que nadie lo note.
+     */
+    channelId: string | null;
     form: EventoFormData;
     /**
      * ¿La estancia llegó del servidor con horario extra marcado? Es lo que congela
@@ -244,6 +254,7 @@ function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
         estadoActualId: evento.estado?.id ?? null,
         estadoPagoActualId: evento.estadoPago?.id ?? null,
         channelNombre: evento.channel?.nombre ?? '—',
+        channelId: evento.channel?.id ?? null,
         horarioExtraGuardado: (evento.entradaTemprana ?? false) || (evento.salidaTardia ?? false),
         inicioPrevio: toDatetimeLocal(evento.inicio),
         safeToDelete: evento.safeToDelete ?? false,
@@ -503,7 +514,9 @@ function colorEntry(entry: EventoEntry): string {
  * salto de tono es lo que marca dónde acaba una y empieza la siguiente. El cuerpo queda muy
  * tenue para no restar contraste a los campos del formulario que lleva encima.
  */
-const CABECERA_ALPHA = '2E'; // ~18%
+const CABECERA_ALPHA = '1F'; // ~12% — bajado desde 2E (~18%): con el icono de canal dentro, el
+                             // fondo saturado le comía el color de marca y la barra pesaba más
+                             // que los datos que lleva.
 const CUERPO_ALPHA   = '0A'; // ~4%
 const BORDE_ALPHA    = '59'; // ~35%
 
@@ -697,6 +710,8 @@ function agregarEvento(): void {
         estadoActualId: null,
         estadoPagoActualId: null,
         channelNombre: 'Directo',
+        // Una estancia que se crea aquí es, por definición, venta directa.
+        channelId: PMS_CHANNEL.DIRECTO,
         horarioExtraGuardado: false,
         inicioPrevio: inicioLocal,
         // Una estancia que aún no existe no se borra: se quita del formulario.
@@ -773,17 +788,14 @@ const guideUrl = computed(() => {
 });
 
 /**
- * Etiqueta e icono del enlace a la extranet del canal. Espejo de `otaMenuInfo`
- * en ReservasView: las dos pintan el mismo enlace, una desde el menú contextual
- * y otra desde la subbarra del drawer.
+ * Etiqueta e icono del enlace a la extranet del canal.
+ *
+ * Sale de `canalInfo()`, que es la misma tabla que usan el menú contextual de ReservasView y
+ * la cabecera de estancias. Antes era un `switch` propio con Booking y Airbnb escritos otra
+ * vez: tres copias de la misma correspondencia canal → icono, y al añadirle color a una no se
+ * enteraban las otras dos. VRBO, que faltaba en el `switch`, aparece ahora sin tocar nada.
  */
-const extranetInfo = computed(() => {
-    switch (reservaInfo.value.channelId) {
-        case PMS_CHANNEL.BOOKING: return { texto: 'Booking', icono: 'fas fa-hotel' };
-        case PMS_CHANNEL.AIRBNB:  return { texto: 'Airbnb', icono: 'fab fa-airbnb' };
-        default:                  return { texto: 'Canal', icono: 'fas fa-external-link-alt' };
-    }
-});
+const extranetInfo = computed(() => canalInfo(reservaInfo.value.channelId));
 
 /**
  * Texto del chip del canal: el código de reserva de la OTA si lo hay, y si no
@@ -1024,6 +1036,8 @@ async function cargarDatos(): Promise<void> {
                 estadoActualId: null,
                 estadoPagoActualId: null,
                 channelNombre: 'Directo',
+        // Una estancia que se crea aquí es, por definición, venta directa.
+        channelId: PMS_CHANNEL.DIRECTO,
                 horarioExtraGuardado: false,
                 inicioPrevio: toDatetimeLocal(props.createDefaults.inicio),
                 safeToDelete: false,
@@ -1766,15 +1780,27 @@ async function ejecutarBorrado(): Promise<void> {
                                              así que no añadía nada. Y va con el color del estado, que
                                              puede NO ser el de la cabecera —ésa la tiñe `colorEntry()`,
                                              donde el estado de pago manda—: ahí está lo que aporta. -->
-                                        <i class="shrink-0 text-xs w-4 text-center" :class="iconoEstado(entry.form.estado)"
+                                        <i class="shrink-0 text-sm w-4 text-center" :class="iconoEstado(entry.form.estado)"
                                             :style="{ color: estadoObj(entry.form.estado)?.color || COLOR_ESTADO_FALLBACK }"
                                             :title="nombreEstado(entry)"></i>
+                                        <!-- De dónde vino ESTA estancia. En una reserva agrupada
+                                             pueden convivir una casita de Booking y otra vendida
+                                             directa, y hasta ahora el canal sólo se veía abriendo
+                                             el acordeón. Va con su color de marca para leerlo sin
+                                             pararse a mirar. -->
+                                        <i v-if="entry.channelId"
+                                            class="shrink-0 text-sm w-4 text-center"
+                                            :class="[canalInfo(entry.channelId).icono, canalInfo(entry.channelId).color]"
+                                            :title="canalInfo(entry.channelId).texto"></i>
                                         <span class="truncate">{{ nombreUnidad(entry) }}</span>
                                         <!-- Las fechas son el dato que más se consulta de la cabecera:
-                                             van en el mismo peso que la casita, con el pax en gris. -->
+                                             van en el mismo peso que la casita. El pax va un punto
+                                             más apagado, pero en negrita: es un número que se
+                                             busca —cuánta gente entra— y en gris fino se perdía
+                                             detrás de las fechas. -->
                                         <span class="text-slate-700 font-bold text-xs whitespace-nowrap">
                                             {{ fechaCorta(entry.form.inicio) }} → {{ fechaCorta(entry.form.fin) }}
-                                            <span class="text-slate-400 font-medium">· {{ paxTotal(entry) }} pax</span>
+                                            <span class="text-slate-500 font-bold">· {{ paxTotal(entry) }} pax</span>
                                         </span>
                                         <span v-if="!entry.eventoId" class="text-emerald-600 text-[10px] font-black uppercase shrink-0">Nuevo</span>
                                     </span>
@@ -1898,8 +1924,13 @@ async function ejecutarBorrado(): Promise<void> {
                                 <div v-else class="grid grid-cols-2 gap-3">
                                     <label class="col-span-2">
                                         <span class="text-xs font-bold text-slate-500">Unidad</span>
+                                        <!-- `bg-white` explícito: sin él heredaba el tinte del cuerpo de la
+                                             estancia y se leía como deshabilitado justo en las directas, que son
+                                             las únicas donde la casita SÍ se puede cambiar. El gris queda
+                                             reservado a lo que de verdad está bloqueado (`disabled:bg-slate-100`),
+                                             que es lo que hace que ese gris signifique algo. -->
                                         <select v-model="entry.form.pmsUnidad" :disabled="fechasUnidadBloqueadasPara(entry)"
-                                            class="mt-1 w-full border rounded-lg px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-400"
+                                            class="mt-1 w-full border rounded-lg px-3 py-2 text-sm bg-white disabled:bg-slate-100 disabled:text-slate-400"
                                             :class="errorUnidad(entry) ? 'border-rose-300 bg-rose-50' : 'border-slate-200'">
                                             <!-- Opción vacía explícita: sin ella el select muestra la primera casita
                                                  aunque el modelo esté vacío, y el operador cree haber elegido. -->
@@ -2038,6 +2069,20 @@ async function ejecutarBorrado(): Promise<void> {
                                         <span class="text-xs font-bold text-slate-500 inline-flex items-center gap-1.5">
                                             <i class="fas fa-broom text-slate-400"></i>
                                             Limpieza
+                                            <!-- Quién sale marcada al crear una estancia no está escrita en el
+                                                 código: es un dato. Aquí se dice dónde, porque la pregunta
+                                                 «¿por qué sale siempre la misma persona?» se hacía mirando el
+                                                 formulario, que es justo donde no está la respuesta. -->
+                                            <InfoTooltip lado="izquierda">
+                                                Al crear una estancia se marca sola la persona que esté como
+                                                <b class="text-white">«Limpia por defecto»</b> en
+                                                <b class="text-white">Usuarios</b> del panel de administración.
+                                                Se cambia ahí, sin desplegar nada, y afecta sólo a las estancias
+                                                nuevas: lo que ya está asignado no se mueve.
+                                                <span class="block mt-1.5 text-slate-400">
+                                                    Aquí puedes cambiarlo para esta estancia en concreto.
+                                                </span>
+                                            </InfoTooltip>
                                         </span>
 
                                         <div v-if="reservasStore.limpiadores.length" class="mt-1 flex flex-wrap gap-2">

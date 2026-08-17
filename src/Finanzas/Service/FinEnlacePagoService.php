@@ -62,8 +62,12 @@ final class FinEnlacePagoService
         ?string $concepto = null,
         ?User $creadoPor = null,
         ?FinPasarela $pasarela = null,
+        // En qué moneda se cobra. `null` = la de mayor saldo, que es lo que respondía antes de
+        // que un documento pudiera deber en dos. Una pasarela cobra un enlace en UNA divisa, así
+        // que con deuda en soles y en dólares se emite un enlace por cada una.
+        ?string $moneda = null,
     ): FinEnlacePago {
-        $origen = $this->registry->resolver($origenTipo, $origenId);
+        $origen = $this->registry->resolver($origenTipo, $origenId, $moneda);
 
         if ($origen === null) {
             throw new DomainException('El documento que se quiere cobrar ya no existe.');

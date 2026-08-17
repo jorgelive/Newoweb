@@ -465,10 +465,29 @@ final readonly class AiConversationProcessor
         // nadie, así que TODO el que escribía por WhatsApp era huésped. Un operador
         // preguntando por las salidas del día recibía «no tengo acceso a esa información».
         //
-        // ⚠️ Esto convierte el número de teléfono en una credencial. Es aceptable porque
-        // `permitirEscritura` sigue en `false` más abajo: por este canal solo se consulta,
-        // nunca se modifica. Si algún día se abre la escritura aquí, hay que replantear la
-        // identificación — un número se puede perder con el teléfono.
+        // ⚠️ Esto convierte el número de teléfono en una credencial — y es una credencial
+        // razonable, mejor de lo que suena:
+        //
+        // El remitente NO se puede suplantar. El mensaje no lo manda quien quiere: lo manda
+        // Meta a nuestro webhook firmado con HMAC-SHA256 sobre el cuerpo entero
+        // (`MetaWebhookController::firmaValida()`), y el número va dentro de lo firmado. No es
+        // como el correo, donde el remitente es texto que cualquiera escribe. Para hacerse
+        // pasar por este número habría que tener el App Secret.
+        //
+        // 🔒 De eso depende todo lo de arriba: si `exchange_meta_config.credentials.appSecret`
+        // se queda vacío, el controlador DEJA PASAR sin validar y entonces sí, cualquiera
+        // podría inventarse un payload con el número de un operador. Está puesto en producción
+        // y el log grita si falta, pero es el supuesto que sostiene esta identificación.
+        //
+        // Lo que el número no cubre no es la suplantación, es la TRANSFERENCIA: SIM swap,
+        // móvil desbloqueado en manos ajenas, un WhatsApp Web abierto, o el número reciclado
+        // años después. Es la misma familia de riesgo que una sesión robada, no la de una
+        // contraseña adivinada — y desde luego es más fuerte que una contraseña compartida,
+        // porque es un factor de posesión que Meta verifica en cada mensaje.
+        //
+        // Por eso `permitirEscritura` sigue en `false` más abajo, pero NO porque el canal sea
+        // inseguro: es que abrir la escritura merece un segundo factor para el tramo que hace
+        // daño, y `NivelRiesgo::requierePin()` está a medio cablear esperando exactamente eso.
         $delEquipo = $this->usuarios->findByTelefono($conversacion->getGuestPhone(), $this->telefonos);
 
         // `tambienHuesped: true` — los privilegios se ACUMULAN. Alguien del equipo con una
@@ -620,8 +639,15 @@ final readonly class AiConversationProcessor
             contexto: $this->contexto($conversacion, $actor, $decision),
             mensaje: $mensaje,
             historial: $historial,
-            // Sólo lectura hacia fuera: una escritura disparada por un huésped tendría que
-            // confirmarse, y aquí no hay a quién preguntar. Ver NivelRiesgo.
+            // Sólo lectura hacia fuera.
+            //
+            // ⚠️ NO es que «no haya a quién preguntar»: confirmar es enseñarle el cambio a
+            // quien lo pidió, y en un chat ése está al otro lado escribiendo. Esa frase
+            // estaba aquí desde antes de que el número identificara al equipo y se leía al
+            // revés. Ver NivelRiesgo::Escritura.
+            //
+            // El motivo real es el de arriba: mientras la credencial de este canal sea el
+            // número, lo que falta para abrir la escritura es un segundo factor.
             permitirEscritura: false,
             maxTokens: 1024,
             modelo: $elegido->modelo,

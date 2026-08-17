@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Provider\Anthropic;
 
+use App\Agent\Access\GuardiaDeSkills;
 use Anthropic\Lib\Tools\BetaRunnableTool;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Skill\SkillInterface;
@@ -33,7 +34,8 @@ final readonly class AnthropicSkillAdapter
     private const string TTL_CACHE = '1h';
 
     public function __construct(
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        private GuardiaDeSkills $guardia
     ) {}
 
     /**
@@ -82,6 +84,21 @@ final readonly class AnthropicSkillAdapter
                         $actor->etiqueta(),
                         $skill->nombre()
                     ));
+
+                    // El cierre, antes de tocar nada. El catálogo dice qué se ofrece; esto
+                    // dice qué se ejecuta. Ver GuardiaDeSkills.
+                    $bloqueo = $this->guardia->motivoDeBloqueo($skill, $actor);
+
+                    if ($bloqueo !== null) {
+                        $this->logger->warning(sprintf(
+                            'Agent: BLOQUEADA la skill "%s" para %s: %s',
+                            $skill->nombre(),
+                            $actor->etiqueta(),
+                            $bloqueo
+                        ));
+
+                        return json_encode(['error' => $bloqueo], JSON_UNESCAPED_UNICODE);
+                    }
 
                     try {
                         return $skill->ejecutar($entrada, $actor)->aJson();

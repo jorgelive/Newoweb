@@ -1464,36 +1464,109 @@ y totales en cero.
 
 ### 12.0.1 Cargos automáticos de una estancia directa
 
-Tener la cabecera (§12.0) resuelve *dónde* colgar los importes, pero en una directa seguían
-entrando a mano. `PmsCargosAutomaticosService::generarParaEvento()` los arma solo al insertarse
-la estancia:
+Tener la cabecera (§12.0) resuelve *dónde* colgar los importes. Lo que se cuelga cambió el
+**15/08/2026**, y el cambio es de criterio, no de fórmula.
 
-| Concepto | Origen del importe | ¿Se genera? |
+#### Qué se crea hoy: UNA línea, y en cero
+
+`PmsCargosAutomaticosService::generarParaEvento()` crea **un solo cargo**, de tipo `LIMPIEZA`,
+con importe `0.00`, imputado a la estancia y descrito como `Estancia directa · <casita>`.
+
+Ni alojamiento, ni suplemento por persona, ni servicio.
+
+**Por qué.** Hasta esa fecha se creaban tres cargos **con importe**: el alojamiento sacado del
+tarifario noche a noche, el suplemento por persona y la limpieza de la unidad. Y el precio de una
+venta directa **no lo pone el tarifario, lo pone quien vende**: se cierra por teléfono o por
+WhatsApp, con descuento por estancia larga, con el desayuno dentro, o al precio de siempre para
+un repetidor. El resultado práctico era que había que borrar tres líneas y teclear la real —y,
+peor, que si alguien no las borraba la reserva quedaba con un precio que nadie había acordado.
+
+Es el mismo criterio que ya seguían los cargos de horario extra (§12.5.4): **el sistema abre el
+hueco y no inventa la cifra**, porque un importe sugerido se acaba cobrando.
+
+⚠️ **No es «se dejó de calcular el tarifario».** Se dejó de *cobrarlo solo*. El cálculo sigue
+entero y ahora se **enseña**, que es lo siguiente.
+
+#### El coste teórico: se enseña, no se cobra
+
+`PmsCargosAutomaticosService::costoTeorico()` devuelve el desglose de lo que esa estancia
+costaría según el tarifario y la ficha de la casita:
+
+| Icono en el panel | Línea | De dónde sale |
 |---|---|---|
-| `ALOJAMIENTO` | Suma del precio de **cada noche** del tarifario | Sí, si hay tarifas |
-| `LIMPIEZA` | Fijo, `PmsCargosAutomaticosService::TARIFA_LIMPIEZA` (hoy `15.00`) | Siempre |
-| `SERVICIO` | — | **Nunca: en las directas se exonera** |
+| 🛏 | `porNoche × noches = importe` | Suma del precio de **cada noche** del tarifario |
+| 👤 | `precio × personas × noches` | `PmsUnidad::suplementoPorPax()`, sobre el pax que excede `paxIncluidos` |
+| 🧹 | `importe` | `PmsUnidad::costoLimpieza()` — fijo o porcentaje, según el flag de la casita |
+| ═ | Total | La suma, con la moneda del tarifario |
 
-La ausencia del cargo por servicio es una **regla de negocio deliberada**, no un olvido: las OTA
-lo cobran y lo mandan en sus `invoiceItems` (§11), pero a los huéspedes directos se les exonera.
+El panel financiero lo pinta en un **tooltip tras un icono `i`**, en la cabecera de la estancia
+(`ReservaFinanzasPanel.vue`). Va en la cabecera y no pegado a un cargo concreto **a propósito**:
+es de la estancia entera, y colgado de una línea desaparecería en cuanto alguien borrara esa
+línea.
 
-**Alojamiento = precio por día, no tarifa plana.** Se reutiliza
-`TarifaPricingEngine::buildDailyPricesForIntervalWithFallback()` — el mismo motor que pinta el
-calendario de tarifas —, así que el importe respeta temporadas, prioridades y solapamientos
-*exactamente igual que lo que el operador ve en pantalla*. El intervalo es `[llegada, salida)`:
-la noche de salida no se cobra, que es justo el contrato del flattener (`to` exclusivo).
+Dos honestidades que no son adorno:
+
+- **`porNoche` sólo se rellena si TODAS las noches valen lo mismo.** Con temporada alta de por
+  medio no hay un «precio por noche» que enseñar, y escribir la media invitaría a multiplicarla
+  por las noches y a no cuadrar con el total. En ese caso el tooltip dice «tarifa variable».
+- **`alojamiento` puede venir a `null` con el resto relleno**, y eso **no es cero**: significa que
+  al tarifario le faltaba alguna noche. El tooltip lo dice en ámbar («sin tarifa para todas las
+  noches») en vez de enseñar un alojamiento corto que se leería como el precio entero. Y si la
+  limpieza de esa casita es a porcentaje, se omite también: su base sería incompleta.
+
+El tooltip cierra con «Referencia, no el precio acordado». Sin esa línea el número de arriba se
+lee como el precio de la reserva y alguien lo teclea tal cual.
+
+**Cómo llega al front.** `costoTeorico()` necesita el tarifario, que es un servicio, y una entidad
+no puede llamarlo. Lo inyecta `PmsInformacionFinancieraPorReservaProvider` en el campo transitorio
+`PmsInformacionFinanciera::$costosTeoricos`, indexado por `eventoId`, y `getEstancias()` lo emite
+dentro de cada estancia. Mismo mecanismo y mismo motivo que `$prepagoPendiente`.
+
+⚠️ Sólo lo rellena la operación `por-reserva`, que es la que usa el panel. En un `GET` por id o en
+la colección llega `null` — y ahí `null` significa «nadie lo ha calculado», no «no hay tarifario».
+
+#### La excepción: cuando SÍ hay un acuerdo
+
+Las skills del agente (`crear_reserva`, `crear_estancia`) tienen algo que el panel no tiene: un
+**paso de aprobación explícito**. El operador ve el desglose y dice que sí. Ahí sí se escriben
+importes, por una sola puerta:
+
+`PmsCargosAutomaticosService::escribirAprobados()` retira la línea en cero de esa estancia —**y
+sólo si sigue en cero**: con importe es dinero que alguien valoró, y eso no se pisa— y escribe las
+líneas aprobadas.
+
+⚠️ **Vive en el servicio, no en cada skill.** Con una copia por skill, la primera corrección se
+quedaría en una de las dos. Y las líneas salen del **mismo** `cargosPrevistos()` que se le enseñó
+al operador: cuando eran dos cálculos separados se separaron de verdad —a la previsualización le
+faltaba el suplemento por persona, y el operador confirmaba 36.00 menos de lo que luego veía—.
+
+Una línea aprobada en `0.00` (la limpieza perdonada por el operador) **no se escribe**: es
+informativa, y escribirla llenaría la cuenta de ceros que no significan nada. Sale en
+`ajustes_aplicados` / `cargos_escritos` para que el agente se lo pueda contar.
+
+#### El cálculo del tarifario, para lo que se enseña y para lo que se aprueba
+
+`preciosDeNoches()` es la única lectura del tarifario del servicio: la usan
+`estimarAlojamiento()` (la previsualización de las skills) y `costoTeorico()` (el tooltip). Está
+separada justo para que no haya dos — una fórmula que suma y otra que descompone acabarían dando
+cifras distintas el día que una de las dos cambie.
+
+Reutiliza `TarifaPricingEngine::buildDailyPricesForIntervalWithFallback()` — el mismo motor que
+pinta el calendario de tarifas —, así que respeta temporadas, prioridades y solapamientos
+*exactamente igual que lo que el operador ve en pantalla*. El intervalo es `[llegada, salida)`: la
+noche de salida no se cobra, que es el contrato del flattener (`to` exclusivo).
 
 ⚠️ **Gotcha — el flattener OMITE los días que no sabe precisar.** No devuelve `0`, devuelve un
-mapa más corto: quien sume precios a ciegas cobra menos noches de las reales sin enterarse. De
+mapa más corto: quien sume precios a ciegas cuenta menos noches de las reales sin enterarse. De
 ahí dos defensas:
 
 1. **Fallback a la tarifa base de la unidad** (`PmsUnidad::isTarifaBaseActiva()` /
    `getTarifaBasePrecio()`), el mismo que usa el push de tarifas a Beds24
    (`Beds24RatesPushQueueCreator::createFallbackProvider()`). Sin él, una estancia en fechas sin
-   ningún `PmsTarifaRango` — habitual en fechas lejanas — generaría un cargo de cero.
+   ningún `PmsTarifaRango` — habitual en fechas lejanas — daría una estimación de cero.
    Por eso se usa la variante `…WithFallback()`: la versión sin fallback no acepta el proveedor.
 2. **Guarda de cobertura:** si aun con el fallback faltan noches (`count($preciosDiarios) <
-   $nochesEsperadas`), **no se crea el cargo** y se registra en el log.
+   $nochesEsperadas`), devuelve `null` y lo registra en el log.
 
 `$nochesEsperadas` se cuenta **a día truncado, no a instante**: la estancia va de las 14:00 a las
 10:00, así que un `diff()` crudo de dos noches daría "1 día y 20 horas" → 1 (§12.5.5). El
@@ -1503,28 +1576,28 @@ flattener trunca a medianoche y aquí se cuenta igual (`aDia()`).
 
 - Sólo estancias de **canal directo**. Una OTA recibe sus cargos del canal; duplicarlos falsearía
   el saldo.
-- Nunca sobre un **bloqueo**: no es una venta.
+- Nunca sobre un **bloqueo** ni sobre una **extensión** (`esExtension()`): no son ventas.
 - Requiere unidad + fechas.
 
-**Grados de fallo — nunca se inventa un importe.** Si la cobertura queda incompleta o el motor de
-precios revienta, se registra en el log y **no se crea el cargo de alojamiento** (la limpieza sí).
-El operador lo añade a mano. Romper el guardado de la reserva por un problema del tarifario sería
-peor que un cargo faltante.
+**Nunca se rompe el guardado por el tarifario.** Si el motor de precios revienta, se registra en
+el log y se sigue sin estimación. Un tooltip vacío es mucho más barato que una reserva que no se
+puede guardar.
 
-**Verificado** (2026-08-02) sobre una directa de 2 noches en Casita 1: cabecera USD, alojamiento
-`140.00` (2 × 70.00 del tarifario), limpieza `15.00`, servicio `0.00`, saldo `155.00`; re-guardar
-la reserva no duplicó cargos.
+**Verificado** (2026-08-15) sobre las **24 estancias directas** reales de la base
+(`var/probar-cargo-directo-cero.php`, sin flush en ningún punto): las 24 estrenan exactamente
+**1 cargo**, tipo `LIMPIEZA`, importe `0.00`; y las 24 devuelven su desglose de coste teórico.
+Contrastado a mano con `var/probar-costo-teorico.php` — p. ej. Casita 4, 6 noches, 14 pax:
+`33.00 × 6 N = 198.00`, `6.00 × 11 P × 6 N = 396.00`, limpieza `15.00`, total `609.00 USD`.
 
-**Ambos nacen como cargos MANUALES** (sin `beds24ItemId`, §12.4.1): el operador puede corregirlos
-o borrarlos sin pelearse con la sincronización. Y es **idempotente por estancia** —
-`yaTieneCargos()` mira si ya hay cargos imputados a ese evento—, así que un segundo guardado del
-drawer no duplica el alojamiento.
+**El cargo nace MANUAL** (sin `beds24ItemId`, §12.4.1): el operador lo corrige o lo borra sin
+pelearse con la sincronización. Y es **idempotente por estancia** — `yaTieneCargos()` mira si ya
+hay cargos imputados a ese evento —, así que un segundo guardado del drawer no duplica nada.
 
 **Orden dentro del flush (gotcha):**
 
 ```
 onFlush   → paso 5: recolecta los PmsEventoCalendario INSERTADOS que pasan `aplica()`
-postFlush → generarCargosAutomaticos()  ← PRIMERO: crea los cargos y hace su propio flush
+postFlush → generarCargosAutomaticos()  ← PRIMERO: crea el cargo y hace su propio flush
             recalcular($ids)            ← DESPUÉS, con los IDs de cabecera que devolvió
 ```
 
@@ -1532,6 +1605,32 @@ El orden importa: si el rollup corriera antes, el saldo recién creado saldría 
 siguiente guardado. Ese `flush()` interno vuelve a disparar `onFlush`, pero el guardia
 `isFlushing` lo corta — por eso `generarCargosAutomaticos()` **devuelve** las cabeceras tocadas
 en vez de confiar en que el listener las recolecte sola.
+
+### 12.0.1.1 La barra de estancia del panel financiero
+
+En «Cargos», cada estancia lleva su propia barra de cabecera con **icono de canal, casita, fechas
+y subtotal**. Tres detalles que parecen cosméticos y no lo son:
+
+- **Se muestra SIEMPRE, aunque la reserva tenga una sola estancia.** Antes se ocultaba con un
+  único grupo, por no meter ruido, y eso dejaba los cargos sin decir de qué estancia y de qué
+  canal son — que es justo lo que hay que saber para cuadrar una reserva.
+- **El icono de canal va con su color de marca**: Booking azul, Airbnb rojo, directo verde. Sale
+  de `canalInfo()` en `util/src/types/pmsReservaModel.ts`, que es la **tabla única** del front
+  para canal → texto + icono + color. Hasta el 15/08/2026 había tres copias de esa
+  correspondencia (`canalInfo`, `otaMenuInfo`, `extranetInfo`); ahora es una, y por eso VRBO
+  aparece sin haber tocado nada.
+
+  ⚠️ Las clases de color van **completas y sin interpolar** (`text-rose-500`, nunca
+  `text-${x}-500`): Tailwind compila leyendo el código fuente y una clase construida en tiempo de
+  ejecución no llega nunca al CSS. Es el mismo motivo por el que un color que venga de la API no
+  puede ser un nombre de clase.
+- **El backend manda el `id` crudo del canal**, no una etiqueta. `getEstancias()` emite
+  `'canal' => $evento->getChannel()?->getId()`; el texto y el icono los decide el front. Si el
+  backend mandara el nombre resuelto habría dos sitios donde decir cómo se llama Booking.
+
+El mismo icono aparece en la cabecera de cada estancia del acordeón del drawer
+(`ReservaEditDrawer.vue`): en una reserva agrupada pueden convivir una casita de Booking y otra
+vendida directa, y hasta ahora el canal sólo se veía abriendo el acordeón.
 
 ### 12.0.2 Desglose por tipo en la cabecera
 
@@ -1685,6 +1784,11 @@ recibe un pago en dólares). Sumarlos a lo bruto sin convertir daría un total s
 
 ### 12.2 Regla de coherencia
 
+> 🚧 **En transición (desde el 16/08/2026).** Lo que sigue describe el modelo **viejo**, que
+> todavía se escribe y todavía manda. El modelo nuevo —**totales por moneda, sin convertir**— ya
+> tiene su esquema en la base (§12.2b) y se irá activando por fases. Mientras dure, las dos cosas
+> se escriben a la vez a propósito: así revertir el código no obliga a revertir la base.
+
 Los totales de la cabecera (`totalCargos`, `totalPagos`) se expresan **siempre en la moneda de la
 cabecera**. Cada hijo se convierte a esa moneda usando **su propio** `tipoCambio` (venta USD→PEN,
 snapshoteado al crearlo — ver §11.4) antes de sumar:
@@ -1698,6 +1802,382 @@ Cabecera en USD + cargo de 100 USD                        → aporta 100.00 USD 
 Si un hijo está en moneda distinta a la cabecera y **no tiene TC** (no se pudo obtener el día que
 se registró), aporta **0** al total en vez de inventar una cifra — mismo criterio conservador que
 `TipoCambioDelDia::venta()` devolviendo `null`.
+
+### 12.2b Contabilidad por moneda: soles con soles, dólares con dólares
+
+**El problema del modelo de §12.2 no es el redondeo: es que convierte.** Un registro sin tipo de
+cambio aportaba 0 y **desaparecía del total sin avisar**; y el saldo en la otra moneda era una
+cifra que nadie había pactado. De ahí salieron, en tres días, «en dólares cuadra y en soles no»
+(HMN4BP8J25) y el saldo que el panel tuvo que aprender a pintar como `—`.
+
+La regla nueva: **los importes se suman por moneda y no se convierten**. El cliente debe lo que
+debe — si se quedó en dólares, en dólares; si se quedó en soles, en soles; si se quedó en ambos,
+en ambos.
+
+#### Las tres piezas del esquema
+
+| Pieza | Qué guarda |
+|---|---|
+| `pms_finanzas_total_moneda` (ficha, moneda) | `total_cargos` y `total_pagos` de **esa** moneda, sin convertir |
+| `pms_pago_financiero.moneda_saldada_id` | A qué deuda se imputa un cobro cuando no es a la de su propia moneda |
+| `pms_informacion_financiera.tipo_cambio` | El cambio con el que se **cuadra** la reserva entera |
+
+**Tabla y no columna JSON:** `PmsEstadoPagoEventosService` decide en SQL crudo si una estancia
+pasa a `pago-total` —y eso encadena hasta los códigos de acceso del huésped—, así que necesita
+preguntar «¿queda alguna moneda debiendo?» con un `NOT EXISTS`. Sobre un JSON eso no se consulta.
+
+⚠️ **`ON DELETE CASCADE` no es opcional.** Sin él, borrar una reserva revienta con un 1451 de
+MySQL: es el mismo fallo que documenta el `OneToOne` de `PmsInformacionFinanciera` («ninguna
+reserva se podía borrar desde el panel»), y esta tabla no entra en ninguna cascada del ORM.
+
+⚠️ **`PmsFinanzasTotalMoneda` no tiene lado inverso**, y es deliberado: (a) el rollup se escribe
+con SQL crudo y una colección ya inicializada quedaría rancia en la misma petición —`$em->refresh()`
+**no refresca colecciones**—; (b) `PmsEventosSpaCalendarProvider::fetchFinanzas()` carga cabeceras
+en lote y una colección lazy ahí son 50-80 consultas por mes pintado. Se lee con
+`PmsFinanzasTotalMonedaRepository::totalesDe()`; para el saldo de una ficha recién tocada, con el
+value object que suma desde sus colecciones.
+
+#### La única conversión que sobrevive
+
+`moneda_saldada_id` existe por un caso real y medido: **GASUNN**, cargos de Booking por US$ 65.97
+y un único cobro de **S/ 223.70 por Yape al 3.391** (65.97 × 3.391 = 223.70 exacto). Sumando cada
+moneda por su lado, esa ficha diría «debe US$ 65.97» y «tiene S/ 223.70 a favor» — y el huésped
+pagó y se fue. Ese cobro **sí cruzó de moneda**, y esto es lo que le deja decirlo.
+
+Medido sobre producción (16/08/2026): de 317 fichas, **4** tienen movimiento en más de una moneda,
+y de ésas **3 son cruces** (`GASUNN` +0.00, `XTHRMQ` +0.10, `ZHX76S` −2.94) y **1 es deuda real en
+dos monedas** (`XK6FV4`: US$ saldado y S/ 50 pendientes).
+
+🔴 **Esto NO es la caja.** `PmsPagoMovimientoProvider` —lo que alimenta el arqueo de
+`src/Finanzas/`— sigue diciendo S/ 223.70, que es el dinero que entró por la puerta. La imputación
+es contable. Son dos verdades y ninguna sustituye a la otra: **no se «cuadra» la caja contra la
+ficha.**
+
+#### El cuadre, y por qué no decide nada
+
+`pms_informacion_financiera.tipo_cambio` responde la pregunta del mostrador: *«te pago en soles lo
+que falta, ¿cuánto es?»*. Con un solo cambio para la reserva entera sale un balance soles↔dólares
+que en una reserva cerrada da ≈ 0.
+
+```
+cuadre = Σ ( (total_cargos − total_pagos)ₘ  convertido con el TC de la ficha )
+```
+
+No se guarda: se calcula al vuelo. Y **no sustituye a nada** — la contabilidad siguen siendo los
+totales por moneda.
+
+El umbral es `1.00` en la moneda de la ficha, y sale de los datos, no de una intuición: de los
+tres cruces reales, dos quedan dentro (0.00 y 0.10 — redondeo de cambio) y `ZHX76S` queda fuera
+con −2.94, que no es redondeo sino S/ 10 de más que alguien tiene que mirar. `XK6FV4` queda fuera
+por diseño: son S/ 50 de deuda, no un residuo.
+
+🔴 **El cuadre NO decide `pago-total`.** Esa decisión sigue siendo estricta por moneda, y no es
+cuestión de gusto: `pago-total` → `confirmarPorPago()` → `ESTADOS_PAGO_CONFIABLES` → **se le abren
+al huésped los códigos de acceso de la casa**. Un umbral no puede estar en esa cadena. Lo que hace
+el cuadre es **proponerle al operador** que impute el cobro; el ledger se va a cero de verdad y
+sólo entonces cambia el estado.
+
+#### Cómo se calcula: `DELETE` + `INSERT`, no `UPSERT`
+
+`PmsInformacionFinancieraRecalculoService` escribe **los dos modelos a la vez** mientras dure la
+transición (`recalcularPorMoneda()` y `recalcularConvertido()`), para que revertir el código no
+obligue a revertir la base.
+
+El nuevo es un `DELETE` del chunk + `INSERT … SELECT` con tres ramas en `UNION ALL`:
+
+1. **Cargos**, cada uno en su moneda. Sin conversión.
+2. **Cobros que saldan lo suyo** — el 97 % — *más* los que declaran otra moneda pero no se puede
+   honrar (sin TC o par no soportado). **Nunca se pierde un cobro.**
+3. **Cobros imputados**, con `ROUND(…, 2)` **por fila**. Sin ese redondeo, 223.70 / 3.391 deja
+   0.0013 de residuo y el saldo en dólares no llega nunca a cero exacto.
+
+Tres decisiones que parecen detalle y no lo son:
+
+- **`DELETE`+`INSERT` y no `INSERT … ON DUPLICATE KEY UPDATE`.** Es lo único que garantiza *por
+  construcción* que no quede una fila fantasma. Con un upsert, borrar el último cargo en soles
+  dejaría viva una fila `PEN 50.00 / 0.00` diciendo que se debe algo que ya no existe — y eso
+  encadena hasta `PmsEstadoPagoEventosService`. La tabla es de una o dos filas por ficha:
+  rehacerla es gratis.
+- **Dentro de `$conn->transactional()`.** `postFlush` corre **fuera** de la transacción del flush
+  (Doctrine hace commit y luego dispara el evento). Sin envolverlo hay una ventana de
+  milisegundos en la que otra petición ve la ficha **sin ninguna fila** y el panel pinta ceros.
+- **Las filas en `0.00` se conservan.** Nada de `HAVING`: una estancia directa nace con una línea
+  a cero y es donde el operador teclea el precio (§12.0.1).
+
+#### Dos lecturas, y cuál usar
+
+| Para | Se usa | Nunca |
+|---|---|---|
+| El saldo de UNA ficha que se tiene en la mano | `PmsTotalesPorMoneda::de($info)` | leer decenas de fichas |
+| Decenas de fichas de golpe (calendario) | `PmsFinanzasTotalMonedaRepository::totalesDe()` | leer una ficha recién tocada |
+| Decidir en SQL (`pago-total`) | la tabla, directamente | — |
+
+**El value object no es un duplicado por comodidad.** La tabla la escribe SQL crudo en `postFlush`,
+así que dentro de la misma petición que acaba de añadir un cobro **puede ir un paso por detrás**.
+Ese desfase ya tiene un bug latente: `RegistrarPagoSkill` y `RegistrarCargoSkill` releen
+`$info->getSaldo()` tras el flush con el comentario «lo recalcula el listener», y no es cierto.
+`PmsTotalesPorMoneda` suma desde `$info->getCargos()`/`getPagos()`, que el ORM sí tiene al día.
+
+⚠️ **Es un ESPEJO del SQL de `recalcularPorMoneda()`.** Si dejan de decir lo mismo, el panel
+enseñará un saldo y la decisión de `pago-total` tomará otro — y esa decisión encadena hasta los
+códigos de acceso del huésped. Al tocar uno, tocar el otro.
+
+Es a la vez un espejo **mejor** que el que sustituye: `expresionConvertida()` ↔ `aMonedaBase()`
+convertían, y una divergencia ahí cambiaba cifras en silencio. Sin conversión, las dos fórmulas son
+«agrupa y suma».
+
+#### Gotcha: un cargo sin `tipo` cuenta como cargo
+
+`PmsCargoFinanciero::$tipo` recibe su valor `'charge'` en **`prePersist`**
+(`aplicarDefectosDeCargoManual()`). Una entidad recién añadida y todavía sin flush lo tiene a
+`null`, y `esCargo()` devuelve `false` — o sea, **un cargo recién creado desaparecía de la suma**,
+justo en el momento para el que existe el value object.
+
+Los dos lados llevan ahora `COALESCE(tipo, 'charge')`. En la base no hay ni una fila con `tipo`
+nulo (121 de 121 son `charge`) pero la columna lo admite, y dos criterios distintos sobre la misma
+fila es exactamente lo que no puede pasar aquí.
+
+> Lo cazó el **test unitario**, no PHPStan ni la sonda con datos reales: en la base el campo
+> siempre está puesto, así que sólo se ve construyendo la entidad a mano. Es el primer argumento
+> concreto para tener tests de esta pieza.
+
+#### Estado de la transición
+
+- ✅ Esquema en la base (`Version20260816010000`), pura adición. Las 317 fichas ya tienen su TC de
+  cuadre (backfill con la venta del día en que se abrieron).
+- ✅ Todos los registros nacen con tipo de cambio (§12.4.1b).
+- ✅ Rollup por moneda, escribiendo los dos modelos.
+- ✅ Lectura: `PmsTotalesPorMoneda` (una ficha) y `PmsFinanzasTotalMonedaRepository` (en lote),
+  con **17 tests unitarios** — la primera cobertura del módulo financiero.
+- ✅ Decisión de `pago-total` / `pago-parcial` (§12.9b).
+- ✅ Panel del operador (§12.5.2), incluida la imputación de un cobro a otra moneda.
+- ✅ Agente (`docs/Mensajeria.md`), calendario, enlaces de pago, depósito OTA y placeholders.
+- ✅ Panel del huésped (`pax/`).
+- ✅ **Ningún consumidor lee ya `total_cargos`/`total_pagos`/`getSaldo()`.** Sólo quedan dentro de
+  la propia entidad y del recalculador, que los escribe mientras dure la doble escritura.
+- ⏳ Retirada del modelo viejo: `DROP COLUMN total_cargos, total_pagos` y el rebase de moneda base.
+
+> 🧪 Los últimos cuatro se encontraron con un `grep` de los tres métodos, no repasando la lista de
+> tareas. Dos eran de fondo: `RegistrarPagoSkill` devolvía al operador el `saldo_real` **de antes
+> del pago** —el comentario decía «lo recalcula el listener» y no es cierto: el rollup es SQL
+> crudo y la entidad conserva sus escalares—, y `PmsPrepagoCalculador` preguntaba «¿hay pagos?» a
+> un total convertido, así que **un cobro en soles sin tipo de cambio aportaba 0 y volvía a
+> pedirle el adelanto a quien ya había pagado**.
+>
+> Y ejecutar `pms:reserva:auditar` destapó que **reventaba con cualquier reserva con pagos**: un
+> `(string)` sobre el enum `PmsMedioPago`. PHPStan lo tenía cazado (`cast.string`) y **el baseline
+> lo escondía** — el recordatorio de que no es una lista de perdonados.
+
+#### El panel del huésped
+
+Es la superficie más delicada porque el huésped **compara con sus recibos**. Quien pagó S/ 223.70
+por Yape tiene que ver S/ 223.70; «US$ 65.97» es una cifra que no reconoce de ninguna parte.
+
+| Qué | De dónde sale |
+|---|---|
+| Barra de progreso y titular «saldo pendiente» | El **cuadre** — son preguntas que sólo admiten una respuesta. Marcado con `≈` |
+| Bloque «esta reserva tiene movimientos en dos monedas» | `porMoneda`, **sin convertir**: lo exacto de cada una |
+| Líneas y pagos del detalle | Su propia moneda |
+
+⚠️ **El conmutador de soles NO se ofrece con dos monedas.** El backend deja de mandar
+`tipoCambioReferencial` en ese caso, así que el front ni lo pinta. Convertir una de las dos —o las
+dos con un tipo que no es el suyo— produce una tarjeta que no cuadra consigo misma; y el huésped
+ya tiene delante lo que pagó en cada una, que es justo lo que el conmutador venía a resolver
+cuando sólo había una moneda.
+
+Con **una sola moneda la tarjeta no cambia en nada**, conmutador incluido.
+
+**Verificado** sobre los tres casos reales: `GASUNN` (PEN −223.70 / USD 65.97, cuadre 0.00),
+`XTHRMQ` (PEN 176.90 / USD −52.00, cuadre +0.10) y `ZHX76S` (PEN −10.00 / USD 0.00, cuadre −2.94).
+
+#### El calendario: una sola cifra, marcada cuando es aproximada
+
+Decisión del dueño del producto tras ver la alternativa: enseñar «la moneda de mayor valor con un
+`+`» deja **información parcial** —en `GASUNN` la pastilla diría `$66` y se callaría S/ 223.70—, y
+una pastilla de calendario existe para responder «cuánto es esto» de un vistazo.
+
+| Monedas | Qué se pinta |
+|---|---|
+| Una (313 de 317) | Su importe, igual que siempre. `convertido: false` |
+| Dos | Todo llevado a la moneda de la ficha con su TC de cuadre, con `≈` delante |
+
+El **detalle exacto va en el tooltip** (`totales`, sin convertir): lo aproximado se marca y la
+verdad está siempre a un hover.
+
+🟢 Y el color lo decide ahora el backend con `cuadra`, no un `saldo <= 0.005` en el front. Es lo
+que impide que diez céntimos de redondeo del cambio pinten de rojo una reserva pagada.
+
+Las cifras salen del value object sobre las cabeceras **ya cargadas en lote** por
+`fetchFinanzas()`: leer `pms_finanzas_total_moneda` por reserva sería el N+1 que ese lote evita.
+
+#### Un depósito de OTA POR MONEDA
+
+`buscarAutomatico()` devolvía el primero y ya. Con cargos del canal en dos monedas, el segundo
+depósito **no nacía nunca** y el primero recibía el importe de la otra — diciendo que la OTA
+remitió algo que jamás remitió. Ahora es `buscarAutomaticos()` indexado por moneda, con creación,
+ajuste y **borrado de los de monedas que ya no tienen cargos del canal** (mismo motivo que las
+filas huérfanas del rollup). El candado de `intervenido` se respeta por depósito.
+
+Con los datos de hoy es un no-op —cada canal factura en una sola moneda, verificado: 8 reservas,
+un depósito cada una, todos USD—, lo que lo hace seguro de desplegar.
+
+#### Enlaces de pago: uno por moneda
+
+`FinOrigenCobroResolverInterface::resolver()` gana un `?string $moneda = null` **opcional**: no
+rompe a los llamantes existentes ni al gemelo que implementará el módulo de tours. Con `null`
+devuelve la moneda de mayor saldo — lo que ya hacía cuando sólo había una.
+
+La pasarela es multidivisa y `FinEnlacePago` ya guardaba su propia moneda, así que la fontanería
+estaba: el único que forzaba una sola era el resolver.
+
+#### Placeholders de mensajería: autocontenidos
+
+`{total_amount}`, `{paid_amount}` y `{balance}` pasan a ser cadenas completas con la moneda dentro
+(`US$ 65.97 + S/ 50.00`). Y `{currency}` viaja **vacío cuando hay más de una**: una plantilla
+escrita como «Debe {balance} {currency}» habría renderizado «Debe US$ 65.97 + S/ 50.00 USD».
+
+> Auditado antes de tocarlo: de las **11 plantillas** en base, ninguna usa hoy ninguno de estos
+> marcadores en ninguno de sus cuatro canales. El cambio de forma es seguro.
+
+#### ⚠️ Tras desplegar la migración: `pms:finanzas:recalcular-totales`
+
+La tabla se llena en el `postFlush` de cada ficha que se toca. Para la decisión de estado de pago
+eso basta —el rollup corre inmediatamente antes, así que nunca decide con datos rancios— pero deja
+**vacías las fichas que nadie ha vuelto a guardar**. Medido tras la migración: **58 de 317** con
+movimiento y sin filas.
+
+Al **calendario** eso sí le importa: lee la tabla en lote para pintar un mes, y una ficha sin filas
+se pintaría sin cifras — no porque no deba nada, sino porque nadie la ha tocado.
+
+El comando es idempotente por construcción (`DELETE` + `INSERT … SELECT` de lo que hay en las
+tablas hijas) y tarda ~30 ms para las 317. Lleva `--dry-run`.
+
+> 🧪 Su contador de «fichas sin totales» tiene que usar **el mismo criterio que el rollup**, no
+> «¿tiene algún cargo?». Cuatro fichas anuladas con un cargo que no es penalización salían siempre
+> como pendientes por más veces que se recalculara: cero filas **es** su resultado correcto (§12.7).
+
+#### La imputación en el panel
+
+El formulario de cobro ofrece marcar **«este cobro salda la deuda en X»** cuando el dinero entra en
+una moneda donde no hay ningún cargo — la señal de que no puede saldar nada suyo. Enseña además
+cuánto abonaría al cambio del propio cobro, antes de guardar.
+
+Dos decisiones:
+
+- **No se marca solo.** A veces esos soles son de verdad otra cosa: una propina, un extra que
+  todavía no se ha cargado. Sin marcar, quedan como saldo a favor en su moneda, que también es
+  cierto.
+- **Sólo se propone con UNA candidata.** Con deuda en dos monedas distintas de la del cobro,
+  elegir por el operador sería adivinar a cuál se aplica.
+
+⚠️ El campo entra en la lista de `intervieneAlGuardar()`: reimputar el depósito automático de un
+canal es cambiar a qué deuda se aplica, y eso lo saca del automático igual que cambiarle el
+importe. Es **espejo** de `$camposBloqueados` en el listener — al tocar uno, tocar el otro.
+
+#### Lo que desapareció del panel
+
+| Se retiró | Por qué |
+|---|---|
+| El **conmutador de moneda** (`monedaVista`, `monedaAlterna`, `enMonedaContable`) | Convertía todo a soles o a dólares para mirarlo. Ahora cada moneda tiene su fila: no hay nada que conmutar |
+| `totalesVista`, `importeVista`, `saldoVista`, `claseSaldoVista` | Recalculaban los totales en la moneda de la vista |
+| El contador `sinConvertir` y el saldo pintado como `—` | Existían **sólo** porque un registro sin tipo de cambio desaparecía de la suma |
+| `subtotalIncompleto` de cada grupo | Lo mismo, a nivel de estancia |
+| `importeEnMoneda()` y `sumarEnMoneda()` de `pmsFinanzasModel.ts` | Su único consumidor era este panel |
+| El equivalente `· ≈ …` de cada cargo | Un cargo se enseña en la moneda en que se pactó y en ninguna otra |
+
+Lo que queda en su lugar: **una fila por moneda** en el resumen y en cada subtotal —de estancia y
+de bloque de cobros—, y una **fila de cuadre** que sólo aparece con más de una moneda.
+
+La única conversión que sobrevive en el panel es el **equivalente en vivo del formulario de
+cargo** («son unos S/ 340 — el cargo se registra en USD»). Es ayuda de lectura mientras se teclea
+y no toca ninguna cifra guardada; por eso se llama «equivalente» y no «total».
+
+⚠️ **Deuda declarada:** `ReservaEnlacesPagoSection` sigue recibiendo el escalar viejo
+`info.saldo`. Una pasarela cobra en UNA divisa, así que con saldo en dos monedas habrá que dejar
+elegir en cuál se emite el enlace — es trabajo de la fase siguiente. Hasta entonces se emite en la
+moneda de cotización, que es lo que ya hacía.
+
+#### 12.9b La decisión de estado de pago, por moneda y con tolerancia
+
+`PmsEstadoPagoEventosService` decidía con `(total_cargos - total_pagos) <= 0`, una resta de dos
+escalares. Con los totales repartidos por moneda eso ya no existe: la condición pasa a una
+subconsulta agregada (`subconsultaDeCuadre()`) que da, por ficha, si hay cargos, si hay cobros, el
+**cuadre** y la **tolerancia**.
+
+**El cuadre se convierte aquí, y sólo aquí.** La contabilidad no convierte, pero decidir «¿está
+pagada?» exige *un* número. Se usa exactamente el mismo cuadre que ve el operador —los saldos de
+cada moneda llevados a la de la ficha con su TC de cuadre—, para que el panel y esta decisión no
+puedan discrepar.
+
+#### La tolerancia: un suelo y una parte proporcional
+
+```
+tolerancia = 0                                      si NO hubo conversión
+tolerancia = MAX(1.00, convertido × 0.1 %)          si la hubo
+```
+
+**El residuo no lo genera nuestro redondeo.** Convertir con `round(…, 2)` produce como mucho medio
+céntimo. Lo genera que **el cambio del mostrador nunca es exactamente el de la ficha**: se paga a
+la tasa del banco, de Yape o de la calle, y el cuadre usa la de SUNAT.
+
+Ese error es **proporcional al importe que cruzó**. El tipo de cambio se guarda con tres decimales,
+así que dos tasas plausibles del mismo día difieren en unos milésimos: sobre 750 dólares, 0.002 de
+diferencia son 1.50 soles ≈ 0.44 USD. Con una constante de 1.00, una reserva de 750 pasa y una de
+3.000 se queda colgada por dos dólares que no son error de nadie. De ahí el
+`GREATEST(mínimo, convertido × proporción)`.
+
+- `convertido` se suma en **valor absoluto**: importa cuánto dinero pasó por una tasa, no en qué
+  dirección. Dos saldos de signo opuesto no cancelan su incertidumbre, la suman.
+- **Sin conversión, tolerancia 0.** La holgura la concede el hecho de haber pasado por una tasa,
+  no el tamaño de la reserva: quien deba 0.50 en una sola moneda debe 0.50, tenga la reserva 100
+  o 5.000.
+- ⚠️ El **0.1 % está calibrado con poca evidencia** —hoy sólo hay dos cruces con residuo, de 0.00
+  y 0.10—, así que es un número a revisar cuando haya más casos. La **forma** (suelo +
+  proporción) sí está fundamentada; el porcentaje es la parte que puede moverse.
+
+Y es `cuadre <= tolerancia`, **no `ABS(cuadre)`**: un sobrepago deja el cuadre negativo y tiene que
+contar como pagada, igual que hacía el `<= 0` de la versión vieja. Con valor absoluto, un huésped
+que paga de más se quedaría en «parcial» para siempre.
+
+⚠️ **«Pagada» y «no hay nada que mirar» no son lo mismo.** Un sobrepago está pagado —no se le puede
+exigir nada al huésped— pero son S/ 10 suyos que están en nuestra caja. Eso lo señala
+`PmsTotalesPorMoneda::haySaldoAFavor()`, que se mide contra la misma tolerancia: por debajo de ella
+es redondeo del cambio y no hay nada que devolver.
+
+Lo demás se conserva: `pago-parcial` **sólo asciende desde `no-pagado`** (nunca degrada un
+`pago-total` ni pisa un `pago-alojamiento` puesto a mano), las estancias canceladas y las
+extensiones quedan fuera, y `confirmarPorPago()` no se toca porque opera sobre `estado_pago_id`.
+
+**Verificado** (16/08/2026, `var/probar-estado-pago-por-moneda.php`, en transacción con rollback):
+sobre las 317 fichas, **0 estancias cambian de estado de pago** — la lógica nueva reproduce
+exactamente la actual. Y `XTHRMQ`, que deja +0.10 de diferencia cambiaria, queda en `pago-total` en
+vez de arrastrar un «parcial» eterno por diez céntimos.
+
+> 🧪 Dos aclaraciones sobre el riesgo, porque la primera versión de este análisis lo exageró:
+> - **`pago-parcial` ya está en `ESTADOS_PAGO_CONFIABLES`.** Los códigos de acceso de la guía se
+>   abren con **cualquier** cobro, no con `pago-total`. La precisión hace falta para que el estado
+>   sea cierto, no porque `pago-total` sea una puerta.
+> - El caso «ficha anulada con un cobro» **no puede llegar a una estancia viva**: los dos `UPDATE`
+>   excluyen `e.estado_id = 'cancelada'`, y hoy hay **0 fichas anuladas con algún evento sin
+>   cancelar**. Los dos `EXISTS` se conservan igual —cuestan nada y mantienen «sin cargos no está
+>   pagada»— pero no son lo que impide un desastre.
+
+**Verificado** (16/08/2026, `var/probar-rollup-por-moneda.php`, en transacción con rollback):
+recálculo de las **317 fichas en 50 ms**; las **50 de una sola moneda coinciden al céntimo** con
+el modelo viejo —si no, el nuevo estaría tocando algo que no debía—; las 4 mixtas dan el desglose
+esperado; al imputar el cobro de `GASUNN` a la deuda en dólares, **la fila en soles desaparece
+sola** y queda sólo `USD 65.97 / 65.97` con saldo `+0.00`; y borrar una ficha con filas de totales
+no revienta ni deja huérfanas.
+
+> 🧪 Dos cosas que la sonda enseñó y conviene no repetir:
+> - `Uuid::fromString()` **lanza `Invalid UUID` con 32 caracteres hex seguidos** — exige la forma
+>   con guiones. Sobre una columna `BINARY(16)` va `Uuid::fromBinary()`, no `fromString(HEX(...))`.
+>   Estaba mal en `PmsFinanzasTotalMonedaRepository` y lo cazó la sonda, no el análisis estático.
+> - **No se puede probar la cascada borrando la ficha con SQL crudo**: `pms_cargo_financiero` y
+>   `pms_pago_financiero` la referencian con `NO ACTION` —los cascadea el ORM— y el `DELETE` da
+>   1451 con o sin la tabla nueva. Y tampoco por el ORM: hoy ninguna ficha con filas pertenece a
+>   una reserva directa, y el listener de integridad veta borrar una de OTA. Hay que reproducir a
+>   mano lo que hace el ORM (hijos primero) y comprobar lo que sí depende de la base.
 
 ### 12.3 Cuándo se recalcula (Doctrine onFlush/postFlush)
 
@@ -1724,7 +2204,36 @@ Doctrine y lanza `DomainException` si el campo `moneda` cambia de un valor no nu
 old=null,  new=X   → PERMITIDO   (backfill: primer seteo de moneda en una fila antigua sin moneda)
 old=USD,   new=PEN → BLOQUEADO   (ya se registró en USD con su propio TC; cambiarla sin
                                    remontar monto/TC dejaría el registro inconsistente)
+importe anterior = 0.00
+           → PERMITIDO   (no se registró ningún importe: no hay foto que romper)
 ```
+
+**La excepción del importe en cero** (15/08/2026) es lo que hace usable la línea que estrena una
+estancia directa (§12.0.1). Esa línea nace en `0.00` y en la moneda de la CABECERA —normalmente
+USD— para que el operador escriba el precio acordado; y ese precio se cierra a menudo en soles.
+Con el candado total, la única salida era borrar la línea y crear otra: cuatro clics para
+corregir un campo que nunca había significado nada.
+
+El candado dice «la moneda queda fija **al momento de registrar el importe**». Sin importe no hay
+momento, y no hay nada fijado.
+
+⚠️ **Se mira el importe ANTERIOR, no el que trae el PATCH.** El panel manda importe y moneda en
+el mismo viaje —«350 soles»—, así que leer el importe ya mutado diría «tiene 350» y el candado
+saltaría justo en el caso para el que se abrió la excepción. Lo resuelve
+`importeAnteriorEnCero()`, que toma el valor viejo del changeSet cuando el importe también viene
+en él.
+
+Se exige que **todos** los importes que existan estén en cero: un cargo lleva `totalLinea` y
+`monto`, un pago sólo `monto`. Con cualquiera con importe, ya hay dinero registrado.
+
+**Verificado** (2026-08-15, `var/probar-moneda-cargo-en-cero.php`, en transacción con rollback):
+cargo en 0.00 USD → PEN **pasa**; importe y moneda en el mismo guardado (que es como lo manda el
+panel) **pasa**; un cargo que ya tiene importe **sigue bloqueado**.
+
+> 🧪 Nota de método: en esa sonda el caso que BLOQUEA va el último a propósito. Una excepción
+> dentro de `flush()` deja la unidad de trabajo sucia, y cualquier `flush()` posterior vuelve a
+> intentar el cambio rechazado — así que lo que fuera detrás no mediría lo que dice medir. Se
+> descubrió al ver el mismo `id` en dos resultados que debían ser de cargos distintos.
 
 - **Por qué el candado es sólo sobre hijos, no sobre la cabecera:** la moneda de un cargo/pago está
   atada a un `monto` + `tipoCambio` capturados en ese instante — mutarla invalidaría esa foto. La
@@ -1733,6 +2242,13 @@ old=USD,   new=PEN → BLOQUEADO   (ya se registró en USD con su propio TC; cam
 - **UX:** `PmsPagoFinancieroCrudController` deshabilita el campo `moneda` en la página de edición
   (`Crud::PAGE_EDIT`) para que el operador nunca choque con la excepción — el candado del listener
   es la defensa real, el campo deshabilitado es sólo higiene de formulario.
+- **UX en el panel:** el formulario de edición de un cargo muestra el selector de moneda
+  **habilitado sólo mientras el cargo valga 0.00**, y con la explicación en su «i» cuando no.
+  La condición vive en `puedeCambiarMoneda()` de `ReservaFinanzasPanel.vue`, **espejo en TS** de
+  `importeAnteriorEnCero()`. Si dejan de decir lo mismo, el panel ofrecerá un select que el
+  guardado va a rechazar: al tocar uno, tocar el otro.
+- **Grupo de serialización:** `moneda` está en `pms_cargo:patch` desde entonces. El grupo no
+  puede ser el candado porque la regla depende del ESTADO de la fila, no del campo.
 - **Los cargos de Beds24** ya son de sólo lectura en el panel (§11), así que en la práctica el
   candado los protege del *backfill* automático del persister, no de ediciones manuales.
 
@@ -1777,6 +2293,60 @@ se preselecciona sin preguntar.
 
 `ON DELETE SET NULL` en la FK: si se borra la estancia, el cargo sobrevive como cargo general en
 lugar de irse con ella — es dinero registrado, no un dato derivado.
+
+### 12.4.1b El tipo de cambio se sella SIEMPRE, en todos los registros
+
+**Desde el 16/08/2026, ningún cargo, cobro ni ficha nace sin tipo de cambio** — coincida o no su
+moneda con la de la ficha. Lo pone `PmsTipoCambioSnapshotListener` en `prePersist`.
+
+> 🔴 **La cabecera se añadió en la revisión del mismo día, y es la mitad que se había escapado.**
+> `Version20260816010000` rellenó las 317 fichas existentes, así que en local no se veía nada —
+> pero **la ficha nueva nacía con `tipo_cambio` vacío**. Sin él, el cuadre descarta en silencio la
+> moneda que no es la base (el `COALESCE(…, 0)` de `subconsultaDeCuadre()`): una ficha en soles
+> con los soles saldados y dólares pendientes daba cuadre `0.00` y con él `pago-total`, que por
+> `confirmarPorPago()` → `ESTADOS_PAGO_CONFIABLES` **abre los códigos de acceso de la casa a quien
+> todavía debe**. No es un descuadre contable, es una regresión que ve el huésped.
+>
+> Hay dos líneas de defensa, y las dos hacen falta: el sello de aquí (que no haya fichas sin
+> cambio de cuadre) y el guardia `monedas_sin_convertir` de `subconsultaDeCuadre()` (que aunque la
+> haya, no se concluya «pagada»). Su espejo en PHP es
+> `PmsTotalesPorMoneda::hayMonedaSinConvertir()`, que hace que `cuadra()` diga NO.
+
+**Qué significa el campo, que no es lo que parece.** `tipo_cambio` **no** es «el número que hace
+falta para convertir». Es **cuánto valía el dólar el día en que ese dinero se movió**: un hecho
+histórico del registro, que sigue siendo cierto y sigue siendo útil aunque nadie convierta nada.
+Con él se reconstruye cualquier cuenta a posteriori, se le puede decir a un huésped a cuánto se
+le cambió, y se cuadra una reserva cobrada en dos monedas. Sin él esa información **no existe en
+ninguna parte**: SUNAT publica la cotización de cada día, pero nadie sabe cuál se aplicó.
+
+**Por qué un listener y no una llamada en cada creador.** Mismo argumento que
+`PmsLimpiezaAsignacionListener`, y aquí está medido: hay **seis** sitios que crean registros
+financieros —`PmsCargosAutomaticosService`, `PmsPagoOtaAutomaticoService`,
+`Beds24InvoiceReceivePersister`, `RegistrarCargoSkill`, `RegistrarPagoSkill`,
+`PmsReservaOrigenCobroResolver`— más el POST de la API, y **dos de ellos no lo sellaban**. Un
+hueco así no se ve: el registro no da error, simplemente aporta 0 al total en la otra moneda y
+desaparece (§12.2). Es lo que se destapó con HMN4BP8J25 —«en dólares cuadra y en soles no»— y lo
+que dejó 6 registros históricos sin sellar.
+
+- **Es un defecto, no una regla:** sólo escribe si el campo viene vacío. Quien registre el cambio
+  que de verdad se aplicó —el del mostrador, que no siempre es el de SUNAT— manda. Es además lo
+  que impide que choque con el candado de §12.4.2.
+- **El día que se toma es el día del dinero:** en un cobro, `fechaPago` (un pago de hace tres días
+  se registra hoy pero ocurrió entonces); en un cargo, hoy, que es su fecha de creación. Mismo
+  criterio que `PmsCompletarTipoCambioCommand` — si cambia aquí, cambia allí.
+- **Nunca rompe un guardado:** `TipoCambioDelDia::venta()` cachea en base, cae a SUNAT y de ahí al
+  último disponible, y no lanza. Si aun así devuelve `null`, el registro nace sin TC y se persiste
+  igual: un problema con la cotización no puede impedir anotar un cobro que ya se recibió.
+
+**Verificado** (16/08/2026, `var/probar-sello-tipo-cambio.php`, en transacción con rollback): un
+cargo persistido sale con la venta de hoy (3.371); un cobro con `fechaPago` de hace cuatro días
+sale con la de **ese** día (3.372), no con la de hoy; y un registro que ya traía el suyo no se
+pisa. Los 6 históricos se completaron con
+`php bin/console pms:finanzas:completar-tipo-cambio --aplicar` → **0 registros sin TC** en las dos
+tablas.
+
+> Una sola prueba cubre los seis creadores a propósito: todos pasan por el mismo `persist`, y ése
+> es justamente el motivo de poner el defecto en `prePersist` en vez de en cada uno.
 
 ### 12.4.2 El tipo de cambio SÍ se puede rellenar (pero no cambiar)
 
@@ -1832,6 +2402,32 @@ vista por defecto no discrepe del servidor por un redondeo distinto.
 
 El conmutador **sólo aparece si hay registros en otra moneda**: en una reserva enteramente en
 dólares sería ruido.
+
+#### ⚠️ Con registros sin convertir, el saldo NO se enseña
+
+Un registro sin tipo de cambio no se puede convertir, así que en esa moneda queda **fuera** de la
+suma. Los totales siguen siendo ciertos —son la suma de lo que sí se pudo convertir— pero el
+**saldo no**: restar unos cargos incompletos de unos pagos completos (o al revés) da un número
+que no significa nada, y se leía como deuda del huésped.
+
+Caso real que lo destapó (reserva HMN4BP8J25, 15/08/2026): en dólares cuadraba y en soles no. El
+depósito automático de la OTA se creaba **sin tipo de cambio**, así que desaparecía de la vista en
+soles y el saldo salía por el importe entero del depósito.
+
+Dos arreglos, y hacen falta los dos:
+
+1. **Que no vuelva a nacer sin tipo de cambio.** `PmsPagoOtaAutomaticoService` ahora fotografía la
+   cotización del día al crear el depósito (`TipoCambioDelDia::venta()`). Era el único creador de
+   registros financieros que no lo hacía.
+2. **Que no se enseñe un saldo que no se puede calcular.** `saldoVista` / `claseSaldoVista` en
+   `ReservaFinanzasPanel.vue` pintan `—` en gris —con su `title` explicando por qué— siempre que
+   `sinConvertir > 0`, en los dos sitios donde se pinta el saldo (la insignia de cabecera y la
+   rejilla del drawer). El aviso de la franja lo dice también con todas las letras.
+
+Un guion es peor que un número **sólo si el número es correcto**. Aquí no lo era.
+
+Para los registros que ya existen sin tipo de cambio está
+`php bin/console pms:finanzas:completar-tipo-cambio --aplicar` (§12.4.2).
 
 ### 12.4.4 Moneda base configurable (sólo directas puras)
 
@@ -2177,6 +2773,80 @@ que el drawer crea la reserva con la primera y las demás del acordeón las cuel
 a mano. `permiteVariasEstancias` habilita el botón "Agregar estancia" (en creación de reserva y en
 edición, nunca en un bloqueo); el acordeón sólo se pinta al llegar a la segunda estancia, porque
 con una sola las cabeceras plegables sobran.
+
+#### Jerarquía visual: cabecera, bloque, fila
+
+Dentro de cada acordeón hay **tres niveles**, y se distinguen por sangría, no por color:
+
+```
+Cargos  (2)                                   US$ 129.18     ← sección  (px-4, fondo teñido)
+  🔒 Habilitar edición  (i)                                  ← barra de estado
+  🅐 Casita 3 · 12/08 → 14/08          US$ 129.18            ← bloque   (px-4, bg-slate-50)
+      ALOJAMIENTO  Beds24                US$ 129.18          ← fila     (pl-6)
+  🤝 Casita 6 · 14/08 → 16/08            US$ 0.00 (i)
+      LIMPIEZA  Estancia directa · Casita 6    US$ 0.00
+```
+
+Con todo al mismo margen la barra de la estancia se leía como un **separador** y no como una
+cabecera de la que cuelgan las filas de abajo. Los `pl-6` de las filas son lo que hace visible
+que esos cargos son **de esa casita**, no de la reserva entera.
+
+#### La sección de Pagos va en dos bloques, y el del canal arranca plegado
+
+Los cobros no son todos la misma cosa:
+
+| Bloque | Qué es | Estado inicial |
+|---|---|---|
+| **Cobros registrados** | Dinero que alguien recibió y anotó | Abierto |
+| **Depósito del canal** | Lo que el sistema cuadra contra los cargos, no una decisión de nadie | **Plegado** |
+
+Quien abre esta sección viene a ver o a registrar un cobro suyo. El depósito del canal ya está
+cuadrado y no se toca —corregirlo es tarea de los CARGOS (§12.4.5)—, así que ocupar con él la
+primera pantalla es gastar el sitio en lo único que no hay que mirar. Y como suele ser el importe
+más grande, mezclado enterraba los cobros reales.
+
+Los manuales van **primero** aunque el depósito sea mayor: el orden de un panel lo marca lo que se
+va a tocar, no el tamaño de las cifras.
+
+🔒 **El candado de pagos vive DENTRO del bloque del canal**, no arriba de la sección. Sólo protege
+ese depósito; puesto fuera parecía que hacía falta para tocar cualquier cobro, y los manuales
+nunca lo han necesitado. Al bloque hay que abrirlo para editar de todas formas, así que no
+esconde nada. (El de **Cargos** sí se queda arriba: ahí protege cargos que pueden estar en
+cualquier estancia.)
+
+⚠️ El reparto usa `esAutomatico`, **no** `gestionadoPorElSistema`: un depósito ya intervenido
+sigue naciendo del canal aunque su importe lo mande ahora el operador. Con la otra condición, el
+cobro saltaría de bloque justo mientras se está trabajando con él.
+
+El marcado de la fila **no está duplicado**: `bloquesPagos` construye la lista de bloques y el
+`v-for` de la fila es uno solo. Una fila de cobro tiene ocho estados —enlace de pago, depósito,
+intervenido, no borrable…— y dos copias serían dos copias que se separan.
+
+#### La ayuda vive en una «i», no en una franja
+
+Cinco franjas de texto explicativo llegaron a comerse la primera pantalla del panel. El criterio
+que las ordenó, y el gotcha del hover en táctil que obligó a escribir un componente en vez de
+usar `group-hover`, están en `docs/UI_Componentes_Compartidos.md` §3.e (`InfoTooltip`).
+
+Lo que **sigue a la vista** es lo que exige actuar: «2 registros no suman: les falta el tipo de
+cambio». Eso no es ayuda, es un problema de esta reserva.
+
+#### Las plantillas sin resolver de Beds24 no se enseñan
+
+Beds24 manda la descripción del cargo con sus propios marcadores y a veces **no los sustituye**:
+lo que llega es `[ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]`, idéntico en todos los cargos de una
+reserva agrupada. No es una descripción incompleta, es la plantilla en crudo — ocupa la línea
+donde se busca de qué es el cargo y no dice nada.
+
+`descripcionVisible()` (`pmsFinanzasModel.ts`) la oculta. Se detecta **por marcador**
+(`/\[[A-Z][A-Z0-9]*\]/`) y no por el texto exacto: los marcadores de Beds24 son muchos
+(`[GUESTNAME]`, `[BOOKINGID]`…) y una lista literal se queda corta con el primero que no
+habíamos visto. Un corchete con MAYÚSCULAS dentro no es texto humano.
+
+⚠️ **El dato NO se toca en la base.** Es lo que el canal mandó y el cargo sigue siendo suyo; esto
+es presentación. Si algún día Beds24 empieza a resolverlos, la descripción aparecerá sola sin
+migrar nada. Y no se pierde información: la casita y las fechas de ese cargo ya salen en la barra
+de su estancia.
 
 ### 12.5.3 Color de las estancias y drag & drop de las OTA
 
@@ -2690,9 +3360,11 @@ decidir quién manda. Nullable, así que quien no lo tenga no estorba (MySQL adm
 se puede hacer es el actor con sus roles; filtrar aquí dejaría a una limpiadora sin login —que sí
 puede cobrar (§11.5.1)— como desconocida.
 
-> 🔒 El teléfono **identifica pero no autentica**: una SIM se clona y un número se suplanta. Por
-> eso el control del agente se escala con el daño en `NivelRiesgo` en vez de confiar en el canal.
-> Ver el docblock de `AgentActor::delEquipoPorChat()`.
+> 🔒 El número de WhatsApp **no se puede suplantar** —lo entrega Meta firmado con HMAC, con el
+> remitente dentro de lo firmado—, así que como identidad es un factor de posesión verificado en
+> cada mensaje. Lo que no cubre es la **transferencia**: SIM swap, móvil robado, WhatsApp Web
+> abierto. Por eso el control del agente se escala con el daño en `NivelRiesgo` en vez de confiar
+> en el canal. Ver `AgentActor::delEquipoPorChat()` y docs/Mensajeria.md §7.
 
 **Falta cerrar el círculo:** nadie llama todavía a `findByTelefono()`. `AiConversationProcessor`
 —la entrada real del chat— sigue construyendo siempre un actor de huésped. Ver §12 de
@@ -3216,10 +3888,25 @@ deben verse.
 | Cambiar cuándo se auto-crea la cabecera financiera (§12.0) | `PmsInformacionFinancieraCoherenciaListener` | `crearCabeceraPara()` |
 | Permitir/impedir borrar un cargo (§12.4.1) | `PmsInformacionFinancieraCoherenciaListener` | `assertCargoBorrable()` |
 | Cambiar los valores por defecto de un cargo manual (§12.4.1) | `PmsCargoFinanciero` | `aplicarDefectosDeCargoManual()` |
-| Cambiar la tarifa de limpieza de las directas (hoy 15.00, §12.0.1) | `PmsCargosAutomaticosService` | `TARIFA_LIMPIEZA` |
-| Empezar a cobrar el servicio en las directas (§12.0.1) | `PmsCargosAutomaticosService` | `generarParaEvento()` — hoy omite `SERVICIO` a propósito |
+| Cambiar qué se crea al insertar una directa (hoy 1 cargo en 0.00, §12.0.1) | `PmsCargosAutomaticosService` | `generarParaEvento()` |
+| Cambiar de qué día sale el TC que se sella al crear un registro (§12.4.1b) | `PmsTipoCambioSnapshotListener` | `sellarCargo()` / `sellarPago()` / `sellarFicha()` — los dos primeros son espejo del criterio de `PmsCompletarTipoCambioCommand` |
+| Cambiar quién limpia por defecto en las estancias nuevas | Panel → **Usuarios** | Casilla «Limpia por defecto» (`User::$esLimpiezaPorDefecto`) — es un DATO, no hay ningún nombre en el código |
+| Cambiar hasta cuándo se puede corregir la moneda de un cargo (§12.4) | `PmsInformacionFinancieraCoherenciaListener` | `importeAnteriorEnCero()` + espejo `puedeCambiarMoneda()` en `ReservaFinanzasPanel.vue` |
+| Cambiar qué cobros arrancan plegados (§12.5.2) | `ReservaFinanzasPanel.vue` | `bloquesPagos` — el flag `plegable` |
+| Dejar de ocultar una plantilla de Beds24 (§12.5.2) | `util/src/types/pmsFinanzasModel.ts` | `MARCADOR_BEDS24` en `descripcionVisible()` |
+| Mover una ayuda de la pantalla a un tooltip | Vista | `<InfoTooltip>` — criterio en `UI_Componentes_Compartidos.md` §3.e |
+| Cambiar cómo se suman los totales por moneda (§12.2b) | `PmsInformacionFinancieraRecalculoService` | `recalcularPorMoneda()` — **y su espejo** `PmsTotalesPorMoneda::de()` |
+| Cambiar el umbral del cuadre (§12.2b) | `PmsTotalesPorMoneda` | `UMBRAL_CUADRE` — hoy 1.00, sacado de los tres cruces reales |
+| Leer saldos de muchas fichas a la vez | `PmsFinanzasTotalMonedaRepository` | `totalesDe()` — nunca el value object en bucle |
+| Cambiar cuándo una estancia pasa a `pago-total` (§12.9b) | `PmsEstadoPagoEventosService` | `subconsultaDeCuadre()` + los dos `UPDATE` |
+| Repoblar los totales por moneda tras un despliegue | — | `php bin/console pms:finanzas:recalcular-totales` |
+| Cambiar cuándo se ofrece imputar un cobro a otra moneda | `ReservaFinanzasPanel.vue` | `monedaAImputar` |
+| Cambiar el desglose del tooltip de coste teórico (§12.0.1) | `PmsCargosAutomaticosService` | `costoTeorico()` + `ReservaFinanzasPanel.vue` |
+| Cambiar cómo se escriben los cargos que el operador aprueba (§12.0.1) | `PmsCargosAutomaticosService` | `escribirAprobados()` |
+| Cambiar la tarifa de limpieza de las directas | `PmsUnidad` | `precioLimpieza` / `limpiezaEsPorcentaje` (ficha de la casita) |
+| Empezar a cobrar el servicio en las directas (§12.0.1) | `PmsCargosAutomaticosService` | `generarParaEvento()` — hoy no crea ningún importe a propósito |
 | Cambiar qué estancias estrenan cargos automáticos (§12.0.1) | `PmsCargosAutomaticosService` | `aplica()` (hoy: directas, sin bloqueos) |
-| Cambiar cómo se calcula el alojamiento por noche (§12.0.1) | `PmsCargosAutomaticosService` | `calcularAlojamiento()` → `TarifaPricingEngine::buildDailyPricesForIntervalWithFallback()` |
+| Cambiar cómo se calcula el alojamiento por noche (§12.0.1) | `PmsCargosAutomaticosService` | `preciosDeNoches()` → `TarifaPricingEngine::buildDailyPricesForIntervalWithFallback()` |
 | Cambiar el relleno de días sin tarifa (§12.0.1) | `PmsCargosAutomaticosService` | `fallbackProvider` (hoy: tarifa base de la unidad) |
 | Cambiar el orden cargos-automáticos ↔ rollup (§12.0.1) | `PmsInformacionFinancieraCoherenciaListener` | `postFlush()` / `generarCargosAutomaticos()` |
 | Cambiar el desglose de importes por tipo (§12.0.2) | `PmsInformacionFinanciera` + `PmsInformacionFinancieraRecalculoService` | `getTotalPorTipo()` (es **espejo** del SQL: tocar los dos) |

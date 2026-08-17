@@ -78,9 +78,15 @@ final readonly class AgentActor implements ActorInterface
     /**
      * Un miembro del equipo escribiendo desde su móvil, identificado por su número.
      *
-     * El teléfono identifica pero no autentica. Para este negocio es proporcionado —el activo
-     * son fechas de reservas— y por eso el control se escala con el daño en {@see NivelRiesgo}
-     * en vez de blindar el canal entero.
+     * El número **no se puede suplantar**: el mensaje lo entrega Meta firmado con HMAC sobre
+     * el cuerpo entero, con el remitente dentro de lo firmado ({@see
+     * \App\Message\Controller\Webhook\MetaWebhookController::firmaValida()}). Como identidad es
+     * un factor de posesión verificado en cada mensaje — más que una contraseña compartida.
+     *
+     * Lo que no cubre es la TRANSFERENCIA: SIM swap, un móvil desbloqueado, un WhatsApp Web
+     * abierto. Misma familia que una sesión robada. Por eso el control se escala con el daño en
+     * {@see NivelRiesgo} en vez de blindar el canal entero: para este negocio —el activo son
+     * fechas de reservas— es proporcionado.
      */
     public static function delEquipoPorChat(
         User $usuario,

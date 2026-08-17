@@ -51,7 +51,7 @@ final readonly class PmsPrepagoCalculador
      * escrita tres veces se separa a la primera. El agente es el que más lo agradece: decirle
      * a alguien que ya pagó que tiene un prepago pendiente es una equivocación que se lee.
      *
-     * Se mira `getTotalPagos()`, el mismo agregado de la cabecera que el estado de cuenta
+     * Se mira si hay ALGÚN cobro, en cualquier moneda — el mismo criterio que el estado de cuenta
      * enseña como «pagado»: así lo que dice esta regla y lo que ve el huésped no pueden
      * discrepar. En los canales que cobran por nosotros da igual — `calcular()` ya devuelve
      * `null` antes de llegar aquí.
@@ -60,7 +60,13 @@ final readonly class PmsPrepagoCalculador
      */
     public function pendiente(PmsInformacionFinanciera $finanzas): ?array
     {
-        if ((float) $finanzas->getTotalPagos() > 0.0) {
+        // «¿Hay algún pago?» en CUALQUIER moneda. Con el escalar convertido, un cobro en soles
+        // sin tipo de cambio aportaba 0 y esta guarda no lo veía: se le volvía a pedir el
+        // adelanto a alguien que ya había pagado.
+        if (array_filter(
+            PmsTotalesPorMoneda::de($finanzas)->porMoneda,
+            static fn (array $c): bool => (float) $c['pagos'] > 0.0,
+        ) !== []) {
             return null;
         }
 

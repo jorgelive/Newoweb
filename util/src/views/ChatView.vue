@@ -1315,7 +1315,9 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                 </span>
               </div>
               <div class="space-y-6 flex flex-col mb-8">
-                <div v-for="msg in group" :key="msg.id" class="flex w-full" :class="msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'">
+                <!-- `:key` con respaldo al índice: el `id` del esquema es nullable y una clave
+                     `undefined` haría que Vue reutilice el DOM del mensaje equivocado. -->
+                <div v-for="(msg, mi) in group" :key="msg.id ?? `sin-id-${mi}`" class="flex w-full" :class="msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'">
 
                   <div
                       class="relative max-w-[85%] md:max-w-[70%] flex flex-col"
@@ -1353,8 +1355,8 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 
                           <div v-if="msg.attachments?.length" class="mb-3 space-y-2">
                             <div
-                                v-for="att in msg.attachments"
-                                :key="(typeof att === 'string') ? att : att.id"
+                                v-for="(att, ai) in msg.attachments"
+                                :key="(typeof att === 'string') ? att : (att.id ?? att.fileUrl ?? ai)"
                                 @click.stop="handleAttachmentClick(att)"
                                 class="flex items-center gap-3 p-3 rounded-xl bg-black/10 cursor-pointer hover:bg-black/20 transition-colors"
                             >
@@ -1375,7 +1377,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                               :class="hasTranslation(msg) ? 'cursor-pointer hover:opacity-90' : ''"
                               :title="hasTranslation(msg) ? 'Toca para alternar traducción' : ''"
                           >
-                            <template v-if="isShowingTranslation(msg.id)">
+                            <template v-if="msg.id && isShowingTranslation(msg.id)">
                               <i class="fas fa-globe text-[12px] opacity-70 mr-1.5"></i>
                                    convierte en enlace lo que casa `https?://`. Ver utils/formatoDeTexto.ts. -->
                               <!-- eslint-disable-next-line vue/no-v-html -- Texto del huésped, pero `formatoAHtml()` escapa ANTES de aplicar marcas y sólo enlaza lo que casa https?://. -->
@@ -1532,8 +1534,8 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                 <button @click="showTemplateDropdown = false" class="text-slate-300 hover:text-red-400"><i class="fas fa-times"></i></button>
               </div>
               <button
-                  v-for="tpl in plantillasVisibles"
-                  :key="tpl.id"
+                  v-for="(tpl, ti) in plantillasVisibles"
+                  :key="tpl.id ?? `sin-id-${ti}`"
                   @click="selectTemplate(tpl)"
                   class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl transition-colors mb-1 group flex items-center justify-between"
               >

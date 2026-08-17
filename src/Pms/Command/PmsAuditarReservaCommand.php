@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Command;
 
 use App\Pms\Entity\PmsInformacionFinanciera;
+use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Pms\Entity\PmsReserva;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -143,27 +144,73 @@ final class PmsAuditarReservaCommand extends Command
                 $pago->getMoneda()?->getId() ?? '—',
                 $pago->getMonto(),
                 $pago->getTipoCambio() ?? '—',
-                (string) $pago->getMedioPago(),
+                // 🐛 Era `(string) $pago->getMedioPago()`, y `PmsMedioPago` es un enum: PHP no
+                // lo convierte a string y el comando **reventaba con cualquier reserva que
+                // tuviera pagos**. Se veía sólo ejecutándolo — el cast pasa `php -l` y PHPStan
+                // lo tenía en el baseline.
+                $pago->getMedioPago()->label(),
                 $pago->isEsAutomatico() ? 'auto' : '',
             ];
 
             if ($pago->getTipoCambio() === null && $pago->getMoneda()?->getId() !== $base) {
-                $avisos[] = sprintf('El pago de %s %s no tiene tipo de cambio: aporta 0 al saldo.', (string) $pago->getMoneda()?->getId(), $pago->getMonto());
+                // Ya no «aporta 0»: con contabilidad por moneda el pago cuenta entero en la suya
+                // (§12.2b). Lo que le falta es poder imputarse a la deuda de OTRA moneda, que es
+                // para lo que hace falta el tipo de cambio.
+                $avisos[] = sprintf(
+                    'El pago de %s %s no tiene tipo de cambio: cuenta en su moneda, pero no se '
+                    . 'puede imputar a la deuda de otra.',
+                    (string) $pago->getMoneda()?->getId(),
+                    $pago->getMonto(),
+                );
             }
         }
         $io->table(['Fecha', 'Mon.', 'Importe', 'TC', 'Medio', ''], $filasPagos);
 
-        $saldo = (float) $info->getTotalCargos() - (float) $info->getTotalPagos();
-        $io->writeln(sprintf(
-            '  <info>cargos</info> %s   <info>pagos</info> %s   <info>saldo</info> %s %s',
-            $info->getTotalCargos(),
-            $info->getTotalPagos(),
-            number_format($saldo, 2, '.', ''),
-            $base
-        ));
+        // 💱 POR MONEDA. Antes se imprimían los dos escalares convertidos de la cabecera, que es
+        // exactamente lo que esta auditoría existe para no hacer: un saldo convertido esconde de
+        // qué moneda viene el descuadre, y era imposible ver que una reserva debía en soles y
+        // tenía dinero a favor en dólares.
+        $totales = PmsTotalesPorMoneda::de($info);
 
-        if ($saldo < 0) {
-            $avisos[] = sprintf('Saldo NEGATIVO (%s %s): hay más cobrado que facturado.', number_format($saldo, 2, '.', ''), $base);
+        foreach ($totales->porMoneda as $moneda => $cifras) {
+            $io->writeln(sprintf(
+                '  <info>%s</info>  cargos %10s   pagos %10s   saldo %10s',
+                $moneda,
+                $cifras['cargos'],
+                $cifras['pagos'],
+                $cifras['saldo'],
+            ));
+
+            // ⚠️ En un CRUCE el saldo negativo de una moneda no es una inconsistencia aparte:
+            // es el mismo hecho que el aviso de imputación de abajo, dicho dos veces. Dos avisos
+            // para un problema hacen que se lean los dos por encima.
+            if ((float) $cifras['saldo'] < 0 && !$totales->hayCruceDeMonedas()) {
+                $avisos[] = sprintf(
+                    'Saldo NEGATIVO en %s (%s): hay más cobrado que facturado en esa moneda.',
+                    $moneda,
+                    $cifras['saldo'],
+                );
+            }
+        }
+
+        // El cuadre sólo cuando hay dos: con una, el desglose de arriba ya lo dice todo.
+        if ($totales->esMixta()) {
+            $io->writeln(sprintf(
+                '  <comment>cuadre</comment> ≈ %s %s al %s   %s',
+                $totales->cuadre,
+                $totales->monedaCuadre,
+                $totales->tipoCambio ?? '(sin TC)',
+                $totales->cuadra() ? '<info>cuadra</info>' : '<error>NO cuadra</error>',
+            ));
+
+            // Un cruce sin imputar es la inconsistencia que esta auditoría tiene que cazar: la
+            // ficha dice que se debe en una moneda y que sobra en otra, cuando lo que pasó es
+            // que se pagó una con la otra. Un clic en el panel lo cierra.
+            if ($totales->hayCruceDeMonedas() && $totales->cuadra()) {
+                $avisos[] = 'Hay un cobro en una moneda SIN cargos y el cuadre da cero: '
+                    . 'seguramente salda la deuda de la otra. Impútalo desde el panel para que '
+                    . 'la ficha deje de decir que se debe algo.';
+            }
         }
 
         if ($avisos === []) {

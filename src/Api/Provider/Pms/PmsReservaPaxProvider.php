@@ -8,7 +8,9 @@ use ApiPlatform\Doctrine\Orm\State\ItemProvider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Pms\Entity\PmsChannel;
+use App\Entity\Maestro\MaestroMoneda;
 use App\Pms\Entity\PmsInformacionFinanciera;
+use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Finanzas\PmsPrepagoEnlaceService;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
@@ -57,7 +59,9 @@ final class PmsReservaPaxProvider implements ProviderInterface
         // Sin cabecera o sin cargos no hay nada que contar: la tarjeta no se pinta.
         // Con `activa = false` los caches ya solo suman la penalización (§12.7),
         // así que el saldo que sale de aquí sigue siendo el correcto.
-        if ($finanzas === null || (float) $finanzas->getTotalCargos() <= 0) {
+        // «¿Hay algo que cobrar?», preguntado al VO y no al escalar convertido en retirada. La
+        // respuesta es la misma, pero deja de depender de una columna que va a desaparecer.
+        if ($finanzas === null || !PmsTotalesPorMoneda::de($finanzas)->hayCargos()) {
             return $reserva;
         }
 
@@ -143,7 +147,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
      * 100 %, sin una sola cifra. Con extras ve SOLO esos, que son los que nos debe
      * a nosotros y sí puede reconocer.
      *
-     * @return array<string, string|bool>
+     * @return array<string, mixed>
      */
     private function cifras(PmsInformacionFinanciera $finanzas): array
     {
@@ -165,13 +169,24 @@ final class PmsReservaPaxProvider implements ProviderInterface
             return ['soloProgreso' => true];
         }
 
-        // En un canal normal mandan los agregados cacheados de la cabecera. Las
-        // líneas ya vienen en la misma moneda base que ellos, así que suman: no
-        // hay que recalcular nada aquí ni comprobar que cuadren.
+        // 💱 POR MONEDA, sin convertir. El huésped que pagó S/ 223.70 por Yape tiene que ver
+        // S/ 223.70 — no «US$ 65.97», que es una cifra que no reconoce de ningún recibo suyo.
+        //
+        // En canal espejo se conservan las sumas locales: ahí lo que se enseña son SÓLO los
+        // extras, y ésos ya vienen filtrados de `$cargos`/`$pagos`.
+        $totales = PmsTotalesPorMoneda::de($finanzas);
+
         return [
-            'total'  => $espejo ? number_format($total, 2, '.', '')  : $finanzas->getTotalCargos(),
-            'pagado' => $espejo ? number_format($pagado, 2, '.', '') : $finanzas->getTotalPagos(),
-            'saldo'  => $espejo ? number_format($total - $pagado, 2, '.', '') : $finanzas->getSaldo(),
+            // El CUADRE, para la barra de progreso y el titular «cuánto falta»: son preguntas que
+            // sólo admiten una respuesta. Va marcado con `mixta` para que la tarjeta escriba `≈`
+            // y no lo presente como exacto.
+            'total'  => $espejo ? number_format($total, 2, '.', '')  : $this->totalDelCuadre($totales, 'cargos'),
+            'pagado' => $espejo ? number_format($pagado, 2, '.', '') : $this->totalDelCuadre($totales, 'pagos'),
+            'saldo'  => $espejo ? number_format($total - $pagado, 2, '.', '') : $totales->cuadre,
+            'monedaCuadre' => $totales->monedaCuadre,
+            'mixta' => !$espejo && $totales->esMixta(),
+            // La verdad, para el detalle: una fila por moneda con lo suyo.
+            'porMoneda' => $espejo ? [] : $this->desglosePorMoneda($totales),
             'cargos' => $cargos,
             // Detalle línea a línea, con la descripción redactada para el huésped. Es lo que
             // pinta la tarjeta; `cargos` (agrupado por tipo) se mantiene porque sigue siendo
@@ -184,6 +199,66 @@ final class PmsReservaPaxProvider implements ProviderInterface
             // `consultar_cuenta` del agente, y escrita tres veces se separa a la primera.
             'prepago' => $this->prepagoCalculador->pendiente($finanzas),
         ];
+    }
+
+    /**
+     * Los cargos o los cobros de todas las monedas, llevados a la de cuadre.
+     *
+     * Sólo alimenta la barra de progreso y el titular. El detalle que el huésped lee va sin
+     * convertir en `porMoneda`.
+     */
+    private function totalDelCuadre(PmsTotalesPorMoneda $totales, string $campo): string
+    {
+        $tc = (float) ($totales->tipoCambio ?? 0);
+        $suma = 0.0;
+
+        foreach ($totales->porMoneda as $moneda => $cifras) {
+            $valor = (float) $cifras[$campo];
+
+            if ($moneda === $totales->monedaCuadre) {
+                $suma += $valor;
+
+                continue;
+            }
+
+            // Sin tipo de cambio no se inventa nada: esa moneda se queda fuera de la barra. El
+            // detalle de `porMoneda` la sigue enseñando entera, que es lo que importa.
+            if ($tc <= 0.0) {
+                continue;
+            }
+
+            $suma += match (true) {
+                $moneda === 'USD' && $totales->monedaCuadre === 'PEN' => $valor * $tc,
+                $moneda === 'PEN' && $totales->monedaCuadre === 'USD' => $valor / $tc,
+                default => $valor,
+            };
+        }
+
+        return number_format($suma, 2, '.', '');
+    }
+
+    /**
+     * Una fila por moneda, con su símbolo, para que la tarjeta la pinte tal cual.
+     *
+     * @return list<array{moneda: string, simbolo: string|null, cargos: string, pagado: string, saldo: string}>
+     */
+    private function desglosePorMoneda(PmsTotalesPorMoneda $totales): array
+    {
+        $salida = [];
+
+        foreach ($totales->porMoneda as $moneda => $cifras) {
+            $entidad = $this->em->find(MaestroMoneda::class, $moneda);
+
+            $salida[] = [
+                'moneda' => $moneda,
+                'simbolo' => $entidad?->getSimbolo(),
+                'cargos' => $cifras['cargos'],
+                'pagado' => $cifras['pagos'],
+                'saldo' => $cifras['saldo'],
+            ];
+        }
+
+        return $salida;
     }
 
     /**
@@ -205,6 +280,14 @@ final class PmsReservaPaxProvider implements ProviderInterface
     private function referenciaSoles(PmsInformacionFinanciera $finanzas): array
     {
         if (($finanzas->getMoneda()?->getId() ?? 'USD') === 'PEN') {
+            return [];
+        }
+
+        // ⚠️ Con DOS monedas no se ofrece: convertir una de las dos a soles —dejando la otra
+        // como está, o convirtiéndola también con un tipo que no es el suyo— produce una tarjeta
+        // que no cuadra consigo misma. Y el huésped ya tiene delante lo que pagó en cada una,
+        // que es justo lo que el conmutador venía a resolver cuando sólo había una.
+        if (PmsTotalesPorMoneda::de($finanzas)->esMixta()) {
             return [];
         }
 

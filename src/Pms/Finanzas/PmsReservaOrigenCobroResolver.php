@@ -12,6 +12,7 @@ use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Repository\PmsReservaRepository;
+use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -37,7 +38,7 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
         return FinOrigenCobro::PMS_RESERVA;
     }
 
-    public function resolver(Uuid $origenId): ?FinOrigenCobroDto
+    public function resolver(Uuid $origenId, ?string $moneda = null): ?FinOrigenCobroDto
     {
         $reserva = $this->reservas->find($origenId);
 
@@ -47,10 +48,26 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
 
         $info = $reserva->getInformacionFinanciera();
 
+        // 💱 EL SALDO DE UNA MONEDA, no un total convertido.
+        //
+        // Una pasarela cobra en UNA divisa. Si la reserva debe US$ 65 y S/ 50, cobrarle «un
+        // total» exigiría convertir — justo lo que se retiró (§12.2b). Se emite un enlace por
+        // moneda y cada uno pide exactamente lo que se debe en ella.
+        //
+        // Sin `$moneda`, la de mayor saldo: es lo que respondía antes para los llamantes que no
+        // saben de esto, y es la respuesta útil cuando sólo hay una.
+        $porMoneda = $info === null ? [] : PmsTotalesPorMoneda::de($info)->porMoneda;
+        $eleccion = $moneda !== null && isset($porMoneda[$moneda])
+            ? $moneda
+            : $this->monedaConMasSaldo($porMoneda);
+
         // Sin cabecera financiera no hay saldo que cobrar todavía: se devuelve 0 y el
         // servicio lo rechaza con un mensaje claro en vez de reventar por null.
-        $saldo = $info?->getSaldo() ?? '0.00';
-        $moneda = $info?->getMoneda()?->getId() ?? $reserva->getMoneda()?->getId() ?? 'USD';
+        $saldo = $eleccion !== null ? $porMoneda[$eleccion]['saldo'] : '0.00';
+        $moneda = $eleccion
+            ?? $info?->getMoneda()?->getId()
+            ?? $reserva->getMoneda()?->getId()
+            ?? 'USD';
 
         return new FinOrigenCobroDto(
             descripcion: $this->describir($reserva),
@@ -61,6 +78,31 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
             clienteEmail: $reserva->getEmailCliente(),
             clienteTelefono: $reserva->getTelefonoContacto(),
         );
+    }
+
+    /**
+     * La moneda con más saldo pendiente, o `null` si no hay ninguna con deuda.
+     *
+     * Con una sola moneda —lo normal— devuelve esa. Con dos, la que más se debe: es la que un
+     * operador que no ha elegido querría cobrar primero.
+     *
+     * @param array<string, array{cargos: string, pagos: string, saldo: string}> $porMoneda
+     */
+    private function monedaConMasSaldo(array $porMoneda): ?string
+    {
+        $mejor = null;
+        $mayor = 0.0;
+
+        foreach ($porMoneda as $moneda => $cifras) {
+            $saldo = (float) $cifras['saldo'];
+
+            if ($saldo > $mayor) {
+                $mayor = $saldo;
+                $mejor = $moneda;
+            }
+        }
+
+        return $mejor;
     }
 
     /**

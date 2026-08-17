@@ -36,8 +36,16 @@ interface FinOrigenCobroResolverInterface
      * Devuelve `null` si el documento ya no existe: un enlace pagado sobrevive al borrado
      * de su reserva (ver la nota de `FinOrigenCobro`) y la UI tiene que poder pintarlo
      * igual. Nunca lances por "no encontrado".
+     *
+     * ── `$moneda`, y por qué es opcional ────────────────────────────────────────
+     * Un documento puede deber en más de una moneda —una reserva con la estancia en dólares y
+     * una ampliación en soles—, y **una pasarela cobra un enlace en UNA divisa**. Con `$moneda`
+     * se pide la foto de esa deuda concreta; sin ella, la de mayor saldo.
+     *
+     * Es opcional a propósito: los llamantes que ya existían siguen funcionando sin tocarlos, y
+     * un módulo que sólo maneje una moneda puede ignorar el parámetro por completo.
      */
-    public function resolver(Uuid $origenId): ?FinOrigenCobroDto;
+    public function resolver(Uuid $origenId, ?string $moneda = null): ?FinOrigenCobroDto;
 
     /**
      * Imputa en el módulo el dinero ya cobrado por la pasarela.

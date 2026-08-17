@@ -35,6 +35,42 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         return $contextType === 'pms_reserva';
     }
 
+    /**
+     * Un importe listo para leerse, con su moneda dentro y sumando todas las que haya.
+     *
+     * `US$ 65.97` con una sola; `US$ 65.97 + S/ 50.00` con dos. Nunca un número pelado: en una
+     * plantilla, un importe sin moneda es una cifra que el huésped no puede comprobar.
+     */
+    private function importe(?PmsInformacionFinanciera $info, string $campo): string
+    {
+        if ($info === null) {
+            return '0.00';
+        }
+
+        $partes = [];
+
+        foreach ($info->getTotalesPorMoneda() as $fila) {
+            $partes[] = trim(($fila['simbolo'] ?? $fila['moneda']) . ' ' . $fila[$campo]);
+        }
+
+        return $partes === [] ? '0.00' : implode(' + ', $partes);
+    }
+
+    /**
+     * El código de moneda, **sólo si hay una**.
+     *
+     * Con dos, vacío: una plantilla que escriba «{balance} {currency}» produciría
+     * «US$ 65.97 + S/ 50.00 USD». Preferible una cadena de menos que una mentira.
+     */
+    private function monedaUnica(?PmsInformacionFinanciera $info): string
+    {
+        $totales = $info?->getTotalesPorMoneda() ?? [];
+
+        return count($totales) === 1
+            ? (string) $totales[0]['moneda']
+            : (count($totales) === 0 ? (string) ($info?->getMoneda()?->getId() ?? '') : '');
+    }
+
     private function getReserva(string $contextId): ?PmsReserva
     {
         return $this->entityManager->getRepository(PmsReserva::class)->find($contextId);
@@ -111,13 +147,26 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'checkout_date'         => $reserva->getFechaSalida()?->format('d/m/Y') ?? '',
             'nights'                => $reserva->getNoches(),
             'pax_total'             => $reserva->getPaxTotal(),
-            'total_amount'          => $info?->getTotalCargos() ?? '0.00',
+            // 💱 IMPORTES AUTOCONTENIDOS, con su moneda dentro.
+            //
+            // Con contabilidad por moneda (§12.2b) un importe suelto ya no significa nada: la
+            // misma reserva puede deber en soles y en dólares. Estos marcadores pasan a ser
+            // cadenas completas —«US$ 65.97 + S/ 50.00»— para que una plantilla no tenga que
+            // concatenar la moneda por su cuenta.
+            //
+            // ⚠️ Por eso `currency` se queda VACÍO cuando hay más de una: una plantilla escrita
+            // como «Debe {balance} {currency}» habría renderizado «Debe US$ 65.97 + S/ 50.00 USD».
+            //
+            // Auditado el 16/08/2026: de las 11 plantillas en base, **ninguna** usa hoy ninguno de
+            // estos marcadores en ninguno de sus cuatro canales. El cambio de forma es seguro; si
+            // algún día se usan, ya vienen listos para leerse tal cual.
+            'total_amount'          => $this->importe($info, 'cargos'),
             'accommodation_amount'  => $info?->getTotalAlojamiento() ?? '0.00',
             'cleaning_fee'          => $info?->getTotalLimpieza() ?? '0.00',
             'service_fee'           => $info?->getTotalServicio() ?? '0.00',
-            'paid_amount'           => $info?->getTotalPagos() ?? '0.00',
-            'balance'               => $info?->getSaldo() ?? '0.00',
-            'currency'              => (string) ($info?->getMoneda()?->getId() ?? ''),
+            'paid_amount'           => $this->importe($info, 'pagos'),
+            'balance'               => $this->importe($info, 'saldo'),
+            'currency'              => $this->monedaUnica($info),
             'property_name'         => $reserva->getNombreHotel(),
             'room_name'             => $reserva->getNombreHabitacion(),
             'channel_name'          => $canal ? $canal->getNombre() : 'Directo',

@@ -23,8 +23,14 @@ import {
 const props = defineProps<{
     origenTipo: FinOrigenCobro;
     origenId: string;
-    /** Saldo pendiente de la cabecera, para prellenar el importe. */
-    saldo: number;
+    /**
+     * Lo que queda por cobrar, **una entrada por moneda**.
+     *
+     * Una pasarela cobra un enlace en UNA divisa. Si la reserva debe US$ 65 y S/ 50, cobrarle
+     * «un total» exigiría convertir — justo lo que se retiró (§12.2b). Se ofrece un atajo por
+     * moneda y cada enlace pide exactamente lo que se debe en ella.
+     */
+    saldos: { moneda: string; simbolo?: string | null; saldo: string }[];
     /**
      * Prepago pendiente de la cabecera, o `null` si ya no procede pedirlo.
      *
@@ -38,6 +44,12 @@ const props = defineProps<{
         politicaCorta?: string;
         concepto?: string;
     } | null;
+    /**
+     * Símbolo de la moneda de cotización, para el formulario cuando no hay saldo que proponer.
+     *
+     * Los atajos NO lo usan: cada uno lleva el símbolo de SU moneda, porque con deuda en dos
+     * pintar las dos con el mismo símbolo sería exactamente el error que se vino a arreglar.
+     */
     monedaSimbolo?: string | null;
     readOnly?: boolean;
 }>();
@@ -96,6 +108,8 @@ const form = ref({
     vigenciaDias: 7,
     /** Vacío = la que decida el backend. Solo se elige si hay más de una configurada. */
     pasarela: '' as FinPasarela | '',
+    /** En qué moneda se emite. Vacío = la de mayor saldo, que es lo que hace el backend. */
+    moneda: '',
     /**
      * Vacío = el backend describe la reserva («Casita 1, 09/08 al 18/08»).
      *
@@ -124,8 +138,26 @@ const hayPendiente = computed(() => store.enlaces.some((e) => e.vigente));
  */
 const puedeCobrar = computed(() => !props.readOnly);
 
+/** Las monedas que de verdad tienen algo pendiente. */
+const conSaldo = computed(() => props.saldos.filter(s => Number(s.saldo) > 0.005));
+
 /** Sin saldo pendiente el importe no se prellena: no hay nada que proponer. */
-const haySaldo = computed(() => props.saldo > 0.005);
+const haySaldo = computed(() => conSaldo.value.length > 0);
+
+/** El símbolo de una moneda concreta, o el de cotización si no se sabe cuál. */
+function simboloDe(moneda?: string | null): string {
+    return conSaldo.value.find(s => s.moneda === moneda)?.simbolo
+        ?? props.monedaSimbolo
+        ?? moneda
+        ?? '';
+}
+
+/** La que se cobra si el operador no elige: la de mayor saldo, igual que el backend. */
+const monedaPorDefecto = computed<string | null>(() => {
+    const orden = [...conSaldo.value].sort((a, b) => Number(b.saldo) - Number(a.saldo));
+
+    return orden[0]?.moneda ?? null;
+});
 
 /**
  * Recarga al cambiar de documento. `immediate` porque la sección se monta con el
@@ -167,6 +199,8 @@ interface PresetImporte {
     /** El matiz largo de la política, al `title`: en el botón estorba. */
     detalle?: string;
     monto: string;
+    /** En qué moneda se emite. Sin ella, el backend toma la de mayor saldo. */
+    moneda?: string;
     /** Lo que verá el huésped en la página de pago. Vacío = lo describe el backend. */
     concepto: string;
     destacado: boolean;
@@ -187,15 +221,20 @@ const presets = computed<PresetImporte[]>(() => {
         });
     }
 
-    if (haySaldo.value) {
+    // Un atajo POR MONEDA. Con una sola —lo normal— se lee igual que antes; con dos, cada
+    // botón emite su propio enlace por lo que de verdad se debe en esa moneda.
+    for (const s of conSaldo.value) {
+        const varias = conSaldo.value.length > 1;
+
         lista.push({
             // Sin adelanto pendiente lo que queda ES el saldo, y llamarlo «total» mentiría:
             // el total de la reserva incluye lo ya cobrado.
-            clave: 'saldo',
-            etiqueta: prepago ? 'Total' : 'Saldo',
-            monto: props.saldo.toFixed(2),
+            clave: `saldo-${s.moneda}`,
+            etiqueta: (prepago ? 'Total' : 'Saldo') + (varias ? ` ${s.moneda}` : ''),
+            monto: Number(s.saldo).toFixed(2),
+            moneda: s.moneda,
             concepto: '',
-            destacado: !prepago,
+            destacado: !prepago && !varias,
         });
     }
 
@@ -205,12 +244,18 @@ const presets = computed<PresetImporte[]>(() => {
 function abrirForm(preset?: PresetImporte): void {
     error.value = null;
     // Sin atajo se prellena con el saldo COMPLETO: cobrar todo lo pendiente es el caso normal.
+    const porDefecto = conSaldo.value.find(s => s.moneda === monedaPorDefecto.value);
+
     form.value = {
-        monto: preset ? preset.monto : (haySaldo.value ? props.saldo.toFixed(2) : ''),
+        monto: preset ? preset.monto : (porDefecto ? Number(porDefecto.saldo).toFixed(2) : ''),
         conRecargo: true,
         vigenciaDias: 7,
         pasarela: '',
         concepto: preset?.concepto ?? '',
+        // Sin atajo se emite en la moneda de mayor saldo, que es lo que hace el backend con
+        // `null`. Se manda explícita para que lo que ve el operador y lo que se cobra no
+        // dependan de dos criterios distintos.
+        moneda: preset?.moneda ?? monedaPorDefecto.value ?? '',
     };
     formAbierto.value = true;
     // Al abrir y no al montar: la mayoría de veces el panel se despliega para mirar, no
@@ -230,6 +275,7 @@ async function crear(): Promise<void> {
             vigenciaDias: form.value.vigenciaDias,
             pasarela: form.value.pasarela || undefined,
             concepto: form.value.concepto.trim() || undefined,
+            moneda: form.value.moneda || undefined,
         });
         formAbierto.value = false;
         emit('actualizado');
@@ -300,7 +346,7 @@ function fechaCorta(iso: string | null): string {
                         : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'">
                     <i class="fas fa-bolt text-[9px]"></i>
                     {{ preset.etiqueta }}
-                    <span class="font-black tabular-nums">{{ props.monedaSimbolo }} {{ preset.monto }}</span>
+                    <span class="font-black tabular-nums">{{ simboloDe(preset.moneda) }} {{ preset.monto }}</span>
                 </button>
             </div>
 
@@ -320,7 +366,7 @@ function fechaCorta(iso: string | null): string {
 
                 <div class="grid grid-cols-2 gap-3">
                     <label class="block">
-                        <span class="text-[10px] font-black text-slate-500 uppercase">Importe ({{ props.monedaSimbolo }})</span>
+                        <span class="text-[10px] font-black text-slate-500 uppercase">Importe ({{ simboloDe(form.moneda) }})</span>
                         <input v-model="form.monto" type="number" step="0.01" min="0.01"
                             class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
                     </label>

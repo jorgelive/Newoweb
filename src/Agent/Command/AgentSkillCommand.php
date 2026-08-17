@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Command;
 
+use App\Agent\Access\GuardiaDeSkills;
 use App\Agent\Access\AgentActor;
 use App\Agent\Access\AgentActorFactory;
 use App\Agent\Skill\SkillRegistry;
@@ -45,6 +46,7 @@ final class AgentSkillCommand extends Command
         private readonly SkillRegistry $registro,
         private readonly UserRepository $usuarios,
         private readonly AgentActorFactory $actores,
+        private readonly GuardiaDeSkills $guardia,
     ) {
         parent::__construct();
     }
@@ -115,12 +117,12 @@ final class AgentSkillCommand extends Command
             $actor = $this->actorAdmin($contexto !== null ? (string) $contexto : null);
         }
 
-        if (!$actor->tieneAlguno($skill->rolesRequeridos())) {
-            $io->error(sprintf(
-                'Este actor no puede usar "%s" (requiere: %s).',
-                $nombre,
-                implode(', ', $skill->rolesRequeridos())
-            ));
+        // Por el guardián y no comprobando los roles aquí: era la misma política escrita dos
+        // veces, y la copia de la CLI no sabía nada del PIN. Ver GuardiaDeSkills.
+        $bloqueo = $this->guardia->motivoDeBloqueo($skill, $actor);
+
+        if ($bloqueo !== null) {
+            $io->error($bloqueo);
 
             return Command::FAILURE;
         }

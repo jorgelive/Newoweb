@@ -103,6 +103,9 @@ final class FinEnlacePagoApiController extends AbstractController
                 // Null = la del registry. El operador sólo elige si hay más de una con
                 // credenciales; el selector de la SPA se puebla desde `/pasarelas`.
                 pasarela: isset($datos['pasarela']) ? FinPasarela::tryFrom((string) $datos['pasarela']) : null,
+                // Opcional: sin ella, el resolver elige la moneda con más saldo. El panel la manda
+                // cuando el operador pulsa el atajo de una moneda concreta.
+                moneda: $this->textoONull($datos['moneda'] ?? null),
             );
         } catch (DomainException $e) {
             return $this->json(['error' => $e->getMessage()], 422);

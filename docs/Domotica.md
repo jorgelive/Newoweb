@@ -83,10 +83,30 @@ dormitorio de una casita concreta, y quien sabe qué es un dormitorio es el PMS.
 `DomoticaDispositivo` no es «un contómetro»: es un aparato con dos capacidades que se declaran por
 separado y ninguna es obligatoria.
 
-| Campo | Qué habilita |
-|---|---|
-| `mideConsumo` | Muestreo, suscripción, bitácora y facturación |
-| `conmutable` | Accionar desde el sistema — **pendiente**; hoy el estado sólo se lee |
+| Campo | Qué habilita | De dónde sale |
+|---|---|---|
+| `mideConsumo` | Muestreo, suscripción, bitácora y facturación | `add_ele` en la especificación |
+| `conmutable` | Accionar desde el sistema — **pendiente**; hoy el estado sólo se lee | `switch_1` en la especificación |
+
+⚠️ **Las dos son DERIVADAS, no se teclean.** El aparato reporta lo que sabe hacer en
+`/v1.0/devices/{id}/specifications`; el alta y el `--resync` las rellenan. Nacen en `false`
+(`Version20260815020000`) porque hasta esa consulta la respuesta honesta es «no sé», y un `true`
+sin comprobar mete a un detector de gas en el muestreo y en las alertas cada tres horas.
+
+Aquí la asimetría se **invierte** respecto a la regla de la guía —donde una lista vacía es «sin
+acotar» porque el ítem de más es inofensivo—: un `false` equivocado sólo retrasa el muestreo hasta
+que alguien sincronice. Fallar callado, no a gritos.
+
+No confundir con `activo`, que es la otra mitad: `mideConsumo` es lo que el aparato **puede**;
+`activo` es si **queremos** usarlo. Un enchufe con contómetro que no se quiere facturar se
+desactiva, no se marca como que no mide.
+
+**El modelo verificado** (`product_id: labfkgzm2ikdcpdp`, Aubess Smart Switch/EM) expone
+`add_ele` (kW·h, escala 3), `cur_power` (W, escala 1), `cur_current`, `cur_voltage` y `switch_1`:
+mide y conmuta. Comprar por `product_id` — «Aubess Smart Switch» sin el `/EM` es otro producto y
+no mide. Y dos DP que salen gratis: `fault` (`ov_cr`, `ov_pwr`, `ls_cr`…) sirve de diagnóstico
+anticipado, y `relay_status` (0/1/2) decide qué pasa tras un corte de luz — hay que fijarlo a
+propósito, o un apagón enciende calefactores en casitas vacías.
 
 `encendido` + `estadoTomadoEn` valen **por sí solos, sin contómetro**: saber que un aparato quedó
 encendido en una casita vacía ya es accionable, y es la otra mitad de la fricción que originó el

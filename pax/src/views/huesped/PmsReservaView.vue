@@ -250,11 +250,37 @@ const fechaPago = (iso: string | null): string => {
 const formatMonto = (v: number): string => {
   // Único sitio que formatea importes, así que el conmutador se aplica aquí y la
   // tarjeta entera cambia de moneda a la vez: total, pagado, saldo y cada línea.
+  //
+  // ⚠️ El conmutador sólo existe con UNA moneda (el backend no manda `tipoCambioReferencial`
+  // cuando hay dos), así que aquí nunca se convierte una tarjeta mixta. Ver `porMoneda`.
   const importe = enSoles.value ? v * tcReferencial.value : v;
   const simbolo = enSoles.value ? simboloReferencia.value : simboloCobro.value;
 
   return `${simbolo} ${importe.toLocaleString(maestroStore.idiomaActual, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
+
+/**
+ * Importe con el símbolo de SU moneda. No pasa por el conmutador.
+ *
+ * Lo usa el desglose por moneda: ahí cada fila dice lo que se pactó en ella, y convertirla
+ * sería deshacer justo lo que ese desglose vino a arreglar.
+ */
+const montoEnMoneda = (valor: string, simbolo?: string | null): string =>
+  `${simbolo ?? ''} ${Number(valor).toLocaleString(maestroStore.idiomaActual, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`.trim();
+
+/**
+ * ¿Esta reserva tiene movimiento en más de una moneda?
+ *
+ * Con dos, las cifras del titular son el CUADRE —convertido— y hay que marcarlas como
+ * aproximadas. El detalle exacto sale en su propio bloque.
+ */
+const mixta = computed(() => finanzas.value?.mixta === true);
+
+/** Las filas por moneda, sólo cuando de verdad hay más de una que enseñar. */
+const porMoneda = computed(() => (mixta.value ? finanzas.value?.porMoneda ?? [] : []));
+
+/** `≈` delante de las cifras del titular cuando vienen convertidas. */
+const marcaAprox = computed(() => (mixta.value ? '≈ ' : ''));
 
 /**
  * El detalle del estado de cuenta (desglose, saldo y recargo de tarjeta) arranca
@@ -456,7 +482,7 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
                     class="inline-flex items-center gap-1.5 bg-orange-50 text-[#E07845] border border-orange-200 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">
                 <i class="fas fa-hourglass-half"></i> {{ maestroStore.t('res_saldo_pendiente') || 'Saldo pendiente' }}
                 <span class="pl-1.5 ml-0.5 border-l border-orange-200 normal-case tracking-normal tabular-nums">
-                  {{ formatMonto(finSaldo) }}
+                  {{ marcaAprox }}{{ formatMonto(finSaldo) }}
                 </span>
               </span>
 
@@ -480,6 +506,28 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
           <p v-if="enSoles" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-medium leading-snug text-amber-700">
             {{ maestroStore.t('res_soles_referencial') || 'Importes referenciales al tipo de cambio de hoy.' }}
           </p>
+
+          <!-- ═══ DOS MONEDAS ═══
+               Fuera del plegable, como el aviso de soles y por el mismo motivo: el titular
+               enseña una cifra CONVERTIDA (el cuadre) y el huésped tiene que saberlo antes de
+               leerla. Debajo, lo que de verdad se pactó en cada moneda — que es lo que él
+               reconoce de sus recibos.
+
+               El conmutador de soles no aparece aquí: el backend no manda tipo de cambio
+               referencial cuando hay dos monedas, porque convertir una de ellas dejaría la
+               tarjeta sin cuadrar consigo misma. -->
+          <div v-if="porMoneda.length" class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <p class="text-[11px] font-medium leading-snug text-slate-600">
+              {{ maestroStore.t('res_dos_monedas') || 'Esta reserva tiene movimientos en dos monedas. Arriba ves el equivalente aproximado; aquí, lo exacto de cada una.' }}
+            </p>
+            <div v-for="m in porMoneda" :key="m.moneda" class="mt-2 flex items-center justify-between gap-3">
+              <span class="text-[12px] font-bold text-slate-500">{{ m.moneda }}</span>
+              <span class="text-[12px] font-black tabular-nums"
+                    :class="Number(m.saldo) > 0 ? 'text-[#E07845]' : 'text-emerald-700'">
+                {{ montoEnMoneda(m.saldo, m.simbolo) }}
+              </span>
+            </div>
+          </div>
 
           <!-- ═══ PAGAR ONLINE ═══
                Fuera del plegable: es la única acción de la tarjeta y el detalle arranca
@@ -575,7 +623,7 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
                   <span class="text-[13px] font-semibold text-slate-500">
                     {{ maestroStore.t('res_total_reserva') || 'Total de la reserva' }}
                   </span>
-                  <span class="text-[15px] font-black text-gray-900 tabular-nums">{{ formatMonto(finTotal) }}</span>
+                  <span class="text-[15px] font-black text-gray-900 tabular-nums">{{ marcaAprox }}{{ formatMonto(finTotal) }}</span>
                 </div>
               </div>
 

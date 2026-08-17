@@ -64,9 +64,40 @@ export interface PmsResumenFinanciero {
      * Cuando viene `true`, `total`/`pagado`/`saldo` NO llegan.
      */
     soloProgreso?: boolean;
+    /**
+     * El CUADRE, no la suma de una moneda: los saldos de todas llevados a `monedaCuadre` con el
+     * tipo de cambio de la reserva.
+     *
+     * Alimenta la barra de progreso y el titular «cuánto falta», que son preguntas que sólo
+     * admiten una respuesta. El detalle que el huésped lee va **sin convertir** en `porMoneda`.
+     * Cuando `mixta` es true la tarjeta lo escribe con `≈`: es aproximado y hay que decirlo.
+     */
     total?: string;
     pagado?: string;
     saldo?: string;
+    /** Moneda en la que se expresan `total`, `pagado` y `saldo`. */
+    monedaCuadre?: string;
+    /**
+     * ¿La reserva tiene movimiento en más de una moneda?
+     *
+     * Con `true`, las tres cifras de arriba están convertidas y la tarjeta las marca con `≈`.
+     * Y el conmutador de soles NO se ofrece: convertir una de dos deja la tarjeta sin cuadrar
+     * consigo misma, y el huésped ya tiene delante lo que pagó en cada una.
+     */
+    mixta?: boolean;
+    /**
+     * Lo que se debe y lo que se ha pagado **en cada moneda**, sin convertir.
+     *
+     * Es la verdad de la tarjeta: quien pagó S/ 223.70 por Yape tiene que ver S/ 223.70, no una
+     * cifra en dólares que no reconoce de ningún recibo suyo.
+     */
+    porMoneda?: Array<{
+        moneda: string;
+        simbolo?: string | null;
+        cargos: string;
+        pagado: string;
+        saldo: string;
+    }>;
     /**
      * Detalle línea a línea, con la descripción redactada PARA EL HUÉSPED.
      *

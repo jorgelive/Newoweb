@@ -27,6 +27,7 @@ import { useEnlacesPagoStore } from '@/stores/finanzas/enlacesPagoStore';
 import { extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { enfocarEnScroller } from '@/utils/scrollEnfoque';
 import ReservaEnlacesPagoSection from '@/components/reservas/ReservaEnlacesPagoSection.vue';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import {
     clasesTipoCargo,
     importeConMoneda,
@@ -37,13 +38,19 @@ import {
     idDeIri,
     totalConComision,
     netoDesdeTotal,
-    sumarEnMoneda,
-    importeEnMoneda,
+    descripcionVisible,
     type PmsCargoFinanciero,
     type PmsCargoFinancieroCreate,
     type PmsPagoFinanciero,
     type PmsPagoFinancieroCreate,
+    type PmsFinanzasCostoTeorico,
+    type PmsFinanzasMonedaRef,
+    type PmsTotalMoneda,
+    type PmsCuadre,
 } from '@/types/pmsFinanzasModel';
+// El icono y el color de cada canal salen de la misma tabla que usa el resto del módulo
+// de reservas: aquí sólo se pintan.
+import { canalInfo } from '@/types/pmsReservaModel';
 
 const props = defineProps<{
     reservaId: string;
@@ -77,16 +84,6 @@ const cargosDesbloqueados = ref(false);
  */
 const pagosDesbloqueados = ref(false);
 
-/**
- * Moneda en la que se están MIRANDO los totales (null = la de la cabecera). Ver el bloque
- * "VISTA DUAL" más abajo, donde vive el resto de la lógica.
- *
- * ⚠️ Se declara AQUÍ, y no junto a sus computed, porque `cargar()` la resetea y el watch de
- * abajo llama a `cargar()` con `immediate: true`. Declararla después daba un TDZ
- * ("Cannot access 'monedaVista' before initialization") que TypeScript no detecta.
- */
-const monedaVista = ref<string | null>(null);
-
 function toggleSeccion(s: 'cargos' | 'pagos'): void {
     seccionAbierta.value = seccionAbierta.value === s ? null : s;
 }
@@ -98,8 +95,6 @@ async function cargar(): Promise<void> {
     // Al cambiar de reserva el panel vuelve a colapsarse: cada una se abre por decisión propia.
     panelAbierto.value = false;
     seccionAbierta.value = null;
-    // La vista siempre arranca en la moneda contable: es la que da fe.
-    monedaVista.value = null;
     try {
         await Promise.all([
             finanzas.fetchEnums(),
@@ -139,45 +134,150 @@ function fechaLegible(iso?: string | null): string {
 }
 
 // ============================================================================
-// VISTA DUAL SOLES / DÓLARES
+// CONTABILIDAD POR MONEDA
 //
-// La moneda CONTABLE es siempre la de la cabecera: es la que persiste el backend en
-// `totalCargos`/`totalPagos` y la que da fe. Este conmutador es sólo de PRESENTACIÓN.
+// Aquí vivía la VISTA DUAL: un conmutador que reconvertía cada registro a «todo en soles» o
+// «todo en dólares». Se retiró el 16/08/2026 con el modelo que lo sostenía.
 //
-// Los totales de la otra moneda se recalculan aquí registro a registro (sumarEnMoneda),
-// no reconvirtiendo el total: ver el bloque de espejo en pmsFinanzasModel.ts. Por eso
-// cambiar de vista no dispara ninguna llamada al servidor.
+// La regla nueva es que **no se convierte**: soles con soles, dólares con dólares. El backend
+// manda `totalesPorMoneda` ya sumado (una entrada por moneda con movimiento) y aquí sólo se
+// pinta. Con el conmutador se fueron `monedaVista`, `monedaAlterna`, `enMonedaContable`,
+// `sinConvertir`, `saldoVista` y el saldo pintado como `—`: todos existían porque un registro
+// sin tipo de cambio desaparecía de la suma, y eso ya no puede pasar.
+//
+// La única cifra convertida que queda es el CUADRE, y viene resuelta del backend con la
+// tolerancia que la explica. Ver §12.2b de docs/PmsBeds24ReservasSync.md.
 // ============================================================================
 
-/** La otra moneda del par, si la reserva tiene registros que la justifiquen. */
-const monedaAlterna = computed<string | null>(() => {
-    const base = monedaCabecera.value?.id;
-    if (!base) return null;
+/**
+ * Lo que queda por cobrar, por moneda, para los atajos del enlace de pago.
+ *
+ * Sólo las que deben algo: una moneda saldada no tiene enlace que emitir.
+ */
+const saldosParaCobrar = computed(() => totalesPorMoneda.value
+    .filter(t => Number(t.saldo) > 0.005)
+    .map(t => ({ moneda: t.moneda, simbolo: t.simbolo, saldo: t.saldo })));
 
-    // Sólo se ofrece el conmutador si de verdad hay dinero en la otra moneda: en una
-    // reserva enteramente en dólares, el botón sería ruido.
-    const registros = [...(finanzas.info?.cargos ?? []), ...(finanzas.info?.pagos ?? [])];
-    const otras = new Set(
-        registros.map(r => r.moneda?.id).filter((id): id is string => !!id && id !== base),
-    );
+/** Los totales por moneda, tal como los manda el backend. Vacío mientras carga. */
+const totalesPorMoneda = computed<PmsTotalMoneda[]>(() => finanzas.info?.totalesPorMoneda ?? []);
 
-    if (otras.size === 1) return [...otras][0];
-    // Con más de una moneda extranjera no hay "la otra": se ofrece el par habitual.
-    return otras.has('PEN') ? 'PEN' : (otras.size ? [...otras][0] : null);
-});
+/** El balance soles↔dólares, o null si la ficha todavía no ha llegado. */
+const cuadre = computed<PmsCuadre | null>(() => finanzas.info?.cuadre ?? null);
 
-const monedaMostrada = computed(() => monedaVista.value ?? monedaCabecera.value?.id ?? null);
-const enMonedaContable = computed(() => monedaMostrada.value === monedaCabecera.value?.id);
+/**
+ * ¿Hay movimiento en más de una moneda?
+ *
+ * Es lo que decide si se pinta la fila de cuadre. Con una sola no hay nada que cuadrar y la
+ * fila sería ruido permanente.
+ */
+const hayVariasMonedas = computed(() => totalesPorMoneda.value.length > 1);
 
-/** Ref de moneda (símbolo incluido) de la vista activa, para pintar los importes. */
-const monedaVistaRef = computed(() => {
-    if (enMonedaContable.value) return monedaCabecera.value;
-    const id = monedaMostrada.value;
-    return finanzas.monedas.find(m => m.id === id) ?? (id ? { id } : null);
-});
+/** Ref de moneda (con símbolo) para un id, buscando en el maestro ya cargado. */
+function monedaRef(id?: string | null): PmsFinanzasMonedaRef | null {
+    if (!id) return null;
+
+    return finanzas.monedas.find(m => m.id === id) ?? { id };
+}
+
+/** Importe con el símbolo de SU moneda. Nunca convierte. */
+function importeEn(monto: string | number | null | undefined, moneda?: string | null): string {
+    return importeConMoneda(monto === null || monto === undefined ? null : String(monto), monedaRef(moneda));
+}
 
 const cargosVista = computed(() => finanzas.info?.cargos ?? []);
 const pagosVista = computed(() => finanzas.info?.pagos ?? []);
+
+/**
+ * Los cobros, partidos en los que puso el sistema y los que puso una persona.
+ *
+ * No es una separación estética: son dos cosas distintas y se leen distinto. El depósito
+ * automático del canal **no es una decisión de nadie** —lo cuadra el sistema contra los cargos
+ * en cada recálculo—, mientras que un cobro manual es dinero que alguien recibió y anotó. Con
+ * los dos en la misma lista, el depósito del canal —que suele ser el importe más grande—
+ * enterraba los cobros reales y el operador tenía que leer las etiquetas fila por fila.
+ *
+ * `esAutomatico` y no `gestionadoPorElSistema`: un depósito ya intervenido sigue naciendo del
+ * canal, aunque su importe lo mande ahora el operador. Cambiarlo de grupo al intervenirlo lo
+ * haría saltar de sitio justo cuando se está trabajando con él.
+ */
+const gruposPagos = computed(() => ({
+    automaticos: pagosVista.value.filter(p => p.esAutomatico === true),
+    manuales: pagosVista.value.filter(p => p.esAutomatico !== true),
+}));
+
+/**
+ * Los cobros del canal arrancan PLEGADOS, y los manuales no.
+ *
+ * Quien abre esta sección viene a ver o a registrar un cobro suyo. El depósito del canal ya está
+ * cuadrado y no se toca —corregirlo es tarea de los CARGOS—, así que ocupar con él la primera
+ * pantalla es gastar el sitio en lo único que no hay que mirar.
+ */
+const pagosAutomaticosAbiertos = ref(false);
+
+/**
+ * Subtotal de un grupo, **una cifra por moneda**.
+ *
+ * Antes devolvía un número: el grupo entero convertido a la moneda de la vista. Ahora devuelve
+ * el desglose, porque sumar dos monedas para dar un número es exactamente lo que se retiró.
+ */
+function subtotalPorMoneda(registros: { moneda?: PmsFinanzasMonedaRef | null }[], importeDe: (r: never) => string | null | undefined): { moneda: string; total: string }[] {
+    const acumulado = new Map<string, number>();
+
+    for (const r of registros) {
+        const moneda = r.moneda?.id ?? 'USD';
+        acumulado.set(moneda, (acumulado.get(moneda) ?? 0) + Number(importeDe(r as never) ?? 0));
+    }
+
+    return [...acumulado.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([moneda, total]) => ({ moneda, total: total.toFixed(2) }));
+}
+
+/** Subtotal de un bloque de cobros, por moneda. */
+function subtotalPagos(pagos: PmsPagoFinanciero[]): { moneda: string; total: string }[] {
+    return subtotalPorMoneda(pagos, (p: PmsPagoFinanciero) => p.monto);
+}
+
+interface BloquePagos {
+    clave: string;
+    titulo: string;
+    icono: string;
+    pagos: PmsPagoFinanciero[];
+    /** ¿Se puede plegar? Sólo el del canal: los manuales son a lo que se viene. */
+    plegable: boolean;
+}
+
+/**
+ * Los bloques a pintar, en orden, y sin los vacíos.
+ *
+ * Se construye una lista en vez de repetir el marcado de la fila dos veces: la fila de un cobro
+ * tiene ocho estados —enlace, depósito, intervenido, no borrable…— y mantener dos copias sería
+ * garantizar que la segunda se quedara atrás.
+ *
+ * Los manuales van PRIMERO aunque el depósito del canal suela ser mayor: el orden de un panel lo
+ * marca lo que se va a tocar, no el tamaño de las cifras.
+ */
+const bloquesPagos = computed<BloquePagos[]>(() => [
+    {
+        clave: 'manuales',
+        titulo: 'Cobros registrados',
+        icono: 'fas fa-hand-holding-dollar',
+        pagos: gruposPagos.value.manuales,
+        plegable: false,
+    },
+    {
+        clave: 'automaticos',
+        titulo: 'Depósito del canal',
+        icono: 'fas fa-robot',
+        pagos: gruposPagos.value.automaticos,
+        plegable: true,
+    },
+].filter(b => b.pagos.length > 0));
+
+/** ¿Está visible el contenido de este bloque? */
+function bloqueAbierto(b: BloquePagos): boolean {
+    return !b.plegable || pagosAutomaticosAbiertos.value;
+}
 
 /**
  * Enlace de pago que generó un pago dado, si lo hay.
@@ -193,48 +293,6 @@ const pagosVista = computed(() => finanzas.info?.pagos ?? []);
 function enlaceDePago(pagoId?: string | null) {
     if (!pagoId) return null;
     return enlacesPago.enlaces.find(e => e.movimientoGeneradoId === pagoId) ?? null;
-}
-
-/**
- * Totales de la vista activa.
- *
- * En la moneda contable se usan los del backend tal cual (son la verdad persistida); en la
- * otra se suman los registros. Así la vista por defecto nunca discrepa del servidor por un
- * redondeo distinto.
- */
-const totalesVista = computed(() => {
-    const info = finanzas.info;
-    if (!info) return { cargos: 0, pagos: 0, saldo: 0, sinConvertir: 0 };
-
-    if (enMonedaContable.value) {
-        return {
-            cargos: Number(info.totalCargos ?? 0),
-            pagos: Number(info.totalPagos ?? 0),
-            saldo: Number(info.saldo ?? 0),
-            sinConvertir: 0,
-        };
-    }
-
-    const destino = monedaMostrada.value;
-    // Anulada: sólo la penalización computa, igual que el rollup del backend (§12.7).
-    const cargosComputables = info.activa === false
-        ? cargosVista.value.filter(c => c.tipoCargo === 'penalizacion')
-        : cargosVista.value;
-
-    const cargos = sumarEnMoneda(cargosComputables, c => c.totalLinea ?? c.monto, destino);
-    const pagos = sumarEnMoneda(pagosVista.value, p => p.monto, destino);
-
-    return {
-        cargos: cargos.total,
-        pagos: pagos.total,
-        saldo: cargos.total - pagos.total,
-        sinConvertir: cargos.sinConvertir + pagos.sinConvertir,
-    };
-});
-
-/** Importe ya formateado en la moneda de la vista. */
-function importeVista(valor: number): string {
-    return importeConMoneda(valor.toFixed(2), monedaVistaRef.value);
 }
 
 // ============================================================================
@@ -280,7 +338,6 @@ async function cambiarMonedaBase(nueva: string): Promise<void> {
     cambiandoMonedaBase.value = true;
     try {
         await finanzas.cambiarMonedaBase(nueva);
-        monedaVista.value = null;
     } catch (err) {
         error.value = extractApiErrorMessage(err, 'No se pudo cambiar la moneda base.');
     } finally {
@@ -298,7 +355,7 @@ async function cambiarMonedaBase(nueva: string): Promise<void> {
 // ⚠️ Va SIEMPRE en la moneda de la cabecera, aunque el conmutador de vista esté en
 // la otra: el prepago es la cifra que se le pide al huésped y convertirla al vuelo
 // crearía una tercera cantidad que nadie le ha dicho. Por eso usa `monedaCabecera`
-// y no `monedaVistaRef` como el resto de importes del panel.
+// y no en la de un cargo suelto: es lo que se le va a pedir al huésped.
 // ============================================================================
 
 const prepago = computed(() => finanzas.info?.prepagoPendiente ?? null);
@@ -308,7 +365,14 @@ const prepagoImporte = computed(() =>
     prepago.value ? importeConMoneda(prepago.value.monto, monedaCabecera.value) : '',
 );
 
-const saldoPositivo = computed(() => totalesVista.value.saldo > 0.005);
+/**
+ * ¿Queda algo por cobrar?
+ *
+ * Sale del CUADRE, no de una moneda concreta: con deuda en soles y dólares la pregunta «¿debe?»
+ * sólo tiene una respuesta si se miran juntas. Y respeta la tolerancia, así que un residuo de
+ * cambio no pinta la reserva en rojo.
+ */
+const saldoPositivo = computed(() => cuadre.value !== null && !cuadre.value.cuadra);
 
 /**
  * Color del SALDO, con el criterio contable: rojo lo que se debe, azul lo saldado.
@@ -350,11 +414,20 @@ interface GrupoCargos {
     clave: string;
     titulo: string | null;
     subtitulo: string | null;
+    /** Id de canal de la estancia (`airbnb`, `booking`, `directo`), o null si no se imputa a una. */
+    canal: string | null;
+    /** Referencia del tarifario para esta estancia. Sólo en las directas; ver el tooltip. */
+    costoTeorico: PmsFinanzasCostoTeorico | null;
     cargos: PmsCargoFinanciero[];
-    /** Convertido a la moneda de la vista; NO es la suma cruda de importes (§12.2). */
-    subtotal: number;
-    /** Cargos del grupo que no se pudieron convertir (sin TC). */
-    subtotalIncompleto: boolean;
+    /**
+     * Subtotal del grupo, **una cifra por moneda**.
+     *
+     * Antes era un número: el grupo convertido a la moneda de la vista, con un flag
+     * `subtotalIncompleto` para los cargos sin tipo de cambio. Los dos desaparecieron con la
+     * conversión — una estancia puede tener el alojamiento en dólares y una ampliación en
+     * soles, y sumarlos da un importe que no existe.
+     */
+    subtotales: { moneda: string; total: string }[];
 }
 
 /** Cargos que no se imputan a ninguna estancia concreta (van a la reserva en conjunto). */
@@ -394,21 +467,22 @@ const gruposCargos = computed<GrupoCargos[]>(() => {
                 clave,
                 titulo: est?.unidad ?? (clave === CLAVE_SIN_ESTANCIA ? 'Cargos de la reserva' : 'Estancia'),
                 subtitulo: est ? `${fechaLegible(est.inicio)} → ${fechaLegible(est.fin)}` : null,
+                canal: est?.canal ?? null,
+                costoTeorico: est?.costoTeorico ?? null,
                 cargos: [],
-                subtotal: 0,
-                subtotalIncompleto: false,
+                subtotales: [],
             });
         }
 
         const g = grupos.get(clave)!;
         g.cargos.push(c);
 
-        // Se convierte a la moneda de la vista antes de sumar. Antes se sumaba el importe
-        // crudo y se etiquetaba con la moneda de la cabecera: un cargo de S/. 1425 aparecía
-        // como "US$ 1425.00" en el subtotal del grupo.
-        const enVista = importeEnMoneda(c, c.totalLinea ?? c.monto, monedaMostrada.value);
-        if (enVista === null) g.subtotalIncompleto = true;
-        else g.subtotal += enVista;
+    }
+
+    // El subtotal se calcula al final y POR MONEDA: una estancia puede tener el alojamiento en
+    // dólares y una ampliación en soles, y sumarlos daría una cifra que no existe.
+    for (const g of grupos.values()) {
+        g.subtotales = subtotalPorMoneda(g.cargos, (c: PmsCargoFinanciero) => c.totalLinea ?? c.monto);
     }
 
     return [...grupos.values()];
@@ -417,8 +491,15 @@ const gruposCargos = computed<GrupoCargos[]>(() => {
 /** ¿La reserva tiene más de una casita? Sólo entonces pedimos elegir estancia al crear. */
 const hayVariasEstancias = computed(() => (finanzas.info?.estancias?.length ?? 0) > 1);
 
-/** Sólo se muestran cabeceras de grupo si de verdad hay más de un bloque que distinguir. */
-const mostrarGrupos = computed(() => gruposCargos.value.length > 1);
+/**
+ * La cabecera de estancia se muestra SIEMPRE, aunque haya una sola.
+ *
+ * Antes se ocultaba con un único grupo por no meter ruido, pero eso dejaba los cargos sin decir
+ * **de qué estancia y de qué canal** son — que es justo lo que hay que saber para cuadrar una
+ * reserva. Con una sola casita la cabecera no estorba, y con el icono de canal se lee de un
+ * vistazo si ese dinero vino de Booking, de Airbnb o de una venta directa.
+ */
+const mostrarGrupos = computed(() => gruposCargos.value.length > 0);
 
 // ============================================================================
 // CARGOS: alta manual, edición y borrado
@@ -568,6 +649,41 @@ watch(cargosDesbloqueados, (abierto) => {
     if (enEdicion && enEdicion.manual !== true) cancelarEdicionCargo();
 });
 
+/**
+ * ¿A este cargo se le puede todavía cambiar la moneda?
+ *
+ * ⚠️ **Espejo de `PmsInformacionFinancieraCoherenciaListener::importeAnteriorEnCero()`.** La
+ * moneda queda fija al registrar un importe; mientras el cargo siga en `0.00` no se ha
+ * registrado nada, así que no hay foto que romper y se deja cambiar.
+ *
+ * Es lo que permite escribir en soles el precio de una estancia directa: la línea nace en cero
+ * y en la moneda de la cabecera —normalmente USD—, y el precio acordado puede no serlo. Sin
+ * esto, la única salida era borrar la línea y crear otra.
+ *
+ * Si aquí y en el backend dejan de decir lo mismo, el panel ofrecerá un select que el guardado
+ * va a rechazar. Al tocar uno, tocar el otro.
+ */
+function puedeCambiarMoneda(c: PmsCargoFinanciero): boolean {
+    return (Number(c.totalLinea ?? c.monto ?? 0) || 0) === 0;
+}
+
+/**
+ * El importe del cargo visto en la OTRA moneda, mientras se teclea.
+ *
+ * Ayuda de lectura y nada más: el cargo se guarda y se suma en la moneda en que se pactó. Es la
+ * única conversión que queda en el panel, y no toca ninguna cifra — por eso se llama
+ * «equivalente» y no «total».
+ */
+const equivalenteDelCargo = computed<string | null>(() => {
+    const tc = Number(cargoForm.value.tipoCambio);
+    const importe = Number(cargoForm.value.totalLinea);
+    const otra = cargoForm.value.moneda === 'PEN' ? 'USD' : 'PEN';
+
+    if (!tc || !importe) return null;
+
+    return importeEn((cargoForm.value.moneda === 'PEN' ? importe / tc : importe * tc).toFixed(2), otra);
+});
+
 /** Un cargo en otra moneda que la cabecera necesita TC o no sumará al saldo (§12.2). */
 const monedaCargoEsExtranjera = computed(
     () => !!monedaCabecera.value?.id && cargoForm.value.moneda !== monedaCabecera.value.id,
@@ -625,9 +741,13 @@ async function guardarCargoOrThrow(): Promise<void> {
         };
         await finanzas.createCargo(payload);
     } else if (cargoEditandoId.value) {
-        // `moneda` no viaja: queda fija tras registrar el importe. `tipoCambio` SÓLO viaja si
-        // el cargo no lo tenía — es la reparación de un cargo que no sumaba; cambiarlo cuando
-        // ya existe lo rechaza el backend (§12.4).
+        // `moneda` viaja SÓLO si el cargo seguía en cero: con importe registrado el backend la
+        // rechaza (§12.4). `tipoCambio` igual, sólo si no lo tenía — es la reparación de un
+        // cargo que no sumaba.
+        //
+        // ⚠️ La condición se pregunta al cargo ORIGINAL, no al formulario: el operador acaba de
+        // teclear el importe, así que mirar el formulario diría «ya tiene importe» y la moneda
+        // no viajaría justo en el caso para el que se abrió esto.
         const original = cargosVista.value.find(c => c.id === cargoEditandoId.value);
         await finanzas.patchCargo(cargoEditandoId.value, {
             // Cast puntual y acotado: el formulario guarda el id del enum como cadena
@@ -646,6 +766,9 @@ async function guardarCargoOrThrow(): Promise<void> {
             evento: cargoForm.value.evento ? pmsEventoIri(cargoForm.value.evento) : null,
             ...(original && !original.tipoCambio && cargoForm.value.tipoCambio
                 ? { tipoCambio: cargoForm.value.tipoCambio }
+                : {}),
+            ...(original && puedeCambiarMoneda(original) && cargoForm.value.moneda !== original.moneda?.id
+                ? { moneda: `/platform/maestro/monedas/${cargoForm.value.moneda}` }
                 : {}),
         });
     }
@@ -689,6 +812,15 @@ function pagoVacio() {
         comisionPorcentaje: '',
         referencia: '',
         notas: '',
+        /**
+         * A qué deuda se imputa este cobro, si no es a la de su propia moneda.
+         *
+         * Vacío es lo normal y lo que hace el 97 % de los cobros: el dinero salda deuda en la
+         * moneda en que entró. Con valor, este cobro abona la deuda de ESA moneda al tipo de
+         * cambio del propio cobro — la única conversión de todo el módulo, y sólo porque ahí el
+         * dinero cruzó de verdad.
+         */
+        monedaSaldada: '',
         /**
          * Quién RECIBIÓ el dinero (UUID de un usuario con ROLE_COBRADOR), no quién lo apunta.
          *
@@ -755,11 +887,6 @@ function puedeEditarPago(p: PmsPagoFinanciero): boolean {
     return p.esAutomatico !== true || pagosDesbloqueados.value;
 }
 
-/** Sin depósito del canal (una reserva directa, sin ir más lejos) no hay nada que proteger. */
-const hayDepositoAutomatico = computed(
-    () => (finanzas.info?.pagos ?? []).some(p => p.esAutomatico === true),
-);
-
 /** El pago abierto en el formulario es el depósito del canal: hay que avisar de la consecuencia. */
 const editandoDepositoAutomatico = computed(() => {
     if (pagoEditandoId.value === null) return false;
@@ -782,6 +909,38 @@ const editandoDepositoAutomatico = computed(() => {
  * de comisión '0.00', mientras el formulario trae lo que se tecleó ('118.070', '0'), y una
  * comparación de texto declararía cambiado lo que no lo está.
  */
+/**
+ * ¿Este cobro entra en una moneda donde NO hay nada que deber?
+ *
+ * Es la señal de que hace falta imputarlo: ese dinero no puede saldar nada suyo. Es el caso de
+ * GASUNN —cargos de Booking en dólares, cobro por Yape en soles— y sin resolverlo la ficha diría
+ * «debe US$ 65.97» y «tiene S/ 223.70 a favor», que es falso: el huésped pagó y se fue.
+ *
+ * Devuelve la moneda a la que tocaría imputarlo, o `null` si no hace falta.
+ */
+const monedaAImputar = computed<string | null>(() => {
+    const propia = pagoForm.value.moneda;
+    const conDeuda = totalesPorMoneda.value.filter(t => Number(t.cargos) > 0);
+
+    // Si en su propia moneda hay algo que deber, el cobro salda lo suyo y no hay nada que decidir.
+    if (conDeuda.some(t => t.moneda === propia)) return null;
+
+    // Sólo se propone cuando hay UNA candidata: con deuda en dos monedas distintas de la del
+    // cobro, elegir por él sería adivinar a cuál se aplica.
+    return conDeuda.length === 1 ? conDeuda[0].moneda : null;
+});
+
+/** El importe del cobro visto en la moneda a la que se imputaría, para enseñarlo antes de guardar. */
+const importeImputado = computed<string | null>(() => {
+    const destino = monedaAImputar.value;
+    const tc = Number(pagoForm.value.tipoCambio);
+    const monto = Number(pagoForm.value.monto);
+
+    if (!destino || !tc || !monto) return null;
+
+    return importeEn((pagoForm.value.moneda === 'PEN' ? monto / tc : monto * tc).toFixed(2), destino);
+});
+
 function intervieneAlGuardar(p?: PmsPagoFinanciero): boolean {
     if (p?.esAutomatico !== true) return false;
 
@@ -791,7 +950,9 @@ function intervieneAlGuardar(p?: PmsPagoFinanciero): boolean {
     return !igualNumero(p.monto, pagoForm.value.monto)
         || !igualNumero(p.comisionPorcentaje, pagoForm.value.comisionPorcentaje)
         || p.medioPago !== pagoForm.value.medioPago
-        || toDateInput(p.fechaPago) !== pagoForm.value.fechaPago;
+        || toDateInput(p.fechaPago) !== pagoForm.value.fechaPago
+        // Reimputar un depósito del canal es cambiar a qué deuda se aplica: también interviene.
+        || (p.monedaSaldada?.id ?? '') !== pagoForm.value.monedaSaldada;
 }
 
 /**
@@ -843,6 +1004,7 @@ function editarPago(p: PmsPagoFinanciero): void {
         comisionPorcentaje: p.comisionPorcentaje ?? '',
         referencia: p.referencia ?? '',
         notas: p.notas ?? '',
+        monedaSaldada: p.monedaSaldada?.id ?? '',
         cobrador: p.cobradorId ?? '',
     };
     refrescarTotalDesdeMonto();
@@ -976,6 +1138,12 @@ async function guardarPagoOrThrow(): Promise<void> {
             comisionPorcentaje: pagoForm.value.comisionPorcentaje || null,
             referencia: pagoForm.value.referencia || null,
             notas: pagoForm.value.notas || null,
+            // A qué deuda se imputa. SÍ viaja en el PATCH, al contrario que `moneda`: reimputar
+            // un cobro es corregir una decisión contable, no falsear un hecho. Cadena vacía =
+            // vuelve a saldar su propia moneda.
+            monedaSaldada: pagoForm.value.monedaSaldada
+                ? `/platform/maestro/monedas/${pagoForm.value.monedaSaldada}`
+                : null,
             // UUID plano, NO una IRI: `User` no es un recurso de API Platform y lo resuelve
             // PmsPagoFinancieroProcessor. Cadena vacía = desasignar.
             cobradorId: pagoForm.value.cobrador || null,
@@ -994,6 +1162,9 @@ async function guardarPagoOrThrow(): Promise<void> {
             comisionPorcentaje: pagoForm.value.comisionPorcentaje || null,
             referencia: pagoForm.value.referencia || null,
             notas: pagoForm.value.notas || null,
+            monedaSaldada: pagoForm.value.monedaSaldada
+                ? `/platform/maestro/monedas/${pagoForm.value.monedaSaldada}`
+                : null,
             // Ver la nota del PATCH: UUID plano, lo resuelve el processor.
             cobradorId: pagoForm.value.cobrador || null,
         };
@@ -1102,16 +1273,28 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
             </span>
 
             <!-- Sin etiquetas: en móvil no cabían. El color ya dice qué es cada cifra —
-                 arriba en verde lo que vale la reserva, abajo el saldo: rojo si falta
-                 cobrar, azul acero si está saldado (ver `claseSaldo`).
-                 `tabular-nums` mantiene las dos alineadas al apilarlas. -->
+                 en verde lo que vale la reserva, debajo el saldo: rojo si falta cobrar, azul
+                 acero si está saldado (ver `claseSaldo`).
+                 `tabular-nums` mantiene las cifras alineadas al apilarlas.
+
+                 UNA LÍNEA POR MONEDA, y no una cifra convertida: con deuda en soles y dólares,
+                 sumarlas daría un importe que nadie pactó. Con una sola moneda —313 de 317
+                 reservas— se ve exactamente igual que antes. -->
             <span v-if="finanzas.info" class="flex flex-col items-end gap-0.5 shrink-0">
-                <span class="px-2 py-0.5 rounded-md bg-white text-emerald-600 text-[11px] font-black tabular-nums">
-                    {{ importeVista(totalesVista.cargos) }}
+                <span v-for="t in totalesPorMoneda" :key="t.moneda"
+                    class="px-2 py-0.5 rounded-md bg-white text-emerald-600 text-[11px] font-black tabular-nums">
+                    {{ importeEn(t.cargos, t.moneda) }}
                 </span>
-                <span class="px-2 py-0.5 rounded-md bg-white text-[11px] font-black tabular-nums"
-                    :class="claseSaldo">
-                    {{ importeVista(totalesVista.saldo) }}
+                <!-- El saldo SÍ es una sola cifra: es el cuadre, y responde «¿debe algo?», que
+                     sólo tiene respuesta mirando las monedas juntas. Va marcado con `≈` cuando
+                     hubo conversión, para que no se lea como contabilidad. -->
+                <span v-if="cuadre" class="px-2 py-0.5 rounded-md bg-white text-[11px] font-black tabular-nums"
+                    :class="claseSaldo"
+                    :title="cuadre.mixta
+                        ? `Balance de las dos monedas al cambio ${cuadre.tipoCambio ?? '—'}`
+                        : undefined">
+                    <template v-if="cuadre.mixta">≈</template>
+                    {{ importeEn(cuadre.diferencia, cuadre.moneda) }}
                 </span>
             </span>
             <i v-else-if="finanzas.isLoading" class="fas fa-spinner fa-spin text-white/80 text-sm shrink-0"></i>
@@ -1152,27 +1335,69 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                 </button>
             </div>
 
-            <!-- ===== RESUMEN ===== -->
+            <!-- ===== RESUMEN =====
+                 Una fila por moneda. Con una sola —la inmensa mayoría— se lee igual que antes;
+                 con dos, cada una dice la verdad de lo suyo y no se suman entre sí. -->
             <div class="rounded-xl border border-slate-200 overflow-hidden mb-3">
-                <div class="grid grid-cols-3 divide-x divide-slate-100 bg-slate-50">
+                <div v-for="t in totalesPorMoneda" :key="t.moneda"
+                    class="grid grid-cols-3 divide-x divide-slate-100 bg-slate-50 border-b border-slate-100 last:border-b-0">
                     <div class="px-3 py-3 text-center">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Cargos</p>
-                        <p class="text-sm font-black text-slate-800 mt-0.5">
-                            {{ importeVista(totalesVista.cargos) }}
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">
+                            Cargos<template v-if="hayVariasMonedas"> · {{ t.moneda }}</template>
                         </p>
+                        <p class="text-sm font-black text-slate-800 mt-0.5">{{ importeEn(t.cargos, t.moneda) }}</p>
                     </div>
                     <div class="px-3 py-3 text-center">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Pagado</p>
-                        <p class="text-sm font-black text-emerald-600 mt-0.5">
-                            {{ importeVista(totalesVista.pagos) }}
-                        </p>
+                        <p class="text-sm font-black text-emerald-600 mt-0.5">{{ importeEn(t.pagos, t.moneda) }}</p>
                     </div>
                     <div class="px-3 py-3 text-center">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Saldo</p>
-                        <p class="text-sm font-black mt-0.5" :class="claseSaldo">
-                            {{ importeVista(totalesVista.saldo) }}
+                        <p class="text-sm font-black mt-0.5"
+                            :class="Number(t.saldo) > 0 ? 'text-rose-600' : 'text-[#3E6D9C]'">
+                            {{ importeEn(t.saldo, t.moneda) }}
                         </p>
                     </div>
+                </div>
+
+                <!-- ===== CUADRE =====
+                     Sólo con más de una moneda: es la respuesta a «te pago en soles lo que
+                     falta, ¿cuánto es?». NO es contabilidad —los totales de arriba lo son— y
+                     por eso va aparte, marcado con `≈` y con su tipo de cambio a la vista. -->
+                <div v-if="cuadre && cuadre.mixta"
+                    class="flex items-center justify-between gap-2 px-3 py-2.5 border-t border-slate-200 bg-white">
+                    <span class="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-slate-500">
+                        Cuadre
+                        <InfoTooltip lado="izquierda">
+                            Los saldos de las dos monedas llevados a <b class="text-white">{{ cuadre.moneda }}</b>
+                            con el cambio de la reserva. Es lo que hay que cobrar (o devolver) si se cierra todo
+                            en una sola moneda.
+                            <span class="block mt-1.5">
+                                <b class="text-white">No es contabilidad</b>: la contabilidad son los totales de
+                                arriba, que no se convierten. Esto es una referencia para cerrar.
+                            </span>
+                            <span class="block mt-1.5 text-slate-400">
+                                Se admite hasta {{ importeEn(cuadre.tolerancia, cuadre.moneda) }} de diferencia:
+                                el cambio del mostrador nunca es exactamente el de la reserva, y ese margen crece
+                                con lo que se convirtió.
+                            </span>
+                        </InfoTooltip>
+                        <span v-if="cuadre.tipoCambio" class="font-bold normal-case tracking-normal text-slate-400">
+                            al {{ cuadre.tipoCambio }}
+                        </span>
+                    </span>
+
+                    <span class="flex items-center gap-2 shrink-0">
+                        <span v-if="cuadre.saldoAFavor"
+                            class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-sky-100 text-sky-700"
+                            title="El huésped pagó de más: está saldada, pero ese dinero es suyo.">
+                            A favor del huésped
+                        </span>
+                        <span class="text-sm font-black tabular-nums"
+                            :class="cuadre.cuadra ? 'text-[#3E6D9C]' : 'text-rose-600'">
+                            ≈ {{ importeEn(cuadre.diferencia, cuadre.moneda) }}
+                        </span>
+                    </span>
                 </div>
 
                 <!-- ===== PREPAGO PENDIENTE =====
@@ -1223,43 +1448,26 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     </span>
                 </div>
 
-                <!-- ===== CONMUTADOR DE MONEDA (sólo presentación) =====
-                     Aparece únicamente si hay registros en otra moneda: en una reserva
-                     enteramente en dólares no hay nada que conmutar. -->
-                <div v-if="monedaAlterna" class="flex items-center gap-1 px-3 py-2 border-t border-slate-100 bg-white">
-                    <button type="button" @click="monedaVista = null"
-                        class="flex-1 px-3 py-1.5 rounded-lg text-[11px] font-black transition-colors"
-                        :class="enMonedaContable ? 'bg-[#376875] text-white' : 'text-slate-400 hover:bg-slate-50'">
-                        {{ monedaCabecera?.id }}
-                    </button>
-                    <button type="button" @click="monedaVista = monedaAlterna"
-                        class="flex-1 px-3 py-1.5 rounded-lg text-[11px] font-black transition-colors"
-                        :class="!enMonedaContable ? 'bg-[#376875] text-white' : 'text-slate-400 hover:bg-slate-50'">
-                        {{ monedaAlterna }}
-                    </button>
-                </div>
-
-                <!-- Aviso honesto: los dos totales no guardan proporción entre sí. -->
-                <p v-if="!enMonedaContable"
-                    class="px-3 py-1.5 text-[10px] font-bold text-[#376875] bg-[#376875]/5 border-t border-slate-100">
-                    <i class="fas fa-eye mr-1"></i>
-                    Vista en {{ monedaMostrada }}: cada importe se convierte con
-                    <b>su propio</b> tipo de cambio, no con una cotización única. La contabilidad
-                    de la reserva sigue en {{ monedaCabecera?.id }}.
-                </p>
-
-                <p v-if="totalesVista.sinConvertir"
-                    class="px-3 py-1.5 text-[10px] font-black text-amber-700 bg-amber-50 border-t border-amber-100">
-                    <i class="fas fa-triangle-exclamation mr-1"></i>
-                    {{ totalesVista.sinConvertir }}
-                    {{ totalesVista.sinConvertir === 1 ? 'registro no suma' : 'registros no suman' }}:
-                    les falta el tipo de cambio. Edítalos para completarlo.
-                </p>
-
+                <!-- El CONMUTADOR de moneda se retiró el 16/08/2026. Convertía todo a soles o
+                     a dólares para mirarlo; ahora cada moneda tiene su propia fila y no hay
+                     nada que conmutar. Con él se fue el aviso de «registros que no suman»:
+                     existía porque un registro sin tipo de cambio desaparecía de la suma. -->
                 <p class="px-3 py-1.5 text-[10px] font-bold text-slate-400 border-t border-slate-100 bg-white flex items-center justify-between gap-2">
-                    <span>
-                        Contabilidad en {{ monedaCabecera?.nombre ?? monedaCabecera?.id ?? 'USD' }}.
-                        Los importes en otra moneda se convierten con el tipo de cambio de cada registro.
+                    <span class="inline-flex items-center gap-1.5">
+                        Se cotiza en {{ monedaCabecera?.nombre ?? monedaCabecera?.id ?? 'USD' }}
+                        <InfoTooltip lado="izquierda">
+                            Cada importe se suma <b class="text-white">en la moneda en que se pactó</b>:
+                            soles con soles, dólares con dólares. No se convierte nada, así que lo que ves es
+                            exactamente lo que se cobró.
+                            <span class="block mt-1.5">
+                                Esta moneda es sólo el <b class="text-white">defecto</b> al abrir un cargo
+                                nuevo, y la moneda en la que se presenta el cuadre cuando hay dos.
+                            </span>
+                            <span class="block mt-1.5 text-slate-400">
+                                Si el huésped debe en las dos, debe en las dos: no hay un total único, y el
+                                cuadre de arriba es la referencia para cerrarlo en una sola.
+                            </span>
+                        </InfoTooltip>
                     </span>
                     <!-- Anular a mano: por ejemplo, un no-show que el canal no marcó. -->
                     <button v-if="!readOnly && finanzas.info.activa !== false" type="button"
@@ -1287,16 +1495,21 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         Cargos
                         <span class="font-normal text-xs" :class="seccionAbierta === 'cargos' ? 'text-emerald-600/70' : 'text-slate-400'">({{ finanzas.info.cargos?.length ?? 0 }})</span>
                     </span>
-                    <span class="text-sm font-black" :class="seccionAbierta === 'cargos' ? 'text-emerald-800' : 'text-slate-700'">
-                        {{ importeConMoneda(finanzas.info.totalCargos, monedaCabecera) }}
+                    <!-- Por moneda, como todo lo demás. Antes era el escalar convertido de la
+                         cabecera, y con dos monedas se contradecía con las filas de arriba: la
+                         de Pagos llegó a decir «US$ 65.97» de un cobro de S/ 223.70. -->
+                    <span class="flex items-center gap-2 text-sm font-black" :class="seccionAbierta === 'cargos' ? 'text-emerald-800' : 'text-slate-700'">
+                        <span v-for="t in totalesPorMoneda" :key="t.moneda" class="whitespace-nowrap">
+                            {{ importeEn(t.cargos, t.moneda) }}
+                        </span>
                     </span>
                 </button>
 
                 <div v-show="seccionAbierta === 'cargos'" class="border-t border-emerald-100">
                     <!-- 🔒 Candado: sólo protege los cargos sincronizados desde el canal.
                          Los manuales (reservas directas) se editan y borran sin candado. -->
-                    <div v-if="!readOnly" class="flex items-start gap-2 px-4 py-2.5 bg-amber-50 border-b border-amber-100">
-                        <label class="flex items-center gap-2 cursor-pointer shrink-0">
+                    <div v-if="!readOnly" class="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-100">
+                        <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" v-model="cargosDesbloqueados" class="rounded" />
                             <span class="text-[11px] font-black uppercase tracking-wide"
                                 :class="cargosDesbloqueados ? 'text-amber-700' : 'text-slate-500'">
@@ -1304,9 +1517,16 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 {{ cargosDesbloqueados ? 'Edición habilitada' : 'Habilitar edición' }}
                             </span>
                         </label>
-                        <p class="text-[10px] font-bold text-amber-700/80 leading-snug">
-                            Protege los cargos sincronizados desde el canal. Los cargos manuales se editan sin candado.
-                        </p>
+                        <!-- El párrafo pasó a la «i»: se lee una vez, y después son dos líneas
+                             fijas donde se quiere ver la lista de cargos. -->
+                        <InfoTooltip lado="izquierda" clase-icono="text-amber-500 hover:text-amber-700">
+                            Protege los cargos <b class="text-white">sincronizados desde el canal</b>: los manda
+                            Beds24 y el siguiente pull devolvería a su sitio cualquier cambio.
+                            <span class="block mt-1.5 text-slate-400">
+                                Los cargos manuales —los de las reservas directas— se editan y se borran siempre,
+                                sin abrir esto.
+                            </span>
+                        </InfoTooltip>
                     </div>
 
                     <p v-if="!finanzas.info.cargos?.length && !cargoNuevoAbierto" class="px-4 py-3 text-xs font-bold text-slate-400">
@@ -1316,23 +1536,104 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     <!-- Un bloque por estancia. Con una sola no se pinta cabecera (sería ruido);
                          en una reserva agrupada distingue cada casita. -->
                     <template v-for="g in gruposCargos" :key="g.clave">
+                        <!-- Más alta y con tipografía mayor que antes: aquí vive el icono de
+                             canal, y a 10px no se distinguía el azul de Booking del rojo de
+                             Airbnb, que es precisamente lo que hay que ver de un vistazo. -->
                         <div v-if="mostrarGrupos"
-                            class="flex items-center justify-between gap-2 px-4 py-2 bg-slate-50 border-y border-slate-100">
-                            <span class="flex items-center gap-1.5 min-w-0">
-                                <i class="fas fa-door-open text-[10px] text-slate-400 shrink-0"></i>
-                                <span class="text-[11px] font-black text-slate-600 truncate">{{ g.titulo }}</span>
-                                <span v-if="g.subtitulo" class="text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                            class="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50 border-y border-slate-100">
+                            <span class="flex items-center gap-2 min-w-0">
+                                <i v-if="g.canal" :class="[canalInfo(g.canal).icono, canalInfo(g.canal).color]"
+                                    class="text-sm shrink-0" :title="canalInfo(g.canal).texto"></i>
+                                <i v-else class="fas fa-door-open text-xs text-slate-400 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-700 truncate">{{ g.titulo }}</span>
+                                <span v-if="g.subtitulo" class="text-[11px] font-bold text-slate-400 whitespace-nowrap">
                                     · {{ g.subtitulo }}
                                 </span>
                             </span>
-                            <span class="text-[11px] font-black text-slate-600 shrink-0">
-                                <i v-if="g.subtotalIncompleto" class="fas fa-triangle-exclamation text-amber-500 mr-1"
-                                    title="Falta el tipo de cambio de algún cargo: el subtotal está incompleto."></i>
-                                {{ importeVista(g.subtotal) }}
+                            <span class="flex items-center gap-2 text-xs font-black text-slate-700 shrink-0">
+                                <!-- Un subtotal por moneda: una estancia puede tener el alojamiento
+                                     en dólares y una ampliación en soles, y sumarlos daría una
+                                     cifra que no existe. Con una sola moneda se lee igual que antes. -->
+                                <span v-for="s in g.subtotales" :key="s.moneda" class="whitespace-nowrap">
+                                    {{ importeEn(s.total, s.moneda) }}
+                                </span>
+
+                                <!-- 💡 Lo que ESTA estancia costaría según el tarifario.
+                                     Va en la cabecera y no pegado a un cargo concreto porque es
+                                     de la estancia entera: colgado de una línea, desaparecería
+                                     en cuanto alguien borrara esa línea. Sólo aparece en las
+                                     directas, que son las que nacen con el cargo en cero. -->
+                                <span v-if="g.costoTeorico" class="relative group/teorico">
+                                    <i class="fas fa-circle-info text-slate-400 group-hover/teorico:text-[#376875] cursor-help"
+                                        aria-label="Coste teórico según el tarifario"></i>
+
+                                    <!-- `right-0` y no centrado: la burbuja nace pegada al borde
+                                         derecho del panel y centrada se saldría de la pantalla. -->
+                                    <span class="hidden group-hover/teorico:block absolute right-0 top-full mt-1.5 z-30
+                                                 w-max max-w-[17rem] rounded-lg bg-slate-800 p-3 text-left shadow-xl">
+                                        <span class="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-2">
+                                            Costo teórico · tarifario
+                                        </span>
+
+                                        <span v-if="g.costoTeorico.alojamiento" class="flex items-baseline gap-2 text-[11px] text-slate-200 mb-1">
+                                            <i class="fas fa-bed w-4 text-center text-slate-400 shrink-0"></i>
+                                            <span class="flex-1 font-medium">
+                                                <template v-if="g.costoTeorico.alojamiento.porNoche">
+                                                    {{ g.costoTeorico.alojamiento.porNoche }} × {{ g.costoTeorico.alojamiento.noches }} N
+                                                </template>
+                                                <!-- Sin precio por noche = las noches NO valen lo mismo. Se dice,
+                                                     en vez de enseñar una media que no multiplica. -->
+                                                <template v-else>
+                                                    {{ g.costoTeorico.alojamiento.noches }} N (tarifa variable)
+                                                </template>
+                                            </span>
+                                            <span class="font-black text-white whitespace-nowrap">{{ g.costoTeorico.alojamiento.importe }}</span>
+                                        </span>
+                                        <!-- Alojamiento a null = al tarifario le faltaban noches. NO es cero. -->
+                                        <span v-else class="flex items-baseline gap-2 text-[11px] text-amber-300 mb-1">
+                                            <i class="fas fa-bed w-4 text-center shrink-0"></i>
+                                            <span class="flex-1 font-medium">Sin tarifa para todas las noches</span>
+                                        </span>
+
+                                        <span v-if="g.costoTeorico.paxAdicional" class="flex items-baseline gap-2 text-[11px] text-slate-200 mb-1">
+                                            <i class="fas fa-user w-4 text-center text-slate-400 shrink-0"></i>
+                                            <span class="flex-1 font-medium">
+                                                {{ g.costoTeorico.paxAdicional.porPersonaNoche }}
+                                                × {{ g.costoTeorico.paxAdicional.personas }} P
+                                                × {{ g.costoTeorico.paxAdicional.noches }} N
+                                            </span>
+                                            <span class="font-black text-white whitespace-nowrap">{{ g.costoTeorico.paxAdicional.importe }}</span>
+                                        </span>
+
+                                        <span v-if="g.costoTeorico.limpieza" class="flex items-baseline gap-2 text-[11px] text-slate-200 mb-1">
+                                            <i class="fas fa-broom w-4 text-center text-slate-400 shrink-0"></i>
+                                            <span class="flex-1 font-medium">
+                                                Limpieza<template v-if="g.costoTeorico.limpieza.esPorcentaje"> (%)</template>
+                                            </span>
+                                            <span class="font-black text-white whitespace-nowrap">{{ g.costoTeorico.limpieza.importe }}</span>
+                                        </span>
+
+                                        <span class="flex items-baseline gap-2 text-xs border-t border-slate-600 mt-2 pt-2">
+                                            <span class="flex-1 font-black text-slate-300">Total</span>
+                                            <span class="font-black text-white whitespace-nowrap">
+                                                {{ g.costoTeorico.total }} {{ g.costoTeorico.moneda ?? '' }}
+                                            </span>
+                                        </span>
+
+                                        <!-- Sin esta línea, el número de arriba se lee como el precio
+                                             de la reserva y alguien lo va a teclear tal cual. -->
+                                        <span class="block text-[10px] font-medium text-slate-400 mt-2 leading-snug">
+                                            Referencia, no el precio acordado: en una venta directa lo cierras tú.
+                                        </span>
+                                    </span>
+                                </span>
                             </span>
                         </div>
 
-                    <div v-for="c in g.cargos" :key="c.id ?? ''" class="px-4 py-3 border-b border-slate-50 last:border-0">
+                    <!-- 👉 Indentado respecto a la barra de la estancia: es lo que hace visible
+                         que estos cargos cuelgan de ESA casita y no de la reserva entera. Con
+                         todo al mismo margen, la barra parecía un separador y no una cabecera. -->
+                    <div v-for="c in g.cargos" :key="c.id ?? ''" class="pl-6 pr-4 py-3 border-b border-slate-50 last:border-0">
                         <!-- Fila normal -->
                         <div v-if="cargoEditandoId !== c.id" class="flex items-start justify-between gap-3">
                             <div class="min-w-0 flex-1">
@@ -1342,8 +1643,14 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                         :class="clasesTipoCargo(tipoCargoOpt(c.tipoCargo)?.color)">
                                         {{ tipoCargoOpt(c.tipoCargo)?.label }}
                                     </span>
-                                    <span class="text-xs font-bold text-slate-700 truncate">
-                                        {{ c.descripcion || 'Sin descripción' }}
+                                    <!-- La plantilla sin resolver de Beds24 se oculta: ver
+                                         `descripcionVisible()`. Con el tipo de cargo al lado y la
+                                         casita en la barra de la estancia, la línea no queda coja. -->
+                                    <span v-if="descripcionVisible(c.descripcion)" class="text-xs font-bold text-slate-700 truncate">
+                                        {{ descripcionVisible(c.descripcion) }}
+                                    </span>
+                                    <span v-else-if="!tipoCargoOpt(c.tipoCargo)" class="text-xs font-bold text-slate-400 truncate">
+                                        Sin descripción
                                     </span>
                                     <span v-if="c.manual"
                                         class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-slate-100 text-slate-500"
@@ -1363,10 +1670,10 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 <p class="text-[10px] font-bold text-slate-400 mt-1">
                                     {{ fechaLegible(c.fechaCreacionBeds24) }}
                                     <template v-if="c.tipoCambio"> · TC {{ c.tipoCambio }}</template>
-                                    <!-- Equivalente en la otra moneda, para no tener que calcularlo de cabeza. -->
-                                    <template v-if="c.tipoCambio && c.moneda?.id !== monedaMostrada">
-                                        · ≈ {{ importeVista(importeEnMoneda(c, c.totalLinea ?? c.monto, monedaMostrada) ?? 0) }}
-                                    </template>
+                                    <!-- El equivalente «≈» en la otra moneda se retiró: era la vista dual.
+                                         El importe de un cargo se enseña en la moneda en que se pactó y en
+                                         ninguna otra; el cuadre del resumen es el único sitio donde algo se
+                                         convierte, y va etiquetado como tal. -->
                                 </p>
                                 <p v-if="cargoSinTipoCambio(c)"
                                     class="text-[10px] font-black text-amber-600 mt-1 leading-snug">
@@ -1465,6 +1772,31 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 <span class="text-[11px] font-bold text-slate-500">Importe</span>
                                 <input type="text" inputmode="decimal" v-model="cargoForm.totalLinea"
                                     class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                            </label>
+                            <!-- La moneda de un cargo con importe NO se cambia: está atada al
+                                 importe y al TC capturados en ese momento (§12.4). Mientras siga
+                                 en 0.00 no hay nada capturado, y ahí sí — que es lo que permite
+                                 escribir en soles el precio de una estancia directa. -->
+                            <label>
+                                <span class="text-[11px] font-bold text-slate-500 inline-flex items-center gap-1.5">
+                                    Moneda
+                                    <InfoTooltip v-if="!puedeCambiarMoneda(c)" lado="izquierda">
+                                        La moneda queda fija al registrar el importe: va atada al tipo de cambio
+                                        que se capturó en ese momento, y cambiarla dejaría el cargo diciendo una
+                                        cifra que nadie pactó.
+                                        <span class="block mt-1.5 text-slate-400">
+                                            Si está equivocada, borra el cargo y créalo de nuevo.
+                                        </span>
+                                    </InfoTooltip>
+                                </span>
+                                <select v-model="cargoForm.moneda" :disabled="!puedeCambiarMoneda(c)"
+                                    @change="autocompletarTipoCambioCargo"
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white
+                                           disabled:bg-slate-100 disabled:text-slate-400">
+                                    <option v-for="m in finanzas.monedas" :key="m.id ?? ''" :value="m.id ?? ''">
+                                        {{ m.id }}{{ m.simbolo ? ` (${m.simbolo})` : '' }}
+                                    </option>
+                                </select>
                             </label>
                             <!-- SIEMPRE presente (ver `tcSiempre`): es la venta USD→PEN del día.
                                  Si el cargo ya lo tenía guardado, se muestra bloqueado — es la
@@ -1584,16 +1916,12 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             </span>
                             <input type="text" inputmode="decimal" v-model="cargoForm.tipoCambio" placeholder="Ej. 3.750"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                            <!-- Equivalente en vivo: quita la duda de "¿cuánto es esto en dólares?". -->
-                            <span v-if="cargoForm.tipoCambio && cargoForm.totalLinea"
-                                class="mt-1 block text-[10px] font-bold text-slate-400">
-                                Equivale a
-                                {{ importeConMoneda(
-                                    String(importeEnMoneda(
-                                        { moneda: { id: cargoForm.moneda }, tipoCambio: cargoForm.tipoCambio },
-                                        cargoForm.totalLinea, monedaCabecera?.id) ?? 0),
-                                    monedaCabecera) }}
-                                en la contabilidad de la reserva.
+                            <!-- Equivalente en vivo: quita la duda de «¿cuánto es esto en la otra
+                                 moneda?» mientras se teclea. Es una AYUDA DE LECTURA: el cargo se
+                                 guarda y se suma en su propia moneda, no en ésta. -->
+                            <span v-if="equivalenteDelCargo" class="mt-1 block text-[10px] font-bold text-slate-400">
+                                Son unos {{ equivalenteDelCargo }} — sólo para hacerte una idea;
+                                el cargo se registra en {{ cargoForm.moneda }}.
                             </span>
                         </label>
                         <p v-if="errorCargo" class="col-span-2 text-[10px] font-black text-amber-600 leading-snug">
@@ -1634,8 +1962,10 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         Pagos
                         <span class="font-normal text-xs" :class="seccionAbierta === 'pagos' ? 'text-sky-600/70' : 'text-slate-400'">({{ finanzas.info.pagos?.length ?? 0 }})</span>
                     </span>
-                    <span class="text-sm font-black" :class="seccionAbierta === 'pagos' ? 'text-sky-800' : 'text-emerald-600'">
-                        {{ importeConMoneda(finanzas.info.totalPagos, monedaCabecera) }}
+                    <span class="flex items-center gap-2 text-sm font-black" :class="seccionAbierta === 'pagos' ? 'text-sky-800' : 'text-emerald-600'">
+                        <span v-for="t in totalesPorMoneda" :key="t.moneda" class="whitespace-nowrap">
+                            {{ importeEn(t.pagos, t.moneda) }}
+                        </span>
                     </span>
                 </button>
 
@@ -1644,28 +1974,64 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                          sistema cuadra solo. Los pagos normales se editan sin candado.
                          No se pinta si esta reserva no tiene depósito: sería una advertencia
                          sobre algo que no está en pantalla. -->
-                    <div v-if="!readOnly && hayDepositoAutomatico"
-                        class="flex items-start gap-2 px-4 py-2.5 bg-amber-50 border-b border-amber-100">
-                        <label class="flex items-center gap-2 cursor-pointer shrink-0">
-                            <input type="checkbox" v-model="pagosDesbloqueados" class="rounded" />
-                            <span class="text-[11px] font-black uppercase tracking-wide"
-                                :class="pagosDesbloqueados ? 'text-amber-700' : 'text-slate-500'">
-                                <i class="fas" :class="pagosDesbloqueados ? 'fa-lock-open' : 'fa-lock'"></i>
-                                {{ pagosDesbloqueados ? 'Edición habilitada' : 'Habilitar edición' }}
-                            </span>
-                        </label>
-                        <p class="text-[10px] font-bold text-amber-700/80 leading-snug">
-                            Protege el depósito automático del canal. Al guardarlo a mano, el sistema
-                            deja de cuadrarlo con los cargos hasta que lo devuelvas al automático.
-                        </p>
-                    </div>
-
                     <p v-if="!finanzas.info.pagos?.length && !pagoFormAbierto" class="px-4 py-3 text-xs font-bold text-slate-400">
                         Sin pagos registrados.
                     </p>
 
-                    <div v-for="p in finanzas.info.pagos" :key="p.id ?? ''"
-                        class="px-4 py-3 border-b border-slate-50 last:border-0 flex items-start justify-between gap-3">
+                    <template v-for="b in bloquesPagos" :key="b.clave">
+                        <!-- Cabecera de bloque. En el plegable es un botón; en el otro no, para
+                             que no invite a pulsar algo que no hace nada. -->
+                        <component :is="b.plegable ? 'button' : 'div'"
+                            :type="b.plegable ? 'button' : undefined"
+                            @click="b.plegable && (pagosAutomaticosAbiertos = !pagosAutomaticosAbiertos)"
+                            class="w-full flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50 border-y border-slate-100 text-left"
+                            :class="b.plegable ? 'hover:bg-slate-100 transition-colors' : ''">
+                            <span class="flex items-center gap-2 min-w-0">
+                                <i v-if="b.plegable" class="fas fa-chevron-right text-[10px] text-slate-400 transition-transform shrink-0"
+                                    :class="{ 'rotate-90': pagosAutomaticosAbiertos }"></i>
+                                <i :class="b.icono" class="text-xs text-slate-400 shrink-0"></i>
+                                <span class="text-xs font-black text-slate-700 truncate">{{ b.titulo }}</span>
+                                <span class="text-[11px] font-bold text-slate-400 whitespace-nowrap">({{ b.pagos.length }})</span>
+                            </span>
+                            <span class="flex items-center gap-2 text-xs font-black text-slate-700 shrink-0">
+                                <span v-for="s in subtotalPagos(b.pagos)" :key="s.moneda" class="whitespace-nowrap">
+                                    {{ importeEn(s.total, s.moneda) }}
+                                </span>
+                            </span>
+                        </component>
+
+                        <!-- 🔒 El candado vive DENTRO del bloque que protege, y no arriba de la
+                             sección: sólo afecta al depósito del canal, y puesto fuera parecía
+                             que hacía falta para tocar cualquier cobro —los manuales nunca lo
+                             han necesitado—. Al bloque hay que abrirlo para editar de todas
+                             formas, así que no esconde nada. -->
+                        <div v-if="!readOnly && b.clave === 'automaticos' && bloqueAbierto(b)"
+                            class="flex items-center gap-2 pl-6 pr-4 py-2 bg-amber-50 border-b border-amber-100">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" v-model="pagosDesbloqueados" class="rounded" />
+                                <span class="text-[11px] font-black uppercase tracking-wide"
+                                    :class="pagosDesbloqueados ? 'text-amber-700' : 'text-slate-500'">
+                                    <i class="fas" :class="pagosDesbloqueados ? 'fa-lock-open' : 'fa-lock'"></i>
+                                    {{ pagosDesbloqueados ? 'Edición habilitada' : 'Habilitar edición' }}
+                                </span>
+                            </label>
+                            <InfoTooltip lado="izquierda" clase-icono="text-amber-500 hover:text-amber-700">
+                                Protege el <b class="text-white">depósito automático del canal</b>, que el
+                                sistema mantiene cuadrado con los cargos en cada recálculo.
+                                <span class="block mt-1.5">
+                                    Al guardarlo a mano el sistema deja de cuadrarlo y manda tu importe, hasta
+                                    que lo devuelvas al automático con la flecha de la fila.
+                                </span>
+                                <span class="block mt-1.5 text-slate-400">
+                                    Los cobros manuales no necesitan candado: se editan siempre.
+                                </span>
+                            </InfoTooltip>
+                        </div>
+
+                    <!-- 👉 Indentado respecto a su cabecera: es lo que hace visible que estas
+                         filas cuelgan del bloque de arriba y no de la sección entera. -->
+                    <div v-for="p in (bloqueAbierto(b) ? b.pagos : [])" :key="p.id ?? ''"
+                        class="pl-6 pr-4 py-3 border-b border-slate-50 last:border-0 flex items-start justify-between gap-3">
                         <div class="min-w-0 flex-1">
                             <p class="text-xs font-bold text-slate-700 flex items-center gap-1.5 flex-wrap">
                                 <i class="fas text-slate-400" :class="medioPagoOpt(p.medioPago)?.icono ?? 'fa-money-bill'"></i>
@@ -1744,6 +2110,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             </template>
                         </div>
                     </div>
+                    </template>
 
                     <!-- Formulario de alta / edición.
                          El envoltorio NO es el grid: la barra de acción sticky va fuera de él.
@@ -1789,6 +2156,42 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 <i class="fas fa-lock text-[9px] mr-1"></i>La moneda no se puede cambiar tras registrar el pago.
                             </span>
                         </label>
+
+                        <!-- ===== IMPUTACIÓN =====
+                             Sale sólo cuando el cobro entra en una moneda donde NO hay nada que
+                             deber: ese dinero no puede saldar nada suyo. Es el caso de cobrar
+                             por Yape en soles una reserva de Booking en dólares — sin esto la
+                             ficha diría «debe US$ 65.97» y «tiene S/ 223.70 a favor», y el
+                             huésped pagó y se fue.
+
+                             No se marca solo: quién paga qué es una decisión contable, y a veces
+                             esos soles son de verdad otra cosa (una propina, un servicio extra
+                             que todavía no se ha cargado). -->
+                        <div v-if="monedaAImputar" class="col-span-2 rounded-lg border border-sky-200 bg-sky-50/70 px-3 py-2.5">
+                            <label class="flex items-start gap-2 cursor-pointer">
+                                <input type="checkbox" class="mt-0.5 rounded"
+                                    :checked="pagoForm.monedaSaldada === monedaAImputar"
+                                    @change="pagoForm.monedaSaldada = pagoForm.monedaSaldada === monedaAImputar ? '' : monedaAImputar" />
+                                <span class="min-w-0">
+                                    <span class="block text-[11px] font-black text-sky-900">
+                                        Este cobro salda la deuda en {{ monedaAImputar }}
+                                    </span>
+                                    <span class="block text-[10px] font-bold text-sky-700/80 leading-snug mt-0.5">
+                                        En {{ pagoForm.moneda }} no hay ningún cargo, así que este dinero no puede
+                                        saldar nada suyo.
+                                        <template v-if="importeImputado">
+                                            Al cambio {{ pagoForm.tipoCambio }} abonaría
+                                            <b>{{ importeImputado }}</b>.
+                                        </template>
+                                    </span>
+                                    <span class="block text-[10px] font-medium text-sky-700/60 leading-snug mt-1">
+                                        Déjalo sin marcar si de verdad es otra cosa —una propina, un extra que
+                                        todavía no se ha cargado—: entonces queda como saldo a favor en
+                                        {{ pagoForm.moneda }}.
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Medio de pago</span>
                             <select v-model="pagoForm.medioPago" @change="onCambiarMedioPago"
@@ -1917,9 +2320,10 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                          otra forma de que entre dinero, pero el módulo es Finanzas, no el PMS:
                          se comunica por origenTipo/origenId (ver el componente).
 
-                         El saldo que se le pasa es el de la CABECERA, no el de `totalesVista`:
-                         la vista puede estar mostrando la moneda alterna y el enlace se emite
-                         siempre en la moneda contable de la reserva.
+                         Se le pasan los saldos POR MONEDA: una pasarela cobra en una divisa, así
+                         que con deuda en dos se ofrece un atajo por cada una y cada enlace pide
+                         exactamente lo que se debe en ella. Convertir para dar «un total» sería
+                         deshacer lo que este rediseño vino a arreglar.
 
                          Al confirmarse un cobro, el webhook crea el PmsPagoFinanciero en el
                          backend; `recargar()` es lo que lo trae a esta lista. -->
@@ -1929,7 +2333,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     <ReservaEnlacesPagoSection
                         origen-tipo="pms_reserva"
                         :origen-id="props.reservaId"
-                        :saldo="Number(finanzas.info.saldo ?? 0)"
+                        :saldos="saldosParaCobrar"
                         :prepago="prepago"
                         :moneda-simbolo="monedaCabecera?.simbolo"
                         :read-only="readOnly"

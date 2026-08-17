@@ -583,6 +583,21 @@ final class PmsInformacionFinancieraCoherenciaListener
      * la moneda se está estableciendo por primera vez (backfill de filas antiguas sin moneda) y
      * SÍ se permite: no hay conversión previa que romper.
      *
+     * ── Segunda excepción: el registro que todavía vale CERO ────────────────────
+     * El candado existe porque «la moneda queda fija al momento de registrar el importe y su
+     * tipo de cambio». En un registro que sigue en `0.00` no se ha registrado ningún importe,
+     * así que no hay nada fijado y nada que romper: cambiarle la moneda no invalida ninguna
+     * foto, porque no hay foto.
+     *
+     * Y hace falta. Desde el 15/08/2026 una estancia directa nace con una línea en cero, en la
+     * moneda de la cabecera —normalmente USD—, para que el operador escriba el precio acordado.
+     * Si ese precio se cerró en soles, con el candado total la única salida era borrar la línea
+     * y crear otra: cuatro clics para arreglar un campo que nunca había significado nada.
+     *
+     * ⚠️ Se mira el importe **ANTERIOR**, no el que trae el PATCH. El panel manda importe y
+     * moneda en el mismo viaje —«350 soles»—, así que con el importe ya mutado esta excepción
+     * no se aplicaría nunca y el candado saltaría justo en el caso para el que se abrió.
+     *
      * @param array<string, array{0: mixed, 1: mixed}> $changeSet
      */
     private function assertMonedaNoBloqueada(PmsCargoFinanciero|PmsPagoFinanciero $entity, array $changeSet): void
@@ -603,6 +618,10 @@ final class PmsInformacionFinancieraCoherenciaListener
             return;
         }
 
+        if ($this->importeAnteriorEnCero($entity, $changeSet)) {
+            return;
+        }
+
         $tipo = $entity instanceof PmsCargoFinanciero ? 'cargo' : 'pago';
         throw new DomainException(sprintf(
             'No se puede cambiar la moneda de un %s financiero ya procesado (id=%s). '
@@ -610,6 +629,42 @@ final class PmsInformacionFinancieraCoherenciaListener
             $tipo,
             (string) $entity->getId()
         ));
+    }
+
+    /**
+     * ¿El registro valía CERO antes de este guardado?
+     *
+     * «Antes» es literal: si el importe viene en el mismo changeSet se toma su valor VIEJO. Es
+     * la diferencia entre «esta línea no tenía dinero» y «esta línea no tiene dinero ahora
+     * mismo», y sólo la primera justifica soltar el candado de la moneda.
+     *
+     * Un cargo lleva `totalLinea` y `monto`; un pago sólo `monto`. Se exige que **todo** lo que
+     * exista esté en cero: con cualquiera de los dos con importe, ya hay dinero registrado.
+     *
+     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
+     */
+    private function importeAnteriorEnCero(PmsCargoFinanciero|PmsPagoFinanciero $entity, array $changeSet): bool
+    {
+        $anterior = static function (string $campo, ?string $actual) use ($changeSet): ?string {
+            /** @var mixed $viejo */
+            $viejo = $changeSet[$campo][0] ?? $actual;
+
+            return is_scalar($viejo) ? (string) $viejo : null;
+        };
+
+        $importes = [$anterior('monto', $entity->getMonto())];
+
+        if ($entity instanceof PmsCargoFinanciero) {
+            $importes[] = $anterior('totalLinea', $entity->getTotalLinea());
+        }
+
+        foreach ($importes as $importe) {
+            if ($importe !== null && (float) $importe !== 0.0) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

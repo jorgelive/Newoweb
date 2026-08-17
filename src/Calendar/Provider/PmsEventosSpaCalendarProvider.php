@@ -11,6 +11,7 @@ use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsInformacionFinanciera;
+use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidad;
 use Doctrine\DBAL\ArrayParameterType;
@@ -318,6 +319,76 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
     }
 
     /**
+     * La cifra de la pastilla: la de su moneda si hay una, la convertida si hay dos.
+     *
+     * Con una sola moneda **no se convierte nada** y la barra se lee exactamente igual que antes
+     * del rediseño, que es el 99 % de los casos.
+     */
+    private function cifraDeBarra(?PmsTotalesPorMoneda $totales, string $campo): ?string
+    {
+        if ($totales === null) {
+            return null;
+        }
+
+        if (!$totales->esMixta()) {
+            // Copia local: `reset()` recibe el array POR REFERENCIA y `porMoneda` es readonly.
+            $filas = $totales->porMoneda;
+            $unica = reset($filas);
+
+            return $unica === false ? null : $unica[$campo];
+        }
+
+        // Con dos monedas, el total se lleva a la de cuadre igual que el saldo. Sin tipo de
+        // cambio no se inventa: se devuelve null y la barra se queda sin cifra, que es más
+        // honesto que sumar peras con manzanas.
+        $tc = (float) ($totales->tipoCambio ?? 0);
+
+        if ($tc <= 0.0) {
+            return null;
+        }
+
+        $suma = 0.0;
+        foreach ($totales->porMoneda as $moneda => $cifras) {
+            $valor = (float) $cifras[$campo];
+            $suma += match (true) {
+                $moneda === $totales->monedaCuadre => $valor,
+                $moneda === 'USD' && $totales->monedaCuadre === 'PEN' => $valor * $tc,
+                $moneda === 'PEN' && $totales->monedaCuadre === 'USD' => $valor / $tc,
+                default => $valor,
+            };
+        }
+
+        return number_format($suma, 2, '.', '');
+    }
+
+    /**
+     * El desglose exacto por moneda, para el tooltip.
+     *
+     * La pastilla da una cifra para leer de un vistazo; esto es lo que de verdad se debe, sin
+     * convertir. Los dos viajan juntos a propósito: lo aproximado va etiquetado y **la verdad
+     * está siempre a un hover**.
+     *
+     * @return list<array{moneda: string, cargos: string, saldo: string}>|null
+     */
+    private function detalleDeMonedas(?PmsTotalesPorMoneda $totales): ?array
+    {
+        if ($totales === null || !$totales->esMixta()) {
+            return null;
+        }
+
+        $salida = [];
+        foreach ($totales->porMoneda as $moneda => $cifras) {
+            $salida[] = [
+                'moneda' => $moneda,
+                'cargos' => $cifras['cargos'],
+                'saldo' => $cifras['saldo'],
+            ];
+        }
+
+        return $salida;
+    }
+
+    /**
      * Identificación cruda para que el frontend arme su propia navegación,
      * sin acoplarse a rutas de EasyAdmin.
      *
@@ -338,9 +409,14 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         ?PmsInformacionFinanciera $finanzas,
         ?string $conversacionId = null,
     ): array {
+        // Se calcula desde las colecciones y no leyendo `pms_finanzas_total_moneda`: el
+        // calendario carga las cabeceras en lote con sus hijos, así que aquí ya están en memoria
+        // y una consulta más por reserva sería el N+1 que ese lote existe para evitar.
+        $totales = $finanzas !== null ? PmsTotalesPorMoneda::de($finanzas) : null;
+
         // Sin cargos no hay cifras que pintar: un bloqueo o una reserva recién
         // creada mandan null y la barra simplemente no muestra la línea de dinero.
-        $hayCifras = $finanzas !== null && (float) $finanzas->getTotalCargos() > 0;
+        $hayCifras = $totales !== null && $totales->hayCargos();
 
         return [
             'context' => $reserva ? 'reserva' : 'bloqueo',
@@ -389,9 +465,28 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             // Cifras de la RESERVA, no de la estancia: una reserva de dos casitas
             // repite el mismo total en sus dos barras. Es intencionado — el saldo
             // se cobra una vez— pero conviene saberlo al leer el calendario.
+            //
+            // ── UNA sola cifra, siempre ─────────────────────────────────────────
+            // Con una moneda (313 de 317 reservas) es la suya y se lee igual que siempre. Con
+            // dos se convierten a la moneda de la ficha con su tipo de cambio de cuadre y se
+            // pinta un total y un saldo.
+            //
+            // La alternativa —«la de mayor valor con un +»— se descartó: en GASUNN la pastilla
+            // diría «$66» y se callaría S/ 223.70, y una pastilla de calendario existe para
+            // responder «cuánto es esto» de un vistazo. Decisión del dueño del producto.
+            //
+            // `convertido` avisa de que la cifra pasó por una tasa, para que la barra la marque
+            // con `≈` y el tooltip enseñe el detalle exacto de cada moneda.
             'simbolo' => $hayCifras ? $finanzas->getMoneda()?->getSimbolo() : null,
-            'total' => $hayCifras ? $finanzas->getTotalCargos() : null,
-            'saldo' => $hayCifras ? $finanzas->getSaldo() : null,
+            'total' => $hayCifras ? $this->cifraDeBarra($totales, 'cargos') : null,
+            'saldo' => $hayCifras ? $totales->cuadre : null,
+            'convertido' => $hayCifras && $totales->esMixta(),
+            // Lo que hace que la pastilla no se ponga roja por diez céntimos de redondeo del
+            // cambio: el mismo criterio que el panel y que la decisión de estado de pago.
+            'cuadra' => $totales === null || $totales->cuadra(),
+            // El detalle exacto, para el tooltip. La cifra de arriba es para leer de un vistazo;
+            // ésta es la verdad, y va sin convertir.
+            'totales' => $hayCifras ? $this->detalleDeMonedas($totales) : null,
         ];
     }
 }

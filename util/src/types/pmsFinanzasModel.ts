@@ -105,6 +105,50 @@ export interface PmsFinanzasEstancia {
     unidad?: string | null;
     inicio?: string | null;
     fin?: string | null;
+    /**
+     * Id crudo del canal (`booking`, `airbnb`, `directo`), no su etiqueta.
+     *
+     * Va el id y no el texto porque el icono y el color de cada canal viven en `canalInfo()`
+     * (`pmsReservaModel.ts`), que es la fuente única del front: si el backend mandara ya
+     * resuelto el nombre, habría dos sitios donde decir cómo se llama Booking.
+     */
+    canal?: string | null;
+    /**
+     * Lo que esta estancia costaría según el tarifario y la ficha de la casita. Referencia
+     * para quien vende, NO un importe a cobrar: en una venta directa el precio lo cierra la
+     * persona, y por eso el cargo se crea en cero y esto se enseña al lado.
+     *
+     * Espejo de `PmsCargosAutomaticosService::costoTeorico()`. Sólo llega en las estancias
+     * directas y sólo por `por-reserva`, que es la llamada del panel.
+     */
+    costoTeorico?: PmsFinanzasCostoTeorico | null;
+}
+
+/**
+ * Desglose del coste teórico de una estancia directa.
+ *
+ * Espejo de `PmsCargosAutomaticosService::costoTeorico()` — al tocar allí, tocar aquí.
+ *
+ * ⚠️ `alojamiento` puede venir `null` con el resto relleno: significa que al tarifario le
+ * faltaba alguna noche. No es cero, es «no se sabe», y por eso se pinta distinto.
+ */
+export interface PmsFinanzasCostoTeorico {
+    /** Id de la moneda del tarifario (`USD`, `PEN`). null si el tarifario no la declaró. */
+    moneda?: string | null;
+    alojamiento?: {
+        noches: number;
+        /** Sólo si TODAS las noches valen lo mismo; con temporada de por medio llega null. */
+        porNoche?: string | null;
+        importe: string;
+    } | null;
+    paxAdicional?: {
+        personas: number;
+        noches: number;
+        porPersonaNoche: string;
+        importe: string;
+    } | null;
+    limpieza?: { importe: string; esPorcentaje: boolean } | null;
+    total: string;
 }
 
 /**
@@ -166,7 +210,42 @@ export function netoDesdeTotal(total: string | number, porcentaje: string | numb
 }
 
 // ============================================================================
-// CONVERSIÓN ENTRE MONEDAS PARA LA VISTA DUAL
+// ⚠️ RETIRADO el 16/08/2026: la conversión para la vista dual
+//
+// Aquí vivían `importeEnMoneda()`, `sumarEnMoneda()`, `RegistroConvertible` y `TotalEnMoneda`.
+// Convertían cada registro a una moneda de vista con su propio tipo de cambio, para que el panel
+// pudiera enseñar «todo en soles». Ese modelo se cambió entero: **los importes se suman por
+// moneda y no se convierten** (§12.2b de `docs/PmsBeds24ReservasSync.md`). El panel pinta una
+// pastilla por moneda con los totales que ya manda el backend en `totalesPorMoneda`.
+//
+// Con ellos se fueron el contador `sinConvertir` y el saldo pintado como `—`: existían sólo
+// porque un registro sin tipo de cambio desaparecía de la suma, y eso ya no puede pasar.
+//
+// La única conversión que queda vive en el backend, en el cuadre y en la imputación de un cobro
+// a otra moneda — los dos sitios donde el dinero de verdad cruzó.
+// ============================================================================
+
+// ============================================================================
+// CONTABILIDAD POR MONEDA
+//
+// Espejo de `PmsInformacionFinanciera::getTotalesPorMoneda()` y `::getCuadre()`. Los tipos se
+// DERIVAN del esquema generado: si el backend cambia un campo, esto deja de compilar.
+// ============================================================================
+
+/** Lo que se debe y lo que se ha cobrado en UNA moneda. Sin convertir. */
+export type PmsTotalMoneda = NonNullable<PmsInformacionFinanciera['totalesPorMoneda']>[number];
+
+/**
+ * El balance soles↔dólares de la reserva.
+ *
+ * ⚠️ **No es contabilidad.** La contabilidad son los totales por moneda; esto es la cifra única
+ * que hace falta para cerrar. Viaja con su `tolerancia` para poder explicar por qué cuadra o no,
+ * en vez de enseñar un booleano sin argumento.
+ */
+export type PmsCuadre = NonNullable<PmsInformacionFinanciera['cuadre']>;
+
+// ============================================================================
+// LO QUE SIGUE VIVO DEL BLOQUE ANTERIOR
 //
 // ⚠️ ESPEJO de PmsInformacionFinancieraRecalculoService::expresionConvertida() (SQL).
 // Si cambia la regla de conversión, **hay que tocar los dos archivos**.
@@ -180,66 +259,6 @@ export function netoDesdeTotal(total: string | number, porcentaje: string | numb
 // total en soles NO es el total en dólares multiplicado por ningún número. Son dos sumas
 // de cifras reales, cada una en su moneda.
 // ============================================================================
-
-/** Un registro convertible: importe + moneda + su tipo de cambio snapshoteado. */
-interface RegistroConvertible {
-    moneda?: PmsFinanzasMonedaRef | null;
-    tipoCambio?: string | null;
-}
-
-/**
- * Importe de un registro expresado en `monedaDestino`.
- *
- * Devuelve `null` cuando NO se puede convertir con honestidad — moneda distinta y sin tipo
- * de cambio —, que es el equivalente del "aporta 0" del backend, pero distinguible de un
- * cero real para poder avisar en la interfaz.
- */
-export function importeEnMoneda(
-    registro: RegistroConvertible,
-    importe: string | number | null | undefined,
-    monedaDestino?: string | null,
-): number | null {
-    const valor = Number(importe ?? 0);
-    if (!Number.isFinite(valor)) return null;
-
-    const origen = registro.moneda?.id ?? null;
-    if (!monedaDestino || !origen || origen === monedaDestino) return valor;
-
-    const tc = Number(registro.tipoCambio ?? 0);
-    if (!tc) return null;
-
-    // El TC siempre se guarda como venta USD→PEN, así que la dirección la marcan las monedas.
-    if (origen === 'USD' && monedaDestino === 'PEN') return valor * tc;
-    if (origen === 'PEN' && monedaDestino === 'USD') return valor / tc;
-
-    // Par no soportado (p. ej. EUR→PEN): no se inventa una cotización cruzada.
-    return null;
-}
-
-/** Resultado de sumar una colección en una moneda concreta. */
-export interface TotalEnMoneda {
-    total: number;
-    /** Registros que no se pudieron convertir (sin TC o par no soportado). */
-    sinConvertir: number;
-}
-
-/** Suma registros en `monedaDestino`, contando aparte los que no se pudieron convertir. */
-export function sumarEnMoneda<T extends RegistroConvertible>(
-    registros: readonly T[],
-    importeDe: (r: T) => string | number | null | undefined,
-    monedaDestino?: string | null,
-): TotalEnMoneda {
-    let total = 0;
-    let sinConvertir = 0;
-
-    for (const r of registros) {
-        const v = importeEnMoneda(r, importeDe(r), monedaDestino);
-        if (v === null) sinConvertir++;
-        else total += v;
-    }
-
-    return { total, sinConvertir };
-}
 
 /**
  * PATCH de un pago (grupo `pms_pago:patch`), derivado de SU PROPIO esquema generado.
@@ -302,4 +321,42 @@ export function hoyInput(): string {
     const d = new Date();
     const pad = (n: number): string => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// ============================================================================
+// DESCRIPCIONES QUE BEDS24 NO RESUELVE
+// ============================================================================
+
+/**
+ * Plantilla de Beds24 que llegó SIN resolver, del tipo `[ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]`.
+ *
+ * Beds24 manda la descripción del cargo con sus propios marcadores y, en las reservas agrupadas,
+ * a veces no los sustituye por nada. Lo que llega no es una descripción incompleta: es la
+ * plantilla en crudo, idéntica en todos los cargos del grupo. Enseñarla es peor que no enseñar
+ * nada — ocupa la línea donde el operador busca de qué es el cargo y no dice absolutamente nada.
+ *
+ * La casita y las fechas de ese cargo ya salen en la barra de su estancia, así que no se pierde
+ * nada al ocultarlo.
+ *
+ * ⚠️ El dato NO se toca en la base. Es lo que el canal mandó y el cargo sigue siendo suyo; esto
+ * es una decisión de PRESENTACIÓN. Si algún día Beds24 empieza a resolverlos, la descripción
+ * aparecerá sola sin migrar nada.
+ */
+const MARCADOR_BEDS24 = /\[[A-Z][A-Z0-9]*\]/;
+
+/**
+ * La descripción que se puede enseñar, o `null` si no hay ninguna que valga.
+ *
+ * Se pregunta por marcador y no por el texto exacto: los marcadores de Beds24 son muchos
+ * (`[GUESTNAME]`, `[BOOKINGID]`, `[ROOMNAME1]`…) y una lista literal se queda corta con el
+ * primero que no habíamos visto. Un corchete con MAYÚSCULAS dentro no es texto humano.
+ */
+export function descripcionVisible(descripcion?: string | null): string | null {
+    const texto = (descripcion ?? '').trim();
+
+    if (texto === '' || MARCADOR_BEDS24.test(texto)) {
+        return null;
+    }
+
+    return texto;
 }

@@ -640,10 +640,37 @@ dígitos, sin `+` ni espacios (`51921166466`). Guardar «+51 921 166 466» en `u
 hace que no case **nunca**, y el síntoma es que el operador sigue siendo tratado como huésped
 sin un solo error en ningún log.
 
-> ⚠️ Esto convierte el número en una **credencial**. Es aceptable hoy porque el processor fija
-> `permitirEscritura: false`: por este canal solo se consulta, nunca se modifica. **Si algún
-> día se abre la escritura aquí, hay que replantear la identificación** — un teléfono se
-> pierde, se clona y se hereda.
+Esto convierte el número en una **credencial** — y es una credencial sólida, mejor de lo que
+suena a primera vista.
+
+#### El número de WhatsApp NO se puede suplantar
+
+Es la diferencia con el correo electrónico, donde el remitente es texto que escribe cualquiera.
+Aquí el mensaje no lo manda quien quiere: **lo manda Meta a nuestro webhook, firmado con
+HMAC-SHA256 sobre el cuerpo entero** (`MetaWebhookController::firmaValida()`), y el número va
+dentro de lo firmado. Para hacerse pasar por el número de un operador haría falta el App Secret.
+
+Como método de identidad es **un factor de posesión verificado en cada mensaje**, y eso es más
+fuerte que una contraseña — sobre todo que una contraseña compartida o expuesta, que no prueba
+posesión de nada y viaja en cuanto alguien la reenvía.
+
+> 🔒 **De lo que depende:** si `exchange_meta_config.credentials.appSecret` se queda vacío, el
+> controlador **deja pasar sin validar** y entonces sí, cualquiera podría inventarse un payload
+> con el número de un operador. Está puesto en producción y el log grita si falta, pero es el
+> supuesto que sostiene todo lo anterior. Si alguna vez se vacía, esta identificación deja de
+> valer el mismo día.
+
+Lo que el número **no** cubre no es la suplantación, es la **transferencia**: SIM swap, un móvil
+desbloqueado en manos ajenas, un WhatsApp Web abierto, o el número reciclado años después. Es la
+misma familia de riesgo que una sesión robada, no la de una contraseña adivinada.
+
+> Por eso el canal es de sólo lectura hoy — **no porque sea inseguro**, sino porque abrir la
+> escritura merece un segundo factor para el tramo que hace daño, y `NivelRiesgo::requierePin()`
+> está a medio cablear esperando exactamente eso.
+>
+> ⚠️ La razón que **no** vale, y circuló: que una escritura «tendría que confirmarse y aquí no
+> hay a quién preguntar». Confirmar una escritura es enseñársela a quien la pidió (§11 A), así
+> que en un chat siempre hay a quién. Lo que falta no es el interlocutor.
 
 **Una consulta interna resuelta se da por leída.** Cuando quien escribe es del equipo y el
 agente le contesta, `marcarLeidaSiEsDelEquipo()` pone a cero el contador **y** el estado de
@@ -2025,15 +2052,93 @@ sea de escritura, adivinar significará mover la reserva equivocada.
 |---|---|---|---|
 | `Lectura` | Nada | Se ejecuta sin preguntar | Sí |
 | `Interna` | Sólo hacia dentro: avisos al equipo, marcas de pendiente | Se ejecuta sin preguntar | **Sí** |
-| `Escritura` | Datos de la reserva o de la cuenta | Se propone y se espera un «sí» | No |
-| `Destructivo` | Destruye datos | Se propone **y se pide PIN** | No |
+| `Escritura` | Datos de la reserva o de la cuenta | Se le enseña **a quien lo pidió** y se espera su «sí» | No |
+| `Destructivo` | Destruye datos | Igual, **y además se pide PIN** | No |
 
 La confirmación no desconfía del usuario: protege de que **el modelo se equivoque de persona**.
 
+#### Qué significa exactamente «confirmarse»
+
+🔥 **La palabra «confirmar» se usa en este sistema para DOS cosas que no tienen nada que ver.**
+Confundirlas lleva a diseños opuestos, y ya ha pasado:
+
+| | Quién lo dispara | Qué significa ahí «confirmar» |
+|---|---|---|
+| **A. Confirmar una ESCRITURA** | Sólo un operador, según su rol | Enseñarle los cambios **a él mismo** y pedirle que los acepte |
+| **B. Confirmarle algo a un CLIENTE** | Un huésped o prospecto pide algo | El agente **no puede concedérselo por su cuenta**: escala para que responda la oficina |
+
+En A la respuesta la da quien preguntó. En B hace falta otra persona — **pero eso no es una
+«escritura sin confirmar», es una decisión comercial que el agente no toma.**
+
+##### Antes de nada: escribir es cosa de operadores
+
+No es una convención, está en los roles. Hoy, sin excepción:
+
+| Nivel | Skills | Rol que piden |
+|---|---|---|
+| `Escritura` | `registrar_pago`, `cambiar_codigo_caja`, `modificar_reserva`, `crear_reserva`, `ajustar_tarifas`, `registrar_cargo`, `enviar_mensaje_huesped`… (13) | `RESERVAS_WRITE` o `MENSAJES_WRITE` |
+| `Interna` | `escalar_al_equipo`, `enviarme_plantilla` | `HUESPED` / `PROSPECTO` |
+| `Lectura` | el resto | varios |
+
+**Un cliente no llega a ninguna `Escritura`.** Las dos únicas cosas no-lectura a su alcance son
+`Interna` y son acciones sobre sí mismo: levantar la mano (`escalar_al_equipo`) y pedirse una
+plantilla ya aprobada (`enviarme_plantilla`). Ninguna decide nada, y por eso ninguna pide el
+paso de aceptación — ver el bloque `Interna` más abajo.
+
+##### A. La confirmación de una escritura: mismo usuario, dos turnos
+
+> **Confirmar es enseñarle el cambio a QUIEN LO PIDIÓ y esperar que lo acepte.**
+> No es buscar a un tercero que lo autorice.
+
+```
+turno 1   operador  «cambia la clave de la caja principal a 2627E»
+          modelo    → cambiar_codigo_caja(confirmado: false)
+          skill     → NO TOCA NADA. Devuelve la previsualización.
+          modelo    «La usan 3 huéspedes ahora mismo (Ana, Luis, Marta).
+                     ¿La cambio?»
+turno 2   operador  «sí»
+          modelo    → cambiar_codigo_caja(confirmado: true)
+          skill     → aplica
+```
+
+No hay aprobador, ni supervisor, ni segundo par de ojos. **Quien pide y quien acepta son el
+mismo**, y lo único que se añade es que vea el efecto antes de que ocurra.
+
+De ahí sale lo que protege: no duda de que el operador quiera hacerlo —acaba de decirlo—, duda
+de que **el modelo le haya entendido**. La previsualización es el instante en que un humano caza
+que la fecha, el importe o la persona son otros, y por eso su contenido sale de los datos reales
+y no de lo que el modelo cree que va a pasar (§11).
+
+Esto vale para **todas** las escrituras del operador, sin excepción de canal ni de urgencia.
+
+##### B. Lo que el agente no puede confirmarle a un cliente
+
+Cuando en la documentación se lee que algo «requiere confirmación» y quien pregunta es un
+huésped, casi siempre es este otro caso: **el agente no está autorizado a decidirlo.** Un
+late check-out, una tarifa especial, una excepción a la política — eso lo concede la oficina, no
+el modelo.
+
+La herramienta para eso es `escalar_al_equipo`, y su trato es el contrario del de A: **se ejecuta
+sin preguntar nada**. Pedirle a alguien que acaba de plantear un problema que confirme si quiere
+que se avise al equipo es un paso de más en el peor momento.
+
+⚠️ Y de paso, el malentendido que originó todo esto: **en un chat SIEMPRE hay a quién
+preguntar** — es quien acaba de escribir. Una conversación soporta la confirmación de tipo A en
+dos turnos mejor que un panel, porque el historial ya viaja en cada petición. Si un canal cierra
+la escritura, el motivo será otro; nunca que falte el interlocutor.
+
 #### 🔥 `Interna`: por qué el filtro no es «¿escribe algo?»
 
-Por el chat del huésped se pasa `permitirEscritura: false` — una escritura ahí tendría que
-confirmarse y no hay a quién preguntar. Con dos niveles, ese filtro era `nivelRiesgo() !==
+Por todo el WhatsApp se pasa `permitirEscritura: false`, y conviene separar a quién afecta:
+
+- **Al huésped no le quita nada**: no tiene ningún rol de escritura, así que ninguna
+  `Escritura` le llegaría de todos modos. El filtro es redundante para él.
+- **Al operador sí**: por WhatsApp no puede ejecutar lo que en el panel sí. Y el motivo **no**
+  es que falte a quién preguntarle la confirmación —eso se aclara arriba: se le pregunta a él
+  mismo—, sino que ahí la credencial es su número de teléfono. Ver §7: es una credencial
+  sólida, y lo que le falta para abrir la escritura es un segundo factor, no un interlocutor.
+
+Con dos niveles, ese filtro era `nivelRiesgo() !==
 Lectura`, y eso dejaba fuera **justo la herramienta que más falta le hace al huésped**:
 `escalar_al_equipo`. La skill declaraba en su propio docblock que el huésped la dispara y que
 no pide confirmación, y aun así nunca se le ofrecía. El resultado medido: un huésped preguntaba
@@ -2539,7 +2644,7 @@ Cubre tres casos reales del parque, que hasta ahora sólo se hacían desde el ca
 
 Horas del establecimiento, disponibilidad, estados maestros y el **canal DIRECTO** los resuelve un
 servicio único. El canal es el que más silenciosamente rompe: sin él,
-`PmsCargosAutomaticosService::aplica()` no genera cargos y la estancia nace gratis sin que nada lo
+`PmsCargosAutomaticosService::aplica()` no abre ninguna línea y la estancia nace gratis sin que nada lo
 diga. `crear_reserva` lo hacía por dentro; ahora las dos pasan por el mismo sitio, que es lo que
 pedía el propio docblock del servicio.
 
@@ -3179,7 +3284,12 @@ Es la skill de mayor alcance del catálogo. Escribe dos filas y provoca, **sin o
 | # | Qué pasa | Quién lo hace |
 |---|---|---|
 | 1 | Se abre la cabecera financiera | `PmsInformacionFinancieraCoherenciaListener` (auto-provisión) |
-| 2 | Se crean los cargos del tarifario y la limpieza | `PmsCargosAutomaticosService` |
+| 2 | Se abre **una línea en 0.00** y la skill escribe encima los importes aprobados | `PmsCargosAutomaticosService::generarParaEvento()` + `escribirAprobados()` |
+
+⚠️ Desde el 16/08/2026 `consultar_cuenta` devuelve **`por_moneda`** (una entrada por moneda, con
+el saldo ya restado) en vez de `total_cargos`/`saldo_pendiente` escalares, más un bloque `cuadre`
+cuando hay dos monedas. El desglose es lo exacto; el cuadre es la cifra para cerrar, y su `nota`
+le dice al modelo que la presente como aproximada.
 | 3 | **La casita sale de la venta** en Beds24 y en todos los portales | `Beds24BookingsPushQueueListener` |
 | 4 | **Se programan dos mensajes reales** al huésped | Motor de reglas, hitos `start` y `end` |
 
@@ -3187,6 +3297,42 @@ Comprobado tras crear una de prueba: `recordatorio_llegada` quedó en cola para 
 `check_out` para el 2027-01-14 — con la reserva creada en agosto de 2026. La previsualización
 enumera las cuatro **antes**, porque aprobar «se creará una reserva» sin saber que retira
 inventario de Booking y que se programan mensajes no es aprobar lo que pasa.
+
+##### 💱 `registrar_pago` no se simplificó: cambió de pregunta
+
+Al dejar de convertir (§12.2b de `PmsBeds24ReservasSync.md`), la tentación era quitarle la
+conversión y ya. **Habría empeorado el caso más frecuente.** Con cargos de Booking en dólares y un
+cobro por Yape en soles, el agente contestaría *«saldo US$ 65.97 pendiente y S/ 223.70 a favor del
+huésped»* — las dos cifras ciertas y la conclusión falsa: el huésped pagó y se fue.
+
+Así que la skill **pregunta**: cuando el cobro entra en una moneda donde no hay ningún cargo, ese
+dinero no puede saldar nada suyo, y hay que decidir a qué deuda se aplica.
+
+```
+el cobro entra en PEN y en esa moneda no hay ningún cargo, así que no puede saldar
+nada suyo: ¿va contra la deuda en USD? Al cambio de hoy abonaría 66.42 USD.
+Si no —es una propina, o un extra que todavía no se ha cargado—, dilo y queda como
+saldo a favor en PEN
+```
+
+- **Se pregunta, no se decide.** A veces esos soles son de verdad otra cosa. Aplicarlos en
+  silencio sería cobrar algo que nadie acordó.
+- **Sólo con UNA candidata.** Con deuda en dos monedas distintas de la del cobro, elegir por el
+  operador sería adivinar.
+- **Va en la MISMA tanda que el resto de repreguntas**, no en un viaje aparte: es la regla de
+  abajo. Sólo se puede formular cuando la moneda del cobro ya se conoce; si `moneda` está en
+  `$faltan`, la pregunta espera al turno siguiente, que es cuando de verdad se puede hacer.
+- La pregunta lleva **la equivalencia calculada**. «¿Va contra la deuda en USD? abonaría 66.42» se
+  responde mucho mejor que la misma pregunta a secas.
+
+⚠️ **La alarma de sobrepago respeta la tolerancia del cuadre.** Un cobro imputado deja casi siempre
+un residuo —el cambio del mostrador no es el de los cargos, y sobre 66 dólares son 45 céntimos—, y
+avisar de «el pago excede lo pendiente» por eso convierte la alarma en ruido. Con residuo dentro de
+tolerancia el mensaje es otro: *«es el redondeo del cambio, no un sobrepago: dalo por saldado»*.
+
+`registrar_cargo`, en cambio, **sí se simplificó de verdad**: el cargo se guarda en la moneda que
+se dictó y no hay nada que convertir. La equivalencia en la otra moneda viaja como
+`equivalencia_informativa`, marcada como lo que es.
 
 ##### 🔁 Todo lo que falta se pregunta DE UNA VEZ
 
@@ -3265,9 +3411,31 @@ Cargo por servicio (10%)    18.00   lo añade el operador — normalmente se exo
 TOTAL                      198.00 USD          (el tarifario habría dado 210.00 + 15.00)
 ```
 
-Se aplican **corrigiendo lo que el listener ya generó**, no reimplementando la generación: el
-precio del tarifario sale de `PmsCargosAutomaticosService::estimarAlojamiento()`, el mismo método
-que luego cobra, expuesto para poder previsualizarlo. Una fórmula, no dos.
+⚠️ **Estas líneas no son sólo una previsualización: son los cargos que se escriben.** Desde el
+15/08/2026 el panel ya no crea importes al insertar una estancia directa —abre una línea en
+`0.00` y el precio lo pone quien vende, ver §12.0.1 de `PmsBeds24ReservasSync.md`—, así que aquí
+no queda nada generado que corregir.
+
+Lo que hay en su lugar es mejor: **el operador aprueba un desglose y se escribe ese desglose**.
+`escribirCargos()` recalcula `cargosPrevistos()` con los mismos argumentos y se lo pasa a
+`PmsCargosAutomaticosService::escribirAprobados()`, que retira la línea en cero de esa estancia
+—y **sólo si sigue en cero**: con importe es dinero que alguien valoró— y persiste las aprobadas.
+
+**Por qué escribir vive en el servicio y no en la skill:** `crear_estancia` hace exactamente lo
+mismo. Con una copia en cada una, la primera corrección se quedaría en una de las dos.
+
+**Por qué previsualizar y escribir salen del mismo sitio:** cuando eran dos cálculos separados se
+separaron de verdad. A la previsualización le faltaba el suplemento por persona, y con 7 personas
+donde la tarifa cubre 5 y 3 noches el operador confirmaba **36.00 menos** de lo que luego veía en
+la cuenta.
+
+Una línea aprobada en `0.00` —la limpieza perdonada— **no se escribe**: es informativa, y
+escribirla llenaría la cuenta de ceros que no significan nada. Sale en `ajustes_aplicados` para
+que el agente pueda contarlo.
+
+El precio del tarifario sale de `PmsCargosAutomaticosService::estimarAlojamiento()`, que hoy
+delega en `preciosDeNoches()` — la misma lectura que alimenta el tooltip de coste teórico del
+panel. Una fórmula, no tres.
 
 ###### Las horas salen del establecimiento
 
@@ -5114,6 +5282,9 @@ arreglar** — ver el aviso al final de esta sección.
 | Que una opción del menú pueda responderse por Airbnb/Booking | EasyAdmin | `beds24Tmpl.is_active` de la plantilla de respuesta — §8 |
 | **Añadir una capacidad al agente** | `src/Agent/Skill/` | Una clase con `SkillInterface` — §11. No se toca motor ni adaptador |
 | Cambiar cómo nace una estancia (horas, estados, canal) | `PmsEstanciaCreator` | `crear()` — lo comparten `crear_reserva` y `crear_estancia`, **no lo dupliques** |
+| Cambiar qué cargos escribe una skill tras la aprobación | `PmsCargosAutomaticosService` | `escribirAprobados()` — lo comparten las dos skills, **no lo dupliques** |
+| Cambiar el desglose que el operador aprueba (`crear_reserva`) | `CrearReservaSkill` | `cargosPrevistos()` — se enseña Y se escribe, es el mismo cálculo |
+| Cambiar el desglose que el operador aprueba (`crear_estancia`) | `CrearEstanciaSkill` | `$lineas` en `conDatosCompletos()` — mismo criterio |
 | Añadir otra casita o tramo a una reserva existente | `CrearEstanciaSkill` | `ejecutar()` — §11. Para un huésped nuevo es `crear_reserva` |
 | Corregir datos de una reserva desde el agente | `ModificarReservaSkill` | `camposDelHuesped()` (reserva) / `camposDeLaEstancia()` (evento) |
 | Cambiar qué estados de pago confirman y abren la guía | `PmsEventoEstadoPago` | `ESTADOS_PAGO_CONFIABLES` — lo leen la auto-confirmación **y** `PmsGuiaAcceso` |

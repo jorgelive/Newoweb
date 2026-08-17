@@ -32,10 +32,45 @@ enum NivelRiesgo: string
     case Interna = 'interna';
 
     /**
-     * Modifica datos. El asistente propone el cambio y espera un «sí».
+     * Modifica datos. El asistente enseña el cambio a QUIEN LO PIDIÓ y espera su «sí».
      *
-     * No es por desconfiar del usuario: es que el modelo puede equivocarse de persona. Con
-     * dos Carlos González, mover la reserva del que no era es una alucinación, no un ataque.
+     * ⚠️ Este nivel es **sólo para operadores**: toda skill que lo declara pide
+     * `RESERVAS_WRITE` o `MENSAJES_WRITE`, así que un huésped no llega a ninguna. Lo único
+     * no-lectura a su alcance es `Interna`, y son acciones sobre sí mismo.
+     *
+     * ── Qué es «confirmar», porque se lee mal ───────────────────────────────────
+     * ⚠️ En este sistema «confirmar» nombra DOS cosas distintas. Ésta es la primera:
+     *
+     *   A. **Confirmar una escritura** (lo de aquí): el operador ve sus propios cambios y los
+     *      acepta. Mismo usuario, dos turnos.
+     *   B. **Confirmarle algo a un cliente**: un huésped pide un late check-out o una tarifa
+     *      especial. Eso el agente NO lo concede por su cuenta — escala a la oficina. No es
+     *      una escritura sin confirmar, es una decisión que no le toca al modelo. Ver
+     *      {@see \App\Agent\Skill\Pms\EscalarAlEquipoSkill}.
+     *
+     * La A es una conversación de dos turnos con **la misma persona**:
+     *
+     * ```
+     * turno 1  usuario  «cambia la clave de la caja principal a 2627E»
+     *          skill    confirmado=false → NO TOCA NADA, devuelve la previsualización
+     *          modelo   «la usan 3 huéspedes ahora mismo (Ana, Luis, Marta). ¿La cambio?»
+     * turno 2  usuario  «sí»
+     *          skill    confirmado=true  → aplica
+     * ```
+     *
+     * **No es pedirle permiso a un tercero.** No hay aprobador, ni supervisor, ni segundo par
+     * de ojos: quien pide y quien confirma son el mismo. Lo único que se añade es que vea el
+     * efecto antes de que ocurra.
+     *
+     * Y de ahí sale lo que protege: no duda de que el usuario quiera hacerlo —acaba de
+     * decirlo—, duda de que **el modelo le haya entendido**. Con dos Carlos González, mover la
+     * reserva del que no era es una alucinación, no un ataque; la previsualización es el
+     * instante en que un humano lo caza. Por eso su contenido sale de los datos reales y no de
+     * lo que el modelo cree que va a pasar.
+     *
+     * Corolario que ya costó una confusión: **en un chat siempre hay a quién preguntar** — es
+     * quien acaba de escribir. Si un canal cierra la escritura, el motivo será otro (ver
+     * `AiConversationProcessor`), nunca que falte el interlocutor.
      */
     case Escritura = 'escritura';
 
@@ -52,14 +87,6 @@ enum NivelRiesgo: string
     public function exigePermisoDeEscritura(): bool
     {
         return $this === self::Escritura || $this === self::Destructivo;
-    }
-
-    public function requiereConfirmacion(): bool
-    {
-        // `Interna` tampoco la pide: quien la dispara suele ser el huésped, que no tiene a
-        // quién confirmársela —y preguntarle «¿aviso al equipo?» a alguien que acaba de pedir
-        // ayuda es un paso de más en el peor momento.
-        return $this->exigePermisoDeEscritura();
     }
 
     public function requierePin(): bool

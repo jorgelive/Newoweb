@@ -395,7 +395,9 @@ const ventanaAbierta = computed(() => conversacionActual.value?.whatsappSessionA
                     No hay historial reciente.
                 </p>
 
-                <div v-for="m in mensajes" :key="m.id"
+                <!-- `:key` con respaldo al índice: el `id` del esquema es nullable y una clave
+                     `undefined` hace que Vue trate dos mensajes distintos como el mismo. -->
+                <div v-for="(m, i) in mensajes" :key="m.id ?? `sin-id-${i}`"
                     class="text-[12px] p-2.5 rounded-xl border shadow-sm leading-relaxed"
                     :class="m.direction === 'outgoing'
                         ? 'bg-[#376875]/5 border-[#376875]/10 text-slate-700 ml-6 rounded-tr-sm'

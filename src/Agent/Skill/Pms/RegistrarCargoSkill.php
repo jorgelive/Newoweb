@@ -20,6 +20,7 @@ use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsTipoCargo;
 use App\Pms\Service\Finance\MonedaResolver;
 use App\Pms\Service\Finance\PmsCuentaSimulador;
+use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Pms\Service\Finance\TipoCambioDelDia;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -180,40 +181,19 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
             ? $this->monedas->resolve($monedaIndicada)
             : $monedaCuenta;
 
-        // 💱 Conversión: el cargo se guarda en la moneda de la cuenta, pase lo que pase.
+        // 💱 EL CARGO SE GUARDA EN LA MONEDA QUE SE INDICÓ. Ya no se convierte.
         //
-        // El TC se consulta SIEMPRE, coincidan o no las monedas: es el mismo criterio que el
-        // `tcSiempre` del panel (util/src/components/reservas/ReservaFinanzasPanel.vue). Un
-        // cargo guardado sin TC deja de sumar el día que se cambie la moneda base de la cuenta
-        // —aporta 0 (§12.2)— y hay que repararlo a mano. Sellarlo de más nunca deforma un
-        // total, porque `PmsInformacionFinanciera::aMonedaBase()` lo ignora cuando la moneda
-        // del cargo ya es la de la cabecera.
+        // Antes se pasaba a la moneda de la cuenta: un cargo dictado como «cóbrale 50 soles» se
+        // guardaba como US$ 14.71 y el huésped no lo reconocía en su estado de cuenta. Desde el
+        // 16/08/2026 los importes se suman por moneda (§12.2b), así que aquí no hay nada que
+        // convertir — y ésta es la skill que de verdad se simplifica con el cambio.
+        //
+        // El tipo del día se sigue sellando en el registro, coincida o no la moneda: es cuánto
+        // valía el dólar ese día, un hecho del cargo (§12.4.1b). Lo pone
+        // `PmsTipoCambioSnapshotListener` en `prePersist`, así que aquí sólo se consulta para
+        // poder enseñarle al operador la equivalencia antes de confirmar.
         $tipoDelDia = $this->tipoCambio->venta();
-        $huboConversion = $monedaOrigen->getId() !== $monedaCuenta->getId();
-        $importeFinal = $importe;
-
-        if ($huboConversion) {
-            if ($tipoDelDia === null) {
-                return SkillResult::error(sprintf(
-                    'No hay tipo de cambio disponible para pasar de %s a %s. Registra el cargo '
-                    . 'desde el panel indicando el tipo a mano.',
-                    $monedaOrigen->getId(),
-                    $monedaCuenta->getId()
-                ));
-            }
-
-            // PEN → USD divide; USD → PEN multiplica. El tipo del día es soles por dólar.
-            $importeFinal = $monedaOrigen->getId() === 'PEN'
-                ? $importe / (float) $tipoDelDia
-                : $importe * (float) $tipoDelDia;
-        }
-
-        $importeFinal = round($importeFinal, 2);
-
-        // Lo que se le reporta al modelo es el tipo que se USÓ para convertir: decirle que se
-        // «aplicó» un tipo cuando las monedas coincidían le hace explicarle al operador una
-        // conversión que no ocurrió. El que se sella en el registro es $tipoDelDia.
-        $tipoAplicado = $huboConversion ? $tipoDelDia : null;
+        $importeFinal = round($importe, 2);
 
         // El tipo se resuelve ANTES de la previsualización porque de él depende que el cargo
         // llegue a sumar en una cuenta anulada (ver la advertencia de abajo).
@@ -283,8 +263,8 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
                 'reserva_id' => $reservaId,
                 'huesped' => trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()),
                 'concepto' => $concepto !== '' ? $concepto : null,
-                'importe_en_cuenta' => $importe > 0
-                    ? sprintf('%.2f %s', $importeFinal, $monedaCuenta->getId())
+                'importe' => $importe > 0
+                    ? sprintf('%.2f %s', $importeFinal, $monedaOrigen->getId())
                     : null,
                 'falta_datos' => $faltan,
                 'estancias' => $variasCasitas
@@ -326,9 +306,18 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
             'huesped' => trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()),
             'concepto' => $concepto,
             'tipo' => $tipo->value,
-            'importe_indicado' => sprintf('%.2f %s', $importe, $monedaOrigen->getId()),
-            'importe_en_cuenta' => sprintf('%.2f %s', $importeFinal, $monedaCuenta->getId()),
-            'tipo_cambio_aplicado' => $tipoAplicado,
+            'importe' => sprintf('%.2f %s', $importeFinal, $monedaOrigen->getId()),
+            // Equivalencia informativa, NO el importe que se guarda. Sirve para que el operador
+            // reconozca la cifra si la tenía en la cabeza en la otra moneda; el cargo va en la
+            // que se indicó y punto.
+            'equivalencia_informativa' => $tipoDelDia !== null && $monedaOrigen->getId() !== $monedaCuenta->getId()
+                ? sprintf(
+                    '≈ %.2f %s al cambio %s',
+                    $monedaOrigen->getId() === 'PEN' ? $importeFinal / (float) $tipoDelDia : $importeFinal * (float) $tipoDelDia,
+                    $monedaCuenta->getId(),
+                    $tipoDelDia,
+                )
+                : null,
             'advertencia' => $advertencia,
         ], static fn ($v) => $v !== null);
 
@@ -343,16 +332,15 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
                 'motivo' => 'falta_confirmacion',
                 // Misma foto que en registrar_pago, por el mismo simulador: un cargo y un pago
                 // mueven la misma cuenta y el operador debe verla igual en los dos casos.
-                'simulacion' => $this->simulador->simular($info, deltaCargos: $deltaEfectivo),
+                'simulacion' => $this->simulador->simular($info, deltaCargos: $deltaEfectivo, moneda: $monedaOrigen->getId()),
                 'pregunta_aprobacion' => '¿Apruebas el cambio?',
-                'previsualizacion' => $tipoAplicado !== null
-                    ? sprintf(
-                        'Se cargarán %s (equivalen a %s al tipo de cambio %s). Confírmalo para aplicarlo.',
-                        $resumen['importe_indicado'],
-                        $resumen['importe_en_cuenta'],
-                        $tipoAplicado
-                    )
-                    : sprintf('Se cargarán %s. Confírmalo para aplicarlo.', $resumen['importe_en_cuenta']),
+                'previsualizacion' => sprintf(
+                    'Se cargarán %s%s. Confírmalo para aplicarlo.',
+                    $resumen['importe'],
+                    isset($resumen['equivalencia_informativa'])
+                        ? ' (' . $resumen['equivalencia_informativa'] . ')'
+                        : '',
+                ),
             ]);
         }
 
@@ -364,7 +352,8 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
         // pago hermano ya lo hacía así.
         $cargo->setMonto(sprintf('%.2f', $importeFinal));
         $cargo->setTotalLinea(sprintf('%.2f', $importeFinal));
-        $cargo->setMoneda($monedaCuenta);
+        // En la moneda indicada, no en la de la cuenta.
+        $cargo->setMoneda($monedaOrigen);
 
         // Se sella el tipo del día aunque no haya habido conversión: en una auditoría un campo
         // vacío y un campo con el tipo no cuentan la misma historia, y sobre todo es lo que
@@ -382,8 +371,15 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
             // Se relee tras el flush, igual que en registrar_pago: lo recalcula el listener de
             // coherencia, así que devolver la suma que preveíamos sería contar lo que creemos
             // y no lo que quedó —justo lo que ocultaba el cargo descartado de una cuenta anulada.
-            'saldo_real' => sprintf('%.2f %s', (float) $info->getSaldo(), $monedaCuenta->getId()),
-            'mensaje' => sprintf('Cargado %s por «%s».', $resumen['importe_en_cuenta'], $concepto),
+            // El saldo de la moneda del cargo, calculado desde las colecciones y no releído de
+            // la cabecera: el rollup es SQL crudo en `postFlush` y la entidad conserva los
+            // escalares viejos. Es el bug latente que el value object arregla solo.
+            'saldo_real' => sprintf(
+                '%.2f %s',
+                (float) (PmsTotalesPorMoneda::de($info)->porMoneda[$monedaOrigen->getId()]['saldo'] ?? '0'),
+                $monedaOrigen->getId(),
+            ),
+            'mensaje' => sprintf('Cargado %s por «%s».', $resumen['importe'], $concepto),
         ]);
     }
 

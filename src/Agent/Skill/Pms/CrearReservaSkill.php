@@ -14,6 +14,7 @@ use App\Agent\Skill\SkillResult;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsCargoFinanciero;
+use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
@@ -348,10 +349,21 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
     /**
      * Lo que va a costar, calculado ANTES de crear nada.
      *
-     * El alojamiento sale de `PmsCargosAutomaticosService::estimarAlojamiento()` — el mismo
-     * método que luego cobra—, salvo que el operador haya cerrado un precio.
+     * El alojamiento sale de `PmsCargosAutomaticosService::estimarAlojamiento()`, salvo que el
+     * operador haya cerrado un precio.
      *
-     * @return array{lineas: list<array<string,mixed>>, total: float, moneda: string}
+     * ⚠️ **Estas líneas ya no son sólo una previsualización: son los cargos que se escriben.**
+     * Desde el 15/08/2026 `PmsCargosAutomaticosService::generarParaEvento()` sólo abre una
+     * línea en cero —el precio de una venta directa lo pone quien vende, y el panel no lo
+     * inventa—, así que aquí ya no hay nada generado que corregir. Lo escribe
+     * {@see self::escribirCargos()} a partir de este mismo cálculo.
+     *
+     * Y así es más honesto que antes: la previsualización que el operador aprueba y lo que
+     * acaba en la cuenta salen ahora del MISMO sitio. Cuando eran dos cálculos separados se
+     * separaron de verdad —a la previsualización le faltaba el suplemento por persona, y el
+     * operador confirmaba 36.00 menos de lo que luego veía—.
+     *
+     * @return array{lineas: list<array{concepto: string, importe: string, origen: string, tipo: PmsTipoCargo}>, total: float, moneda: string}
      */
     private function cargosPrevistos(
         array $entrada,
@@ -371,6 +383,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
                 'concepto' => 'Alojamiento',
                 'importe' => sprintf('%.2f', $alojamiento),
                 'origen' => 'precio cerrado por el operador (NO se usa el tarifario)',
+                'tipo' => PmsTipoCargo::ALOJAMIENTO,
             ];
         } else {
             $alojamiento = $this->cargos->estimarAlojamiento($unidad, $inicio, $fin) ?? 0.0;
@@ -380,6 +393,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
                 'origen' => $alojamiento > 0
                     ? 'tarifario, noche a noche'
                     : '⚠️ el tarifario no cubre todas las noches: quedará en 0.00 y habrá que ponerlo a mano',
+                'tipo' => PmsTipoCargo::ALOJAMIENTO,
             ];
         }
 
@@ -405,6 +419,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
                 ),
                 'importe' => sprintf('%.2f', $suplemento),
                 'origen' => 'regla de la unidad',
+                'tipo' => PmsTipoCargo::ALOJAMIENTO,
             ];
         }
 
@@ -422,6 +437,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
                     'origen' => $unidad->limpiezaEsPorcentaje()
                         ? sprintf('%s%% sobre alojamiento + suplemento', rtrim(rtrim($unidad->getPrecioLimpieza(), '0'), '.'))
                         : 'importe fijo de la unidad',
+                    'tipo' => PmsTipoCargo::LIMPIEZA,
                 ];
                 $total += $limpieza;
             }
@@ -430,6 +446,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
                 'concepto' => 'Suplemento de limpieza',
                 'importe' => '0.00',
                 'origen' => 'PERDONADO por el operador',
+                'tipo' => PmsTipoCargo::LIMPIEZA,
             ];
         }
 
@@ -445,6 +462,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
                 'importe' => sprintf('%.2f', $servicio),
                 // En una directa no se genera solo: si aparece, es porque se pidió.
                 'origen' => 'lo añade el operador — en las reservas directas normalmente se exonera',
+                'tipo' => PmsTipoCargo::SERVICIO,
             ];
             $total += $servicio;
         }
@@ -556,10 +574,10 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
 
         $this->em->flush();
 
-        // Los cargos ya los ha creado PmsCargosAutomaticosService en el flush. Aquí sólo se
-        // aplican los desvíos que pidió el operador, encima de lo que el sistema puso: es más
-        // seguro corregir lo generado que reimplementar la generación.
-        $ajustes = $this->ajustarCargos($reserva, $entrada);
+        // Los cargos los escribe la skill, con EXACTAMENTE las líneas que el operador aprobó.
+        // Ya no hay nada generado que corregir: `generarParaEvento()` sólo abre una línea en
+        // cero (ver su cabecera), porque el precio de una venta directa no lo pone el sistema.
+        $ajustes = $this->escribirCargos($reserva, $evento, $entrada, $unidad, $inicio, $fin, $adultos + $ninos);
 
         return SkillResult::ok($resumen + [
             'creada' => true,
@@ -577,12 +595,34 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
     }
 
     /**
-     * Aplica precio cerrado, perdón de limpieza y cargo de servicio sobre lo ya generado.
+     * Escribe en la cuenta las líneas que el operador aprobó.
+     *
+     * ── Por qué las escribe la skill y no el generador automático ───────────────
+     * `PmsCargosAutomaticosService::generarParaEvento()` deja una sola línea en cero: en una
+     * venta directa el precio se cierra hablando, y un importe sugerido por el sistema se acaba
+     * cobrando sin que nadie lo haya acordado. Aquí sí hay un acuerdo — el operador vio el
+     * desglose en `cargosPrevistos()` y dijo que sí—, así que aquí sí se escriben importes.
+     *
+     * Escribir es cosa de `PmsCargosAutomaticosService::escribirAprobados()`, que retira la
+     * línea en cero y pone las aprobadas. Aquí sólo se decide QUÉ se aprueba.
+     *
+     * ⚠️ Sale del MISMO `cargosPrevistos()` que se le enseñó, recalculado sobre los mismos
+     * argumentos. No es una segunda fórmula: si lo fuera, volvería a pasar lo del suplemento
+     * por persona —previsualizar una cosa y cobrar otra— que ya costó una corrección.
+     *
+     * @param array<string, mixed> $entrada
      *
      * @return list<string>
      */
-    private function ajustarCargos(PmsReserva $reserva, array $entrada): array
-    {
+    private function escribirCargos(
+        PmsReserva $reserva,
+        PmsEventoCalendario $evento,
+        array $entrada,
+        PmsUnidad $unidad,
+        DateTimeImmutable $inicio,
+        DateTimeImmutable $fin,
+        int $pax,
+    ): array {
         $info = $this->em->getRepository(PmsInformacionFinanciera::class)
             ->findOneBy(['reserva' => $reserva]);
 
@@ -590,49 +630,12 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
             return ['⚠️ no se encontró la cuenta: revisa los cargos a mano en el panel'];
         }
 
-        $hechos = [];
-        $precioFinal = trim((string) ($entrada['precio_final'] ?? ''));
-        $sinLimpieza = strtolower(trim((string) ($entrada['cobrar_limpieza'] ?? 'si'))) === 'no';
-        $pct = (float) str_replace(',', '.', (string) ($entrada['servicio_porcentaje'] ?? '0'));
+        // Lo escribe el servicio, que es el único sitio que sabe cómo se pone un cargo en una
+        // estancia directa. `crear_estancia` usa esta misma puerta.
+        $previstos = $this->cargosPrevistos($entrada, $unidad, $inicio, $fin, $pax);
+        $hechos = $this->cargos->escribirAprobados($evento, $info, $previstos['lineas']);
 
-        foreach ($info->getCargos() as $cargo) {
-            /** @var PmsCargoFinanciero $cargo */
-            if ($precioFinal !== '' && $cargo->getTipoCargo() === PmsTipoCargo::ALOJAMIENTO) {
-                $importe = sprintf('%.2f', (float) str_replace(',', '.', $precioFinal));
-                $cargo->setMonto($importe);
-                $cargo->setTotalLinea($importe);
-                $hechos[] = sprintf('Alojamiento fijado en %s (precio cerrado, no tarifario).', $importe);
-            }
-
-            if ($sinLimpieza && $cargo->getTipoCargo() === PmsTipoCargo::LIMPIEZA) {
-                $info->removeCargo($cargo);
-                $this->em->remove($cargo);
-                $hechos[] = 'Suplemento de limpieza retirado.';
-            }
-        }
-
-        if ($pct > 0) {
-            $this->em->flush();
-
-            $base = (float) $info->getTotalCargos();
-            $servicio = round($base * $pct / 100, 2);
-
-            $cargo = new PmsCargoFinanciero();
-            $cargo->setTipoCargo(PmsTipoCargo::SERVICIO);
-            $cargo->setDescripcion(sprintf('Cargo por servicio (%s%%)', rtrim(rtrim(sprintf('%.2f', $pct), '0'), '.')));
-            $cargo->setMonto(sprintf('%.2f', $servicio));
-            $cargo->setTotalLinea(sprintf('%.2f', $servicio));
-            $cargo->setMoneda($info->getMoneda());
-
-            $info->addCargo($cargo);
-            $this->em->persist($cargo);
-
-            $hechos[] = sprintf('Cargo por servicio del %s%% añadido: %.2f.', $pct, $servicio);
-        }
-
-        if ($hechos !== []) {
-            $this->em->flush();
-        }
+        $this->em->flush();
 
         return $hechos;
     }

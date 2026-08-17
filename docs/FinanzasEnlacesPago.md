@@ -1285,3 +1285,29 @@ frontend sin ningún error en PHP.
 uno de esos prefijos, antepón `get` en vez de traducirlo. Y verifica siempre con
 `php bin/console cache:warmup --env=prod`: `lint:container` **no** detecta esto, porque
 los metadatos del serializer no se cargan al lintar el contenedor.
+
+---
+
+## Un enlace por moneda (16/08/2026)
+
+Una pasarela cobra un enlace en **UNA divisa**, y desde la contabilidad por moneda
+(`docs/PmsBeds24ReservasSync.md` §12.2b) un documento puede deber en dos. Cobrar «un total»
+exigiría convertir — justo lo que ese rediseño vino a quitar.
+
+`FinOrigenCobroResolverInterface::resolver()` gana un `?string $moneda = null` **opcional**, y con
+él `FinOrigenCobroRegistry::resolver()`, `FinEnlacePagoService::crear()` y el `POST
+/finanzas/enlaces-pago`. Con `null` se toma la moneda de **mayor saldo**, que es lo que devolvía
+antes de que esto existiera: ningún llamante actual se rompe, y el gemelo que implemente el módulo
+de tours puede ignorar el parámetro si sólo maneja una moneda.
+
+En el panel, `ReservaEnlacesPagoSection` recibe `saldos` —una entrada por moneda— en vez de un
+`saldo` escalar, y ofrece **un atajo por cada una que deba algo**. Con una sola moneda se lee
+exactamente igual que antes; con dos, cada botón emite su propio enlace por lo que de verdad se
+debe en esa moneda.
+
+⚠️ **Cada atajo lleva el símbolo de SU moneda**, no el de cotización. Pintar los dos con el mismo
+símbolo sería reproducir el error que todo esto vino a arreglar, y en un botón que va a cargar
+dinero a una tarjeta.
+
+La fontanería ya estaba: `FinEnlacePago` guarda su propia `moneda` y `crear()` acepta cualquier
+`monedaId`. El único que forzaba una sola era el resolver.

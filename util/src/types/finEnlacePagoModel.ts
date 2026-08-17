@@ -159,6 +159,13 @@ export interface FinEnlacePagoCreate {
     concepto?: string;
     /** Omitido = la del backend. Sólo se manda si el operador eligió otra. */
     pasarela?: FinPasarela;
+    /**
+     * En qué moneda se emite el enlace.
+     *
+     * Una pasarela cobra en UNA divisa, y un documento puede deber en dos. Omitido = el resolver
+     * del módulo toma la moneda con mayor saldo.
+     */
+    moneda?: string;
 }
 
 /** Clases de color por estado, para no repetir el `match` en cada plantilla. */

@@ -9,7 +9,6 @@ use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
-use App\Pms\Entity\PmsTarifaRango;
 use App\Pms\Enum\PmsTipoCargo;
 use App\Pms\Service\Tarifa\PmsTarifaCalculadora;
 use DateTimeImmutable;
@@ -21,18 +20,30 @@ use Throwable;
 /**
  * Genera los cargos de una estancia DIRECTA a partir del tarifario.
  *
- * Una reserva OTA recibe sus importes de Beds24 (§11); una directa no recibe nada, y hasta
- * ahora había que teclearlos. Este servicio los arma solos al crear la estancia:
+ * Una reserva OTA recibe sus importes de Beds24 (§11); una directa no recibe nada.
  *
- *   · ALOJAMIENTO — suma del precio de CADA DÍA del tarifario, no una tarifa plana. Se usa el
- *     mismo motor que pinta el calendario de tarifas (TarifaPricingEngine), así que respeta
- *     temporadas, prioridades y solapamientos exactamente igual que lo que ve el operador.
- *   · LIMPIEZA — lo que diga la unidad (`PmsUnidad::costoLimpieza()`): importe fijo o
- *     porcentaje, según su flag. En 0 no se genera el cargo.
- *   · SERVICIO — **no se genera**: en las reservas directas se exonera.
+ * ── Se crea UNA línea, y en cero ─────────────────────────────────────────────
+ * Hasta el 15/08/2026 este servicio estrenaba tres cargos con importe: alojamiento sacado del
+ * tarifario, suplemento por persona y limpieza. **El precio de una venta directa no lo pone el
+ * tarifario, lo pone quien vende**: se cierra por teléfono o por WhatsApp, con descuento por
+ * estancia larga, con el desayuno dentro, o al precio de siempre para un repetidor. El
+ * resultado era que había que borrar tres líneas y teclear la real, y peor: si alguien no las
+ * borraba, la reserva quedaba con un precio que nadie había acordado.
  *
- * Todo queda como cargo MANUAL (sin `beds24ItemId`), así que el operador puede corregirlo o
- * borrarlo sin pelearse con la sincronización.
+ * Ahora se crea **una sola línea, de LIMPIEZA, en 0.00**, imputada a la estancia. Es el mismo
+ * criterio que ya se seguía con el horario extra {@see self::sincronizarExtras()}: el sistema
+ * abre el hueco y **no inventa la cifra**, porque un importe sugerido se acaba cobrando.
+ *
+ * ── El tarifario no se pierde: se enseña ────────────────────────────────────
+ * Lo que antes se cobraba a ciegas ahora se ofrece como referencia en {@see self::costoTeorico()},
+ * que el panel financiero pinta en un tooltip junto al cargo. Quien vende ve lo que «debería»
+ * costar —noches, personas de más y limpieza, desglosado— y decide. La diferencia entre
+ * sugerir y cobrar es toda la diferencia.
+ *
+ * SERVICIO sigue sin generarse: en las reservas directas se exonera.
+ *
+ * El cargo queda MANUAL (sin `beds24ItemId`), así que el operador lo corrige o lo borra sin
+ * pelearse con la sincronización.
  */
 final class PmsCargosAutomaticosService
 {
@@ -90,73 +101,172 @@ final class PmsCargosAutomaticosService
             return;
         }
 
+        // La casita va en la descripción porque una reserva puede tener DOS estancias directas:
+        // sin ella, el panel mostraría dos líneas idénticas en cero y no se sabría cuál se está
+        // valorando. Mismo motivo que en los cargos de horario extra.
+        $casita = $evento->getPmsUnidad()?->getNombre();
+
+        // En CERO y a propósito. El desglose del tarifario viaja aparte, en `costoTeorico()`,
+        // y se enseña; no se cobra. Ver la cabecera de la clase.
+        $this->crearCargo(
+            info: $info,
+            evento: $evento,
+            tipo: PmsTipoCargo::LIMPIEZA,
+            descripcion: 'Estancia directa' . ($casita ? ' · ' . $casita : ''),
+            importe: '0.00',
+            moneda: $info->getMoneda() ?? $this->monedaResolver->resolve(null),
+        );
+    }
+
+    /**
+     * Escribe importes que una PERSONA ha aprobado, en lugar del hueco en cero.
+     *
+     * Es la contrapartida de {@see self::generarParaEvento()}: allí el sistema no pone precio
+     * porque nadie lo ha acordado; aquí sí, porque el operador ha visto el desglose y ha dicho
+     * que sí. Lo usan las skills del agente (`crear_reserva`, `crear_estancia`), que son las
+     * únicas vías con un paso de aprobación explícito.
+     *
+     * Vive aquí y no en cada skill para que haya UNA forma de escribir cargos de una estancia
+     * directa. Con una copia por skill, la primera corrección se quedaría en una de las dos.
+     *
+     * Retira antes la línea en cero de esta estancia — y **sólo si sigue en cero**: con importe
+     * es dinero que alguien valoró, y eso no se pisa. NO hace flush: lo hace quien llama.
+     *
+     * @param list<array{concepto: string, importe: string, origen?: string, tipo: PmsTipoCargo}> $lineas
+     *
+     * @return list<string> Qué se escribió, para contárselo al operador.
+     */
+    public function escribirAprobados(
+        PmsEventoCalendario $evento,
+        PmsInformacionFinanciera $info,
+        array $lineas,
+    ): array {
+        foreach ($info->getCargos() as $cargo) {
+            $enCero = (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0') === 0.0;
+
+            if ($cargo->getEvento() === $evento && $enCero) {
+                $info->removeCargo($cargo);
+                $this->em->remove($cargo);
+            }
+        }
+
         $moneda = $info->getMoneda() ?? $this->monedaResolver->resolve(null);
+        $hechos = [];
 
-        // Es el IMPORTE del alojamiento, no un número de noches. Se llamaba `$noches`, que es
-        // exactamente el nombre que hace que alguien lo multiplique por una tarifa.
-        $alojamiento = $this->calcularAlojamiento($evento);
+        foreach ($lineas as $linea) {
+            $origen = $linea['origen'] ?? 'aprobado por el operador';
 
-        if ($alojamiento !== null && $alojamiento > 0) {
-            $this->crearCargo(
-                info: $info,
-                evento: $evento,
-                tipo: PmsTipoCargo::ALOJAMIENTO,
-                descripcion: 'Alojamiento',
-                importe: number_format($alojamiento, 2, '.', ''),
-                moneda: $moneda,
-            );
-        }
-
-        // 👥 Las personas que no caben en la tarifa. Cargo APARTE y no sumado al alojamiento:
-        // el huésped tiene derecho a ver por qué paga más que la tarifa anunciada, y metido
-        // dentro del alojamiento falsearía además el precio por noche de cualquier informe.
-        $suplemento = $this->calcularSuplementoPax($evento);
-
-        if ($suplemento !== null && $suplemento > 0) {
-            $unidad = $evento->getPmsUnidad();
+            // Una línea en 0.00 es informativa —«limpieza PERDONADA»— y no un cargo: escribirla
+            // llenaría la cuenta de ceros que no significan nada.
+            if ((float) $linea['importe'] === 0.0) {
+                $hechos[] = sprintf('%s: no se cobra (%s).', $linea['concepto'], $origen);
+                continue;
+            }
 
             $this->crearCargo(
                 info: $info,
                 evento: $evento,
-                tipo: PmsTipoCargo::ALOJAMIENTO,
-                descripcion: sprintf(
-                    'Persona adicional (%d × %s por noche)',
-                    max(0, $this->paxDe($evento) - (int) $unidad?->getPaxIncluidos()),
-                    $unidad?->getPrecioPaxAdicional() ?? '0.00'
-                ),
-                importe: number_format($suplemento, 2, '.', ''),
+                tipo: $linea['tipo'],
+                descripcion: $linea['concepto'],
+                importe: $linea['importe'],
                 moneda: $moneda,
             );
+
+            $hechos[] = sprintf('%s: %s (%s).', $linea['concepto'], $linea['importe'], $origen);
         }
 
-        // 🧹 LA LIMPIEZA SALE DE LA UNIDAD, no de una constante.
-        //
-        // Era `TARIFA_LIMPIEZA = '15.00'`, fija e incondicional, y coincidía con lo cotizado
-        // sólo porque todas las casitas tenían 15.00 puestos. En cuanto una pasara a
-        // porcentaje, o a otro importe, o a cero, se cotizaba una cosa y se cobraba otra —y
-        // el cargo se creaba hasta en las que no cobran limpieza—.
-        //
-        // ⚠️ `$alojamiento` es el IMPORTE del alojamiento; la variable de arriba se llamaba
-        // `$noches` y contenía esto mismo, que es una trampa para quien lea rápido. Se le pasa
-        // junto con el suplemento porque la base del porcentaje es alojamiento + suplemento
-        // (regla en `PmsUnidad::costoLimpieza()`, que es quien la decide).
-        $limpieza = $evento->getPmsUnidad()?->costoLimpieza(
-            $this->nochesDe($evento),
-            ($alojamiento ?? 0.0) + ($suplemento ?? 0.0)
-        ) ?? 0.0;
+        return $hechos;
+    }
 
-        if ($limpieza > 0.0) {
-            $this->crearCargo(
-                info: $info,
-                evento: $evento,
-                tipo: PmsTipoCargo::LIMPIEZA,
-                descripcion: 'Suplemento de limpieza',
-                importe: number_format($limpieza, 2, '.', ''),
-                moneda: $moneda,
-            );
+    /**
+     * Lo que ESTA estancia costaría según el tarifario y la ficha de la casita.
+     *
+     * Es una referencia para quien vende, no un importe a cobrar: sale desglosado para poder
+     * discutirlo —«tres noches a 24, dos personas de más, la limpieza»— en vez de un total
+     * redondo que no se sabe de dónde viene. Lo pinta el panel financiero en un tooltip junto
+     * al cargo en cero que crea {@see self::generarParaEvento()}.
+     *
+     * Devuelve `null` cuando no hay nada que estimar (sin casita, sin fechas, o una estancia que
+     * no es una venta). Y **`alojamiento` puede venir a `null` con el resto relleno**: si al
+     * tarifario le falta alguna noche se prefiere no enseñar un alojamiento corto —que se leería
+     * como el precio de la estancia entera— a enseñar uno falso.
+     *
+     * `porNoche` sólo se rellena si TODAS las noches valen lo mismo. Con temporada alta de por
+     * medio no hay un «precio por noche» que enseñar, y escribir la media invitaría a
+     * multiplicarla por las noches y a no cuadrar con el total.
+     *
+     * @return array{
+     *     moneda: ?string,
+     *     alojamiento: array{noches: int, porNoche: ?string, importe: string}|null,
+     *     paxAdicional: array{personas: int, noches: int, porPersonaNoche: string, importe: string}|null,
+     *     limpieza: array{importe: string, esPorcentaje: bool}|null,
+     *     total: string
+     * }|null
+     */
+    public function costoTeorico(PmsEventoCalendario $evento): ?array
+    {
+        if (!$this->aplica($evento)) {
+            return null;
         }
 
-        // SERVICIO: intencionadamente ausente — se exonera en las reservas directas.
+        $unidad = $evento->getPmsUnidad();
+        $noches = $this->nochesDe($evento);
+
+        if ($unidad === null || $noches < 1) {
+            return null;
+        }
+
+        $diarios = $this->preciosDeNoches($unidad, $evento->getInicio(), $evento->getFin());
+        $alojamiento = null;
+        $moneda = null;
+
+        if ($diarios !== null) {
+            $precios = array_map(static fn (array $d): float => $d['price'], $diarios);
+            $moneda = $diarios[0]['currency'] ?? null;
+            $importe = array_sum($precios);
+
+            $alojamiento = [
+                'noches' => count($precios),
+                // `array_unique` sobre los precios: una sola entrada = todas las noches iguales.
+                'porNoche' => count(array_unique($precios, SORT_NUMERIC)) === 1
+                    ? number_format($precios[0], 2, '.', '')
+                    : null,
+                'importe' => number_format($importe, 2, '.', ''),
+            ];
+        }
+
+        $baseAlojamiento = $alojamiento === null ? 0.0 : (float) $alojamiento['importe'];
+
+        // Las personas por encima de las que cubre la tarifa. La regla la decide la unidad; aquí
+        // sólo se descompone para poder enseñarla.
+        $paxExtra = max(0, $this->paxDe($evento) - (int) $unidad->getPaxIncluidos());
+        $suplemento = $unidad->suplementoPorPax($this->paxDe($evento), $noches);
+        $paxAdicional = $paxExtra > 0 && $suplemento > 0.0 ? [
+            'personas' => $paxExtra,
+            'noches' => $noches,
+            'porPersonaNoche' => $unidad->getPrecioPaxAdicional(),
+            'importe' => number_format($suplemento, 2, '.', ''),
+        ] : null;
+
+        // La base del porcentaje es alojamiento + suplemento, tal como la define
+        // `PmsUnidad::costoLimpieza()`. Con el alojamiento incalculable esa base es incompleta,
+        // así que una limpieza a porcentaje saldría corta: se omite en vez de mentir.
+        $limpiezaImporte = $unidad->costoLimpieza($noches, $baseAlojamiento + $suplemento);
+        $esPorcentaje = $unidad->limpiezaEsPorcentaje();
+        $limpieza = $limpiezaImporte > 0.0 && !($esPorcentaje && $alojamiento === null) ? [
+            'importe' => number_format($limpiezaImporte, 2, '.', ''),
+            'esPorcentaje' => $esPorcentaje,
+        ] : null;
+
+        $total = $baseAlojamiento + $suplemento + (float) ($limpieza['importe'] ?? 0);
+
+        return [
+            'moneda' => $moneda,
+            'alojamiento' => $alojamiento,
+            'paxAdicional' => $paxAdicional,
+            'limpieza' => $limpieza,
+            'total' => number_format($total, 2, '.', ''),
+        ];
     }
 
     /**
@@ -270,36 +380,47 @@ final class PmsCargosAutomaticosService
     }
 
     /**
-     * Suma el precio de cada noche del tarifario.
-     *
-     * El intervalo es [llegada, salida) — la noche de salida no se cobra —, que es justo el
-     * contrato del flattener (`to` exclusivo).
-     *
-     * Devuelve null (y no se crea el cargo) si NO se puede precisar todas las noches: es
-     * preferible que el operador teclee el importe a cobrarle de menos sin que nadie se entere.
-     */
-    private function calcularAlojamiento(PmsEventoCalendario $evento): ?float
-    {
-        return $this->estimarAlojamiento(
-            $evento->getPmsUnidad(),
-            $evento->getInicio(),
-            $evento->getFin()
-        );
-    }
-
-    /**
      * El mismo cálculo, sin necesidad de un evento.
      *
      * Lo usa `CrearReservaSkill` para PREVISUALIZAR cuánto saldría del tarifario antes de crear
-     * nada, que es lo que permite al operador decidir si prefiere poner un precio cerrado. Es
-     * público y delega aquí `calcularAlojamiento()` para que no haya dos fórmulas: la que se
-     * enseña y la que se cobra tienen que ser la misma.
+     * nada, que es lo que permite al operador decidir si prefiere poner un precio cerrado.
+     *
+     * Delega en `preciosDeNoches()`, la misma lectura que descompone `costoTeorico()`: lo que
+     * enseña la skill y lo que enseña el tooltip del panel salen del mismo sitio.
      */
     public function estimarAlojamiento(
         ?\App\Pms\Entity\PmsUnidad $unidad,
         ?\DateTimeInterface $inicio,
         ?\DateTimeInterface $fin
     ): ?float {
+        $diarios = $this->preciosDeNoches($unidad, $inicio, $fin);
+
+        if ($diarios === null) {
+            return null;
+        }
+
+        $total = 0.0;
+        foreach ($diarios as $dia) {
+            $total += $dia['price'];
+        }
+
+        return $total;
+    }
+
+    /**
+     * El precio de CADA noche de la estancia, o `null` si no se puede precisar entera.
+     *
+     * Es la pieza común de las dos lecturas del tarifario —el total que se cobraba y el desglose
+     * que ahora se enseña—, y está separada justo para que no haya dos: una fórmula que suma y
+     * otra que descompone acabarían dando cifras distintas el día que una de las dos cambie.
+     *
+     * @return list<array{price: float, currency?: string|null, minStay?: int|null, sourceId?: string}>|null
+     */
+    private function preciosDeNoches(
+        ?\App\Pms\Entity\PmsUnidad $unidad,
+        ?\DateTimeInterface $inicio,
+        ?\DateTimeInterface $fin
+    ): ?array {
         if (!$inicio || !$fin || !$unidad || $fin <= $inicio) {
             return null;
         }
@@ -317,30 +438,27 @@ final class PmsCargosAutomaticosService
             $preciosDiarios = $this->tarifas->preciosPorNoche($unidad, $inicio, $fin);
 
             // El flattener OMITE los días que no logra precisar; si falta alguno, el total sería
-            // una estancia más corta de la real. Se prefiere no cobrar nada a cobrar de menos.
+            // una estancia más corta de la real. Se prefiere no enseñar nada a quedarse corto.
             // A DÍA, no a instante: la estancia va de las 14:00 a las 10:00, así que un
             // diff() crudo de dos noches devolvería "1 día y 20 horas" → 1. El flattener
             // trunca a medianoche (§12.5.5), y aquí hay que contar igual.
             $nochesEsperadas = (int) $this->aDia($inicio)->diff($this->aDia($fin))->days;
             if (count($preciosDiarios) < $nochesEsperadas) {
-                $this->logger->info('Tarifario incompleto para la estancia: no se genera cargo de alojamiento.', [
+                $this->logger->info('Tarifario incompleto para la estancia: no se puede estimar el alojamiento.', [
                     'unidad' => (string) $unidad->getId(),
                     'nochesEsperadas' => $nochesEsperadas,
                     'nochesConPrecio' => count($preciosDiarios),
                 ]);
+
                 return null;
             }
 
-            $total = 0.0;
-            foreach ($preciosDiarios as $dia) {
-                $total += (float) ($dia['price'] ?? 0);
-            }
-
-            return $total;
+            return array_values($preciosDiarios);
         } catch (Throwable $e) {
-            // Nunca romper el guardado de la reserva por el tarifario: se avisa y se sigue
-            // sin cargo de alojamiento, que el operador puede añadir a mano.
-            $this->logger->error('Fallo calculando el alojamiento desde el tarifario.', ['exception' => $e]);
+            // Nunca romper el guardado de la reserva por el tarifario: se avisa y se sigue sin
+            // estimación, que el operador puede teclear a mano.
+            $this->logger->error('Fallo leyendo el tarifario de la estancia.', ['exception' => $e]);
+
             return null;
         }
     }
@@ -355,30 +473,6 @@ final class PmsCargosAutomaticosService
     private function paxDe(PmsEventoCalendario $evento): int
     {
         return (int) $evento->getCantidadAdultos() + (int) $evento->getCantidadNinos();
-    }
-
-    /**
-     * Lo que suman las personas por encima de las que cubre la tarifa.
-     *
-     * La regla vive en la unidad ({@see \App\Pms\Entity\PmsUnidad::suplementoPorPax()}); aquí
-     * sólo se le da el pax y las noches. `null` cuando no hay estancia calculable, y `0.0`
-     * cuando la casita no cobra suplemento o el grupo cabe: no cobrar de más es el fallo seguro.
-     */
-    private function calcularSuplementoPax(PmsEventoCalendario $evento): ?float
-    {
-        $unidad = $evento->getPmsUnidad();
-        $inicio = $evento->getInicio();
-        $fin = $evento->getFin();
-
-        if ($unidad === null || $inicio === null || $fin === null || $fin <= $inicio) {
-            return null;
-        }
-
-        // A DÍA, igual que el alojamiento: la estancia va de las 14:00 a las 10:00 y un diff()
-        // crudo de dos noches devolvería «1 día y 20 horas» → 1 (§12.5.5).
-        $noches = (int) $this->aDia($inicio)->diff($this->aDia($fin))->days;
-
-        return $unidad->suplementoPorPax($this->paxDe($evento), $noches);
     }
 
     /** Trunca a medianoche conservando la fecha de pared (mismo criterio que el flattener). */

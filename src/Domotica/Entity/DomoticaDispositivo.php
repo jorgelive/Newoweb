@@ -99,25 +99,31 @@ class DomoticaDispositivo
     /**
      * ¿Este aparato lleva contómetro?
      *
+     * ⚠️ **Derivado, no tecleado.** Lo reporta el propio aparato en `/v1.0/devices/{id}/specifications`:
+     * si expone `add_ele`, mide. Nace en `false` porque hasta que esa consulta ocurra la respuesta
+     * honesta es «no sé», y un `true` sin comprobar mete al aparato en el muestreo y en las alertas.
+     *
      * No todos los enchufes inteligentes miden: los hay que sólo conmutan, y son más baratos. Un
      * aparato sin contómetro se registra igual —interesa saber qué hay y en qué estado está— pero
      * NO se muestrea ni se le abre suscripción, y sobre todo NO cuenta como mudo cuando no da
      * lectura: no la da porque no la tiene, y avisar de eso cada tres horas quemaría el canal.
      */
-    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
     #[Groups(['domotica_dispositivo:read'])]
-    private bool $mideConsumo = true;
+    private bool $mideConsumo = false;
 
     /**
      * ¿Se puede encender y apagar desde el sistema?
+     *
+     * Derivado igual que `mideConsumo`: si la especificación expone `switch_1`, conmuta.
      *
      * Hoy sólo se LEE el estado. La columna existe para que el día que se accione de verdad no
      * haya que adivinar qué aparatos aceptan la orden — y para que el panel no ofrezca un botón
      * que no va a funcionar, que es peor que no ofrecerlo.
      */
-    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
     #[Groups(['domotica_dispositivo:read'])]
-    private bool $conmutable = true;
+    private bool $conmutable = false;
 
     /**
      * Último estado leído: encendido o apagado. `null` mientras no se haya consultado nunca.

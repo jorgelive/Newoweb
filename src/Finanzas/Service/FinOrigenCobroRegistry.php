@@ -61,9 +61,9 @@ final class FinOrigenCobroRegistry
     }
 
     /** Foto del documento, o null si ya no existe (enlace histórico de algo borrado). */
-    public function resolver(FinOrigenCobro $tipo, Uuid $origenId): ?FinOrigenCobroDto
+    public function resolver(FinOrigenCobro $tipo, Uuid $origenId, ?string $moneda = null): ?FinOrigenCobroDto
     {
-        return $this->para($tipo)->resolver($origenId);
+        return $this->para($tipo)->resolver($origenId, $moneda);
     }
 
     /** Imputa el cobro en el módulo dueño. Sólo lo llama `FinEnlacePagoService`. */

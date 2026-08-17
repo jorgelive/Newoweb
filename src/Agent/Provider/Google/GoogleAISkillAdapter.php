@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Provider\Google;
 
+use App\Agent\Access\GuardiaDeSkills;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
@@ -25,7 +26,8 @@ use Throwable;
 final readonly class GoogleAISkillAdapter
 {
     public function __construct(
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        private GuardiaDeSkills $guardia
     ) {}
 
     /**
@@ -98,6 +100,21 @@ final readonly class GoogleAISkillAdapter
             $actor->etiqueta(),
             $skill->nombre()
         ));
+
+        // El cierre, antes de tocar nada. El catálogo dice qué se ofrece; esto dice qué se
+        // ejecuta. Ver GuardiaDeSkills.
+        $bloqueo = $this->guardia->motivoDeBloqueo($skill, $actor);
+
+        if ($bloqueo !== null) {
+            $this->logger->warning(sprintf(
+                'Agent: BLOQUEADA la skill "%s" para %s: %s',
+                $skill->nombre(),
+                $actor->etiqueta(),
+                $bloqueo
+            ));
+
+            return ['error' => $bloqueo];
+        }
 
         try {
             $resultado = $skill->ejecutar($entrada, $actor);

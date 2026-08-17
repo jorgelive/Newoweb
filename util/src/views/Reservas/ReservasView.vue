@@ -1191,13 +1191,23 @@ function saldoPill(p: PmsEventoExtendedProps): string {
     const n = Number(p.saldo);
     if (!Number.isFinite(n)) return '';
 
-    // Medio céntimo de tolerancia: los totales son sumas de decimales y un
-    // 0.001 residual no debe pintar la reserva como pendiente de cobro.
-    const cobrada = n <= 0.005;
+    // 🎨 El color lo decide el BACKEND, no una comparación contra cero aquí.
+    //
+    // `cuadra` viene del cuadre, que respeta la tolerancia del cambio: sin esto, una reserva
+    // pagada en soles una deuda en dólares se pintaba de rojo por diez céntimos de redondeo.
+    // El `n <= 0.005` sólo queda como respaldo para eventos que aún no traen el campo.
+    const cobrada = p.cuadra ?? (n <= 0.005);
+
+    // `≈` cuando la cifra pasó por un tipo de cambio: es lo que separa «debe esto» de «debe
+    // aproximadamente esto». El desglose exacto está en el tooltip.
+    const marca = p.convertido ? '≈' : '';
+    const titulo = p.convertido
+        ? (cobrada ? 'Cobrada · dos monedas, importe aproximado' : 'Saldo pendiente · dos monedas, importe aproximado')
+        : (cobrada ? 'Cobrada' : 'Saldo pendiente');
 
     return `<span class="fc-reserva-dato ${cobrada ? 'fc-reserva-pagado' : 'fc-reserva-debe'}"`
-        + ` title="${cobrada ? 'Cobrada' : 'Saldo pendiente'}">`
-        + escaparHtml(importeCorto(p.saldo, p.simbolo))
+        + ` title="${titulo}">`
+        + escaparHtml(marca + importeCorto(p.saldo, p.simbolo))
         + `</span>`;
 }
 

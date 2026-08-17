@@ -94,10 +94,51 @@ class PmsPagoFinanciero
     #[Groups(['pms_pago:read', 'pms_pago:write', 'pms_pago:patch'])]
     private string $monto = '0.00';
 
-    /** Tipo de cambio venta USD→PEN del día del pago (snapshot; usado cuando la moneda es soles). */
+    /**
+     * Tipo de cambio venta USD→PEN **del día en que se movió este dinero** (`fechaPago`).
+     *
+     * Se sella SIEMPRE, coincida o no la moneda con la de la ficha: lo pone
+     * `PmsTipoCambioSnapshotListener` en `prePersist` si no viene indicado. No es «el número que
+     * hace falta para convertir» — es cuánto valía el dólar ese día, un hecho histórico del
+     * registro que sirve para reconstruir la cuenta aunque nadie convierta nada (§12.4.1b).
+     */
     #[ORM\Column(name: 'tipo_cambio', type: 'decimal', precision: 10, scale: 3, nullable: true)]
     #[Groups(['pms_pago:read', 'pms_pago:write', 'pms_pago:patch'])]
     private ?string $tipoCambio = null;
+
+    /**
+     * A qué deuda se imputa este cobro, cuando NO es a la de su propia moneda.
+     *
+     * `null` es lo normal —y lo que hace el 97 % de los cobros—: el dinero salda deuda en la
+     * moneda en que entró. Con valor, este cobro abona la deuda de **esa** moneda, convertido con
+     * su propio {@see self::$tipoCambio}.
+     *
+     * ── Por qué hace falta ──────────────────────────────────────────────────────
+     * Es el caso real de la reserva GASUNN: cargos de Booking por US$ 65.97 y un único cobro de
+     * S/ 223.70 por Yape al cambio 3.391. Sumando cada moneda por su lado, esa ficha diría «debe
+     * US$ 65.97» y «tiene S/ 223.70 a favor» — y el huésped pagó y se fue. El dinero **sí** cruzó
+     * de moneda ahí, y esto es lo que le deja decirlo. Medido sobre producción: 3 fichas de 317.
+     *
+     * ⚠️ **Es la ÚNICA conversión que queda en el módulo**, y sólo porque en este cobro concreto
+     * hubo un cambio de verdad. Todo lo demás se suma sin convertir.
+     *
+     * ── 🔴 Esto NO es la caja ───────────────────────────────────────────────────
+     * `PmsPagoMovimientoProvider` —lo que alimenta el arqueo de `src/Finanzas/`— sigue diciendo
+     * **S/ 223.70**, que es el dinero que entró por la puerta. Esto es imputación contable, y son
+     * dos verdades distintas: las dos correctas, ninguna sustituye a la otra. Nadie debe «cuadrar»
+     * la caja contra la ficha.
+     *
+     * ── Limitación aceptada ─────────────────────────────────────────────────────
+     * Un cobro salda **una** moneda entera. «S/ 500 abonan US$ 100 y quedan S/ 160 a favor» no se
+     * puede expresar, y con los volúmenes de hoy no toca resolverlo.
+     *
+     * Va en `pms_pago:patch` —al contrario que `moneda`— porque reimputar un cobro es corregir
+     * una decisión contable, no falsear un hecho.
+     */
+    #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
+    #[ORM\JoinColumn(name: 'moneda_saldada_id', referencedColumnName: 'id', nullable: true)]
+    #[Groups(['pms_pago:read', 'pms_pago:write', 'pms_pago:patch'])]
+    private ?MaestroMoneda $monedaSaldada = null;
 
     #[ORM\Column(name: 'medio_pago', type: 'string', length: 30, enumType: PmsMedioPago::class)]
     #[Groups(['pms_pago:read', 'pms_pago:write', 'pms_pago:patch'])]
@@ -224,6 +265,27 @@ class PmsPagoFinanciero
 
     public function getTipoCambio(): ?string { return $this->tipoCambio; }
     public function setTipoCambio(?string $tipoCambio): self { $this->tipoCambio = $tipoCambio; return $this; }
+
+    public function getMonedaSaldada(): ?MaestroMoneda { return $this->monedaSaldada; }
+
+    /**
+     * Se normaliza a `null` cuando coincide con la moneda del propio cobro.
+     *
+     * «Salda su propia moneda» es exactamente lo que significa `null`, y guardarlo explícito
+     * obligaría a que el rollup y el value object llevaran una rama de más para decir lo mismo.
+     */
+    public function setMonedaSaldada(?MaestroMoneda $moneda): self
+    {
+        $this->monedaSaldada = $moneda?->getId() === $this->moneda?->getId() ? null : $moneda;
+
+        return $this;
+    }
+
+    /** ¿Este cobro abona la deuda de otra moneda? */
+    public function imputaAOtraMoneda(): bool
+    {
+        return $this->monedaSaldada !== null && $this->monedaSaldada->getId() !== $this->moneda?->getId();
+    }
 
     public function getMedioPago(): PmsMedioPago { return $this->medioPago; }
     public function setMedioPago(PmsMedioPago $medioPago): self { $this->medioPago = $medioPago; return $this; }
