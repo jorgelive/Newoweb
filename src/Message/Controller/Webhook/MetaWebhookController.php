@@ -55,11 +55,20 @@ final class MetaWebhookController extends AbstractController
      * `hash_equals()` y no `===`: la comparación de un HMAC se hace en tiempo constante o se
      * filtra por dónde empieza a diferir.
      *
-     * ⚠️ **Sin secreto configurado, DEJA PASAR y avisa.** Es la única concesión, y es
-     * deliberada: hoy `exchange_meta_config` no guarda `appSecret`, así que fallar cerrado
-     * dejaría el WhatsApp mudo en el mismo despliegue que introduce la comprobación. En cuanto
-     * se pegue el secreto en el panel, esto pasa a rechazar solo. El `error` del log está para
-     * que ese estado no se quede ahí para siempre.
+     * 🔒 **Sin secreto configurado, RECHAZA.** Hubo una concesión temporal —dejar pasar y
+     * avisar— para no dejar el WhatsApp mudo en el mismo despliegue que introdujo la
+     * comprobación, cuando `exchange_meta_config` todavía no guardaba `appSecret`. Ya lo
+     * guarda, y la concesión se retiró.
+     *
+     * No es celo: **toda la identidad del canal cuelga de esta firma.** El actor del agente se
+     * resuelve por el `wa_id` del remitente, así que sin validar, quien conozca la URL se manda
+     * un payload con el número de un operador y el asistente le contesta —y ahora también le
+     * ESCRIBE— con los permisos de esa persona. Fallar abierto justo en el control que sostiene
+     * la identidad es al revés de como tiene que ser.
+     *
+     * ⚠️ Consecuencia asumida: si alguien vacía o rota mal el secreto, **el WhatsApp entrante
+     * se para en seco**. Es lo que se quiere — mejor mudo que suplantable— y por eso el log
+     * es `critical`: que se vea en el minuto uno y no dentro de tres días.
      */
     private function firmaValida(Request $request, string $rawContent): bool
     {
@@ -67,12 +76,13 @@ final class MetaWebhookController extends AbstractController
         $secreto = $config?->getAppSecret();
 
         if ($secreto === null) {
-            $this->logger->error(
-                '[MetaWebhook] SIN App Secret configurado: no se puede validar la firma y se '
-                . 'acepta cualquier payload. Pégalo en el panel (Meta → Configuración → Básica).'
+            $this->logger->critical(
+                '[MetaWebhook] SIN App Secret configurado: NO se puede validar la firma y se '
+                . 'RECHAZA todo el WhatsApp entrante. Pégalo en el panel (Meta → Configuración '
+                . '→ Básica) para restablecer el servicio.'
             );
 
-            return true;
+            return false;
         }
 
         $recibida = (string) $request->headers->get('X-Hub-Signature-256');

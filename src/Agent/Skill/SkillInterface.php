@@ -45,7 +45,7 @@ interface SkillInterface
     /**
      * Cuánto daño puede hacer, que es lo que decide el trato. Ver {@see NivelRiesgo}.
      *
-     * ⚠️ Si devuelves `Escritura` o `Destructivo`, la skill DEBE aceptar un parámetro
+     * ⚠️ Si devuelves `Escritura`, la skill DEBE aceptar un parámetro
      * `confirmado` y, con `false`, devolver la previsualización sin tocar nada. Confirmar es
      * enseñarle el cambio a **quien lo pidió** y esperar su «sí» —mismo usuario, dos turnos—,
      * no pedirle permiso a un tercero: {@see NivelRiesgo::Escritura} lo explica entero.

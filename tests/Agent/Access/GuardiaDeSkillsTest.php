@@ -120,41 +120,4 @@ final class GuardiaDeSkillsTest extends TestCase
         // El motivo se lo come un modelo: tiene que poder decirle al usuario qué falta.
         self::assertStringContainsString(Roles::RESERVAS_WRITE, $motivo);
     }
-
-    /**
-     * El que importa: hoy no hay PIN en el sistema, así que `requierePin()` sólo puede
-     * honrarse negándose. Si alguien declara una skill `Destructivo` y esto empieza a
-     * devolver `null`, es que el PIN se dio por montado sin estarlo.
-     */
-    #[Test]
-    public function un_destructivo_no_se_ejecuta_ni_siendo_superadmin(): void
-    {
-        $guardia = new GuardiaDeSkills();
-
-        $motivo = $guardia->motivoDeBloqueo(
-            $this->skill([], NivelRiesgo::Destructivo),
-            $this->actor([Roles::SUPER_ADMIN])
-        );
-
-        self::assertNotNull($motivo, 'Un Destructivo tiene que fallar cerrado mientras no haya PIN.');
-        self::assertStringContainsString('PIN', $motivo);
-    }
-
-    /**
-     * Los roles se miran ANTES que el PIN: a quien ni siquiera puede usar la herramienta se le
-     * dice eso, no que le falta un PIN que tampoco resolvería nada.
-     */
-    #[Test]
-    public function el_motivo_de_rol_gana_al_del_pin(): void
-    {
-        $guardia = new GuardiaDeSkills();
-
-        $motivo = $guardia->motivoDeBloqueo(
-            $this->skill([Roles::RESERVAS_WRITE], NivelRiesgo::Destructivo),
-            $this->actor([Roles::HUESPED])
-        );
-
-        self::assertNotNull($motivo);
-        self::assertStringNotContainsString('PIN', $motivo);
-    }
 }

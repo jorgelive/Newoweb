@@ -14,10 +14,11 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  *
  * ### El problema, que no es técnico
  *
- * Un altavoz **identifica un sitio, no una persona**. `AgentActor::delEquipoPorChat()` ya avisa
- * de que el teléfono «identifica pero no autentica»; por voz es un escalón peor, porque
- * cualquiera que esté cerca puede hablarle sin haber tocado nada. No hay contraseña que
- * pedirle a un micrófono.
+ * Un altavoz **identifica un sitio, no una persona**. Y es un escalón por debajo del WhatsApp:
+ * allí el número lo verifica Meta en cada mensaje y hace falta tener el móvil desbloqueado,
+ * mientras que a un Echo le habla cualquiera que pase cerca sin haber tocado nada. No hay
+ * contraseña que pedirle a un micrófono. Por eso el chat del equipo sí abrió la escritura y la
+ * voz no.
  *
  * ### Los tres identificadores, y por qué importa cuál se usa
  *

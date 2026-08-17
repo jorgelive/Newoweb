@@ -664,9 +664,14 @@ Lo que el número **no** cubre no es la suplantación, es la **transferencia**: 
 desbloqueado en manos ajenas, un WhatsApp Web abierto, o el número reciclado años después. Es la
 misma familia de riesgo que una sesión robada, no la de una contraseña adivinada.
 
-> Por eso el canal es de sólo lectura hoy — **no porque sea inseguro**, sino porque abrir la
-> escritura merece un segundo factor para el tramo que hace daño, y `NivelRiesgo::requierePin()`
-> está a medio cablear esperando exactamente eso.
+> 🔓 **Sobre esa base, el canal dejó de ser de sólo lectura para el equipo** (2026-08-17): un
+> operador identificado por su número puede ejecutar escrituras por WhatsApp, con sus roles de
+> siempre y con la previsualización de rigor. Al huésped no le cambia nada — no tiene ningún rol
+> de escritura.
+>
+> La transferencia se asume, por proporción: quien te roba el móvil desbloqueado va a por tus
+> cuentas bancarias, no a cambiar el código de la caja de las llaves. Un segundo factor aquí
+> costaría más de lo que protege.
 >
 > ⚠️ La razón que **no** vale, y circuló: que una escritura «tendría que confirmarse y aquí no
 > hay a quién preguntar». Confirmar una escritura es enseñársela a quien la pidió (§11 A), así
@@ -2053,7 +2058,6 @@ sea de escritura, adivinar significará mover la reserva equivocada.
 | `Lectura` | Nada | Se ejecuta sin preguntar | Sí |
 | `Interna` | Sólo hacia dentro: avisos al equipo, marcas de pendiente | Se ejecuta sin preguntar | **Sí** |
 | `Escritura` | Datos de la reserva o de la cuenta | Se le enseña **a quien lo pidió** y se espera su «sí» | No |
-| `Destructivo` | Destruye datos | Igual, **y además se pide PIN** | No |
 
 La confirmación no desconfía del usuario: protege de que **el modelo se equivoque de persona**.
 
@@ -2129,14 +2133,14 @@ la escritura, el motivo será otro; nunca que falte el interlocutor.
 
 #### 🔥 `Interna`: por qué el filtro no es «¿escribe algo?»
 
-Por todo el WhatsApp se pasa `permitirEscritura: false`, y conviene separar a quién afecta:
+Por WhatsApp se pasa `permitirEscritura: $actor->esDelEquipo()`, y conviene separar a quién
+afecta:
 
-- **Al huésped no le quita nada**: no tiene ningún rol de escritura, así que ninguna
-  `Escritura` le llegaría de todos modos. El filtro es redundante para él.
-- **Al operador sí**: por WhatsApp no puede ejecutar lo que en el panel sí. Y el motivo **no**
-  es que falte a quién preguntarle la confirmación —eso se aclara arriba: se le pregunta a él
-  mismo—, sino que ahí la credencial es su número de teléfono. Ver §7: es una credencial
-  sólida, y lo que le falta para abrir la escritura es un segundo factor, no un interlocutor.
+- **Al operador, nada**: desde 2026-08-17 puede escribir por WhatsApp igual que en el panel,
+  acotado por sus roles. Ver §7 para por qué el número basta como credencial.
+- **Al huésped, tampoco**: no tiene ningún rol de escritura, así que ninguna `Escritura` le
+  llegaría de todos modos. Se ata al actor y no se pone `true` a secas para que eso quede
+  dicho en el código, en vez de depender de que los roles estén bien puestos.
 
 Con dos niveles, ese filtro era `nivelRiesgo() !==
 Lectura`, y eso dejaba fuera **justo la herramienta que más falta le hace al huésped**:

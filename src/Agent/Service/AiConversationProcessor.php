@@ -487,7 +487,7 @@ final readonly class AiConversationProcessor
         //
         // Por eso `permitirEscritura` sigue en `false` más abajo, pero NO porque el canal sea
         // inseguro: es que abrir la escritura merece un segundo factor para el tramo que hace
-        // daño, y `NivelRiesgo::requierePin()` está a medio cablear esperando exactamente eso.
+        // daño. Ese segundo factor no existe todavía: hay que construirlo, no cablearlo.
         $delEquipo = $this->usuarios->findByTelefono($conversacion->getGuestPhone(), $this->telefonos);
 
         // `tambienHuesped: true` — los privilegios se ACUMULAN. Alguien del equipo con una
@@ -639,16 +639,30 @@ final readonly class AiConversationProcessor
             contexto: $this->contexto($conversacion, $actor, $decision),
             mensaje: $mensaje,
             historial: $historial,
-            // Sólo lectura hacia fuera.
+            // 🔓 ESCRITURA: sí al equipo, no a nadie más.
             //
-            // ⚠️ NO es que «no haya a quién preguntar»: confirmar es enseñarle el cambio a
-            // quien lo pidió, y en un chat ése está al otro lado escribiendo. Esa frase
-            // estaba aquí desde antes de que el número identificara al equipo y se leía al
-            // revés. Ver NivelRiesgo::Escritura.
+            // El canal estuvo entero en sólo lectura, con dos justificaciones. Las dos cayeron:
             //
-            // El motivo real es el de arriba: mientras la credencial de este canal sea el
-            // número, lo que falta para abrir la escritura es un segundo factor.
-            permitirEscritura: false,
+            //   · «Una escritura tendría que confirmarse y aquí no hay a quién preguntar.»
+            //     Falso: confirmar es enseñarle el cambio a QUIEN LO PIDIÓ, y en un chat ése
+            //     está al otro lado escribiendo. La frase es anterior a que el número
+            //     identificara al equipo. Ver NivelRiesgo::Escritura.
+            //
+            //   · «El teléfono identifica pero no autentica.» Tampoco: el remitente NO se puede
+            //     suplantar —Meta firma el webhook con HMAC y el número va dentro de lo
+            //     firmado—, y desde que `firmaValida()` falla cerrado sin App Secret, eso está
+            //     garantizado o no entra nada.
+            //
+            // Lo que queda es la TRANSFERENCIA: móvil robado y desbloqueado, WhatsApp Web
+            // abierto. Se asume, y la razón es de proporción: quien te roba el móvil
+            // desbloqueado va a por tus cuentas bancarias, no a cambiar el código de la caja de
+            // las llaves. Blindar esto con un segundo factor costaría más de lo que protege.
+            //
+            // Para un huésped esto no cambia nada: no tiene ningún rol de escritura, así que
+            // `SkillRegistry` y `GuardiaDeSkills` le siguen negando todas. Se ata al actor y no
+            // se pone `true` a secas para que eso quede dicho en el código y no dependa de que
+            // los roles estén bien puestos.
+            permitirEscritura: $actor->esDelEquipo(),
             maxTokens: 1024,
             modelo: $elegido->modelo,
         ));

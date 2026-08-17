@@ -5,8 +5,15 @@ declare(strict_types=1);
 namespace App\Agent\Access;
 
 /**
- * Cuánto daño puede hacer una herramienta. El control se escala con el daño: una consulta
- * no pide nada, un borrado pide PIN.
+ * Cuánto daño puede hacer una herramienta. El control se escala con el daño: una consulta se
+ * ejecuta sin más, una escritura se le enseña a quien la pidió antes de aplicarla.
+ *
+ * ⚠️ **NO hay un nivel «destructivo», y su ausencia es deliberada.** Lo hubo, con un
+ * `requierePin()` que no llamaba nadie y un PIN que no existía en ninguna parte del sistema:
+ * una etiqueta que prometía un control inexistente. Se quitó entero para que la primera
+ * herramienta que de verdad destruya datos **no compile** hasta que alguien añada el nivel —
+ * y ese día diseñe el control, en vez de heredar una promesa vacía. Encaja además con la
+ * regla de la casa: aquí no se borra, se marca.
  *
  * La política se aplica UNA vez en el asistente, no en cada herramienta — así una
  * herramienta nueva hereda el trato que le corresponde con sólo declarar su nivel.
@@ -74,9 +81,6 @@ enum NivelRiesgo: string
      */
     case Escritura = 'escritura';
 
-    /** Destruye datos. Propone, y además exige PIN antes de ejecutar. */
-    case Destructivo = 'destructivo';
-
     /**
      * ¿Hace falta permiso de escritura para ofrecer esta herramienta?
      *
@@ -86,12 +90,7 @@ enum NivelRiesgo: string
      */
     public function exigePermisoDeEscritura(): bool
     {
-        return $this === self::Escritura || $this === self::Destructivo;
-    }
-
-    public function requierePin(): bool
-    {
-        return $this === self::Destructivo;
+        return $this === self::Escritura;
     }
 
     /**

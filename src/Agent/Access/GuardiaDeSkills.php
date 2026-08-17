@@ -53,25 +53,6 @@ final readonly class GuardiaDeSkills
             );
         }
 
-        // 🔒 FALLA CERRADO, y hoy eso significa que NINGUNA skill destructiva se ejecuta.
-        //
-        // No hay PIN en el sistema: ni columna donde guardarlo, ni forma de pedirlo, ni de
-        // verificarlo. Mientras no lo haya, `NivelRiesgo::requierePin()` sólo puede honrarse de
-        // una manera —negándose—, y es la correcta: la alternativa es que el método siga
-        // prometiendo un control que no existe, que es como estaba.
-        //
-        // No rompe nada hoy: ninguna skill declara `Destructivo`. La primera que lo haga
-        // aparecerá bloqueada desde el minuto uno, en vez de ejecutarse sin más y que nadie
-        // se entere de que el PIN nunca llegó a montarse.
-        if ($skill->nivelRiesgo()->requierePin()) {
-            return sprintf(
-                'La herramienta "%s" destruye datos y exige un PIN, y el PIN todavía no está '
-                . 'implementado. No se puede ejecutar por ningún canal. Dile al usuario que lo '
-                . 'haga desde el panel.',
-                $skill->nombre()
-            );
-        }
-
         return null;
     }
 }
