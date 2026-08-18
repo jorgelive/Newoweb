@@ -109,6 +109,10 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     // Contacto vivo de los proveedores del cuadro, por uuid de maestro. Lo llena
     // `resolverContactoDeProveedores()` en cada carga; ver su docblock.
     const contactoPorProveedor = ref<Record<string, ContactoProveedor>>({});
+    // Nombre interno (operativo) del segmento maestro, resuelto en vivo por su id. Para
+    // servicios mono-segmento sin plantilla: la fila muestra el nombre del segmento en vez
+    // del genérico del servicio. Se llena en cada carga, como los contactos de proveedor.
+    const nombreSegmentoPorMaestro = ref<Record<string, string>>({});
 
     // Panel de Reservas: listado de órdenes agrupadas
     const ordenesServicio = ref<OperacionOrdenServicio[]>([]);
@@ -152,6 +156,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             await Promise.all([
                 resolverLugaresDeServicios(),
                 resolverContactoDeProveedores(),
+                resolverNombresDeSegmento(),
             ]);
         } catch (error) {
             console.error('Error al cargar la Biblia de operaciones:', error);
@@ -364,6 +369,42 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     /**
+     * Resuelve EN VIVO el nombre interno del segmento para las filas mono-segmento sin
+     * plantilla (las que el backend marca con `segmentoUnicoMaestroId`). Mismo patrón que los
+     * contactos de proveedor: batch por id contra el maestro, sin snapshot. El nombre interno
+     * homogeneizado (= nombre real del segmento) reemplaza al genérico del servicio en la fila.
+     */
+    const resolverNombresDeSegmento = async (): Promise<void> => {
+        const ids = new Set<string>();
+        servicios.value.forEach((s) => {
+            if (s.segmentoUnicoMaestroId) ids.add(s.segmentoUnicoMaestroId);
+        });
+
+        if (!ids.size) {
+            nombreSegmentoPorMaestro.value = {};
+            return;
+        }
+
+        try {
+            const query = Array.from(ids).map((id) => `id[]=${id}`).join('&');
+            const res = await apiClient.get(`/platform/travel/segmentos?${query}&pagination=false`);
+            const miembros = res.data['hydra:member'] || res.data['member'] || [];
+
+            const mapa: Record<string, string> = {};
+            miembros.forEach((sg: Record<string, unknown>) => {
+                const id = String(sg.id ?? String(sg['@id'] ?? '').split('/').pop() ?? '');
+                if (id && sg.nombreInterno) mapa[id] = String(sg.nombreInterno);
+            });
+
+            nombreSegmentoPorMaestro.value = mapa;
+        } catch (error) {
+            // Sin resolver, la fila se cae al nombre del servicio (contextoServicio): usable.
+            console.error('No se pudo resolver el nombre de los segmentos:', error);
+            nombreSegmentoPorMaestro.value = {};
+        }
+    };
+
+    /**
      * El contacto del prestador de una fila: **el maestro manda, lo guardado es la red**.
      *
      * Ese orden es la degradación que sostiene a los proveedores de un solo uso. Si el
@@ -381,6 +422,16 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             direccion: vivo?.direccion || servicio.prestadorDireccion || null,
             email: vivo?.email || null,
         };
+    };
+
+    /**
+     * Nombre interno del segmento para una fila mono-segmento sin plantilla, o `null` si no
+     * aplica (tiene plantilla, o 0/varios segmentos → manda el nombre del servicio). La vista
+     * lo usa como título de la fila en vez del genérico.
+     */
+    const nombreSegmentoDeServicio = (servicio: OperacionServicio): string | null => {
+        const id = servicio.segmentoUnicoMaestroId;
+        return id ? (nombreSegmentoPorMaestro.value[id] ?? null) : null;
     };
 
     /**
@@ -698,6 +749,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         fetchMonedas,
         contactoPorProveedor,
         contactoDePrestador,
+        nombreSegmentoDeServicio,
         fetchServicios,
         fetchLugares,
         lugaresDeServicio,

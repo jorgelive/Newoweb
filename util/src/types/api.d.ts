@@ -11908,6 +11908,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -11940,6 +11942,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -11956,6 +11960,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -11971,6 +11977,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -11980,6 +11988,8 @@ export interface components {
             itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel-itinerario.write"][];
         };
         "Itinerario-servicio.item.read": {
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -11993,6 +12003,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12025,6 +12037,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12041,6 +12055,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12051,6 +12067,8 @@ export interface components {
             readonly id?: string | null;
         };
         "Itinerario.html-servicio.item.read": {
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12064,6 +12082,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12096,6 +12116,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12112,6 +12134,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12122,6 +12146,8 @@ export interface components {
             readonly id?: string | null;
         };
         "Itinerario.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12135,6 +12161,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12167,6 +12195,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12183,6 +12213,8 @@ export interface components {
              * @example https://example.com/
              */
             servicio?: string;
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -12193,6 +12225,8 @@ export interface components {
             readonly id?: string | null;
         };
         "Itinerario.multipart-servicio.item.read": {
+            /** @description Código de identificación de la plantilla (ej. `HD-COMBINADA-POOL-AM`). El SLUG. */
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -14542,6 +14576,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
+            /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
+            readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
@@ -14827,6 +14863,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
+            /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
+            readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
@@ -14950,6 +14988,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
+            /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
+            readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
@@ -15073,6 +15113,8 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
+            /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
+            readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
@@ -24340,6 +24382,7 @@ export interface components {
         };
         Segmento: {
             servicios?: string[];
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -24429,6 +24472,7 @@ export interface components {
         };
         "Segmento.html": {
             servicios?: string[];
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -24506,6 +24550,7 @@ export interface components {
         };
         "Segmento.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             servicios?: string[];
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;
@@ -24583,6 +24628,7 @@ export interface components {
         };
         "Segmento.multipart": {
             servicios?: string[];
+            slug?: string | null;
             nombreInterno?: string;
             titulo?: {
                 [key: string]: string | null;

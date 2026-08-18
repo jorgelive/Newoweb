@@ -121,6 +121,21 @@ las vistas de operador muestran el segmento en lugar del nombre genérico:
 - **Reactivo**: aplicar una plantilla (setea `itinerarioMaestroId`) o añadir un 2º segmento (sube
   el `length`) desactiva la condición y devuelven los inputs editables, solo.
 
+**3) Y en La Biblia igual** (2026-08-18). El mismo caso llega a la orden de servicio: la fila
+mostraba `contextoServicio` (= nombre del servicio, «Alojamiento»), genérico. Ahora, para
+mono-segmento sin plantilla, la fila usa el **nombre interno del segmento** («Alojamiento en
+Cusco»). Se resolvió **solo display, en vivo, sin snapshot ni reconciliación** —para no reabrir
+el diff—:
+- Backend: `OperacionServicio::getSegmentoUnicoMaestroId()` (getter serializado, no persistido)
+  expone el `segmentoMaestroId` del único segmento sólo si el servicio es mono-segmento sin
+  plantilla; `null` en el resto. Navega `cotizacionServicio → getCotsegmentos()/getItinerarioMaestroId()`.
+- Front (`operacionStore`): `resolverNombresDeSegmento()` hace batch por id contra
+  `/platform/travel/segmentos` y mapea `id → nombreInterno` (mismo patrón que los contactos de
+  proveedor); `nombreSegmentoDeServicio()` lo resuelve por fila. `OperacionView` usa ese nombre
+  como título cuando existe, con fallback a `contextoServicio`.
+- **No toca `ETIQUETAS`/`valoresActuales()`**: no es un campo de reconciliación, así que no
+  reintroduce el problema de convergencia (§Operacion.md 3.5).
+
 ### Los nombres de un servicio, resueltos (2026-08-17)
 
 Tras el análisis de la asimetría (abajo), el modelo quedó en tres ejes limpios:

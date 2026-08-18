@@ -401,6 +401,8 @@ const telHref = (telefono?: string | null): string => `tel:${(telefono ?? '').re
  */
 const telefonoDe = (s: OperacionServicio): string | null => operacionStore.contactoDePrestador(s).telefono;
 const direccionDe = (s: OperacionServicio): string | null => operacionStore.contactoDePrestador(s).direccion;
+// Mono-segmento sin plantilla: el nombre interno del segmento manda sobre el genérico del servicio.
+const nombreSegmentoDe = (s: OperacionServicio): string | null => operacionStore.nombreSegmentoDeServicio(s);
 
 // ============================================================================
 // COSTO REAL — lo que de verdad se pagó, frente a lo que decía la cotización
@@ -1444,13 +1446,15 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                         <!-- El SERVICIO manda y la tarifa es el detalle, no al revés.
                                                              `descripcionServicio` es el nombre interno de la tarifa
                                                              («Auto a Miraflores Noche»), pensado para negociar con el
-                                                             proveedor; `contextoServicio` es el día del itinerario, que
-                                                             es lo que ubica la fila de un vistazo. -->
-                                                        <p v-if="servicio.contextoServicio" class="text-sm font-black text-slate-800 leading-tight">
-                                                            {{ servicio.contextoServicio }}
+                                                             proveedor; `contextoServicio` es el nombre del servicio, que
+                                                             ubica la fila de un vistazo. En un servicio mono-segmento sin
+                                                             plantilla ese nombre es genérico («Alojamiento»): manda el
+                                                             nombre interno del segmento, resuelto en vivo. -->
+                                                        <p v-if="nombreSegmentoDe(servicio) || servicio.contextoServicio" class="text-sm font-black text-slate-800 leading-tight">
+                                                            {{ nombreSegmentoDe(servicio) || servicio.contextoServicio }}
                                                         </p>
                                                         <p class="font-bold text-slate-500 leading-tight"
-                                                           :class="servicio.contextoServicio ? 'text-[11px] mt-0.5' : 'text-sm font-black text-slate-800'">
+                                                           :class="(nombreSegmentoDe(servicio) || servicio.contextoServicio) ? 'text-[11px] mt-0.5' : 'text-sm font-black text-slate-800'">
                                                             {{ servicio.descripcionServicio }}
                                                         </p>
                                                         <!-- El nombre interno de la tarifa, sólo si difiere del
