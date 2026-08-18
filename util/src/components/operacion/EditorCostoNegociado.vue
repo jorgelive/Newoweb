@@ -49,6 +49,11 @@ const borradorMoneda = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
 
 const hayNegociado = computed(() => Number(props.costoReal ?? 0) > 0);
+// El cotizado de referencia sólo tiene sentido cuando el negociado LO CAMBIA. Si se negoció el
+// mismo importe (o no se negoció), repetirlo es ruido: se muestra una sola línea.
+const difiereDelCotizado = computed(() =>
+    hayNegociado.value
+    && Number(props.costoReal).toFixed(2) !== Number(props.costoCotizado).toFixed(2));
 const monedaMostrada = computed(() => props.monedaReal || props.monedaCotizada);
 
 /** El importe formateado para leer en reposo. */
@@ -165,10 +170,10 @@ defineExpose({ marcarError });
       </button>
     </div>
 
-    <!-- El cotizado de referencia SÓLO cuando ya hay un negociado que comparar. Sin negociar el
-         valor de arriba YA es el cotizado, así que repetirlo aquí era el ruido que confundía. -->
-    <p v-if="hayNegociado" class="text-slate-400 tabular-nums" :class="denso ? 'text-[9px]' : 'text-[10px]'">
-      cotizado {{ monedaCotizada }} {{ Number(costoCotizado).toFixed(2) }}
+    <!-- El cotizado de referencia SÓLO cuando el negociado lo cambia; tachado, porque quedó
+         superado. Sin cambio (o sin negociar) el valor de arriba ya es el cotizado. -->
+    <p v-if="difiereDelCotizado" class="text-slate-400 tabular-nums line-through decoration-slate-300" :class="denso ? 'text-[9px]' : 'text-[10px]'">
+      Cotizado {{ monedaCotizada }} {{ Number(costoCotizado).toFixed(2) }}
     </p>
 
     <p v-if="error" class="text-[10px] font-bold text-rose-600 text-right leading-snug max-w-[10rem]">
