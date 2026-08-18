@@ -9,6 +9,8 @@ use App\Agent\Access\AgentActorFactory;
 use App\Agent\Conversation\InstruccionesDominioRegistry;
 use App\Agent\Access\RestriccionCanal;
 use App\Message\Contract\VinculoComercial;
+use App\Agent\Conversation\AclaracionDeEmpate;
+use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Access\ActorInterface;
@@ -16,6 +18,7 @@ use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Conversation\PotenciaRequerida;
 use App\Agent\Conversation\ReglasCompartidas;
 use App\Agent\Conversation\SelectorDePotencia;
+use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillRegistry;
 use App\Agent\Triage\DecisionDeTriaje;
 use App\Agent\Triage\TipoDeMensaje;
@@ -599,32 +602,64 @@ final readonly class AiConversationProcessor
             return $decision->respuesta;
         }
 
-        // PASO 2a-bis — DOS HERRAMIENTAS PODRÍAN RESPONDER: se pregunta, no se adivina.
+        // PASO 2a-bis — DOS HERRAMIENTAS PODRÍAN RESPONDER. Sólo se pregunta si alguna ESCRIBE.
         //
         // Cuando convivan dos negocios, «quiénes salen mañana» dejará de tener una sola lectura:
         // hay salidas de alojamiento y hay tours que parten. Sin esto, el modelo elegiría una de
         // las dos descripciones parecidas y **acertaría o no en silencio** — y para una acción,
         // adivinar el dominio equivocado no se deshace.
         //
-        // ⚠️ EL CIERRE ES CÓDIGO. El triaje sólo LISTA los candidatos —y ya vienen recortados por
-        // los roles del actor, así que a un limpiador nunca le quedan dos: la skill de tours no
-        // está en su catálogo—. La decisión de preguntar se toma aquí, contando. Pedírselo al
-        // prompt («si dudas, pregunta») es lo que este proyecto lleva demostrando que no funciona.
+        // ⚠️ EL CIERRE SIGUE SIENDO CÓDIGO. El triaje sólo LISTA los candidatos; quién decide
+        // preguntar es esto, contando. Pedírselo al prompt («si dudas, pregunta») es lo que este
+        // proyecto lleva demostrando que no funciona.
         //
-        // Se pregunta SIN llamar al modelo: la aclaración se compone de los nombres que el propio
-        // catálogo ya trae, así que además sale gratis y es instantánea.
-        if (count($decision->candidatos) > 1) {
-            $pregunta = $this->pedirAclaracion($decision, $actor);
+        // 🔥 LO QUE CAMBIÓ, Y LO PAGÓ UNA HUÉSPED. La primera versión preguntaba con DOS
+        // candidatos cualesquiera, y el 18/08/2026 un «¿cuentan con agua caliente para 5
+        // personas?» empató `consultar_guia` con `consultar_conocimiento`. Se le mandó un «puedo
+        // mirarlo por dos lados… ¿cuál de los dos?» y hubo que entrar a disculparse.
+        //
+        // El empate era real y la pregunta, imposible de contestar: son dos FUENTES DE TEXTO
+        // para lo mismo, y de cuál sale la respuesta es decisión nuestra, no suya. La diferencia
+        // con el caso de los tours no está en cuántas empatan, sino en QUÉ PASA SI SE ADIVINA:
+        //
+        //   · Sólo lectura → se lee la fuente que no era y no pasa nada: el camino largo lleva
+        //     las dos en el catálogo y el modelo puede consultar ambas. Adivinar es GRATIS.
+        //   · Alguna escribe → se ejecuta sobre el dominio equivocado, y eso no se deshace.
+        //
+        // Por eso la guarda mira `NivelRiesgo` y no el número de candidatos, y vive aparte en
+        // `AclaracionDeEmpate` para poder probarla sin montar nada.
+        //
+        // El catálogo se pide con el MISMO `incluirEscritura` que el camino largo: contar sobre
+        // una lista que el modelo no va a ver es contar otra cosa. Como consecuencia, a un
+        // huésped nunca se le pregunta — no llega a ninguna skill de escritura.
+        $empatadas = count($decision->candidatos) > 1
+            ? $this->candidatasResueltas($decision, $actor)
+            : [];
 
-            if ($pregunta !== null) {
+        if (count($empatadas) > 1) {
+            if (!AclaracionDeEmpate::obliga($empatadas)) {
                 $this->logger->info(sprintf(
-                    'IA: %d herramientas podrían responder en %s (%s); se pide aclaración.',
-                    count($decision->candidatos),
+                    'IA: %d herramientas de sólo lectura podrían responder en %s (%s); '
+                    . 'no se pregunta, decide el camino largo.',
+                    count($empatadas),
                     $conversacion->getId(),
                     implode(', ', $decision->candidatos)
                 ));
+            } else {
+                $pregunta = $this->redactarAclaracion($empatadas, $conversacion, $actor, $mensaje, $historial);
 
-                return $pregunta;
+                if ($pregunta !== null) {
+                    $this->logger->info(sprintf(
+                        'IA: %d herramientas podrían responder en %s (%s) y alguna ESCRIBE; '
+                        . 'se pide aclaración: «%s».',
+                        count($empatadas),
+                        $conversacion->getId(),
+                        implode(', ', $decision->candidatos),
+                        $pregunta
+                    ));
+
+                    return $pregunta;
+                }
             }
         }
 
@@ -867,6 +902,143 @@ final readonly class AiConversationProcessor
 
 
     /**
+     * Las skills que el triaje dejó empatadas, resueltas contra el catálogo REAL del actor.
+     *
+     * Se vuelve a pedir el catálogo —y no una lista suelta— para que el recuento se haga sobre
+     * lo mismo que el modelo va a tener delante en el camino largo: si una skill desapareció
+     * por roles entre medias, aquí tampoco aparece. Y con el mismo `incluirEscritura`, porque
+     * contar una herramienta que el modelo no verá es contar un empate que no existe.
+     *
+     * @return list<SkillInterface>
+     */
+    private function candidatasResueltas(DecisionDeTriaje $decision, ActorInterface $actor): array
+    {
+        $porNombre = [];
+
+        foreach ($this->skills->paraActor($actor, incluirEscritura: $actor->esDelEquipo()) as $skill) {
+            $porNombre[$skill->nombre()] = $skill;
+        }
+
+        $empatadas = [];
+
+        foreach ($decision->candidatos as $nombre) {
+            if (isset($porNombre[$nombre])) {
+                $empatadas[] = $porNombre[$nombre];
+            }
+        }
+
+        return $empatadas;
+    }
+
+    /**
+     * La pregunta de desambiguación, REDACTADA por el modelo en un turno seco.
+     *
+     * ⚠️ **Antes se componía con la primera frase de cada `descripcion`, y eso salió a la
+     * cara de una huésped.** Una descripción de skill *es prompt* —lo dice
+     * {@see \App\Agent\Skill\SkillDefinition}—: lleva mayúsculas de aviso, nombres de
+     * parámetros y órdenes al modelo. Enviarla literalmente convierte una pregunta en una
+     * ficha técnica, y encima recortada a mitad de palabra. Ver docs/Mensajeria.md §22.24.
+     *
+     * Lo que se delega es la REDACCIÓN, no la decisión: quién decide preguntar sigue siendo el
+     * contador de {@see self::generar()}. Y se usa {@see AgentEngineInterface::turnoDirecto()},
+     * que va **sin herramientas por construcción** — así el turno no puede acabar ejecutando
+     * ninguna de las candidatas que precisamente no sabemos cuál era.
+     *
+     * El cierre vuelve a ser código en la salida: si el texto se cuela con un nombre técnico
+     * (`consultar_guia`, `registrar_pago`) o viene desmedido, se descarta y se sigue por el
+     * camino largo. No se le pide al prompt que «no mencione detalles internos» — eso es
+     * supresión, y aquí la supresión no funciona; se comprueba después.
+     *
+     * @param list<SkillInterface> $empatadas
+     * @param list<array{rol: string, texto: string}> $historial
+     */
+    private function redactarAclaracion(
+        array $empatadas,
+        MessageConversation $conversacion,
+        ActorInterface $actor,
+        string $mensaje,
+        array $historial
+    ): ?string {
+        $elegido = $this->potencias->elegir(PotenciaRequerida::Baja);
+        if ($elegido === null) {
+            return null;
+        }
+
+        // Se le dan las descripciones ENTERAS. Recortarlas era el fallo anterior; y para
+        // traducir jerga a lenguaje llano el material completo es mejor material.
+        $opciones = implode("\n\n", array_map(
+            static fn (SkillInterface $s): string => '### ' . $s->nombre() . "\n" . $s->definicion()->descripcion,
+            $empatadas
+        ));
+
+        try {
+            $texto = $elegido->motor->turnoDirecto(new ConversationRequest(
+                actor: $actor,
+                systemPrompt: $this->reglasDeAclaracion(),
+                contexto: $this->contexto($conversacion, $actor),
+                mensaje: "Lo que acaban de escribir:\n«" . $mensaje . "»\n\n"
+                    . "Lo que podría estar pidiendo:\n\n" . $opciones,
+                historial: array_slice($historial, -4),
+                permitirEscritura: false,
+                maxTokens: 300,
+                modelo: $elegido->modelo,
+            ));
+        } catch (Throwable $e) {
+            $this->logger->warning(sprintf(
+                'IA: el motor falló redactando la aclaración (%s); se sigue por el camino largo.',
+                $e->getMessage()
+            ));
+
+            return null;
+        }
+
+        $motivo = AclaracionDeEmpate::motivoDeDescarte($texto, $empatadas);
+
+        if ($motivo !== null) {
+            $this->logger->warning(sprintf(
+                'IA: aclaración descartada porque %s; se sigue por el camino largo.',
+                $motivo
+            ));
+
+            return null;
+        }
+
+        return trim((string) $texto);
+    }
+
+    /**
+     * Lo único que tiene que saber el modelo para redactar la pregunta.
+     *
+     * Está escrito **en positivo y por ramas**, que es como se le bifurca bien: «al huésped,
+     * en lo que va a notar él; al equipo, por el nombre de la operación». La versión en
+     * negativo —«no menciones herramientas»— es la que este proyecto lleva demostrando que se
+     * incumple.
+     */
+    private function reglasDeAclaracion(): string
+    {
+        return <<<PROMPT
+        Trabajas en la recepción de un alojamiento. Alguien te ha escrito algo que admite más de
+        una lectura y alguna de ellas MODIFICA datos suyos —una reserva, un cobro, un horario—,
+        así que hay que preguntar antes de tocar nada.
+
+        Tu único trabajo es escribir ESA pregunta. Nada más: ni saludes, ni resuelvas, ni
+        adelantes lo que harías después.
+
+        Cómo se escribe:
+        - UNA sola pregunta, de dos frases como mucho, en el idioma de quien escribió.
+        - Cada opción se nombra por LO QUE LE PASA A QUIEN PREGUNTA: «cambiarte la fecha de
+          salida» o «decirte hasta qué hora puedes quedarte». Nunca por de dónde sale el dato.
+        - Abajo tienes las fichas internas de las opciones. Son notas de trabajo, escritas para
+          una máquina: léelas para entender qué hace cada una y di eso con tus palabras.
+        - Si quien escribe es del equipo, usa el nombre de la operación tal y como la llamarían
+          ellos, que es más rápido de contestar.
+
+        La prueba de que está bien: quien la lea puede responderla con dos palabras y sin
+        preguntarte a qué te refieres.
+        PROMPT;
+    }
+
+    /**
      * Qué tramo de potencia atiende el camino largo, según lo que dijo el triaje.
      *
      * - **Emergencia → Alta.** Es el único caso donde el precio no entra en la conversación. Lo
@@ -878,56 +1050,6 @@ final readonly class AiConversationProcessor
      * - **Todo lo demás → Media**, que es lo que hace hoy el agente entero. Incluye el
      *   `indeterminado`: si el triaje no supo, no se toca nada.
      */
-    /**
-     * La pregunta de aclaración, compuesta con lo que las skills dicen de sí mismas.
-     *
-     * Se usa la primera frase de cada descripción, que es la que el triaje ya lee para elegir y
-     * está escrita para entenderse de un vistazo. Así no hace falta un campo nuevo de etiqueta
-     * —uno más que mantener y que se queda viejo— ni una llamada al modelo para redactar.
-     *
-     * Devuelve `null` si los candidatos no se resuelven contra el catálogo: entonces no hay nada
-     * que preguntar y se sigue por el camino largo, que es el comportamiento de siempre.
-     *
-     */
-    private function pedirAclaracion(DecisionDeTriaje $decision, ActorInterface $actor): ?string
-    {
-        $porNombre = [];
-
-        // Se vuelve a pedir el catálogo del actor —y no una lista suelta— para que la aclaración
-        // se componga con lo mismo que el triaje tenía delante: si una skill desapareció por
-        // roles entre medias, aquí tampoco aparece.
-        foreach ($this->skills->paraActor($actor) as $skill) {
-            $porNombre[$skill->nombre()] = $skill;
-        }
-
-        $opciones = [];
-
-        foreach ($decision->candidatos as $nombre) {
-            if (!isset($porNombre[$nombre])) {
-                continue;
-            }
-
-            $opciones[] = '· ' . $this->primeraFrase($porNombre[$nombre]->definicion()->descripcion);
-        }
-
-        if (count($opciones) < 2) {
-            return null;
-        }
-
-        return "Puedo mirarlo por dos lados y no quiero darte el que no es:\n\n"
-            . implode("\n", $opciones)
-            . "\n\n¿Cuál de los dos?";
-    }
-
-    /** La primera frase de la descripción de una skill, recortada para que quepa en un chat. */
-    private function primeraFrase(string $descripcion): string
-    {
-        $corte = strcspn($descripcion, '.');
-        $frase = trim(mb_substr($descripcion, 0, $corte));
-
-        return mb_strlen($frase) > 120 ? mb_substr($frase, 0, 117) . '…' : $frase;
-    }
-
     private function tramoPara(DecisionDeTriaje $decision, ActorInterface $actor): PotenciaRequerida
     {
         if ($decision->tipo === TipoDeMensaje::Emergencia) {

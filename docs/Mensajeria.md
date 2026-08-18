@@ -5310,6 +5310,9 @@ arreglar** — ver el aviso al final de esta sección.
 | **Abrir o cerrar la escritura de un canal** | el que arma la petición (`AiConversationProcessor`, `VoiceAssistant`, `PanelAssistant`…) | el argumento `permitirEscritura:` de `ConversationRequest` — **no hay sitio central, cada canal trae el suyo** |
 | Cambiar qué herramientas se le OFRECEN al modelo | `src/Agent/Skill/SkillRegistry.php` | `paraActor()` |
 | Cambiar el trato según el daño de una skill | `src/Agent/Access/NivelRiesgo.php` | los tres `case` — no hay nivel destructivo, y su ausencia es deliberada |
+| **Cambiar cuándo el agente pregunta «¿cuál de las dos?»** | `src/Agent/Conversation/AclaracionDeEmpate.php` | `obliga()` — hoy: sólo si alguna empatada exige permiso de escritura (§22.20, §22.24) |
+| Cambiar qué aclaración se considera enviable | `src/Agent/Conversation/AclaracionDeEmpate.php` | `motivoDeDescarte()` + `MAX_CARACTERES` |
+| Cambiar cómo se redacta esa pregunta | `src/Agent/Service/AiConversationProcessor.php` | `reglasDeAclaracion()` — es un turno seco, sin herramientas |
 | Añadir un hito nuevo (ej. "pago recibido") | `src/Message/Contract/ConversationMilestoneInterface.php` | constante + `MessageConversation::addContextMilestone()` + `MessageRule::setMilestone()` + choices del CRUD |
 | Cambiar de dónde sale una fecha del PMS | `src/Pms/Service/Message/PmsReservaMessageContext.php` | `getMilestones()` |
 | Ajustar cuándo caduca o se rescata un mensaje | `src/Message/Service/Queue/MessageRuleEngine.php` | constantes `PAST_THRESHOLD`, `RESCUE_WINDOW`, `EXPIRY_WINDOW` |
@@ -7838,19 +7841,30 @@ son «¿de cuál de TUS asuntos me hablas?», y quien pregunta por mañana no ha
 #### El mecanismo
 
 El triaje devuelve `candidatos`: los nombres de las herramientas que **podrían** responder,
-validados contra la misma lista blanca que `skill`. Si al cerrar quedan **dos o más**, el
-procesador compone una pregunta de aclaración con la primera frase de cada descripción y la
-devuelve **sin llamar al modelo** — instantánea y gratis.
+validados contra la misma lista blanca que `skill`. El procesador los resuelve contra el
+catálogo real del actor (`AiConversationProcessor::candidatasResueltas()`) y, si quedan dos o
+más, decide con `AclaracionDeEmpate::obliga()`:
+
+```
+candidatos > 1
+   └─ resolver contra paraActor(incluirEscritura: $actor->esDelEquipo())
+        └─ ¿alguna empatada exige permiso de ESCRITURA?
+             no  → no se pregunta: el camino largo lleva las dos y el modelo elige (o consulta
+                   ambas). Queda en el log, no en el chat
+             sí  → se pregunta, y la pregunta la REDACTA el modelo en un turno seco
+                   (AiConversationProcessor::redactarAclaracion())
+```
 
 | Decisión | Por qué |
 |---|---|
 | Lo lista el triaje, no una taxonomía en cada skill | Una familia (`salidas_del_dia` vs `operaciones_del_dia`) hay que decidirla a priori, se rompe en los bordes y una etiqueta mal puesta no la nota nadie. Preguntar no necesita mantenimiento: una skill nueva entra en el juego sola |
-| Sale casi gratis | El triaje ya lee el catálogo entero para elegir `skill`; y es una pregunta **cerrada** —nombres de una lista—, que es donde mejor se porta |
+| La guarda mira `NivelRiesgo`, no el número de empatadas | La pregunta útil no es «¿cuántas empatan?» sino **«¿qué pasa si se elige la que no era?»**. Con dos lecturas, nada. Ver §22.24, que es lo que costó aprenderlo |
 | Los candidatos se filtran por **roles** | Al personal de limpieza la skill de tours no le llega al catálogo, así que nunca le quedan dos: no se le pregunta nada. La ambigüedad sólo existe para quien de verdad tiene las dos funciones |
-| **El cierre es código** | El modelo sólo LISTA; quien decide preguntar es el procesador, contando. «Si dudas, pregunta» en el prompt es exactamente lo que este módulo lleva demostrando que no funciona |
+| Y con el mismo `incluirEscritura` que el camino largo | Contar sobre una lista que el modelo no va a ver es contar un empate que no existe. Consecuencia práctica: **a un huésped nunca se le pregunta**, porque no llega a ninguna skill de escritura |
+| **El cierre sigue siendo código** | El modelo LISTA los candidatos y REDACTA la pregunta; quién decide preguntar es el procesador, contando. «Si dudas, pregunta» en el prompt es exactamente lo que este módulo lleva demostrando que no funciona |
 
-⚠️ Preguntar y no responder ambas cosas es deliberado: **listar de más es ruido, pero ejecutar
-sobre el dominio equivocado no se deshace.**
+⚠️ Preguntar y no responder, cuando hay una escritura por medio, es deliberado: **listar de más
+es ruido, pero ejecutar sobre el dominio equivocado no se deshace.**
 
 ### 22.21 Los avisos del conocimiento decían «escala» y provocaban escalados
 
@@ -7923,3 +7937,83 @@ Y el error anterior fue el simétrico: la primera versión decía «dilo claro y
 explicaciones**» y salió un «No se aceptan mascotas» de tres palabras. El modelo hace exactamente
 lo que la ficha dice, así que hay que separar **qué se dice** de **cómo se dice** — y escribir el
 qué, no confiarlo al cómo.
+
+### 22.24 La aclaración se le envió a una huésped, con las fichas internas dentro
+
+18/08/2026, 13:57. Conversación `01a0163c-5428-7825-827e-decb55a2f0c4`:
+
+```
+huésped  «Hola buenas tardes cuentan con agua caliente, suficiente para 5 personas?»
+agente   «Puedo mirarlo por dos lados y no quiero darte el que no es:
+          · La GUÍA de la casita: cómo funciona la ducha o el agua caliente, la
+            calefacción, cómo se entra, las normas, la limpie…
+          · Respuestas ya escritas a preguntas frecuentes que no dependen de la
+            reserva ni del día: horarios, normas, formas de p…
+          ¿Cuál de los dos?»
+14:01    el operador entra a disculparse: «Disculpe el mensaje no era para usted»
+```
+
+El log lo dejó dicho entero: `IA: 2 herramientas podrían responder (consultar_guia,
+consultar_conocimiento); se pide aclaración.` No fue una alucinación del modelo: **fue el
+código haciendo exactamente lo que se le había escrito**. Y en el barrido de todos los
+salientes desde el 15/08 fue el único mensaje anómalo del parque.
+
+#### Dos fallos, y ninguno es el que parece
+
+**1 · La condición era el número de empatadas, cuando lo que importa es el daño de fallar.**
+El empate era real: `consultar_guia` y `consultar_conocimiento` **pueden** responder las dos a
+una pregunta sobre el agua caliente. Pero son dos **fuentes de texto** para lo mismo, y de cuál
+sale la respuesta es una decisión nuestra: la huésped no tiene forma de contestarla, ni por qué.
+
+El caso que justificó el mecanismo era otro —«quiénes salen mañana» con alojamiento y tours—, y
+lo que lo distingue no es cuántas empatan sino qué pasa si se adivina:
+
+| Empate entre… | Si se elige la que no era | Qué se hace |
+|---|---|---|
+| dos **lecturas** | se lee la fuente equivocada, y el camino largo lleva las dos en el catálogo: puede consultar la otra | no se pregunta |
+| alguna **escritura** | se ejecuta sobre el dominio equivocado, y eso no se deshace | se pregunta |
+
+`NivelRiesgo::Interna` cuenta como lectura, igual que en `SkillRegistry::paraActor()` y por el
+mismo motivo: escribe hacia dentro —un aviso al equipo— y el daño de uno de más es que alguien
+mire un chat que no hacía falta.
+
+⚠️ **Consecuencia que conviene tener escrita: a un huésped ya no se le pregunta nunca.** No es
+una regla aparte, sale sola — ninguna skill de escritura llega a su catálogo. La aclaración
+quedó donde tiene sentido: entre operadores, sobre operaciones que tocan datos.
+
+**2 · La pregunta se componía con `SkillDefinition::$descripcion`, que es prompt.** Lo dice la
+propia clase: *«la descripción ES prompt, no documentación»*. Lleva mayúsculas de aviso, nombres
+de parámetros y órdenes al modelo. `primeraFrase()` cortaba por el primer punto y a 117
+caracteres — de ahí el «la limpie…» partido a mitad de palabra.
+
+Se cambió por una llamada al modelo, `redactarAclaracion()`, con tres cierres de código
+alrededor:
+
+- Va por `AgentEngineInterface::turnoDirecto()`, que **no lleva herramientas por construcción**:
+  el turno no puede acabar ejecutando ninguna de las candidatas que precisamente no sabíamos
+  cuál era.
+- Al prompt se le da el material **entero y limpio** y se le pide que lo diga con sus palabras.
+  No se le pide que «no mencione detalles internos»: eso es supresión, y aquí la supresión no
+  funciona (CLAUDE.md §El agente).
+- La salida pasa por `AclaracionDeEmpate::motivoDeDescarte()`: si nombra una herramienta
+  (`consultar_guia`) o pasa de 320 caracteres, **se tira y se sigue por el camino largo**. El
+  motivo va al log; el descarte nunca es peor que mandar algo ilegible.
+
+#### Por qué las dos guardas viven fuera del procesador
+
+`AclaracionDeEmpate` es una clase suelta, con dos métodos estáticos y ninguna dependencia. No es
+gusto por las capas: `AiConversationProcessor` tiene trece dependencias y no se puede instanciar
+en un test unitario, así que las dos decisiones que fallaron habrían quedado otra vez sin cubrir.
+Ahí están, en `tests/Agent/Conversation/AclaracionDeEmpateTest.php`, y el primer test **es el
+mensaje de la huésped**.
+
+#### La lección, que es más ancha que este bug
+
+**Un texto compuesto por código con material escrito para el modelo acaba delante de un cliente.**
+No hay error, no hay excepción, y el log dice que todo fue bien. Las dos preguntas que hay que
+hacerse al escribir cualquier respuesta automática:
+
+1. ¿De dónde sale cada trozo de este texto? Si alguno viene de un prompt, de una descripción de
+   skill o de un identificador interno, **no está escrito para nadie**.
+2. ¿Puede contestar esto quien lo recibe? Si la pregunta refleja una duda de nuestra
+   arquitectura —de qué tabla, de qué herramienta, de qué dominio—, la respuesta no la tiene él.
