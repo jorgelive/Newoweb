@@ -446,7 +446,14 @@ const prepagoImporte = computed(() =>
  *
  * Así que la confirmación no es un «¿seguro?»: es la única pregunta que hay que hacer.
  */
-const cobrandoPrepago = ref(false);
+/**
+ * El cobro que se está confirmando, sea el prepago o el saldo de una moneda.
+ *
+ * Un solo estado para los dos botones: lo que cambia entre ellos es el importe, la moneda y el
+ * texto: el resto —preguntar el medio, calcular el recargo, crear el cobro— es idéntico, y
+ * tenerlo dos veces era garantizar que se separasen a la primera corrección.
+ */
+const cobroRapido = ref<{ monto: string; moneda: string; etiqueta: string; notas: string | null } | null>(null);
 const prepagoMedioPago = ref('');
 const registrandoPrepago = ref(false);
 
@@ -457,11 +464,27 @@ const registrandoPrepago = ref(false);
  */
 const MEDIO_PREPAGO_POR_DEFECTO = 'tarjeta_credito';
 
-function abrirCobroPrepago(): void {
+function abrirCobroRapido(monto: string, moneda: string, etiqueta: string, notas: string | null = null): void {
     prepagoMedioPago.value = finanzas.mediosPago.some(m => m.id === MEDIO_PREPAGO_POR_DEFECTO)
         ? MEDIO_PREPAGO_POR_DEFECTO
         : finanzas.mediosPago[0]?.id ?? '';
-    cobrandoPrepago.value = true;
+    cobroRapido.value = { monto, moneda, etiqueta, notas };
+}
+
+function abrirCobroPrepago(): void {
+    const p = prepago.value;
+    if (!p) return;
+
+    abrirCobroRapido(p.monto, monedaCabecera.value?.id ?? 'USD', 'el prepago', p.concepto ?? null);
+}
+
+/**
+ * Cobrar el saldo de una moneda entero. Sólo cuando queda algo que deber en ELLA: el botón no
+ * aparece en una moneda con saldo a favor (ahí no hay nada que cobrar, hay algo que devolver) ni
+ * cuando la ficha ya cuadra y lo que queda es el residuo del cambio.
+ */
+function puedeCobrarSaldo(t: PmsTotalMoneda): boolean {
+    return !panelAnulado.value && Number(t.saldo) > 0 && !(cuadre.value?.cuadra ?? false);
 }
 
 /**
@@ -473,6 +496,11 @@ const prepagoComision = computed(
     () => medioPagoOpt(prepagoMedioPago.value)?.comisionPorcentaje ?? '',
 );
 
+/** El importe del cobro en curso, ya formateado con su moneda. */
+const cobroRapidoImporte = computed(() =>
+    cobroRapido.value ? importeEn(cobroRapido.value.monto, cobroRapido.value.moneda) : '',
+);
+
 /**
  * Lo que se le cobra REALMENTE al huésped: `monto` es el neto que entra y la comisión va encima
  * (`montoComision() = monto × pct / 100`). Con tarjeta, pedir US$ 31.98 significa pasarle
@@ -480,27 +508,28 @@ const prepagoComision = computed(
  * pasarela, y descubrirla después es descubrirla tarde.
  */
 const prepagoTotalConComision = computed(() => {
-    const monto = prepago.value?.monto;
-    if (!monto || Number(prepagoComision.value) <= 0) return null;
+    const cobro = cobroRapido.value;
+    if (!cobro || Number(prepagoComision.value) <= 0) return null;
 
-    return importeConMoneda(totalConComision(monto, prepagoComision.value), monedaCabecera.value);
+    return importeEn(totalConComision(cobro.monto, prepagoComision.value), cobro.moneda);
 });
 
 async function confirmarCobroPrepago(): Promise<void> {
     const infoId = finanzas.info?.id;
-    const monto = prepago.value?.monto;
+    const cobro = cobroRapido.value;
 
-    if (!infoId || !monto || !prepagoMedioPago.value || registrandoPrepago.value) return;
+    if (!infoId || !cobro || !prepagoMedioPago.value || registrandoPrepago.value) return;
 
     error.value = null;
     registrandoPrepago.value = true;
     try {
         await finanzas.createPago({
             informacionFinanciera: pmsInformacionFinancieraIri(infoId),
-            // La moneda de la CABECERA, que es en la que está calculado el prepago. El prepago es
-            // una petición de dinero —«adelanta US$ 32»— y por eso es mono-moneda a propósito.
-            moneda: `/platform/maestro/monedas/${monedaCabecera.value?.id ?? 'USD'}`,
-            monto,
+            // En SU moneda, sin convertir: el saldo en soles se cobra en soles. El prepago viene
+            // en la de la cabecera porque es una petición —«adelanta US$ 32»— y es mono-moneda
+            // a propósito.
+            moneda: `/platform/maestro/monedas/${cobro.moneda}`,
+            monto: cobro.monto,
             medioPago: prepagoMedioPago.value as PmsPagoFinancieroCreate['medioPago'],
             fechaPago: hoyInput(),
             // El tipo de cambio lo sella el backend en `prePersist` (§12.4.1b): no se manda desde
@@ -508,13 +537,13 @@ async function confirmarCobroPrepago(): Promise<void> {
             tipoCambio: null,
             comisionPorcentaje: prepagoComision.value || null,
             referencia: null,
-            notas: prepago.value?.concepto ?? null,
+            notas: cobro.notas,
             monedaSaldada: null,
             cobradorId: null,
         });
-        cobrandoPrepago.value = false;
+        cobroRapido.value = null;
     } catch (err) {
-        error.value = extractApiErrorMessage(err, 'No se pudo registrar el prepago.');
+        error.value = extractApiErrorMessage(err, 'No se pudo registrar el cobro.');
     } finally {
         registrandoPrepago.value = false;
     }
@@ -1580,9 +1609,19 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     </div>
                     <div class="px-3 py-3 text-center">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Saldo</p>
-                        <p class="text-sm font-black mt-0.5"
+                        <p class="flex items-center justify-center gap-1.5 text-sm font-black mt-0.5"
                             :class="claseDeSaldo(t.saldo)">
                             {{ importeEn(t.saldo, t.moneda) }}
+                            <!-- Mismo botón que el del prepago, y por el mismo motivo: el importe
+                                 ya está en pantalla, así que teclearlo otra vez en el formulario
+                                 largo es copiar a mano un número que el sistema ya sabe. -->
+                            <button v-if="puedeCobrarSaldo(t)" type="button"
+                                class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide
+                                       bg-[#376875] text-white hover:bg-[#2c545f] transition-colors"
+                                :title="`Registra un cobro por los ${importeEn(t.saldo, t.moneda)} que faltan.`"
+                                @click="abrirCobroRapido(t.saldo, t.moneda, `el saldo en ${t.moneda}`)">
+                                Cobrar
+                            </button>
                         </p>
                     </div>
                 </div>
@@ -1672,7 +1711,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <span class="text-sm font-black text-[#376875] tabular-nums">
                             {{ prepagoImporte }}
                         </span>
-                        <button v-if="!cobrandoPrepago && !panelAnulado" type="button"
+                        <button v-if="!cobroRapido && !panelAnulado" type="button"
                             class="px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wide
                                    bg-[#376875] text-white hover:bg-[#2c545f] transition-colors"
                             title="Registra un cobro por este importe exacto."
@@ -1684,11 +1723,12 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
 
                 <!-- La confirmación. No es un «¿seguro?»: el medio de pago es el único dato que no
                      se puede deducir, y de él salen la comisión y la fila de la caja. -->
-                <div v-if="prepago && cobrandoPrepago"
+                <div v-if="cobroRapido"
                     class="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-t
                            border-[#376875]/20 bg-[#376875]/10">
                     <span class="text-[11px] font-bold text-[#376875]">
-                        Registrar <b class="font-black">{{ prepagoImporte }}</b> como cobrado. ¿Cómo pagó?
+                        Registrar <b class="font-black">{{ cobroRapidoImporte }}</b> por
+                        {{ cobroRapido.etiqueta }}. ¿Cómo pagó?
                         <b v-if="prepagoTotalConComision" class="block font-black text-[10px] text-slate-500 mt-0.5">
                             Se le pasan {{ prepagoTotalConComision }} — {{ prepagoComision }}% de recargo
                         </b>
@@ -1711,7 +1751,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <button type="button" :disabled="registrandoPrepago"
                             class="px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wide
                                    text-slate-500 hover:text-slate-700 disabled:opacity-50"
-                            @click="cobrandoPrepago = false">
+                            @click="cobroRapido = null">
                             Cancelar
                         </button>
                     </span>

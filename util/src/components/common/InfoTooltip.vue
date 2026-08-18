@@ -32,9 +32,20 @@
 // doble toque, y `-webkit-touch-callout: none` evita el menú contextual del toque
 // largo sobre el icono.
 //
+// ✂️ Y EL SEGUNDO: LA BURBUJA SE RECORTABA
+// Estaba `absolute` dentro del disparador, así que cualquier ancestro con
+// `overflow-hidden` se la comía por la mitad — y en el panel financiero hay uno, el
+// que redondea las esquinas de la tabla de totales. El síntoma engaña: el tooltip
+// «no sale» sólo en algunos sitios, y en los demás funciona.
+//
+// Se resuelve sacándola a `body` con `<Teleport>` y posicionándola en `fixed` desde
+// el rectángulo del disparador. Así no hay ancestro que la recorte ni contexto de
+// apilamiento que la mande detrás, y deja de depender de las clases del panel que la
+// hospeda. Mientras está abierta se reposiciona al hacer scroll o redimensionar.
+//
 // Documentado en docs/UI_Componentes_Compartidos.md.
 // ============================================================================
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
 const props = withDefaults(defineProps<{
     /** Texto de la ayuda. Para algo con formato, usa el slot por defecto. */
@@ -59,6 +70,32 @@ const props = withDefaults(defineProps<{
 
 const abierto = ref(false);
 const raiz = ref<HTMLElement | null>(null);
+const burbuja = ref<HTMLElement | null>(null);
+
+/** Posición en coordenadas de viewport, para el `fixed` de la burbuja teletransportada. */
+const pos = ref({ top: 0, left: 0, right: 0 });
+
+function medir(): void {
+    const el = raiz.value;
+    if (!el) return;
+
+    const r = el.getBoundingClientRect();
+
+    pos.value = {
+        top: r.bottom + 6,
+        left: props.lado === 'centro' ? r.left + r.width / 2 : r.left,
+        // Anclada por la derecha: se mide desde el borde derecho de la ventana, que es
+        // lo que hace que no se salga cuando la «i» vive pegada al borde del panel.
+        right: window.innerWidth - r.right,
+    };
+}
+
+async function abrir(): Promise<void> {
+    medir();
+    abierto.value = true;
+    await nextTick();
+    medir();
+}
 
 /**
  * ¿Hay un puntero fino (ratón/trackpad)?
@@ -69,14 +106,17 @@ const raiz = ref<HTMLElement | null>(null);
  */
 const conPuntero = ref(true);
 
-const clasesLado = computed(() => ({
-    izquierda: 'left-0',
-    derecha: 'right-0',
-    centro: 'left-1/2 -translate-x-1/2',
-}[props.lado]));
+const clasesLado = computed(() => (props.lado === 'centro' ? '-translate-x-1/2' : ''));
+
+const estiloBurbuja = computed(() => ({
+    top: `${pos.value.top}px`,
+    ...(props.lado === 'derecha'
+        ? { right: `${pos.value.right}px` }
+        : { left: `${pos.value.left}px` }),
+}));
 
 function alEntrar(): void {
-    if (conPuntero.value) abierto.value = true;
+    if (conPuntero.value) void abrir();
 }
 
 function alSalir(): void {
@@ -92,17 +132,34 @@ function alSalir(): void {
 function alTocar(e: Event): void {
     e.preventDefault();
     e.stopPropagation();
-    abierto.value = !abierto.value;
+
+    if (abierto.value) {
+        abierto.value = false;
+
+        return;
+    }
+
+    void abrir();
 }
 
 function alClicFuera(e: MouseEvent | TouchEvent): void {
-    if (abierto.value && raiz.value && !raiz.value.contains(e.target as Node)) {
-        abierto.value = false;
-    }
+    if (!abierto.value) return;
+
+    const destino = e.target as Node;
+
+    // Hay que preguntar por las DOS: teletransportada, la burbuja ya no cuelga de la
+    // raíz, y sin esto un toque sobre el propio texto de la ayuda la cerraría.
+    if (raiz.value?.contains(destino) || burbuja.value?.contains(destino)) return;
+
+    abierto.value = false;
 }
 
 function alEscape(e: KeyboardEvent): void {
     if (e.key === 'Escape') abierto.value = false;
+}
+
+function alMover(): void {
+    if (abierto.value) medir();
 }
 
 onMounted(() => {
@@ -110,12 +167,18 @@ onMounted(() => {
     document.addEventListener('click', alClicFuera, true);
     document.addEventListener('touchstart', alClicFuera, true);
     document.addEventListener('keydown', alEscape);
+    // `capture` para enterarse también del scroll de los contenedores internos —el panel
+    // vive dentro de un drawer que hace el suyo—, y `passive` para no frenarlo.
+    window.addEventListener('scroll', alMover, { capture: true, passive: true });
+    window.addEventListener('resize', alMover, { passive: true });
 });
 
 onBeforeUnmount(() => {
     document.removeEventListener('click', alClicFuera, true);
     document.removeEventListener('touchstart', alClicFuera, true);
     document.removeEventListener('keydown', alEscape);
+    window.removeEventListener('scroll', alMover, true);
+    window.removeEventListener('resize', alMover);
 });
 </script>
 
@@ -136,12 +199,17 @@ onBeforeUnmount(() => {
             <i class="fas fa-circle-info text-xs"></i>
         </button>
 
-        <span v-if="abierto" role="tooltip"
-            class="absolute top-full mt-1.5 z-40 w-max rounded-lg bg-slate-800 p-3 text-left shadow-xl
-                   text-[11px] font-medium text-slate-200 leading-snug normal-case tracking-normal"
-            :class="[clasesLado, ancho]">
-            <slot>{{ texto }}</slot>
-        </span>
+        <!-- A `body`: dentro del panel hay contenedores con `overflow-hidden` que la
+             recortaban. En `fixed` y medida desde el disparador, ya no depende de ellos. -->
+        <Teleport to="body">
+            <span v-if="abierto" ref="burbuja" role="tooltip"
+                class="fixed z-[60] w-max rounded-lg bg-slate-800 p-3 text-left shadow-xl
+                       text-[11px] font-medium text-slate-200 leading-snug normal-case tracking-normal"
+                :class="[clasesLado, ancho]"
+                :style="estiloBurbuja">
+                <slot>{{ texto }}</slot>
+            </span>
+        </Teleport>
     </span>
 </template>
 
