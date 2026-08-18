@@ -1659,6 +1659,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                                 :ref="(el) => registrarEditor(idDe(servicio), el)"
                                                                 denso
                                                                 :costo-cotizado="servicio.costoCotizado"
+                                                                :desglose="servicio.desgloseCotizado"
                                                                 :moneda-cotizada="servicio.monedaCotizada?.id ?? ''"
                                                                 :costo-real="servicio.costoRealOperativo"
                                                                 :moneda-real="servicio.monedaReal?.id ?? null"
@@ -1756,6 +1757,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                         <EditorCostoNegociado
                                                             :ref="(el) => registrarEditor(idDe(servicio), el)"
                                                             :costo-cotizado="servicio.costoCotizado"
+                                                            :desglose="servicio.desgloseCotizado"
                                                             :moneda-cotizada="servicio.monedaCotizada?.id ?? ''"
                                                             :costo-real="servicio.costoRealOperativo"
                                                             :moneda-real="servicio.monedaReal?.id ?? null"
@@ -1955,6 +1957,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                 :ref="(el) => registrarEditor(idDe(s), el)"
                                                 denso
                                                 :costo-cotizado="s.costoCotizado"
+                                                :desglose="s.desgloseCotizado"
                                                 :moneda-cotizada="s.monedaCotizada?.id ?? ''"
                                                 :costo-real="s.costoRealOperativo"
                                                 :moneda-real="s.monedaReal?.id ?? null"

@@ -162,6 +162,16 @@ accesos —**Expediente** (`file_detalle`) y **Cotización** (`cotizaciones_edit
 multipart `/cotizacion_filedocumentos` de FileDetalle): esos documentos —vouchers, confirmaciones
 de reserva— se generan justo al operar.
 
+**El costo de la fila: layout y desglose (2026-08-18).** El editor de costo (`EditorCostoNegociado`)
+muestra el negociado y, en línea, `antes ‹cotizado›` tachado **sólo si el negociado difiere** —sin
+cambio, una sola cifra—. Junto al valor, un `InfoTooltip` (patrón compartido: hover en escritorio,
+tap en táctil, teletransportado al body; ver `docs/UI_Componentes_Compartidos.md`) abre el
+**desglose del cotizado**: una línea por tarifa con `unitario × cantidad × noches/días = subtotal`,
+y el total. Sale de `OperacionServicio::getDesgloseCotizado()` (getter serializado, en vivo desde
+las cottarifas de la cotización): es la MISMA fórmula que congela el snapshot
+(`montoCosto × cantidad_tarifa × unidades_componente`, sin las ALTERNATIVA), pero abierta para que
+el operador vea de dónde sale el número en vez de confiar en él.
+
 ### Los nombres de un servicio, resueltos (2026-08-17)
 
 Tras el análisis de la asimetría (abajo), el modelo quedó en tres ejes limpios:

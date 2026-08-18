@@ -19,6 +19,7 @@
  * subrayado punteado y el «registrar» en vacío lo anuncian como editable.
  */
 import { ref, computed, nextTick } from 'vue';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 
 const props = defineProps<{
     /** Lo que dijo el cotizador. Referencia, no se edita: es el placeholder y el «cotizado». */
@@ -31,7 +32,21 @@ const props = defineProps<{
     monedas: string[];
     /** Compacto para la tarjeta móvil; algo mayor en escritorio. */
     denso?: boolean;
+    /**
+     * De dónde sale el `costoCotizado`: una línea por tarifa (unitario × cantidad × unidades).
+     * Viene de `OperacionServicio.desgloseCotizado`. Alimenta el tooltip del cotizado.
+     */
+    desglose?: DesgloseLinea[];
 }>();
+
+interface DesgloseLinea {
+    concepto: string;
+    unitario: string;
+    cantidad: number;
+    unidades: number;
+    subtotal: string;
+    moneda?: string | null;
+}
 
 const emit = defineEmits<{
     (e: 'guardar', payload: { costoRealOperativo: string; monedaReal: string }): void;
@@ -110,27 +125,52 @@ defineExpose({ marcarError });
 
 <template>
   <div class="inline-flex flex-col items-end gap-0.5">
-    <!-- ── REPOSO: sólo el valor, tocable ────────────────────────────────── -->
-    <button
-        v-if="!editando"
-        type="button"
-        @click="abrir"
-        class="inline-flex items-baseline gap-1 rounded px-1 -mx-1 hover:bg-slate-100 active:scale-95 transition-all"
-        :class="denso ? 'text-[11px]' : 'text-sm'"
-    >
-      <span class="font-bold text-slate-400" :class="denso ? 'text-[9px]' : 'text-[10px]'">
-        {{ monedaMostrada }}
+    <!-- ── REPOSO: valor + «antes» tachado inline + desglose (layout B) ───── -->
+    <div v-if="!editando" class="inline-flex items-baseline gap-1.5">
+      <button
+          type="button"
+          @click="abrir"
+          class="inline-flex items-baseline gap-1 rounded px-1 -mx-1 hover:bg-slate-100 active:scale-95 transition-all"
+          :class="denso ? 'text-[11px]' : 'text-sm'"
+      >
+        <span class="font-bold text-slate-400" :class="denso ? 'text-[9px]' : 'text-[10px]'">
+          {{ monedaMostrada }}
+        </span>
+        <!-- Sin negociar se muestra el COTIZADO mismo (atenuado, editable). -->
+        <span v-if="hayNegociado" class="font-black text-slate-800 tabular-nums decoration-dotted underline decoration-slate-300 underline-offset-2">
+          {{ importeReposo }}
+        </span>
+        <span v-else class="font-bold text-slate-400 italic tabular-nums decoration-dotted underline decoration-slate-300 underline-offset-2">
+          {{ Number(costoCotizado).toFixed(2) }}
+        </span>
+        <i v-if="guardado" class="fas fa-check text-emerald-600 text-[10px] ml-0.5"></i>
+      </button>
+
+      <!-- «antes X» tachado, EN LÍNEA (layout B), sólo si el negociado difiere del cotizado. -->
+      <span v-if="difiereDelCotizado" class="text-slate-400 tabular-nums" :class="denso ? 'text-[9px]' : 'text-[10px]'">
+        antes <s class="decoration-slate-300">{{ Number(costoCotizado).toFixed(2) }}</s>
       </span>
-      <!-- Sin negociar se muestra el COTIZADO mismo (atenuado, editable): una sola línea. Antes
-           se apilaban «registrar» y «cotizado», que confundía y ocupaba el doble. -->
-      <span v-if="hayNegociado" class="font-black text-slate-800 tabular-nums decoration-dotted underline decoration-slate-300 underline-offset-2">
-        {{ importeReposo }}
-      </span>
-      <span v-else class="font-bold text-slate-400 italic tabular-nums decoration-dotted underline decoration-slate-300 underline-offset-2">
-        {{ Number(costoCotizado).toFixed(2) }}
-      </span>
-      <i v-if="guardado" class="fas fa-check text-emerald-600 text-[10px] ml-0.5"></i>
-    </button>
+
+      <!-- De dónde sale el cotizado. Reutiliza InfoTooltip (hover en escritorio, tap en táctil,
+           teletransportado al body). Ver docs/UI_Componentes_Compartidos.md. -->
+      <InfoTooltip v-if="desglose && desglose.length" lado="derecha" ancho="max-w-[15rem]"
+                   :clase-icono="denso ? 'text-slate-300 hover:text-[#376875] text-[9px]' : 'text-slate-300 hover:text-[#376875]'">
+        <p class="font-black text-slate-100 mb-1.5 text-[10px] uppercase tracking-wider">De dónde sale el cotizado</p>
+        <div class="flex flex-col gap-1">
+          <div v-for="(l, i) in desglose" :key="i" class="flex items-baseline justify-between gap-3 tabular-nums">
+            <span class="text-slate-300 truncate max-w-[7rem]">{{ l.concepto }}</span>
+            <span class="text-slate-400 whitespace-nowrap">
+              {{ Number(l.unitario).toFixed(2) }} × {{ l.cantidad }} × {{ l.unidades }}
+              <span class="font-bold text-slate-100 ml-1">= {{ Number(l.subtotal).toFixed(2) }}</span>
+            </span>
+          </div>
+        </div>
+        <p class="mt-1.5 pt-1.5 border-t border-slate-600 text-right font-black text-slate-100 tabular-nums">
+          Total {{ monedaCotizada }} {{ Number(costoCotizado).toFixed(2) }}
+        </p>
+        <p class="mt-1 text-[9px] text-slate-500 leading-tight">unitario × cantidad × noches/días</p>
+      </InfoTooltip>
+    </div>
 
     <!-- ── EDICIÓN: select + input + guardar / cancelar ──────────────────── -->
     <div v-else class="flex items-center gap-1">
@@ -169,12 +209,6 @@ defineExpose({ marcarError });
         <i class="fas fa-xmark text-[11px]"></i>
       </button>
     </div>
-
-    <!-- El cotizado de referencia SÓLO cuando el negociado lo cambia; tachado, porque quedó
-         superado. Sin cambio (o sin negociar) el valor de arriba ya es el cotizado. -->
-    <p v-if="difiereDelCotizado" class="text-slate-400 tabular-nums line-through decoration-slate-300" :class="denso ? 'text-[9px]' : 'text-[10px]'">
-      Cotizado {{ monedaCotizada }} {{ Number(costoCotizado).toFixed(2) }}
-    </p>
 
     <p v-if="error" class="text-[10px] font-bold text-rose-600 text-right leading-snug max-w-[10rem]">
       <i class="fas fa-triangle-exclamation mr-1"></i>{{ error }}

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Operacion\Entity;
 
 use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
+use App\Travel\Enum\TarifaRolEnum;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
@@ -637,6 +639,63 @@ class OperacionServicio
     public function getCotizacionVersion(): ?int
     {
         return $this->cotizacionServicio?->getCotizacion()?->getVersion();
+    }
+
+    /**
+     * De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores.
+     *
+     * Es la MISMA fórmula que congela el snapshot y que usa el cotizador —
+     * `montoCosto × cantidad_tarifa × unidades_componente`, sobre las tarifas que no son
+     * ALTERNATIVA— pero desglosada, para que un tooltip explique el número en vez de que el
+     * operador tenga que confiar en él. `cantidad` es el factor por pax/unidad de la tarifa;
+     * `unidades`, las noches/días del componente. Se resuelve en vivo desde la cotización.
+     *
+     * @return list<array{concepto: string, unitario: string, cantidad: int, unidades: int, subtotal: string, moneda: ?string}>
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ApiProperty(openapiContext: [
+        'type' => 'array',
+        'items' => [
+            'type' => 'object',
+            'required' => ['concepto', 'unitario', 'cantidad', 'unidades', 'subtotal'],
+            'properties' => [
+                'concepto'  => ['type' => 'string'],
+                'unitario'  => ['type' => 'string'],
+                'cantidad'  => ['type' => 'integer'],
+                'unidades'  => ['type' => 'integer'],
+                'subtotal'  => ['type' => 'string'],
+                'moneda'    => ['type' => 'string', 'nullable' => true],
+            ],
+        ],
+    ])]
+    public function getDesgloseCotizado(): array
+    {
+        $componente = $this->cotizacionComponente;
+        if ($componente === null) {
+            return [];
+        }
+
+        $unidades = max(1, $componente->getCantidad());
+        $lineas = [];
+
+        foreach ($componente->getCottarifas() as $tarifa) {
+            if (TarifaRolEnum::tryFrom($tarifa->getRolSnapshot() ?? '') === TarifaRolEnum::ALTERNATIVA) {
+                continue;
+            }
+            $cantidad = max(1, $tarifa->getCantidad());
+            $subtotal = (float) $tarifa->getMontoCosto() * $cantidad * $unidades;
+
+            $lineas[] = [
+                'concepto' => $tarifa->getNombreInternoSnapshot() ?? ($tarifa->getCategoriaSnapshot() ?? 'Tarifa'),
+                'unitario' => $tarifa->getMontoCosto(),
+                'cantidad' => $cantidad,
+                'unidades' => $unidades,
+                'subtotal' => number_format($subtotal, 2, '.', ''),
+                'moneda'   => $tarifa->getMoneda()?->getId(),
+            ];
+        }
+
+        return $lineas;
     }
 
     public function getDescripcionServicio(): string { return $this->descripcionServicio; }

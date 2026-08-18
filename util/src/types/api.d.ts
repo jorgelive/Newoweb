@@ -14590,6 +14590,15 @@ export interface components {
              *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
              */
             readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -14642,6 +14651,15 @@ export interface components {
              *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
              */
             readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
         };
         "OperacionServicio-operacion.write": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.write"] | null;
@@ -14889,6 +14907,15 @@ export interface components {
              *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
              */
             readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -14941,6 +14968,15 @@ export interface components {
              *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
              */
             readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
         };
         "OperacionServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read"] | null;
@@ -15026,6 +15062,15 @@ export interface components {
              *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
              */
             readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -15078,6 +15123,15 @@ export interface components {
              *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
              */
             readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
         };
         "OperacionServicio.multipart-operacion.item.read_timestamp.read": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read"] | null;
@@ -15163,6 +15217,15 @@ export interface components {
              *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
              */
             readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -15215,6 +15278,15 @@ export interface components {
              *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
              */
             readonly cotizacionVersion?: number | null;
+            /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
+            readonly desgloseCotizado?: {
+                concepto: string;
+                unitario: string;
+                cantidad: number;
+                unidades: number;
+                subtotal: string;
+                moneda?: string | null;
+            }[];
         };
         /**
          * @description Entidad MaestroPais.
@@ -17249,6 +17321,11 @@ export interface components {
             rateDescription?: string | null;
             estadoBeds24?: string | null;
             subestadoBeds24?: string | null;
+            /**
+             * @description Intención explícita de EMPUJAR el estado a Beds24. Interno: no viaja a ningún serializador.
+             * @default false
+             */
+            estadoPushSolicitado: boolean;
             beds24Links?: components["schemas"]["PmsEventoBeds24Link"][];
             assignments?: components["schemas"]["PmsEventAssignment"][];
             /** Format: uuid */
@@ -17563,6 +17640,11 @@ export interface components {
             rateDescription?: string | null;
             estadoBeds24?: string | null;
             subestadoBeds24?: string | null;
+            /**
+             * @description Intención explícita de EMPUJAR el estado a Beds24. Interno: no viaja a ningún serializador.
+             * @default false
+             */
+            estadoPushSolicitado: boolean;
             beds24Links?: components["schemas"]["PmsEventoBeds24Link.html"][];
             assignments?: components["schemas"]["PmsEventAssignment.html"][];
             /** Format: uuid */
@@ -17764,6 +17846,11 @@ export interface components {
             rateDescription?: string | null;
             estadoBeds24?: string | null;
             subestadoBeds24?: string | null;
+            /**
+             * @description Intención explícita de EMPUJAR el estado a Beds24. Interno: no viaja a ningún serializador.
+             * @default false
+             */
+            estadoPushSolicitado: boolean;
             beds24Links?: components["schemas"]["PmsEventoBeds24Link.jsonld"][];
             assignments?: components["schemas"]["PmsEventAssignment.jsonld"][];
             /** Format: uuid */
@@ -17978,6 +18065,11 @@ export interface components {
             rateDescription?: string | null;
             estadoBeds24?: string | null;
             subestadoBeds24?: string | null;
+            /**
+             * @description Intención explícita de EMPUJAR el estado a Beds24. Interno: no viaja a ningún serializador.
+             * @default false
+             */
+            estadoPushSolicitado: boolean;
             beds24Links?: components["schemas"]["PmsEventoBeds24Link.multipart"][];
             assignments?: components["schemas"]["PmsEventAssignment.multipart"][];
             /** Format: uuid */
