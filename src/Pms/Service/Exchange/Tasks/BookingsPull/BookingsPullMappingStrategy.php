@@ -67,10 +67,18 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
         // para `bookingId`.
         $partes = [
             'arrivalFrom=' . rawurlencode($arrivalFrom->format('Y-m-d')),
-            // Se mantiene el `1` que ya viajaba (`http_build_query` convierte `true` en `1`):
-            // cambiarlo a `true` sería tocar un valor que hoy funciona y no se puede probar aquí.
-            'includeInvoice=1',
-            'includeInfoItems=1',
+            // Aquí se piden RESERVAS. Los cargos NO: llegan por su propia vía
+            // (`GET /bookings/invoices?bookingId=…`, Camino D — ver §11 del doc), y pedirlos
+            // aquí sólo engordaría la respuesta con datos que este handler no mira.
+            //
+            // ⚠️ Antes iba `includeInvoice`, que NO es un parámetro de Beds24 —el suyo se llama
+            // `includeInvoiceItems`—, así que llevaba todo este tiempo sin efecto alguno.
+            //
+            // Estos dos SÍ se piden, aunque `Beds24BookingDto` todavía no los declare y el
+            // denormalizador los descarte: quedan enteros en `lastResponseRaw` de la fila de
+            // cola, que es de donde se sacará la forma real cuando toque implementarlos.
+            'includeInfoItems=true',
+            'includeGuests=true',
         ];
 
         if ($arrivalTo) {
