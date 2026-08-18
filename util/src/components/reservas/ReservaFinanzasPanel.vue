@@ -161,6 +161,38 @@ const saldosParaCobrar = computed(() => totalesPorMoneda.value
 /** Los totales por moneda, tal como los manda el backend. Vacío mientras carga. */
 const totalesPorMoneda = computed<PmsTotalMoneda[]>(() => finanzas.info?.totalesPorMoneda ?? []);
 
+/**
+ * Las monedas que enseña la CABECERA, y con qué cifra.
+ *
+ * ── Por qué el saldo y no los cargos ────────────────────────────────────────
+ * La cabecera es donde el ojo busca «¿cuánto debe?». Enseñar ahí el total cargado hacía que la
+ * misma cifra saliera dos veces con dos colores: `US$ 65.97` en verde arriba (es un cargo, y los
+ * cargos van en verde) y `US$ 65.97` en rojo cuatro líneas más abajo (es el saldo, y debe). El
+ * operador tenía que decidir cuál de las dos leer.
+ *
+ * ── Y por qué se ocultan las monedas sin movimiento ─────────────────────────
+ * Una estancia directa nace con una fila a `0.00` en su moneda, que es donde el operador teclea
+ * el precio (§12.2b: nada de `HAVING`, las filas en cero se conservan). En la tabla esa fila tiene
+ * sentido; en la cabecera era un `S/. 0.00` permanente ocupando el sitio donde debía verse que
+ * habían entrado S/ 223.70.
+ */
+const saldosCabecera = computed<PmsTotalMoneda[]>(() =>
+    totalesPorMoneda.value.filter(t => Number(t.cargos) !== 0 || Number(t.pagos) !== 0),
+);
+
+/**
+ * El color de un saldo, por su signo. Mismo criterio que la tabla de abajo, para que la cabecera
+ * y el detalle no puedan contradecirse.
+ */
+function claseDeSaldo(saldo: string): string {
+    const n = Number(saldo);
+
+    if (n > 0) return 'text-rose-600';        // debe
+    if (n < 0) return 'text-[#3E6D9C]';       // a favor del huésped
+
+    return 'text-emerald-600';                // saldado
+}
+
 /** El balance soles↔dólares, o null si la ficha todavía no ha llegado. */
 const cuadre = computed<PmsCuadre | null>(() => finanzas.info?.cuadre ?? null);
 
@@ -1106,6 +1138,76 @@ async function autocompletarTipoCambioCargo(): Promise<void> {
     }
 }
 
+/**
+ * Los cobros cruzados: los que entraron en una moneda donde no hay nada que deber.
+ *
+ * Es lo que hace posible el botón de un clic de la fila de cuadre. Se calcula aquí y no en el
+ * backend porque el panel ya tiene la lista entera de cobros; pedirla otra vez sería una llamada
+ * para saber algo que está en pantalla.
+ *
+ * ── Dónde está la ambigüedad, que no es donde parece ────────────────────────
+ * Lo que no se puede adivinar es **a qué deuda** se aplica un cobro cruzado, y eso sólo pasa
+ * cuando hay DOS monedas debiendo. Con una sola, todos los cobros de fuera van ahí y no hay
+ * ninguna decisión que tomar: `V6WDDQ` tiene dos cobros por Yape que juntos saldan los dólares
+ * que faltaban, y exigir que fuera uno solo dejaba esa ficha sin botón por nada.
+ */
+const cobrosCruzados = computed(() => {
+    if (!cuadre.value?.sugiereImputacion) return null;
+
+    const monedasConDeuda = totalesPorMoneda.value.filter(t => Number(t.cargos) > 0);
+
+    // La única ambigüedad real: con deuda en dos monedas, elegir por el operador sería adivinar.
+    if (monedasConDeuda.length !== 1) return null;
+
+    const destino = monedasConDeuda[0].moneda;
+
+    const pagos = pagosVista.value.filter(
+        (p): p is typeof p & { id: string } =>
+            !!p.id && !!p.moneda?.id && p.moneda.id !== destino && !p.monedaSaldada,
+    );
+
+    if (pagos.length === 0) return null;
+
+    // El importe sólo se enseña si todos comparten moneda; si no, se dice cuántos son y ya.
+    const monedas = new Set(pagos.map(p => p.moneda?.id));
+    const importe = monedas.size === 1
+        ? importeEn(String(pagos.reduce((suma, p) => suma + Number(p.monto), 0)), [...monedas][0] ?? '')
+        : null;
+
+    return { pagos, destino, importe };
+});
+
+const imputando = ref(false);
+
+/**
+ * Escribe `monedaSaldada` en el cobro cruzado: un clic donde antes había que desplegar los
+ * cobros, habilitar la edición, abrir el cobro y marcar una casilla.
+ *
+ * No inventa nada que el formulario no hiciera: es el mismo PATCH del mismo campo, en el grupo
+ * `pms_pago:patch` porque reimputar es corregir una decisión contable, no falsear un hecho.
+ */
+async function imputarCobroCruzado(): Promise<void> {
+    const cruce = cobrosCruzados.value;
+    if (!cruce || imputando.value) return;
+
+    error.value = null;
+    imputando.value = true;
+    try {
+        // De uno en uno y no en paralelo: cada PATCH dispara el recálculo de la ficha en el
+        // `postFlush`, y lanzarlos a la vez sería hacer que dos transacciones reescriban la misma
+        // tabla de totales sin necesidad. Son dos cobros como mucho.
+        for (const pago of cruce.pagos) {
+            await finanzas.patchPago(pago.id, {
+                monedaSaldada: `/platform/maestro/monedas/${cruce.destino}`,
+            });
+        }
+    } catch (err) {
+        error.value = extractApiErrorMessage(err, 'No se pudo imputar el cobro.');
+    } finally {
+        imputando.value = false;
+    }
+}
+
 /** Lógica de guardado del pago. PROPAGA el error para que el drawer pueda no cerrarse. */
 async function guardarPagoOrThrow(): Promise<void> {
     const infoId = finanzas.info?.id;
@@ -1281,9 +1383,11 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                  sumarlas daría un importe que nadie pactó. Con una sola moneda —313 de 317
                  reservas— se ve exactamente igual que antes. -->
             <span v-if="finanzas.info" class="flex flex-col items-end gap-0.5 shrink-0">
-                <span v-for="t in totalesPorMoneda" :key="t.moneda"
-                    class="px-2 py-0.5 rounded-md bg-white text-emerald-600 text-[11px] font-black tabular-nums">
-                    {{ importeEn(t.cargos, t.moneda) }}
+                <span v-for="t in saldosCabecera" :key="t.moneda"
+                    class="px-2 py-0.5 rounded-md bg-white text-[11px] font-black tabular-nums"
+                    :class="claseDeSaldo(t.saldo)"
+                    :title="`${t.moneda}: cargos ${t.cargos} · pagado ${t.pagos}`">
+                    {{ importeEn(t.saldo, t.moneda) }}
                 </span>
                 <!-- El saldo SÍ es una sola cifra: es el cuadre, y responde «¿debe algo?», que
                      sólo tiene respuesta mirando las monedas juntas. Va marcado con `≈` cuando
@@ -1388,6 +1492,25 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     </span>
 
                     <span class="flex items-center gap-2 shrink-0">
+                        <!-- 🎯 EL CLIC QUE CIERRA EL CRUCE.
+                             Va AQUÍ, en la fila del cuadre, y no sólo en el formulario de cobro:
+                             ésta es la línea donde el operador está viendo la contradicción («debe
+                             US$ 65.97» y «cuadra en 0.00»), y la salida no puede ser desplegar los
+                             cobros, habilitar la edición y buscar una casilla. -->
+                        <button v-if="cobrosCruzados" type="button"
+                            class="px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wide
+                                   bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-50
+                                   disabled:cursor-not-allowed transition-colors"
+                            :disabled="imputando || panelAnulado"
+                            :title="`Marca ${cobrosCruzados.pagos.length === 1 ? 'este cobro' : 'estos cobros'} `
+                                + `como pago de la deuda en ${cobrosCruzados.destino}. `
+                                + 'La caja no cambia: sigue habiendo entrado el importe en su moneda.'"
+                            @click="imputarCobroCruzado()">
+                            <i v-if="imputando" class="fas fa-spinner fa-spin mr-1"></i>
+                            Imputar
+                            {{ cobrosCruzados.importe ?? `${cobrosCruzados.pagos.length} cobros` }}
+                            a {{ cobrosCruzados.destino }}
+                        </button>
                         <span v-if="cuadre.saldoAFavor"
                             class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-sky-100 text-sky-700"
                             title="El huésped pagó de más: está saldada, pero ese dinero es suyo.">
