@@ -450,10 +450,41 @@ const cobrandoPrepago = ref(false);
 const prepagoMedioPago = ref('');
 const registrandoPrepago = ref(false);
 
+/**
+ * El medio con el que se cobra un prepago casi siempre: el huésped todavía no ha llegado, así
+ * que no hay efectivo ni Yape que valga — paga por el enlace, con tarjeta. Sigue siendo un
+ * desplegable, porque a veces adelantan por transferencia.
+ */
+const MEDIO_PREPAGO_POR_DEFECTO = 'tarjeta_credito';
+
 function abrirCobroPrepago(): void {
-    prepagoMedioPago.value = finanzas.mediosPago[0]?.id ?? '';
+    prepagoMedioPago.value = finanzas.mediosPago.some(m => m.id === MEDIO_PREPAGO_POR_DEFECTO)
+        ? MEDIO_PREPAGO_POR_DEFECTO
+        : finanzas.mediosPago[0]?.id ?? '';
     cobrandoPrepago.value = true;
 }
+
+/**
+ * El porcentaje que declara el enum para el medio elegido — el mismo que rellena
+ * `abrirNuevoPago()` en el formulario largo, para que un prepago no nazca distinto de un cobro
+ * tecleado a mano.
+ */
+const prepagoComision = computed(
+    () => medioPagoOpt(prepagoMedioPago.value)?.comisionPorcentaje ?? '',
+);
+
+/**
+ * Lo que se le cobra REALMENTE al huésped: `monto` es el neto que entra y la comisión va encima
+ * (`montoComision() = monto × pct / 100`). Con tarjeta, pedir US$ 31.98 significa pasarle
+ * US$ 33.74. Se enseña antes de confirmar porque es la cifra que el operador va a teclear en la
+ * pasarela, y descubrirla después es descubrirla tarde.
+ */
+const prepagoTotalConComision = computed(() => {
+    const monto = prepago.value?.monto;
+    if (!monto || Number(prepagoComision.value) <= 0) return null;
+
+    return importeConMoneda(totalConComision(monto, prepagoComision.value), monedaCabecera.value);
+});
 
 async function confirmarCobroPrepago(): Promise<void> {
     const infoId = finanzas.info?.id;
@@ -475,7 +506,7 @@ async function confirmarCobroPrepago(): Promise<void> {
             // El tipo de cambio lo sella el backend en `prePersist` (§12.4.1b): no se manda desde
             // aquí para que sea el mismo criterio que en cualquier otro cobro.
             tipoCambio: null,
-            comisionPorcentaje: null,
+            comisionPorcentaje: prepagoComision.value || null,
             referencia: null,
             notas: prepago.value?.concepto ?? null,
             monedaSaldada: null,
@@ -1658,6 +1689,9 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                            border-[#376875]/20 bg-[#376875]/10">
                     <span class="text-[11px] font-bold text-[#376875]">
                         Registrar <b class="font-black">{{ prepagoImporte }}</b> como cobrado. ¿Cómo pagó?
+                        <b v-if="prepagoTotalConComision" class="block font-black text-[10px] text-slate-500 mt-0.5">
+                            Se le pasan {{ prepagoTotalConComision }} — {{ prepagoComision }}% de recargo
+                        </b>
                     </span>
                     <span class="flex items-center gap-1.5 shrink-0">
                         <select v-model="prepagoMedioPago" :disabled="registrandoPrepago"
