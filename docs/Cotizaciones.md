@@ -142,12 +142,12 @@ batch que ya trae los lugares** (`resolverLugaresDeServicios` en `operacionStore
 nuevas): del `/travel/componentes` que se pide para los badges se saca también el `nombre`
 (`nombreComponenteDeServicio`).
 
-**Jerarquía de la fila (2026-08-18).** El **componente es el titular** de la fila —es lo único
-que la distingue dentro de un servicio de varios— con su icono de tipo a la izquierda. Debajo, y
-**juntos**, el nombre de contexto (segmento en mono-segmento, si no el servicio/plantilla) y la
-**tarifa**: separados por el componente en medio se leían como datos sueltos. Antes el titular era
-el nombre genérico del servicio, repetido idéntico en cada fila; se invirtió para que arriba esté
-lo específico y abajo lo de contexto.
+**Jerarquía de la fila (2026-08-18).** El **componente es el titular** de la fila —lo único que la
+distingue dentro de un servicio de varios— con su icono de tipo a la izquierda, y **pegada debajo
+la tarifa**: lo que la fila identifica y lo que se negocia por ello van juntos. El **servicio baja
+a contexto** (línea tenue, más abajo, con el expediente y el prestador): ubica la fila, no la
+identifica. Antes el titular era el nombre genérico del servicio, repetido idéntico en cada fila,
+y metido entre el componente y la tarifa los partía.
 
 ### Los nombres de un servicio, resueltos (2026-08-17)
 

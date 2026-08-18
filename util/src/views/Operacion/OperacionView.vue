@@ -1460,15 +1460,10 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                            class="text-sm font-black text-slate-800 leading-tight">
                                                             {{ nombreComponenteDe(servicio) || nombreSegmentoDe(servicio) || servicio.contextoServicio }}
                                                         </p>
-                                                        <!-- Servicio y tarifa, JUNTOS y debajo: de qué tour es la fila y
-                                                             qué tarifa se negocia. Pegados a propósito —separados por el
-                                                             componente en medio se leían como datos sueltos—. El nombre de
-                                                             contexto es el segmento en mono-segmento, si no el servicio. -->
-                                                        <p v-if="nombreComponenteDe(servicio) && (nombreSegmentoDe(servicio) || servicio.contextoServicio)"
-                                                           class="text-[11px] font-bold text-slate-500 leading-tight mt-1">
-                                                            <i class="fas fa-map-signs text-[8px] mr-1 text-slate-300"></i>{{ nombreSegmentoDe(servicio) || servicio.contextoServicio }}
-                                                        </p>
-                                                        <p v-if="servicio.descripcionServicio" class="text-[11px] font-bold text-slate-500 leading-tight">
+                                                        <!-- La TARIFA, pegada al componente: lo que la fila IDENTIFICA (el
+                                                             componente) y lo que se NEGOCIA por ello van juntos. El servicio
+                                                             es contexto y baja más abajo, no entre estos dos. -->
+                                                        <p v-if="servicio.descripcionServicio" class="text-[11px] font-bold text-slate-500 leading-tight mt-1">
                                                             <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ servicio.descripcionServicio }}
                                                         </p>
                                                         <!-- Nombre interno de la tarifa, sólo si difiere: es con el que la
@@ -1526,6 +1521,14 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                                 <i class="fas fa-file-invoice text-[8px]"></i> En OS
                                                             </span>
                                                         </div>
+
+                                                        <!-- Servicio como CONTEXTO: de qué tour/servicio es la fila. Baja
+                                                             aquí (no entre componente y tarifa) porque es lo que ubica, no
+                                                             lo que identifica. Segmento en mono-segmento, si no el servicio. -->
+                                                        <p v-if="nombreComponenteDe(servicio) && (nombreSegmentoDe(servicio) || servicio.contextoServicio)"
+                                                           class="text-[10px] font-bold text-slate-400 leading-snug mt-1.5">
+                                                            <i class="fas fa-map-signs text-[8px] mr-1 text-slate-300"></i>{{ nombreSegmentoDe(servicio) || servicio.contextoServicio }}
+                                                        </p>
 
                                                         <!-- Contexto compacto en móvil -->
                                                         <p class="text-[10px] font-bold text-slate-400 mt-1 lg:hidden">
