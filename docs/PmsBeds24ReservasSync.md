@@ -16,6 +16,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [6.3.c Los estados del link: cuáles se usan de verdad](#63c-los-estados-del-link-cuáles-se-usan-de-verdad)
 7. [Camino C — Push de vuelta a Beds24](#7-camino-c--push-de-vuelta-a-beds24)
 8. [Motor de Exchange — ExchangeOrchestrator](#8-motor-de-exchange--exchangeorchestrator)
+    · [8.1 Quién llena la cola — reactivo vs. Timeline Enqueuer](#81-quién-llena-la-cola--el-listener-reactivo-vs-el-timeline-enqueuer)
 9. [Anti-duplicación y Seguridad](#9-anti-duplicación-y-seguridad)
 10. [Políticas de Reintento y Error](#10-políticas-de-reintento-y-error)
 11. [Camino D — Sincronización Financiera (invoiceItems)](#11-camino-d--sincronización-financiera-invoiceitems)
@@ -105,6 +106,13 @@ PmsEventoBeds24Link  (Puente técnico Evento ↔ Beds24)
 | `PmsBeds24WebhookAudit` | `pms_beds24_webhook_audit` | Auditoría raw de cada webhook recibido |
 | `PmsBookingsPullQueue` | `pms_bookings_pull_queue` | Jobs de descarga programada (Cron) |
 | `PmsBookingsPushQueue` | `pms_bookings_push_queue` | Jobs de subida a Beds24 (Push) |
+| `PmsRatesPushQueue` | `pms_rates_push_queue` | Jobs de subida de **tarifas** a Beds24 (ver §8.1) |
+
+> ⚠️ **Las colas guardan lo procesado; no se auto-purgan.** Una fila `success` se queda para
+> siempre. Con el refresco defensivo de tarifas (§8.1) eso son ~1.000 filas/día que se acumulan:
+> `pms_rates_push_queue` llegó a 152.000 filas / 505 MB antes de que se purgara a mano el 17/08/2026.
+> El borrado periódico de `success` viejos es responsabilidad de `app:exchange:vigilar-colas` (cron,
+> min 25 de cada hora) — si crece una cola, ahí es donde se poda.
 
 ---
 
@@ -960,6 +968,65 @@ Fallo catastrófico:
    → UPDATE SQL nativo (no depende del EM)
    → Relanza excepción (Messenger gestiona reintentos)
 ```
+
+La sección 8 describe el **consumidor** (`exchange:run <tarea>`): saca filas de la cola y las
+envía. Pero la cola no se llena sola —alguien encola—, y ahí hay dos patrones que conviene no
+confundir.
+
+### 8.1 Quién llena la cola — el listener reactivo vs. el Timeline Enqueuer
+
+Toda cola de Exchange (rates, bookings…) se alimenta por **dos caminos independientes**, y el de
+tarifas (`pms_rates_push_queue`) es el ejemplo claro:
+
+```
+                      ┌──────────────────────────────────────────────┐
+   cambió una tarifa  │  CAMINO REACTIVO                              │
+   (PmsTarifaRango)   │  Beds24RatesPushQueueListener (onFlush)       │
+        ───────────►  │  encola SOLO lo que cambió                    │
+                      └──────────────────────────────────────────────┘
+                      ┌──────────────────────────────────────────────┐
+   cron del SO        │  CAMINO PERIÓDICO (defensivo)                 │
+   min 8 y 38 c/hora  │  exchange:timeline:enqueue beds24_rates_push  │
+        ───────────►  │  → TimelineEnqueuerService → Beds24RatesPushJob│
+                      │  re-encola el horizonte ENTERO, sin mirar     │
+                      │  si cambió algo                               │
+                      └──────────────────────────────────────────────┘
+                                        │
+                                        ▼
+                              pms_rates_push_queue
+                                        │
+                      exchange:run rates_push (cada 15 min) → Beds24
+```
+
+**El camino reactivo** (`Beds24RatesPushQueueListener`, `#[AsDoctrineListener(onFlush/postFlush)]`)
+solo dispara cuando de verdad se inserta/edita/borra un `PmsTarifaRango`. Encola vía
+`Beds24RatesPushQueueCreator::enqueueForInterval()` únicamente el intervalo tocado. Es exacto y
+barato; no es el que hace crecer la cola.
+
+**El camino periódico** es el productor programado. El comando `exchange:timeline:enqueue
+<tarea>` (`TimelineEnqueuerCommand` → `TimelineEnqueuerService::enqueue()`) avanza un **cursor**
+(`ExchangeCronCursor`) por el calendario en pasos fijos —`P2W`, dos semanas, en
+`Beds24RatesPushJob::getStepInterval()`— y en cada corrida llama a `enqueueForInterval()` para
+**todas las unidades activas de ese tramo, sin comparar contra lo ya enviado**. Al pasar el
+`horizonteMáximo` (= `MAX(fechaFin)` de las tarifas activas) el cursor **se reinicia a "ayer"** y
+vuelve a barrer desde el principio.
+
+**Por qué una tarifa se re-encola ~10 veces al día — y por qué NO es un bug.** No hay
+des-duplicación por valor en ningún punto: `enqueueForInterval()` solo cancela las filas
+`PENDING` que solapan («Smart Flattening», dedupe *intra*-pasada), pero **nunca consulta las
+`SUCCESS`** ni compara el precio nuevo contra el último empujado. Así que cada barrido completo
+del horizonte re-encola cada tarifa una vez; el número de veces/día = cuántos barridos completos
+caben en el día (con el horizonte actual, ~10). **Es un refresco defensivo deliberado:** reenvía
+las tarifas a Beds24 periódicamente aunque no hayan cambiado, para que un fallo de sync no deje
+un precio viejo colgado allá. El costo es cola + llamadas API redundantes; el beneficio es que
+Beds24 nunca queda desincronizado. Para el volumen real (7 unidades) el trade-off es sano.
+
+⚠️ **Consecuencia operativa:** ese refresco genera ~1.000 filas `success`/día que **nadie borra**
+(ver el aviso en §2). Si algún día ese caudal molesta —más unidades, presión sobre el binlog de
+MySQL— la palanca correcta **no** es tocar la cadencia del cron a ciegas, sino **añadir dedupe por
+valor** en `Beds24RatesPushQueueCreator`: comparar el precio/minStay nuevo contra el último
+`success` de esa unidad+fecha y encolar solo si difiere. Eso mataría el ~88% redundante sin
+perder la garantía reactiva. Se deja anotado, no hecho: hoy el costo es asumible.
 
 ---
 
@@ -3796,6 +3863,9 @@ deben verse.
 | Cambiar cómo nacen los cargos de horario extra (hoy en 0.00) | `PmsCargosAutomaticosService` | `sincronizarExtras()` |
 | Cambiar ventana anti-dup | `Beds24WebhookController` | `600` (seg) y `15000` (ms) |
 | Tocar cascadas del grafo evento/link/cola de push | `Beds24BookingsPushQueueCreator` | `enqueueForLink()` — **lee §12.11 antes** |
+| Que el refresco de tarifas deje de re-encolar lo idéntico (§8.1) | `Beds24RatesPushQueueCreator` | `enqueueForInterval()` — añadir dedupe por valor contra el último `success` de la unidad+fecha |
+| Cambiar el paso/horizonte del barrido de tarifas (§8.1) | `Beds24RatesPushJob` | `getStepInterval()` (`P2W`) / `getHorizonteMaximo()` |
+| Podar filas `success` viejas de una cola que creció (§2, §8.1) | `app:exchange:vigilar-colas` (cron min 25) | ahí va el `DELETE ... status='success' AND created_at < ...` |
 | Cambiar cuándo se puede borrar una estancia (§12.12.1) | `PmsEventoCalendario` | `getMotivoNoBorrable()` — fuente única; `util` sólo tipa el campo serializado en `PmsBorrableInfo`, no reimplementa la regla |
 | Que el borrado de la reserva arrastre una tabla nueva (§12.12.3) | `PmsReserva` | declarar el lado inverso con `cascade: ['remove']`; una FK sin mapear = 1451 |
 | Tocar el desenganche de colas al borrar un link (§12.11.b) | `Beds24BookingsPushQueueCreator` | `detachQueuesFromLink()` |
