@@ -217,10 +217,17 @@ const totalesDePagos = computed(() => {
 function claseDeSaldo(saldo: string): string {
     const n = Number(saldo);
 
-    if (n > 0) return 'text-rose-600';        // debe
     if (n < 0) return 'text-[#3E6D9C]';       // a favor del huésped
+    if (n === 0) return 'text-emerald-600';   // saldado
 
-    return 'text-emerald-600';                // saldado
+    // ⚖️ Deber algo NO es lo mismo que estar sin cobrar. Cuando la ficha cuadra, lo que queda es
+    // el residuo de la diferencia cambiaria —el cambio del mostrador nunca es el de la reserva—,
+    // y pintarlo de rojo manda a alguien a perseguir 41 céntimos que nadie debe de verdad.
+    //
+    // La cifra NO se toca: sigue diciendo la verdad estricta de esa moneda. Lo que cambia es que
+    // deja de gritar. Con una sola moneda no hay conversión, `cuadra` es estricto y el rojo
+    // vuelve a salir con el primer céntimo pendiente.
+    return cuadre.value?.cuadra ? 'text-slate-500' : 'text-rose-600';
 }
 
 /** El balance soles↔dólares, o null si la ficha todavía no ha llegado. */
@@ -426,6 +433,61 @@ const prepago = computed(() => finanzas.info?.prepagoPendiente ?? null);
 const prepagoImporte = computed(() =>
     prepago.value ? importeConMoneda(prepago.value.monto, monedaCabecera.value) : '',
 );
+
+/**
+ * Cobrar el prepago de un clic: registra un cobro por el importe EXACTO que se está pidiendo.
+ *
+ * ── Por qué la confirmación pregunta el medio de pago ───────────────────────
+ * Todo lo demás se puede deducir —el importe es el del prepago, la moneda es la de la ficha, la
+ * fecha es hoy—, pero **cómo pagó el huésped no**. Y no es un detalle de formulario: `medioPago`
+ * decide la comisión de la pasarela y es lo que separa en la caja el efectivo del Yape del
+ * depósito. Dejarlo en un defecto sería estampar «efectivo» en todos los prepagos del año y
+ * descubrirlo cuando alguien cuadre la caja.
+ *
+ * Así que la confirmación no es un «¿seguro?»: es la única pregunta que hay que hacer.
+ */
+const cobrandoPrepago = ref(false);
+const prepagoMedioPago = ref('');
+const registrandoPrepago = ref(false);
+
+function abrirCobroPrepago(): void {
+    prepagoMedioPago.value = finanzas.mediosPago[0]?.id ?? '';
+    cobrandoPrepago.value = true;
+}
+
+async function confirmarCobroPrepago(): Promise<void> {
+    const infoId = finanzas.info?.id;
+    const monto = prepago.value?.monto;
+
+    if (!infoId || !monto || !prepagoMedioPago.value || registrandoPrepago.value) return;
+
+    error.value = null;
+    registrandoPrepago.value = true;
+    try {
+        await finanzas.createPago({
+            informacionFinanciera: pmsInformacionFinancieraIri(infoId),
+            // La moneda de la CABECERA, que es en la que está calculado el prepago. El prepago es
+            // una petición de dinero —«adelanta US$ 32»— y por eso es mono-moneda a propósito.
+            moneda: `/platform/maestro/monedas/${monedaCabecera.value?.id ?? 'USD'}`,
+            monto,
+            medioPago: prepagoMedioPago.value as PmsPagoFinancieroCreate['medioPago'],
+            fechaPago: hoyInput(),
+            // El tipo de cambio lo sella el backend en `prePersist` (§12.4.1b): no se manda desde
+            // aquí para que sea el mismo criterio que en cualquier otro cobro.
+            tipoCambio: null,
+            comisionPorcentaje: null,
+            referencia: null,
+            notas: prepago.value?.concepto ?? null,
+            monedaSaldada: null,
+            cobradorId: null,
+        });
+        cobrandoPrepago.value = false;
+    } catch (err) {
+        error.value = extractApiErrorMessage(err, 'No se pudo registrar el prepago.');
+    } finally {
+        registrandoPrepago.value = false;
+    }
+}
 
 /**
  * ¿Queda algo por cobrar?
@@ -1488,7 +1550,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     <div class="px-3 py-3 text-center">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Saldo</p>
                         <p class="text-sm font-black mt-0.5"
-                            :class="Number(t.saldo) > 0 ? 'text-rose-600' : 'text-[#3E6D9C]'">
+                            :class="claseDeSaldo(t.saldo)">
                             {{ importeEn(t.saldo, t.moneda) }}
                         </p>
                     </div>
@@ -1575,8 +1637,49 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     </span>
                     <!-- En la moneda de la CABECERA aunque se esté mirando la otra: ver el
                          bloque PREPAGO PENDIENTE del script. -->
-                    <span class="text-sm font-black text-[#376875] tabular-nums shrink-0">
-                        {{ prepagoImporte }}
+                    <span class="flex items-center gap-2 shrink-0">
+                        <span class="text-sm font-black text-[#376875] tabular-nums">
+                            {{ prepagoImporte }}
+                        </span>
+                        <button v-if="!cobrandoPrepago && !panelAnulado" type="button"
+                            class="px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wide
+                                   bg-[#376875] text-white hover:bg-[#2c545f] transition-colors"
+                            title="Registra un cobro por este importe exacto."
+                            @click="abrirCobroPrepago()">
+                            Cobrar
+                        </button>
+                    </span>
+                </div>
+
+                <!-- La confirmación. No es un «¿seguro?»: el medio de pago es el único dato que no
+                     se puede deducir, y de él salen la comisión y la fila de la caja. -->
+                <div v-if="prepago && cobrandoPrepago"
+                    class="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-t
+                           border-[#376875]/20 bg-[#376875]/10">
+                    <span class="text-[11px] font-bold text-[#376875]">
+                        Registrar <b class="font-black">{{ prepagoImporte }}</b> como cobrado. ¿Cómo pagó?
+                    </span>
+                    <span class="flex items-center gap-1.5 shrink-0">
+                        <select v-model="prepagoMedioPago" :disabled="registrandoPrepago"
+                            class="px-2 py-1 rounded-md border border-slate-300 bg-white text-[11px] font-bold
+                                   text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#376875]/30">
+                            <option v-for="m in finanzas.mediosPago" :key="m.id" :value="m.id">{{ m.label }}</option>
+                        </select>
+                        <button type="button"
+                            class="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wide
+                                   bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50
+                                   disabled:cursor-not-allowed transition-colors"
+                            :disabled="registrandoPrepago || !prepagoMedioPago"
+                            @click="confirmarCobroPrepago()">
+                            <i v-if="registrandoPrepago" class="fas fa-spinner fa-spin mr-1"></i>
+                            Confirmar
+                        </button>
+                        <button type="button" :disabled="registrandoPrepago"
+                            class="px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wide
+                                   text-slate-500 hover:text-slate-700 disabled:opacity-50"
+                            @click="cobrandoPrepago = false">
+                            Cancelar
+                        </button>
                     </span>
                 </div>
 
