@@ -77,12 +77,25 @@ final class BookingsPullMappingStrategyTest extends TestCase
 
         self::assertStringContainsString('arrivalFrom=2026-03-10', $resultado->fullUrl);
         self::assertStringContainsString('arrivalTo=2026-03-24', $resultado->fullUrl);
-        self::assertStringContainsString('includeInvoice=1', $resultado->fullUrl);
-        self::assertStringContainsString('includeInfoItems=1', $resultado->fullUrl);
+        self::assertStringContainsString('includeInfoItems=true', $resultado->fullUrl);
+        self::assertStringContainsString('includeGuests=true', $resultado->fullUrl);
 
         // Vacío a propósito: si el payload volviera a llevar la query, Symfony la re-serializaría
         // y reaparecería el `status[0]=` que este arreglo vino a quitar.
         self::assertSame([], $resultado->payload, 'la query entera va en la URL');
+    }
+
+    /**
+     * Aquí se piden RESERVAS, no cargos: los `invoiceItems` tienen su propia vía
+     * (`GET /bookings/invoices`, Camino D). Pedirlos aquí sería engordar la respuesta con datos
+     * que este handler ni mira.
+     */
+    #[Test]
+    public function los_cargos_no_se_piden_en_el_pull_de_reservas(): void
+    {
+        $url = (new BookingsPullMappingStrategy())->map($this->batch())->fullUrl;
+
+        self::assertStringNotContainsString('includeInvoice', $url);
     }
 
     /** Sin `arrivalTo` no se inventa el parámetro: el job puede no tener tope. */

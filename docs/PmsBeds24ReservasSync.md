@@ -11,6 +11,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
 3. [Camino A — Webhook (Tiempo Real)](#3-camino-a--webhook-tiempo-real)
 4. [Camino B — Pull por Cron (Sincronización Programada)](#4-camino-b--pull-por-cron-sincronización-programada)
     · [4.1.b La query se monta a mano (y por qué no llegaban las canceladas)](#41b--la-query-se-monta-a-mano-y-no-es-un-capricho)
+    · [4.1.c Qué se pide y qué NO: aquí se traen reservas, no cargos](#41c-qué-se-pide-y-qué-no-aquí-se-traen-reservas-no-cargos)
 5. [Persister Compartido — BookingPullPersister](#5-persister-compartido--bookingpullpersister)
 6. [El Mecanismo de Espejo Virtual](#6-el-mecanismo-de-espejo-virtual)
     · [6.3.b Cambiar de casita: qué link se mueve y cuál se recrea](#63b-cambiar-de-casita-qué-link-se-mueve-y-cuál-se-recrea)
@@ -280,7 +281,7 @@ BookingsPullMappingStrategy::map(batch)
        ├─ arrivalFrom, arrivalTo
        ├─ status=confirmed&status=new&status=request&status=cancelled
        │        &status=black&status=inquiry     ← REPETIDO, ver §4.1.b
-       ├─ includeInvoice=1, includeInfoItems=1
+       ├─ includeInfoItems=true, includeGuests=true   ← ver §4.1.c
        └─ roomId=501&roomId=502  ← solo habitaciones de esta config
 
 ExchangeBatchProcessor → HTTP GET → Beds24 API
@@ -326,6 +327,31 @@ una tarea concreta: cualquier GET nuevo a Beds24 con un parámetro multivaluado 
 
 Fijado por `tests/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullMappingStrategyTest.php`,
 que comprueba la URL final —no el payload—, porque es justo donde el fallo era invisible.
+
+### 4.1.c Qué se pide y qué NO: aquí se traen reservas, no cargos
+
+| Parámetro | Estado | Por qué |
+|---|---|---|
+| `includeInfoItems=true` | se pide | El DTO aún no los mapea; se piden para poder ver su forma real |
+| `includeGuests=true` | se pide | Ídem: se captura ahora, se implementa cuando toque |
+| `includeInvoiceItems` | **NO se pide** | Los cargos llegan por el Camino D (§11), no por aquí |
+
+**Los cargos tienen su propia vía y no se solapan.** `GET /bookings/invoices?bookingId=…`
+(`Beds24InvoiceReceiveMappingStrategy`) es quien trae los `invoiceItems`, con su cola y su
+handler. Pedirlos también en el pull de reservas engordaría cada respuesta con datos que
+`BookingsPullHandler` no mira, y encima duplicaría la fuente de una cifra — que es justo lo que
+§12 existe para evitar.
+
+> ⚠️ Durante mucho tiempo este pull mandó `includeInvoice`, que **no es un parámetro de Beds24**
+> —el suyo se llama `includeInvoiceItems`—, así que no tuvo efecto nunca. Si buscas por qué el
+> pull «traía cargos» y no los encuentras, es por esto: no los traía.
+
+**`infoItems` y `guests` llegan pero no se guardan todavía.** `Beds24BookingDto` no declara esos
+campos y el denormalizador los descarta en silencio (`ALLOW_EXTRA_ATTRIBUTES` por defecto, así
+que no rompe). **No se pierden**: la respuesta completa queda en `lastResponseRaw` de la fila de
+`pms_bookings_pull_queue`, y ahí es donde hay que mirar para conocer su forma real antes de
+mapearlos. Se piden desde ya precisamente para que, el día que se implementen, haya datos
+reales que leer en lugar de adivinar el contrato.
 
 #### Lo que esto NO arregla: la ventana es de llegada, no de modificación
 
