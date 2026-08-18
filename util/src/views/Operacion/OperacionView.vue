@@ -1452,21 +1452,27 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                              ubica la fila de un vistazo. En un servicio mono-segmento sin
                                                              plantilla ese nombre es genérico («Alojamiento»): manda el
                                                              nombre interno del segmento, resuelto en vivo. -->
-                                                        <p v-if="nombreSegmentoDe(servicio) || servicio.contextoServicio" class="text-sm font-black text-slate-800 leading-tight">
-                                                            {{ nombreSegmentoDe(servicio) || servicio.contextoServicio }}
+                                                        <!-- TÍTULO: el COMPONENTE identifica la fila (Guía, Transporte,
+                                                             Ingreso a Catedral…). Viene del maestro, resuelto en el mismo
+                                                             batch que los lugares. Su icono de tipo va a la izquierda.
+                                                             Fallback al nombre de contexto si aún no se resolvió. -->
+                                                        <p v-if="nombreComponenteDe(servicio) || nombreSegmentoDe(servicio) || servicio.contextoServicio"
+                                                           class="text-sm font-black text-slate-800 leading-tight">
+                                                            {{ nombreComponenteDe(servicio) || nombreSegmentoDe(servicio) || servicio.contextoServicio }}
                                                         </p>
-                                                        <!-- El nombre del componente (Guía, Transporte…): identifica la
-                                                             fila dentro de un servicio con varios. Viene del maestro (no
-                                                             del snapshot), resuelto en el mismo batch que los lugares. -->
-                                                        <p v-if="nombreComponenteDe(servicio)" class="text-[11px] font-bold text-[#376875] leading-tight mt-0.5">
-                                                            <i class="fas fa-cube text-[8px] mr-1 text-[#E07845]"></i>{{ nombreComponenteDe(servicio) }}
+                                                        <!-- Servicio y tarifa, JUNTOS y debajo: de qué tour es la fila y
+                                                             qué tarifa se negocia. Pegados a propósito —separados por el
+                                                             componente en medio se leían como datos sueltos—. El nombre de
+                                                             contexto es el segmento en mono-segmento, si no el servicio. -->
+                                                        <p v-if="nombreComponenteDe(servicio) && (nombreSegmentoDe(servicio) || servicio.contextoServicio)"
+                                                           class="text-[11px] font-bold text-slate-500 leading-tight mt-1">
+                                                            <i class="fas fa-map-signs text-[8px] mr-1 text-slate-300"></i>{{ nombreSegmentoDe(servicio) || servicio.contextoServicio }}
                                                         </p>
-                                                        <p class="font-bold text-slate-500 leading-tight"
-                                                           :class="(nombreSegmentoDe(servicio) || servicio.contextoServicio) ? 'text-[11px] mt-0.5' : 'text-sm font-black text-slate-800'">
-                                                            {{ servicio.descripcionServicio }}
+                                                        <p v-if="servicio.descripcionServicio" class="text-[11px] font-bold text-slate-500 leading-tight">
+                                                            <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ servicio.descripcionServicio }}
                                                         </p>
-                                                        <!-- El nombre interno de la tarifa, sólo si difiere del
-                                                             de arriba: es con el que la buscas en el tarifario. -->
+                                                        <!-- Nombre interno de la tarifa, sólo si difiere: es con el que la
+                                                             buscas en el tarifario. -->
                                                         <p v-if="servicio.tarifaNombre && servicio.tarifaNombre !== servicio.descripcionServicio"
                                                            class="text-[10px] font-bold text-slate-400 leading-tight mt-0.5"
                                                            title="Nombre interno de la tarifa">
