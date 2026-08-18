@@ -18,6 +18,7 @@ import EditorCostoNegociado from '@/components/operacion/EditorCostoNegociado.vu
 import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado, type PagoProveedor, type ExpedienteDetalle } from '@/stores/operacion/operacionStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
+import { getUrls } from '@/services/apiClient';
 import {
     getEstadoOsConfig,
     getEstadoReservaProveedorConfig,
@@ -87,6 +88,50 @@ const expedienteSeleccionado = ref<ExpedienteOpcion | null>(null);
 const cotizacionesDelExpediente = ref<CotizacionOpcion[]>([]);
 const cotizacionSeleccionada = ref<string>('');
 const buscandoExpediente = ref<boolean>(false);
+
+// ── Persistencia de filtros en localStorage ──────────────────────────────────
+// Entrar a la cotización y volver dejaba La Biblia en blanco (fechas de hoy, sin filtros). Se
+// guardan las fechas y las selecciones para reconstruir el contexto. Va aquí, tras declararse
+// todos los refs de filtro, y se restaura ANTES de la carga inicial de onMounted.
+const FILTROS_STORAGE_KEY = 'biblia:filtros';
+
+const restaurarFiltros = (): void => {
+    try {
+        const raw = localStorage.getItem(FILTROS_STORAGE_KEY);
+        if (!raw) return;
+        const f = JSON.parse(raw) as Record<string, unknown>;
+        if (typeof f.desde === 'string') desde.value = f.desde;
+        if (typeof f.hasta === 'string') hasta.value = f.hasta;
+        if (Array.isArray(f.tipos)) tiposSeleccionados.value = f.tipos as string[];
+        if (Array.isArray(f.lugares)) lugaresSeleccionados.value = f.lugares as string[];
+        if (typeof f.estadoReserva === 'string') filtroEstadoReservaProveedor.value = f.estadoReserva;
+        if (typeof f.estadoOperacion === 'string') filtroEstadoOperacion.value = f.estadoOperacion;
+        if (f.filtroOs === '' || f.filtroOs === 'sin' || f.filtroOs === 'con') filtroOs.value = f.filtroOs;
+        if (f.expediente && typeof f.expediente === 'object') expedienteSeleccionado.value = f.expediente as ExpedienteOpcion;
+        if (typeof f.cotizacion === 'string') cotizacionSeleccionada.value = f.cotizacion;
+    } catch { /* storage corrupto: se ignora y arranca con los defaults */ }
+};
+
+restaurarFiltros();
+
+watch(
+    [desde, hasta, tiposSeleccionados, lugaresSeleccionados, filtroEstadoReservaProveedor,
+     filtroEstadoOperacion, filtroOs, expedienteSeleccionado, cotizacionSeleccionada],
+    () => {
+        try {
+            localStorage.setItem(FILTROS_STORAGE_KEY, JSON.stringify({
+                desde: desde.value, hasta: hasta.value,
+                tipos: tiposSeleccionados.value, lugares: lugaresSeleccionados.value,
+                estadoReserva: filtroEstadoReservaProveedor.value,
+                estadoOperacion: filtroEstadoOperacion.value,
+                filtroOs: filtroOs.value,
+                expediente: expedienteSeleccionado.value,
+                cotizacion: cotizacionSeleccionada.value,
+            }));
+        } catch { /* sin storage disponible: no pasa nada */ }
+    },
+    { deep: true },
+);
 
 const filtrosActivos = computed<FiltrosBiblia>(() => ({
     desde: desde.value ? desde.value.slice(0, 10) : undefined,
@@ -706,7 +751,32 @@ const onPopstateModal = (): void => {
 };
 
 // ── MODAL DE EXPEDIENTE (namelist + documentos + salto a cotización) ─────────
-const expedienteAbierto = ref<{ fileId: string; nombre: string; cotizacionId: string | null; fileIdParaRuta: string } | null>(null);
+const expedienteAbierto = ref<{ fileId: string; nombre: string; cotizacionId: string | null; fileIdParaRuta: string; localizador: string | null; version: number | null } | null>(null);
+const localizadorCopiado = ref(false);
+
+// «HJDLDB-v1»: localizador del expediente + versión de la cotización. Es el identificador que
+// el operador copia y comparte.
+const localizadorVersion = computed(() => {
+    const e = expedienteAbierto.value;
+    if (!e?.localizador) return '';
+    return e.version != null ? `${e.localizador}-v${e.version}` : e.localizador;
+});
+
+// Enlace a la vista del cliente (app pax, otro dominio). Abre en otra pestaña.
+const linkPax = computed(() => {
+    const e = expedienteAbierto.value;
+    if (!e?.localizador || e.version == null) return '';
+    return `${getUrls().pax}/file/${e.localizador}/v/${e.version}`;
+});
+
+const copiarLocalizador = async (): Promise<void> => {
+    if (!localizadorVersion.value) return;
+    try {
+        await navigator.clipboard.writeText(localizadorVersion.value);
+        localizadorCopiado.value = true;
+        setTimeout(() => { localizadorCopiado.value = false; }, 1500);
+    } catch { /* clipboard no disponible: sin feedback, no rompe nada */ }
+};
 const expedienteDetalle = ref<ExpedienteDetalle | null>(null);
 const cargandoExpediente = ref(false);
 const panelDocumentos = ref(true);
@@ -721,6 +791,8 @@ const abrirExpediente = async (servicio: OperacionServicio): Promise<void> => {
         fileIdParaRuta: fileId,
         nombre: servicio.file?.nombreGrupo || 'Expediente',
         cotizacionId: (servicio as { cotizacionId?: string }).cotizacionId ?? null,
+        localizador: (servicio.file as { localizador?: string | null } | undefined)?.localizador ?? null,
+        version: (servicio as { cotizacionVersion?: number | null }).cotizacionVersion ?? null,
     };
     expedienteDetalle.value = null;
     cargandoExpediente.value = true;
@@ -1910,6 +1982,21 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                     <div class="min-w-0">
                         <h3 class="font-black text-sm tracking-tight leading-tight truncate">{{ expedienteAbierto.nombre }}</h3>
                         <p v-if="expedienteDetalle?.pasajeroPrincipal" class="text-[10px] text-slate-400 truncate">{{ expedienteDetalle.pasajeroPrincipal }}</p>
+                        <!-- Localizador + versión: copiable, y enlace a la vista del cliente (app pax,
+                             otro dominio → otra pestaña). -->
+                        <div v-if="expedienteAbierto.localizador" class="flex items-center gap-2 mt-1">
+                            <button @click="copiarLocalizador"
+                                    class="inline-flex items-center gap-1 text-[10px] font-black text-white bg-white/10 hover:bg-white/20 rounded px-1.5 py-0.5 tracking-wider transition-colors"
+                                    :title="localizadorCopiado ? 'Copiado' : 'Copiar localizador'">
+                                {{ localizadorVersion }}
+                                <i class="fas text-[9px]" :class="localizadorCopiado ? 'fa-check text-emerald-300' : 'fa-copy text-slate-300'"></i>
+                            </button>
+                            <a v-if="linkPax" :href="linkPax" target="_blank" rel="noopener"
+                               class="inline-flex items-center gap-1 text-[10px] font-bold text-sky-300 hover:text-sky-200"
+                               title="Abrir la vista del cliente en otra pestaña">
+                                <i class="fas fa-arrow-up-right-from-square text-[9px]"></i> Vista cliente
+                            </a>
+                        </div>
                     </div>
                     <button @click="cerrarModal()" class="ml-auto text-slate-400 hover:text-white shrink-0">
                         <i class="fas fa-xmark"></i>

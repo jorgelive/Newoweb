@@ -222,7 +222,7 @@ class CotizacionFile
      * VISTA PÚBLICA (pax)
      * ====================================================== */
 
-    #[Groups(['file:read', 'file:item:read', 'pax_file:read'])]
+    #[Groups(['file:read', 'file:item:read', 'pax_file:read', 'operacion:item:read'])]
     #[SerializedName('localizador')]
     public function getLocalizadorPublico(): ?string
     {

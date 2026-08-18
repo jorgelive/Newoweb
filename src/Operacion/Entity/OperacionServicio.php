@@ -628,6 +628,17 @@ class OperacionServicio
         return $this->cotizacionServicio?->getCotizacion()?->getId()?->toRfc4122();
     }
 
+    /**
+     * La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+     * forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+     * vista del cliente (`/file/{localizador}/v/{version}` en pax).
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getCotizacionVersion(): ?int
+    {
+        return $this->cotizacionServicio?->getCotizacion()?->getVersion();
+    }
+
     public function getDescripcionServicio(): string { return $this->descripcionServicio; }
     public function setDescripcionServicio(string $descripcionServicio): self { $this->descripcionServicio = $descripcionServicio; return $this; }
 

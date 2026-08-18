@@ -149,6 +149,15 @@ a contexto** (línea tenue, más abajo, con el expediente y el prestador): ubica
 identifica. Antes el titular era el nombre genérico del servicio, repetido idéntico en cada fila,
 y metido entre el componente y la tarifa los partía.
 
+**Modal de expediente y persistencia (2026-08-18).** El modal que abre una fila muestra el
+**localizador + versión** (`HJDLDB-v1`) **copiable**, y un enlace a la **vista del cliente** que
+abre en otra pestaña (`${pax}/file/{localizador}/v/{version}`, otro dominio). El dato viaja en la
+propia fila: `OperacionServicio::getCotizacionVersion()` (nuevo, junto a `getCotizacionId()`) y
+`CotizacionFile::getLocalizadorPublico()` al que se le añadió el grupo `operacion:item:read`. Y
+los **filtros de La Biblia se persisten en `localStorage`** (`biblia:filtros`: fechas, tipos,
+lugares, estados, filtro OS, expediente y versión) y se restauran al montar —antes de la carga
+inicial—: entrar a la cotización y volver ya no deja el cuadro en blanco.
+
 ### Los nombres de un servicio, resueltos (2026-08-17)
 
 Tras el análisis de la asimetría (abajo), el modelo quedó en tres ejes limpios:

@@ -9296,6 +9296,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            readonly localizador?: string | null;
         };
         "CotizacionFile-operacion.read_timestamp.read": {
             /** Format: date-time */
@@ -9470,6 +9471,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            readonly localizador?: string | null;
         };
         "CotizacionFile.html-operacion.read_timestamp.read": {
             /** Format: date-time */
@@ -9647,6 +9649,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            readonly localizador?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -9822,6 +9825,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            readonly localizador?: string | null;
         };
         "CotizacionFile.multipart-operacion.read_timestamp.read": {
             /** Format: date-time */
@@ -14580,6 +14584,12 @@ export interface components {
             readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -14626,6 +14636,12 @@ export interface components {
             readonly servicioId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
         };
         "OperacionServicio-operacion.write": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.write"] | null;
@@ -14867,6 +14883,12 @@ export interface components {
             readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -14913,6 +14935,12 @@ export interface components {
             readonly servicioId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
         };
         "OperacionServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read"] | null;
@@ -14992,6 +15020,12 @@ export interface components {
             readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -15038,6 +15072,12 @@ export interface components {
             readonly servicioId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
         };
         "OperacionServicio.multipart-operacion.item.read_timestamp.read": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read"] | null;
@@ -15117,6 +15157,12 @@ export interface components {
             readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -15163,6 +15209,12 @@ export interface components {
             readonly servicioId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
+            /**
+             * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
+             *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
+             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             */
+            readonly cotizacionVersion?: number | null;
         };
         /**
          * @description Entidad MaestroPais.
