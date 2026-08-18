@@ -15,6 +15,25 @@ use DateTimeImmutable;
 final readonly class BookingsPullMappingStrategy implements MappingStrategyInterface
 {
     /**
+     * Los estados que se piden a Beds24.
+     *
+     * `cancelled` está aquí porque este pull es la red que recoge lo que el webhook perdió, y
+     * una cancelación no avisada es justo el caso que importa. `inquiry` porque el PMS lo
+     * modela como estado «abierto» y el persister lo trata aparte
+     * ({@see BookingPullPersister::resolveEstado()}).
+     *
+     * @var list<string>
+     */
+    private const array ESTADOS_CONSULTADOS = [
+        'confirmed',
+        'new',
+        'request',
+        'cancelled',
+        'black',
+        'inquiry',
+    ];
+
+    /**
      * Construye la petición GET.
      */
     public function map(HomogeneousBatch $batch): MappingResult
@@ -33,22 +52,33 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
         $arrivalFrom = $job->getArrivalFrom() ?? new DateTimeImmutable('today');
         $arrivalTo = $job->getArrivalTo();
 
-        // 4. Construcción de Parámetros (Query String)
-        $payload = [
-            'arrivalFrom'      => $arrivalFrom->format('Y-m-d'),
-            'includeInvoice'   => true,
-            'includeInfoItems' => true,
-            'status'           => [
-                'confirmed',
-                'new',
-                'request',
-                'cancelled',
-                'black'
-            ],
+        // 4. Construcción de la query — A MANO, no por `payload`
+        //
+        // ⚠️ El cliente hace `'query' => $payload` y Symfony serializa un array con
+        // `http_build_query`, que produce `status[0]=confirmed&status[1]=new…`. Beds24 NO lo
+        // interpreta como parámetro repetido: se queda sin filtro de estado y aplica el suyo por
+        // defecto, que EXCLUYE las canceladas. Ése era el motivo de que una cancelación cuyo
+        // webhook se perdió no la recuperase nunca este cron: el `status` estaba escrito, pero
+        // no llegaba.
+        //
+        // Beds24 quiere el parámetro repetido: `?status=confirmed&status=cancelled&…`. Mismo
+        // caso, misma API y mismo cliente que lo ya documentado en
+        // {@see \App\Pms\Service\Exchange\Tasks\InvoiceReceive\Beds24InvoiceReceiveMappingStrategy}
+        // para `bookingId`.
+        $partes = [
+            'arrivalFrom=' . rawurlencode($arrivalFrom->format('Y-m-d')),
+            // Se mantiene el `1` que ya viajaba (`http_build_query` convierte `true` en `1`):
+            // cambiarlo a `true` sería tocar un valor que hoy funciona y no se puede probar aquí.
+            'includeInvoice=1',
+            'includeInfoItems=1',
         ];
 
         if ($arrivalTo) {
-            $payload['arrivalTo'] = $arrivalTo->format('Y-m-d');
+            $partes[] = 'arrivalTo=' . rawurlencode($arrivalTo->format('Y-m-d'));
+        }
+
+        foreach (self::ESTADOS_CONSULTADOS as $estado) {
+            $partes[] = 'status=' . rawurlencode($estado);
         }
 
         // 5. Filtrado de Habitaciones (Scope Isolation)
@@ -77,15 +107,21 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
         }
 
         // Si hay habitaciones específicas, filtramos. Si no, Beds24 devuelve todo (según permisos del token).
-        if (!empty($roomIds)) {
-            // 🔥 FIX: Convertir IDs a string separado por comas
-            $payload['roomId'] = implode(',', array_unique($roomIds));
+        //
+        // Repetido, igual que `status`: antes iba `roomId=501,502` separado por comas. Nadie
+        // llegó a comprobar que Beds24 aceptase esa forma, y no saltó nunca porque este bucle
+        // sólo corre con jobs acotados a unidades y no hay ninguno.
+        foreach (array_unique($roomIds) as $roomId) {
+            $partes[] = 'roomId=' . $roomId;
         }
 
+        // El payload va VACÍO a propósito: la query entera viaja en la URL. Encaja con el bucle
+        // de paginación del cliente, que al saltar de página sustituye la URL por `nextPageLink`
+        // —que ya trae los parámetros originales— y vacía el payload para no duplicarlos.
         return new MappingResult(
             method: (string)$endpoint->getMetodo(),
-            fullUrl: $fullUrl,
-            payload: $payload,
+            fullUrl: $fullUrl . '?' . implode('&', $partes),
+            payload: [],
             config: $config,
             correlationMap: ['job' => (string)$job->getId()]
         );

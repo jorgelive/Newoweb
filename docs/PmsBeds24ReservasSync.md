@@ -10,6 +10,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
 2. [Entidades Clave](#2-entidades-clave)
 3. [Camino A — Webhook (Tiempo Real)](#3-camino-a--webhook-tiempo-real)
 4. [Camino B — Pull por Cron (Sincronización Programada)](#4-camino-b--pull-por-cron-sincronización-programada)
+    · [4.1.b La query se monta a mano (y por qué no llegaban las canceladas)](#41b--la-query-se-monta-a-mano-y-no-es-un-capricho)
 5. [Persister Compartido — BookingPullPersister](#5-persister-compartido--bookingpullpersister)
 6. [El Mecanismo de Espejo Virtual](#6-el-mecanismo-de-espejo-virtual)
     · [6.3.b Cambiar de casita: qué link se mueve y cuál se recrea](#63b-cambiar-de-casita-qué-link-se-mueve-y-cuál-se-recrea)
@@ -275,11 +276,12 @@ ExchangeOrchestrator::run('bookings_pull')
        └─ CLAIM: UPDATE pms_bookings_pull_queue SET status='running'
 
 BookingsPullMappingStrategy::map(batch)
-  └─ Construye GET /bookings con params:
+  └─ Construye A MANO la query de GET /bookings (payload vacío):
        ├─ arrivalFrom, arrivalTo
-       ├─ status: [confirmed, new, request, cancelled, black]
-       ├─ includeInvoice: true
-       └─ roomId: "501,502"  ← solo habitaciones de esta config
+       ├─ status=confirmed&status=new&status=request&status=cancelled
+       │        &status=black&status=inquiry     ← REPETIDO, ver §4.1.b
+       ├─ includeInvoice=1, includeInfoItems=1
+       └─ roomId=501&roomId=502  ← solo habitaciones de esta config
 
 ExchangeBatchProcessor → HTTP GET → Beds24 API
   └─ Respuesta: array de booking objects
@@ -289,6 +291,54 @@ BookingsPullHandler::handleSuccess(data, item)
   └─ forEach booking in data:
        └─ BookingPullPersister::upsert($config, $dto)
 ```
+
+### 4.1.b ⚠️ La query se monta a mano, y no es un capricho
+
+**Un array en el `payload` NO llega a Beds24 como parámetro repetido.** El cliente entrega el
+payload a Symfony como `'query' => $payload`, y `http_build_query()` serializa un array indexado
+así:
+
+```
+status[0]=confirmed&status[1]=new&status[2]=cancelled…
+```
+
+Beds24 **no** interpreta esa forma. Al no ver ningún `status` válido aplica su filtro por
+defecto, **que excluye las canceladas**. La forma que sí entiende es el parámetro repetido, tal
+cual lo devuelve su propia consola:
+
+```
+?status=confirmed&status=request&status=new&status=cancelled&status=black&status=inquiry
+```
+
+**Qué costó:** el `status` del pull incluía `cancelled` desde el principio y era correcto leyéndolo
+—el fallo estaba en la serialización, no en el código—, así que durante todo ese tiempo el cron
+**no recuperaba ninguna cancelación**. Si el webhook de una cancelación se perdía, la reserva se
+quedaba viva en el PMS para siempre: el pull volvía a pasar por esas fechas y Beds24 no la
+mencionaba, porque para él era una cancelada y nadie se las había pedido.
+
+Por eso `BookingsPullMappingStrategy::map()` construye la URL a mano y devuelve `payload: []`.
+Encaja con el bucle de paginación de `Beds24ExchangeClient`, que al saltar de página sustituye la
+URL por `nextPageLink` —que ya trae los parámetros— y vacía el payload.
+
+El mismo problema estaba ya documentado y resuelto en
+`Beds24InvoiceReceiveMappingStrategy::map()` para `bookingId`. **Es una trampa del cliente, no de
+una tarea concreta: cualquier GET nuevo a Beds24 con un parámetro multivaluado la tiene delante.**
+
+Fijado por `tests/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullMappingStrategyTest.php`,
+que comprueba la URL final —no el payload—, porque es justo donde el fallo era invisible.
+
+#### Lo que esto NO arregla: la ventana es de llegada, no de modificación
+
+El cron barre por **fecha de llegada** con un cursor que empieza en «ayer» y avanza a saltos de 14
+días (doblando con la lejanía, techo ×8) hasta el horizonte, y al terminar se reinicia
+(`TimelineEnqueuerService`). Consecuencia: una cancelación sólo se ve **cuando el cursor pasa por
+encima de la fecha de llegada de esa reserva**, no cuando ocurre.
+
+Con el arreglo de arriba, una cancelación perdida se recupera —pero puede tardar lo que tarde el
+ciclo en dar la vuelta, y si la llegada ya quedó por detrás del cursor, hasta la siguiente vuelta
+entera. Para que el cron sea de verdad la red de los webhooks perdidos hace falta pedir por
+`modifiedFrom`, que devuelve lo tocado desde una marca de tiempo sin depender de la llegada.
+**Pendiente**: no está implementado.
 
 ### 4.2 Diferencias Pull Cron vs Webhook
 
@@ -3123,6 +3173,8 @@ deben verse.
 | Que las extensiones dejen de ser invisibles en una vista nueva | — | la tabla de filtros de §7.1.b |
 | Cambiar cómo nacen los cargos de horario extra (hoy en 0.00) | `PmsCargosAutomaticosService` | `sincronizarExtras()` |
 | Cambiar ventana anti-dup | `Beds24WebhookController` | `600` (seg) y `15000` (ms) |
+| Añadir o quitar un estado del pull de reservas | `BookingsPullMappingStrategy` | `ESTADOS_CONSULTADOS` — **repetido en la URL, nunca en el `payload`**: §4.1.b |
+| Añadir un parámetro multivaluado a cualquier GET de Beds24 | `BookingsPullMappingStrategy`, `Beds24InvoiceReceiveMappingStrategy` | montarlo en `fullUrl`; un array en el `payload` sale como `x[0]=` y Beds24 lo ignora |
 | Tocar cascadas del grafo evento/link/cola de push | `Beds24BookingsPushQueueCreator` | `enqueueForLink()` — **lee §12.11 antes** |
 | Cambiar cuándo se puede borrar una estancia (§12.12.1) | `PmsEventoCalendario` | `getMotivoNoBorrable()` — fuente única; `util` sólo tipa el campo serializado en `PmsBorrableInfo`, no reimplementa la regla |
 | Que el borrado de la reserva arrastre una tabla nueva (§12.12.3) | `PmsReserva` | declarar el lado inverso con `cascade: ['remove']`; una FK sin mapear = 1451 |
