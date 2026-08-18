@@ -250,6 +250,16 @@ Detalles que no se ven leyendo el componente:
   del árbol el problema desaparece; es el mismo motivo por el que tippy monta en
   `document.body`. Como consecuencia, el cierre por clic fuera comprueba **dos** elementos (el
   botón y el panel): teletransportado, el panel ya no cuelga del componente.
+
+- **`SearchableSelect.vue` sigue el mismo patrón** (2026-08-18). Su lista desplegable era
+  `absolute z-[110]` dentro del propio componente y se recortaba contra el `overflow-y-auto` del
+  panel del editor de cotización, además de quedar tapada por la barra de totales inferior. Ahora
+  la lista va en `<Teleport to="body">` con `position: fixed`, anclada al disparador por
+  `getBoundingClientRect()` (`posicionar()`), y **se abre hacia arriba** si no cabe abajo —el caso
+  de un selector pegado al footer en móvil—. El cierre por clic fuera comprueba disparador **y**
+  lista, y se reposiciona en `scroll`/`resize` mientras está abierta. Es un componente muy
+  reutilizado (tarifas, prestador, comprador, servicios): cualquier cambio ahí se prueba en varias
+  pantallas.
 - **El cierre por clic fuera escucha en `document` con `capture: true`.** Las vistas de
   calendario montan overlays a pantalla completa que se tragan el clic antes de que burbujee;
   sin la fase de captura el panel se quedaba abierto detrás de ellos.

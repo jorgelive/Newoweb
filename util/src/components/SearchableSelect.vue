@@ -1,6 +1,7 @@
 <template>
-  <div class="relative w-full" v-click-outside="close">
+  <div class="relative w-full">
     <div
+        ref="triggerRef"
         @click="toggle"
         :class="[
         'w-full cursor-pointer flex justify-between items-center px-4 py-3 border rounded-xl transition-all shadow-sm',
@@ -21,10 +22,16 @@
       {{ errorMessage }}
     </p>
 
+    <!-- La lista va teletransportada al body con posición fija: dentro del panel la recortaba
+         el contenedor con `overflow-y-auto` y la tapaba la barra de totales. `posicionar()` la
+         ancla al disparador y la abre hacia arriba si no cabe abajo. -->
+    <Teleport to="body">
     <div
         v-if="isOpen"
-        class="absolute z-[110] w-full mt-2 rounded-2xl shadow-2xl border overflow-hidden animate-fade-in"
+        ref="dropdownRef"
+        class="fixed z-[200] rounded-2xl shadow-2xl border overflow-hidden animate-fade-in"
         :class="darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'"
+        :style="dropdownStyle"
     >
       <div class="p-2 border-b" :class="darkMode ? 'border-slate-700' : 'border-slate-100'">
         <div class="relative">
@@ -88,11 +95,12 @@
         </li>
       </ul>
     </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, type DirectiveBinding } from 'vue';
+import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue';
 
 /**
  * Valor de una opción: siempre un identificador (id o IRI), o null cuando no hay
@@ -135,7 +143,54 @@ const emit = defineEmits(['update:modelValue', 'change', 'search', 'blur']);
 const isOpen = ref(false);
 const searchQuery = ref('');
 const searchInputRef = ref<HTMLInputElement | null>(null);
+const triggerRef = ref<HTMLElement | null>(null);
+const dropdownRef = ref<HTMLElement | null>(null);
+const dropdownStyle = ref<Record<string, string>>({});
 const touched = ref(false); // se activa tras abrir/cerrar (comportamiento tipo blur)
+
+// Ancla la lista teletransportada al disparador. Abre hacia abajo salvo que no quepa y arriba
+// haya más sitio (típico en inputs pegados al footer en móvil). Se recalcula al abrir y en
+// cada scroll/resize mientras está abierta.
+const posicionar = (): void => {
+  const el = triggerRef.value;
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const alto = 320; // input de búsqueda + lista (max-h-64) + márgenes, aproximado
+  const espacioAbajo = window.innerHeight - r.bottom;
+  const abrirArriba = espacioAbajo < alto && r.top > espacioAbajo;
+  dropdownStyle.value = abrirArriba
+    ? { left: `${r.left}px`, width: `${r.width}px`, bottom: `${window.innerHeight - r.top + 8}px` }
+    : { left: `${r.left}px`, width: `${r.width}px`, top: `${r.bottom + 8}px` };
+};
+
+// Cierre al hacer clic fuera: la lista está teletransportada, así que hay que contemplar
+// tanto el disparador como la propia lista (si no, teclear en el buscador la cerraría).
+const onDocDown = (event: Event): void => {
+  const t = event.target as Node;
+  if (triggerRef.value?.contains(t) || dropdownRef.value?.contains(t)) return;
+  close();
+};
+
+watch(isOpen, async (abierta) => {
+  if (abierta) {
+    await nextTick();
+    posicionar();
+    searchInputRef.value?.focus();
+    window.addEventListener('scroll', posicionar, true);
+    window.addEventListener('resize', posicionar);
+    document.addEventListener('pointerdown', onDocDown, true);
+  } else {
+    window.removeEventListener('scroll', posicionar, true);
+    window.removeEventListener('resize', posicionar);
+    document.removeEventListener('pointerdown', onDocDown, true);
+  }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', posicionar, true);
+  window.removeEventListener('resize', posicionar);
+  document.removeEventListener('pointerdown', onDocDown, true);
+});
 
 // Temporizador para el debounce de la búsqueda asíncrona
 let debounceTimer: ReturnType<typeof setTimeout>;
@@ -153,12 +208,11 @@ const isEmpty = computed(() => props.modelValue === '' || props.modelValue === n
 // Muestra error si: el padre lo fuerza (invalid) o es required, está vacío y ya fue tocado
 const showError = computed(() => props.invalid || (props.required && isEmpty.value && touched.value));
 
-const toggle = async () => {
+const toggle = () => {
   isOpen.value = !isOpen.value;
   if (isOpen.value) {
     searchQuery.value = '';
-    await nextTick();
-    searchInputRef.value?.focus(); // 🔥 FOCO AUTOMÁTICO AL ABRIR
+    // El foco, el posicionamiento y los listeners los pone el watch de `isOpen`.
   } else {
     touched.value = true;
     emit('blur');
@@ -207,23 +261,6 @@ const validate = (): boolean => {
 };
 
 defineExpose({ validate, isValid: computed(() => !(props.required && isEmpty.value)) });
-
-// Directiva simple para cerrar al hacer clic fuera
-type ElementoConClickFuera = HTMLElement & { clickOutsideEvent?: (event: Event) => void };
-
-const vClickOutside = {
-  mounted(el: ElementoConClickFuera, binding: DirectiveBinding<() => void>) {
-    el.clickOutsideEvent = (event: Event) => {
-      if (!(el === event.target || el.contains(event.target as Node))) {
-        binding.value();
-      }
-    };
-    document.addEventListener('click', el.clickOutsideEvent);
-  },
-  unmounted(el: ElementoConClickFuera) {
-    if (el.clickOutsideEvent) document.removeEventListener('click', el.clickOutsideEvent);
-  },
-};
 </script>
 
 <style scoped>
