@@ -602,9 +602,25 @@ final class BookingPullPersister implements ResetInterface
     }
 
     /**
-     * Resuelve el estado de la reserva aplicando las reglas de negocio de Canales vs OTAs.
-     * Respeta ÚNICAMENTE el estado "Abierto" (Inquiry) como pre-reserva intocable.
-     * El resto (new, request) pasará a Confirmada si el canal es de pago total.
+     * Resuelve el estado de la estancia a partir del que reporta el canal.
+     *
+     * ⚠️ LO QUE LLEGA COMO `new` O `request` SE QUEDA ASÍ, Y ES INTENCIONAL. No se auto-confirma
+     * aunque el canal sea de pago total: el equipo local tiene que verificar la reserva antes de
+     * darla por buena. Ese estado intermedio ES el aviso de que hay algo pendiente de revisar; si
+     * se confirmara sola, la verificación dejaría de ocurrir porque nadie vería la diferencia.
+     *
+     * ⚠️⚠️ EL `(int)$statusApi === 0` DE LA RAMA 1 NO ES UN FALLO — NO LO «ARREGLES».
+     * Viene de la API v1, donde el estado era numérico y `0` significaba cancelada. Con la v2 los
+     * estados son texto (`cancelled`, `confirmed`, `new`…) y `(int)"new"` es `0`, así que la rama
+     * entra SIEMPRE y devuelve el estado mapeado tal cual. Ése es justo el comportamiento que se
+     * quiere, y por eso las ramas 2 y 3 de abajo no llegan a ejecutarse nunca.
+     *
+     * Quitar ese cast «porque parece un bug» reactivaría la rama 3 y pondría a confirmar solas
+     * las reservas de Airbnb y VRBO, saltándose la verificación del equipo. Se conservan las
+     * ramas 2 y 3 —en vez de borrarlas— porque documentan la intención original y el día que
+     * Beds24 cambie de contrato hay que decidir a conciencia, no descubrirlo por accidente.
+     *
+     * Detalle y motivo en `docs/PmsBeds24ReservasSync.md` §5.4.
      */
     private function resolveEstado(Beds24BookingDto $dto): PmsEventoEstado
     {
@@ -633,10 +649,14 @@ final class BookingPullPersister implements ResetInterface
                 ?? throw new RuntimeException('CRÍTICO: Maestro corrupto (falta PENDIENTE).');
         }
 
-        // 1. Si Beds24 reporta que ESTÁ CANCELADA, respetamos eso sobre todo.
+        // 1. Se respeta el estado del canal tal cual. Con la API v2 esta rama entra SIEMPRE
+        //    —ver el aviso del docblock—, y es lo que mantiene `new`/`request` sin auto-confirmar
+        //    para que el equipo local verifique la reserva.
         if ((int)$statusApi === 0 || $estadoBase->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
             return $estadoBase;
         }
+
+        // ⬇️ INALCANZABLE con la API v2 (statuses de texto). Se conserva a propósito: ver docblock.
 
         // 2. PROTECCIÓN ESTRICTA DE PRE-RESERVAS (INQUIRY):
         // El único estado que NO se toca ni se auto-confirma es ABIERTO.
