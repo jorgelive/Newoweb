@@ -181,6 +181,36 @@ const saldosCabecera = computed<PmsTotalMoneda[]>(() =>
 );
 
 /**
+ * Las monedas que enseña la cabecera de CADA SECCIÓN, con la cifra de esa sección.
+ *
+ * ── Por qué hace falta filtrar aquí y no vale `totalesPorMoneda` a secas ────
+ * La tabla de totales tiene una fila por moneda con **cualquier** movimiento, cargos o cobros.
+ * En `V6WDDQ` eso significa una fila PEN que existe por los dos Yape, y con los cargos en cero:
+ * recorrerla sin filtrar hacía que la sección «Cargos» anunciara `S/. 0.00` al lado de
+ * `US$ 131.41`, cuando los cuatro cargos de esa reserva son en dólares y no hay ninguno en soles.
+ *
+ * El conjunto de monedas sale de los REGISTROS y el importe sigue saliendo del rollup. No es
+ * recalcular el total por la vía de atrás —eso es justo lo que se retiró—: es saber qué filas
+ * tiene sentido enseñar. Y así el cargo de `0.00` con el que nace una estancia directa, que es
+ * donde el operador teclea el precio, sigue anunciándose en su moneda en vez de desaparecer.
+ */
+function monedasDe(registros: { moneda?: PmsFinanzasMonedaRef | null }[]): Set<string> {
+    return new Set(registros.map(r => r.moneda?.id).filter((m): m is string => !!m));
+}
+
+const totalesDeCargos = computed(() => {
+    const conRegistro = monedasDe(cargosVista.value);
+
+    return totalesPorMoneda.value.filter(t => conRegistro.has(t.moneda));
+});
+
+const totalesDePagos = computed(() => {
+    const conRegistro = monedasDe(pagosVista.value);
+
+    return totalesPorMoneda.value.filter(t => conRegistro.has(t.moneda));
+});
+
+/**
  * El color de un saldo, por su signo. Mismo criterio que la tabla de abajo, para que la cabecera
  * y el detalle no puedan contradecirse.
  */
@@ -1622,7 +1652,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                          cabecera, y con dos monedas se contradecía con las filas de arriba: la
                          de Pagos llegó a decir «US$ 65.97» de un cobro de S/ 223.70. -->
                     <span class="flex items-center gap-2 text-sm font-black" :class="seccionAbierta === 'cargos' ? 'text-emerald-800' : 'text-slate-700'">
-                        <span v-for="t in totalesPorMoneda" :key="t.moneda" class="whitespace-nowrap">
+                        <span v-for="t in totalesDeCargos" :key="t.moneda" class="whitespace-nowrap">
                             {{ importeEn(t.cargos, t.moneda) }}
                         </span>
                     </span>
@@ -2086,7 +2116,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <span class="font-normal text-xs" :class="seccionAbierta === 'pagos' ? 'text-sky-600/70' : 'text-slate-400'">({{ finanzas.info.pagos?.length ?? 0 }})</span>
                     </span>
                     <span class="flex items-center gap-2 text-sm font-black" :class="seccionAbierta === 'pagos' ? 'text-sky-800' : 'text-emerald-600'">
-                        <span v-for="t in totalesPorMoneda" :key="t.moneda" class="whitespace-nowrap">
+                        <span v-for="t in totalesDePagos" :key="t.moneda" class="whitespace-nowrap">
                             {{ importeEn(t.pagos, t.moneda) }}
                         </span>
                     </span>
