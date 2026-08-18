@@ -510,6 +510,16 @@ rechazaron. Guardar lo propuesto significa «esto ya te lo pregunté»; conserva
 haría que el siguiente plan volviera a proponer lo mismo y el operador tuviera que
 rechazarlo una y otra vez.
 
+⚠️ **`valoresActuales()` tiene que devolver TODOS los campos de `ETIQUETAS`.** El diff compara
+lo propuesto contra lo que devuelve `valoresActuales()`; si un campo está en `ETIQUETAS` (y por
+tanto lo produce `calcularValores()`) pero **falta** en `valoresActuales()`, se lee como `null`,
+nunca coincide con lo propuesto y **el plan lo marca como cambio en conflicto para siempre** —
+aplicarlo no converge, porque la siguiente comparación vuelve a leer `null`. Pasó con
+`tarifaNombre` y `cantidadComponente` (2026-08-18): se añadieron al snapshot y a `ETIQUETAS`
+pero no a `valoresActuales()`, y el sincronizador proponía 42 filas / 82 campos en cada corrida
+aunque la BD ya coincidía. Al tocar cualquiera de las tres listas (`ETIQUETAS`, `calcularValores()`,
+`valoresActuales()`), cuadrar las otras dos.
+
 #### Las clases de cambio y su casilla por defecto
 
 El estado inicial de cada casilla **es** la política de seguridad:
