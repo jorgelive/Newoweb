@@ -1379,12 +1379,10 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                           >
                             <template v-if="msg.id && isShowingTranslation(msg.id)">
                               <i class="fas fa-globe text-[12px] opacity-70 mr-1.5"></i>
-                                   convierte en enlace lo que casa `https?://`. Ver utils/formatoDeTexto.ts. -->
                               <!-- eslint-disable-next-line vue/no-v-html -- Texto del huésped, pero `formatoAHtml()` escapa ANTES de aplicar marcas y sólo enlaza lo que casa https?://. -->
                               <span v-html="formatMessageText(msg.contentExternal)"></span>
                             </template>
                             <template v-else>
-                                   convierte en enlace lo que casa `https?://`. Ver utils/formatoDeTexto.ts. -->
                               <!-- eslint-disable-next-line vue/no-v-html -- Texto del huésped, pero `formatoAHtml()` escapa ANTES de aplicar marcas y sólo enlaza lo que casa https?://. -->
                               <span v-html="formatMessageText(msg.contentLocal || msg.contentExternal || 'Mensaje enviado')"></span>
                               <i v-if="hasTranslation(msg)" class="fas fa-language text-[12px] opacity-40 ml-1.5 hover:opacity-100 transition-opacity"></i>
