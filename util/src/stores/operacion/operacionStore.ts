@@ -105,6 +105,9 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * catálogo, así que resolverlo por fila serían N peticiones cruzando de módulo.
      */
     const lugaresPorComponente = ref<Record<string, string[]>>({});
+    // Nombre interno del componente maestro (id → nombre), del MISMO batch que los lugares.
+    // El nombre del componente no vive en el snapshot: viene del maestro, como sus lugares.
+    const nombreComponentePorMaestro = ref<Record<string, string>>({});
 
     // Contacto vivo de los proveedores del cuadro, por uuid de maestro. Lo llena
     // `resolverContactoDeProveedores()` en cada carga; ver su docblock.
@@ -286,20 +289,24 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             const miembros = res.data['hydra:member'] || res.data['member'] || [];
 
             const mapa: Record<string, string[]> = {};
+            const mapaNombres: Record<string, string> = {};
 
             miembros.forEach((c: Record<string, unknown>) => {
                 const id = String(c.id ?? String(c['@id'] ?? '').split('/').pop() ?? '');
                 const iris = Array.isArray(c.lugares) ? (c.lugares as string[]) : [];
                 if (id) {
                     mapa[id] = iris.map((iri) => nombrePorIri.get(iri) ?? '').filter(Boolean);
+                    if (c.nombre) mapaNombres[id] = String(c.nombre);
                 }
             });
 
             lugaresPorComponente.value = mapa;
+            nombreComponentePorMaestro.value = mapaNombres;
         } catch (error) {
             // Los badges son decoración: si el catálogo falla, el cuadro sigue siendo usable.
             console.error('No se pudieron resolver las etiquetas de lugar:', error);
             lugaresPorComponente.value = {};
+            nombreComponentePorMaestro.value = {};
         }
     };
 
@@ -309,6 +316,14 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             ?.componenteMaestroId;
 
         return maestro ? (lugaresPorComponente.value[maestro] ?? []) : [];
+    };
+
+    /** Nombre interno del componente de una fila (del maestro), o `null` si no se resolvió. */
+    const nombreComponenteDeServicio = (servicio: OperacionServicio): string | null => {
+        const maestro = (servicio.cotizacionComponente as { componenteMaestroId?: string } | undefined)
+            ?.componenteMaestroId;
+
+        return maestro ? (nombreComponentePorMaestro.value[maestro] ?? null) : null;
     };
 
     /**
@@ -753,6 +768,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         fetchServicios,
         fetchLugares,
         lugaresDeServicio,
+        nombreComponenteDeServicio,
         buscarExpedientes,
         fetchCotizacionesDeExpediente,
         actualizarServicio,

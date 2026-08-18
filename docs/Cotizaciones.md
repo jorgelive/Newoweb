@@ -136,6 +136,12 @@ el diff—:
 - **No toca `ETIQUETAS`/`valoresActuales()`**: no es un campo de reconciliación, así que no
   reintroduce el problema de convergencia (§Operacion.md 3.5).
 
+Y el **nombre del componente** (Guía, Transporte…), que identifica cada fila dentro de un
+servicio con varios, tampoco vive en el snapshot: viene del maestro. Se resuelve **en el mismo
+batch que ya trae los lugares** (`resolverLugaresDeServicios` en `operacionStore`, cero peticiones
+nuevas): del `/travel/componentes` que se pide para los badges se saca también el `nombre`
+(`nombreComponenteDeServicio`), y la fila lo pinta bajo el título.
+
 ### Los nombres de un servicio, resueltos (2026-08-17)
 
 Tras el análisis de la asimetría (abajo), el modelo quedó en tres ejes limpios:

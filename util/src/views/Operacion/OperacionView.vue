@@ -403,6 +403,8 @@ const telefonoDe = (s: OperacionServicio): string | null => operacionStore.conta
 const direccionDe = (s: OperacionServicio): string | null => operacionStore.contactoDePrestador(s).direccion;
 // Mono-segmento sin plantilla: el nombre interno del segmento manda sobre el genérico del servicio.
 const nombreSegmentoDe = (s: OperacionServicio): string | null => operacionStore.nombreSegmentoDeServicio(s);
+// Nombre interno del componente (Guía, Transporte…): identifica la fila dentro de un servicio.
+const nombreComponenteDe = (s: OperacionServicio): string | null => operacionStore.nombreComponenteDeServicio(s);
 
 // ============================================================================
 // COSTO REAL — lo que de verdad se pagó, frente a lo que decía la cotización
@@ -1452,6 +1454,12 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                              nombre interno del segmento, resuelto en vivo. -->
                                                         <p v-if="nombreSegmentoDe(servicio) || servicio.contextoServicio" class="text-sm font-black text-slate-800 leading-tight">
                                                             {{ nombreSegmentoDe(servicio) || servicio.contextoServicio }}
+                                                        </p>
+                                                        <!-- El nombre del componente (Guía, Transporte…): identifica la
+                                                             fila dentro de un servicio con varios. Viene del maestro (no
+                                                             del snapshot), resuelto en el mismo batch que los lugares. -->
+                                                        <p v-if="nombreComponenteDe(servicio)" class="text-[11px] font-bold text-[#376875] leading-tight mt-0.5">
+                                                            <i class="fas fa-cube text-[8px] mr-1 text-[#E07845]"></i>{{ nombreComponenteDe(servicio) }}
                                                         </p>
                                                         <p class="font-bold text-slate-500 leading-tight"
                                                            :class="(nombreSegmentoDe(servicio) || servicio.contextoServicio) ? 'text-[11px] mt-0.5' : 'text-sm font-black text-slate-800'">
