@@ -643,6 +643,28 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         }
     };
 
+    /**
+     * Sube un documento al expediente desde La Biblia. Mismo endpoint multipart que usa
+     * FileDetalle (`/cotizacion_filedocumentos`): estos documentos —vouchers, confirmaciones de
+     * reserva— se generan justo al operar, así que tiene sentido subirlos sin salir del cuadro.
+     * `tipodocumento` sale del nombre del archivo; se puede renombrar luego en el expediente.
+     */
+    const subirDocumentoExpediente = async (fileId: string, archivo: File): Promise<boolean> => {
+        try {
+            const fd = new FormData();
+            fd.append('documento', archivo);
+            fd.append('tipodocumento', archivo.name.replace(/\.[^.]+$/, '') || 'Documento');
+            fd.append('file', `/platform/sales/cotizacion_files/${fileId}`);
+            await apiClient.post('/platform/sales/cotizacion_filedocumentos', fd, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            return true;
+        } catch (error) {
+            console.error('No se pudo subir el documento:', error);
+            return false;
+        }
+    };
+
     /** Los pagos a cuenta de una orden. Bajo demanda: se ven al abrir el modal de pagos. */
     const fetchPagos = async (ordenId: string): Promise<PagoProveedor[]> => {
         try {
@@ -756,6 +778,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         fetchProveedores,
         fetchBitacoraEstado,
         fetchExpedienteDetalle,
+        subirDocumentoExpediente,
         fetchPagos,
         crearPago,
         eliminarPago,

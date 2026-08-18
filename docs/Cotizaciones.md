@@ -156,7 +156,11 @@ propia fila: `OperacionServicio::getCotizacionVersion()` (nuevo, junto a `getCot
 `CotizacionFile::getLocalizadorPublico()` al que se le añadió el grupo `operacion:item:read`. Y
 los **filtros de La Biblia se persisten en `localStorage`** (`biblia:filtros`: fechas, tipos,
 lugares, estados, filtro OS, expediente y versión) y se restauran al montar —antes de la carga
-inicial—: entrar a la cotización y volver ya no deja el cuadro en blanco.
+inicial—: entrar a la cotización y volver ya no deja el cuadro en blanco. El modal tiene dos
+accesos —**Expediente** (`file_detalle`) y **Cotización** (`cotizaciones_editor`)— y permite
+**subir documentos** al expediente sin salir (`subirDocumentoExpediente` → el mismo endpoint
+multipart `/cotizacion_filedocumentos` de FileDetalle): esos documentos —vouchers, confirmaciones
+de reserva— se generan justo al operar.
 
 ### Los nombres de un servicio, resueltos (2026-08-17)
 

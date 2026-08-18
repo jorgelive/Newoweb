@@ -810,6 +810,36 @@ const irACotizacion = (): void => {
     router.push({ name: 'cotizaciones_editor', params: { fileId: e.fileIdParaRuta, cotizacionId: e.cotizacionId } });
 };
 
+/** Abre el expediente completo (datos del cliente, versiones, bóveda de documentos). */
+const irAExpediente = (): void => {
+    const e = expedienteAbierto.value;
+    if (!e?.fileIdParaRuta) return;
+    router.push({ name: 'file_detalle', params: { id: e.fileIdParaRuta } });
+};
+
+// ── Subir documento al expediente desde el modal ─────────────────────────────
+const docInputRef = ref<HTMLInputElement | null>(null);
+const subiendoDoc = ref(false);
+
+const onSubirDocumento = async (event: Event): Promise<void> => {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    const e = expedienteAbierto.value;
+    if (!archivo || !e?.fileId) return;
+
+    subiendoDoc.value = true;
+    try {
+        const ok = await operacionStore.subirDocumentoExpediente(e.fileId, archivo);
+        if (ok) {
+            // Refresca la lista del modal para que el documento recién subido aparezca.
+            expedienteDetalle.value = await operacionStore.fetchExpedienteDetalle(e.fileId);
+        }
+    } finally {
+        subiendoDoc.value = false;
+        if (docInputRef.value) docInputRef.value.value = ''; // permite resubir el mismo archivo
+    }
+};
+
 /** Nombre completo de un pasajero del namelist, con lo que haya. */
 const nombrePasajero = (p: Record<string, unknown>): string =>
     [p.nombre, p.apellido].filter(Boolean).join(' ') || 'Sin nombre';
@@ -2045,6 +2075,16 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                 <i class="fas text-[10px] text-slate-300" :class="panelDocumentos ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                             </button>
                             <div v-if="panelDocumentos" class="px-4 pb-3">
+                                <!-- Subir documento (voucher, confirmación de reserva…) sin salir del
+                                     cuadro: se generan justo al operar. Reutiliza el endpoint multipart
+                                     de FileDetalle; el tipo sale del nombre del archivo. -->
+                                <button @click="docInputRef?.click()" :disabled="subiendoDoc"
+                                        class="w-full mb-2 py-2 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#376875] bg-[#376875]/8 hover:bg-[#376875]/15 disabled:opacity-50 rounded-lg border border-dashed border-[#376875]/30 transition-colors">
+                                    <i class="fas" :class="subiendoDoc ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'"></i>
+                                    {{ subiendoDoc ? 'Subiendo…' : 'Subir documento' }}
+                                </button>
+                                <input ref="docInputRef" type="file" class="hidden" @change="onSubirDocumento" />
+
                                 <p v-if="!(expedienteDetalle?.filedocumentos ?? []).length" class="text-[11px] text-slate-400 py-2">
                                     Sin archivos cargados.
                                 </p>
@@ -2065,12 +2105,17 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                     </template>
                 </div>
 
-                <!-- Salto a la cotización del servicio -->
-                <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 shrink-0">
+                <!-- Accesos: al expediente completo y a la cotización del servicio -->
+                <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 shrink-0 flex gap-2">
+                    <button @click="irAExpediente"
+                            class="flex-1 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 text-[#376875] rounded-lg text-xs font-black uppercase tracking-widest shadow-sm transition-colors">
+                        <i class="fas fa-folder-open mr-1"></i>
+                        Expediente
+                    </button>
                     <button @click="irACotizacion" :disabled="!expedienteAbierto.cotizacionId"
-                            class="w-full py-2.5 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-40 text-white rounded-lg text-xs font-black uppercase tracking-widest shadow-sm transition-colors">
+                            class="flex-1 py-2.5 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-40 text-white rounded-lg text-xs font-black uppercase tracking-widest shadow-sm transition-colors">
                         <i class="fas fa-file-invoice-dollar mr-1"></i>
-                        Abrir la cotización
+                        Cotización
                     </button>
                 </div>
             </div>
