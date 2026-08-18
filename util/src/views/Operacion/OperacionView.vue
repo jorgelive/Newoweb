@@ -681,12 +681,11 @@ const cerrarTodosLosModales = (): void => {
 
 let modalEnHistory = false;
 
-watch(hayModalAbierto, (abierto) => {
-    if (abierto && !modalEnHistory) {
-        history.pushState({ modalOperacion: true }, '');
-        modalEnHistory = true;
-    }
-});
+// El watch de `hayModalAbierto` se registra en onMounted, NO aquí. Su fuente agrega refs de
+// modales que se declaran más abajo (expedienteAbierto, pagosOrden…), y `watch()` evalúa la
+// fuente al crearse: en el setup las leería antes de su declaración → TDZ («Cannot access 'xe'
+// before initialization»). En onMounted ya están todas inicializadas. Un modal no puede estar
+// abierto antes del montaje, así que no se pierde ningún disparo.
 
 /** Cierra el modal activo consumiendo su entrada de history, para que «atrás» no sobre. */
 const cerrarModal = (): void => {
@@ -967,6 +966,17 @@ onMounted(async () => {
     // Las monedas van en paralelo: hacen falta para el selector de la moneda negociada.
     await Promise.all([operacionStore.fetchLugares(), operacionStore.fetchMonedas()]);
     await cargarBiblia();
+});
+
+onMounted(() => {
+    // Empuja una entrada de history al abrir cualquier modal, para que «atrás» lo cierre.
+    // Aquí y no en el setup: ver la nota junto a la declaración de `hayModalAbierto`.
+    watch(hayModalAbierto, (abierto) => {
+        if (abierto && !modalEnHistory) {
+            history.pushState({ modalOperacion: true }, '');
+            modalEnHistory = true;
+        }
+    });
 });
 
 onMounted(() => window.addEventListener('popstate', onPopstateModal));
