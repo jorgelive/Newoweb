@@ -1541,16 +1541,20 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     :title="`${t.moneda}: cargos ${t.cargos} · pagado ${t.pagos}`">
                     {{ importeEn(t.saldo, t.moneda) }}
                 </span>
-                <!-- El saldo SÍ es una sola cifra: es el cuadre, y responde «¿debe algo?», que
-                     sólo tiene respuesta mirando las monedas juntas. Va marcado con `≈` cuando
-                     hubo conversión, para que no se lea como contabilidad. -->
-                <span v-if="cuadre" class="px-2 py-0.5 rounded-md bg-white text-[11px] font-black tabular-nums"
+                <!-- El cuadre: los saldos de las dos monedas llevados a una sola cifra, marcada
+                     con `≈` porque hubo conversión.
+
+                     ⚠️ SÓLO con dos monedas, que es la misma condición que la fila de abajo. Con
+                     una sola no hay nada que cuadrar: el cuadre ES ese saldo, y se pintaba la
+                     misma cifra dos veces seguidas — en 313 de 317 reservas. Dos pastillas
+                     idénticas no se leen como «lo mismo dicho dos veces», se leen como dos datos
+                     distintos que por casualidad coinciden, y eso obliga a pararse a averiguar
+                     cuál es cuál. -->
+                <span v-if="cuadre && cuadre.mixta"
+                    class="px-2 py-0.5 rounded-md bg-white text-[11px] font-black tabular-nums"
                     :class="claseSaldo"
-                    :title="cuadre.mixta
-                        ? `Balance de las dos monedas al cambio ${cuadre.tipoCambio ?? '—'}`
-                        : undefined">
-                    <template v-if="cuadre.mixta">≈</template>
-                    {{ importeEn(cuadre.diferencia, cuadre.moneda) }}
+                    :title="`Balance de las dos monedas al cambio ${cuadre.tipoCambio ?? '—'}`">
+                    ≈ {{ importeEn(cuadre.diferencia, cuadre.moneda) }}
                 </span>
             </span>
             <i v-else-if="finanzas.isLoading" class="fas fa-spinner fa-spin text-white/80 text-sm shrink-0"></i>
@@ -1609,20 +1613,20 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     </div>
                     <div class="px-3 py-3 text-center">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Saldo</p>
-                        <p class="flex items-center justify-center gap-1.5 text-sm font-black mt-0.5"
+                        <p class="text-sm font-black mt-0.5 whitespace-nowrap"
                             :class="claseDeSaldo(t.saldo)">
                             {{ importeEn(t.saldo, t.moneda) }}
-                            <!-- Mismo botón que el del prepago, y por el mismo motivo: el importe
-                                 ya está en pantalla, así que teclearlo otra vez en el formulario
-                                 largo es copiar a mano un número que el sistema ya sabe. -->
-                            <button v-if="puedeCobrarSaldo(t)" type="button"
-                                class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide
-                                       bg-[#376875] text-white hover:bg-[#2c545f] transition-colors"
-                                :title="`Registra un cobro por los ${importeEn(t.saldo, t.moneda)} que faltan.`"
-                                @click="abrirCobroRapido(t.saldo, t.moneda, `el saldo en ${t.moneda}`)">
-                                Cobrar
-                            </button>
                         </p>
+                        <!-- DEBAJO y no al lado: la celda es un tercio del panel, y con el botón
+                             en la misma línea el importe se partía en dos renglones. Lo que no
+                             puede romperse nunca es la cifra. -->
+                        <button v-if="puedeCobrarSaldo(t)" type="button"
+                            class="mt-1.5 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide
+                                   bg-[#376875] text-white hover:bg-[#2c545f] transition-colors"
+                            :title="`Registra un cobro por los ${importeEn(t.saldo, t.moneda)} que faltan.`"
+                            @click="abrirCobroRapido(t.saldo, t.moneda, `el saldo en ${t.moneda}`)">
+                            Cobrar
+                        </button>
                     </div>
                 </div>
 
