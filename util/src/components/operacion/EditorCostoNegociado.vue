@@ -116,11 +116,13 @@ defineExpose({ marcarError });
       <span class="font-bold text-slate-400" :class="denso ? 'text-[9px]' : 'text-[10px]'">
         {{ monedaMostrada }}
       </span>
+      <!-- Sin negociar se muestra el COTIZADO mismo (atenuado, editable): una sola línea. Antes
+           se apilaban «registrar» y «cotizado», que confundía y ocupaba el doble. -->
       <span v-if="hayNegociado" class="font-black text-slate-800 tabular-nums decoration-dotted underline decoration-slate-300 underline-offset-2">
         {{ importeReposo }}
       </span>
-      <span v-else class="font-bold text-slate-300 italic decoration-dotted underline decoration-slate-300 underline-offset-2">
-        registrar
+      <span v-else class="font-bold text-slate-400 italic tabular-nums decoration-dotted underline decoration-slate-300 underline-offset-2">
+        {{ Number(costoCotizado).toFixed(2) }}
       </span>
       <i v-if="guardado" class="fas fa-check text-emerald-600 text-[10px] ml-0.5"></i>
     </button>
@@ -163,8 +165,9 @@ defineExpose({ marcarError });
       </button>
     </div>
 
-    <!-- El cotizado, siempre visible: es la referencia contra la que se negocia. -->
-    <p class="text-slate-400 tabular-nums" :class="denso ? 'text-[9px]' : 'text-[10px]'">
+    <!-- El cotizado de referencia SÓLO cuando ya hay un negociado que comparar. Sin negociar el
+         valor de arriba YA es el cotizado, así que repetirlo aquí era el ruido que confundía. -->
+    <p v-if="hayNegociado" class="text-slate-400 tabular-nums" :class="denso ? 'text-[9px]' : 'text-[10px]'">
       cotizado {{ monedaCotizada }} {{ Number(costoCotizado).toFixed(2) }}
     </p>
 
