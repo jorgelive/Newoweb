@@ -1151,13 +1151,21 @@ store.$onAction(({ name, args }) => {
                          1) OPERATIVO (nombreSnapshot) grande — el que tú usas y editas.
                          2) CLIENTE (nombrePublicoSnapshot) debajo — lo que ve el pasajero.
                          3) PLANTILLA (itinerarioNombreSnapshot) como etiqueta de procedencia. -->
+                    <!-- Mono-segmento sin plantilla: el nombre del servicio es genérico y su público
+                         se descarta en la vista del cliente; el segmento es el que dice qué cosa es. -->
                     <div class="font-black text-lg text-slate-900 leading-tight">
                       <i v-if="store.isServicioConAlerta(servicio)" class="fas fa-exclamation-triangle text-red-500 mr-2" title="Faltan cuadrar tarifas"></i>
-                      {{ store.getI18nText(servicio.nombreSnapshot, 'es') || store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}
+                      <template v-if="store.esMonoSegmentoSinPlantilla(servicio)">{{ store.getI18nText(servicio.cotsegmentos?.[0]?.nombreSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
+                      <template v-else>{{ store.getI18nText(servicio.nombreSnapshot, 'es') || store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
                     </div>
 
+                    <!-- Mono-segmento: el nombre interno lo pone el segmento (no el servicio). -->
+                    <p v-if="store.esMonoSegmentoSinPlantilla(servicio)"
+                       class="text-[11px] font-bold text-slate-500 mt-1 leading-snug">
+                      <i class="fas fa-tag mr-1 text-slate-300"></i> {{ store.segmentoUnicoMaestro(servicio)?.nombreInterno || store.getI18nText(servicio.cotsegmentos?.[0]?.nombreSnapshot, 'es') }}
+                    </p>
                     <!-- El nombre del cliente, sólo si aporta algo distinto del operativo. -->
-                    <p v-if="store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) && store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) !== store.getI18nText(servicio.nombreSnapshot, 'es')"
+                    <p v-else-if="store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) && store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) !== store.getI18nText(servicio.nombreSnapshot, 'es')"
                        class="text-[11px] font-bold text-slate-500 mt-1 leading-snug">
                       <i class="fas fa-user mr-1 text-slate-300"></i> Cliente: {{ store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) }}
                     </p>
@@ -1620,6 +1628,33 @@ store.$onAction(({ name, args }) => {
                     :min-chars-busqueda="3"
                 />
               </div>
+              <!-- Servicio mono-segmento sin plantilla: el nombre del servicio es genérico y su
+                   público se descarta para el cliente (pax sólo lo pinta con >1 segmento). El
+                   segmento es el que dice qué cosa es → se muestra en read-only, sin persistir. -->
+              <template v-if="store.esMonoSegmentoSinPlantilla(store.servicioActivo)">
+                <div>
+                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
+                    Nombre operativo <span class="text-slate-300 normal-case font-bold">(lo pone el segmento)</span>
+                  </label>
+                  <div class="bg-slate-50 border border-dashed border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-600">
+                    {{ store.segmentoUnicoMaestro(store.servicioActivo)?.nombreInterno || store.getI18nText(store.servicioActivo.cotsegmentos?.[0]?.nombreSnapshot, 'es') || '—' }}
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
+                    Nombre Público <span class="text-slate-300 normal-case font-bold">(lo pone el segmento)</span>
+                  </label>
+                  <div class="bg-slate-50 border border-dashed border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-600">
+                    {{ store.getI18nText(store.servicioActivo.cotsegmentos?.[0]?.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
+                  </div>
+                  <p class="text-[9px] text-slate-400 mt-1 ml-1">
+                    Este servicio es un solo segmento sin plantilla: su nombre lo pone el segmento, y el
+                    del servicio no se usa. Para cambiarlo, edita el párrafo o el segmento en el catálogo.
+                    Al aplicar una plantilla o añadir otro segmento, vuelven los campos editables.
+                  </p>
+                </div>
+              </template>
+              <template v-else>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
                   Nombre operativo <span class="text-slate-300 normal-case font-bold">(interno / proveedor · no lo ve el cliente)</span>
@@ -1658,6 +1693,7 @@ store.$onAction(({ name, args }) => {
                   </button>
                 </div>
               </div>
+              </template>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1"><i class="far fa-calendar-alt mr-1"></i> Fecha Ejecución (Milestone)</label>
                 <input v-model="store.servicioActivo.fechaInicioAbsoluta" @change="store.onServicioFechaChange" type="date" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">

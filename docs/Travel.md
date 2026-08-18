@@ -45,6 +45,13 @@ La confusión habitual es entre Servicio e Itinerario. **Servicio es el producto
 («Cusco Clásico 4D/3N», «Cusco Clásico 5D/4N»). Un servicio tiene N itinerarios y todos
 beben de los mismos pools.
 
+**`slug` vs `nombreInterno` (código vs nombre).** Tanto `TravelSegmento` como `TravelItinerario`
+tienen `slug` = **código** (`VIS-VALLE_VIP…-CHINCHERO`, `HD-COMBINADA-POOL-AM`) y `nombreInterno`
+= **nombre real** (el que puede ir al proveedor / verse en el cotizador). Antes `nombreInterno`
+hacía de código; se separó por migración (`Version20260817240000` itinerario,
+`Version20260817280000` segmento: `slug ← nombreInterno`, luego `nombreInterno ← titulo['es']`).
+En EasyAdmin el `slug` va primero. Ninguno de los dos campos lleva `#[AutoTranslate]`.
+
 ---
 
 ## 2. El grafo completo

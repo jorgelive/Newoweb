@@ -48,6 +48,11 @@ class TravelSegmento
     #[ORM\JoinTable(name: 'travel_segmento_servicio_pool')]
     private Collection $servicios;
 
+    // El CÓDIGO del segmento (`VIS-VALLE_VIP…-CHINCHERO`). Se separó de `nombreInterno` para que
+    // éste pase a ser un nombre real, igual que en TravelItinerario. En EasyAdmin va primero.
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $slug = null;
+
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
@@ -159,6 +164,17 @@ class TravelSegmento
     public function removeServicio(TravelServicio $servicio): self
     {
         $this->servicios->removeElement($servicio);
+        return $this;
+    }
+
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
+    public function setSlug(?string $slug): self
+    {
+        $this->slug = $slug;
         return $this;
     }
 

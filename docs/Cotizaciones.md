@@ -87,6 +87,40 @@ comercial legible que ve el cliente, en un solo eje. La dualidad interno/operati
 —que obligó a separar `nombreSnapshot` del título— aquí no existe ni hace falta. El código del
 segmento (`nombreInterno`) sólo molesta, si acaso, en EasyAdmin; no viaja a ninguna cotización.
 
+#### Segmento homogeneizado + el servicio mono-segmento (2026-08-17)
+
+Dos piezas que cierran el caso «servicio genérico con un solo segmento» (ej. «Transporte en
+Cusco», «Vuelo»), donde los tres nombres del servicio fallan a la vez.
+
+**1) El maestro `TravelSegmento` se homogeneizó** con el de itinerarios (migración
+`Version20260817280000`): se añadió `slug`, `slug ← nombreInterno` (el código), y
+`nombreInterno ← titulo['es']`. Así el segmento tiene el mismo modelo que el itinerario —`slug`
+= código, `nombreInterno` = nombre real—. El UPDATE va por SQL porque ni `slug` ni
+`nombreInterno` llevan `#[AutoTranslate]`; `titulo` sólo se lee (queda intacto). En EasyAdmin el
+`slug` va primero.
+
+**2) Por qué importa en el editor.** Para un servicio con **un solo segmento y sin plantilla**:
+- el nombre OPERATIVO del servicio es genérico y no dice qué cosa es;
+- el nombre PÚBLICO del servicio **se descarta** en la vista del cliente: `PaxCotizacionGuiaView`
+  sólo pinta `nombrePublicoSnapshot` del servicio cuando `totalSegmentosServicio > 1`
+  (`mostrarTituloServicio`); con un segmento, el cliente ve el título del **segmento**, no el del
+  servicio;
+- el que carga el significado es el segmento.
+
+**Fix visual, sin persistir** (`CotizacionEditorView.vue` + store): cuando
+`esMonoSegmentoSinPlantilla(servicio)` —`cotsegmentos.length === 1 && !itinerarioMaestroId`—,
+las vistas de operador muestran el segmento en lugar del nombre genérico:
+- En el **editor**, los inputs «Nombre operativo/Público» se reemplazan por displays read-only:
+  el `nombreInterno` del segmento maestro (operativo) y su título en el idioma seleccionado
+  (público), con una nota de por qué. No se persiste nada.
+- En la **card de la lista**, el nombre grande pasa a ser el título del segmento y debajo su
+  `nombreInterno`.
+- El `nombreInterno` del segmento **no está en el snapshot**: se lee del maestro vivo en
+  `catalogos.poolSegmentos` (helper `segmentoUnicoMaestro`), con fallback al `nombreSnapshot['es']`
+  si el pool no cargó.
+- **Reactivo**: aplicar una plantilla (setea `itinerarioMaestroId`) o añadir un 2º segmento (sube
+  el `length`) desactiva la condición y devuelven los inputs editables, solo.
+
 ### Los nombres de un servicio, resueltos (2026-08-17)
 
 Tras el análisis de la asimetría (abajo), el modelo quedó en tres ejes limpios:

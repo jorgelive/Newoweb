@@ -4226,8 +4226,28 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
 
+    // ── Servicio mono-segmento sin plantilla ────────────────────────────────────
+    // El nombre del servicio es genérico y su público se descarta en la vista del cliente (pax
+    // sólo pinta el nombre del servicio si tiene >1 segmento); el segmento es quien carga el
+    // significado. Las vistas de OPERADOR lo detectan para mostrar en read-only el título/nombre
+    // del segmento en vez del genérico. Reactivo: aplicar plantilla (setea itinerarioMaestroId) o
+    // añadir un 2º segmento (sube el length) lo desactiva solo.
+    const esMonoSegmentoSinPlantilla = (servicio: CotServicio | null | undefined): boolean =>
+        !!servicio && servicio.cotsegmentos?.length === 1 && !servicio.itinerarioMaestroId;
+
+    // Maestro del único segmento, para leer su `nombreInterno` (no vive en el snapshot). Tolera
+    // `poolSegmentos` vacío (carga fallida) → null.
+    const segmentoUnicoMaestro = (servicio: CotServicio | null | undefined): Segmento | null => {
+        if (!esMonoSegmentoSinPlantilla(servicio)) return null;
+        const seg = servicio!.cotsegmentos![0];
+        const maestroId = extractIdStr(seg.segmentoMaestroId);
+        if (!maestroId) return null;
+        return catalogos.value.poolSegmentos.find((s: Segmento) => extractIdStr(s) === maestroId) ?? null;
+    };
+
     return {
         catalogos, cotizacion, fileActual, modoCatalogo, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
+        esMonoSegmentoSinPlantilla, segmentoUnicoMaestro,
         // Vistas tipadas del nodo abierto: es por donde deben leerlo las vistas.
         servicioActivo, componenteActivo, tarifaActiva,
         isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,

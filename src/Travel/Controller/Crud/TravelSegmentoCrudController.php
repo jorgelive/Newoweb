@@ -175,7 +175,8 @@ class TravelSegmentoCrudController extends BaseCrudController
             ->hideOnDetail()
             ->setColumns(6);
 
-        yield TextField::new('nombreInterno', 'Nombre Administrativo (ID)')->setColumns(6);
+        yield TextField::new('slug', 'Slug / Código')->setColumns(6);
+        yield TextField::new('nombreInterno', 'Nombre del Segmento')->setColumns(6);
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')->onlyOnForms()->setColumns(6);
 
