@@ -352,6 +352,23 @@ class PmsEventoCalendario
     #[ORM\Column(name: 'subestado_beds24', type: 'string', length: 50, nullable: true)]
     private ?string $subestadoBeds24 = null;
 
+    /**
+     * Intención explícita de EMPUJAR el estado a Beds24. Interno: no viaja a ningún serializador.
+     *
+     * Rompe el huevo-y-la-gallina del push de OTA. Antes el push decidía si mandar `status`
+     * comparando contra `estadoBeds24` (el último status que trajo el PULL): si el pull estaba
+     * atrasado o roto, el «desde» era falso y el cron re-imponía el estado, resucitando
+     * cancelaciones. Ahora el `status` de una OTA sólo viaja cuando ESTE flag está puesto, o sea
+     * cuando el OPERADOR cambió el estado a propósito —no en cada re-encolado del cron—.
+     *
+     * Ciclo: lo pone `Beds24BookingsPushQueueListener::onFlush()` cuando `estado` cambia en una
+     * edición LOCAL (fuera de contexto pull/push); lo limpia `BookingsPushHandler::handleSuccess()`
+     * al confirmar el push del link principal. Si el push falla, se queda puesto y reintenta.
+     * Ver docs/PmsBeds24ReservasSync.md §7.x.
+     */
+    #[ORM\Column(name: 'estado_push_solicitado', type: 'boolean', options: ['default' => false])]
+    private bool $estadoPushSolicitado = false;
+
     /* ======================================================
      * COLECCIONES
      * ====================================================== */
@@ -730,6 +747,9 @@ class PmsEventoCalendario
 
     public function getEstadoBeds24(): ?string { return $this->estadoBeds24; }
     public function setEstadoBeds24(?string $val): self { $this->estadoBeds24 = $val; return $this; }
+
+    public function isEstadoPushSolicitado(): bool { return $this->estadoPushSolicitado; }
+    public function setEstadoPushSolicitado(bool $val): self { $this->estadoPushSolicitado = $val; return $this; }
 
     public function getSubestadoBeds24(): ?string { return $this->subestadoBeds24; }
     public function setSubestadoBeds24(?string $val): self { $this->subestadoBeds24 = $val; return $this; }

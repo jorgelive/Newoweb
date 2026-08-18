@@ -81,6 +81,16 @@ final class BookingsPushHandler implements ExchangeHandlerInterface
                 // Actualizar Snapshot Externo
                 $item->setBeds24BookIdOriginal($strRemoteId);
             }
+
+            // Consumir la intención de push del estado: el `status` ya viajó a Beds24, así que se
+            // limpia el flag para que el cron no lo siga re-imponiendo. Sólo en el link PRINCIPAL
+            // —el que lleva el estado real; el espejo manda status siempre y no lo consume—. Esto
+            // se persiste en el flush del orchestrator; como corre en contexto PUSH, el listener
+            // de cola sale temprano y no re-encola. Ver PmsEventoCalendario::$estadoPushSolicitado.
+            $evento = $link->getEvento();
+            if ($link->isEsPrincipal() && $evento?->isEstadoPushSolicitado()) {
+                $evento->setEstadoPushSolicitado(false);
+            }
         } elseif ($remoteId) {
             // Caso: Link borrado físicamente
             $item->setBeds24BookIdOriginal((string) $remoteId);

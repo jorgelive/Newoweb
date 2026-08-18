@@ -3844,13 +3844,46 @@ Es un fallo silencioso con consecuencia externa, así que el listener lo registr
 con el `link_id` y el `evento_id`. **Si ese mensaje aparece en el log, hay que retirar la
 reserva a mano en Beds24**; no hay reintento posible, porque el identificador se perdió.
 
-## 12.13 Push de estado a una OTA: cerrar sí, abrir no
+## 12.13 Push de estado a una OTA: sólo por intención explícita
 
-`BookingsPushMappingStrategy` **no manda `status`** cuando la reserva es de OTA y no es
-espejo. El peligro concreto: pisar una cancelación hecha en el canal con un `confirmed`
-viejo del PMS — la reserva reviviría en Airbnb y volveríamos a vender una noche liberada.
+`BookingsPushMappingStrategy` **manda `status` a una OTA no-espejo SÓLO cuando el operador
+cambió el estado a propósito**, marcado por `PmsEventoCalendario::$estadoPushSolicitado`. En
+cualquier re-push del cron —fechas, huésped, lo que sea— el `status` **no viaja**, así que un
+estado viejo del PMS nunca pisa lo que diga el canal.
 
-**Excepción, deliberadamente asimétrica: la cancelación sí viaja.**
+### 12.13.0 Por qué un flag, y no comparar contra `estadoBeds24` (2026-08-18)
+
+**El huevo y la gallina.** Antes la decisión se tomaba comparando el estado a empujar contra
+`estadoBeds24` —*el último `status` que trajo el PULL*— con `transicionOtaPermitida()`. Eso
+ataba el PUSH a que el PULL estuviera fresco: si el pull se atrasaba o **se rompía** (como pasó
+con el filtro `status` que no llegaba a Beds24, §4.x), el «desde» era falso, la transición salía
+permitida, y **cada corrida del cron re-imponía el estado del PMS, resucitando cancelaciones que
+el canal ya había hecho**. Una reserva cancelada en Booking volvía a `new` en Beds24 sola, una y
+otra vez.
+
+El flag rompe el ciclo: el push ya **no depende del pull**. Se manda el `status` cuando hubo
+**intención local**, punto. Ciclo de vida:
+
+```
+edición LOCAL del estado (util/API)
+  → SecurityListener (preUpdate) VALIDA que la transición sea legal (o lanza 403)
+  → Beds24BookingsPushQueueListener (onFlush) pone estadoPushSolicitado = true  (si !isPull)
+  → el push manda `status` (map)  ── y sólo entonces ──
+  → BookingsPushHandler::handleSuccess() limpia el flag (en el link PRINCIPAL)
+     · si el push falla, el flag se queda y reintenta
+```
+
+Un cambio venido del PULL no pone el flag (`!isPull`): eso viene del canal, no hay que
+devolvérselo. El flag es **interno**: no está en ningún grupo de serialización, no toca contratos.
+
+La **legalidad** de la transición la sigue decidiendo `PmsEventoEstado::transicionOtaPermitida()`
+en el `SecurityListener` (abajo). El flag decide el *cuándo empujar*; la tabla decide el *qué se
+permite*. Son cosas distintas y viven separadas a propósito.
+
+---
+
+Lo que sigue es la regla de **legalidad** (qué transiciones acepta el SecurityListener), no la de
+push. **Excepción deliberadamente asimétrica: la cancelación siempre es legal.**
 
 ```
                         ┌──────────── lo que dice el CANAL (estadoBeds24) ────────────┐

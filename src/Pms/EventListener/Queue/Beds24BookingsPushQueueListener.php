@@ -91,6 +91,21 @@ final class Beds24BookingsPushQueueListener
             if ($e instanceof PmsReserva && $this->shouldIgnoreReservaUpdate($e, $uow)) {
                 continue;
             }
+            // INTENCIÓN de push del estado: si en una edición LOCAL cambió `estado`, se marca la
+            // fila para que el `status` viaje a Beds24 UNA vez. `!isPull` porque un cambio venido
+            // del canal no hay que devolvérselo; el modo push ya salió arriba. Es lo que rompe el
+            // huevo-y-la-gallina — el push deja de depender de que el pull esté fresco. Ver el
+            // docblock de `PmsEventoCalendario::$estadoPushSolicitado`.
+            if ($e instanceof PmsEventoCalendario
+                && !$this->syncContext->isPull()
+                && isset($uow->getEntityChangeSet($e)['estado'])
+            ) {
+                $e->setEstadoPushSolicitado(true);
+                $uow->recomputeSingleEntityChangeSet(
+                    $em->getClassMetadata(PmsEventoCalendario::class),
+                    $e,
+                );
+            }
             $this->collect($e);
         }
 

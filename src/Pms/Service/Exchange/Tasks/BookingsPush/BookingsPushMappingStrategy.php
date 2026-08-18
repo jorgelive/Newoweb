@@ -10,7 +10,6 @@ use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsEventoCalendario;
-use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use RuntimeException;
 
@@ -206,43 +205,26 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         // 4. ESTADO
         //
         // Regla general: en una OTA no espejo NO se manda `status`. El peligro concreto es
-        // pisar una cancelación hecha en el canal con un `confirmed` viejo del PMS: la
-        // reserva reviviría en Airbnb y volveríamos a vender una noche ya liberada.
+        // pisar una cancelación hecha en el canal con un estado viejo del PMS: la reserva
+        // reviviría en el canal y volveríamos a vender una noche ya liberada.
         //
-        // EXCEPCIÓN, y es asimétrica a propósito: la CANCELACIÓN sí viaja. Ese fallo no
-        // puede darse en ese sentido —cancelar algo ya cancelado es un no-op— y sin ella el
-        // PMS y el canal divergen en silencio: una consulta de Airbnb en «abierto» que se
-        // cancela aquí vuelve a aparecer abierta en el siguiente pull programado, porque
-        // Beds24 nunca se enteró. El operador la cancela una y otra vez sin efecto.
+        // 🔑 Cuándo SÍ viaja: sólo cuando el operador cambió el estado A PROPÓSITO, marcado por
+        // `PmsEventoCalendario::$estadoPushSolicitado`. No en cada re-push del cron.
         //
-        // Lo que el PMS SÍ puede imponerle a una OTA lo decide una sola regla,
-        // `PmsEventoEstado::transicionOtaPermitida()`, la misma que aplica el listener de
-        // seguridad al bloquear la mutación local y el desplegable de `util` al ofrecer
-        // opciones. Antes esto era una lista suelta aquí y se desincronizaba con ellos.
-        //
-        //   pendiente ⇄ confirmada ⇄ requerimiento   ✔
-        //   abierto   → cancelada                    ✔
-        //   el resto                                 ✘
-        //
-        // 🔑 El «desde» es lo que dice el CANAL —`estadoBeds24`, el último `status` que
-        // reportó Beds24—, no lo que decimos nosotros. Es lo que impide el daño original: si
-        // el canal ya la canceló, ninguna transición sale permitida y el `status` no viaja,
-        // así que la cancelación sobrevive.
-        //
-        // Queda la ventana entre el último pull y este push (~20 min): si el canal cancela
-        // justo ahí, nuestro «desde» está caduco. Se acepta a sabiendas.
+        // Antes esto se decidía comparando contra `estadoBeds24` —el último `status` que trajo
+        // el PULL—: si el pull estaba atrasado o roto, ese «desde» era falso, la transición salía
+        // permitida y el cron RESUCITABA cancelaciones (el huevo-y-la-gallina: el push dependía
+        // de que el pull estuviera fresco). Con el flag, el push depende de la INTENCIÓN local,
+        // no del pull. La legalidad del cambio ya la garantizó el `SecurityListener` (preUpdate,
+        // `transicionOtaPermitida`) al permitir la mutación; aquí sólo miramos si hubo intención.
+        // Ver el docblock de `PmsEventoCalendario::$estadoPushSolicitado`.
         $estadoBeds24 = $this->resolveBeds24Status($queue);
 
         // Un DELETE manda `cancelled` por definición y no es una transición de estado que
         // discutir: es la baja del registro. Se deja pasar aparte para no atarlo a la regla.
         $esBorrado = $queue->getEndpoint()?->getMetodo() === 'DELETE';
 
-        $transicionPermitida = PmsEventoEstado::transicionOtaPermitida(
-            PmsEventoEstado::desdeCodigoBeds24($evento->getEstadoBeds24()),
-            PmsEventoEstado::desdeCodigoBeds24($estadoBeds24),
-        );
-
-        if (!$isOta || $isMirror || $esBorrado || $transicionPermitida) {
+        if (!$isOta || $isMirror || $esBorrado || $evento->isEstadoPushSolicitado()) {
             $payload['status'] = $estadoBeds24;
         }
 
