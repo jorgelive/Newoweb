@@ -420,7 +420,7 @@ class TravelComponente
      * no falla al escribir y sale mal en la cotización.
      */
     #[Assert\Callback]
-    public function validarServicioDelOrganizacion(ExecutionContextInterface $context): void
+    public function validarServicioDelPrestador(ExecutionContextInterface $context): void
     {
         if ($this->prestadorServicio === null || $this->prestador === null) {
             return;
@@ -433,11 +433,11 @@ class TravelComponente
         }
     }
 
-    public function getOrganizacion(): ?TravelOrganizacion { return $this->prestador; }
-    public function setOrganizacion(?TravelOrganizacion $v): self { $this->prestador = $v; return $this; }
+    public function getPrestador(): ?TravelOrganizacion { return $this->prestador; }
+    public function setPrestador(?TravelOrganizacion $v): self { $this->prestador = $v; return $this; }
 
-    public function getOrganizacionServicio(): ?TravelOrganizacionServicio { return $this->prestadorServicio; }
-    public function setOrganizacionServicio(?TravelOrganizacionServicio $v): self { $this->prestadorServicio = $v; return $this; }
+    public function getPrestadorServicio(): ?TravelOrganizacionServicio { return $this->prestadorServicio; }
+    public function setPrestadorServicio(?TravelOrganizacionServicio $v): self { $this->prestadorServicio = $v; return $this; }
 
     /** @return Collection<int, TravelTarifa> */
     public function getTarifas(): Collection

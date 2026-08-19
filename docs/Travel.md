@@ -240,6 +240,73 @@ aporta nada al modelo de dominio. Las columnas se quedan porque el papel que jue
 - `ProveedorVivoResolver` (en `src/Cotizacion/Service/`) conserva su nombre: resuelve la cara
   pública del **prestador**, así que su renombre pertenece a la fase 2 y no a ésta.
 
+## 6 ter. Las tarifas desde el agente (19/08/2026)
+
+Tres skills, para el rol de **operaciones**:
+
+| Skill | Riesgo | Rol | Qué hace |
+|---|---|---|---|
+| `buscar_tarifas` | Lectura | `OPERACIONES_SHOW` | lista las tarifas de un componente con sus restricciones y su prestador |
+| `crear_tarifa` | **Escritura** | `OPERACIONES_WRITE` | añade una tarifa a un componente |
+| `modificar_tarifa` | **Escritura** | `OPERACIONES_WRITE` | cambia una que ya existe |
+
+### Crear y modificar están separadas, y el empate las cubre
+
+Son dos intenciones distintas y el operador las dice distinto. El riesgo de separarlas era que
+el modelo eligiera mal —«ponle otra tarifa» y «cámbiale la tarifa» se parecen demasiado—, pero
+**las dos son de escritura, así que empatan y salta la aclaración**
+(`AclaracionDeEmpate::obliga()`): el agente pregunta en vez de adivinar. Es exactamente el caso
+para el que existe ese mecanismo, y hasta el 19/08/2026 no podía dispararse.
+
+Las reglas de qué es una tarifa válida viven en `TarifaDesdeEntrada`, compartidas. Escritas dos
+veces, dentro de tres meses una aceptaría lo que la otra rechaza.
+
+### Tres cosas que van pegadas al dato, no al prompt
+
+- **Las restricciones viajan SIEMPRE**, y los límites sin poner salen como «sin límite» en vez
+  de omitirse. Un importe sin condiciones al lado invita a cotizarle a un extranjero la tarifa
+  de nacionales, y omitir un eje se lee como que no aplica.
+- **Lo que elige el modelo se valida contra listas cerradas**: modalidad, categoría,
+  procedencia y moneda salen de enums y del maestro. Un valor inventado se rechaza **con la
+  lista de los válidos en el mensaje**, no se guarda «como venga».
+- **Los rangos al revés se rechazan.** `edad_minima: 30, edad_maxima: 5` no lo caza ningún tipo
+  y deja una tarifa que no aplica a nadie — invisible hasta que alguien pregunta por qué no
+  sale ese precio.
+
+### Lo que NO se toca al modificar
+
+Las condiciones que no se mencionan se quedan como están; eso es lo que permite «súbele el
+precio» sin borrar las edades. Para **quitar** un límite hay que mandarlo explícitamente en `0`,
+que es la única forma de decir «sin tope» dictando por voz.
+
+### 🐛 La previsualización que se colaba
+
+`modificar_tarifa` con `confirmado=false` deja la entidad **gestionada y ya modificada en
+memoria**: cualquier `flush()` posterior del mismo turno —de otra skill, de un listener— la
+habría escrito sin que nadie la aprobara. Por eso el camino de previsualización hace
+`$em->refresh()` y descarta los cambios. `crear_tarifa` no lo necesita: sin `persist()`,
+Doctrine no sabe que la entidad existe.
+
+### `dominios()` vacío, a propósito
+
+El catálogo Travel es transversal —tours, tickets, traslados y también componentes de
+alojamiento— y hoy el único frente declarado es `hotelero`. Acotarlas ahí las volvería
+invisibles para todo lo demás. Ver CLAUDE.md, «lista vacía = sin acotar».
+
+### Verificación
+
+`var/probar-buscar-tarifas.php` y `var/probar-guardar-tarifa.php`, contra datos reales y el
+segundo en transacción con **rollback**. Seis casos, incluido el del bug de arriba:
+
+```
+1. previsualizar crear     → no escribe            904 → 904
+2. procedencia inventada   → rechazada con la lista de válidas
+3. rango al revés (30–5)   → rechazado
+4. confirmar               → creada                904 → 905
+5. modificar precio        → 55.00, procedencia CONSERVADA
+6. previsualizar + flush   → en base sigue 55.00 (no se coló)
+```
+
 ## 7. Tarifas, proveedores y el diccionario
 
 `TravelTarifa` cuelga del componente y apunta a `MaestroMoneda`, y opcionalmente a
