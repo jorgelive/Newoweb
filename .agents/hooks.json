@@ -1,0 +1,16 @@
+{
+  "auto-allow-safe-tools": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/auto-allow-safe.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

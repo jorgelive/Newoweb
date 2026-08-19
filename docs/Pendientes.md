@@ -225,3 +225,73 @@ que ya no pueden decir cifras distintas para la misma reserva.
   elegir la de Lectura —que se ejecuta sin confirmación—, encadenarla a `enviar_mensaje_huesped` y
   darse por satisfecho: el huésped recibe la promesa de un enlace que no existe y se puenteó la
   previsualización del cobro. La dirección inversa sí es segura (`confirmado=false` frena).
+
+## El plan de pagos pactado no existe como dato, y el sistema afirma lo contrario
+
+**Estado: sin resolver. Es de modelo, no de cálculo.**
+
+### El caso, con fechas (reserva `5Y6AGN`, Susanna Pasquali, Booking)
+
+| Cuándo | Qué pasó |
+|---|---|
+| 20/06 | Entra la reserva: 9 noches, 29/08–07/09, **623.68** |
+| 20/06 | Se le manda **por chat** el plan: `69.29` + `242.55 (14 de agosto)` + `311.84 a la llegada` |
+| 20/06 | Se registra el pago de **69.29** (a mano, tarjeta, 5.5%) |
+| 14/07 | El canal acorta la estancia: 6 noches, 01–07/09, **392.15**. Los cargos se actualizan solos ✓ |
+| 19/08 | La huésped pregunta por «the second rate of 242.55». Nadie sabe de dónde sale |
+
+### Por qué falla, y no es que falte un pago
+
+Los importes guardados **son correctos** (392.15 de cargos, 69.29 pagado, 322.86 de saldo, y el
+total cuadra con `pms_evento_calendario.monto`). No falta ningún cobro: ella dijo que no lo había
+pagado, preguntó cómo hacerlo y quedó en efectivo.
+
+Lo que falta es **el plan pactado**. No hay entidad que lo guarde: existen `FinEnlacePago`,
+`PmsPoliticaPrepago` y `PmsPrepagoCalculador`, pero ninguno modela «las cuotas que se acordaron
+con este huésped, con su importe y su fecha». El plan vivió sólo como texto en un chat.
+
+⚠️ **Y el sistema no se queda callado: afirma lo contrario.**
+`PmsPrepagoCalculador::pendiente()` devuelve `null` en cuanto hay un pago registrado, así que
+desde el 20/06 la ficha decía «no hay prepago pendiente» mientras había 242.55 comprometidos por
+escrito. El operador que abre la ficha no puede saber de dónde sale la cifra que le citan; de ahí
+su «hubo una confusión en la respuesta» — la confusión se la dio la pantalla.
+
+Cuando el 14/07 cambió el total, los cargos se recalcularon y **el plan no**, porque no era un
+dato. Quedó una promesa viva contradiciendo la cuenta, invisible salvo leyendo un chat de dos
+meses antes.
+
+> **El principio:** el trabajo del operador es mirar valores y calcular, no leer conversaciones e
+> interpretar. Todo compromiso que sólo viva en prosa obliga a lo segundo — y tarde o temprano
+> alguien interpreta mal. Es la misma lección del país deducido y del total del prepago.
+
+### Qué hace falta
+
+Un **plan de pagos como dato de la reserva**: cuotas con importe, fecha y estado
+(pactada / pagada / anulada). Con eso:
+
+1. El operador ve las cuotas en la ficha, sin leer nada.
+2. El mensaje al huésped **se genera desde el plan**, no al revés — que es como está hoy y por
+   eso se descuadra.
+3. Al cambiar el total de la reserva, el plan se marca desfasado y salta, igual que salta el
+   descuadre de la cabecera. En este caso habría avisado el **14 de julio**, un mes antes de que
+   la huésped preguntara.
+4. El agente lee cuotas en vez de interpretar conversaciones.
+
+**Decisiones abiertas antes de construirlo:**
+
+- Relación con `PmsPoliticaPrepago`: la política **deriva** un prepago; el plan **registra** lo
+  pactado. ¿El plan nace de la política y luego se puede editar, o son cosas separadas?
+- Qué pasa con un plan cuyo total ya no cuadra: ¿se anula entero, se reajusta la última cuota, o
+  sólo se marca y decide una persona? (Con dinero de por medio, lo tercero parece lo sano.)
+- Si `pendiente()` debe pasar a mirar el plan en vez de «¿hay algún pago?».
+
+### Suelto pero relacionado
+
+- El cargo de alojamiento de esta reserva se llama `[ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]`:
+  placeholders de Beds24 sin resolver. `ConsultarCuentaSkill::concepto()` los limpia;
+  `GenerarMensajePrepagoSkill` **no**, así que ahí saldrían crudos al huésped.
+- El nombre de esta reserva está cruzado (`nombre_cliente = "Pasquali"`,
+  `apellido_cliente = "Susanna"`), y la conversación se llama «Pasquali Susanna». Cualquier
+  plantilla con `{{ nombre }}` la saluda por el apellido. `RevisarOrdenDelNombreDispatch` sólo
+  actúa cuando el nombre entra o cambia: **no cubre el histórico**. Falta un comando que lo
+  barra, como se hizo con `app:pms:corregir-pais-ota`.
