@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Message\Service\Queue;
 
 use App\Message\Contract\ChannelEnqueuerInterface;
-use App\Message\Contract\ConversationMilestoneInterface;
-use App\Message\Contract\MomentoDeHito;
+use App\Contract\ConversationMilestoneInterface;
+use App\Contract\MomentoDeHito;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;

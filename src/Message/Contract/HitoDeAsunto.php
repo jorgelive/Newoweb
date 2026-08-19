@@ -11,7 +11,7 @@ use DateTimeInterface;
  * un cambio de casita, la salida final.
  *
  * ── Por qué no basta con `start` y `end` ────────────────────────────────────
- * Los hitos de hoy ({@see ConversationMilestoneInterface}) son un mapa plano de clave a fecha, y
+ * Los hitos de hoy ({@see \App\Contract\ConversationMilestoneInterface}) son un mapa plano de clave a fecha, y
  * la estancia entera se resume en dos: `start` = `PmsReserva::getFechaLlegada()` y `end` =
  * `getFechaSalida()`. Los dos son **agregados mín/máx de todos los tramos**, así que una
  * estancia partida se aplasta en una sola ventana:
@@ -36,7 +36,7 @@ use DateTimeInterface;
 final readonly class HitoDeAsunto
 {
     public function __construct(
-        /** Una de las constantes de {@see ConversationMilestoneInterface}. */
+        /** Una de las constantes de {@see \App\Contract\ConversationMilestoneInterface}. */
         public string $tipo,
         public DateTimeInterface $fecha,
         /**

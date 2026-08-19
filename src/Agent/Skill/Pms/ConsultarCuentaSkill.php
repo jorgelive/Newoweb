@@ -20,6 +20,7 @@ use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Enum\PmsPoliticaPrepago;
 use App\Pms\Enum\PmsTipoCargo;
+use App\Pms\Finanzas\PmsProcedenciaHuesped;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Security\Roles;
@@ -61,6 +62,7 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
     public function __construct(
         private EntityManagerInterface $em,
         private PmsPrepagoCalculador $prepagoCalculador,
+        private PmsProcedenciaHuesped $procedencia,
         private LoggerInterface $logger,
     ) {}
 
@@ -179,9 +181,28 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             return $this->cuentaDeCanalQueCobra($reservaId, $reserva, $info, $moneda, $idioma);
         }
 
+        $pais = $reserva->getPais();
+
+        // ⚠️ De DÓNDE PAGA no se deduce aquí. Lo contesta `PmsProcedenciaHuesped`, que es
+        // quien ya se lo contesta a `consultar_medios_pago` y a la guía del huésped —y los
+        // tres TIENEN que decir lo mismo: si la pantalla le enseña una cuenta del BCP y el
+        // asistente le dice que no hay cuentas para él, el huésped no sabe a quién creer—.
+        //
+        // Un `$pais?->getId() === 'PE'` propio sería una cuarta respuesta a la misma pregunta,
+        // y encima binaria: perdería el `null` de «no se sabe», que existe a propósito para
+        // no darle por peruano a quien venía de fuera y esconderle el Western Union.
+        $desdePeru = $this->procedencia->pagaDesdePeru($reserva);
+
         return SkillResult::ok(array_filter([
             'reserva_id' => $reservaId,
             'huesped' => $this->huesped($reserva),
+            'pais' => $pais?->getId(),
+            'pais_nombre' => $pais?->getNombre(),
+            // Mismo nombre y misma semántica que en `consultar_medios_pago`: `null` = no se
+            // pudo deducir, y entonces la clave no viaja (el `array_filter` de abajo descarta
+            // los `null` y SÓLO los `null`, que es lo que deja pasar el `false` de «paga desde
+            // fuera» — el único caso en que la regla de cobro cambia de verdad).
+            'huesped_paga_desde_peru' => $desdePeru,
             'tiene_cuenta' => true,
             // 🔀 A DÓNDE IR SI DISCUTE LA CIFRA. Que el huésped diga «en la app veo otro
             // importe» es la objeción más frecuente de este tema, y la respuesta —que el canal
@@ -420,11 +441,6 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
     }
 
     /**
-     * @param string|null $idioma Idioma del huésped, para elegir la explicación del cargo.
-     *
-     * @return list<array<string, mixed>>
-     */
-    /**
      * La cuenta de un huésped cuyo canal ya le cobró todo.
      *
      * Sólo se le enseñan los EXTRAS: lo que consumió aquí y nos debe a nosotros —una cena, un
@@ -530,6 +546,11 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
      * @param bool $excluirEspejoCanal Deja fuera la contabilidad espejo del canal que cobra
      *        por nosotros. Ver {@see self::cuentaDeCanalQueCobra()}.
      */
+    /**
+     * @param string|null $idioma Idioma del huésped, para elegir la explicación del cargo.
+     *
+     * @return list<array<string, mixed>>
+     */
     private function cargos(PmsInformacionFinanciera $info, ?string $idioma, bool $excluirEspejoCanal = false): array
     {
         $filas = [];
@@ -567,10 +588,11 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
         return $filas;
     }
 
-    /** @return list<array<string, mixed>> */
     /**
      * @param bool $excluirEspejoCanal Deja fuera el pago que la OTA se apunta a sí misma.
      *        Mismo criterio que `PmsReservaPaxProvider::pagosVisibles()`.
+     *
+     * @return list<array<string, mixed>>
      */
     private function pagos(PmsInformacionFinanciera $info, bool $excluirEspejoCanal = false): array
     {

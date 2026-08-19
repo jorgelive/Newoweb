@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
-use App\Message\Contract\MapaDeHitos;
+use App\Contract\MapaDeHitos;
 use App\Pms\Entity\PmsConversacionEnlace;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Conversation;
 
 use App\Agent\Access\ActorInterface;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use App\Security\Roles;
 
 /**

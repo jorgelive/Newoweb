@@ -12,7 +12,7 @@
  */
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { apiClient } from '@/services/apiClient';
-import { formatoAHtml } from '@/utils/formatoDeTexto';
+import { formatoAHtml, paraWhatsapp } from '@/utils/formatoDeTexto';
 
 /** Espejo de App\Agent\Controller\Api\PanelAssistantController::consulta(). */
 interface RespuestaAsistente {
@@ -334,9 +334,42 @@ async function preguntar(): Promise<void> {
     }
 }
 
+const copiadoIndice = ref<number | null>(null);
+
+async function copiarAlPortapapeles(texto: string, indice: number): Promise<void> {
+    // `paraWhatsapp()` y no `normalizar()`: el operador pega esto en WhatsApp, así que
+    // tiene que salir degradado igual que lo que el backend ENVÍA por ese canal —con las
+    // URLs protegidas y sin el `__subrayado__`, que WhatsApp no tiene.
+    const textoParaWhatsapp = paraWhatsapp(texto);
+    try {
+        await navigator.clipboard.writeText(textoParaWhatsapp);
+        copiadoIndice.value = indice;
+        setTimeout(() => {
+            if (copiadoIndice.value === indice) {
+                copiadoIndice.value = null;
+            }
+        }, 2000);
+    } catch {
+        // Fallback si el navegador restringe el portapapeles
+        const textarea = document.createElement('textarea');
+        textarea.value = textoParaWhatsapp;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        copiadoIndice.value = indice;
+        setTimeout(() => {
+            if (copiadoIndice.value === indice) {
+                copiadoIndice.value = null;
+            }
+        }, 2000);
+    }
+}
+
 function limpiar(): void {
     hilo.value = [];
     error.value = '';
+    copiadoIndice.value = null;
 }
 
 function alternarDictado(): void {
@@ -492,20 +525,33 @@ onBeforeUnmount(() => reconocimiento?.stop());
                `formatoAHtml` lo pinta —escapando antes— igual que el chat de mensajería. Sin
                esto los asteriscos y los enlaces llegaban crudos al operador. -->
           <!-- eslint-disable vue/no-v-html -- Mismo pipeline escapado del chat (`formatoAHtml`). -->
-          <p
-            class="asistente-respuesta mt-2 text-sm text-slate-800 whitespace-pre-line leading-relaxed"
-            v-html="formatoAHtml(cambio.respuesta.texto)"
-          ></p>
-          <!-- eslint-enable vue/no-v-html -->
-          <p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            <template v-if="cambio.respuesta.herramientas?.length">
-              <i class="fas fa-database text-[9px] mr-1" aria-hidden="true"></i> Consultado en el PMS
-            </template>
-            <span
-              v-if="cambio.respuesta.firma"
-              :class="cambio.respuesta.herramientas?.length ? 'ml-2 text-slate-300' : 'text-slate-300'"
+          <div class="relative group mt-2">
+            <p
+              class="asistente-respuesta text-sm text-slate-800 whitespace-pre-line leading-relaxed pr-16"
+              v-html="formatoAHtml(cambio.respuesta.texto)"
+            ></p>
+            <button
+              type="button"
+              class="absolute top-0 right-0 text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded flex items-center gap-1 transition-all opacity-80 group-hover:opacity-100 shadow-sm"
+              :title="'Copiar texto para WhatsApp / portapapeles'"
+              @click="copiarAlPortapapeles(cambio.respuesta.texto, i)"
             >
-              {{ cambio.respuesta.firma }}
+              <i :class="copiadoIndice === i ? 'fas fa-check text-emerald-600' : 'far fa-copy text-slate-500'"></i>
+              <span class="text-[11px] font-medium">{{ copiadoIndice === i ? 'Copiado' : 'Copiar' }}</span>
+            </button>
+          </div>
+          <!-- eslint-enable vue/no-v-html -->
+          <p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center justify-between">
+            <span>
+              <template v-if="cambio.respuesta.herramientas?.length">
+                <i class="fas fa-database text-[9px] mr-1" aria-hidden="true"></i> Consultado en el PMS
+              </template>
+              <span
+                v-if="cambio.respuesta.firma"
+                :class="cambio.respuesta.herramientas?.length ? 'ml-2 text-slate-300' : 'text-slate-300'"
+              >
+                {{ cambio.respuesta.firma }}
+              </span>
             </span>
           </p>
         </template>

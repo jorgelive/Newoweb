@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Contract;
+namespace App\Agent\Contract;
 
+use App\Agent\Access\ActorInterface;
 use App\Agent\Conversation\PerfilConversacion;
-use App\Message\Entity\MessageConversation;
+use App\Contract\MapaDeHitos;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
@@ -67,6 +68,19 @@ interface InstruccionesDeDominioInterface
      *
      * Lo que aquí se dice son HECHOS. Cuánta flexibilidad cabe con ellos es política, y vive
      * en la guía; mezclarlos deja dos fuentes diciendo cosas distintas sin nadie que arbitre.
+     *
+     * ### Por qué recibe esto y no la conversación
+     *
+     * Hasta el 19/08/2026 recibía `MessageConversation` entera, y de ella usaba tres cosas: los
+     * hitos, el `contextType` y el `contextId`. Las dos últimas ya están en el actor, y los
+     * hitos tienen su propio tipo desde que existe {@see MapaDeHitos}. O sea que la entidad
+     * sobraba —y metía un dominio concreto dentro de un contrato que existe justo para no
+     * conocer ninguno—.
+     *
+     * Su contrato hermano lo tenía bien desde el principio:
+     * {@see \App\Agent\Contract\IndiceDeTemasInterface::lineaVolatil()} hace el mismo trabajo
+     * y recibe el actor a secas. La asimetría no era una decisión: era que éste se escribió
+     * después y tiró de lo que tenía a mano.
      */
-    public function contextoVolatil(MessageConversation $conversacion): string;
+    public function contextoVolatil(ActorInterface $actor, MapaDeHitos $hitos): string;
 }

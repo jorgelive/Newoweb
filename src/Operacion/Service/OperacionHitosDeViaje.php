@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\Service;
 
-use App\Message\Contract\ConversationMilestoneInterface;
+use App\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\HitoDeAsunto;
 use App\Operacion\Entity\OperacionServicio;
 use App\Operacion\Enum\EstadoOperacionEnum;

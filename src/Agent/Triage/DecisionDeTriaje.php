@@ -27,7 +27,7 @@ final readonly class DecisionDeTriaje
      *        vuelta de pedir el catálogo. Sin ninguna de las dos sigue funcionando: pide el
      *        catálogo y elige, como hasta ahora.
      * @param string|null $temaId El ítem EXACTO de la guía, elegido del índice global
-     *        ({@see \App\Message\Contract\IndiceDeTemasInterface}) y ya validado contra la casita del huésped. Con esto
+     *        ({@see \App\Agent\Contract\IndiceDeTemasInterface}) y ya validado contra la casita del huésped. Con esto
      *        `consultar_guia(tema_id)` trae el contenido a la primera: cero vueltas de
      *        catálogo. Sigue siendo sugerencia — la skill re-filtra contra su árbol podado.
      * @param string $motivo Una línea del propio modelo explicando por qué. No se le enseña a

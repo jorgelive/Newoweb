@@ -272,10 +272,19 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         $this->setIf($payload, 'notes',     $reserva->getNota());
         $this->setIf($payload, 'comments',  $evento->getComentariosHuesped());
         $this->setIf($payload, 'lang',      $reserva->getIdioma()?->getId());
-        $this->setIf($payload, 'country2',  $reserva->getPais()?->getId());
 
-        // Contacto Sensible: Proteger correos proxy y teléfonos originales de la OTA
+        // Contacto Sensible y PAÍS: sólo en reservas directas, donde el dato es nuestro.
+        //
+        // ⚠️ `country2` estaba FUERA de esta guarda y viajaba también en las OTA. Se envía el
+        // código ISO2 (`"country2":"PE"`), no el nombre —Beds24 lo pinta completo con su propio
+        // resolver, y eso es cosa suya—, pero el problema no era el formato: en una reserva de
+        // OTA el país es dato del canal, y devolvérselo es escribir nuestra deducción encima de
+        // su registro. En Airbnb, además, el nuestro ES una deducción: su `country2` trae el
+        // idioma y el país lo sacamos del prefijo del teléfono
+        // ({@see \App\Pms\Service\Exchange\Tasks\BookingsPull\BookingPullPersister::resolvePais()}).
+        // Empujarlo sería convertir una inferencia nuestra en el dato oficial de la reserva.
         if (!$isOta) {
+            $this->setIf($payload, 'country2', $reserva->getPais()?->getId());
             $this->setIf($payload, 'email',  $reserva->getEmailCliente());
             $this->setIf($payload, 'phone',  $reserva->getTelefono());
             $this->setIf($payload, 'mobile', $reserva->getTelefono2());

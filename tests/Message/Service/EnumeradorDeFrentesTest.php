@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Message\Service;
 
-use App\Message\Contract\Frente;
+use App\Contract\Frente;
 use App\Message\Contract\FrentesPorDominioInterface;
-use App\Message\Contract\MomentoDeFrente;
+use App\Contract\MomentoDeFrente;
 use App\Message\Service\EnumeradorDeFrentes;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Message\Contract;
 
+use App\Contract\MapaDeHitos;
+use App\Contract\VinculoComercial;
+
 /**
  * Contrato estricto que cualquier entidad debe cumplir para poder
  * tener una conversación de chat (Reservas, Viajes, Soporte, etc.).

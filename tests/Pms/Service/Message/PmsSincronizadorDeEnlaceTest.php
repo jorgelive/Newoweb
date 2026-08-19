@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Pms\Service\Message;
 
-use App\Message\Contract\MapaDeHitos;
-use App\Message\Contract\MomentoDeHito;
-use App\Message\Contract\ConversationMilestoneInterface as Hito;
+use App\Contract\MapaDeHitos;
+use App\Contract\MomentoDeHito;
+use App\Contract\ConversationMilestoneInterface as Hito;
 use App\Message\Contract\HitoDeAsunto;
 use App\Pms\Entity\PmsConversacionEnlace;
 use PHPUnit\Framework\Attributes\Test;

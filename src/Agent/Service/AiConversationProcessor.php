@@ -8,7 +8,7 @@ use App\Agent\Access\AgentActor;
 use App\Agent\Access\AgentActorFactory;
 use App\Agent\Conversation\InstruccionesDominioRegistry;
 use App\Agent\Access\RestriccionCanal;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use App\Agent\Conversation\AclaracionDeEmpate;
 use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\AgentEngineRegistry;
@@ -803,8 +803,8 @@ final readonly class AiConversationProcessor
         $dominio = $this->dominios->para($actor->contextoTipo(), $perfil);
 
         return $dominio === ''
-            ? $this->reglasComunes()
-            : $this->reglasComunes() . "\n\n" . $dominio;
+            ? $this->reglasComunes($actor)
+            : $this->reglasComunes($actor) . "\n\n" . $dominio;
     }
 
     /**
@@ -843,7 +843,7 @@ final readonly class AiConversationProcessor
         return preg_replace('/^\s*\[\d{1,2}\/\d{1,2}\]\s*/u', '', $texto) ?? $texto;
     }
 
-    private function reglasComunes(): string
+    private function reglasComunes(ActorInterface $actor): string
     {
         // 📅 QUÉ DÍA ES HOY. Sin esto el modelo no puede resolver «del 8 al 10 de noviembre»,
         // y no falla en voz alta: elige un año, cotiza tarifas de un noviembre PASADO y suena
@@ -858,9 +858,12 @@ final readonly class AiConversationProcessor
         // Compartidas con el asistente del panel y el de voz: ver ReglasCompartidas.
         $copiar = ReglasCompartidas::DATOS_QUE_SE_COPIAN;
         $parametros = ReglasCompartidas::NO_INVENTES_PARAMETROS;
+        $formatoCanal = $this->formatoSegunCanal($actor);
 
         return <<<PROMPT
-        Eres el asistente de un alojamiento en Cusco, Perú, que atiende por WhatsApp.
+        Eres el asistente de un alojamiento en Cusco, Perú.
+
+        {$formatoCanal}
 
         Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}), zona horaria America/Lima.
         Úsalo para resolver fechas relativas: si dicen «del 8 al 10 de noviembre» sin año, se
@@ -898,6 +901,31 @@ final readonly class AiConversationProcessor
         - No prometas plazos («enseguida», «en 5 minutos»): no sabes cuándo van a leerlo.
         - No menciones que eres una IA salvo que te lo pregunten directamente.
         PROMPT;
+    }
+
+    private function formatoSegunCanal(ActorInterface $actor): string
+    {
+        return match ($actor->origen()) {
+            'beds24' => <<<TXT
+            FORMATO DE SALIDA (Beds24 / Plataforma OTA):
+            - Estás respondiendo a través del chat de la plataforma (Booking, Airbnb, etc.).
+            - Escribe en texto plano limpio y directo.
+            - Usa saltos de línea normales y guiones (-) para listas.
+            - NO uses formato de WhatsApp: NO uses asteriscos (*palabra*) para negritas.
+            TXT,
+
+            'whatsapp_meta' => <<<TXT
+            FORMATO DE SALIDA (WhatsApp):
+            - Estás respondiendo por WhatsApp.
+            - Usa formato de WhatsApp: negritas con *asteriscos*, listas con guiones y emojis amigables.
+            - NO uses sintaxis de tablas Markdown (|---|).
+            TXT,
+
+            default => <<<TXT
+            FORMATO DE SALIDA (Texto plano / Web):
+            - Escribe en texto claro, estructurado con párrafos y viñetas simples.
+            TXT,
+        };
     }
 
 
@@ -1101,7 +1129,14 @@ final readonly class AiConversationProcessor
         // va la estancia y qué pasa alrededor de sus fechas. Lo calcula el DOMINIO — antes
         // vivía aquí, y para ello este servicio importaba `PmsReserva`, inyectaba
         // `PmsEspacioEstancia` y comparaba `context_type` contra `'pms_reserva'` a pelo.
-        $dominio = $this->dominios->contextoVolatil($conversacion);
+        // El TIPO se resuelve por la conversación y no por el actor —un prospecto nace sin
+        // contexto a propósito, y aquí se pregunta de qué va el hilo—; el contenido lo calcula
+        // el dominio con el actor y los hitos, sin ver la entidad.
+        $dominio = $this->dominios->contextoVolatil(
+            $conversacion->getContextType(),
+            $actor,
+            $conversacion->getMapaDeHitos()
+        );
 
         // 🎭 Quién escribe. Va aquí y no en las reglas porque el prompt del triaje es idéntico
         // byte a byte en todas las conversaciones —es el bloque cacheado— y esto es lo volátil.

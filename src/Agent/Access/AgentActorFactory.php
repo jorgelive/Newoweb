@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Access;
 
 use App\Entity\User;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use App\Message\Service\EnumeradorDeFrentes;
 use App\Security\Roles;
 use Symfony\Component\Security\Core\Authorization\Voter\RoleHierarchyVoter;

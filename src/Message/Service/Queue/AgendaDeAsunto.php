@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Message\Service\Queue;
 
 use App\Message\Contract\ConversacionEnlaceInterface;
-use App\Message\Contract\ConversationMilestoneInterface;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\ConversationMilestoneInterface;
+use App\Contract\VinculoComercial;
 use App\Message\Entity\MessageConversation;
 
 /**

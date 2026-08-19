@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Contract;
+namespace App\Contract;
 
 /**
  * De qué habla un trozo de conocimiento, para poder restarlo por canal.

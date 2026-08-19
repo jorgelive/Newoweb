@@ -14,7 +14,7 @@ use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillRegistry;
 use App\Agent\Skill\SkillResult;
 use App\Entity\User;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

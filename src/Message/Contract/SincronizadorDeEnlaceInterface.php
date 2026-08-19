@@ -25,7 +25,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * Porque la factoría vive en `src/Message` y el enlace del alojamiento en `src/Pms`: escribirlo
  * allí ataría la mensajería al esquema del PMS, que es la dependencia que se está quitando. Cada
  * negocio registra su sincronizador por tag y la factoría sólo pregunta quién soporta este
- * `context_type` — mismo patrón que {@see InstruccionesDeDominioInterface} y
+ * `context_type` — mismo patrón que {@see \App\Agent\Contract\InstruccionesDeDominioInterface} y
  * {@see FrentesPorDominioInterface}.
  */
 #[AutoconfigureTag('app.message.sincronizador_enlace')]

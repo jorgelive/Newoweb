@@ -6,7 +6,7 @@ namespace App\Message\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
-use App\Message\Contract\ConversationMilestoneInterface;
+use App\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\MessageContextInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -15,6 +15,7 @@ use InvalidArgumentException;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'msg_rule')]
@@ -62,6 +63,22 @@ class MessageRule
         ConversationMilestoneInterface::CANCELLED,
     ], message: 'El hito de referencia seleccionado no es válido.')]
     private string $milestone = ConversationMilestoneInterface::START;
+
+    /**
+     * Lo mínimo que puede tardar en salir un mensaje colgado del hito de CREACIÓN.
+     *
+     * 🔥 **Con 0 se corría una carrera, y no siempre se ganaba.** Una regla `created_at` con
+     * desfase 0 la programa `MessageRuleEngine` con `runAt = now` en el **mismo `postFlush`** en
+     * que se guarda la reserva —el del pull o el del webhook—, así que sale a la vez que están
+     * entrando sus propios datos. La bienvenida podía adelantarse a la revisión del nombre y
+     * saludar «Hola QUISPE CONTRERAS» o por el apellido; ver
+     * {@see \App\Pms\DispatchHandler\RevisarOrdenDelNombreDispatchHandler}.
+     *
+     * Un minuto no lo nota nadie que acaba de reservar, y convierte una carrera en un horario.
+     * Sólo aplica al hito de creación: los demás cuelgan de fechas que ya existían mucho antes
+     * y no compiten con nada.
+     */
+    public const int OFFSET_MINIMO_EN_CREACION = 1;
 
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
     private int $offsetMinutes = 0;
@@ -194,4 +211,33 @@ class MessageRule
     public function getAllowedAgencies(): array { return $this->allowedAgencies ?? []; }
     /** @param list<string>|null $allowedAgencies */
     public function setAllowedAgencies(?array $allowedAgencies): self { $this->allowedAgencies = $allowedAgencies; return $this; }
+
+    /**
+     * El desfase de una regla de CREACIÓN no puede ser menor que un minuto.
+     *
+     * Va aquí y no sólo en el formulario porque la regla es de la entidad: vale igual para el
+     * CRUD, para un import y para cualquier comando que las siembre. El formulario del panel se
+     * limita a enseñarla antes de que alguien la incumpla.
+     */
+    #[Assert\Callback]
+    public function validarDesfaseDeCreacion(ExecutionContextInterface $context): void
+    {
+        if ($this->milestone !== ConversationMilestoneInterface::CREATED) {
+            return;
+        }
+
+        if ($this->offsetMinutes >= self::OFFSET_MINIMO_EN_CREACION) {
+            return;
+        }
+
+        $context->buildViolation(
+            'Una regla colgada del hito de Creación necesita al menos {{ minimo }} minuto de '
+            . 'desfase. Con 0 el mensaje se programa en el mismo guardado en que entra la '
+            . 'reserva, y puede salir antes de que se terminen de arreglar sus datos —el nombre '
+            . 'del huésped, por ejemplo—.'
+        )
+            ->setParameter('{{ minimo }}', (string) self::OFFSET_MINIMO_EN_CREACION)
+            ->atPath('offsetMinutes')
+            ->addViolation();
+    }
 }

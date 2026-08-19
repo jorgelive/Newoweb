@@ -9,7 +9,7 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Entity\Trait\AutoTranslateControlTrait;
-use App\Message\Contract\CategoriaConocimiento;
+use App\Contract\CategoriaConocimiento;
 use App\Pms\Enum\PmsGuiaVisibilidad;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;

@@ -21,6 +21,50 @@ final class PhoneSanitizer
     }
 
     /**
+     * De qué país es un número que YA trae su prefijo internacional. `null` si no se sabe.
+     *
+     * 🔑 **Sirve para lo contrario que {@see self::cleanPhoneNumber()}**: allí el país es un
+     * dato de entrada para interpretar un número local; aquí el número es la evidencia y el
+     * país, la conclusión.
+     *
+     * Existe porque el `country2` de Airbnb no es de fiar —para un huésped con la app en
+     * español llega `ES`, que es el idioma en mayúsculas, y a un peruano con móvil +51 lo
+     * marcaba como español—, y el prefijo del teléfono sí lo es. Ver
+     * `docs/PmsBeds24ReservasSync.md` §3.3.
+     *
+     * ⚠️ **Sólo concluye con números que traen prefijo internacional.** No se le pasa una
+     * región por defecto a propósito: con una, un número local cualquiera «resolvería» a esa
+     * región y devolvería la suposición de entrada disfrazada de conclusión. Sin ella, un
+     * número sin prefijo no valida y se devuelve `null`, que es la respuesta honesta.
+     */
+    public function paisDelNumero(string $rawPhone): ?string
+    {
+        $digitos = preg_replace('/[^0-9]/', '', trim($rawPhone)) ?? '';
+
+        if ($digitos === '') {
+            return null;
+        }
+
+        try {
+            // El '+' se antepone porque así se persiste (E.164 sin el '+'): sin él,
+            // libphonenumber lee los dígitos como número local y sin región no puede parsear.
+            $numero = $this->phoneUtil->parse('+' . $digitos, null);
+        } catch (NumberParseException) {
+            return null;
+        }
+
+        if (!$this->phoneUtil->isValidNumber($numero)) {
+            return null;
+        }
+
+        $region = $this->phoneUtil->getRegionCodeForNumber($numero);
+
+        // `ZZ` es el «no sé» de libphonenumber, y los códigos no geográficos (800, 979…)
+        // resuelven a eso: no son un país.
+        return ($region === null || $region === 'ZZ') ? null : strtoupper($region);
+    }
+
+    /**
      * Utiliza libphonenumber para formatear a estándar internacional E.164 (sin el +).
      *
      * Regla de oro: **nunca se inventa un prefijo**. Solo se antepone el 51 al móvil

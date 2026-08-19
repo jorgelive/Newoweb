@@ -34,6 +34,12 @@ framework:
 
             App\Pms\Dispatch\ProcessBeds24WebhookDispatch: async
 
+            # La revisión del orden de nombre/apellido llama al modelo, y eso dentro del webhook
+            # lo alargaría segundos: Beds24 y Meta reintentan los webhooks lentos. Va asíncrona
+            # por el mismo motivo que el router del Agent, y le sobra margen porque el texto del
+            # mensaje se compone al ENVIAR (cron `exchange:run`), no al encolar.
+            App\Pms\Dispatch\RevisarOrdenDelNombreDispatch: async
+
             # Sin esta ruta el dispatch se maneja SÍNCRONO, y como quien lo lanza es un
             # postPersist/postUpdate de Doctrine, el router del Agent acababa corriendo
             # DENTRO de un flush: flush anidado, persist de la respuesta dentro de un

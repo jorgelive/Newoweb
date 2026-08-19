@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Triage;
 
 use App\Agent\Access\ActorInterface;
-use App\Message\Contract\IndiceDeTemasInterface;
+use App\Agent\Contract\IndiceDeTemasInterface;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
 /**

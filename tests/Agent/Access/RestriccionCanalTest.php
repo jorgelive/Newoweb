@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Agent\Access;
 
 use App\Agent\Access\RestriccionCanal;
-use App\Message\Contract\CategoriaConocimiento;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\CategoriaConocimiento;
+use App\Contract\VinculoComercial;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

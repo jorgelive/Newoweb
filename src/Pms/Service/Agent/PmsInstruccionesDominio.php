@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Pms\Service\Agent;
 
 use App\Agent\Conversation\PerfilConversacion;
-use App\Message\Contract\InstruccionesDeDominioInterface;
-use App\Message\Entity\MessageConversation;
+use App\Agent\Access\ActorInterface;
+use App\Contract\ConversationMilestoneInterface;
+use App\Contract\MapaDeHitos;
+use App\Agent\Contract\InstruccionesDeDominioInterface;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Reserva\PmsEspacioEstancia;
 use DateTimeImmutable;
@@ -68,11 +70,11 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
      * sólo tiene sentido si la fase menciona una llegada o una salida, y usa la cadena ya
      * calculada como filtro para no consultar de más.
      */
-    public function contextoVolatil(MessageConversation $conversacion): string
+    public function contextoVolatil(ActorInterface $actor, MapaDeHitos $hitos): string
     {
-        $fase = $this->faseDeLaEstancia($conversacion);
+        $fase = $this->faseDeLaEstancia($hitos);
 
-        return $fase . $this->espacioAlrededor($conversacion, $fase);
+        return $fase . $this->espacioAlrededor($actor, $fase);
     }
 
     /**
@@ -106,11 +108,12 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
      * —lo que decide de verdad un early check-in— eso son datos de otras reservas y necesita
      * su propia skill. Aquí no se inventa: se dice lo que se sabe.
      */
-    private function faseDeLaEstancia(MessageConversation $conversacion): string
+    private function faseDeLaEstancia(MapaDeHitos $hitos): string
     {
-        $hitos = $conversacion->getContextMilestones();
-        $inicio = $this->comoFecha($hitos['start'] ?? null);
-        $fin = $this->comoFecha($hitos['end'] ?? null);
+        // Tipado y no `$hitos['start']` sobre el array crudo: es el mismo dato, pero el acceso
+        // por clave a un `array` sin forma es justo lo que el nivel 6 de PHPStan persigue.
+        $inicio = $hitos->obtener(ConversationMilestoneInterface::START)?->comoFecha();
+        $fin = $hitos->obtener(ConversationMilestoneInterface::END)?->comoFecha();
 
         if ($inicio === null || $fin === null) {
             return '';
@@ -164,18 +167,18 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
      * cosas distintas sobre lo mismo, sin nadie que arbitre. El contexto es el marco; la guía,
      * la norma; las skills, los datos que se piden. Cada uno de su clase y no se pisan.
      */
-    private function espacioAlrededor(MessageConversation $conversacion, string $fase): string
+    private function espacioAlrededor(ActorInterface $actor, string $fase): string
     {
         // La fase ya calculada hace de filtro: si no menciona llegada ni salida, no toca.
         if (!preg_match('/LLEGA (HOY|MAÑANA)|SE VA HOY|ÚLTIMO DÍA/u', $fase)) {
             return '';
         }
 
-        if ($conversacion->getContextType() !== 'pms_reserva' || $conversacion->getContextId() === null) {
+        if ($actor->contextoTipo() !== 'pms_reserva' || $actor->contextoId() === null) {
             return '';
         }
 
-        $reserva = $this->em->getRepository(PmsReserva::class)->find($conversacion->getContextId());
+        $reserva = $this->em->getRepository(PmsReserva::class)->find($actor->contextoId());
 
         if ($reserva === null) {
             return '';
@@ -223,20 +226,6 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
         return "\n" . implode("\n", $lineas)
             . "\nESTO ES INTERNO: úsalo para decidir qué le ofreces, pero NO le cuentes que hay"
             . ' otro huésped ni sus horas. Dale la conclusión, nunca el motivo.';
-    }
-
-    /** Un hito de `contextData` como fecha, o null si no se puede leer. */
-    private function comoFecha(mixed $valor): ?DateTimeImmutable
-    {
-        if (!is_string($valor) || trim($valor) === '') {
-            return null;
-        }
-
-        try {
-            return new DateTimeImmutable($valor);
-        } catch (Throwable) {
-            return null;
-        }
     }
 
     private function prospecto(): string
@@ -338,6 +327,7 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
           sale pagar el saldo con tarjeta. Es la de «¿por qué me cobráis esto?» y CUÁNTO se debe.
         - «consultar_medios_pago» trae POR DÓNDE se paga: Yape, Plin, cuentas bancarias,
           Western Union, efectivo, con su titular y su número. Es la de «¿cómo pago?».
+          * Regla de cobro: A nacionales/peruanos se les ofrece Yape, Plin, Transferencia bancaria y Tarjeta (+5.5%). NUNCA Western Union a peruanos. A extranjeros se les ofrece Tarjeta (+5.5% en USD) o Western Union. NUNCA transferencia bancaria internacional a extranjeros.
         - «consultar_tipo_cambio» trae el cambio de dólares a soles de hoy, y la conversión ya
           hecha si le pasas el importe.
         Cuánto debe y cuándo sale son las dos cosas que más se preguntan: llama a la herramienta

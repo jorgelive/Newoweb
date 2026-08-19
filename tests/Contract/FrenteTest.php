@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Message\Contract;
+namespace App\Tests\Contract;
 
-use App\Message\Contract\Frente;
-use App\Message\Contract\MomentoDeFrente;
+use App\Contract\Frente;
+use App\Contract\MomentoDeFrente;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

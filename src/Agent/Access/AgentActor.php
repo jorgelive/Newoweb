@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Access;
 
 use App\Entity\User;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use App\Security\Roles;
 
 /**
@@ -149,6 +149,46 @@ final readonly class AgentActor implements ActorInterface
             VinculoComercial::Ninguno,
             RestriccionCanal::Ninguna,
             $dominios
+        );
+    }
+
+    /**
+     * Nadie: el trabajo de sistema que consulta al modelo sin que haya preguntado una persona.
+     *
+     * 🔑 **Es la cuarta entrada del agente, y no se parece a las otras tres.** En el chat, el
+     * panel y la voz hay alguien esperando una respuesta; aquí lo dispara un cambio de datos
+     * —una reserva que entra por el pull o por el webhook— y la salida no la lee nadie: se
+     * guarda. El primero de estos es
+     * {@see \App\Pms\DispatchHandler\RevisarOrdenDelNombreDispatchHandler}.
+     *
+     * Nace **sin roles**, y ésa es toda la definición. No es cautela: un trabajo de sistema no
+     * tiene a quién pedirle permiso ni a quién enseñarle una previsualización, así que el único
+     * nivel de acceso que se puede razonar es ninguno. Sin `User`, sin contexto y sin
+     * conversación por el mismo motivo: no hay reserva a la que esté acotado ni hilo al que
+     * contestar.
+     *
+     * ⚠️ **Sólo vale para {@see \App\Agent\Conversation\AgentEngineInterface::turnoDirecto()}**,
+     * que va sin herramientas por construcción. Pasárselo a `conversar()` sería pedirle al
+     * modelo que eligiera entre un catálogo vacío. Si algún día un trabajo de sistema necesita
+     * herramientas, lo que hay que diseñar es su control de acceso —no reutilizar esto.
+     *
+     * Antes se usaba `prospecto('sistema')`, y era mentira: un prospecto es alguien que escribe
+     * sin ser todavía nadie, con su rol y su camino para escalar. Aquí no escribe nadie.
+     *
+     * @param string $origen De qué proceso viene, para el log: `pms_orden_nombre`, `pms_pull`…
+     */
+    public static function sistema(string $origen): self
+    {
+        return new self(
+            null,
+            $origen,
+            [],
+            null,
+            null,
+            null,
+            VinculoComercial::Ninguno,
+            RestriccionCanal::Ninguna,
+            []
         );
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Router;
 
 use App\Agent\Action\BotActionHandlerInterface;
+use App\Agent\Action\ParametrosDeAccion;
 use App\Agent\Entity\AutoResponderRule;
 use App\Agent\Service\AiConversationProcessor;
 use App\Message\Entity\Message;
@@ -73,7 +74,10 @@ final readonly class IntentRouter
                         // marcado, y el mensaje se quedaba `resolved: false` para siempre —
                         // re-despachándose en cada postUpdate. En producción había 7 casos así.
                         try {
-                            $handler->execute($message, $rule->getActionParameters() ?? []);
+                            $handler->execute(
+                                (string) $message->getId(),
+                                ParametrosDeAccion::desdeCrudo($rule->getActionParameters())
+                            );
                             $this->marcarResuelto($message, 'regla:' . $rule->getTriggerValue());
                         } catch (Throwable $e) {
                             $this->logger->error(sprintf(

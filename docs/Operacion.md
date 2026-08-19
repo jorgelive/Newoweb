@@ -768,15 +768,15 @@ N OperacionServicio ──(ordenServicio, ManyToOne)──► 1 OperacionOrdenSe
 cada servicio para asignarle el IRI de la OS. **No es transaccional**: si falla a mitad, queda una
 OS con sólo parte de los servicios asociados.
 
-La vista sólo deja generar una OS si los servicios seleccionados comparten **expediente,
-proveedor y moneda**, ninguno pertenece ya a otra OS y **todos son comprables**
+La vista sólo deja generar una OS si los servicios seleccionados comparten **expediente y
+comprador**, ninguno pertenece ya a otra OS y **todos son comprables**
 (`conflictoSeleccion` en `OperacionView.vue`).
 
 ⚠️ Esa comprobación vive en el navegador y por tanto **no es la garantía**. La garantía
-está en `setOrdenServicio()`, que compara el expediente y la moneda de la fila con los de
+está en `setOrdenServicio()`, que compara el expediente de la fila con el de
 la cabecera de la OS. Sin ella, dos pestañas abiertas o cualquier consumidor de la API
-distinto de la vista podían armar una orden con filas de dos expedientes o de dos
-monedas: un documento que el proveedor no puede firmar y un total que no suma sus líneas.
+distinto de la vista podían armar una orden con filas de dos expedientes: un documento 
+que nadie puede firmar. (Las monedas mezcladas ya no bloquean, pues cada fila mantiene la suya).
 
 **Comprable** (`OperacionServicio::esComprable()`) es más estrecho que «no es referencia»:
 excluye además lo `cancelado` en la cotización y lo `reemplazado`. Los dos conservan tarifa, así
@@ -1145,7 +1145,7 @@ Es la que responde a *dónde recojo y quién opera*, así que manda sobre el pro
 |---|---|---|
 | Principal, editable | `prestadorNombre` | siempre |
 | Teléfono (enlace `tel:`) y dirección | `prestadorTelefono`, `prestadorDireccion` | si el snapshot los trae |
-| «Compra», editable y atenuado | `proveedorNombreManual` | salvo que sea **redundante** (no vacío e idéntico al prestador) o la fila sea referencia |
+| «Compra», editable y atenuado | `compradorNombre` | salvo que sea **redundante** (no vacío e idéntico al prestador) o la fila sea referencia |
 
 Tres decisiones que conviene no deshacer:
 
@@ -1156,7 +1156,7 @@ Tres decisiones que conviene no deshacer:
   —34 de 42 filas en una cotización real— y justo el que hace falta para agrupar una OS.
   **Vacío no es redundante, es pendiente.**
 - **Pero sigue siendo editable cuando aparece.** `conflictoSeleccion` agrupa la OS por
-  `proveedorNombreManual`: sin poder corregirlo aquí, dos filas del mismo proveedor escrito de
+  `compradorNombre`: sin poder corregirlo aquí, dos filas del mismo comprador escrito de
   dos maneras no se podrían juntar nunca en una misma Orden de Servicio.
 - **En una fila de referencia no se muestra**, porque no se compra: ver §3.3.
 

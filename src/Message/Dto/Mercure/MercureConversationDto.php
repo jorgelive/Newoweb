@@ -31,7 +31,7 @@ class MercureConversationDto implements JsonSerializable
 
     private ?string $contextOrigin;
     private ?string $contextStatusTag;
-    /** @var array<string, string> Hitos ya en texto: {@see \App\Message\Contract\MomentoDeHito}. */
+    /** @var array<string, string> Hitos ya en texto: {@see \App\Contract\MomentoDeHito}. */
     private array $contextMilestones = [];
     /** @var list<string> */
     private array $contextItems = [];

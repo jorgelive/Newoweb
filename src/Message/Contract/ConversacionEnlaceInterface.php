@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Message\Contract;
 
+use App\Contract\Frente;
+use App\Contract\MomentoDeFrente;
+use App\Contract\VinculoComercial;
 use App\Message\Entity\MessageConversation;
 
 /**
@@ -73,7 +76,7 @@ interface ConversacionEnlaceInterface
      * conversación. Desde que las lee de aquí ({@see \App\Message\Service\Queue\AgendaDeAsunto}),
      * una sola conversación puede tener N agendas.
      *
-     * @return array<string, string> Claves de {@see ConversationMilestoneInterface}.
+     * @return array<string, string> Claves de {@see \App\Contract\ConversationMilestoneInterface}.
      */
     public function getMilestones(): array;
 
@@ -100,8 +103,8 @@ interface ConversacionEnlaceInterface
      * —quién gestiona un cambio de fecha, quién emite el comprobante—.
      *
      * Así que el dominio entrega la frase hecha y el núcleo la concatena sin entenderla. Es la
-     * misma división que ya usan {@see InstruccionesDeDominioInterface} y
-     * {@see IndiceDeTemasInterface}.
+     * misma división que ya usan {@see \App\Agent\Contract\InstruccionesDeDominioInterface} y
+     * {@see \App\Agent\Contract\IndiceDeTemasInterface}.
      *
      * ── Va pegado al ASUNTO, no a la conversación ───────────────────────────
      * ⚠️ Y es la razón de que viva aquí. Con la fusión de hilos por contacto, una misma persona

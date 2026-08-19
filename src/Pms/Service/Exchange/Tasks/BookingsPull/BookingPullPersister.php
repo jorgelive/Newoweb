@@ -15,6 +15,7 @@ use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidadBeds24Map;
 use App\Pms\Factory\PmsEventoCalendarioFactory;
+use App\Service\Nombre\NombreSanitizer;
 use App\Service\Phone\PhoneSanitizer;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -55,7 +56,8 @@ final class BookingPullPersister implements ResetInterface
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly PmsEventoCalendarioFactory $eventoFactory,
-        private readonly PhoneSanitizer $phoneSanitizer
+        private readonly PhoneSanitizer $phoneSanitizer,
+        private readonly NombreSanitizer $nombreSanitizer,
     ) {}
 
     /**
@@ -361,8 +363,20 @@ final class BookingPullPersister implements ResetInterface
         // Si el candado está abierto, guardamos todo lo que traiga
         if (!$reserva->isDatosLocked() && $hasAnyData && $isPrincipal) {
 
-            $reserva->setNombreCliente($firstName !== '' ? $firstName : null);
-            $reserva->setApellidoCliente($lastName !== '' ? $lastName : null);
+            // 📣 El nombre se normaliza AQUÍ, en el mismo flush en que entra, y no en un
+            // trabajo posterior. Dos motivos, y los dos son de carrera:
+            //
+            //  1. La bienvenida es una regla `created_at` con offset 0: `MessageRuleEngine` la
+            //     programa en el `postFlush` de ESTE guardado, con `runAt = now`. Un trabajo
+            //     asíncrono lanzado a la vez compite con el worker de envío, y a veces pierde.
+            //  2. Mientras `datosLocked` siga abierto, CADA pull vuelve a escribir estos dos
+            //     campos desde el payload. Un nombre arreglado por fuera se desharía solo en la
+            //     siguiente pasada, sin que nadie lo notara.
+            //
+            // Normalizar en la fuente hace las dos preguntas irrelevantes. Ver
+            // docs/PmsBeds24ReservasSync.md y NombreSanitizer, que sólo toca lo GRITADO.
+            $reserva->setNombreCliente($firstName !== '' ? $this->nombreSanitizer->formatear($firstName) : null);
+            $reserva->setApellidoCliente($lastName !== '' ? $this->nombreSanitizer->formatear($lastName) : null);
             $reserva->setEmailCliente($email !== '' ? $email : null);
 
             $pais = $this->resolvePais($booking);
@@ -717,9 +731,38 @@ final class BookingPullPersister implements ResetInterface
         return $map;
     }
 
+    /**
+     * El país de la reserva. Nunca `null`: también es el `defaultCountryIso` con el que se
+     * sanean los dos teléfonos justo después.
+     *
+     * 🔥 **En Airbnb manda el TELÉFONO, no `country2`.** Comprobado sobre 1385 payloads reales
+     * el 19/08/2026: cuando el huésped tiene su Airbnb en español, `country2` llega como `ES`
+     * —el código de idioma `es` en mayúsculas, que por desgracia también es un país válido, así
+     * que `find()` casa y no falla nada—. De 18 reservas de Airbnb marcadas `ES` con teléfono,
+     * **16 tenían móvil peruano (+51), una colombiana y otra mexicana; ninguna española**. Con
+     * `fr`→`FR` y `pt`→`PT` pasa igual; con `en` no colapsa y entonces sí llega el país bueno.
+     *
+     * Booking.com no tiene este problema: su `country2` cuadra con el prefijo siempre.
+     *
+     * El orden es teléfono → `country2` → `DEFAULT_PAIS`, y no teléfono → `DEFAULT_PAIS`, para
+     * no tirar el dato bueno de los Airbnb en inglés. `paisDelNumero()` sólo concluye con
+     * números que traen prefijo internacional, así que cuando calla es que de verdad no se sabe.
+     *
+     * Ver docs/PmsBeds24ReservasSync.md §3.3.
+     */
     private function resolvePais(Beds24BookingDto $dto): MaestroPais
     {
-        $iso2 = strtoupper((string) ($dto->country2 ?? ''));
+        $iso2 = strtoupper(trim((string) ($dto->country2 ?? '')));
+
+        if ($this->resolveChannel($dto)->getId() === PmsChannel::CODIGO_AIRBNB) {
+            $delTelefono = $this->phoneSanitizer->paisDelNumero((string) ($dto->phone ?? ''))
+                ?? $this->phoneSanitizer->paisDelNumero((string) ($dto->mobile ?? ''));
+
+            if ($delTelefono !== null) {
+                $iso2 = $delTelefono;
+            }
+        }
+
         if ($iso2 === '') $iso2 = MaestroPais::DEFAULT_PAIS;
 
         if (array_key_exists($iso2, $this->cachePaises)) return $this->cachePaises[$iso2];

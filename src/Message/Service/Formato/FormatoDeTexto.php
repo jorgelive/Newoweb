@@ -62,6 +62,9 @@ final readonly class FormatoDeTexto
         // `# Título` → «*Título*»: el título pierde la jerarquía pero conserva el énfasis.
         $texto = preg_replace('/^#{1,6}\s+(.+?)\s*$/mu', '*$1*', $texto) ?? $texto;
 
+        // Triple asterisco `***x***` (negrita + cursiva en Markdown) → `_*x*_`
+        $texto = preg_replace('/\*\*\*(?=\S)([^*\n]*\S)\*\*\*/u', '_*$1*_', $texto) ?? $texto;
+
         // `**x**` y `__…__` de Markdown son negrita; nuestro `__x__` es subrayado. La negrita
         // doble se colapsa ANTES de tratar guiones bajos: `**x**` → `*x*`, `~~x~~` → `~x~`.
         $texto = preg_replace('/\*\*(?=\S)([^*\n]*\S)\*\*/u', '*$1*', $texto) ?? $texto;

@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Contract;
+namespace App\Contract;
+
+use App\Contract\MapaDeHitos;
 
 /**
  * Define los identificadores estrictos para los hitos cronológicos de una conversación.

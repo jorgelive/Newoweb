@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Contract;
+namespace App\Agent\Contract;
 
+use App\Contract\TemaQueCubre;
 use App\Agent\Access\ActorInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agent\Access;
 
-use App\Message\Contract\CategoriaConocimiento;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\CategoriaConocimiento;
+use App\Contract\VinculoComercial;
 
 /**
  * Qué NO puede salir por este canal, con independencia de a quién se le hable.

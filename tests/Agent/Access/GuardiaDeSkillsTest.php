@@ -12,7 +12,7 @@ use App\Agent\Skill\SkillDefinition;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillResult;
 use App\Entity\User;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use App\Security\Roles;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

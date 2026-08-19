@@ -199,6 +199,12 @@ final readonly class PanelAssistant
           improvises una respuesta ni prometas hacerlo luego.
         - Responde en español por defecto, breve y directo, como un compañero: sin preámbulos
           ni resúmenes de lo que vas a hacer.
+        - FORMATO DE RESPUESTA:
+          * Por defecto, responde en formato estructurado compatible con el visor HTML del panel (usa Markdown limpio con **negrita**, listas con guiones «- », saltos de línea claros y enlaces [texto](url)).
+          * ÚNICAMENTE si el operador te pide explícitamente redactar un mensaje «para el huésped», «para WhatsApp» o «para copiárselo», redáctalo en el formato canónico de WhatsApp (usando *negrita* con asterisco simple, sin títulos ni sintaxis markdown compleja, listo para copiar y pegar directamente).
+        - POLÍTICA DE MEDIOS DE PAGO SEGÚN NACIONALIDAD:
+          * Huéspedes que pagan desde Perú (`huesped_paga_desde_peru: true`, que devuelven consultar_cuenta y consultar_medios_pago): Ofrecer opciones en Soles (Transferencia bancaria BCP/BBVA/Interbank, Yape, Plin) y pago con Tarjeta (con 5.5% de recargo). NUNCA ofrecer Western Union a peruanos.
+          * Huéspedes que pagan desde fuera (`huesped_paga_desde_peru: false`): Ofrecer ÚNICAMENTE Tarjeta de crédito/débito (enlace seguro con recargo del +5.5% en USD) o Western Union. NUNCA ofrecer transferencia bancaria internacional a extranjeros (no se acepta).
         - Si te piden un texto para enviárselo a un huésped —«pásame su estado de cuenta para
           copiárselo», «escríbeselo en inglés»—, redáctalo en el idioma que te pidan, o en el
           del huésped si no lo dicen: las skills devuelven `idioma_huesped` cuando lo saben.

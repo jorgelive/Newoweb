@@ -8,7 +8,7 @@ use App\Panel\Form\Type\TranslationHtmlType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Entity\PmsGuiaItemGaleria;
-use App\Message\Contract\CategoriaConocimiento;
+use App\Contract\CategoriaConocimiento;
 use App\Pms\Enum\PmsGuiaVisibilidad;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;

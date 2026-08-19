@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Agent\Conversation;
 
-use App\Message\Contract\InstruccionesDeDominioInterface;
-use App\Message\Entity\MessageConversation;
+use App\Agent\Access\ActorInterface;
+use App\Contract\MapaDeHitos;
+use App\Agent\Contract\InstruccionesDeDominioInterface;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
 /**
@@ -38,9 +39,9 @@ final readonly class InstruccionesDominioRegistry
      * valor en el chat, pero el actor de un prospecto nace sin contexto a propósito y aquí lo
      * que se pregunta es de qué negocio va el hilo, no a qué está atado quien escribe.
      */
-    public function contextoVolatil(MessageConversation $conversacion): string
+    public function contextoVolatil(?string $contextoTipo, ActorInterface $actor, MapaDeHitos $hitos): string
     {
-        return $this->resolver($conversacion->getContextType())?->contextoVolatil($conversacion) ?? '';
+        return $this->resolver($contextoTipo)?->contextoVolatil($actor, $hitos) ?? '';
     }
 
     /**

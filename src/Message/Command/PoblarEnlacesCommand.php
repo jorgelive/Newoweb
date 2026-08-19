@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Message\Command;
 
-use App\Message\Contract\ConversationMilestoneInterface;
+use App\Contract\ConversationMilestoneInterface;
 use App\Message\Entity\MessageConversation;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use App\Pms\Entity\PmsConversacionEnlace;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Message\PmsHitosDeEstancia;

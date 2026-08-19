@@ -35,6 +35,13 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 
 ---
 
+> 🧭 **El agente tiene doc propio desde el 19/08/2026: `docs/Agent.md`.**
+> Ahí están sus cuatro entradas —chat, panel, voz y eventos de dominio—, los actores, los
+> contratos de entrada y salida y dónde vive cada uno. Aquí se queda **el chat**: triaje,
+> ráfagas, escalera de temas, colas, plantillas y reglas de envío, que es lo que este documento
+> cuenta bien. Si buscas «cómo se enchufa un dominio al agente» o «qué devuelve una skill», es el
+> otro.
+
 ## 1. Vocabulario
 
 | Término | Significado |
@@ -228,6 +235,20 @@ Todos son constantes de `MessageRuleEngine` y todos se miden en `America/Lima`:
 | `RESCUE_WINDOW` | −24 h | Antigüedad máxima que admite el rescate de última hora |
 | `EXPIRY_WINDOW` | −12 h | Un pendiente más atrasado que esto se cancela por caducidad |
 | `TZ` | `America/Lima` | Zona en la que se interpretan hitos y "hoy" |
+
+> ⚠️ **Las reglas del hito `created_at` tienen un desfase MÍNIMO de 1 minuto** desde el
+> 19/08/2026 (`MessageRule::OFFSET_MINIMO_EN_CREACION`, migración `Version20260819100000`).
+>
+> Con 0 el mensaje se programaba con `runAt = now` en el **mismo `postFlush`** en que entra la
+> reserva, así que la bienvenida competía con lo que arregla sus propios datos: la normalización
+> del nombre y la revisión de si el canal mandó cruzados el nombre y el apellido —ésta llama al
+> modelo y va asíncrona, ver `docs/PmsBeds24ReservasSync.md` §7.2—. Cuando ganaba la bienvenida,
+> salía «Hola QUISPE CONTRERAS» o saludando por el apellido.
+>
+> Un minuto no lo nota nadie que acaba de reservar, y convierte una carrera en un horario. Lo
+> impide la **entidad** (`validarDesfaseDeCreacion()`), no el formulario, para que valga igual
+> desde un import o un comando; el CRUD sólo lo enseña en la ayuda del campo. Los demás hitos no
+> lo llevan: cuelgan de fechas que existían mucho antes y no compiten con nada.
 
 **El rescate** (`canRescue`) crea el mensaje con `runAt = now` cuando su fecha teórica ya pasó.
 Se activa en `INSERT`, en `COMMAND + force` o cuando el ASUNTO acaba de nacer (`esNueva`: enlace
@@ -4811,6 +4832,28 @@ las devuelven intactas al final — y lo pegado al final de una URL («mira *url
 url.») se devuelve al texto, para que las marcas se vean en pareja. Verificado en
 `var/probar-formato.php` (19 comprobaciones, sin API).
 
+### 📋 El botón «Copiar» del asistente del panel usa `paraWhatsapp()`, no `normalizar()`
+
+`AsistenteBar.vue` pinta la respuesta con `formatoAHtml()` (HTML para el panel) y ofrece
+copiarla para pegarla en WhatsApp. Ese botón **no puede usar `normalizar()` a secas**: es sólo
+el primer paso de la degradación, y saltarse el resto rompe dos cosas que el backend sí hace
+al ENVIAR por ese canal —así que el operador pegaría un texto distinto del que manda el
+sistema:
+
+| Sin `paraWhatsapp()` | Qué pasa |
+|---|---|
+| Sin protección de URLs | `https://x.com/a***b***c` → `https://x.com/a_*b*_c`: **enlace roto** |
+| Sin `sinSubrayado()` | `__x__` llega literal a WhatsApp, que no tiene subrayado |
+
+Por eso `util/src/utils/formatoDeTexto.ts` exporta `paraWhatsapp()`, espejo estricto de
+`FormatoDeTexto::paraWhatsapp()` (apartar URLs con `\x00N\x00` → `normalizar()` →
+`sinSubrayado()` → devolver URLs). 🔁 **Si tocas una, toca la otra.** La equivalencia se
+comprueba compilando el módulo TS con `esbuild` y pasando los mismos casos por las dos
+implementaciones; la última corrida dio idénticas las 8 entradas, enlaces y listas incluidos.
+
+`formatoAHtml()` sigue apartando URLs por su cuenta porque además maneja `[etiqueta](url)`,
+que en el panel es un `<a>` y en WhatsApp es «texto: url» — esa divergencia sí es deliberada.
+
 ### 💰 `consultar_tarifas`: a cuánto sale una casita, noche a noche
 
 El precio real sólo se podía ver **creando la reserva** — `estimarAlojamiento()` vivía dentro de
@@ -5306,6 +5349,13 @@ arreglar** — ver el aviso al final de esta sección.
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
+| Cambiar el texto que se COPIA para WhatsApp desde el panel | `util/src/utils/formatoDeTexto.ts` + `src/Message/Service/Formato/FormatoDeTexto.php` | `paraWhatsapp()` — **espejo: los dos** |
+| Cambiar si un huésped paga desde Perú (y qué medios se le ofrecen) | `src/Pms/Finanzas/PmsProcedenciaHuesped.php` | `pagaDesdePeru()` — **única fuente; no lo recalcules en una skill** |
+| Cambiar el formato de salida del agente según el canal | `src/Agent/Service/AiConversationProcessor.php` | `formatoSegunCanal()` (se bifurca por `ActorInterface::origen()`) |
+| Cambiar cuándo se pregunta ante dos herramientas empatadas | `src/Agent/Conversation/AclaracionDeEmpate.php` | `obliga()` |
+| Cambiar el desfase mínimo de una regla de creación | `src/Message/Entity/MessageRule.php` | `OFFSET_MINIMO_EN_CREACION` + `validarDesfaseDeCreacion()` — §4.4 |
+| Entender las entradas y contratos del agente | `docs/Agent.md` | — |
+| Cambiar QUÉ puede empatar o enrutarse directo desde el triaje | `src/Agent/Triage/CatalogoDelTriaje.php` | `veEscrituras()` / `permitidas()` / `enrutablesDirectas()` — **las dos listas son asimétricas a propósito** (§22.25) |
 | **Impedir que una skill se EJECUTE** (el cierre real) | `src/Agent/Access/GuardiaDeSkills.php` | `motivoDeBloqueo()` — lo llaman los 3 adaptadores/CLI |
 | **Abrir o cerrar la escritura de un canal** | el que arma la petición (`AiConversationProcessor`, `VoiceAssistant`, `PanelAssistant`…) | el argumento `permitirEscritura:` de `ConversationRequest` — **no hay sitio central, cada canal trae el suyo** |
 | Cambiar qué herramientas se le OFRECEN al modelo | `src/Agent/Skill/SkillRegistry.php` | `paraActor()` |
@@ -5606,13 +5656,22 @@ lista al mismo repositorio con el mismo filtro.
 ```
    PmsProcedenciaHuesped::pagaDesdePeru($reserva)   ← una sola regla
                           │
-          ┌───────────────┴───────────────┐
-          ▼                               ▼
-  ConsultarMediosPagoSkill        PmsGuiaHuespedProvider
-  (chat)                          (guía en pax)
-          │                               │
-          └────► FinMedioCobroRepository::ofrecibles($desdePeru) ◄────┘
+        ┌─────────────────┼─────────────────┐
+        ▼                 ▼                 ▼
+ConsultarMediosPagoSkill  PmsGuiaHuespedProvider  ConsultarCuentaSkill
+(chat)                    (guía en pax)           (chat: estado de cuenta)
+        │                 │                       │
+        └──► FinMedioCobroRepository::ofrecibles($desdePeru) ◄──┘   `huesped_paga_desde_peru`
 ```
+
+⚠️ **El nombre del campo es `huesped_paga_desde_peru` en las tres, y el valor es `?bool`.**
+`consultar_cuenta` llegó a llevar un `es_nacional` propio, calculado con
+`$reserva->getPais()?->getId() === 'PE'`. Eran dos problemas en una línea: una cuarta respuesta
+a una pregunta que ya tenía servicio, y **binaria** — perdía el `null` de «no se sabe», que
+existe justo para no darle por peruano a quien venía de fuera y esconderle el Western Union.
+Un `false` sí viaja: el `array_filter` de esas skills lleva `static fn ($v) => $v !== null`
+precisamente para eso, y copiarlo sin el callback se comería el caso extranjero, que es el
+único donde la regla de cobro cambia de verdad.
 
 Que la deducción de procedencia sea un servicio y no un método privado es justo el motivo:
 si el chat y la pantalla la calcularan cada uno por su lado, un huésped podría ver una cuenta
@@ -6259,13 +6318,68 @@ Hoy hay tres ejes, y son independientes:
 
 | Eje | Pregunta | Dónde vive |
 |---|---|---|
-| `VinculoComercial` | ¿qué relación tiene conmigo? | `Message/Contract` |
+| `VinculoComercial` | ¿qué relación tiene conmigo? | `App\Contract` |
 | `RestriccionCanal` | ¿qué NO sale por este tubo? | `Agent/Access` |
-| `CategoriaConocimiento` | ¿de qué trata este contenido? | `Message/Contract` |
+| `CategoriaConocimiento` | ¿de qué trata este contenido? | `App\Contract` |
 
 **El pago no está en el vínculo, y es a propósito.** Un cliente con saldo pendiente sigue
 siendo cliente: el dinero condiciona QUÉ se le entrega (los códigos), no CON QUIÉN se habla.
 Ese eje ya vive en `NivelRiesgo` y en `PmsGuiaVisibilidad`.
+
+### 19.1.b `App\Contract`: dónde viven estos tipos, y por qué sólo cinco se mudaron
+
+Hasta el 19/08/2026 estos tipos vivían en `src/Message/Contract/`, y era el sitio equivocado:
+**mensajería no usa ni uno de los cuatro primeros.** `CategoriaConocimiento`,
+`IndiceDeTemasInterface`, `InstruccionesDeDominioInterface` y `TemaQueCubre` los consumen sólo
+`Agent` y `Pms`; estaban alojados en un tercer módulo que no los mira. Eso obligaba a cualquier
+dominio que quisiera enchufarse al agente a importar de `App\Message`.
+
+Se mudaron a **`src/Contract/` (`App\Contract`)**, que es núcleo compartido y no depende de
+nadie:
+
+| Tipo | Qué es | Lo usan |
+|---|---|---|
+| `VinculoComercial` | ¿qué relación tiene conmigo? | Agent · Message · Pms |
+| `Frente` | de qué asunto se habla | Agent · Message · Pms |
+| `MomentoDeFrente` | en qué punto de ese asunto | Message · Pms |
+| `CategoriaConocimiento` | de qué trata este contenido | Agent · Pms |
+| `TemaQueCubre` | qué tema cubre un texto | Agent · Pms |
+
+⚠️ **`MomentoDeFrente` no se mudó por mérito propio, sino porque `Frente` lo lleva dentro.** Un
+conjunto de tipos que se mueve tiene que quedar **cerrado**: si se hubiera quedado atrás,
+`App\Contract` acabaría importando de `App\Message\Contract` y el movimiento no habría servido
+de nada. Al revisarlo la primera vez sólo se miraron los `use`, y `Frente` lo citaba **por
+nombre pelado** —estaban en el mismo namespace—, así que no salió en el listado. Lo cazó PHPStan.
+
+#### 🚫 Los dos que no bajaron al núcleo, y por qué cada uno
+
+Ninguno de los dos bajó a `App\Contract`, pero **por motivos opuestos**:
+
+- **`IndiceDeTemasInterface` no era núcleo compartido: es del agente.** Subió a
+  `App\Agent\Contract` el 19/08/2026. Su único implementador vive en `src/Pms/Service/Agent/`
+  —la carpeta se llama «Agent»—, así que no había tres módulos consumiéndolo: había uno, y un
+  adaptador hacia él. Eso tiró dos flechas del círculo de una vez.
+- **`InstruccionesDeDominioInterface` también subió a `App\Agent\Contract`**, pero antes hubo
+  que arreglar su firma: `contextoVolatil()` recibía `MessageConversation` entera —un dominio
+  concreto dentro de un contrato que existe justo para no conocer ninguno—. De la entidad usaba
+  tres cosas, y dos ya estaban en el actor. Ahora es
+  `contextoVolatil(ActorInterface $actor, MapaDeHitos $hitos)`, igual que su hermano. Con eso,
+  **`Agent → App\Message\Contract` es cero.** Ver `docs/Agent.md` §5.3.
+- Y los **hitos** (`ConversationMilestoneInterface`, `MapaDeHitos`, `MomentoDeHito`) bajaron a
+  `App\Contract`: los usan mensajería, PMS, Operación y ahora el agente.
+
+⚠️ Y `ActorInterface` **no** baja al núcleo, aunque lo parezca: fuera del agente sólo lo usa ese
+mismo adaptador del PMS, y porque el contrato se lo exige. El detalle está en `docs/Agent.md` §5.
+
+#### Lo que este movimiento sí arregló
+
+`Agent/Access/` —`ActorInterface`, `AgentActor`, `RestriccionCanal`, `NivelRiesgo`— **ya no
+importa ningún contrato de mensajería**. Era el peor de los acoplamientos, porque es el núcleo
+de permisos del agente.
+
+Lo que **no** arregló: la dependencia circular `Agent ↔ Message` sigue viva, sostenida por esos
+dos interfaces y por `ResumenConversacionService`, que vive en `src/Message/` y consume
+`SelectorDePotencia`, `ConversationRequest` y `AgentActorFactory`.
 
 ### 19.2 El vínculo lo declara el dominio, no el agente
 
@@ -6638,7 +6752,7 @@ abre datos de nadie.
 
 | Pieza | Estado |
 |---|---|
-| `Frente`, `MomentoDeFrente`, `FrentesPorDominioInterface` | hechos, en `src/Message/Contract/` |
+| `Frente`, `MomentoDeFrente` | hechos, en `src/Contract/` · `FrentesPorDominioInterface` sigue en `src/Message/Contract/` |
 | `EnumeradorDeFrentes` (lista, defecto, bloque del prompt, lista blanca de ids) | hecho, `src/Message/Service/` |
 | `PmsFrentes` — envuelve `findVivasByTelefono()`, no reinventa su desempate | hecho |
 | `SkillDominioInterface` + filtro en `SkillRegistry::paraActor()` | hecho, y **29 de las 30 skills declaran `['hotelero']`** |
@@ -7981,6 +8095,11 @@ mire un chat que no hacía falta.
 una regla aparte, sale sola — ninguna skill de escritura llega a su catálogo. La aclaración
 quedó donde tiene sentido: entre operadores, sobre operaciones que tocan datos.
 
+> 🔥 **Esto último fue falso hasta el 19/08/2026.** El triaje construía su catálogo con
+> `incluirEscritura: false` para todo el mundo, así que ningún candidato podía traer una
+> escritura y la guarda no podía dispararse **para nadie**: entre operadores tampoco. Ver
+> **§22.25**, que es la parte que faltaba de este arreglo.
+
 **2 · La pregunta se componía con `SkillDefinition::$descripcion`, que es prompt.** Lo dice la
 propia clase: *«la descripción ES prompt, no documentación»*. Lleva mayúsculas de aviso, nombres
 de parámetros y órdenes al modelo. `primeraFrase()` cortaba por el primer punto y a 117
@@ -8017,3 +8136,97 @@ hacerse al escribir cualquier respuesta automática:
    skill o de un identificador interno, **no está escrito para nadie**.
 2. ¿Puede contestar esto quien lo recibe? Si la pregunta refleja una duda de nuestra
    arquitectura —de qué tabla, de qué herramienta, de qué dominio—, la respuesta no la tiene él.
+
+### 22.25 …y luego resultó que la aclaración no podía dispararse nunca (19/08/2026)
+
+§22.24 cierra diciendo que la aclaración «quedó donde tiene sentido: entre operadores, sobre
+operaciones que tocan datos». **Era falso, y lo fue desde el primer día.** Auditando el módulo
+se vio que `AclaracionDeEmpate::obliga()` no podía devolver `true` en producción para nadie:
+
+```
+Triaje::clasificar()
+  └─ $this->skills->paraActor($actor, incluirEscritura: false)   ← FIJO, para todos
+        │
+        ├─► el catálogo que ve el modelo del triaje  ─── sin una sola escritura
+        └─► $permitidas, la lista blanca de `candidatos`
+                 │
+                 ▼
+      $decision->candidatos  ── sólo puede traer lecturas
+                 │
+                 ▼
+      AclaracionDeEmpate::obliga()  ── exige que alguna ESCRIBA  →  siempre false
+```
+
+El lado bueno se cumplía (al huésped no se le pregunta), pero se cumplía igual con un
+`return false;`. Lo demás —`redactarAclaracion()`, `reglasDeAclaracion()`, el tope de 320
+caracteres, el log «y alguna ESCRIBE»— era inalcanzable.
+
+#### Los empates de escritura no eran hipotéticos
+
+El commit lo justificaba con un caso futuro («cuando convivan dos negocios»). El catálogo de un
+operador **Reservas (RW)** ya trae pares diseñados como pares (`php bin/console app:agent:permisos`):
+
+| Lo que escribe el operador | Empata |
+|---|---|
+| «el 402 quiere salir a las 3» | `evaluar_cambio_horario` ↔ `aplicar_cambio_horario` (**escribe**) |
+| «la tarifa de mañana» | `consultar_tarifas` ↔ `ajustar_tarifas` (**escribe**) |
+| «me pagó 100» | `consultar_cuenta` ↔ `registrar_pago` (**escribe**) |
+
+Es exactamente «mirar o hacer», y hasta ahora se resolvía adivinando.
+
+#### El arreglo: dos listas blancas, no una
+
+`CatalogoDelTriaje` (clase nueva, pura) sostiene las tres decisiones, y el triaje sólo las usa:
+
+| Decisión | Método | Regla |
+|---|---|---|
+| ¿el catálogo lleva escrituras? | `veEscrituras($actor)` | sí para el equipo, no para el huésped |
+| ¿qué puede EMPATAR? | `permitidas($skills)` | el catálogo **completo** |
+| ¿qué puede enrutarse DIRECTO? | `enrutablesDirectas($skills)` | **sólo lectura** (`Interna` cuenta como lectura) |
+
+⚠️ **La asimetría de las dos últimas es el arreglo entero, y hace el cambio aditivo.**
+`$decision->skill` sólo alimenta el tramo de potencia —que para alguien del equipo ya está
+decidido antes de leerlo, en `AiConversationProcessor::tramoPara()`— y una pista que el prompt
+anuncia como «sugerencia, no una orden». Dejar entrar ahí una escritura no aportaría nada y sí
+empujaría al modelo hacia ella desde una línea suelta: una escritura se elige con el catálogo
+entero delante, en el camino largo. Así **el enrutado de hoy no cambia**; lo único nuevo es qué
+puede empatar.
+
+Y la garantía del huésped sigue siendo estructural, que es lo que importa: su catálogo no tiene
+una sola skill de escritura, así que no hay prompt en el que confiar. Sus dos fuentes de texto
+—`consultar_guia` y `consultar_conocimiento`— siguen empatando y siguen sin preguntarle nada.
+
+#### Lo que cuesta
+
+Medido sobre el índice real del triaje, que usa la **primera frase** de cada descripción (§13.3),
+para un actor Reservas (RW):
+
+| | Skills | Índice |
+|---|---:|---:|
+| Antes | 17 | ~709 tokens |
+| Ahora | 26 | ~984 tokens |
+
+**+275 tokens, y sólo en el prefijo del equipo** — el del huésped no se toca. En Anthropic va
+dentro del bloque cacheado (0,1× tras el primer mensaje de la hora); con Google, que hoy es el
+proveedor configurado y no cachea prefijos tan pequeños, son +275 por mensaje de operador.
+
+#### 🔥 La lección: ocho tests en verde sobre una guarda inalcanzable
+
+`AclaracionDeEmpateTest` tenía ocho tests y pasaban todos —también el día del descubrimiento—
+porque probaban **la guarda**, no si algo podía **llegar** a ella. Una guarda correcta a la que
+no llega nada es código muerto que parece cobertura, y es peor que no tenerla: el siguiente que
+lea §22.20 creerá que el caso está cubierto.
+
+Por eso el `incluirEscritura` dejó de ser un literal dentro del triaje y pasó a
+`CatalogoDelTriaje::veEscrituras()`: un literal no se puede probar, y una función sí.
+`CatalogoDelTriajeTest::el_equipo_ve_las_escrituras_y_el_huesped_no()` cae si alguien lo vuelve
+a fijar en `false`.
+
+#### Lo que hay que mirar cuando esto lleve unos días
+
+`registrar_pago` **ya pregunta por su cuenta** cuando le faltan la moneda o si el importe lleva
+comisión (§11). Esa pregunta es sobre los *argumentos*, con la skill ya elegida; la del empate
+es sobre *cuál*. Van en serie y no se pisan, pero un mismo «me pagó 100» puede acabar en dos
+repreguntas seguidas —y la regla de la casa es que dos repreguntas por el mismo pago son una de
+más. Si se ve en los logs, la salida no es quitar el empate: es que `registrar_pago` traiga ya
+resueltas las dos dudas cuando llega desde una aclaración.

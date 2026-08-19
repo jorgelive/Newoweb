@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Pms\Service\Agent;
 
 use App\Agent\Access\ActorInterface;
-use App\Message\Contract\IndiceDeTemasInterface;
+use App\Agent\Contract\IndiceDeTemasInterface;
 use App\Pms\Entity\PmsGuia;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Enum\PmsGuiaVisibilidad;
-use App\Message\Contract\TemaQueCubre;
+use App\Contract\TemaQueCubre;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
 

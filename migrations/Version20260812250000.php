@@ -24,7 +24,7 @@ use Doctrine\Migrations\AbstractMigration;
  * reserva, que fue lo que pasó.
  *
  * Por eso es una RESTA ortogonal y no un peldaño: la escalera dice cuánto se abre, la categoría
- * dice qué no pasa por este canal. Ver `App\Message\Contract\CategoriaConocimiento` y
+ * dice qué no pasa por este canal. Ver `App\Contract\CategoriaConocimiento` y
  * `App\Agent\Access\RestriccionCanal`.
  *
  * ⚠️ Esta migración sólo crea la columna con todo en `general` —«siempre se puede contar»—,

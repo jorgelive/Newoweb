@@ -7,7 +7,7 @@ namespace App\Tests\Agent\Conversation;
 use App\Agent\Access\AgentActor;
 use App\Agent\Access\RestriccionCanal;
 use App\Agent\Conversation\PerfilConversacion;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

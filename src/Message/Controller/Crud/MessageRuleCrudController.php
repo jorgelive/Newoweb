@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
-use App\Message\Contract\ConversationMilestoneInterface;
+use App\Contract\ConversationMilestoneInterface;
 use App\Message\Entity\MessageRule;
 use App\Message\Service\MessageSegmentationAggregator;
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -200,8 +200,18 @@ class MessageRuleCrudController extends BaseCrudController
                 };
             });
 
+        // ⚠️ El mínimo de las reglas de CREACIÓN lo impone la entidad
+        // (`MessageRule::validarDesfaseDeCreacion()`), no este formulario: vale igual para un
+        // import o un comando. Aquí sólo se ENSEÑA, para que nadie descubra la regla al fallar.
         yield IntegerField::new('offsetMinutes', 'Minutos de Desfase')
-            ->setHelp('Ej: -1440 = 1 día antes. 0 = Mismo momento. 120 = 2 horas después.')
+            ->setHelp(sprintf(
+                'Ej: -1440 = 1 día antes. 0 = Mismo momento. 120 = 2 horas después.'
+                . '<br><b>⚠️ Con el hito «Creación» el mínimo es %d minuto.</b> Con 0, el mensaje '
+                . 'se programa en el mismo guardado en que entra la reserva y puede adelantarse '
+                . 'a los arreglos de sus propios datos: el saludo saldría con el nombre del '
+                . 'huésped todavía en mayúsculas, o por su apellido.',
+                MessageRule::OFFSET_MINIMO_EN_CREACION
+            ))
             ->setColumns(6);
 
 

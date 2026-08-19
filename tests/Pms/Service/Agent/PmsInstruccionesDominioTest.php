@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Pms\Service\Agent;
 
 use App\Agent\Conversation\PerfilConversacion;
-use App\Message\Contract\InstruccionesDeDominioInterface;
+use App\Agent\Contract\InstruccionesDeDominioInterface;
 use App\Pms\Service\Agent\PmsInstruccionesDominio;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

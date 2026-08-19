@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Entity;
 
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
@@ -19,9 +19,9 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Pms\Entity\PmsConversacionEnlace;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
-use App\Message\Contract\ConversationMilestoneInterface;
-use App\Message\Contract\MapaDeHitos;
-use App\Message\Contract\MomentoDeHito;
+use App\Contract\ConversationMilestoneInterface;
+use App\Contract\MapaDeHitos;
+use App\Contract\MomentoDeHito;
 use App\Message\Controller\Api\MarkConversationReadController;
 use App\Message\Controller\Api\UnreadSummaryController;
 use App\Security\Roles;

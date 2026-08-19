@@ -6,7 +6,7 @@ namespace App\Tests\Agent\Access;
 
 use App\Agent\Access\AgentActor;
 use App\Agent\Access\RestriccionCanal;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use App\Security\Roles;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

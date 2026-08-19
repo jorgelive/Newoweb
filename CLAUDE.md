@@ -94,7 +94,9 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `util/src/components/common/`, `util/src/types/modulosApp.ts` (UI y navegación reutilizables entre módulos) | `docs/UI_Componentes_Compartidos.md` |
 | `src/Operacion/`, La Biblia y Órdenes de Servicio en `util/` | `docs/Operacion.md` |
 | `src/Pms/Guia/`, entidades `PmsGuia*`, guía del huésped y catálogo en `pax/` | `docs/PmsGuiaHuesped.md` |
-| `src/Message/` (chat, reglas de envío, colas Beds24/WhatsApp), `src/Pms/Service/Message/`, `src/Agent/` (autorespuestas e IA) | `docs/Mensajeria.md` |
+| `src/Message/` (chat, reglas de envío, colas Beds24/WhatsApp), `src/Pms/Service/Message/` | `docs/Mensajeria.md` |
+| `src/Agent/` (el agente: entradas, actores, contratos, potencia) | `docs/Agent.md` — el detalle del chat sigue en `docs/Mensajeria.md` |
+| `src/Contract/` (núcleo compartido: vínculo, frente, categoría) | `docs/Agent.md` §5 |
 | `util/public/push-sw.js`, `*/vite.config.ts` (bloque `VitePWA`), `*/scripts/pwa-*.mjs`, `src/Service/WebPushNotificationService.php`, `PushSubscription*` | `docs/PwaNotificaciones.md` |
 | `src/Pms/Service/Reserva/PmsDisponibilidadService.php`, `PmsEventoEstado::IMPIDEN_VENTA` | `docs/PmsDisponibilidad.md` |
 | `src/Finanzas/`, resolvers `*/Finanzas/*OrigenCobroResolver.php`, cobros en `util/` y `pax/` | `docs/FinanzasEnlacesPago.md` |
@@ -106,7 +108,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | Procesos Node, sidecars, cálculo compartido TS ↔ PHP | `docs/NodeEnElStack.md` |
 | `src/Travel/` (catálogo maestro: servicios, itinerarios, segmentos, componentes, tarifas, proveedores) | `docs/Travel.md` |
 
-Si el módulo que tocas no tiene doc (`src/Agent/`, `src/Pax/`…), **créalo**
+Si el módulo que tocas no tiene doc (`src/Pax/`…), **créalo**
 siguiendo el formato de los existentes y agrégalo a esta tabla.
 
 ### Formato

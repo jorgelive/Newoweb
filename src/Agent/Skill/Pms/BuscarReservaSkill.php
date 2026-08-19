@@ -468,7 +468,11 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
         // La regla vive en la entidad: ver PmsReserva::isCancelada().
         $cancelada = $reserva->isCancelada();
 
+        $pais = $reserva->getPais();
+
         return array_filter([
+            'pais' => $pais?->getId(),
+            'pais_nombre' => $pais?->getNombre(),
             'estancias' => $estancias !== [] ? $estancias : null,
             // Una reserva cancelada manda sobre todo lo demás: es lo primero que hay que decir
             // y basta para descartarla.

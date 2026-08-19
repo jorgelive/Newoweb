@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Contract;
+namespace App\Contract;
 
 /**
  * Un tema de un dominio que ya responde a lo que alguien quiere escribir en el conocimiento.

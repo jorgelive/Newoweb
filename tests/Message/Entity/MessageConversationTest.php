@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Message\Entity;
 
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use App\Message\Entity\MessageConversation;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

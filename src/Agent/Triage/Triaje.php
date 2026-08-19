@@ -149,7 +149,18 @@ final readonly class Triaje
             return DecisionDeTriaje::indeterminado('ningún motor disponible');
         }
 
-        $skills = $this->skills->paraActor($actor, incluirEscritura: false);
+        // 🔥 `incluirEscritura` va por ACTOR, no fijo en `false`. Con `false` a secas, los
+        // candidatos sólo podían ser de lectura y la guarda de escritura de
+        // `AclaracionDeEmpate::obliga()` no podía darse NUNCA: el mecanismo de desambiguación
+        // entero era código muerto, y su promesa —preguntar antes de ejecutar sobre lo que no
+        // era— no la cumplía nadie. Es el mismo criterio que usan el camino largo y
+        // `AiConversationProcessor::candidatasResueltas()`: contar sobre una lista distinta de
+        // la que el modelo va a ver es contar otra cosa.
+        //
+        // Al huésped esto NO le cambia nada, y es lo que sostiene que no se le pregunte: su
+        // catálogo no tiene una sola skill de escritura. La línea la sostiene el código, no una
+        // instrucción del prompt. Ver docs/Mensajeria.md §22.24.
+        $skills = $this->skills->paraActor($actor, incluirEscritura: CatalogoDelTriaje::veEscrituras($actor));
         if ($skills === []) {
             return DecisionDeTriaje::indeterminado('el actor no tiene ninguna skill');
         }
@@ -240,33 +251,34 @@ final readonly class Triaje
         // el catálogo entero. El modelo puede devolver un nombre inventado, o el de una skill
         // de escritura que vio en otro contexto; lo que no encaje se queda en `null` y el paso
         // siguiente decide por su cuenta, que es exactamente lo que pasaba antes del triaje.
+        // ⚠️ DOS listas blancas, y la asimetría entre ellas es el mecanismo entero. Las dos son
+        // puras y viven en `CatalogoDelTriaje`, donde se pueden probar sin montar nada.
         $skill = trim((string) ($datos['skill'] ?? ''));
-        $permitidas = array_map(static fn (SkillInterface $s): string => $s->nombre(), $skills);
+        $permitidas = CatalogoDelTriaje::permitidas($skills);
+        $directas = CatalogoDelTriaje::enrutablesDirectas($skills);
 
-        if ($skill !== '' && !in_array($skill, $permitidas, true)) {
-            $this->logger->info(sprintf('Agent: el triaje propuso una skill inexistente («%s»); se ignora.', $skill));
+        if ($skill !== '' && !in_array($skill, $directas, true)) {
+            // Se distingue el motivo en el log: «no existe» es el modelo inventando, y
+            // «escribe» es el modelo acertando en una skill que a propósito no se enruta sola.
+            $this->logger->info(sprintf(
+                'Agent: el triaje propuso «%s» como skill directa (%s); se ignora y decide el camino largo.',
+                $skill,
+                in_array($skill, $permitidas, true) ? 'escribe' : 'no existe en su catálogo'
+            ));
             $skill = '';
         }
 
-        // Los candidatos pasan por la MISMA lista blanca, y por el mismo motivo: un nombre
-        // inventado que se colara aquí convertiría una pregunta clara en una aclaración absurda
-        // —«¿te refieres a X o a algo que no existe?»—.
+        // Los candidatos pasan por la lista COMPLETA —la que sí lleva las de escritura—, porque
+        // el empate es justo donde importan: «el 402 quiere salir a las 3» empata
+        // `evaluar_cambio_horario` con `aplicar_cambio_horario`, y adivinar ahí es aplicar un
+        // cambio que nadie pidió. Un nombre inventado sigue cayendo: convertiría una pregunta
+        // clara en una aclaración absurda —«¿te refieres a X o a algo que no existe?»—.
         //
-        // `$permitidas` ya viene recortado por los roles del actor, así que a un limpiador que
+        // `$permitidas` viene recortada por los roles del actor, así que a un limpiador que
         // pregunta por salidas no le puede quedar más de un candidato aunque el modelo liste dos:
         // la skill de tours no está en su catálogo. Ése es justo el motivo de filtrar aquí y no
         // después.
-        $candidatos = [];
-
-        foreach ((array) ($datos['candidatos'] ?? []) as $nombre) {
-            $nombre = trim((string) $nombre);
-
-            if ($nombre !== '' && in_array($nombre, $permitidas, true)) {
-                $candidatos[$nombre] = true;
-            }
-        }
-
-        $candidatos = array_values(array_keys($candidatos));
+        $candidatos = CatalogoDelTriaje::candidatos((array) ($datos['candidatos'] ?? []), $permitidas);
 
         // La pista es un TEMA, no una frase. Si viene larga es que el modelo pegó el mensaje
         // del huésped, y eso es justo lo que hace que la guía responda por casualidad: ver
@@ -317,7 +329,7 @@ final readonly class Triaje
      * triaje sola.
      *
      * @param list<SkillInterface> $skills
-     * @param string $indiceGuia Bloque global de temas de la guía ({@see \App\Message\Contract\IndiceDeTemasInterface}). Es
+     * @param string $indiceGuia Bloque global de temas de la guía ({@see \App\Agent\Contract\IndiceDeTemasInterface}). Es
      *        estable entre conversaciones, así que puede vivir dentro del bloque cacheado.
      */
     private function reglas(array $skills, string $indiceGuia = ''): string

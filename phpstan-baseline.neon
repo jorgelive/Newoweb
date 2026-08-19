@@ -81,18 +81,6 @@ parameters:
 			path: src/Agent/Access/AgentActor.php
 
 		-
-			message: '#^Method App\\Agent\\Action\\BotActionHandlerInterface\:\:execute\(\) has parameter \$parameters with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Agent/Action/BotActionHandlerInterface.php
-
-		-
-			message: '#^Method App\\Agent\\Action\\SendTemplateActionHandler\:\:execute\(\) has parameter \$parameters with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Agent/Action/SendTemplateActionHandler.php
-
-		-
 			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
 			count: 1
@@ -187,18 +175,6 @@ parameters:
 			identifier: arrayValues.list
 			count: 1
 			path: src/Agent/Skill/Pms/BuscarReservaSkill.php
-
-		-
-			message: '#^Method App\\Agent\\Skill\\Pms\\ConsultarCuentaSkill\:\:cargos\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Agent/Skill/Pms/ConsultarCuentaSkill.php
-
-		-
-			message: '#^Method App\\Agent\\Skill\\Pms\\ConsultarCuentaSkill\:\:pagos\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Agent/Skill/Pms/ConsultarCuentaSkill.php
 
 		-
 			message: '#^Method App\\Agent\\Skill\\Pms\\ConsultarDisponibilidadSkill\:\:emparejar\(\) has parameter \$libres with no value type specified in iterable type array\.$#'
@@ -367,12 +343,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Agent/Skill/SkillResult.php
-
-		-
-			message: '#^Parameter \#1 \$array \(list\<non\-empty\-string\>\) of array_values is already a list, call has no effect\.$#'
-			identifier: arrayValues.list
-			count: 1
-			path: src/Agent/Triage/Triaje.php
 
 		-
 			message: '#^Ternary operator condition is always true\.$#'
@@ -1549,12 +1519,6 @@ parameters:
 			identifier: isset.offset
 			count: 2
 			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: src/Pms/Service/Agent/PmsInstruccionesDominio.php
 
 		-
 			message: '#^Right side of && is always true\.$#'

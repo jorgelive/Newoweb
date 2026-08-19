@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Message\Contract;
+namespace App\Tests\Contract;
 
 use App\Message\Contract\MessageContextInterface;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use App\Pms\Service\Message\PmsReservaMessageContext;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

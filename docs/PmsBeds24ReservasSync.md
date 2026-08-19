@@ -223,6 +223,81 @@ ProcessBeds24WebhookDispatchHandler::__invoke()
 > Si ves `->country` en cualquier sitio del módulo, es el fallo — no una mejora. El aviso está
 > repetido en el propio DTO, junto a la propiedad.
 
+> ### 🔥 El `country2` de Airbnb NO es el país: para hispanohablantes manda el IDIOMA
+>
+> Auditado sobre `pms_beds24_webhook_audit` (1385 payloads reales, 19/08/2026). Comparando el
+> campo con el prefijo del teléfono del propio payload:
+>
+> | OTA | `country2` | Prefijo del teléfono | Reservas |
+> |---|---|---|---:|
+> | **Airbnb** | `ES` | **+51 (Perú)** | **16** |
+> | Airbnb | `ES` | +52 (México) | 1 |
+> | Airbnb | `ES` | +57 (Colombia) | 1 |
+> | Airbnb | `ES` | +34 (España) | **0** |
+> | Booking.com | `ES` | +34 (España) | 9 |
+> | Booking.com | `FR` | +33 (Francia) | 6 |
+> | Booking.com | `IT` | +39 (Italia) | 4 |
+>
+> **Booking.com manda el país de verdad; Airbnb no.** Cuando el huésped tiene el Airbnb en
+> español, `country2` llega como `ES` — que es el código de idioma `es` en mayúsculas, y que
+> por desgracia también es un país válido, así que `find(MaestroPais::class, 'ES')` casa y no
+> falla nada. Los nombres no dejan lugar a duda: Bravo Manco, Cubas Puicon, Vallejos Guevara,
+> Onsueta Vasquez… con móviles peruanos distintos y reales.
+>
+> Pasa igual con `fr`→`FR` y `pt`→`PT`. Con `en` no colapsa —«EN» no es un país— y entonces sí
+> llega el país bueno (`US`, `CA`, `PE`).
+>
+> **Hoy hay 27 reservas de Airbnb guardadas como España.**
+>
+> #### Y aparte, en un 8 % Airbnb no manda nada
+>
+> En 4 de 47 reservas distintas de Airbnb el campo llega `null` (JSON null, **no** cadena
+> vacía). En Booking.com, en ninguna.
+>
+> ⚠️ Ojo al comprobarlo: `JSON_EXTRACT(...) IS NULL` **no lo detecta** —un JSON null no es un
+> NULL de SQL—. Hay que preguntar por `JSON_TYPE(...) = 'NULL'`. Y `country` (minúsculas) no
+> sirve de respaldo: en uno de esos payloads valía `"19"`.
+>
+> Ahí entra `BookingPullPersister::resolvePais()`, que hace
+> `if ($iso2 === '') $iso2 = MaestroPais::DEFAULT_PAIS;` — y `DEFAULT_PAIS` **es `'PE'`**. En
+> esas cuatro acertó (apellidos Duque, Tamashiro, Ugaz; teléfonos +51), pero por suerte, no por
+> diseño: la reserva queda indistinguible de una con país confirmado.
+>
+> #### Por qué importa
+>
+> `PmsProcedenciaHuesped::pagaDesdePeru()` decide qué medios de cobro se le ofrecen a alguien.
+> Con `pais = 'ES'` devuelve `false` —«paga desde fuera»— y a un peruano con móvil +51 se le
+> ofrece tarjeta con recargo y Western Union, y **no** Yape, Plin ni transferencia. Es
+> exactamente al revés de la regla, y a escala.
+>
+> #### ✅ Cómo se resuelve ahora (19/08/2026)
+>
+> **En Airbnb manda el teléfono.** `BookingPullPersister::resolvePais()` pide el país al prefijo
+> del número con `PhoneSanitizer::paisDelNumero()` antes de mirar `country2`:
+>
+> ```
+> teléfono (prefijo internacional)  →  country2  →  MaestroPais::DEFAULT_PAIS
+> ```
+>
+> El orden importa en los dos extremos. El teléfono va primero porque es el dato duro; y
+> `country2` se conserva como respaldo —en vez de saltar al defecto— para no tirar el país bueno
+> de los Airbnb en inglés, donde `en` no colapsa contra ningún código de país y el campo llega
+> correcto.
+>
+> `paisDelNumero()` **sólo concluye con números que traen prefijo internacional**, y no se le
+> pasa región por defecto a propósito: con una, cualquier número local «resolvería» a esa región
+> y devolvería la suposición de entrada disfrazada de conclusión. Cuando calla, se sigue como
+> antes.
+>
+> Simulado sobre los payloads guardados antes de aplicarlo: de 56 filas de Airbnb, **22 cambian
+> y 34 se quedan igual; ninguna empeora**. De las 22, diecinueve corrigen el país (17 `ES`→`PE`,
+> una `ES`→`CO`, una `ES`→`MX`) y tres pasan de «`PE` porque es el defecto» a «`PE` porque lo
+> dice el +51». Las 23 sin teléfono deducible no se tocan.
+>
+> ⚠️ **Esto arregla lo que entre a partir de ahora.** Para las reservas ya guardadas está
+> `app:pms:corregir-pais-ota` (idempotente, con `--dry-run`), que aplica el mismo criterio
+> sobre lo que hay en base. Ver `docs/Pendientes.md`.
+
 ```json
 {
   "timeStamp": "2025-07-30T14:32:00",
@@ -1051,8 +1126,9 @@ negativo. Es lo que había que reconstruir a mano con scripts cada vez que algo 
 
   ┌─ OTA PRINCIPAL (isOta=true, isMirror=false) ──────────────────────┐
   │  Objetivo: actualizar datos del huésped sin pisar la OTA          │
-  │  + firstName, lastName, notes, comments, lang, country2           │
+  │  + firstName, lastName, notes, comments, lang                     │
   │  - arrival, departure, status, email, phone, price, masterId      │
+  │  - country2  ← desde el 19/08/2026, ver abajo                     │
   └───────────────────────────────────────────────────────────────────┘
 
   ┌─ DIRECTA PROPIA (!isOta, !isMirror) ─────────────────────────────┐
@@ -1060,6 +1136,126 @@ negativo. Es lo que había que reconstruir a mano con scripts cada vez que algo 
   │  + Todo: fechas, estado, huésped, email, phone, price, masterId   │
   └───────────────────────────────────────────────────────────────────┘
 ```
+
+#### 🚫 `country2` ya no se empuja a las OTA (19/08/2026)
+
+Estaba **fuera** de la guarda `if (!$isOta)` que ya protegía email y teléfonos, así que viajaba
+en todos los push, OTA incluida. Ahora va dentro, con ellos.
+
+Lo que se enviaba era el **código ISO2**, no el nombre: comprobado en `last_request_raw` de
+`pms_bookings_push_queue` — 787 de 823 push lo llevaban, siempre como `"country2":"PE"`. Si en
+la ficha de Beds24 se ve el país escrito entero, lo pinta **su** resolver a partir del código;
+de este lado nunca sale una cadena larga.
+
+El motivo del cambio no es el formato, es de quién es el dato:
+
+- En una reserva de OTA el país **lo pone el canal**. Devolvérselo es escribirle encima de su
+  propio registro, igual que ya se evitaba con el correo proxy y el teléfono.
+- En Airbnb, además, el nuestro **es una deducción**: su `country2` trae el idioma y el país lo
+  sacamos del prefijo del teléfono (§3.3). Empujarlo convertiría una inferencia nuestra en el
+  dato oficial de la reserva, y borraría la evidencia de que no lo sabíamos.
+
+En reservas directas se sigue enviando: ahí el dueño del dato somos nosotros.
+
+⚠️ `lang` **sí se sigue empujando** en OTA. No se ha tocado porque no estaba en la pregunta,
+pero merece la misma revisión: en Airbnb es dato del canal exactamente igual que el país.
+
+#### 📣 El nombre se normaliza al entrar, no después (19/08/2026)
+
+`BookingPullPersister::upsert()` pasa `firstName` y `lastName` por
+{@see \App\Service\Nombre\NombreSanitizer} antes de guardarlos, para que la bienvenida no salga
+como «Hola QUISPE CONTRERAS, bienvenido a Centro Cusco Inti».
+
+**Va aquí y no en un trabajo asíncrono posterior por dos motivos, y los dos son de carrera:**
+
+1. **La bienvenida no espera.** Las reglas «Bienvenida a Booking» y «Bienvenida a Airbnb» son
+   `milestone = created_at` con `offset_minutes = 0`: `MessageRuleEngine` las programa con
+   `runAt = now` en el **`postFlush` de este mismo guardado**. Un trabajo asíncrono lanzado a la
+   vez compite con el worker de envío, y a veces pierde.
+2. **El pull reescribe el nombre.** Mientras `datosLocked` siga abierto, *cada* pasada vuelve a
+   escribir los dos campos desde el payload. Un nombre corregido por fuera se desharía solo en
+   la siguiente, sin que nadie lo notara.
+
+Normalizar en la fuente hace las dos preguntas irrelevantes, y de paso el nombre bueno lo ven
+todos los consumidores —guía, panel, agente—, no sólo la bienvenida.
+
+**El sanitizador sólo toca lo que está CLARAMENTE gritado**: si el texto tiene una sola
+minúscula, se devuelve intacto. `Viana Da Silva`, `McDonald` y `O'Brien` los escribió alguien así
+a propósito, y «corregirlos» los rompe; `H` —apellido de una letra, como lo trunca Airbnb— no
+tiene nada que bajar. Es idempotente, que importa porque cada pull vuelve a pasar por aquí.
+
+⚠️ **No restituye tildes.** `JOSÉ` sale `José`, pero `JOSE` sale `Jose`: la tilde no está en el
+dato. Eso sí sabría hacerlo un modelo, pero es un refinamiento — no la diferencia entre un
+mensaje presentable y uno que no lo es.
+
+#### Cuánto pasa esto, medido
+
+De 123 reservas en la auditoría de webhooks, **4 traían el apellido en mayúsculas**, y al mirarlas
+una por una sólo 2 eran realmente eso:
+
+| Reserva | Qué llegó | Qué es |
+|---|---|---|
+| `88115197` (Booking) | `ILAY` / `NAHARY` | gritado de verdad |
+| `88689680` (Booking) | `PAULO` / `LEANDRO` | gritado de verdad |
+| `88298460` (Airbnb) | `César` / `H` | apellido de una letra, **no** está gritado |
+| `88233049` (Booking) | `RODRIGUEZ BARRERA` / `ALISSON ANGELICA` | ⚠️ **los campos vienen al revés** |
+
+Ese último no lo arregla la capitalización: el nombre está en `lastName` y los apellidos en
+`firstName`, así que la bienvenida saludaba por el apellido. Tiene su propio mecanismo, abajo.
+
+#### 🔀 El orden cruzado: lo decide el modelo, lo aplica el código
+
+No hay regla determinista que lo resuelva —qué token es nombre y cuál apellido depende de la
+cultura, y en muchos países el orden invertido es el correcto—, así que aquí sí entra el modelo:
+
+```
+ flush con nombreCliente/apellidoCliente tocados
+   └─ PmsNombreOrdenListener::onFlush()    recolecta (el UUID v7 ya existe)
+        └─ postFlush → bus->dispatch(RevisarOrdenDelNombreDispatch)   → transporte `async`
+             └─ RevisarOrdenDelNombreDispatchHandler
+                  ├─ turnoDirecto() tramo BAJO, con esquema
+                  │     → {invertido: bool, confianza: alta|media|baja, motivo: string}
+                  └─ OrdenDelNombre::resultado()  ← intercambia las cadenas YA guardadas
+```
+
+⚠️ **El modelo nunca devuelve el nombre, sólo un booleano.** Si devolviera texto podría escribir
+uno que nadie tecleó —cambiar una letra, «arreglar» un apellido raro, traducirlo— y eso acabaría
+en el saludo de un huésped sin que nadie lo revisara. Con un booleano, el peor fallo posible es
+un intercambio equivocado de dos cadenas que ya existían. Se aplica sólo con `confianza: alta`,
+y sólo si al volver la respuesta los dos campos siguen siendo los que se juzgaron.
+
+**Tres guardas que no son opcionales:**
+
+| Guarda | Qué evita |
+|---|---|
+| `OrdenDelNombre::mereceRevision()` | gastar una llamada en `Pendiente Sync (Grupo)`, en un apellido de una letra o sin apellido |
+| `OrdenDelNombre::esNuestroIntercambio()` | el **bucle**: nuestro guardado despierta al listener y volvería a encolar. Compara los dos pares como conjunto |
+| la comparación con el valor actual en `resultado()` | aplicar el veredicto sobre un dato que cambió entre la pregunta y la respuesta |
+
+El corta-bucles mira que sean *las mismas dos cadenas cambiadas de sitio*, no que «el nombre
+cambió»: un operador corrigiendo una tilde también lo cambia, y ése sí hay que revisarlo.
+
+#### ⏱️ Por qué asíncrono llega a tiempo (y hasta cuándo)
+
+La bienvenida es una regla `created_at` con `offset_minutes = 0`, y `MessageRuleEngine` la crea
+en el `postFlush` de este mismo guardado. Aun así hay margen, y el motivo es concreto: **la fila
+de `msg_beds24_send_queue` guarda `message_id`, no el cuerpo**. El texto lo compone
+`exchange:run beds24_message_send` —un comando de **cron**— al enviar. Hasta que ese cron pase,
+corregir el nombre todavía cambia lo que va a leer el huésped.
+
+⚠️ **Ese margen no lo garantiza nada de este repositorio**: es la cadencia del crontab del
+servidor (~3 min según §7 de `docs/Mensajeria.md`). Si algún día se aprieta, la bienvenida puede
+adelantarse a la corrección. La forma de volverlo determinista **sin tocar código** es dar a las
+reglas «Bienvenida a Booking» y «Bienvenida a Airbnb» un `offset_minutes` de unos pocos minutos,
+que hoy es 0.
+
+⚠️ Y no se hace síncrono a propósito: una llamada al modelo dentro del webhook lo alargaría
+segundos, y Beds24 y Meta reintentan los webhooks lentos — el mismo motivo por el que el router
+del Agent está en `async` (ver `config/packages/messenger.yaml`).
+
+En `pms_reserva` sólo hay 2 nombres gritados sobre 300, y **los dos son de canal `directo`**, es
+decir, tecleados a mano en el panel. Esa vía **no** pasa por el sanitizador: entra por
+`PmsReservaCrearProcessor`, y quedó fuera de este cambio a propósito.
 
 ### 7.3 Respuesta de Beds24
 
@@ -4026,6 +4222,13 @@ deben verse.
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
+| Cambiar cómo se normaliza un nombre que llega en mayúsculas | `NombreSanitizer` | `formatear()` — sólo actúa si NO hay ninguna minúscula; se llama desde `BookingPullPersister::upsert()` |
+| Cambiar cuándo se revisa si nombre y apellido vienen cruzados | `OrdenDelNombre` + `PmsNombreOrdenListener` | `mereceRevision()` / `esNuestroIntercambio()` — el corta-bucles |
+| Cambiar el criterio con que el modelo juzga el orden | `RevisarOrdenDelNombreDispatchHandler` | `reglas()` y `esquema()` — el modelo NUNCA devuelve el nombre |
+| Cambiar cómo se deduce el país de una reserva de OTA | `BookingPullPersister` | `resolvePais()` — en Airbnb manda el teléfono, §3.3 |
+| Corregir el país de las reservas YA guardadas | `PmsCorregirPaisOtaCommand` | `app:pms:corregir-pais-ota --dry-run` — idempotente, sólo con evidencia de teléfono |
+| Deducir el país desde un número de teléfono | `PhoneSanitizer` | `paisDelNumero()` — sólo con prefijo internacional; `null` si no se sabe |
+| Cambiar qué datos de huésped se empujan a una OTA | `BookingsPushMappingStrategy` | `mapGuestData()`, bloque `if (!$isOta)` — §7.2 |
 | Cómo se coloca la noche que bloquea un horario extra | `PmsExtensionEstanciaService` | `sincronizar()` — §7.1.b |
 | Qué estados puede imponerle el PMS a una OTA | `BookingsPushMappingStrategy` | bloque «4. ESTADO» — §12.13 y §12.13.b |
 | Buscar estancias `pendiente` con pago cobrado | — | `WHERE estado_id='pendiente' AND estado_pago_id IN ('pago-parcial','pago-total')` |

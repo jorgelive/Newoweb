@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Message\Contract;
 
+use App\Contract\Frente;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Qué asuntos tiene abiertos un teléfono en ESTE negocio.
  *
- * Mismo patrón que {@see InstruccionesDeDominioInterface} y {@see IndiceDeTemasInterface}: el
+ * Mismo patrón que {@see \App\Agent\Contract\InstruccionesDeDominioInterface} y {@see \App\Agent\Contract\IndiceDeTemasInterface}: el
  * núcleo no sabe de negocios, los negocios se registran solos por tag y un registro transversal
  * los recorre — {@see \App\Message\Service\EnumeradorDeFrentes}.
  *

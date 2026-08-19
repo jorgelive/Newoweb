@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Message;
 
-use App\Message\Contract\ConversationMilestoneInterface;
+use App\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\HitoDeAsunto;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;

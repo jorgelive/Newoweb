@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Contract;
+namespace App\Contract;
+
 
 /**
  * En qué punto del ciclo está un {@see Frente}: comprando, o ya comprado.

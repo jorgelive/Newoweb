@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Access;
 
 use App\Entity\User;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 
 /**
  * Quién pregunta.
@@ -74,7 +74,7 @@ interface ActorInterface
      * A qué NEGOCIOS tiene acceso: `hotelero`, `turistico`…
      *
      * ── No es «de qué se está hablando» ─────────────────────────────────────
-     * Eso es el {@see \App\Message\Contract\Frente}, es UNO, lo elige el triaje leyendo el
+     * Eso es el {@see \App\Contract\Frente}, es UNO, lo elige el triaje leyendo el
      * mensaje y puede cambiar en cada turno. Esto es plural, objetivo y estable: **qué catálogo
      * de skills se le puede enseñar sin preguntarle nada**. Separarlos es lo que evita tener
      * que re-preguntar cuando alguien cambia de tema a mitad de chat — si un huésped con un

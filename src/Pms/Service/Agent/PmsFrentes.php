@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Agent;
 
-use App\Message\Contract\Frente;
+use App\Contract\Frente;
 use App\Message\Contract\FrentesPorDominioInterface;
-use App\Message\Contract\MomentoDeFrente;
+use App\Contract\MomentoDeFrente;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Repository\PmsReservaRepository;

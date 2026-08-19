@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Message;
 
-use App\Message\Contract\ConversationMilestoneInterface;
-use App\Message\Contract\MapaDeHitos;
+use App\Contract\ConversationMilestoneInterface;
+use App\Contract\MapaDeHitos;
 use App\Message\Contract\MessageContextInterface;
-use App\Message\Contract\VinculoComercial;
+use App\Contract\VinculoComercial;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;

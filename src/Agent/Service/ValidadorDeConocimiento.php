@@ -6,8 +6,8 @@ namespace App\Agent\Service;
 
 use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Entity\AgentConocimiento;
-use App\Message\Contract\IndiceDeTemasInterface;
-use App\Message\Contract\TemaQueCubre;
+use App\Agent\Contract\IndiceDeTemasInterface;
+use App\Contract\TemaQueCubre;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
 /**
