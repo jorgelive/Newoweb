@@ -59,6 +59,33 @@ final readonly class FormatoDeTexto
             $texto
         ) ?? $texto;
 
+        // ``` bloque ``` y `código` → su contenido, sin las comillas.
+        //
+        // 🔥 Los modelos ENVUELVEN en un bloque de código lo que creen que hay que copiar tal
+        // cual —un mensaje ya redactado, un localizador—, y lo hacen aunque el prompt no lo
+        // pida. Sin esto, al huésped le llegaban los acentos graves literales: WhatsApp los
+        // pinta como monoespaciado y Beds24 no los pinta de ninguna manera.
+        //
+        // Se quita la MARCA y se conserva el contenido, porque el canónico no tiene
+        // monoespaciado. El panel hace lo contrario y es deliberado: ahí el bloque se pinta
+        // como `<pre>` y es lo que copia el botón — ver `formatoAHtml()` en el espejo TS.
+        // Se trata el BLOQUE entero, no cada marca por su lado: quitando sólo las líneas de
+        // acentos quedaba un salto de línea colgando donde estaba el cierre.
+        $texto = preg_replace_callback(
+            '/^[ \t]*```[a-zA-Z0-9_-]*[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/m',
+            // ⚠️ `rtrim()` SIN lista se come el `\0`, y por ahí viaja el marcador con el que
+            // `conUrlsProtegidas()` aparta las URLs: una URL dentro del bloque salía
+            // convertida en «\x000» y el enlace se perdía. Sólo espacios y saltos.
+            static fn (array $m): string => rtrim($m[1], " \t\n\r"),
+            $texto
+        ) ?? $texto;
+
+        // Y la red para el bloque que quedó sin cerrar: el modelo abrió y no cerró, y sin esto
+        // los tres acentos viajan al huésped.
+        $texto = preg_replace('/^[ \t]*```[a-zA-Z0-9_-]*[ \t]*$\r?\n?/m', '', $texto) ?? $texto;
+
+        $texto = preg_replace('/`([^`\n]+)`/u', '$1', $texto) ?? $texto;
+
         // `# Título` → «*Título*»: el título pierde la jerarquía pero conserva el énfasis.
         $texto = preg_replace('/^#{1,6}\s+(.+?)\s*$/mu', '*$1*', $texto) ?? $texto;
 

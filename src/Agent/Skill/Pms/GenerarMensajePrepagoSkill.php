@@ -158,7 +158,6 @@ final readonly class GenerarMensajePrepagoSkill implements SkillInterface, Skill
         $adultos = $reserva->getCantidadAdultos() ?? 1;
         $ninos = $reserva->getCantidadNinos() ?? 0;
         $totalPax = $adultos + $ninos;
-        $paxTexto = $totalPax > 1 ? sprintf('%s y %d acompañante%s', $reserva->getNombreCliente(), $totalPax - 1, ($totalPax - 1) > 1 ? 's' : '') : $huespedNombre;
 
         $casitas = $this->unidadesNombres($reserva);
         $casitaTexto = $casitas !== [] ? implode(', ', $casitas) : 'Alojamiento';
@@ -226,7 +225,11 @@ final readonly class GenerarMensajePrepagoSkill implements SkillInterface, Skill
         // Construir el mensaje formateado
         $lineas = [];
         $lineas[] = "🏨 DETALLE DE RESERVA - {$casitaTexto}";
-        $lineas[] = "👤 Huésped: {$paxTexto}";
+        // El titular con su nombre completo, y el recuento en su propia línea. Antes iba todo
+        // junto —«Miguel Angel y 3 acompañantes»—: se lee peor, obliga a hacer la resta mental
+        // para saber cuántos son, y con un solo huésped la frase cambiaba de forma.
+        $lineas[] = "👤 Huésped: {$huespedNombre}";
+        $lineas[] = sprintf('👥 Huéspedes: %d', max(1, $totalPax));
         $lineas[] = "📅 Estancia: {$fechasTexto}";
         $lineas[] = "";
         $lineas[] = "💰 RESUMEN DE LA RESERVA";

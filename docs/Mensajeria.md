@@ -4832,6 +4832,55 @@ las devuelven intactas al final — y lo pegado al final de una URL («mira *url
 url.») se devuelve al texto, para que las marcas se vean en pareja. Verificado en
 `var/probar-formato.php` (19 comprobaciones, sin API).
 
+### 🧱 Los bloques ``` del modelo: el canal los QUITA y el panel los PINTA
+
+Los modelos envuelven en un bloque de código lo que creen que hay que llevarse tal cual, y lo
+hacen **aunque el prompt no lo pida**. Caso real del 19/08/2026, panel de operación:
+
+```
+Aquí tienes el mensaje de prepago para *Miguel Angel Albalat Gomez* (Localizador: `J34NN5`):
+
+```text
+🏨 DETALLE DE RESERVA - Casita 2
+…
+```
+```
+
+Nadie trataba eso, y salían tres cosas mal a la vez: el panel pintaba «```text» literal, el
+botón «Copiar» se llevaba la introducción —que no se envía a nadie— y, si un texto así hubiera
+salido a un canal, al huésped le llegaban los acentos graves: WhatsApp los pinta como
+monoespaciado y Beds24 los manda crudos.
+
+**La regla es asimétrica, y es el punto entero:**
+
+| Destino | Qué pasa con el bloque | Por qué |
+|---|---|---|
+| WhatsApp / Beds24 (`normalizar()`) | se quita la marca, se conserva el contenido | el canónico no tiene monoespaciado |
+| Panel (`formatoAHtml()`) | se pinta como `<pre>`; los `` `x` `` como `<code>` | ahí SÍ hay con qué pintarlo, y es lo que se copia |
+
+🔁 Espejo estricto entre `FormatoDeTexto::normalizar()` y `formatoDeTexto.ts`. Verificado
+ejecutando los dos con los mismos 8 casos —incluido el mensaje real de arriba— y comparando.
+
+#### El botón copia el ARTEFACTO, no la respuesta
+
+`bloqueCopiable()` devuelve el contenido del bloque cuando hay **exactamente uno**; con dos o
+ninguno devuelve `null` y se copia todo, que es el comportamiento de siempre.
+
+⚠️ **Y por eso NO se le pide al modelo «ve al grano, sin introducción».** Eso es supresión, y
+este proyecto lleva demostrando que no se cumple: bastaría un turno en que se olvidara para
+volver a colar «Aquí tienes el mensaje de…» en un WhatsApp a un huésped. Se le deja escribir su
+prosa —que además le sirve al operador para saber de qué reserva le habla— y **el cierre es
+código**: se copia sólo lo que él mismo marcó como copiable.
+
+#### 🐛 `rtrim()` sin lista se come el marcador de las URLs
+
+Al recortar el cuerpo del bloque, `rtrim($cuerpo)` a secas quitaba también el `\0` final — y por
+ahí viaja el `\x00N\x00` con el que `conUrlsProtegidas()` aparta las URLs. Una URL dentro de un
+bloque salía como «\x000» y el enlace se perdía. La lista va explícita: `" \t\n\r"`.
+
+En el lado TS no aplica —`/[ \t\r\n]+$/` no toca los controles— pero se escribió igual de
+acotado para que los dos se lean igual.
+
 ### 📋 El botón «Copiar» del asistente del panel usa `paraWhatsapp()`, no `normalizar()`
 
 `AsistenteBar.vue` pinta la respuesta con `formatoAHtml()` (HTML para el panel) y ofrece
@@ -5350,6 +5399,8 @@ arreglar** — ver el aviso al final de esta sección.
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
 | Cambiar el texto que se COPIA para WhatsApp desde el panel | `util/src/utils/formatoDeTexto.ts` + `src/Message/Service/Formato/FormatoDeTexto.php` | `paraWhatsapp()` — **espejo: los dos** |
+| Cambiar QUÉ copia el botón del asistente | `util/src/utils/formatoDeTexto.ts` | `bloqueCopiable()` — el bloque ``` si hay uno, si no todo |
+| Cambiar cómo se pinta un bloque de código en el panel | `util/src/utils/formatoDeTexto.ts` | `formatoAHtml()`, marcadores `\x02`/`\x03` |
 | Cambiar si un huésped paga desde Perú (y qué medios se le ofrecen) | `src/Pms/Finanzas/PmsProcedenciaHuesped.php` | `pagaDesdePeru()` — **única fuente; no lo recalcules en una skill** |
 | Cambiar el formato de salida del agente según el canal | `src/Agent/Service/AiConversationProcessor.php` | `formatoSegunCanal()` (se bifurca por `ActorInterface::origen()`) |
 | Cambiar cuándo se pregunta ante dos herramientas empatadas | `src/Agent/Conversation/AclaracionDeEmpate.php` | `obliga()` |

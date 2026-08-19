@@ -12,7 +12,7 @@
  */
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { apiClient } from '@/services/apiClient';
-import { formatoAHtml, paraWhatsapp } from '@/utils/formatoDeTexto';
+import { bloqueCopiable, formatoAHtml, paraWhatsapp } from '@/utils/formatoDeTexto';
 
 /** Espejo de App\Agent\Controller\Api\PanelAssistantController::consulta(). */
 interface RespuestaAsistente {
@@ -337,10 +337,15 @@ async function preguntar(): Promise<void> {
 const copiadoIndice = ref<number | null>(null);
 
 async function copiarAlPortapapeles(texto: string, indice: number): Promise<void> {
-    // `paraWhatsapp()` y no `normalizar()`: el operador pega esto en WhatsApp, así que
-    // tiene que salir degradado igual que lo que el backend ENVÍA por ese canal —con las
-    // URLs protegidas y sin el `__subrayado__`, que WhatsApp no tiene.
-    const textoParaWhatsapp = paraWhatsapp(texto);
+    // 📋 Se copia el ARTEFACTO, no la respuesta. Si el modelo envolvió algo en un bloque
+    // ``` —que es lo que hace con un mensaje ya redactado para el huésped— se copia sólo eso:
+    // su «Aquí tienes el mensaje de prepago para Miguel (Localizador: …)» no se envía a nadie.
+    // Sin bloque, se copia todo, que es el comportamiento de siempre.
+    //
+    // Y por `paraWhatsapp()` y no `normalizar()`: esto se pega en WhatsApp, así que sale
+    // degradado igual que lo que el backend ENVÍA por ese canal —URLs protegidas y sin el
+    // `__subrayado__`, que WhatsApp no tiene.
+    const textoParaWhatsapp = paraWhatsapp(bloqueCopiable(texto) ?? texto);
     try {
         await navigator.clipboard.writeText(textoParaWhatsapp);
         copiadoIndice.value = indice;
@@ -533,7 +538,9 @@ onBeforeUnmount(() => reconocimiento?.stop());
             <button
               type="button"
               class="absolute top-0 right-0 text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded flex items-center gap-1 transition-all opacity-80 group-hover:opacity-100 shadow-sm"
-              :title="'Copiar texto para WhatsApp / portapapeles'"
+              :title="bloqueCopiable(cambio.respuesta.texto) !== null
+                ? 'Copiar sólo el mensaje, sin la explicación del asistente'
+                : 'Copiar la respuesta para WhatsApp'"
               @click="copiarAlPortapapeles(cambio.respuesta.texto, i)"
             >
               <i :class="copiadoIndice === i ? 'fas fa-check text-emerald-600' : 'far fa-copy text-slate-500'"></i>
