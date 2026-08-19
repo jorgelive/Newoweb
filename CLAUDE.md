@@ -375,5 +375,19 @@ guía del huésped dio 500 para todos los huéspedes** hasta que alguien lo not�
 Después de desplegar algo que toque una entidad, comprobar:
 `php bin/console doctrine:migrations:status` — y que `New` sea 0.
 
+⚠️ **Si el despliegue RENOMBRA o MUEVE clases, hace falta `composer dump-autoload` en el
+servidor**, y cuanto antes: `optimize-autoloader` está activo, así que el classmap sigue
+apuntando a los archivos viejos hasta que se regenera. El 19/08/2026, renombrando `Proveedor` a
+`TravelOrganizacion`, una petición real cayó en el minuto entre el `pull` y el dump y dejó dos
+`Warning: include(): Failed opening …ProveedorVivoResolver.php` en `error.log`.
+
+No está en el hook `post-merge` a propósito —encarecer todos los despliegues por algo que pasa
+una vez al año no compensa—, así que **va a mano y encadenado al `pull`**, no después de las
+migraciones:
+
+```bash
+git pull --ff-only && composer dump-autoload --no-dev --optimize && php bin/console doctrine:migrations:migrate --no-interaction
+```
+
 Node vive en nvm y no está en el PATH de una sesión ssh no interactiva; los logs de producción
 ocultan el nivel `info`, así que los errores se buscan en `var/log/error.log`.
