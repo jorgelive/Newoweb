@@ -26,7 +26,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
+ * Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
  * Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
  */
 #[ApiFilter(SearchFilter::class, properties: [
@@ -80,9 +80,9 @@ use Symfony\Component\Uid\Uuid;
     routePrefix: '/travel'
 )]
 #[ORM\Entity]
-#[ORM\Table(name: 'travel_proveedor')]
+#[ORM\Table(name: 'travel_organizacion')]
 #[ORM\HasLifecycleCallbacks]
-class Proveedor
+class TravelOrganizacion
 {
     use IdTrait;
     use TimestampTrait;
@@ -157,24 +157,24 @@ class Proveedor
     private ?string $direccion = null;
 
     /**
-     * @var Collection<int, ProveedorImagen>
+     * @var Collection<int, TravelOrganizacionImagen>
      */
     #[Groups(['proveedor:read', 'proveedor:item:read'])]
     #[ORM\OneToMany(
         mappedBy: 'proveedor',
-        targetEntity: ProveedorImagen::class,
+        targetEntity: TravelOrganizacionImagen::class,
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
     private Collection $proveedorImagenes;
 
     /**
-     * @var Collection<int, ProveedorServicio>
+     * @var Collection<int, TravelOrganizacionServicio>
      */
     #[Groups(['proveedor:item:read'])]
     #[ORM\OneToMany(
         mappedBy: 'proveedor',
-        targetEntity: ProveedorServicio::class,
+        targetEntity: TravelOrganizacionServicio::class,
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
@@ -195,14 +195,14 @@ class Proveedor
     #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
     #[ApiProperty(readableLink: false)]
     #[ORM\ManyToMany(targetEntity: TravelLugar::class, inversedBy: 'proveedores')]
-    #[ORM\JoinTable(name: 'travel_proveedor_lugar_pool')]
+    #[ORM\JoinTable(name: 'travel_organizacion_lugar_pool')]
     #[ORM\JoinColumn(name: 'proveedor_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     #[ORM\InverseJoinColumn(name: 'lugar_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     #[ORM\OrderBy(['orden' => 'ASC', 'nombre' => 'ASC'])]
     private Collection $lugares;
 
     /**
-     * Constructor de la entidad Proveedor.
+     * Constructor de la entidad TravelOrganizacion.
      * Inicializa el identificador único UUIDv7 y las colecciones internas.
      */
     public function __construct()
@@ -232,7 +232,7 @@ class Proveedor
      */
     public function __toString(): string
     {
-        return $this->nombreComercial ?? 'Proveedor sin nombre';
+        return $this->nombreComercial ?? 'TravelOrganizacion sin nombre';
     }
 
     /**
@@ -411,16 +411,16 @@ class Proveedor
     /**
      * Obtiene la colección completa de imágenes pertenecientes a la galería del proveedor.
      *
-     * @return Collection<int, ProveedorImagen>
+     * @return Collection<int, TravelOrganizacionImagen>
      *
-     * @return Collection<int, ProveedorImagen>
+     * @return Collection<int, TravelOrganizacionImagen>
      */
     public function getProveedorImagenes(): Collection
     {
         return $this->proveedorImagenes;
     }
 
-    public function addProveedorImagen(ProveedorImagen $proveedorImagen): self
+    public function addProveedorImagen(TravelOrganizacionImagen $proveedorImagen): self
     {
         if (!$this->proveedorImagenes->contains($proveedorImagen)) {
             $this->proveedorImagenes->add($proveedorImagen);
@@ -429,7 +429,7 @@ class Proveedor
         return $this;
     }
 
-    public function removeProveedorImagen(ProveedorImagen $proveedorImagen): self
+    public function removeProveedorImagen(TravelOrganizacionImagen $proveedorImagen): self
     {
         if ($this->proveedorImagenes->removeElement($proveedorImagen)) {
             if ($proveedorImagen->getProveedor() === $this) {
@@ -442,16 +442,16 @@ class Proveedor
     /**
      * Obtiene la colección completa de servicios pertenecientes al proveedor.
      *
-     * @return Collection<int, ProveedorServicio>
+     * @return Collection<int, TravelOrganizacionServicio>
      *
-     * @return Collection<int, ProveedorServicio>
+     * @return Collection<int, TravelOrganizacionServicio>
      */
     public function getProveedorServicios(): Collection
     {
         return $this->proveedorServicios;
     }
 
-    public function addProveedorServicio(ProveedorServicio $proveedorServicio): self
+    public function addProveedorServicio(TravelOrganizacionServicio $proveedorServicio): self
     {
         if (!$this->proveedorServicios->contains($proveedorServicio)) {
             $this->proveedorServicios->add($proveedorServicio);
@@ -460,7 +460,7 @@ class Proveedor
         return $this;
     }
 
-    public function removeProveedorServicio(ProveedorServicio $proveedorServicio): self
+    public function removeProveedorServicio(TravelOrganizacionServicio $proveedorServicio): self
     {
         if ($this->proveedorServicios->removeElement($proveedorServicio)) {
             if ($proveedorServicio->getProveedor() === $this) {

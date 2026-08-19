@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Service;
 
-use App\Travel\Entity\Proveedor;
-use App\Travel\Entity\ProveedorServicio;
+use App\Travel\Entity\TravelOrganizacion;
+use App\Travel\Entity\TravelOrganizacionServicio;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -33,15 +33,15 @@ use Symfony\Component\Uid\Uuid;
  *    siempre con `clave()`, de forma que da igual con qué forma se pregunte.
  *
  * Va por el ORM y no por SQL crudo a propósito: `imageUrl` es una propiedad virtual que
- * inyecta `ProveedorImagenAssetListener` en `postLoad`. Con SQL habría que reimplementar
+ * inyecta `TravelOrganizacionImagenAssetListener` en `postLoad`. Con SQL habría que reimplementar
  * la firma de las URLs.
  */
 final class ProveedorVivoResolver
 {
-    /** @var array<string, Proveedor> */
+    /** @var array<string, TravelOrganizacion> */
     private array $proveedores = [];
 
-    /** @var array<string, ProveedorServicio> */
+    /** @var array<string, TravelOrganizacionServicio> */
     private array $servicios = [];
 
     /** Ids ya buscados, existan o no: evita repreguntar por los que no están. */
@@ -63,16 +63,16 @@ final class ProveedorVivoResolver
         $sUuids = self::aUuids($servicioIds);
 
         if ($pUuids !== []) {
-            /** @var array<int, Proveedor> $encontrados */
-            $encontrados = $this->em->getRepository(Proveedor::class)->findBy(['id' => $pUuids]);
+            /** @var array<int, TravelOrganizacion> $encontrados */
+            $encontrados = $this->em->getRepository(TravelOrganizacion::class)->findBy(['id' => $pUuids]);
             foreach ($encontrados as $p) {
                 $this->proveedores[self::clave($p->getId())] = $p;
             }
         }
 
         if ($sUuids !== []) {
-            /** @var array<int, ProveedorServicio> $encontrados */
-            $encontrados = $this->em->getRepository(ProveedorServicio::class)->findBy(['id' => $sUuids]);
+            /** @var array<int, TravelOrganizacionServicio> $encontrados */
+            $encontrados = $this->em->getRepository(TravelOrganizacionServicio::class)->findBy(['id' => $sUuids]);
             foreach ($encontrados as $s) {
                 $this->servicios[self::clave($s->getId())] = $s;
             }
@@ -86,12 +86,12 @@ final class ProveedorVivoResolver
         return $this->precargado;
     }
 
-    public function proveedor(?string $id): ?Proveedor
+    public function proveedor(?string $id): ?TravelOrganizacion
     {
         return $id === null ? null : ($this->proveedores[self::clave($id)] ?? null);
     }
 
-    public function servicio(?string $id): ?ProveedorServicio
+    public function servicio(?string $id): ?TravelOrganizacionServicio
     {
         return $id === null ? null : ($this->servicios[self::clave($id)] ?? null);
     }
@@ -101,7 +101,7 @@ final class ProveedorVivoResolver
      *
      * @return list<array{imageUrl: string|null, orden: int, isPortada: bool}>
      */
-    public function imagenesDe(Proveedor $p): array
+    public function imagenesDe(TravelOrganizacion $p): array
     {
         $out = [];
         foreach ($p->getProveedorImagenes() as $img) {
@@ -118,7 +118,7 @@ final class ProveedorVivoResolver
     /**
      * @return list<array{imageUrl: string|null, orden: int, isPortada: bool}>
      */
-    public function imagenesDeServicio(ProveedorServicio $s): array
+    public function imagenesDeServicio(TravelOrganizacionServicio $s): array
     {
         $out = [];
         foreach ($s->getProveedorServicioImagenes() as $img) {

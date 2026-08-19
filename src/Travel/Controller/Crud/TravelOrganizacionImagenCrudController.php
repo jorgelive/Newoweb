@@ -6,8 +6,8 @@ namespace App\Travel\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
-use App\Travel\Entity\ProveedorServicio;
-use App\Travel\Entity\ProveedorServicioImagen;
+use App\Travel\Entity\TravelOrganizacion;
+use App\Travel\Entity\TravelOrganizacionImagen;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -23,18 +23,17 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Vich\UploaderBundle\Form\Type\VichImageType;
 
-class ProveedorServicioImagenCrudController extends BaseCrudController
+class TravelOrganizacionImagenCrudController extends BaseCrudController
 {
     /**
-     * Constructor del controlador CRUD para las imágenes de los servicios.
-     * Inyecta dependencias críticas como el path físico de las imágenes, el generador de URLs y la pila de peticiones.
+     * Constructor para inyectar la ruta de subida de imágenes para la previsualización del CRUD.
      *
-     * @param string $uploadPath Ruta base inyectada vía Autowire desde services.yaml (%travel.path.proveedor_servicio_galeria%).
-     * @param AdminUrlGenerator $adminUrlGenerator Generador de URLs para redirecciones y acciones internas de EasyAdmin.
-     * @param RequestStack $requestStack Pila de peticiones HTTP en curso.
+     * @param string $uploadPath Ruta base inyectada vía Autowire.
+     * @param AdminUrlGenerator $adminUrlGenerator Generador de URLs para EasyAdmin.
+     * @param RequestStack $requestStack Pila de peticiones.
      */
     public function __construct(
-        #[Autowire('%travel.path.proveedor_servicio_galeria%')]
+        #[Autowire('%travel.path.proveedor_galeria%')]
         private readonly string $uploadPath,
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack
@@ -44,36 +43,33 @@ class ProveedorServicioImagenCrudController extends BaseCrudController
 
     /**
      * Define la entidad administrada por este controlador.
-     * Este método es requerido por EasyAdmin para saber qué entidad mapear en las vistas y formularios.
      *
-     * @return string Retorna el FQCN (Fully Qualified Class Name) de ProveedorServicioImagen.
+     * @return string
      */
     public static function getEntityFqcn(): string
     {
-        return ProveedorServicioImagen::class;
+        return TravelOrganizacionImagen::class;
     }
 
     /**
-     * Configuración general del comportamiento del CRUD para la galería de los servicios.
-     * Define etiquetas, ordenamiento por defecto basado en la jerarquía del servicio y orden numérico, y presentación visual.
+     * Configuración general del comportamiento del CRUD.
      *
-     * @param Crud $crud Objeto de configuración inicial provisto por EasyAdmin.
+     * @param Crud $crud
      * @return Crud
      */
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
             ->showEntityActionsInlined()
-            ->setEntityLabelInSingular('Imagen de Servicio')
-            ->setEntityLabelInPlural('Galería de Servicios')
-            ->setDefaultSort(['proveedorServicio' => 'ASC', 'orden' => 'ASC']);
+            ->setEntityLabelInSingular('Imagen de TravelOrganizacion')
+            ->setEntityLabelInPlural('Galería de Proveedores')
+            ->setDefaultSort(['proveedor' => 'ASC', 'orden' => 'ASC']);
     }
 
     /**
      * Configuración de acciones, botones globales y permisos de acceso del CRUD.
-     * Registra la acción personalizada de carga masiva y aplica los controles de acceso basados en Roles del sistema.
      *
-     * @param Actions $actions Objeto de gestión de acciones de EasyAdmin.
+     * @param Actions $actions
      * @return Actions
      */
     public function configureActions(Actions $actions): Actions
@@ -101,43 +97,41 @@ class ProveedorServicioImagenCrudController extends BaseCrudController
     }
 
     /**
-     * Acción personalizada para renderizar la vista de carga masiva de imágenes para servicios.
-     * Obtiene todos los servicios disponibles para alimentar el select dinámico en el frontend (ej. TomSelect).
-     * Es crucial para permitir a los administradores subir múltiples fotos asociadas a una habitación en un solo paso.
+     * Acción personalizada para renderizar la vista de carga masiva.
+     * Obtiene los proveedores disponibles para alimentar el select de TomSelect.
      *
-     * @param EntityManagerInterface $em Gestor de entidades de Doctrine para consultar los servicios activos.
-     * @return Response Retorna la vista renderizada del componente de carga masiva.
+     * @param EntityManagerInterface $em
+     * @return Response
      */
     public function renderMassUpload(EntityManagerInterface $em): Response
     {
-        // Obtenemos los servicios de los proveedores ordenados alfabéticamente para facilitar la búsqueda.
-        $proveedorServicios = $em->getRepository(ProveedorServicio::class)->findBy([], ['nombre' => 'ASC']);
+        // Obtenemos los proveedores.
+        $proveedores = $em->getRepository(TravelOrganizacion::class)->findBy([], ['nombreComercial' => 'ASC']);
 
-        return $this->render('panel/travel/proveedor_servicio_imagen/mass_upload.html.twig', [
-            'proveedorServicios' => $proveedorServicios,
+        return $this->render('panel/travel/proveedor_imagen/mass_upload.html.twig', [
+            'proveedores' => $proveedores,
             'crud' => $this->configureCrud(Crud::new()),
         ]);
     }
 
     /**
-     * Configuración de los campos visibles en los formularios y listas del panel.
-     * Gestiona el campo de carga con VichUploader y la previsualización usando el path inyectado en el constructor.
+     * Configuración de los campos visibles en el panel.
      *
-     * @param string $pageName Identificador de la página actual (Index, Edit, New, Detail).
-     * @return iterable Colección de campos configurados de EasyAdmin.
+     * @param string $pageName
+     * @return iterable
      *
      * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
      */
     public function configureFields(string $pageName): iterable
     {
         $isEmbedded = $this->isEmbedded();
-
         if (!$isEmbedded){
-            yield AssociationField::new('proveedorServicio', 'Servicio del Proveedor')
+            yield AssociationField::new('proveedor', 'TravelOrganizacion')
                 ->autocomplete()
                 ->setColumns(12)
-                ->setHelp('Servicio del proveedor al que pertenece la imágen.');
+                ->setHelp('TravelOrganizacion al que pertenece la imagen.');
         }
+
 
         yield TextField::new('imageFile', 'Subir Imagen')
             ->setFormType(VichImageType::class)
@@ -145,15 +139,15 @@ class ProveedorServicioImagenCrudController extends BaseCrudController
             ->setColumns(12);
 
         yield ImageField::new('imageName', 'Previsualización')
-            ->setBasePath($this->uploadPath) // Usando la variable inyectada dinámicamente
+            ->setBasePath($this->uploadPath) // Usando la variable inyectada
             ->onlyOnIndex();
 
         yield IntegerField::new('orden', 'Orden')
-            ->setHelp('Determina la posición de la imagen dentro de la galería del servicio. Un número menor indica mayor prioridad (ej: 0 es el primero).')
+            ->setHelp('Determina la posición de la imagen. Un número menor indica mayor prioridad (ej: 0 es el primero).')
             ->setColumns(6);
 
         yield BooleanField::new('isPortada', 'Es Portada')
-            ->setHelp('Marca esta imagen como la principal o de cabecera para el servicio/habitación.')
+            ->setHelp('Marca esta imagen como la imagen principal o de cabecera del proveedor.')
             ->setColumns(6);
     }
 }

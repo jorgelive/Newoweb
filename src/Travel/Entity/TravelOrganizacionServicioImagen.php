@@ -5,12 +5,7 @@ declare(strict_types=1);
 namespace App\Travel\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Post;
-use App\Security\Roles;
-use App\Travel\State\ProveedorImagenMultipartProcessor;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Panel\Entity\Trait\MediaTrait;
@@ -18,103 +13,64 @@ use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Serializer\Annotation\Groups;
-use Symfony\Component\Uid\Uuid;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 /**
- * Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
+ * Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
  * Mapeado nativamente con VichUploader para su administración en EasyAdmin.
  */
 #[ApiResource(
-    shortName: 'ProveedorImagen',
+    shortName: 'ProveedorServicioImagen',
     operations: [
-        new Get(normalizationContext: ['groups' => ['proveedor:item:read']]),
-
-        // Alta por multipart: los escalares (`orden`, `isPortada`, `proveedor`) los
-        // denormaliza API Platform y el binario lo recoge el processor del campo `imagen`.
-        // `disable_type_enforcement` es obligatorio — en multipart todo llega como string,
-        // así que `orden` viaja como "3" y `isPortada` como "1".
-        new Post(
-            inputFormats: [
-                'jsonld' => ['application/ld+json'],
-                'multipart' => ['multipart/form-data'],
-            ],
-            denormalizationContext: [
-                'groups' => ['proveedor_imagen:write'],
-                'disable_type_enforcement' => true,
-            ],
-            securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityPostDenormalizeMessage: 'No tienes permiso para subir imágenes de proveedor.',
-            processor: ProveedorImagenMultipartProcessor::class
-        ),
-
-        // Reordenar la galería y marcar portada no reenvían el binario.
-        new Patch(
-            denormalizationContext: ['groups' => ['proveedor_imagen:write']],
-            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar imágenes de proveedor.'
-        ),
-        new Delete(
-            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para eliminar imágenes de proveedor.'
-        ),
+        new Get(normalizationContext: ['groups' => ['proveedor_servicio:item:read']])
     ],
     routePrefix: '/travel'
 )]
 #[ORM\Entity]
-#[ORM\Table(name: 'travel_proveedor_imagen')]
+#[ORM\Table(name: 'travel_organizacion_servicio_imagen')]
 #[ORM\HasLifecycleCallbacks]
 #[Vich\Uploadable]
-class ProveedorImagen
+class TravelOrganizacionServicioImagen
 {
     use IdTrait;
     use TimestampTrait;
-    use MediaTrait; // Para el manejo de tokens e inyección de la URL pública
+    use MediaTrait;
 
-    /** El id además del `@id`: la galería necesita construir URLs de borrado y portada. */
-    #[Groups(['proveedor:item:read'])]
-    public function getId(): ?Uuid
-    {
-        return $this->id;
-    }
-
-
-    #[Groups(['proveedor:item:read', 'proveedor_imagen:write'])]
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 0;
 
-    #[Groups(['proveedor:item:read', 'proveedor_imagen:write'])]
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
     #[ORM\Column(type: 'boolean')]
     private bool $isPortada = false;
 
-    #[Groups(['proveedor_imagen:write'])]
-    #[ORM\ManyToOne(targetEntity: Proveedor::class, inversedBy: 'proveedorImagenes')]
-    #[ORM\JoinColumn(name: 'proveedor_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    private ?Proveedor $proveedor = null;
+    #[ORM\ManyToOne(targetEntity: TravelOrganizacionServicio::class, inversedBy: 'proveedorServicioImagenes')]
+    #[ORM\JoinColumn(name: 'proveedor_servicio_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private ?TravelOrganizacionServicio $proveedorServicio = null;
 
     /* ========================================================================
      * MAPEO DE VICH UPLOADER Y ARCHIVOS FÍSICOS
      * ======================================================================== */
 
-    #[Vich\UploadableField(mapping: 'travel_proveedor_galeria', fileNameProperty: 'imageName', size: 'imageSize')]
+    #[Vich\UploadableField(mapping: 'travel_proveedor_servicio_galeria', fileNameProperty: 'imageName', size: 'imageSize')]
     private ?File $imageFile = null;
 
-    #[Groups(['proveedor:item:read'])]
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
     #[ORM\Column(type: 'string', nullable: true)]
     private ?string $imageName = null;
 
-    #[Groups(['proveedor:item:read'])]
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $imageSize = null;
 
     /**
      * Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso.
      */
-    #[Groups(['proveedor:item:read'])]
+    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
     private ?string $imageUrl = null;
 
     /**
-     * Constructor de ProveedorImagen.
+     * Constructor de TravelOrganizacionServicioImagen.
      */
     public function __construct()
     {
@@ -132,14 +88,14 @@ class ProveedorImagen
 
     /**
      * Retorna la cadena representativa de la imagen en EasyAdmin.
-     * Muestra el nombre de la imagen o su asociación al proveedor.
+     * Muestra el nombre de la imagen o su asociación al servicio del proveedor.
      *
      * @return string
      */
     public function __toString(): string
     {
-        $nombreProveedor = $this->proveedor ? (string) $this->proveedor : 'Proveedor no asignado';
-        return sprintf('%s - img - %d', $nombreProveedor, $this->orden);
+        $nombreServicio = $this->proveedorServicio ? (string) $this->proveedorServicio : 'Servicio no asignado';
+        return sprintf('%s - img - %d', $nombreServicio, $this->orden);
     }
 
     /* ========================================================================
@@ -155,7 +111,7 @@ class ProveedorImagen
     }
 
     /**
-     * Establece el orden de visualización de la imagen en la galería.
+     * Establece el orden de visualización de la imagen en la galería del servicio.
      */
     public function setOrden(int $orden): self
     {
@@ -164,7 +120,7 @@ class ProveedorImagen
     }
 
     /**
-     * Indica si esta imagen es la portada principal del proveedor.
+     * Indica si esta imagen es la portada principal del servicio.
      */
     public function getIsPortada(): bool
     {
@@ -172,7 +128,7 @@ class ProveedorImagen
     }
 
     /**
-     * Establece si esta imagen debe ser tratada como la portada del proveedor.
+     * Establece si esta imagen debe ser tratada como la portada del servicio.
      */
     public function setIsPortada(bool $isPortada): self
     {
@@ -181,19 +137,19 @@ class ProveedorImagen
     }
 
     /**
-     * Obtiene el proveedor al que pertenece esta imagen.
+     * Obtiene el servicio de proveedor al que pertenece esta imagen.
      */
-    public function getProveedor(): ?Proveedor
+    public function getProveedorServicio(): ?TravelOrganizacionServicio
     {
-        return $this->proveedor;
+        return $this->proveedorServicio;
     }
 
     /**
-     * Asigna esta imagen a un proveedor específico.
+     * Asigna esta imagen a un servicio de proveedor específico.
      */
-    public function setProveedor(?Proveedor $proveedor): self
+    public function setProveedorServicio(?TravelOrganizacionServicio $proveedorServicio): self
     {
-        $this->proveedor = $proveedor;
+        $this->proveedorServicio = $proveedorServicio;
         return $this;
     }
 

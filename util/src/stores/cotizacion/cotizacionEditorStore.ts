@@ -3152,7 +3152,30 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             edadMinimaSnapshot: getEdadMinimaTarifa(tarifa),
             edadMaximaSnapshot: getEdadMaximaTarifa(tarifa),
             nombreParaProveedorSnapshot: getNombreParaProveedorTarifa(tarifa),
+            // DE QUIÉN ES ESTE PRECIO, congelado. El prestador vive en el componente maestro
+            // desde `Version20260816240000`, pero la línea tiene que recordar de cuál vino: una
+            // cotización puede acabar con tarifas de componentes distintos —el editor lo avisa
+            // y lo deja pasar— y entonces «el prestador del componente» ya no lo dice.
+            ...prestadorDeTarifaParaSnapshot(tarifa),
             sobreescribirTraduccion: false
+        };
+    }
+
+    /**
+     * El prestador de una tarifa del catálogo, en la forma que guarda el snapshot.
+     *
+     * Sale de `getProveedorDeTarifa()`, que resuelve la tarifa contra su componente maestro. El
+     * comprador va vacío porque hoy no hay de dónde sacarlo, y no se inventa.
+     */
+    function prestadorDeTarifaParaSnapshot(tarifa: TarifaLike): {
+        prestadorMaestroId: string | null;
+        prestadorNombreSnapshot: string | null;
+    } {
+        const prov = getProveedorDeTarifa(tarifa);
+
+        return {
+            prestadorMaestroId: prov?.id || null,
+            prestadorNombreSnapshot: prov?.nombre || null,
         };
     }
 
@@ -3921,11 +3944,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 tarifa.esGrupal = false;
             }
 
-            // El proveedor ya NO se siembra aquí: subió de la tarifa al componente maestro
-            // (`Version20260816240000`), así que se copia al instanciar el componente y no
-            // al elegir una de sus tarifas. Ver sembrarPrestadorDesdeMaestro().
-
             tarifa.nombreParaProveedorSnapshot = maestro.nombreParaProveedor || null;
+
+            // 🏷️ De quién es este precio. El prestador sigue viviendo en el componente
+            // maestro —eso no cambia, y por eso aquí no se pinta ningún campo—: lo que se
+            // hace es dejar de OMITIR la referencia en el snapshot, que ya congela las otras
+            // doce cosas de la tarifa.
+            const prov = prestadorDeTarifaParaSnapshot(maestro);
+            tarifa.prestadorMaestroId = prov.prestadorMaestroId;
+            tarifa.prestadorNombreSnapshot = prov.prestadorNombreSnapshot;
+
+            // Y si la línea todavía no tiene prestador, lo toma de la tarifa: el primero que
+            // llega manda. Si ya tenía otro NO se pisa —la mezcla la avisa
+            // `tarifaDeOtroProveedor` en la vista, que llega antes y deja decidir a la persona.
+            const linea = componenteActualDeTarifa.value;
+            if (linea && prov.prestadorMaestroId && !extractIdStr(linea.prestadorMaestroId)) {
+                linea.prestadorMaestroId = prov.prestadorMaestroId;
+                linea.prestadorNombreSnapshot = prov.prestadorNombreSnapshot;
+            }
         }
     };
 

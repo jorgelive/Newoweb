@@ -405,13 +405,39 @@ export interface TarifaSnapshot {
     /**
      * Cómo llama el PROVEEDOR a esta tarifa, para el requerimiento que se le manda.
      *
-     * Es lo ÚNICO del proveedor que queda en la línea de precio, y sí es por línea: el
-     * proveedor en sí es del componente. La tarifa llegó a guardar también su id y su
-     * nombre —«de quién es este precio»— pero nadie los leía y se retiraron.
+     * Cómo lo llama él, y sí es por línea: el prestador en sí es del componente.
      *
      * Vacío = lo llama igual que nosotros. Ver `resolverDescripcion()` en PHP.
      */
     nombreParaProveedorSnapshot?: string | null;
+
+    /**
+     * DE QUIÉN ERA ESTE PRECIO, congelado.
+     *
+     * ⚠️ **Estuvo, se quitó «porque nadie lo leía», y volvió.** Al subir el prestador de la
+     * tarifa al componente (`Version20260816240000`) se retiró también de aquí, y con eso se
+     * perdió el único sitio donde constaba a qué empresa se le compró ESTA línea. El motivo de
+     * aquel cambio era no llenar el formulario de campos —bueno—, pero el snapshot ya congela
+     * las otras doce cosas de la tarifa: omitir justo ésta no ahorraba nada.
+     *
+     * Importa porque una línea puede acabar con tarifas de componentes distintos —el editor lo
+     * avisa y lo deja pasar a propósito— y entonces «el prestador del componente» ya no dice de
+     * quién era cada precio.
+     *
+     * Es una referencia histórica, no un campo del formulario: se rellena solo al elegir la
+     * tarifa y no se edita a mano.
+     */
+    prestadorMaestroId?: string | null;
+    prestadorNombreSnapshot?: string | null;
+
+    /**
+     * A quién se le encargó la compra. Hoy **siempre vacío**: todavía no hay de dónde sacarlo
+     * —ninguna entidad del catálogo lo declara— y no se inventa. El campo existe para que el
+     * dato viaje entero el día que lo haya, en vez de tener que migrar entonces.
+     */
+    compradorMaestroId?: string | null;
+    compradorNombreSnapshot?: string | null;
+
     sobreescribirTraduccion: boolean;
 }
 

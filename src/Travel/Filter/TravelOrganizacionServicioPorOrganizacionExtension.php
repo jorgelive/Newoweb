@@ -7,12 +7,12 @@ namespace App\Travel\Filter;
 use ApiPlatform\Doctrine\Orm\Extension\QueryCollectionExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
-use App\Travel\Entity\ProveedorServicio;
+use App\Travel\Entity\TravelOrganizacionServicio;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Uid\Uuid;
 
-class ProveedorServicioProveedorExtension implements QueryCollectionExtensionInterface
+class TravelOrganizacionServicioPorOrganizacionExtension implements QueryCollectionExtensionInterface
 {
     public function __construct(private readonly RequestStack $requestStack)
     {
@@ -25,7 +25,7 @@ class ProveedorServicioProveedorExtension implements QueryCollectionExtensionInt
         ?Operation $operation = null,
         array $context = []
     ): void {
-        if (ProveedorServicio::class !== $resourceClass) {
+        if (TravelOrganizacionServicio::class !== $resourceClass) {
             return;
         }
 

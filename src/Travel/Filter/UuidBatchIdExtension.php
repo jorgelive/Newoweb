@@ -7,7 +7,7 @@ namespace App\Travel\Filter;
 use ApiPlatform\Doctrine\Orm\Extension\QueryCollectionExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
-use App\Travel\Entity\Proveedor;
+use App\Travel\Entity\TravelOrganizacion;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelSegmento;
 use App\Travel\Entity\TravelServicio;
@@ -30,7 +30,7 @@ class UuidBatchIdExtension implements QueryCollectionExtensionInterface
         $supportedClasses = [
             TravelTarifa::class,
             TravelServicio::class,
-            Proveedor::class,
+            TravelOrganizacion::class,
             TravelComponente::class,
             TravelSegmento::class,
         ];

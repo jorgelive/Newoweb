@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Api\Controller\ImageUpload;
 
-use App\Travel\Entity\ProveedorServicio;
-use App\Travel\Entity\ProveedorServicioImagen;
+use App\Travel\Entity\TravelOrganizacionServicio;
+use App\Travel\Entity\TravelOrganizacionServicioImagen;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,10 +16,10 @@ use Symfony\Component\Uid\Uuid;
 
 /**
  * Controlador API encargado de recibir y procesar la carga masiva de imágenes
- * para la galería de la entidad ProveedorServicio (ej. Habitaciones, Tours, etc.).
+ * para la galería de la entidad TravelOrganizacionServicio (ej. Habitaciones, Tours, etc.).
  */
 #[Route('/api/travel/proveedor-servicio-imagen')]
-class ProveedorServicioImagenUploadController extends AbstractController
+class TravelOrganizacionServicioImagenUploadController extends AbstractController
 {
     /**
      * Procesa la subida de una imagen individual asociada a un servicio de proveedor específico.
@@ -44,16 +44,16 @@ class ProveedorServicioImagenUploadController extends AbstractController
             return $this->json(['error' => 'Falta el ID del Servicio destino'], Response::HTTP_BAD_REQUEST);
         }
 
-        // 3. Buscar la entidad Padre (ProveedorServicio)
-        $proveedorServicio = $em->getRepository(ProveedorServicio::class)->find($proveedorServicioId);
+        // 3. Buscar la entidad Padre (TravelOrganizacionServicio)
+        $proveedorServicio = $em->getRepository(TravelOrganizacionServicio::class)->find($proveedorServicioId);
 
         if (!$proveedorServicio) {
             return $this->json(['error' => 'El Servicio especificado no existe'], Response::HTTP_NOT_FOUND);
         }
 
-        // 4. Crear y persistir la entidad Hija (ProveedorServicioImagen)
+        // 4. Crear y persistir la entidad Hija (TravelOrganizacionServicioImagen)
         try {
-            $imagen = new ProveedorServicioImagen();
+            $imagen = new TravelOrganizacionServicioImagen();
             $imagen->setProveedorServicio($proveedorServicio);
 
             // Asignar el archivo para que VichUploader y LiipImagine lo procesen
@@ -67,7 +67,7 @@ class ProveedorServicioImagenUploadController extends AbstractController
 
             $maxOrden = (int) $em->createQueryBuilder()
                 ->select('COALESCE(MAX(i.orden), -1)')
-                ->from(ProveedorServicioImagen::class, 'i')
+                ->from(TravelOrganizacionServicioImagen::class, 'i')
                 ->andWhere('IDENTITY(i.proveedorServicio) = :proveedorServicioId')
                 ->setParameter('proveedorServicioId', $proveedorServicioUuid, 'uuid')
                 ->getQuery()

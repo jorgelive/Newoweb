@@ -69,10 +69,10 @@ use App\Pms\Controller\Crud\PmsUnidadBeds24MapCrudController;
 use App\Pms\Controller\Crud\PmsUnidadCrudController;
 
 // 🔥 NUEVAS IMPORTACIONES MÓDULO TRAVEL (Agencia & Tours)
-use App\Travel\Controller\Crud\ProveedorCrudController;
-use App\Travel\Controller\Crud\ProveedorImagenCrudController;
-use App\Travel\Controller\Crud\ProveedorServicioCrudController; // <-- AÑADIDO
-use App\Travel\Controller\Crud\ProveedorServicioImagenCrudController; // <-- AÑADIDO
+use App\Travel\Controller\Crud\TravelOrganizacionCrudController;
+use App\Travel\Controller\Crud\TravelOrganizacionImagenCrudController;
+use App\Travel\Controller\Crud\TravelOrganizacionServicioCrudController; // <-- AÑADIDO
+use App\Travel\Controller\Crud\TravelOrganizacionServicioImagenCrudController; // <-- AÑADIDO
 use App\Travel\Controller\Crud\TravelServicioCrudController;
 use App\Travel\Controller\Crud\TravelItinerarioCrudController;
 use App\Travel\Controller\Crud\TravelSegmentoCrudController;
@@ -190,10 +190,10 @@ class DashboardController extends AbstractDashboardController
         // LOGÍSTICA Y FINANZAS
         yield MenuItem::subMenu('Logística y Tarifas', 'fa fa-cogs')
             ->setSubItems([
-                MenuItem::linkTo(ProveedorCrudController::class, 'Proveedores', 'fa fa-handshake'),
-                MenuItem::linkTo(ProveedorImagenCrudController::class, 'Imágenes de Proveedores', 'fa fa-images'),
-                MenuItem::linkTo(ProveedorServicioCrudController::class, 'Servicios de Proveedores', 'fa fa-concierge-bell'), // <-- AÑADIDO
-                MenuItem::linkTo(ProveedorServicioImagenCrudController::class, 'Imágenes de Servicios de Proveedor', 'fa fa-images'), // <-- AÑADIDO
+                MenuItem::linkTo(TravelOrganizacionCrudController::class, 'Proveedores', 'fa fa-handshake'),
+                MenuItem::linkTo(TravelOrganizacionImagenCrudController::class, 'Imágenes de Proveedores', 'fa fa-images'),
+                MenuItem::linkTo(TravelOrganizacionServicioCrudController::class, 'Servicios de Proveedores', 'fa fa-concierge-bell'), // <-- AÑADIDO
+                MenuItem::linkTo(TravelOrganizacionServicioImagenCrudController::class, 'Imágenes de Servicios de TravelOrganizacion', 'fa fa-images'), // <-- AÑADIDO
                 MenuItem::linkTo(TravelComponenteCrudController::class, 'Componentes Base', 'fa fa-cubes'),
                 MenuItem::linkTo(TravelLugarCrudController::class, 'Lugares / Centros', 'fa fa-map-marker-alt'),
                 MenuItem::linkTo(TravelTarifaCrudController::class, 'Tarifario Maestro', 'fa fa-hand-holding-usd'),

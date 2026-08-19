@@ -41,6 +41,44 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombreParaProveedorSnapshot = null;
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // LOS DOS PAPELES, CONGELADOS
+    //
+    // Se copian de {@see \App\Travel\Entity\TravelTarifa} al colgar la tarifa. Se congelan
+    // por lo mismo que el resto de este snapshot: una cotización es un documento HISTÓRICO, y
+    // lo que se le prometió al cliente no puede cambiar porque alguien edite el maestro
+    // después. El soft-link sobrevive al borrado; el nombre, a que la empresa se renombre.
+    //
+    // De aquí sube la regla de {@see \App\Cotizacion\Tarifa\PapelDeLaTarifa} al
+    // `CotizacionCotcomponente`: **el primero manda, el distinto avisa y pasa**.
+    //
+    // Mismos nombres que en el cotcomponente a propósito: la regla copia de una entidad a la
+    // otra, y que los campos se llamen igual es lo que hace obvio de dónde viene cada cosa.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
+    #[Groups(['cotizacion:item:read', 'cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $prestadorMaestroId = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 190, nullable: true)]
+    private ?string $prestadorNombreSnapshot = null;
+
+    /**
+     * A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador.
+     *
+     * ⚠️ Sin `pax_cotizacion:read`, igual que en el cotcomponente: a quién le encargaste la
+     * compra no es asunto del cliente.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $compradorMaestroId = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 190, nullable: true)]
+    private ?string $compradorNombreSnapshot = null;
+
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer', options: ['default' => 1])]
     private int $cantidad = 1;
@@ -280,4 +318,16 @@ class CotizacionCottarifa
         $this->notaRol = $notaRol ?? [];
         return $this;
     }
+
+    public function getPrestadorMaestroId(): ?string { return $this->prestadorMaestroId; }
+    public function setPrestadorMaestroId(?string $v): self { $this->prestadorMaestroId = $v; return $this; }
+
+    public function getPrestadorNombreSnapshot(): ?string { return $this->prestadorNombreSnapshot; }
+    public function setPrestadorNombreSnapshot(?string $v): self { $this->prestadorNombreSnapshot = $v; return $this; }
+
+    public function getCompradorMaestroId(): ?string { return $this->compradorMaestroId; }
+    public function setCompradorMaestroId(?string $v): self { $this->compradorMaestroId = $v; return $this; }
+
+    public function getCompradorNombreSnapshot(): ?string { return $this->compradorNombreSnapshot; }
+    public function setCompradorNombreSnapshot(?string $v): self { $this->compradorNombreSnapshot = $v; return $this; }
 }

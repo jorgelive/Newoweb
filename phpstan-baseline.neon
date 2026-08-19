@@ -1783,15 +1783,3 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Travel/Filter/UuidBatchIdExtension.php
-
-		-
-			message: '#^Instanceof between App\\Travel\\Entity\\ProveedorImagen and App\\Travel\\Entity\\ProveedorImagen will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Travel/State/ProveedorImagenMultipartProcessor.php
-
-		-
-			message: '#^Method App\\Travel\\State\\ProveedorImagenMultipartProcessor\:\:__construct\(\) has parameter \$persistProcessor with generic interface ApiPlatform\\State\\ProcessorInterface but does not specify its types\: T1, T2$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Travel/State/ProveedorImagenMultipartProcessor.php

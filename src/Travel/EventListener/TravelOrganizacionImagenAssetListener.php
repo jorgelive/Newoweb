@@ -5,20 +5,20 @@ declare(strict_types=1);
 namespace App\Travel\EventListener;
 
 use App\Panel\EventListener\Media\AbstractAssetListener;
-use App\Travel\Entity\ProveedorImagen;
+use App\Travel\Entity\TravelOrganizacionImagen;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\Events;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
- * Escucha los eventos de carga de la entidad ProveedorImagen para inyectar
+ * Escucha los eventos de carga de la entidad TravelOrganizacionImagen para inyectar
  * la URL pública de la imagen en la propiedad virtual $imageUrl, utilizando
  * el parámetro centralizado del sistema.
  */
-#[AsEntityListener(event: Events::postLoad, method: 'postLoad', entity: ProveedorImagen::class)]
-#[AsEntityListener(event: Events::postPersist, method: 'postPersist', entity: ProveedorImagen::class)]
-#[AsEntityListener(event: Events::postUpdate, method: 'postUpdate', entity: ProveedorImagen::class)]
-class ProveedorImagenAssetListener extends AbstractAssetListener
+#[AsEntityListener(event: Events::postLoad, method: 'postLoad', entity: TravelOrganizacionImagen::class)]
+#[AsEntityListener(event: Events::postPersist, method: 'postPersist', entity: TravelOrganizacionImagen::class)]
+#[AsEntityListener(event: Events::postUpdate, method: 'postUpdate', entity: TravelOrganizacionImagen::class)]
+class TravelOrganizacionImagenAssetListener extends AbstractAssetListener
 {
     /**
      * Constructor para inyectar la ruta configurada en services.yaml.

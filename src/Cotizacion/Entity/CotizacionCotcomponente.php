@@ -135,7 +135,7 @@ class CotizacionCotcomponente
     // ─────────────────────────────────────────────────────────────────────────
     // PRESTADOR — la empresa de este componente, en CAMPOS PLANOS
     //
-    // `Proveedor` es la entidad maestra: el contacto-empresa, el otro lado de `Cliente`.
+    // `TravelOrganizacion` es la entidad maestra: el contacto-empresa, el otro lado de `Cliente`.
     // Aquí no se copia esa entidad, se guarda **el enlace y su nombre**, nada más.
     //
     // ── Todo se resuelve en vivo ─────────────────────────────────────────────
@@ -214,7 +214,7 @@ class CotizacionCotcomponente
     // Ahí **prestador = Hotel Estelar** y **comprador = Futurismo**. Y la excursión del
     // propio Futurismo no lleva comprador, porque ésa se la compras tú directamente.
     //
-    // ⚠️ **Siempre apunta a un `Proveedor`, nunca a una persona.** También los internos:
+    // ⚠️ **Siempre apunta a un `TravelOrganizacion`, nunca a una persona.** También los internos:
     // «Openperu tickets» es una parte de la empresa modelada como proveedor. Es
     // deliberado y simplifica todo — el chófer Gabriel presta servicio como empresa de
     // transportes, no como persona natural, así que modelarlo como `User` obligaría a
@@ -228,7 +228,7 @@ class CotizacionCotcomponente
     // poder tomar.
     // ─────────────────────────────────────────────────────────────────────────
 
-    /** SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+    /** SOFT-LINK al catálogo maestro (App\Travel\Entity\TravelOrganizacion). */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $compradorMaestroId = null;

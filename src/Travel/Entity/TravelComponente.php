@@ -159,16 +159,16 @@ class TravelComponente
 
     #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
     #[ApiProperty(readableLink: false)]
-    #[ORM\ManyToOne(targetEntity: Proveedor::class)]
+    #[ORM\ManyToOne(targetEntity: TravelOrganizacion::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?Proveedor $proveedor = null;
+    private ?TravelOrganizacion $proveedor = null;
 
     /** El servicio concreto que se le compra (ej. el tipo de habitación). */
     #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
     #[ApiProperty(readableLink: false)]
-    #[ORM\ManyToOne(targetEntity: ProveedorServicio::class)]
+    #[ORM\ManyToOne(targetEntity: TravelOrganizacionServicio::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?ProveedorServicio $proveedorServicio = null;
+    private ?TravelOrganizacionServicio $proveedorServicio = null;
 
     /**
      * 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs
@@ -433,11 +433,11 @@ class TravelComponente
         }
     }
 
-    public function getProveedor(): ?Proveedor { return $this->proveedor; }
-    public function setProveedor(?Proveedor $v): self { $this->proveedor = $v; return $this; }
+    public function getProveedor(): ?TravelOrganizacion { return $this->proveedor; }
+    public function setProveedor(?TravelOrganizacion $v): self { $this->proveedor = $v; return $this; }
 
-    public function getProveedorServicio(): ?ProveedorServicio { return $this->proveedorServicio; }
-    public function setProveedorServicio(?ProveedorServicio $v): self { $this->proveedorServicio = $v; return $this; }
+    public function getProveedorServicio(): ?TravelOrganizacionServicio { return $this->proveedorServicio; }
+    public function setProveedorServicio(?TravelOrganizacionServicio $v): self { $this->proveedorServicio = $v; return $this; }
 
     /** @return Collection<int, TravelTarifa> */
     public function getTarifas(): Collection

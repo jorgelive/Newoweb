@@ -9,17 +9,14 @@ use App\Panel\Controller\Trait\RenderGaleriaTrait;
 use App\Panel\Form\Type\TranslationLongTextType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Security\Roles;
-use App\Travel\Entity\Proveedor;
-use App\Travel\Entity\ProveedorImagen;
-use App\Travel\Entity\ProveedorServicio;
+use App\Travel\Entity\TravelOrganizacionServicio;
+use App\Travel\Entity\TravelOrganizacionServicioImagen;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TelephoneField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
@@ -27,12 +24,13 @@ use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 
-class ProveedorCrudController extends BaseCrudController
+class TravelOrganizacionServicioCrudController extends BaseCrudController
 {
+
     use RenderGaleriaTrait;
 
     public function __construct(
-        #[Autowire('%travel.path.proveedor_galeria%')]
+        #[Autowire('%travel.path.proveedor_servicio_galeria%')]
         private readonly string $uploadPath,
         private readonly CacheManager $imagineCacheManager,
         protected AdminUrlGenerator $adminUrlGenerator,
@@ -49,15 +47,15 @@ class ProveedorCrudController extends BaseCrudController
     /**
      * Define la entidad administrada por este controlador.
      *
-     * @return string
+     * @return string Retorna el FQCN de la entidad TravelOrganizacionServicio.
      */
     public static function getEntityFqcn(): string
     {
-        return Proveedor::class;
+        return TravelOrganizacionServicio::class;
     }
 
     /**
-     * Configuración general del comportamiento del CRUD.
+     * Configuración general del comportamiento del CRUD para los servicios.
      *
      * @param Crud $crud
      * @return Crud
@@ -66,9 +64,9 @@ class ProveedorCrudController extends BaseCrudController
     {
         return $crud
             ->showEntityActionsInlined()
-            ->setEntityLabelInSingular('Proveedor')
-            ->setEntityLabelInPlural('Proveedores')
-            ->setDefaultSort(['nombreComercial' => 'ASC']);
+            ->setEntityLabelInSingular('Servicio de TravelOrganizacion')
+            ->setEntityLabelInPlural('Servicios de Proveedores')
+            ->setDefaultSort(['nombre' => 'ASC']);
     }
 
     /**
@@ -94,7 +92,7 @@ class ProveedorCrudController extends BaseCrudController
     }
 
     /**
-     * Configuración de los campos visibles en el panel.
+     * Configuración de los campos visibles y editables en el panel de administración.
      *
      * @param string $pageName
      * @return iterable
@@ -103,43 +101,27 @@ class ProveedorCrudController extends BaseCrudController
      */
     public function configureFields(string $pageName): iterable
     {
-        yield TextField::new('nombreComercial', 'Nombre Comercial')
-            ->setColumns(6);
+        $isEmbedded = $this->isEmbedded();
+        if (!$isEmbedded){
+            yield AssociationField::new('proveedor', 'TravelOrganizacion')
+                ->autocomplete()
+                ->setColumns(12)
+                ->setHelp('TravelOrganizacion al que pertenece el servicio.');
+        }
 
-        yield TextField::new('razonSocial', 'Razón Social')
-            ->setColumns(6);
-
-        yield TelephoneField::new('telefono', 'Teléfono')
-            ->setColumns(6);
-
-        yield EmailField::new('email', 'Correo Electrónico')
-            ->setColumns(6);
+        yield TextField::new('nombre', 'Nombre del Servicio')
+            ->setHelp('Ejemplo: Habitación Doble Estándar, Tour Guiado Privado, etc.')
+            ->setColumns(12);
 
         yield UrlField::new('url', 'Sitio Web / URL Externa')
-            ->setHelp('Enlace directo corporativo o sitio web del proveedor.')
-            ->setColumns(12);
-
-        yield TextField::new('direccion', 'Dirección')
-            ->setHelp('Dirección del proveedor.')
-            ->setColumns(12);
-
-        /* ====================================================================
-         * CARA PÚBLICA: la bandera manda, el título sólo aporta el texto.
-         * Antes la visibilidad se deducía de que el título estuviera lleno, lo
-         * que hacía que ocultar exigiera borrar el texto. Ver la entidad.
-         * ==================================================================== */
-        yield BooleanField::new('visibleParaCliente', 'Nombrable ante el cliente')
-            ->setHelp('Permite que este proveedor se muestre en las propuestas. Es el valor '
-                . 'por defecto al asignarlo: cada cotización puede decidir lo contrario, y '
-                . 'cambiarlo aquí NO altera las propuestas ya emitidas. Sin título público '
-                . 'no hay nada que mostrar aunque esté marcado.')
+            ->setHelp('Enlace directo a las especificaciones técnicas o micrositio del servicio.')
             ->setColumns(12);
 
         /* ====================================================================
          * CAMPO VIRTUAL: RENDERIZADO OPTIMIZADO PARA LISTADOS (INDEX / DETAIL)
          * Extrae dinámicamente el título en español desde la estructura JSON.
          * ==================================================================== */
-        yield TextField::new('virtualTitulo', 'Título')
+        yield TextField::new('virtualTitulo', 'Título Comercial')
             ->setVirtual(true)
             ->hideOnForm()
             ->formatValue(static function ($value, $entity) {
@@ -160,28 +142,18 @@ class ProveedorCrudController extends BaseCrudController
 
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')->onlyOnForms()->setColumns(6);
-
-        yield AssociationField::new('lugares', 'Lugares donde opera')
-            ->onlyOnForms()
-            ->autocomplete()
-            ->setColumns(12)
-            // Cobertura, no ubicación: un operador de Lima que también despacha Ica lleva
-            // las dos. Es lo que permite filtrar «qué me da este proveedor en Lima».
-            ->setHelp('Multivaluado: marca TODOS los centros desde los que opera este proveedor.');
-
-        yield CollectionField::new('titulo', 'Título')
+        yield CollectionField::new('titulo', 'Título Comercial (Traducciones)')
             ->setEntryType(TranslationTextType::class)
             ->setRequired(false)
             ->hideOnIndex()
             ->hideOnDetail()
             ->setColumns(12)
-            // La visibilidad al cliente no tiene flag: la gobierna la presencia del título.
-            // Al pasajero sólo le llegan `prestadorTituloSnapshot`, `...Url` e `...Imagenes`;
-            // el nombre comercial, el teléfono y la dirección no llevan el grupo público.
+            // Mismo criterio que el proveedor, y en cascada: sin título aquí, el servicio no
+            // se muestra al cliente aunque su proveedor sí tenga el suyo.
             ->setHelp(
-                'Es lo ÚNICO que ve el cliente en la propuesta. Si lo dejas vacío, este '
-                . 'proveedor no se le muestra: la ausencia de título es la forma de ocultarlo, '
-                . 'no hace falta ninguna casilla adicional.'
+                'Sin título, este servicio no se le muestra al cliente. Y si el proveedor '
+                . 'tiene título pero el servicio no, tampoco se muestra el servicio: la '
+                . 'ausencia de título es lo que oculta, no hay casilla que marcar.'
             );
 
         yield CollectionField::new('descripcion', 'Descripción')
@@ -192,44 +164,26 @@ class ProveedorCrudController extends BaseCrudController
             ->setColumns(12);
 
         /* ====================================================================
-         * COLECCIÓN ANIDADA DE IMÁGENES
-         * Se delega el renderizado de los campos al ProveedorImagenCrudController
-         * y se configuran las opciones estrictas para la hidratación de Doctrine.
+         * COLECCIÓN ANIDADA DE IMÁGENES DEL SERVICIO
          * ==================================================================== */
-
         yield TextField::new('virtualGaleria', 'Galería')
             ->onlyOnIndex()
             ->formatValue(fn ($value, $entity) => $this->renderGaleriaThumbnails(
-                $entity->getProveedorImagenes(),
+                $entity->getProveedorServicioImagenes(),
                 $entity,
                 $this->uploadPath,
-                'galeria-proveedor',
+                'galeria-provserv',
             ))
             ->renderAsHtml();
 
-        yield CollectionField::new('proveedorImagenes', 'Galería de Imágenes')
+        yield CollectionField::new('proveedorServicioImagenes', 'Galería de Imágenes del Servicio')
             ->onlyOnForms()
             ->setColumns(12)
-            ->useEntryCrudForm(ProveedorImagenCrudController::class)
+            ->useEntryCrudForm(TravelOrganizacionServicioImagenCrudController::class)
             ->setFormTypeOptions([
                 'by_reference' => false,
                 'prototype'    => true,
             ])
-            ->setFormTypeOption('prototype_data', new ProveedorImagen());
-
-        /* ====================================================================
-         * COLECCIÓN ANIDADA DE SERVICIOS
-         * Se delega el renderizado al ProveedorServicioCrudController para
-         * gestionar las habitaciones/servicios directamente desde el proveedor.
-         * ==================================================================== */
-        yield CollectionField::new('proveedorServicios', 'Servicios / Habitaciones')
-            ->onlyOnForms()
-            ->setColumns(12)
-            ->useEntryCrudForm(ProveedorServicioCrudController::class)
-            ->setFormTypeOptions([
-                'by_reference' => false,
-                'prototype'    => true,
-            ])
-            ->setFormTypeOption('prototype_data', new ProveedorServicio());
+            ->setFormTypeOption('prototype_data', new TravelOrganizacionServicioImagen());
     }
 }

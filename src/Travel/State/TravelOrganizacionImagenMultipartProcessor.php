@@ -6,7 +6,7 @@ namespace App\Travel\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Travel\Entity\ProveedorImagen;
+use App\Travel\Entity\TravelOrganizacionImagen;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -23,12 +23,25 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * usa `documento`). A partir de aquí manda VichUploader, y
  * {@see \App\Panel\EventListener\Media\VichWebpConversionListener} convierte a WebP.
  */
-/** @implements ProcessorInterface<ProveedorImagen, ProveedorImagen|null> */
-final readonly class ProveedorImagenMultipartProcessor implements ProcessorInterface
+/**
+ * ⚠️ Genérico en `mixed`, y no en la entidad, porque es la verdad: API Platform le pasa
+ * cualquier cosa y este procesador **delega** lo que no sea una imagen. Declararlo estrecho
+ * hacía que PHPStan diera la guarda de abajo por siempre cierta —y esa guarda es justo la que
+ * hace correcto el delegado—.
+ *
+ * @implements ProcessorInterface<mixed, mixed>
+ */
+final readonly class TravelOrganizacionImagenMultipartProcessor implements ProcessorInterface
 {
+    /**
+     * El `@param` va AQUÍ y no como `@var` pegado al parámetro: ahí queda detrás del atributo
+     * `#[Autowire]` y PHPStan no lo lee — el mismo fallo de docblock desplazado que documenta
+     * CLAUDE.md.
+     *
+     * @param ProcessorInterface<mixed, mixed> $persistProcessor
+     */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
-        /** @var ProcessorInterface<ProveedorImagen, ProveedorImagen|null> */
         private ProcessorInterface $persistProcessor,
         private RequestStack $requestStack,
     ) {
@@ -36,7 +49,7 @@ final readonly class ProveedorImagenMultipartProcessor implements ProcessorInter
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        if (!$data instanceof ProveedorImagen) {
+        if (!$data instanceof TravelOrganizacionImagen) {
             return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
         }
 

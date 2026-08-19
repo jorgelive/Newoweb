@@ -204,7 +204,7 @@ class TravelTarifaCrudController extends BaseCrudController
         yield FormField::addPanel('Operaciones B2B (Requerimientos)')->setIcon('fa fa-truck-loading')
             ->setHelp('El proveedor se define en el Componente. Aquí sólo cómo llama ÉL a esta tarifa.');
 
-        yield TextField::new('nombreParaProveedor', 'Nombre en Tarifario del Proveedor')
+        yield TextField::new('nombreParaProveedor', 'Nombre en Tarifario del TravelOrganizacion')
             ->setRequired(false)
             ->setHelp('El texto exacto que el proveedor reconoce en sus reservas (Ej: Ticket Tren Expedition).')
             ->setColumns(12);

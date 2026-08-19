@@ -78,9 +78,9 @@ use Symfony\Component\Uid\Uuid;
     routePrefix: '/travel'
 )]
 #[ORM\Entity]
-#[ORM\Table(name: 'travel_proveedor_servicio')]
+#[ORM\Table(name: 'travel_organizacion_servicio')]
 #[ORM\HasLifecycleCallbacks]
-class ProveedorServicio
+class TravelOrganizacionServicio
 {
     use IdTrait;
     use TimestampTrait;
@@ -117,24 +117,24 @@ class ProveedorServicio
     private ?string $url = null;
 
     #[Groups(['proveedor_servicio:read', 'proveedor_servicio:item:read', 'componente:item:read', 'proveedor_servicio:write'])]
-    #[ORM\ManyToOne(targetEntity: Proveedor::class, inversedBy: 'proveedorServicios')]
+    #[ORM\ManyToOne(targetEntity: TravelOrganizacion::class, inversedBy: 'proveedorServicios')]
     #[ORM\JoinColumn(name: 'proveedor_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    private ?Proveedor $proveedor = null;
+    private ?TravelOrganizacion $proveedor = null;
 
     /**
-     * @var Collection<int, ProveedorServicioImagen>
+     * @var Collection<int, TravelOrganizacionServicioImagen>
      */
     #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
     #[ORM\OneToMany(
         mappedBy: 'proveedorServicio',
-        targetEntity: ProveedorServicioImagen::class,
+        targetEntity: TravelOrganizacionServicioImagen::class,
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
     private Collection $proveedorServicioImagenes;
 
     /**
-     * Constructor de la entidad ProveedorServicio.
+     * Constructor de la entidad TravelOrganizacionServicio.
      * Inicializa el identificador único UUIDv7 y la colección interna de imágenes.
      */
     public function __construct()
@@ -253,7 +253,7 @@ class ProveedorServicio
     /**
      * Obtiene el proveedor principal que ofrece este servicio.
      */
-    public function getProveedor(): ?Proveedor
+    public function getProveedor(): ?TravelOrganizacion
     {
         return $this->proveedor;
     }
@@ -261,7 +261,7 @@ class ProveedorServicio
     /**
      * Establece el proveedor principal que ofrece este servicio.
      */
-    public function setProveedor(?Proveedor $proveedor): self
+    public function setProveedor(?TravelOrganizacion $proveedor): self
     {
         $this->proveedor = $proveedor;
         return $this;
@@ -270,9 +270,9 @@ class ProveedorServicio
     /**
      * Obtiene la colección completa de imágenes pertenecientes a la galería de este servicio.
      *
-     * @return Collection<int, ProveedorServicioImagen>
+     * @return Collection<int, TravelOrganizacionServicioImagen>
      *
-     * @return Collection<int, ProveedorServicioImagen>
+     * @return Collection<int, TravelOrganizacionServicioImagen>
      */
     public function getProveedorServicioImagenes(): Collection
     {
@@ -282,10 +282,10 @@ class ProveedorServicio
     /**
      * Añade un recurso de imagen a la galería del servicio garantizando la sincronización bidireccional.
      *
-     * @param ProveedorServicioImagen $proveedorServicioImagen Instancia de la imagen a asociar.
+     * @param TravelOrganizacionServicioImagen $proveedorServicioImagen Instancia de la imagen a asociar.
      * @return $this
      */
-    public function addProveedorServicioImagen(ProveedorServicioImagen $proveedorServicioImagen): self
+    public function addProveedorServicioImagen(TravelOrganizacionServicioImagen $proveedorServicioImagen): self
     {
         if (!$this->proveedorServicioImagenes->contains($proveedorServicioImagen)) {
             $this->proveedorServicioImagenes->add($proveedorServicioImagen);
@@ -297,10 +297,10 @@ class ProveedorServicio
     /**
      * Remueve un recurso de imagen de la galería del servicio rompiendo el vínculo asociativo.
      *
-     * @param ProveedorServicioImagen $proveedorServicioImagen Instancia de la imagen a desvincular.
+     * @param TravelOrganizacionServicioImagen $proveedorServicioImagen Instancia de la imagen a desvincular.
      * @return $this
      */
-    public function removeProveedorServicioImagen(ProveedorServicioImagen $proveedorServicioImagen): self
+    public function removeProveedorServicioImagen(TravelOrganizacionServicioImagen $proveedorServicioImagen): self
     {
         if ($this->proveedorServicioImagenes->removeElement($proveedorServicioImagen)) {
             if ($proveedorServicioImagen->getProveedorServicio() === $this) {

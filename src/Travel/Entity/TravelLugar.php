@@ -128,15 +128,15 @@ class TravelLugar
     private Collection $componentes;
 
     /**
-     * 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es Proveedor.
+     * 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es TravelOrganizacion.
      *
      * Aquí el lugar significa COBERTURA —hasta dónde llega ese proveedor—, mientras que en
      * `$componentes` significa dónde ocurre o desde dónde se despacha ese servicio. Mismo
      * vocabulario, dos preguntas distintas.
      *
-     * @var Collection<int, Proveedor>
+     * @var Collection<int, TravelOrganizacion>
      */
-    #[ORM\ManyToMany(targetEntity: Proveedor::class, mappedBy: 'lugares')]
+    #[ORM\ManyToMany(targetEntity: TravelOrganizacion::class, mappedBy: 'lugares')]
     private Collection $proveedores;
 
     public function __construct()
@@ -228,9 +228,9 @@ class TravelLugar
     }
 
     /**
-     * @return Collection<int, Proveedor>
+     * @return Collection<int, TravelOrganizacion>
      *
-     * @return Collection<int, Proveedor>
+     * @return Collection<int, TravelOrganizacion>
      */
     public function getProveedores(): Collection
     {
@@ -239,7 +239,7 @@ class TravelLugar
 
     /** Delega en el lado dueño, igual que `addComponente()`: es lo que hace que el
      *  etiquetado masivo desde la ficha del lugar persista. */
-    public function addProveedor(Proveedor $proveedor): self
+    public function addProveedor(TravelOrganizacion $proveedor): self
     {
         if (!$this->proveedores->contains($proveedor)) {
             $this->proveedores->add($proveedor);
@@ -249,7 +249,7 @@ class TravelLugar
         return $this;
     }
 
-    public function removeProveedor(Proveedor $proveedor): self
+    public function removeProveedor(TravelOrganizacion $proveedor): self
     {
         if ($this->proveedores->removeElement($proveedor)) {
             $proveedor->removeLugar($this);

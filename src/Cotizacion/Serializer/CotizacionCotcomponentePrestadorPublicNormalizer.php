@@ -41,7 +41,7 @@ use Symfony\Component\Serializer\SerializerInterface;
  *
  * ── Lo que se sirve está VIVO, y no hay copia que pisar ─────────────────────
  * La cotización guarda el ENLACE, no una copia: título, url e imágenes se INYECTAN aquí
- * leyendo `travel_proveedor`. Renombrar una empresa o cambiarle el logo se ve en todas las
+ * leyendo `travel_organizacion`. Renombrar una empresa o cambiarle el logo se ve en todas las
  * propuestas sin re-guardar ninguna.
  *
  * Llegaron a estar congelados en ocho columnas y no se leía ninguna mientras el maestro

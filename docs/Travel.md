@@ -90,8 +90,8 @@ TravelServicio ────────────── el producto comercial
                                                     ▼
                                             TravelComponente ── la logística
                                                     ├── componenteItems 1:N ──▶ TravelItemDiccionario
-                                                    └── tarifas         1:N ──▶ Proveedor
-                                                                                ProveedorServicio
+                                                    └── tarifas         1:N ──▶ TravelOrganizacion
+                                                                                TravelOrganizacionServicio
                                                                                 MaestroMoneda
 ```
 
@@ -166,7 +166,7 @@ Esta es la sección que evita accidentes. La regla se lee en los mapeos:
 - `TravelSegmentoComponente` pertenece al segmento, y `TravelItinerarioSegmentoRel` al
   itinerario, ambos con `orphanRemoval`. Sacarlos de la colección los borra de la base.
 - `TravelComponenteItem` y `TravelTarifa` pertenecen al componente.
-- Las imágenes (`TravelSegmentoImagen`, `ProveedorImagen`, `ProveedorServicioImagen`)
+- Las imágenes (`TravelSegmentoImagen`, `TravelOrganizacionImagen`, `TravelOrganizacionServicioImagen`)
   pertenecen a su entidad y tienen listeners de asset y de caché asociados.
 
 **El detalle asimétrico que sorprende:** en el M2M Segmento↔Servicio **el dueño es
@@ -192,10 +192,58 @@ Es decir: clonar duplica **la estructura** (qué va qué día) y comparte **el c
 
 ---
 
+## 6 bis. Por qué la empresa se llama `TravelOrganizacion` y no `Proveedor` (19/08/2026)
+
+Una misma ficha juega **tres papeles distintos**, y `CotizacionCotcomponente` los documenta:
+
+> «El **proveedor** dice de quién es el precio; el **prestador**, quién presta el servicio; el
+> **comprador**, a quién le mando el encargo.»
+
+Los tres apuntan a la misma entidad. Futurismo es **prestador** en su propia excursión y
+**comprador** cuando le encargas que contrate el Hotel Estelar. El boleto de Machu Picchu lo
+presta el **Ministerio de Cultura** y lo compra **Tickets Openperu**, que es una división
+nuestra modelada como una organización más.
+
+Llamar `Proveedor` a esa ficha nombraba **uno de los papeles como si fuera la clase de
+empresa**, y por eso chirriaba: `compradorMaestroId` apuntaba a un «Proveedor» que no provee
+nada en esa fila. `TravelOrganizacion` no nombra ningún papel — y cubre al ministerio, que ni
+siquiera es una empresa.
+
+⚠️ **La regla operativa que sale de ahí:** si hay comprador asignado, la orden sale a su
+nombre; si no, directamente al prestador.
+
+### Qué se renombró y qué se dejó igual, a propósito
+
+| | |
+|---|---|
+| Clases PHP y sus archivos | `Proveedor*` → `TravelOrganizacion*` |
+| Tablas (migración `Version20260819200000`) | `travel_proveedor*` → `travel_organizacion*`, cinco en total |
+| **Columnas** | **sin tocar**, incluidas las `proveedor_id` |
+| **API** (`shortName`, `uriTemplate`) | **sin tocar**: sigue siendo `/proveedores` y `ProveedorServicio` |
+| Mapeos de VichUploader | **sin tocar**: resuelven a carpetas en disco con imágenes ya subidas |
+| Nombres de ruta | **sin tocar** |
+
+La API se queda fuera porque su `shortName` viaja al esquema, de ahí a `api.d.ts` y de ahí a
+`proveedorModel.ts` y `proveedorStore.ts` de `util/`: renombrarla es un segundo frente que no
+aporta nada al modelo de dominio. Las columnas se quedan porque el papel que juega cada enlace
+—prestador, comprador— es la **fase 2**, y decidirlo ahora sería adivinar.
+
+### Lo que queda pendiente (fase 2)
+
+- **La tarifa no tiene ningún vínculo con la organización**: sólo `nombreParaProveedor`, un
+  `string(150)`. O sea que hoy el papel de una tarifa es *prosa*.
+- El componente tiene **un** `proveedor` y **un** `proveedorServicio`, singulares: si dos
+  tarifas del mismo componente fueran de organizaciones distintas, el modelo no puede decirlo.
+- La idea a diseñar: que la tarifa lleve su prestador, y que el campo del componente sea un
+  valor **derivado** —no copiado— cuando todas coinciden. Derivado no puede desincronizarse, y
+  la validación «no mezcles prestadores en un componente» sale sola de ahí.
+- `ProveedorVivoResolver` (en `src/Cotizacion/Service/`) conserva su nombre: resuelve la cara
+  pública del **prestador**, así que su renombre pertenece a la fase 2 y no a ésta.
+
 ## 7. Tarifas, proveedores y el diccionario
 
 `TravelTarifa` cuelga del componente y apunta a `MaestroMoneda`, y opcionalmente a
-`Proveedor` y `ProveedorServicio`. Sus cuatro enums —categoría, rol, modalidad y
+`TravelOrganizacion` y `TravelOrganizacionServicio`. Sus cuatro enums —categoría, rol, modalidad y
 procedencia— clasifican el precio; `TravelSegmentoComponente::$tarifaPredeterminada`
 sólo preselecciona cuál se propone al instanciar.
 
@@ -207,7 +255,7 @@ sólo preselecciona cuál se propone al instanciar.
 - Los flags `tituloTarifaVisible`, `categoriaTarifaVisible` y `modalidadTarifaVisible`
   controlan qué se le enseña al cliente de la tarifa asociada.
 
-### `Proveedor::$visibleParaCliente` — la bandera manda, el título aporta el texto
+### `TravelOrganizacion::$visibleParaCliente` — la bandera manda, el título aporta el texto
 
 Hasta 2026-08-16 no había bandera: la regla era **«sin título, el cliente no lo ve»**, y
 estaba escrita como una ventaja deliberada —un booleano menos que mantener— en
@@ -221,7 +269,7 @@ de un dato tiene tres costes que no se ven al decidirlo:
 | La intención era **inexpresable** | «Tiene título pero aquí no lo nombres» no tenía dónde escribirse. |
 
 Ahora son dos hechos separados, y hacen falta los dos —lo comprueba
-`Proveedor::puedeMostrarseAlCliente()`, con espejo en TS:
+`TravelOrganizacion::puedeMostrarseAlCliente()`, con espejo en TS:
 
 ```
 visibleParaCliente  ──►  ¿SE PUEDE nombrar?     bandera explícita, opt-in
@@ -260,7 +308,7 @@ Cuelga de dos sitios por `ManyToMany`, y en los dos el **dueño es el otro lado*
 | Relación | Tabla pivote | Qué significa |
 |---|---|---|
 | `TravelComponente::$lugares` | `travel_componente_lugar_pool` | Dónde ocurre / desde dónde se opera esa logística |
-| `Proveedor::$lugares` | `travel_proveedor_lugar_pool` | La **cobertura** del proveedor: dónde puede prestar servicio |
+| `TravelOrganizacion::$lugares` | `travel_organizacion_lugar_pool` | La **cobertura** del proveedor: dónde puede prestar servicio |
 
 ### Por qué etiquetas y no una jerarquía
 
@@ -304,7 +352,7 @@ lado inverso— el formulario no guarda nada **y no avisa**.
 
 **La cotización no tiene claves foráneas hacia Travel.** El enlace es un *soft-link* por
 UUID: `CotizacionCotservicio` guarda el id de la plantilla `TravelItinerario` de la que se
-armó, y `CotizacionCotcomponente` guarda un soft-link al `Proveedor` maestro y propaga
+armó, y `CotizacionCotcomponente` guarda un soft-link al `TravelOrganizacion` maestro y propaga
 valores como `horaServicioCompleto` desde el pivote.
 
 La consecuencia es la que importa: **la cotización es una foto del catálogo en el momento de
@@ -458,11 +506,11 @@ tono semántico y traducirlo en el front.
 | Ajustar el upsell de un ítem | `src/Travel/Entity/TravelComponenteItem.php` | `$componenteAdicionalVinculado` |
 | Ocultar o mostrar datos de tarifa al cliente | `src/Travel/Entity/TravelComponenteItem.php` | `$tituloTarifaVisible`, `$categoriaTarifaVisible`, `$modalidadTarifaVisible` |
 | Tocar el modal AJAX de logística | `src/Api/Controller/Travel/TravelSegmentoComponenteAjaxController.php` | — |
-| Que un proveedor pueda (o no) nombrarse ante el cliente | `src/Travel/Entity/Proveedor.php` | `$visibleParaCliente` — **semilla, no veto**; espejo TS en `proveedorModel.ts` |
+| Que un proveedor pueda (o no) nombrarse ante el cliente | `src/Travel/Entity/TravelOrganizacion.php` | `$visibleParaCliente` — **semilla, no veto**; espejo TS en `proveedorModel.ts` |
 | Añadir o retirar un centro turístico | `src/Travel/Entity/TravelLugar.php` | `$nombre`, `$orden`, `$activo` — **desactivar, no borrar** |
 | Cambiar las etiquetas de un componente | `src/Travel/Entity/TravelComponente.php` | `$lugares` (lado dueño) |
 | A quién se le compra un componente | `src/Travel/Entity/TravelComponente.php` | `$proveedor`, `$proveedorServicio` — **no** están en la tarifa |
 | Cómo llama el proveedor a una tarifa | `src/Travel/Entity/TravelTarifa.php` | `$nombreParaProveedor` — lo usa la Orden de Servicio |
-| Cambiar la cobertura de un proveedor | `src/Travel/Entity/Proveedor.php` | `$lugares` (lado dueño) |
+| Cambiar la cobertura de un proveedor | `src/Travel/Entity/TravelOrganizacion.php` | `$lugares` (lado dueño) |
 | Etiquetar muchos componentes de golpe | `src/Travel/Controller/Crud/TravelLugarCrudController.php` | `componentes` + `by_reference: false` |
 | Filtrar tarifas por componente o por lote | `src/Travel/Filter/TarifaComponenteExtension.php`, `TarifaBatchIdExtension.php` | — |
