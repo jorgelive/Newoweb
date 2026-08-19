@@ -13,7 +13,7 @@ use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Pms\Service\Agent\PmsFrentes;
-use App\Pms\Entity\PmsCargoFinanciero;
+use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Finanzas\PmsProcedenciaHuesped;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsReserva;
@@ -297,33 +297,58 @@ final readonly class GenerarMensajePrepagoSkill implements SkillInterface, Skill
     /**
      * @return list<array{concepto: string, monto: float}>
      */
-    private function desgloseCargos(\App\Pms\Entity\PmsInformacionFinanciera $info): array
+    /**
+     * El desglose que se imprime, y que TIENE que sumar lo mismo que el estado de cuenta.
+     *
+     * 🔥 **Esto reimplementaba las reglas del desglose y salía plata de por medio.** Recorría
+     * `getCargos()` a mano y con eso se saltaba cuatro cosas que la cabecera sí hace:
+     *
+     * | `getDesglosePorTipo()` | lo que hacía esta skill |
+     * |---|---|
+     * | filtra `esCargo()` | nada: un pago de la colección salía listado como cargo |
+     * | respeta `activa` (cuenta anulada → sólo penalización) | imprimía todos los cargos |
+     * | convierte a la moneda de la cabecera | sumaba monedas distintas |
+     * | conserva los importes negativos | `if ($monto <= 0) continue;` |
+     *
+     * El último es el que se vio: la reserva **GASUNN** tiene un «Descuento tipo de cambio» de
+     * −0.20, así que el mensaje decía `US$ 66.17` y `consultar_cuenta` decía `65.97`. El mismo
+     * huésped, dos totales en la misma conversación.
+     *
+     * Y era peor que una discrepancia entre skills: **el prepago de este mismo mensaje ya salía
+     * del desglose canónico** ({@see \App\Pms\Service\Finance\PmsPrepagoCalculador::base()},
+     * cuyo docblock dice literalmente «sale del desglose por tipo para no reimplementar sus
+     * reglas»). O sea que el total y el adelanto de un mismo texto se calculaban de dos maneras.
+     *
+     * Viene agrupado por tipo, que es exactamente como se imprime, y en el orden de presentación
+     * que fija `PmsTipoCargo`.
+     *
+     * @return list<array{concepto: string, monto: float}>
+     */
+    private function desgloseCargos(PmsInformacionFinanciera $info): array
     {
-        $desglose = [];
         $noches = $info->getReserva()?->getNoches() ?? 1;
+        $desglose = [];
 
-        foreach ($info->getCargos() as $cargo) {
-            /** @var PmsCargoFinanciero $cargo */
-            $monto = (float) ($cargo->getTotalLinea() ?? $cargo->getMonto() ?? '0');
-            if ($monto <= 0.0) {
-                continue;
-            }
-
-            $tipo = $cargo->getTipoCargo();
-            $concepto = match ($tipo) {
-                PmsTipoCargo::ALOJAMIENTO => sprintf('Alojamiento (%d noche%s)', $noches, $noches > 1 ? 's' : ''),
-                PmsTipoCargo::LIMPIEZA => 'Suplemento de limpieza',
-                PmsTipoCargo::SERVICIO => 'Cargo por servicio',
-                default => trim((string) $cargo->getDescripcion()) ?: 'Otros cargos',
-            };
-
+        foreach ($info->getDesglosePorTipo() as $clave => $monto) {
             $desglose[] = [
-                'concepto' => $concepto,
-                'monto' => $monto,
+                'concepto' => $this->conceptoDelTipo(PmsTipoCargo::tryFrom((string) $clave), $noches),
+                'monto' => (float) $monto,
             ];
         }
 
         return $desglose;
+    }
+
+    /** Cómo se llama cada tipo de cargo en un texto que va a leer un huésped. */
+    private function conceptoDelTipo(?PmsTipoCargo $tipo, int $noches): string
+    {
+        return match ($tipo) {
+            PmsTipoCargo::ALOJAMIENTO => sprintf('Alojamiento (%d noche%s)', $noches, $noches > 1 ? 's' : ''),
+            PmsTipoCargo::LIMPIEZA => 'Suplemento de limpieza',
+            PmsTipoCargo::SERVICIO => 'Cargo por servicio',
+            PmsTipoCargo::PENALIZACION => 'Penalización',
+            default => 'Otros cargos',
+        };
     }
 
     /**

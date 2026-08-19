@@ -194,14 +194,16 @@ que ya no pueden decir cifras distintas para la misma reserva.
 
 ### Lo que salió al revisarlo, y sigue abierto
 
-- **El TOTAL del mensaje no es el de `consultar_cuenta`.** `desgloseCargos()` reimplementa el
-  desglose en vez de usar `getDesglosePorTipo()`, que es la fuente declarada: descarta los cargos
-  de importe ≤ 0, no filtra por `esCargo()`, ignora `activa` y no convierte moneda. Con la
-  reserva **GASUNN** de la base local —tiene un «Descuento tipo de cambio» de −0.20— el mensaje
-  imprimiría `US$ 66.17` y `consultar_cuenta` dice `65.97`, con el prepago calculado sobre 65.97.
-  El mismo huésped, dos totales en la misma conversación. De la misma raíz: en una cuenta anulada
-  (`activa=false`) el mensaje imprimiría todos los cargos, y encima redacta «para confirmar y
-  garantizar tu reserva» sobre una reserva cancelada, porque no mira el estado.
+- ✅ **RESUELTO (19/08/2026): el TOTAL del mensaje ya es el de `consultar_cuenta`.**
+  `desgloseCargos()` reimplementaba las reglas del desglose y se saltaba cuatro: no filtraba
+  `esCargo()`, ignoraba `activa`, no convertía moneda y **descartaba los importes ≤ 0**. Ese
+  último se vio con la reserva `GASUNN` —un «Descuento tipo de cambio» de −0.20—: el mensaje
+  decía `66.17` y la cuenta `65.97`. Y era peor que una discrepancia entre skills: el prepago
+  del **mismo mensaje** ya salía del desglose canónico, así que un solo texto llevaba dos
+  aritméticas. Ahora llama a `getDesglosePorTipo()`, que es la fuente declarada, y la igualdad
+  es por construcción. Exposición medida en producción antes del arreglo: **1 reserva, 0.20**.
+  Los otros tres siguen siendo latentes y son más caros que ése; ver `var/probar-desglose-prepago.php`.
+
 - **Diagnóstico falso «sin prepago».** Si `pendiente()` y `calcular()` dan `null`, el mensaje
   afirma «La política del establecimiento está configurada como sin prepago». Pero `calcular()`
   también devuelve `null` con **base 0** (reserva nueva, cargos aún sin generar) y con **noches
