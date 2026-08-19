@@ -52,6 +52,11 @@ final class AgentPermisosCommand extends Command
             'Mantenimiento' => [Roles::MANTENIMIENTO],
             'Recepción'     => [Roles::RESERVAS_SHOW],
             'Reservas (RW)' => [Roles::RESERVAS_SHOW, Roles::RESERVAS_WRITE],
+            // Operación es un perfil de verdad, no un hueco entre Recepción y Admin: es el que
+            // mantiene el catálogo de servicios y tarifas. Sin estas dos filas, sus skills sólo
+            // se veían bajo Admin y parecían no existir.
+            'Operaciones'      => [Roles::OPERACIONES_SHOW],
+            'Operaciones (RW)' => [Roles::OPERACIONES_SHOW, Roles::OPERACIONES_WRITE],
             'Admin'         => [Roles::SUPER_ADMIN],
         ];
 
