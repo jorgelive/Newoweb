@@ -458,7 +458,7 @@ onBeforeUnmount(() => reconocimiento?.stop());
       <i class="fas fa-circle text-[7px] animate-pulse mr-1" aria-hidden="true"></i> Escuchando…
     </div>
 
-    <!-- Proveedor y modelo. Se elige por consulta, no por sesión: la gracia es preguntar lo
+    <!-- Organizacion y modelo. Se elige por consulta, no por sesión: la gracia es preguntar lo
          mismo dos veces seguidas y comparar quién responde mejor. -->
     <div v-if="hayQueElegir" class="px-4 pb-3 flex items-center gap-2">
       <i class="fas fa-microchip text-[10px] text-slate-300" aria-hidden="true"></i>
@@ -468,7 +468,7 @@ onBeforeUnmount(() => reconocimiento?.stop());
         v-model="proveedor"
         :disabled="cargando"
         class="text-[11px] font-bold uppercase tracking-widest text-slate-500 bg-slate-50 rounded-lg px-2 py-1 focus:outline-none disabled:opacity-40"
-        title="Proveedor de IA"
+        title="Organizacion de IA"
       >
         <option
           v-for="m in motores"

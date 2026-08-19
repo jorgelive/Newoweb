@@ -26,11 +26,11 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
  * Mapeado nativamente con VichUploader para su administración en EasyAdmin.
  */
 #[ApiResource(
-    shortName: 'ProveedorImagen',
+    shortName: 'OrganizacionImagen',
     operations: [
-        new Get(normalizationContext: ['groups' => ['proveedor:item:read']]),
+        new Get(normalizationContext: ['groups' => ['organizacion:item:read']]),
 
-        // Alta por multipart: los escalares (`orden`, `isPortada`, `proveedor`) los
+        // Alta por multipart: los escalares (`orden`, `isPortada`, `organizacion`) los
         // denormaliza API Platform y el binario lo recoge el processor del campo `imagen`.
         // `disable_type_enforcement` es obligatorio — en multipart todo llega como string,
         // así que `orden` viaja como "3" y `isPortada` como "1".
@@ -40,23 +40,23 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
                 'multipart' => ['multipart/form-data'],
             ],
             denormalizationContext: [
-                'groups' => ['proveedor_imagen:write'],
+                'groups' => ['organizacion_imagen:write'],
                 'disable_type_enforcement' => true,
             ],
             securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityPostDenormalizeMessage: 'No tienes permiso para subir imágenes de proveedor.',
+            securityPostDenormalizeMessage: 'No tienes permiso para subir imágenes de organizacion.',
             processor: TravelOrganizacionImagenMultipartProcessor::class
         ),
 
         // Reordenar la galería y marcar portada no reenvían el binario.
         new Patch(
-            denormalizationContext: ['groups' => ['proveedor_imagen:write']],
+            denormalizationContext: ['groups' => ['organizacion_imagen:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar imágenes de proveedor.'
+            securityMessage: 'No tienes permiso para editar imágenes de organizacion.'
         ),
         new Delete(
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para eliminar imágenes de proveedor.'
+            securityMessage: 'No tienes permiso para eliminar imágenes de organizacion.'
         ),
     ],
     routePrefix: '/travel'
@@ -72,25 +72,25 @@ class TravelOrganizacionImagen
     use MediaTrait; // Para el manejo de tokens e inyección de la URL pública
 
     /** El id además del `@id`: la galería necesita construir URLs de borrado y portada. */
-    #[Groups(['proveedor:item:read'])]
+    #[Groups(['organizacion:item:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;
     }
 
 
-    #[Groups(['proveedor:item:read', 'proveedor_imagen:write'])]
+    #[Groups(['organizacion:item:read', 'organizacion_imagen:write'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 0;
 
-    #[Groups(['proveedor:item:read', 'proveedor_imagen:write'])]
+    #[Groups(['organizacion:item:read', 'organizacion_imagen:write'])]
     #[ORM\Column(type: 'boolean')]
     private bool $isPortada = false;
 
-    #[Groups(['proveedor_imagen:write'])]
-    #[ORM\ManyToOne(targetEntity: TravelOrganizacion::class, inversedBy: 'proveedorImagenes')]
-    #[ORM\JoinColumn(name: 'proveedor_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    private ?TravelOrganizacion $proveedor = null;
+    #[Groups(['organizacion_imagen:write'])]
+    #[ORM\ManyToOne(targetEntity: TravelOrganizacion::class, inversedBy: 'imagenes')]
+    #[ORM\JoinColumn(name: 'organizacion_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private ?TravelOrganizacion $organizacion = null;
 
     /* ========================================================================
      * MAPEO DE VICH UPLOADER Y ARCHIVOS FÍSICOS
@@ -99,18 +99,18 @@ class TravelOrganizacionImagen
     #[Vich\UploadableField(mapping: 'travel_proveedor_galeria', fileNameProperty: 'imageName', size: 'imageSize')]
     private ?File $imageFile = null;
 
-    #[Groups(['proveedor:item:read'])]
+    #[Groups(['organizacion:item:read'])]
     #[ORM\Column(type: 'string', nullable: true)]
     private ?string $imageName = null;
 
-    #[Groups(['proveedor:item:read'])]
+    #[Groups(['organizacion:item:read'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $imageSize = null;
 
     /**
      * Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso.
      */
-    #[Groups(['proveedor:item:read'])]
+    #[Groups(['organizacion:item:read'])]
     private ?string $imageUrl = null;
 
     /**
@@ -132,14 +132,14 @@ class TravelOrganizacionImagen
 
     /**
      * Retorna la cadena representativa de la imagen en EasyAdmin.
-     * Muestra el nombre de la imagen o su asociación al proveedor.
+     * Muestra el nombre de la imagen o su asociación al organizacion.
      *
      * @return string
      */
     public function __toString(): string
     {
-        $nombreProveedor = $this->proveedor ? (string) $this->proveedor : 'TravelOrganizacion no asignado';
-        return sprintf('%s - img - %d', $nombreProveedor, $this->orden);
+        $nombreOrganizacion = $this->organizacion ? (string) $this->organizacion : 'TravelOrganizacion no asignado';
+        return sprintf('%s - img - %d', $nombreOrganizacion, $this->orden);
     }
 
     /* ========================================================================
@@ -164,7 +164,7 @@ class TravelOrganizacionImagen
     }
 
     /**
-     * Indica si esta imagen es la portada principal del proveedor.
+     * Indica si esta imagen es la portada principal del organizacion.
      */
     public function getIsPortada(): bool
     {
@@ -172,7 +172,7 @@ class TravelOrganizacionImagen
     }
 
     /**
-     * Establece si esta imagen debe ser tratada como la portada del proveedor.
+     * Establece si esta imagen debe ser tratada como la portada del organizacion.
      */
     public function setIsPortada(bool $isPortada): self
     {
@@ -181,19 +181,19 @@ class TravelOrganizacionImagen
     }
 
     /**
-     * Obtiene el proveedor al que pertenece esta imagen.
+     * Obtiene el organizacion al que pertenece esta imagen.
      */
-    public function getProveedor(): ?TravelOrganizacion
+    public function getOrganizacion(): ?TravelOrganizacion
     {
-        return $this->proveedor;
+        return $this->organizacion;
     }
 
     /**
-     * Asigna esta imagen a un proveedor específico.
+     * Asigna esta imagen a un organizacion específico.
      */
-    public function setProveedor(?TravelOrganizacion $proveedor): self
+    public function setOrganizacion(?TravelOrganizacion $organizacion): self
     {
-        $this->proveedor = $proveedor;
+        $this->organizacion = $organizacion;
         return $this;
     }
 

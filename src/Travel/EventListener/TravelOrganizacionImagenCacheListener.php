@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Se encarga de notificar a LiipImagine que elimine los archivos en caché (miniaturas)
- * si la imagen de la galería del proveedor es modificada o eliminada.
+ * si la imagen de la galería del prestador es modificada o eliminada.
  */
 #[AsEntityListener(event: Events::preUpdate, method: 'preUpdate', entity: TravelOrganizacionImagen::class)]
 #[AsEntityListener(event: Events::preRemove, method: 'preRemove', entity: TravelOrganizacionImagen::class)]

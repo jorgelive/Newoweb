@@ -1220,6 +1220,186 @@ export interface paths {
         patch: operations["api_opsoperacion_servicios_id_patch"];
         trace?: never;
     };
+    "/platform/travel/organizaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of Organizacion resources.
+         * @description Retrieves the collection of Organizacion resources.
+         */
+        get: operations["api_travelorganizaciones_get_collection"];
+        put?: never;
+        /**
+         * Creates a Organizacion resource.
+         * @description Creates a Organizacion resource.
+         */
+        post: operations["api_travelorganizaciones_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/travel/organizaciones/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a Organizacion resource.
+         * @description Retrieves a Organizacion resource.
+         */
+        get: operations["api_travelorganizaciones_id_get"];
+        /**
+         * Replaces the Organizacion resource.
+         * @description Replaces the Organizacion resource.
+         */
+        put: operations["api_travelorganizaciones_id_put"];
+        post?: never;
+        /**
+         * Removes the Organizacion resource.
+         * @description Removes the Organizacion resource.
+         */
+        delete: operations["api_travelorganizaciones_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the Organizacion resource.
+         * @description Updates the Organizacion resource.
+         */
+        patch: operations["api_travelorganizaciones_id_patch"];
+        trace?: never;
+    };
+    "/platform/travel/organizacion_imagens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a OrganizacionImagen resource.
+         * @description Creates a OrganizacionImagen resource.
+         */
+        post: operations["api_travelorganizacion_imagens_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/travel/organizacion_imagens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a OrganizacionImagen resource.
+         * @description Retrieves a OrganizacionImagen resource.
+         */
+        get: operations["api_travelorganizacion_imagens_id_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Removes the OrganizacionImagen resource.
+         * @description Removes the OrganizacionImagen resource.
+         */
+        delete: operations["api_travelorganizacion_imagens_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the OrganizacionImagen resource.
+         * @description Updates the OrganizacionImagen resource.
+         */
+        patch: operations["api_travelorganizacion_imagens_id_patch"];
+        trace?: never;
+    };
+    "/platform/travel/organizacion-servicios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of OrganizacionServicio resources.
+         * @description Retrieves the collection of OrganizacionServicio resources.
+         */
+        get: operations["api_travelorganizacion-servicios_get_collection"];
+        put?: never;
+        /**
+         * Creates a OrganizacionServicio resource.
+         * @description Creates a OrganizacionServicio resource.
+         */
+        post: operations["api_travelorganizacion-servicios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/travel/organizacion-servicios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a OrganizacionServicio resource.
+         * @description Retrieves a OrganizacionServicio resource.
+         */
+        get: operations["api_travelorganizacion-servicios_id_get"];
+        /**
+         * Replaces the OrganizacionServicio resource.
+         * @description Replaces the OrganizacionServicio resource.
+         */
+        put: operations["api_travelorganizacion-servicios_id_put"];
+        post?: never;
+        /**
+         * Removes the OrganizacionServicio resource.
+         * @description Removes the OrganizacionServicio resource.
+         */
+        delete: operations["api_travelorganizacion-servicios_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the OrganizacionServicio resource.
+         * @description Updates the OrganizacionServicio resource.
+         */
+        patch: operations["api_travelorganizacion-servicios_id_patch"];
+        trace?: never;
+    };
+    "/platform/travel/organizacion_servicio_imagens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a OrganizacionServicioImagen resource.
+         * @description Retrieves a OrganizacionServicioImagen resource.
+         */
+        get: operations["api_travelorganizacion_servicio_imagens_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/maestro/pais/{id}": {
         parameters: {
             query?: never;
@@ -1764,186 +1944,6 @@ export interface paths {
          * @description Retrieves the collection of PmsUnidad resources.
          */
         get: operations["api_pmspms_unidads_get_collection"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel/proveedores": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves the collection of Proveedor resources.
-         * @description Retrieves the collection of Proveedor resources.
-         */
-        get: operations["api_travelproveedores_get_collection"];
-        put?: never;
-        /**
-         * Creates a Proveedor resource.
-         * @description Creates a Proveedor resource.
-         */
-        post: operations["api_travelproveedores_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel/proveedores/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves a Proveedor resource.
-         * @description Retrieves a Proveedor resource.
-         */
-        get: operations["api_travelproveedores_id_get"];
-        /**
-         * Replaces the Proveedor resource.
-         * @description Replaces the Proveedor resource.
-         */
-        put: operations["api_travelproveedores_id_put"];
-        post?: never;
-        /**
-         * Removes the Proveedor resource.
-         * @description Removes the Proveedor resource.
-         */
-        delete: operations["api_travelproveedores_id_delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Updates the Proveedor resource.
-         * @description Updates the Proveedor resource.
-         */
-        patch: operations["api_travelproveedores_id_patch"];
-        trace?: never;
-    };
-    "/platform/travel/proveedor_imagens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Creates a ProveedorImagen resource.
-         * @description Creates a ProveedorImagen resource.
-         */
-        post: operations["api_travelproveedor_imagens_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel/proveedor_imagens/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves a ProveedorImagen resource.
-         * @description Retrieves a ProveedorImagen resource.
-         */
-        get: operations["api_travelproveedor_imagens_id_get"];
-        put?: never;
-        post?: never;
-        /**
-         * Removes the ProveedorImagen resource.
-         * @description Removes the ProveedorImagen resource.
-         */
-        delete: operations["api_travelproveedor_imagens_id_delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Updates the ProveedorImagen resource.
-         * @description Updates the ProveedorImagen resource.
-         */
-        patch: operations["api_travelproveedor_imagens_id_patch"];
-        trace?: never;
-    };
-    "/platform/travel/proveedor-servicios": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves the collection of ProveedorServicio resources.
-         * @description Retrieves the collection of ProveedorServicio resources.
-         */
-        get: operations["api_travelproveedor-servicios_get_collection"];
-        put?: never;
-        /**
-         * Creates a ProveedorServicio resource.
-         * @description Creates a ProveedorServicio resource.
-         */
-        post: operations["api_travelproveedor-servicios_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel/proveedor-servicios/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves a ProveedorServicio resource.
-         * @description Retrieves a ProveedorServicio resource.
-         */
-        get: operations["api_travelproveedor-servicios_id_get"];
-        /**
-         * Replaces the ProveedorServicio resource.
-         * @description Replaces the ProveedorServicio resource.
-         */
-        put: operations["api_travelproveedor-servicios_id_put"];
-        post?: never;
-        /**
-         * Removes the ProveedorServicio resource.
-         * @description Removes the ProveedorServicio resource.
-         */
-        delete: operations["api_travelproveedor-servicios_id_delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Updates the ProveedorServicio resource.
-         * @description Updates the ProveedorServicio resource.
-         */
-        patch: operations["api_travelproveedor-servicios_id_patch"];
-        trace?: never;
-    };
-    "/platform/travel/proveedor_servicio_imagens/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves a ProveedorServicioImagen resource.
-         * @description Retrieves a ProveedorServicioImagen resource.
-         */
-        get: operations["api_travelproveedor_servicio_imagens_id_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2743,17 +2743,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem"][];
             tarifas?: string[];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -2774,6 +2763,16 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            organizacion?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            organizacionServicio?: string | null;
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -2800,17 +2799,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa-componente.item.read"][];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -2833,17 +2821,6 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -2868,17 +2845,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.write"][];
             tarifas?: components["schemas"]["Tarifa-componente.write"][];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
         };
@@ -2921,17 +2887,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.html"][];
             tarifas?: string[];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente.html"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -2952,6 +2907,16 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            organizacion?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            organizacionServicio?: string | null;
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -2978,17 +2943,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.html-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.html-componente.item.read"][];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3011,17 +2965,6 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3066,17 +3009,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld"][];
             tarifas?: string[];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente.jsonld"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3097,6 +3029,16 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            organizacion?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            organizacionServicio?: string | null;
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -3123,17 +3065,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.jsonld-componente.item.read"][];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3156,17 +3087,6 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3211,17 +3131,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart"][];
             tarifas?: string[];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente.multipart"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3242,6 +3151,16 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            organizacion?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            organizacionServicio?: string | null;
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -3268,17 +3187,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.multipart-componente.item.read"][];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3301,17 +3209,6 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            proveedor?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            proveedorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -6943,7 +6840,7 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
             prestadorServicioNombreSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\TravelOrganizacion). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
             compradorNombreSnapshot?: string | null;
@@ -7035,7 +6932,7 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
             prestadorServicioNombreSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\TravelOrganizacion). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
             compradorNombreSnapshot?: string | null;
@@ -7122,7 +7019,7 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
             prestadorServicioNombreSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\TravelOrganizacion). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
             compradorNombreSnapshot?: string | null;
@@ -7305,7 +7202,7 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
             prestadorServicioNombreSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\TravelOrganizacion). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
             compradorNombreSnapshot?: string | null;
@@ -7397,7 +7294,7 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
             prestadorServicioNombreSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\TravelOrganizacion). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
             compradorNombreSnapshot?: string | null;
@@ -7584,7 +7481,7 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
             prestadorServicioNombreSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\TravelOrganizacion). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
             compradorNombreSnapshot?: string | null;
@@ -7677,7 +7574,7 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
             prestadorServicioNombreSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\TravelOrganizacion). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
             compradorNombreSnapshot?: string | null;
@@ -7867,7 +7764,7 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
             prestadorServicioNombreSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\TravelOrganizacion). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
             compradorNombreSnapshot?: string | null;
@@ -7959,7 +7856,7 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             /** @description Nombre histórico del servicio: lo que sobrevive si lo borran del catálogo. */
             prestadorServicioNombreSnapshot?: string | null;
-            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\Proveedor). */
+            /** @description SOFT-LINK al catálogo maestro (App\Travel\Entity\TravelOrganizacion). */
             compradorMaestroId?: string | null;
             /** @description Nombre congelado. Es lo que lee quien despacha, el día que despacha. */
             compradorNombreSnapshot?: string | null;
@@ -8518,6 +8415,12 @@ export interface components {
             cotcomponente?: string;
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
+            /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
+            /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
+            compradorMaestroId?: string | null;
+            compradorNombreSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -8567,6 +8470,12 @@ export interface components {
         "CotizacionCottarifa-cotizacion.read_timestamp.read": {
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
+            /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
+            /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
+            compradorMaestroId?: string | null;
+            compradorNombreSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -8607,6 +8516,12 @@ export interface components {
         "CotizacionCottarifa-cotizacion.write": {
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
+            /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
+            /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
+            compradorMaestroId?: string | null;
+            compradorNombreSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -8700,6 +8615,12 @@ export interface components {
             cotcomponente?: string;
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
+            /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
+            /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
+            compradorMaestroId?: string | null;
+            compradorNombreSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -8749,6 +8670,12 @@ export interface components {
         "CotizacionCottarifa.html-cotizacion.read_timestamp.read": {
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
+            /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
+            /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
+            compradorMaestroId?: string | null;
+            compradorNombreSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -8842,6 +8769,12 @@ export interface components {
             cotcomponente?: string;
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
+            /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
+            /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
+            compradorMaestroId?: string | null;
+            compradorNombreSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -8891,6 +8824,12 @@ export interface components {
         "CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
+            /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
+            /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
+            compradorMaestroId?: string | null;
+            compradorNombreSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -8984,6 +8923,12 @@ export interface components {
             cotcomponente?: string;
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
+            /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
+            /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
+            compradorMaestroId?: string | null;
+            compradorNombreSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -9033,6 +8978,12 @@ export interface components {
         "CotizacionCottarifa.multipart-cotizacion.read_timestamp.read": {
             /** @description Obtiene el nombre exclusivo para el requerimiento al proveedor. */
             nombreParaProveedorSnapshot?: string | null;
+            /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
+            prestadorMaestroId?: string | null;
+            prestadorNombreSnapshot?: string | null;
+            /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
+            compradorMaestroId?: string | null;
+            compradorNombreSnapshot?: string | null;
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -12258,8 +12209,8 @@ export interface components {
             activo: boolean;
             /** @description 🚫 CORTE CIRCULAR: lado inverso sin grupos de lectura. El dueño es TravelComponente. */
             componentes?: string[];
-            /** @description 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es Proveedor. */
-            proveedores?: string[];
+            /** @description 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es TravelOrganizacion. */
+            organizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -12332,8 +12283,8 @@ export interface components {
             activo: boolean;
             /** @description 🚫 CORTE CIRCULAR: lado inverso sin grupos de lectura. El dueño es TravelComponente. */
             componentes?: string[];
-            /** @description 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es Proveedor. */
-            proveedores?: string[];
+            /** @description 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es TravelOrganizacion. */
+            organizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -12387,8 +12338,8 @@ export interface components {
             activo: boolean;
             /** @description 🚫 CORTE CIRCULAR: lado inverso sin grupos de lectura. El dueño es TravelComponente. */
             componentes?: string[];
-            /** @description 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es Proveedor. */
-            proveedores?: string[];
+            /** @description 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es TravelOrganizacion. */
+            organizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -12442,8 +12393,8 @@ export interface components {
             activo: boolean;
             /** @description 🚫 CORTE CIRCULAR: lado inverso sin grupos de lectura. El dueño es TravelComponente. */
             componentes?: string[];
-            /** @description 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es Proveedor. */
-            proveedores?: string[];
+            /** @description 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es TravelOrganizacion. */
+            organizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -15287,6 +15238,1832 @@ export interface components {
                 subtotal: string;
                 moneda?: string | null;
             }[];
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        Organizacion: {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: string[];
+            readonly servicios?: string[];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /**
+             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @default false
+             */
+            sobreescribirTraduccion: boolean;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
+            readonly virtualTitulo?: string;
+            readonly virtualGaleria?: string;
+            /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
+            readonly virtualLugares?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion-organizacion.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: string[];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion-organizacion.read_organizacion.item.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: components["schemas"]["OrganizacionImagen-organizacion.read_organizacion.item.read"][];
+            readonly servicios?: components["schemas"]["OrganizacionServicio-organizacion.read_organizacion.item.read"][];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion-organizacion.write": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion-organizacion.write.jsonMergePatch": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion-organizacion_servicio.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion-organizacion_servicio.read_organizacion_servicio.item.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.html": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: string[];
+            readonly servicios?: string[];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /**
+             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @default false
+             */
+            sobreescribirTraduccion: boolean;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
+            readonly virtualTitulo?: string;
+            readonly virtualGaleria?: string;
+            /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
+            readonly virtualLugares?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.html-organizacion.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: string[];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.html-organizacion.read_organizacion.item.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: components["schemas"]["OrganizacionImagen.html-organizacion.read_organizacion.item.read"][];
+            readonly servicios?: components["schemas"]["OrganizacionServicio.html-organizacion.read_organizacion.item.read"][];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.html-organizacion_servicio.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.html-organizacion_servicio.read_organizacion_servicio.item.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: string[];
+            readonly servicios?: string[];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /**
+             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @default false
+             */
+            sobreescribirTraduccion: boolean;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
+            readonly virtualTitulo?: string;
+            readonly virtualGaleria?: string;
+            /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
+            readonly virtualLugares?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.jsonld-organizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: string[];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.jsonld-organizacion.read_organizacion.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: components["schemas"]["OrganizacionImagen.jsonld-organizacion.read_organizacion.item.read"][];
+            readonly servicios?: components["schemas"]["OrganizacionServicio.jsonld-organizacion.read_organizacion.item.read"][];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.jsonld-organizacion_servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.jsonld-organizacion_servicio.read_organizacion_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.multipart": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: string[];
+            readonly servicios?: string[];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /**
+             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @default false
+             */
+            sobreescribirTraduccion: boolean;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
+            readonly virtualTitulo?: string;
+            readonly virtualGaleria?: string;
+            /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
+            readonly virtualLugares?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.multipart-organizacion.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: string[];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.multipart-organizacion.read_organizacion.item.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+            /** @description Obtiene la razón social legal de la organización. */
+            razonSocial?: string | null;
+            /** @description Obtiene el número de teléfono principal de la organización. */
+            telefono?: string | null;
+            /** @description Obtiene el correo electrónico comercial de la organización. */
+            email?: string | null;
+            /**
+             * @description ¿Se puede nombrar a esta organización delante del cliente?
+             * @default false
+             */
+            visibleParaCliente: boolean;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada al prestador. */
+            url?: string | null;
+            /** @description Obtiene la direccion de la organización. */
+            direccion?: string | null;
+            imagenes?: components["schemas"]["OrganizacionImagen.multipart-organizacion.read_organizacion.item.read"][];
+            readonly servicios?: components["schemas"]["OrganizacionServicio.multipart-organizacion.read_organizacion.item.read"][];
+            /** @description Lugares donde opera. Lado DUEÑO. */
+            lugares?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.multipart-organizacion_servicio.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+        };
+        /**
+         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "Organizacion.multipart-organizacion_servicio.read_organizacion_servicio.item.read": {
+            /** @description Obtiene el nombre comercial de la organización. */
+            nombreComercial?: string;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        OrganizacionImagen: {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion al que pertenece esta imagen.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+            /**
+             * Format: binary
+             * @description Obtiene la instancia del archivo binario subido (Uso en formulario).
+             */
+            imageFile?: string | null;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen-organizacion.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen-organizacion.read_organizacion.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen-organizacion_imagen.write": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion al que pertenece esta imagen.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen-organizacion_imagen.write.jsonMergePatch": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion al que pertenece esta imagen.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen.html": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion al que pertenece esta imagen.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+            /**
+             * Format: binary
+             * @description Obtiene la instancia del archivo binario subido (Uso en formulario).
+             */
+            imageFile?: string | null;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen.html-organizacion.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen.html-organizacion.read_organizacion.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion al que pertenece esta imagen.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+            /**
+             * Format: binary
+             * @description Obtiene la instancia del archivo binario subido (Uso en formulario).
+             */
+            imageFile?: string | null;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen.jsonld-organizacion.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen.jsonld-organizacion.read_organizacion.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen.multipart": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion al que pertenece esta imagen.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+            /**
+             * Format: binary
+             * @description Obtiene la instancia del archivo binario subido (Uso en formulario).
+             */
+            imageFile?: string | null;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen.multipart-organizacion.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacion.
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionImagen.multipart-organizacion.read_organizacion.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del organizacion.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        OrganizacionServicio: {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion principal que ofrece este servicio.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+            imagenes?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /**
+             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @default false
+             */
+            sobreescribirTraduccion: boolean;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
+            readonly virtualTitulo?: string;
+            readonly virtualGaleria?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio-organizacion.read_organizacion.item.read": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            imagenes?: components["schemas"]["OrganizacionServicioImagen-organizacion.read_organizacion.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio-organizacion_servicio.read": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            organizacion?: components["schemas"]["Organizacion-organizacion_servicio.read"];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio-organizacion_servicio.read_organizacion_servicio.item.read": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            organizacion?: components["schemas"]["Organizacion-organizacion_servicio.read_organizacion_servicio.item.read"];
+            imagenes?: components["schemas"]["OrganizacionServicioImagen-organizacion_servicio.read_organizacion_servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio-organizacion_servicio.write": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion principal que ofrece este servicio.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio-organizacion_servicio.write.jsonMergePatch": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion principal que ofrece este servicio.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.html": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion principal que ofrece este servicio.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+            imagenes?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /**
+             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @default false
+             */
+            sobreescribirTraduccion: boolean;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
+            readonly virtualTitulo?: string;
+            readonly virtualGaleria?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.html-organizacion.read_organizacion.item.read": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            imagenes?: components["schemas"]["OrganizacionServicioImagen.html-organizacion.read_organizacion.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.html-organizacion_servicio.read": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            organizacion?: components["schemas"]["Organizacion.html-organizacion_servicio.read"];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.html-organizacion_servicio.read_organizacion_servicio.item.read": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            organizacion?: components["schemas"]["Organizacion.html-organizacion_servicio.read_organizacion_servicio.item.read"];
+            imagenes?: components["schemas"]["OrganizacionServicioImagen.html-organizacion_servicio.read_organizacion_servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion principal que ofrece este servicio.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+            imagenes?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /**
+             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @default false
+             */
+            sobreescribirTraduccion: boolean;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
+            readonly virtualTitulo?: string;
+            readonly virtualGaleria?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.jsonld-organizacion.read_organizacion.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            imagenes?: components["schemas"]["OrganizacionServicioImagen.jsonld-organizacion.read_organizacion.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.jsonld-organizacion_servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            organizacion?: components["schemas"]["Organizacion.jsonld-organizacion_servicio.read"];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.jsonld-organizacion_servicio.read_organizacion_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            organizacion?: components["schemas"]["Organizacion.jsonld-organizacion_servicio.read_organizacion_servicio.item.read"];
+            imagenes?: components["schemas"]["OrganizacionServicioImagen.jsonld-organizacion_servicio.read_organizacion_servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.multipart": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Obtiene el organizacion principal que ofrece este servicio.
+             * @example https://example.com/
+             */
+            organizacion?: string;
+            imagenes?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /**
+             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @default false
+             */
+            sobreescribirTraduccion: boolean;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
+            readonly virtualTitulo?: string;
+            readonly virtualGaleria?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.multipart-organizacion.read_organizacion.item.read": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            imagenes?: components["schemas"]["OrganizacionServicioImagen.multipart-organizacion.read_organizacion.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.multipart-organizacion_servicio.read": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            organizacion?: components["schemas"]["Organizacion.multipart-organizacion_servicio.read"];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
+         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         */
+        "OrganizacionServicio.multipart-organizacion_servicio.read_organizacion_servicio.item.read": {
+            /** @description Obtiene el nombre identificativo del servicio. */
+            nombre?: string;
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            descripcion?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Obtiene la URL de texto externa asociada a este servicio. */
+            url?: string | null;
+            organizacion?: components["schemas"]["Organizacion.multipart-organizacion_servicio.read_organizacion_servicio.item.read"];
+            imagenes?: components["schemas"]["OrganizacionServicioImagen.multipart-organizacion_servicio.read_organizacion_servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
+            readonly organizacionServicioId?: string | null;
+            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
+            readonly etiquetaOpciones?: string;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen-organizacion.read_organizacion.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen-organizacion_servicio.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen-organizacion_servicio.read_organizacion_servicio.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen.html-organizacion.read_organizacion.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen.html-organizacion_servicio.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen.html-organizacion_servicio.read_organizacion_servicio.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen.jsonld-organizacion.read_organizacion.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen.jsonld-organizacion_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen.jsonld-organizacion_servicio.read_organizacion_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen.multipart-organizacion.read_organizacion.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen.multipart-organizacion_servicio.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
+        };
+        /**
+         * @description Gestiona los archivos físicos de la galería de imágenes de un TravelOrganizacionServicio (ej. fotos de habitación).
+         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
+         */
+        "OrganizacionServicioImagen.multipart-organizacion_servicio.read_organizacion_servicio.item.read": {
+            /**
+             * @description Obtiene el orden de visualización de la imagen.
+             * @default 0
+             */
+            orden: number;
+            /**
+             * @description Indica si esta imagen es la portada principal del servicio.
+             * @default false
+             */
+            isPortada: boolean;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
+            imageName?: string | null;
+            /** @description Obtiene el tamaño del archivo en bytes. */
+            imageSize?: number | null;
+            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
+            imageUrl?: string | null;
         };
         /**
          * @description Entidad MaestroPais.
@@ -22770,1760 +24547,6 @@ export interface components {
             readonly channelPropId?: string | null;
             readonly esPrincipal?: boolean;
         };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        Proveedor: {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: string[];
-            proveedorServicios?: string[];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
-             * @default false
-             */
-            sobreescribirTraduccion: boolean;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
-            readonly virtualTitulo?: string;
-            readonly virtualGaleria?: string;
-            /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
-            readonly virtualLugares?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor-proveedor.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: string[];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor-proveedor.read_proveedor.item.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: components["schemas"]["ProveedorImagen-proveedor.read_proveedor.item.read"][];
-            proveedorServicios?: components["schemas"]["ProveedorServicio-proveedor.read_proveedor.item.read"][];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor-proveedor.write": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor-proveedor.write.jsonMergePatch": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-        };
-        "Proveedor-proveedor_servicio.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-        };
-        "Proveedor-proveedor_servicio.read_proveedor_servicio.item.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.html": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: string[];
-            proveedorServicios?: string[];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
-             * @default false
-             */
-            sobreescribirTraduccion: boolean;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
-            readonly virtualTitulo?: string;
-            readonly virtualGaleria?: string;
-            /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
-            readonly virtualLugares?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.html-proveedor.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: string[];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.html-proveedor.read_proveedor.item.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: components["schemas"]["ProveedorImagen.html-proveedor.read_proveedor.item.read"][];
-            proveedorServicios?: components["schemas"]["ProveedorServicio.html-proveedor.read_proveedor.item.read"][];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        "Proveedor.html-proveedor_servicio.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-        };
-        "Proveedor.html-proveedor_servicio.read_proveedor_servicio.item.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: string[];
-            proveedorServicios?: string[];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
-             * @default false
-             */
-            sobreescribirTraduccion: boolean;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
-            readonly virtualTitulo?: string;
-            readonly virtualGaleria?: string;
-            /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
-            readonly virtualLugares?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.jsonld-proveedor.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: string[];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.jsonld-proveedor.read_proveedor.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: components["schemas"]["ProveedorImagen.jsonld-proveedor.read_proveedor.item.read"][];
-            proveedorServicios?: components["schemas"]["ProveedorServicio.jsonld-proveedor.read_proveedor.item.read"][];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.jsonld-proveedor_servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.jsonld-proveedor_servicio.read_proveedor_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.multipart": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: string[];
-            proveedorServicios?: string[];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
-             * @default false
-             */
-            sobreescribirTraduccion: boolean;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
-            readonly virtualTitulo?: string;
-            readonly virtualGaleria?: string;
-            /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
-            readonly virtualLugares?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.multipart-proveedor.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: string[];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad de Catálogo Maestro que representa un Proveedor logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "Proveedor.multipart-proveedor.read_proveedor.item.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-            /** @description Obtiene la razón social legal del proveedor. */
-            razonSocial?: string | null;
-            /** @description Obtiene el número de teléfono principal del proveedor. */
-            telefono?: string | null;
-            /** @description Obtiene el correo electrónico comercial del proveedor. */
-            email?: string | null;
-            /**
-             * @description ¿Se puede nombrar a este proveedor delante del cliente?
-             * @default false
-             */
-            visibleParaCliente: boolean;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada al proveedor. */
-            url?: string | null;
-            /** @description Obtiene la direccion del proveedor. */
-            direccion?: string | null;
-            proveedorImagenes?: components["schemas"]["ProveedorImagen.multipart-proveedor.read_proveedor.item.read"][];
-            proveedorServicios?: components["schemas"]["ProveedorServicio.multipart-proveedor.read_proveedor.item.read"][];
-            /** @description Lugares donde opera. Lado DUEÑO. */
-            lugares?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        "Proveedor.multipart-proveedor_servicio.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-        };
-        "Proveedor.multipart-proveedor_servicio.read_proveedor_servicio.item.read": {
-            /** @description Obtiene el nombre comercial del proveedor. */
-            nombreComercial?: string;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        ProveedorImagen: {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor al que pertenece esta imagen.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-            /**
-             * Format: binary
-             * @description Obtiene la instancia del archivo binario subido (Uso en formulario).
-             */
-            imageFile?: string | null;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            readonly token?: string | null;
-            /** @description Determina si el archivo es compatible con LiipImagine. */
-            readonly image?: boolean;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorImagen-proveedor.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        "ProveedorImagen-proveedor.read_proveedor.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorImagen-proveedor_imagen.write": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor al que pertenece esta imagen.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorImagen-proveedor_imagen.write.jsonMergePatch": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor al que pertenece esta imagen.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorImagen.html": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor al que pertenece esta imagen.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-            /**
-             * Format: binary
-             * @description Obtiene la instancia del archivo binario subido (Uso en formulario).
-             */
-            imageFile?: string | null;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            readonly token?: string | null;
-            /** @description Determina si el archivo es compatible con LiipImagine. */
-            readonly image?: boolean;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorImagen.html-proveedor.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        "ProveedorImagen.html-proveedor.read_proveedor.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorImagen.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor al que pertenece esta imagen.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-            /**
-             * Format: binary
-             * @description Obtiene la instancia del archivo binario subido (Uso en formulario).
-             */
-            imageFile?: string | null;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            readonly token?: string | null;
-            /** @description Determina si el archivo es compatible con LiipImagine. */
-            readonly image?: boolean;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorImagen.jsonld-proveedor.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorImagen.jsonld-proveedor.read_proveedor.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorImagen.multipart": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor al que pertenece esta imagen.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-            /**
-             * Format: binary
-             * @description Obtiene la instancia del archivo binario subido (Uso en formulario).
-             */
-            imageFile?: string | null;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            readonly token?: string | null;
-            /** @description Determina si el archivo es compatible con LiipImagine. */
-            readonly image?: boolean;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un Proveedor.
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorImagen.multipart-proveedor.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        "ProveedorImagen.multipart-proveedor.read_proveedor.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del proveedor.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        ProveedorServicio: {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor principal que ofrece este servicio.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-            proveedorServicioImagenes?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
-             * @default false
-             */
-            sobreescribirTraduccion: boolean;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
-            readonly virtualTitulo?: string;
-            readonly virtualGaleria?: string;
-        };
-        "ProveedorServicio-proveedor.read_proveedor.item.read": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedorServicioImagenes?: components["schemas"]["ProveedorServicioImagen-proveedor.read_proveedor.item.read"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio-proveedor_servicio.read": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedor?: components["schemas"]["Proveedor-proveedor_servicio.read"];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio-proveedor_servicio.read_proveedor_servicio.item.read": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedor?: components["schemas"]["Proveedor-proveedor_servicio.read_proveedor_servicio.item.read"];
-            proveedorServicioImagenes?: components["schemas"]["ProveedorServicioImagen-proveedor_servicio.read_proveedor_servicio.item.read"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio-proveedor_servicio.write": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor principal que ofrece este servicio.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio-proveedor_servicio.write.jsonMergePatch": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor principal que ofrece este servicio.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio.html": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor principal que ofrece este servicio.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-            proveedorServicioImagenes?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
-             * @default false
-             */
-            sobreescribirTraduccion: boolean;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
-            readonly virtualTitulo?: string;
-            readonly virtualGaleria?: string;
-        };
-        "ProveedorServicio.html-proveedor.read_proveedor.item.read": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedorServicioImagenes?: components["schemas"]["ProveedorServicioImagen.html-proveedor.read_proveedor.item.read"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio.html-proveedor_servicio.read": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedor?: components["schemas"]["Proveedor.html-proveedor_servicio.read"];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio.html-proveedor_servicio.read_proveedor_servicio.item.read": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedor?: components["schemas"]["Proveedor.html-proveedor_servicio.read_proveedor_servicio.item.read"];
-            proveedorServicioImagenes?: components["schemas"]["ProveedorServicioImagen.html-proveedor_servicio.read_proveedor_servicio.item.read"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor principal que ofrece este servicio.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-            proveedorServicioImagenes?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
-             * @default false
-             */
-            sobreescribirTraduccion: boolean;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
-            readonly virtualTitulo?: string;
-            readonly virtualGaleria?: string;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio.jsonld-proveedor.read_proveedor.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedorServicioImagenes?: components["schemas"]["ProveedorServicioImagen.jsonld-proveedor.read_proveedor.item.read"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio.jsonld-proveedor_servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedor?: components["schemas"]["Proveedor.jsonld-proveedor_servicio.read"];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio.jsonld-proveedor_servicio.read_proveedor_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedor?: components["schemas"]["Proveedor.jsonld-proveedor_servicio.read_proveedor_servicio.item.read"];
-            proveedorServicioImagenes?: components["schemas"]["ProveedorServicioImagen.jsonld-proveedor_servicio.read_proveedor_servicio.item.read"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio.multipart": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            /**
-             * Format: iri-reference
-             * @description Obtiene el proveedor principal que ofrece este servicio.
-             * @example https://example.com/
-             */
-            proveedor?: string;
-            proveedorServicioImagenes?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
-             * @default false
-             */
-            sobreescribirTraduccion: boolean;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-            /** @description Getter virtual para no romper EasyAdmin al usar el campo 'virtualTitulo'. */
-            readonly virtualTitulo?: string;
-            readonly virtualGaleria?: string;
-        };
-        "ProveedorServicio.multipart-proveedor.read_proveedor.item.read": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedorServicioImagenes?: components["schemas"]["ProveedorServicioImagen.multipart-proveedor.read_proveedor.item.read"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio.multipart-proveedor_servicio.read": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedor?: components["schemas"]["Proveedor.multipart-proveedor_servicio.read"];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        /**
-         * @description Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
-         */
-        "ProveedorServicio.multipart-proveedor_servicio.read_proveedor_servicio.item.read": {
-            /** @description Obtiene el nombre identificativo del servicio. */
-            nombre?: string;
-            titulo?: {
-                [key: string]: string | null;
-            }[];
-            descripcion?: {
-                [key: string]: string | null;
-            }[];
-            /** @description Obtiene la URL de texto externa asociada a este servicio. */
-            url?: string | null;
-            proveedor?: components["schemas"]["Proveedor.multipart-proveedor_servicio.read_proveedor_servicio.item.read"];
-            proveedorServicioImagenes?: components["schemas"]["ProveedorServicioImagen.multipart-proveedor_servicio.read_proveedor_servicio.item.read"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** @description Devuelve el ID casteado como string para su manipulación directa en JS. */
-            readonly proveedorServicioId?: string | null;
-            /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
-            readonly etiquetaOpciones?: string;
-        };
-        "ProveedorServicioImagen-proveedor.read_proveedor.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un ProveedorServicio (ej. fotos de habitación).
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorServicioImagen-proveedor_servicio.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        "ProveedorServicioImagen-proveedor_servicio.read_proveedor_servicio.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        "ProveedorServicioImagen.html-proveedor.read_proveedor.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un ProveedorServicio (ej. fotos de habitación).
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorServicioImagen.html-proveedor_servicio.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        "ProveedorServicioImagen.html-proveedor_servicio.read_proveedor_servicio.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un ProveedorServicio (ej. fotos de habitación).
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorServicioImagen.jsonld-proveedor.read_proveedor.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un ProveedorServicio (ej. fotos de habitación).
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorServicioImagen.jsonld-proveedor_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un ProveedorServicio (ej. fotos de habitación).
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorServicioImagen.jsonld-proveedor_servicio.read_proveedor_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        "ProveedorServicioImagen.multipart-proveedor.read_proveedor.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        /**
-         * @description Gestiona los archivos físicos de la galería de imágenes de un ProveedorServicio (ej. fotos de habitación).
-         *     Mapeado nativamente con VichUploader para su administración en EasyAdmin.
-         */
-        "ProveedorServicioImagen.multipart-proveedor_servicio.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
-        "ProveedorServicioImagen.multipart-proveedor_servicio.read_proveedor_servicio.item.read": {
-            /**
-             * @description Obtiene el orden de visualización de la imagen.
-             * @default 0
-             */
-            orden: number;
-            /**
-             * @description Indica si esta imagen es la portada principal del servicio.
-             * @default false
-             */
-            isPortada: boolean;
-            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
-            imageName?: string | null;
-            /** @description Obtiene el tamaño del archivo en bytes. */
-            imageSize?: number | null;
-            /** @description Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso. */
-            imageUrl?: string | null;
-        };
         Segmento: {
             servicios?: string[];
             slug?: string | null;
@@ -25083,7 +25106,7 @@ export interface components {
              */
             rol: "estandar" | "operativo" | "alternativa";
             comisionOverride?: string | null;
-            nombreParaProveedor?: string | null;
+            nombreParaPrestador?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
@@ -25120,7 +25143,7 @@ export interface components {
              */
             rol: "estandar" | "operativo" | "alternativa";
             comisionOverride?: string | null;
-            nombreParaProveedor?: string | null;
+            nombreParaPrestador?: string | null;
         };
         "Tarifa.html-componente.item.read": {
             nombreInterno: string;
@@ -25151,7 +25174,7 @@ export interface components {
              */
             rol: "estandar" | "operativo" | "alternativa";
             comisionOverride?: string | null;
-            nombreParaProveedor?: string | null;
+            nombreParaPrestador?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
@@ -25184,7 +25207,7 @@ export interface components {
              */
             rol: "estandar" | "operativo" | "alternativa";
             comisionOverride?: string | null;
-            nombreParaProveedor?: string | null;
+            nombreParaPrestador?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
@@ -25217,7 +25240,7 @@ export interface components {
              */
             rol: "estandar" | "operativo" | "alternativa";
             comisionOverride?: string | null;
-            nombreParaProveedor?: string | null;
+            nombreParaPrestador?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
@@ -33526,6 +33549,926 @@ export interface operations {
             };
         };
     };
+    api_travelorganizaciones_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+                nombreComercial?: string;
+                razonSocial?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Organizacion collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["Organizacion.jsonld-organizacion.read"][];
+                    };
+                    "application/json": components["schemas"]["Organizacion-organizacion.read"][];
+                    "text/html": components["schemas"]["Organizacion.html-organizacion.read"][];
+                    "multipart/form-data": components["schemas"]["Organizacion.multipart-organizacion.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_travelorganizaciones_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new Organizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Organizacion-organizacion.write"];
+                "application/json": components["schemas"]["Organizacion-organizacion.write"];
+                "text/html": components["schemas"]["Organizacion-organizacion.write"];
+                "multipart/form-data": components["schemas"]["Organizacion-organizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Organizacion resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Organizacion.jsonld"];
+                    "application/json": components["schemas"]["Organizacion"];
+                    "text/html": components["schemas"]["Organizacion.html"];
+                    "multipart/form-data": components["schemas"]["Organizacion.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelorganizaciones_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Organizacion resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Organizacion.jsonld-organizacion.read_organizacion.item.read"];
+                    "application/json": components["schemas"]["Organizacion-organizacion.read_organizacion.item.read"];
+                    "text/html": components["schemas"]["Organizacion.html-organizacion.read_organizacion.item.read"];
+                    "multipart/form-data": components["schemas"]["Organizacion.multipart-organizacion.read_organizacion.item.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_travelorganizaciones_id_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Organizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Organizacion-organizacion.write"];
+                "application/json": components["schemas"]["Organizacion-organizacion.write"];
+                "text/html": components["schemas"]["Organizacion-organizacion.write"];
+                "multipart/form-data": components["schemas"]["Organizacion-organizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Organizacion resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Organizacion.jsonld"];
+                    "application/json": components["schemas"]["Organizacion"];
+                    "text/html": components["schemas"]["Organizacion.html"];
+                    "multipart/form-data": components["schemas"]["Organizacion.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelorganizaciones_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Organizacion resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_travelorganizaciones_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Organizacion resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["Organizacion-organizacion.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description Organizacion resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Organizacion.jsonld"];
+                    "application/json": components["schemas"]["Organizacion"];
+                    "text/html": components["schemas"]["Organizacion.html"];
+                    "multipart/form-data": components["schemas"]["Organizacion.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelorganizacion_imagens_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new OrganizacionImagen resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OrganizacionImagen-organizacion_imagen.write"];
+                "multipart/form-data": components["schemas"]["OrganizacionImagen-organizacion_imagen.write"];
+            };
+        };
+        responses: {
+            /** @description OrganizacionImagen resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OrganizacionImagen.jsonld"];
+                    "application/json": components["schemas"]["OrganizacionImagen"];
+                    "text/html": components["schemas"]["OrganizacionImagen.html"];
+                    "multipart/form-data": components["schemas"]["OrganizacionImagen.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelorganizacion_imagens_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OrganizacionImagen identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OrganizacionImagen resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OrganizacionImagen.jsonld-organizacion.item.read"];
+                    "application/json": components["schemas"]["OrganizacionImagen-organizacion.item.read"];
+                    "text/html": components["schemas"]["OrganizacionImagen.html-organizacion.item.read"];
+                    "multipart/form-data": components["schemas"]["OrganizacionImagen.multipart-organizacion.item.read"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_travelorganizacion_imagens_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OrganizacionImagen identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OrganizacionImagen resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_travelorganizacion_imagens_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OrganizacionImagen identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated OrganizacionImagen resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["OrganizacionImagen-organizacion_imagen.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description OrganizacionImagen resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OrganizacionImagen.jsonld"];
+                    "application/json": components["schemas"]["OrganizacionImagen"];
+                    "text/html": components["schemas"]["OrganizacionImagen.html"];
+                    "multipart/form-data": components["schemas"]["OrganizacionImagen.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_travelorganizacion-servicios_get_collection": {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+                id?: string;
+                "id[]"?: string[];
+                nombre?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OrganizacionServicio collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["OrganizacionServicio.jsonld-organizacion_servicio.read"][];
+                    };
+                    "application/json": components["schemas"]["OrganizacionServicio-organizacion_servicio.read"][];
+                    "text/html": components["schemas"]["OrganizacionServicio.html-organizacion_servicio.read"][];
+                    "multipart/form-data": components["schemas"]["OrganizacionServicio.multipart-organizacion_servicio.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "api_travelorganizacion-servicios_post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new OrganizacionServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OrganizacionServicio-organizacion_servicio.write"];
+                "application/json": components["schemas"]["OrganizacionServicio-organizacion_servicio.write"];
+                "text/html": components["schemas"]["OrganizacionServicio-organizacion_servicio.write"];
+                "multipart/form-data": components["schemas"]["OrganizacionServicio-organizacion_servicio.write"];
+            };
+        };
+        responses: {
+            /** @description OrganizacionServicio resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OrganizacionServicio.jsonld"];
+                    "application/json": components["schemas"]["OrganizacionServicio"];
+                    "text/html": components["schemas"]["OrganizacionServicio.html"];
+                    "multipart/form-data": components["schemas"]["OrganizacionServicio.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_travelorganizacion-servicios_id_get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OrganizacionServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OrganizacionServicio resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OrganizacionServicio.jsonld-organizacion_servicio.read_organizacion_servicio.item.read"];
+                    "application/json": components["schemas"]["OrganizacionServicio-organizacion_servicio.read_organizacion_servicio.item.read"];
+                    "text/html": components["schemas"]["OrganizacionServicio.html-organizacion_servicio.read_organizacion_servicio.item.read"];
+                    "multipart/form-data": components["schemas"]["OrganizacionServicio.multipart-organizacion_servicio.read_organizacion_servicio.item.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "api_travelorganizacion-servicios_id_put": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OrganizacionServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated OrganizacionServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OrganizacionServicio-organizacion_servicio.write"];
+                "application/json": components["schemas"]["OrganizacionServicio-organizacion_servicio.write"];
+                "text/html": components["schemas"]["OrganizacionServicio-organizacion_servicio.write"];
+                "multipart/form-data": components["schemas"]["OrganizacionServicio-organizacion_servicio.write"];
+            };
+        };
+        responses: {
+            /** @description OrganizacionServicio resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OrganizacionServicio.jsonld"];
+                    "application/json": components["schemas"]["OrganizacionServicio"];
+                    "text/html": components["schemas"]["OrganizacionServicio.html"];
+                    "multipart/form-data": components["schemas"]["OrganizacionServicio.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_travelorganizacion-servicios_id_delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OrganizacionServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OrganizacionServicio resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "api_travelorganizacion-servicios_id_patch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OrganizacionServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated OrganizacionServicio resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["OrganizacionServicio-organizacion_servicio.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description OrganizacionServicio resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OrganizacionServicio.jsonld"];
+                    "application/json": components["schemas"]["OrganizacionServicio"];
+                    "text/html": components["schemas"]["OrganizacionServicio.html"];
+                    "multipart/form-data": components["schemas"]["OrganizacionServicio.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelorganizacion_servicio_imagens_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OrganizacionServicioImagen identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OrganizacionServicioImagen resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OrganizacionServicioImagen.jsonld-organizacion_servicio.item.read"];
+                    "application/json": components["schemas"]["OrganizacionServicioImagen-organizacion_servicio.item.read"];
+                    "text/html": components["schemas"]["OrganizacionServicioImagen.html-organizacion_servicio.item.read"];
+                    "multipart/form-data": components["schemas"]["OrganizacionServicioImagen.multipart-organizacion_servicio.item.read"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     api_maestropais_id_get: {
         parameters: {
             query?: never;
@@ -35438,926 +36381,6 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travelproveedores_get_collection: {
-        parameters: {
-            query?: {
-                /** @description The collection page number */
-                page?: number;
-                nombreComercial?: string;
-                razonSocial?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Proveedor collection */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
-                        member: components["schemas"]["Proveedor.jsonld-proveedor.read"][];
-                    };
-                    "application/json": components["schemas"]["Proveedor-proveedor.read"][];
-                    "text/html": components["schemas"]["Proveedor.html-proveedor.read"][];
-                    "multipart/form-data": components["schemas"]["Proveedor.multipart-proveedor.read"][];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travelproveedores_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description The new Proveedor resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["Proveedor-proveedor.write"];
-                "application/json": components["schemas"]["Proveedor-proveedor.write"];
-                "text/html": components["schemas"]["Proveedor-proveedor.write"];
-                "multipart/form-data": components["schemas"]["Proveedor-proveedor.write"];
-            };
-        };
-        responses: {
-            /** @description Proveedor resource created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Proveedor.jsonld"];
-                    "application/json": components["schemas"]["Proveedor"];
-                    "text/html": components["schemas"]["Proveedor.html"];
-                    "multipart/form-data": components["schemas"]["Proveedor.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travelproveedores_id_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Proveedor identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Proveedor resource */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Proveedor.jsonld-proveedor.read_proveedor.item.read"];
-                    "application/json": components["schemas"]["Proveedor-proveedor.read_proveedor.item.read"];
-                    "text/html": components["schemas"]["Proveedor.html-proveedor.read_proveedor.item.read"];
-                    "multipart/form-data": components["schemas"]["Proveedor.multipart-proveedor.read_proveedor.item.read"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travelproveedores_id_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Proveedor identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** @description The updated Proveedor resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["Proveedor-proveedor.write"];
-                "application/json": components["schemas"]["Proveedor-proveedor.write"];
-                "text/html": components["schemas"]["Proveedor-proveedor.write"];
-                "multipart/form-data": components["schemas"]["Proveedor-proveedor.write"];
-            };
-        };
-        responses: {
-            /** @description Proveedor resource updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Proveedor.jsonld"];
-                    "application/json": components["schemas"]["Proveedor"];
-                    "text/html": components["schemas"]["Proveedor.html"];
-                    "multipart/form-data": components["schemas"]["Proveedor.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travelproveedores_id_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Proveedor identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Proveedor resource deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travelproveedores_id_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Proveedor identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** @description The updated Proveedor resource */
-        requestBody: {
-            content: {
-                "application/merge-patch+json": components["schemas"]["Proveedor-proveedor.write.jsonMergePatch"];
-            };
-        };
-        responses: {
-            /** @description Proveedor resource updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Proveedor.jsonld"];
-                    "application/json": components["schemas"]["Proveedor"];
-                    "text/html": components["schemas"]["Proveedor.html"];
-                    "multipart/form-data": components["schemas"]["Proveedor.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travelproveedor_imagens_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description The new ProveedorImagen resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["ProveedorImagen-proveedor_imagen.write"];
-                "multipart/form-data": components["schemas"]["ProveedorImagen-proveedor_imagen.write"];
-            };
-        };
-        responses: {
-            /** @description ProveedorImagen resource created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ProveedorImagen.jsonld"];
-                    "application/json": components["schemas"]["ProveedorImagen"];
-                    "text/html": components["schemas"]["ProveedorImagen.html"];
-                    "multipart/form-data": components["schemas"]["ProveedorImagen.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travelproveedor_imagens_id_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description ProveedorImagen identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ProveedorImagen resource */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ProveedorImagen.jsonld-proveedor.item.read"];
-                    "application/json": components["schemas"]["ProveedorImagen-proveedor.item.read"];
-                    "text/html": components["schemas"]["ProveedorImagen.html-proveedor.item.read"];
-                    "multipart/form-data": components["schemas"]["ProveedorImagen.multipart-proveedor.item.read"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travelproveedor_imagens_id_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description ProveedorImagen identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ProveedorImagen resource deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travelproveedor_imagens_id_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description ProveedorImagen identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** @description The updated ProveedorImagen resource */
-        requestBody: {
-            content: {
-                "application/merge-patch+json": components["schemas"]["ProveedorImagen-proveedor_imagen.write.jsonMergePatch"];
-            };
-        };
-        responses: {
-            /** @description ProveedorImagen resource updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ProveedorImagen.jsonld"];
-                    "application/json": components["schemas"]["ProveedorImagen"];
-                    "text/html": components["schemas"]["ProveedorImagen.html"];
-                    "multipart/form-data": components["schemas"]["ProveedorImagen.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    "api_travelproveedor-servicios_get_collection": {
-        parameters: {
-            query?: {
-                /** @description The collection page number */
-                page?: number;
-                id?: string;
-                "id[]"?: string[];
-                nombre?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ProveedorServicio collection */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
-                        member: components["schemas"]["ProveedorServicio.jsonld-proveedor_servicio.read"][];
-                    };
-                    "application/json": components["schemas"]["ProveedorServicio-proveedor_servicio.read"][];
-                    "text/html": components["schemas"]["ProveedorServicio.html-proveedor_servicio.read"][];
-                    "multipart/form-data": components["schemas"]["ProveedorServicio.multipart-proveedor_servicio.read"][];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    "api_travelproveedor-servicios_post": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description The new ProveedorServicio resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["ProveedorServicio-proveedor_servicio.write"];
-                "application/json": components["schemas"]["ProveedorServicio-proveedor_servicio.write"];
-                "text/html": components["schemas"]["ProveedorServicio-proveedor_servicio.write"];
-                "multipart/form-data": components["schemas"]["ProveedorServicio-proveedor_servicio.write"];
-            };
-        };
-        responses: {
-            /** @description ProveedorServicio resource created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ProveedorServicio.jsonld"];
-                    "application/json": components["schemas"]["ProveedorServicio"];
-                    "text/html": components["schemas"]["ProveedorServicio.html"];
-                    "multipart/form-data": components["schemas"]["ProveedorServicio.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    "api_travelproveedor-servicios_id_get": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description ProveedorServicio identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ProveedorServicio resource */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ProveedorServicio.jsonld-proveedor_servicio.read_proveedor_servicio.item.read"];
-                    "application/json": components["schemas"]["ProveedorServicio-proveedor_servicio.read_proveedor_servicio.item.read"];
-                    "text/html": components["schemas"]["ProveedorServicio.html-proveedor_servicio.read_proveedor_servicio.item.read"];
-                    "multipart/form-data": components["schemas"]["ProveedorServicio.multipart-proveedor_servicio.read_proveedor_servicio.item.read"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    "api_travelproveedor-servicios_id_put": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description ProveedorServicio identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** @description The updated ProveedorServicio resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["ProveedorServicio-proveedor_servicio.write"];
-                "application/json": components["schemas"]["ProveedorServicio-proveedor_servicio.write"];
-                "text/html": components["schemas"]["ProveedorServicio-proveedor_servicio.write"];
-                "multipart/form-data": components["schemas"]["ProveedorServicio-proveedor_servicio.write"];
-            };
-        };
-        responses: {
-            /** @description ProveedorServicio resource updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ProveedorServicio.jsonld"];
-                    "application/json": components["schemas"]["ProveedorServicio"];
-                    "text/html": components["schemas"]["ProveedorServicio.html"];
-                    "multipart/form-data": components["schemas"]["ProveedorServicio.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    "api_travelproveedor-servicios_id_delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description ProveedorServicio identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ProveedorServicio resource deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    "api_travelproveedor-servicios_id_patch": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description ProveedorServicio identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** @description The updated ProveedorServicio resource */
-        requestBody: {
-            content: {
-                "application/merge-patch+json": components["schemas"]["ProveedorServicio-proveedor_servicio.write.jsonMergePatch"];
-            };
-        };
-        responses: {
-            /** @description ProveedorServicio resource updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ProveedorServicio.jsonld"];
-                    "application/json": components["schemas"]["ProveedorServicio"];
-                    "text/html": components["schemas"]["ProveedorServicio.html"];
-                    "multipart/form-data": components["schemas"]["ProveedorServicio.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travelproveedor_servicio_imagens_id_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description ProveedorServicioImagen identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ProveedorServicioImagen resource */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ProveedorServicioImagen.jsonld-proveedor_servicio.item.read"];
-                    "application/json": components["schemas"]["ProveedorServicioImagen-proveedor_servicio.item.read"];
-                    "text/html": components["schemas"]["ProveedorServicioImagen.html-proveedor_servicio.item.read"];
-                    "multipart/form-data": components["schemas"]["ProveedorServicioImagen.multipart-proveedor_servicio.item.read"];
-                };
-            };
-            /** @description Not found */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };

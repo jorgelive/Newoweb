@@ -151,7 +151,7 @@ class TravelTarifaCrudController extends BaseCrudController
     {
         $isEmbedded = $this->isEmbedded();
         $apiHostUrl = rtrim($this->getParameter('api_host_url'), '/');
-        $endpointProveedorServicio = $apiHostUrl . '/platform/travel/proveedor-servicios';
+        $endpointOrganizacionServicio = $apiHostUrl . '/platform/travel/organizacion-servicios';
 
         yield FormField::addPanel('Identificación y Costo')->setIcon('fa fa-tag');
 
@@ -198,15 +198,15 @@ class TravelTarifaCrudController extends BaseCrudController
          * PANEL: OPERACIONES B2B (REQUERIMIENTOS LOGÍSTICOS)
          *
          * El PROVEEDOR ya no vive aquí: subió a TravelComponente, porque un componente
-         * llega a tener 19 tarifas y nadie repite el mismo proveedor 19 veces — el campo
+         * llega a tener 19 tarifas y nadie repite el mismo organización 19 veces — el campo
          * acabó en 5 de 904. Lo que sí es por línea de precio es el nombre de abajo.
          * ==================================================================== */
         yield FormField::addPanel('Operaciones B2B (Requerimientos)')->setIcon('fa fa-truck-loading')
-            ->setHelp('El proveedor se define en el Componente. Aquí sólo cómo llama ÉL a esta tarifa.');
+            ->setHelp('El prestador se define en el Componente. Aquí sólo cómo llama ÉL a esta tarifa.');
 
-        yield TextField::new('nombreParaProveedor', 'Nombre en Tarifario del TravelOrganizacion')
+        yield TextField::new('nombreParaOrganizacion', 'Nombre en Tarifario del TravelOrganizacion')
             ->setRequired(false)
-            ->setHelp('El texto exacto que el proveedor reconoce en sus reservas (Ej: Ticket Tren Expedition).')
+            ->setHelp('El texto exacto que el prestador reconoce en sus reservas (Ej: Ticket Tren Expedition).')
             ->setColumns(12);
 
         yield FormField::addPanel('Rol Comercial y Comisión')->setIcon('fa fa-sliders-h')

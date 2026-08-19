@@ -130,20 +130,20 @@ class TravelLugar
     /**
      * 🚫 CORTE CIRCULAR: lado inverso, sin grupos. El dueño es TravelOrganizacion.
      *
-     * Aquí el lugar significa COBERTURA —hasta dónde llega ese proveedor—, mientras que en
+     * Aquí el lugar significa COBERTURA —hasta dónde llega ese organizacion—, mientras que en
      * `$componentes` significa dónde ocurre o desde dónde se despacha ese servicio. Mismo
      * vocabulario, dos preguntas distintas.
      *
      * @var Collection<int, TravelOrganizacion>
      */
     #[ORM\ManyToMany(targetEntity: TravelOrganizacion::class, mappedBy: 'lugares')]
-    private Collection $proveedores;
+    private Collection $organizaciones;
 
     public function __construct()
     {
         $this->initializeId();
         $this->componentes = new ArrayCollection();
-        $this->proveedores = new ArrayCollection();
+        $this->organizaciones = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -232,27 +232,27 @@ class TravelLugar
      *
      * @return Collection<int, TravelOrganizacion>
      */
-    public function getProveedores(): Collection
+    public function getOrganizaciones(): Collection
     {
-        return $this->proveedores;
+        return $this->organizaciones;
     }
 
     /** Delega en el lado dueño, igual que `addComponente()`: es lo que hace que el
      *  etiquetado masivo desde la ficha del lugar persista. */
-    public function addProveedor(TravelOrganizacion $proveedor): self
+    public function addOrganizacion(TravelOrganizacion $organizacion): self
     {
-        if (!$this->proveedores->contains($proveedor)) {
-            $this->proveedores->add($proveedor);
-            $proveedor->addLugar($this);
+        if (!$this->organizaciones->contains($organizacion)) {
+            $this->organizaciones->add($organizacion);
+            $organizacion->addLugar($this);
         }
 
         return $this;
     }
 
-    public function removeProveedor(TravelOrganizacion $proveedor): self
+    public function removeOrganizacion(TravelOrganizacion $organizacion): self
     {
-        if ($this->proveedores->removeElement($proveedor)) {
-            $proveedor->removeLugar($this);
+        if ($this->organizaciones->removeElement($organizacion)) {
+            $organizacion->removeLugar($this);
         }
 
         return $this;

@@ -18,7 +18,7 @@ use Symfony\Component\Uid\Uuid;
  * Controlador API encargado de recibir y procesar la carga masiva de imágenes
  * para la galería de la entidad TravelOrganizacionServicio (ej. Habitaciones, Tours, etc.).
  */
-#[Route('/api/travel/proveedor-servicio-imagen')]
+#[Route('/api/travel/organizacion-servicio-imagen')]
 class TravelOrganizacionServicioImagenUploadController extends AbstractController
 {
     /**
@@ -28,33 +28,33 @@ class TravelOrganizacionServicioImagenUploadController extends AbstractControlle
      * @param EntityManagerInterface $em El gestor de entidades de Doctrine.
      * @return JsonResponse Respuesta estructurada requerida por el widget de subida del panel.
      */
-    #[Route('/upload', name: 'api_travel_proveedor_servicio_imagen_upload', methods: ['POST'])]
+    #[Route('/upload', name: 'api_travel_organizacion_servicio_imagen_upload', methods: ['POST'])]
     public function upload(Request $request, EntityManagerInterface $em): JsonResponse
     {
         // 1. Obtener datos del Request
         $uploadedFile = $request->files->get('file');
-        $proveedorServicioId = $request->request->get('proveedor_servicio_id');
+        $organizacionServicioId = $request->request->get('proveedor_servicio_id');
 
         // 2. Validaciones básicas
         if (!$uploadedFile) {
             return $this->json(['error' => 'No se ha enviado ningún archivo'], Response::HTTP_BAD_REQUEST);
         }
 
-        if (!$proveedorServicioId) {
+        if (!$organizacionServicioId) {
             return $this->json(['error' => 'Falta el ID del Servicio destino'], Response::HTTP_BAD_REQUEST);
         }
 
         // 3. Buscar la entidad Padre (TravelOrganizacionServicio)
-        $proveedorServicio = $em->getRepository(TravelOrganizacionServicio::class)->find($proveedorServicioId);
+        $organizacionServicio = $em->getRepository(TravelOrganizacionServicio::class)->find($organizacionServicioId);
 
-        if (!$proveedorServicio) {
+        if (!$organizacionServicio) {
             return $this->json(['error' => 'El Servicio especificado no existe'], Response::HTTP_NOT_FOUND);
         }
 
         // 4. Crear y persistir la entidad Hija (TravelOrganizacionServicioImagen)
         try {
             $imagen = new TravelOrganizacionServicioImagen();
-            $imagen->setProveedorServicio($proveedorServicio);
+            $imagen->setOrganizacionServicio($organizacionServicio);
 
             // Asignar el archivo para que VichUploader y LiipImagine lo procesen
             $imagen->setImageFile($uploadedFile);
@@ -63,13 +63,13 @@ class TravelOrganizacionServicioImagenUploadController extends AbstractControlle
             $imagen->setIsPortada(false);
 
             // Calcular orden al final (max + 1) dentro del mismo servicio
-            $proveedorServicioUuid = Uuid::fromString((string) $proveedorServicioId);
+            $proveedorServicioUuid = Uuid::fromString((string) $organizacionServicioId);
 
             $maxOrden = (int) $em->createQueryBuilder()
                 ->select('COALESCE(MAX(i.orden), -1)')
                 ->from(TravelOrganizacionServicioImagen::class, 'i')
-                ->andWhere('IDENTITY(i.proveedorServicio) = :proveedorServicioId')
-                ->setParameter('proveedorServicioId', $proveedorServicioUuid, 'uuid')
+                ->andWhere('IDENTITY(i.organizacionServicio) = :organizacionServicioId')
+                ->setParameter('organizacionServicioId', $proveedorServicioUuid, 'uuid')
                 ->getQuery()
                 ->getSingleScalarResult();
 

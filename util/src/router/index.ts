@@ -89,7 +89,7 @@ const router = createRouter({
         {
             path: '/proveedores',
             name: 'proveedores',
-            component: () => import('../views/Catalogo/ProveedoresView.vue')
+            component: () => import('../views/Catalogo/OrganizacionesView.vue')
         },
 
         // ============================================================================

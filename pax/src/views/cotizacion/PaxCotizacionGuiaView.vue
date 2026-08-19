@@ -406,8 +406,8 @@ const descEsLarga = (segmento: PaxCotSegmento) => (store.traducir(segmento.conte
 const contenidoEs = (i18n: I18n | undefined): string =>
     i18n?.find((c) => c.language === 'es')?.content ?? i18n?.[0]?.content ?? '';
 
-// ── Proveedores visibles (modal "ver más") ───────────────────────────────────
-interface ProveedorInfo {
+// ── Prestadores visibles (modal "ver más") ───────────────────────────────────
+interface PrestadorInfo {
   titulo: I18n;
   url: string | null;
   imagenes: { imageUrl: string }[];
@@ -416,15 +416,15 @@ interface ProveedorInfo {
 }
 
 /**
- * Proveedor por id de componente, leído del árbol VIVO.
+ * Prestador por id de componente, leído del árbol VIVO.
  *
  * El backend ya decidió dos cosas antes de que esto llegue —si se puede nombrar y cuál es
  * su presentación actual según el catálogo maestro—, así que aquí no se comprueba nada
- * más: si hay título, se muestra. Ver `CotizacionCotcomponenteProveedorPublicNormalizer`
- * y `ProveedorVivoResolver`.
+ * más: si hay título, se muestra. Ver `CotizacionCotcomponentePrestadorPublicNormalizer`
+ * y `PrestadorVivoResolver`.
  */
 const proveedorPorComponente = computed(() => {
-  const m = new Map<string, ProveedorInfo>();
+  const m = new Map<string, PrestadorInfo>();
   for (const srv of store.cotizacion?.cotservicios ?? []) {
     for (const comp of srv.cotcomponentes ?? []) {
       if (!comp.prestadorTitulo?.length) continue;
@@ -441,11 +441,11 @@ const proveedorPorComponente = computed(() => {
   return m;
 });
 
-const proveedorDeComponente = (componenteId?: string): ProveedorInfo | null =>
+const proveedorDeComponente = (componenteId?: string): PrestadorInfo | null =>
     componenteId ? proveedorPorComponente.value.get(componenteId) ?? null : null;
 
-const modalProveedor = ref<ProveedorInfo | null>(null);
-const abrirProveedor = (p: ProveedorInfo) => { modalProveedor.value = p; };
+const modalProveedor = ref<PrestadorInfo | null>(null);
+const abrirProveedor = (p: PrestadorInfo) => { modalProveedor.value = p; };
 
 /**
  * Prestador de referencia de una línea NO INCLUIDA: el hotel o el vuelo que el
@@ -460,7 +460,7 @@ const abrirProveedor = (p: ProveedorInfo) => { modalProveedor.value = p; };
  * (CotizacionCotcomponentePrestadorPublicNormalizer y construirInclusiones); la
  * comprobación de `modo` aquí es defensa en profundidad, no la regla.
  */
-const prestadorDeLinea = (l: PaxInclusionItem): ProveedorInfo | null => {
+const prestadorDeLinea = (l: PaxInclusionItem): PrestadorInfo | null => {
   if (l.modo !== 'no_incluido') return null;
 
   // La ficha ya no viaja en la línea: se busca por el id del componente, que es donde el
@@ -480,7 +480,7 @@ const prestadorDeLinea = (l: PaxInclusionItem): ProveedorInfo | null => {
   };
 };
 
-const galeriaProveedor = (p: ProveedorInfo) => [...p.servicioImagenes, ...p.imagenes];
+const galeriaProveedor = (p: PrestadorInfo) => [...p.servicioImagenes, ...p.imagenes];
 
 // ── Badges de clasificación (modalidad · categoría · procedencia · edad) ─────
 const MODALIDAD_UI: Record<string, { icon: string; i18nKey: string; fallback: string }> = {
@@ -624,7 +624,7 @@ const abrirInclusiones = (servicioId: string, nombre: I18n) => {
  *   tarifas (si todas son privadas → PRIVADO; si difieren, el atributo se
  *   omite) y nunca con multiplicador.
  */
-interface ChipLinea { titulo: string; badges: ReturnType<typeof modCatBadges>; proveedor: ProveedorInfo | null; count: number }
+interface ChipLinea { titulo: string; badges: ReturnType<typeof modCatBadges>; proveedor: PrestadorInfo | null; count: number }
 const chipsDeLinea = (l: PaxInclusionItem): ChipLinea[] => {
   // El proveedor se lee del componente VIVO, no del snapshot: el backend lo resuelve
   // contra el catálogo maestro al servir, así que renombrar un hotel se ve al instante

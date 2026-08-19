@@ -34,47 +34,47 @@ use Symfony\Component\Uid\Uuid;
     'razonSocial' => 'partial'
 ])]
 #[ApiResource(
-    shortName: 'Proveedor',
+    shortName: 'Organizacion',
     operations: [
         new GetCollection(
-            uriTemplate: '/proveedores',
-            normalizationContext: ['groups' => ['proveedor:read']],
+            uriTemplate: '/organizaciones',
+            normalizationContext: ['groups' => ['organizacion:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
         new Get(
-            uriTemplate: '/proveedores/{id}',
-            normalizationContext: ['groups' => ['proveedor:read', 'proveedor:item:read']],
+            uriTemplate: '/organizaciones/{id}',
+            normalizationContext: ['groups' => ['organizacion:read', 'organizacion:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
 
         // Escritura desde el editor de cotizaciones: el prestador debe quedar SIEMPRE
         // identificado contra el maestro. Hasta ahora el recurso era de sólo lectura y la
-        // única salida cuando el proveedor no existía era el campo de texto libre, que deja
+        // única salida cuando el prestador no existía era el campo de texto libre, que deja
         // `prestadorMaestroId` vacío y rompe el histórico financiero.
         new Post(
-            uriTemplate: '/proveedores',
-            denormalizationContext: ['groups' => ['proveedor:write']],
+            uriTemplate: '/organizaciones',
+            denormalizationContext: ['groups' => ['organizacion:write']],
             securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityPostDenormalizeMessage: 'No tienes permiso para crear proveedores.'
+            securityPostDenormalizeMessage: 'No tienes permiso para crear organizaciones.'
         ),
         new Put(
-            uriTemplate: '/proveedores/{id}',
-            denormalizationContext: ['groups' => ['proveedor:write']],
+            uriTemplate: '/organizaciones/{id}',
+            denormalizationContext: ['groups' => ['organizacion:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar proveedores.'
+            securityMessage: 'No tienes permiso para editar organizaciones.'
         ),
         new Patch(
-            uriTemplate: '/proveedores/{id}',
-            denormalizationContext: ['groups' => ['proveedor:write']],
+            uriTemplate: '/organizaciones/{id}',
+            denormalizationContext: ['groups' => ['organizacion:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar proveedores.'
+            securityMessage: 'No tienes permiso para editar organizaciones.'
         ),
         // Borrar arrastra imágenes y servicios (cascade + orphanRemoval), y deja huérfanos
         // los soft-links de cotizaciones ya emitidas. Por eso va con permiso de borrado.
         new Delete(
-            uriTemplate: '/proveedores/{id}',
+            uriTemplate: '/organizaciones/{id}',
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
-            securityMessage: 'No tienes permiso para eliminar proveedores.'
+            securityMessage: 'No tienes permiso para eliminar organizaciones.'
         ),
     ],
     routePrefix: '/travel'
@@ -88,19 +88,19 @@ class TravelOrganizacion
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor_servicio:read', 'proveedor:write'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion_servicio:read', 'organizacion:write'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreComercial = null;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $razonSocial = null;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $telefono = null;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $email = null;
 
@@ -111,13 +111,13 @@ class TravelOrganizacion
     // se documentó como una ventaja (un booleano menos que mantener). No lo era.
     // Deducir la visibilidad de la presencia de un dato hace que ocultar sea
     // DESTRUCTIVO —el snapshot del título es la única copia, así que borrarlo
-    // para esconder al proveedor pierde el texto y obliga a reescribirlo para
-    // volver a mostrarlo— y deja el 95% del catálogo (93 de 98 proveedores)
+    // para esconder al prestador pierde el texto y obliga a reescribirlo para
+    // volver a mostrarlo— y deja el 95% del catálogo (93 de 98 organizaciones)
     // invisible por omisión, sin que nadie lo haya decidido.
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * ¿Se puede nombrar a este proveedor delante del cliente?
+     * ¿Se puede nombrar a esta organización delante del cliente?
      *
      * ⚠️ Es un DEFAULT que se lee al ASIGNAR, no un veto vivo. Quien decide en
      * cada propuesta es la bandera del snapshot; ésta sólo la siembra. Si se
@@ -128,75 +128,75 @@ class TravelOrganizacion
      *
      * Arranca en `false` a propósito, invirtiendo el criterio de «lista vacía =
      * sin acotar» que rige en guía y conocimiento. Allí el olvido deja un ítem
-     * de más, que es inofensivo; aquí nombrar a un proveedor que no tocaba
+     * de más, que es inofensivo; aquí nombrar a una organización que no tocaba
      * invita al cliente a saltarse la intermediación y contratar directo. El
      * olvido caro es el contrario, así que se entra por opt-in.
      */
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $visibleParaCliente = false;
 
     /** @var list<array{language?: string, content?: string|null}> */
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
     /** @var list<array{language?: string, content?: string|null}> */
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $descripcion = [];
 
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $url = null;
 
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $direccion = null;
 
     /**
      * @var Collection<int, TravelOrganizacionImagen>
      */
-    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read'])]
     #[ORM\OneToMany(
-        mappedBy: 'proveedor',
+        mappedBy: 'organizacion',
         targetEntity: TravelOrganizacionImagen::class,
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
-    private Collection $proveedorImagenes;
+    private Collection $imagenes;
 
     /**
      * @var Collection<int, TravelOrganizacionServicio>
      */
-    #[Groups(['proveedor:item:read'])]
+    #[Groups(['organizacion:item:read'])]
     #[ORM\OneToMany(
-        mappedBy: 'proveedor',
+        mappedBy: 'organizacion',
         targetEntity: TravelOrganizacionServicio::class,
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
-    private Collection $proveedorServicios;
+    private Collection $servicios;
 
     /**
      * Lugares donde opera. Lado DUEÑO.
      *
      * Es COBERTURA, no ubicación: un operador de Lima que también despacha Ica lleva las
      * dos. Por eso es múltiple aunque el componente suela tener una sola — ahí la etiqueta
-     * dice dónde ocurre ese servicio concreto, y aquí dice hasta dónde llega el proveedor.
+     * dice dónde ocurre ese servicio concreto, y aquí dice hasta dónde llega el organización.
      *
-     * Va en `proveedor:read` (la colección) además del item: el listado del catálogo pinta
+     * Va en `organización:read` (la colección) además del item: el listado del catálogo pinta
      * las etiquetas en cada ficha, y con `readableLink: false` viajan como IRIs.
      *
      * @var Collection<int, TravelLugar>
      */
-    #[Groups(['proveedor:read', 'proveedor:item:read', 'proveedor:write'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
     #[ApiProperty(readableLink: false)]
-    #[ORM\ManyToMany(targetEntity: TravelLugar::class, inversedBy: 'proveedores')]
+    #[ORM\ManyToMany(targetEntity: TravelLugar::class, inversedBy: 'organizaciones')]
     #[ORM\JoinTable(name: 'travel_organizacion_lugar_pool')]
-    #[ORM\JoinColumn(name: 'proveedor_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'organizacion_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     #[ORM\InverseJoinColumn(name: 'lugar_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     #[ORM\OrderBy(['orden' => 'ASC', 'nombre' => 'ASC'])]
     private Collection $lugares;
@@ -208,18 +208,18 @@ class TravelOrganizacion
     public function __construct()
     {
         $this->id = Uuid::v7();
-        $this->proveedorImagenes = new ArrayCollection();
-        $this->proveedorServicios = new ArrayCollection();
+        $this->imagenes = new ArrayCollection();
+        $this->servicios = new ArrayCollection();
         $this->lugares = new ArrayCollection();
     }
 
     /**
      * El id, además del `@id`. `IdTrait` no lo expone a la API, así que sin este override
      * el listado sólo traía la IRI y el front tenía que parsearla — con el resultado de que
-     * `p.id` llegaba `undefined`, las URLs salían como `/proveedores/undefined` y todas las
+     * `p.id` llegaba `undefined`, las URLs salían como `/organizaciones/undefined` y todas las
      * fichas se marcaban como seleccionadas a la vez. Mismo criterio que TravelComponente.
      */
-    #[Groups(['proveedor:read', 'proveedor:item:read'])]
+    #[Groups(['organizacion:read', 'organizacion:item:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -228,7 +228,7 @@ class TravelOrganizacion
     /**
      * Representación textual legible de la entidad para EasyAdmin y opciones en selects.
      *
-     * @return string Retorna el nombre comercial del proveedor o un marcador genérico.
+     * @return string Retorna el nombre comercial del prestador o un marcador genérico.
      */
     public function __toString(): string
     {
@@ -236,7 +236,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Obtiene el nombre comercial del proveedor.
+     * Obtiene el nombre comercial de la organización.
      */
     public function getNombreComercial(): ?string
     {
@@ -244,7 +244,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Establece el nombre comercial del proveedor.
+     * Establece el nombre comercial de la organización.
      */
     public function setNombreComercial(string $nombreComercial): self
     {
@@ -253,7 +253,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Obtiene la razón social legal del proveedor.
+     * Obtiene la razón social legal de la organización.
      */
     public function getRazonSocial(): ?string
     {
@@ -261,7 +261,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Establece la razón social legal del proveedor.
+     * Establece la razón social legal de la organización.
      */
     public function setRazonSocial(?string $razonSocial): self
     {
@@ -270,7 +270,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Obtiene el número de teléfono principal del proveedor.
+     * Obtiene el número de teléfono principal de la organización.
      */
     public function getTelefono(): ?string
     {
@@ -278,7 +278,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Establece el número de teléfono principal del proveedor.
+     * Establece el número de teléfono principal de la organización.
      */
     public function setTelefono(?string $telefono): self
     {
@@ -287,7 +287,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Obtiene el correo electrónico comercial del proveedor.
+     * Obtiene el correo electrónico comercial de la organización.
      */
     public function getEmail(): ?string
     {
@@ -295,7 +295,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Establece el correo electrónico comercial del proveedor.
+     * Establece el correo electrónico comercial de la organización.
      */
     public function setEmail(?string $email): self
     {
@@ -304,7 +304,7 @@ class TravelOrganizacion
     }
 
     /**
-     * ¿Se puede nombrar a este proveedor delante del cliente? Ver la propiedad:
+     * ¿Se puede nombrar a esta organización delante del cliente? Ver la propiedad:
      * es la semilla que se copia al asignar, no un veto que se relea después.
      */
     public function isVisibleParaCliente(): bool
@@ -322,7 +322,7 @@ class TravelOrganizacion
      * ¿Está en condiciones de mostrarse? Bandera puesta Y texto que enseñar.
      *
      * El título dejó de ser la bandera, pero sigue siendo el contenido: marcar
-     * visible a un proveedor sin título no da nada que pintar. Se comprueban las
+     * visible a una organización sin título no da nada que pintar. Se comprueban las
      * dos cosas juntas para que el editor pueda avisar del hueco en vez de
      * mostrar una tarjeta vacía.
      */
@@ -375,7 +375,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Obtiene la URL de texto externa asociada al proveedor.
+     * Obtiene la URL de texto externa asociada al prestador.
      */
     public function getUrl(): ?string
     {
@@ -383,7 +383,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Establece la URL de texto externa asociada al proveedor.
+     * Establece la URL de texto externa asociada al prestador.
      */
     public function setUrl(?string $url): self
     {
@@ -392,7 +392,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Obtiene la direccion del proveedor.
+     * Obtiene la direccion de la organización.
      */
     public function getDireccion(): ?string
     {
@@ -400,7 +400,7 @@ class TravelOrganizacion
     }
 
     /**
-     * Establece la direccion del proveedor.
+     * Establece la direccion de la organización.
      */
     public function setDireccion(?string $direccion): self
     {
@@ -409,62 +409,62 @@ class TravelOrganizacion
     }
 
     /**
-     * Obtiene la colección completa de imágenes pertenecientes a la galería del proveedor.
+     * Obtiene la colección completa de imágenes pertenecientes a la galería de la organización.
      *
      * @return Collection<int, TravelOrganizacionImagen>
      *
      * @return Collection<int, TravelOrganizacionImagen>
      */
-    public function getProveedorImagenes(): Collection
+    public function getImagenes(): Collection
     {
-        return $this->proveedorImagenes;
+        return $this->imagenes;
     }
 
-    public function addProveedorImagen(TravelOrganizacionImagen $proveedorImagen): self
+    public function addImagen(TravelOrganizacionImagen $imagen): self
     {
-        if (!$this->proveedorImagenes->contains($proveedorImagen)) {
-            $this->proveedorImagenes->add($proveedorImagen);
-            $proveedorImagen->setProveedor($this);
+        if (!$this->imagenes->contains($imagen)) {
+            $this->imagenes->add($imagen);
+            $imagen->setOrganizacion($this);
         }
         return $this;
     }
 
-    public function removeProveedorImagen(TravelOrganizacionImagen $proveedorImagen): self
+    public function removeImagen(TravelOrganizacionImagen $imagen): self
     {
-        if ($this->proveedorImagenes->removeElement($proveedorImagen)) {
-            if ($proveedorImagen->getProveedor() === $this) {
-                $proveedorImagen->setProveedor(null);
+        if ($this->imagenes->removeElement($imagen)) {
+            if ($imagen->getOrganizacion() === $this) {
+                $imagen->setOrganizacion(null);
             }
         }
         return $this;
     }
 
     /**
-     * Obtiene la colección completa de servicios pertenecientes al proveedor.
+     * Obtiene la colección completa de servicios pertenecientes al prestador.
      *
      * @return Collection<int, TravelOrganizacionServicio>
      *
      * @return Collection<int, TravelOrganizacionServicio>
      */
-    public function getProveedorServicios(): Collection
+    public function getServicios(): Collection
     {
-        return $this->proveedorServicios;
+        return $this->servicios;
     }
 
-    public function addProveedorServicio(TravelOrganizacionServicio $proveedorServicio): self
+    public function addOrganizacionServicio(TravelOrganizacionServicio $servicio): self
     {
-        if (!$this->proveedorServicios->contains($proveedorServicio)) {
-            $this->proveedorServicios->add($proveedorServicio);
-            $proveedorServicio->setProveedor($this);
+        if (!$this->servicios->contains($servicio)) {
+            $this->servicios->add($servicio);
+            $servicio->setOrganizacion($this);
         }
         return $this;
     }
 
-    public function removeProveedorServicio(TravelOrganizacionServicio $proveedorServicio): self
+    public function removeOrganizacionServicio(TravelOrganizacionServicio $servicio): self
     {
-        if ($this->proveedorServicios->removeElement($proveedorServicio)) {
-            if ($proveedorServicio->getProveedor() === $this) {
-                $proveedorServicio->setProveedor(null);
+        if ($this->servicios->removeElement($servicio)) {
+            if ($servicio->getOrganizacion() === $this) {
+                $servicio->setOrganizacion(null);
             }
         }
         return $this;
@@ -477,8 +477,8 @@ class TravelOrganizacion
     /**
      * Devuelve el ID casteado como string para su manipulación directa en JS.
      */
-    #[Groups(['proveedor:read'])]
-    public function getProveedorId(): ?string
+    #[Groups(['organizacion:read'])]
+    public function getOrganizacionId(): ?string
     {
         return $this->getId() ? (string) $this->getId() : null;
     }
@@ -486,7 +486,7 @@ class TravelOrganizacion
     /**
      * Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.
      */
-    #[Groups(['proveedor:read'])]
+    #[Groups(['organizacion:read'])]
     public function getEtiquetaOpciones(): string
     {
         return $this->__toString();

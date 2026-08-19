@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Cotizacion\Serializer;
 
 use App\Cotizacion\Entity\CotizacionCotcomponente;
-use App\Cotizacion\Service\ProveedorVivoResolver;
+use App\Cotizacion\Service\PrestadorVivoResolver;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
@@ -76,7 +76,7 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
     public function __construct(
         #[Autowire(service: 'App\Cotizacion\Serializer\CotizacionCotcomponentePrestadorPublicNormalizer.inner')]
         private readonly NormalizerInterface $decorated,
-        private readonly ProveedorVivoResolver $proveedorVivo,
+        private readonly PrestadorVivoResolver $prestadorVivo,
     ) {
     }
 
@@ -125,19 +125,19 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
      */
     private function conDatosVivos(CotizacionCotcomponente $componente, array $data): array
     {
-        $maestro = $this->proveedorVivo->proveedor($componente->getPrestadorMaestroId());
+        $maestro = $this->prestadorVivo->proveedor($componente->getPrestadorMaestroId());
 
         if ($maestro !== null) {
             $data['prestadorTitulo'] = $maestro->getTitulo();
             $data['prestadorUrl'] = $maestro->getUrl();
-            $data['prestadorImagenes'] = $this->proveedorVivo->imagenesDe($maestro);
+            $data['prestadorImagenes'] = $this->prestadorVivo->imagenesDe($maestro);
         }
 
-        $servicio = $this->proveedorVivo->servicio($componente->getPrestadorServicioMaestroId());
+        $servicio = $this->prestadorVivo->servicio($componente->getPrestadorServicioMaestroId());
 
         if ($servicio !== null) {
             $data['prestadorServicioTitulo'] = $servicio->getTitulo();
-            $data['prestadorServicioImagenes'] = $this->proveedorVivo->imagenesDeServicio($servicio);
+            $data['prestadorServicioImagenes'] = $this->prestadorVivo->imagenesDeServicio($servicio);
         }
 
         return $data;

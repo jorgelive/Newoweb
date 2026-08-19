@@ -25,8 +25,8 @@ import {
   MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE,
   type TarifaModalidadValue, type TarifaCategoriaValue
 } from '@/types/cotizacionEditorModel';
-import ProveedorFormulario from '@/components/common/ProveedorFormulario.vue';
-import { proveedorVacio, type ProveedorWrite } from '@/types/proveedorModel';
+import OrganizacionFormulario from '@/components/common/OrganizacionFormulario.vue';
+import { proveedorVacio, type ProveedorWrite } from '@/types/organizacionModel';
 import { usePermisosStore } from '@/stores/permisosStore';
 
 defineProps<{
@@ -2183,7 +2183,7 @@ store.$onAction(({ name, args }) => {
                     </label>
 
                     <!-- El aviso de «marcado sin título» vive ahora en la ficha de la
-                         empresa (ProveedorFormulario), que es donde se puede arreglar. -->
+                         empresa (OrganizacionFormulario), que es donde se puede arreglar. -->
 
                     <!-- El contacto ya no se copia aquí: sale del catálogo cuando se
                          despacha y cuando se manda la orden, así que el número que se marca
@@ -3289,7 +3289,7 @@ store.$onAction(({ name, args }) => {
             las de un solo uso: así se le puede volver a comprar y aparece en los filtros.
           </p>
 
-          <ProveedorFormulario v-model="formPrestador" compacto />
+          <OrganizacionFormulario v-model="formPrestador" compacto />
         </div>
 
         <div class="px-4 py-3 border-t border-slate-200 flex gap-2 shrink-0">

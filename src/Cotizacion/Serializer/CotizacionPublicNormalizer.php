@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Cotizacion\Serializer;
 
 use App\Cotizacion\Entity\Cotizacion;
-use App\Cotizacion\Service\ProveedorVivoResolver;
+use App\Cotizacion\Service\PrestadorVivoResolver;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
@@ -46,7 +46,7 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
     public function __construct(
         #[Autowire(service: 'App\Cotizacion\Serializer\CotizacionPublicNormalizer.inner')]
         private readonly NormalizerInterface $decorated,
-        private readonly ProveedorVivoResolver $proveedorVivo,
+        private readonly PrestadorVivoResolver $prestadorVivo,
     ) {
     }
 
@@ -99,7 +99,7 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
             }
         }
 
-        $this->proveedorVivo->precargar($proveedorIds, $servicioIds);
+        $this->prestadorVivo->precargar($proveedorIds, $servicioIds);
     }
 
     /**

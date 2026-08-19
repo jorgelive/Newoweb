@@ -41,7 +41,7 @@ import {
     NotaSnapshot,
     OpcionUpgradeInterna,
     PrecioDesdeRango,
-    Proveedor,
+    Organizacion,
     RecursoHydra,
     Segmento,
     SegmentoComponenteProcesado,
@@ -66,7 +66,7 @@ import {
 } from '@/utils/naiveDate';
 
 import {ApiIdioma} from '@/types/maestroModel';
-import type {ProveedorWrite} from '@/types/proveedorModel';
+import type {ProveedorWrite} from '@/types/organizacionModel';
 import {components} from "@/types/api";
 
 /** Distingue el maestro completo del placeholder ("Sincronizando…") por `tipo`. */
@@ -1666,7 +1666,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // Asumiendo que quieres buscar por nombre comercial
             const res = await apiClient.get(`/platform/travel/proveedores?nombreComercial=${encodeURIComponent(query)}`);
 
-            miembrosHydra<Proveedor>(res.data).forEach((item) => {
+            miembrosHydra<Organizacion>(res.data).forEach((item) => {
                 if (!yaEnColeccion(catalogos.value.proveedores, item)) {
                     catalogos.value.proveedores.push(item);
                 }
@@ -3088,7 +3088,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * la Orden de Servicio acababa pidiéndole al proveedor un código que no reconoce.
      */
     const getNombreParaProveedorTarifa = (t: TarifaLike): string | null => {
-        return ('nombreParaProveedor' in t ? t.nombreParaProveedor : null) || null;
+        return ('nombreParaPrestador' in t ? t.nombreParaPrestador : null) || null;
     };
 
     /**
@@ -3944,7 +3944,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 tarifa.esGrupal = false;
             }
 
-            tarifa.nombreParaProveedorSnapshot = maestro.nombreParaProveedor || null;
+            tarifa.nombreParaProveedorSnapshot = maestro.nombreParaPrestador || null;
 
             // 🏷️ De quién es este precio. El prestador sigue viviendo en el componente
             // maestro —eso no cambia, y por eso aquí no se pinta ningún campo—: lo que se
@@ -3968,7 +3968,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     /**
      * Carga los servicios (livianos: id+nombre) del proveedor seleccionado.
      * Se dispara cada vez que cambia el proveedor elegido en la tarifa, para alimentar
-     * el dropdown filtrado de ProveedorServicio.
+     * el dropdown filtrado de OrganizacionServicio.
      */
     const fetchProveedorServiciosDeProveedor = async (proveedorId: string | null, gen?: number) => {
         if (!proveedorId) {
@@ -4054,10 +4054,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     /**
-     * Da de alta un `Proveedor` desde el editor y lo deja asignado como prestador.
+     * Da de alta un `Organizacion` desde el editor y lo deja asignado como prestador.
      *
      * Existe para que el prestador quede SIEMPRE identificado contra el maestro, que es la
-     * regla que declara `Proveedor::POST`. Sin esto, la salida rápida cuando la empresa no
+     * regla que declara `Organizacion::POST`. Sin esto, la salida rápida cuando la empresa no
      * está en el catálogo era escribir texto libre — y eso deja `prestadorMaestroId` vacío,
      * lo saca de los filtros y rompe el histórico financiero.
      */

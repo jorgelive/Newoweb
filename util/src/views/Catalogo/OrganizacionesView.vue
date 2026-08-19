@@ -9,20 +9,20 @@
 // ============================================================================
 
 import { ref, onMounted, computed, watch } from 'vue';
-import { useProveedorStore } from '@/stores/travel/proveedorStore';
+import { useOrganizacionStore } from '@/stores/travel/organizacionStore';
 import {
     portadaDe,
     proveedorVacio,
     puedeMostrarseAlCliente,
     AYUDA_TITULO_SERVICIO,
-    type Proveedor,
+    type Organizacion,
     type ProveedorWrite,
-} from '@/types/proveedorModel';
+} from '@/types/organizacionModel';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import { usePermisosStore } from '@/stores/permisosStore';
-import ProveedorFormulario from '@/components/common/ProveedorFormulario.vue';
+import OrganizacionFormulario from '@/components/common/OrganizacionFormulario.vue';
 
-const store = useProveedorStore();
+const store = useOrganizacionStore();
 // Sólo para pintar el botón: quien decide es el #[IsGranted] del endpoint. Ver el store.
 const permisos = usePermisosStore();
 
@@ -56,7 +56,7 @@ const abrirNuevo = () => {
     panelAbierto.value = true;
 };
 
-const abrirEdicion = async (p: Proveedor) => {
+const abrirEdicion = async (p: Organizacion) => {
     editandoId.value = p.id;
     panelAbierto.value = true;
     await store.fetchProveedor(p.id);
@@ -256,7 +256,7 @@ onMounted(async () => {
                     <!-- Mismo formulario que el alta inline del editor de cotizaciones: uno
                          solo, para que no diverjan. Servicios y galería se quedan fuera
                          porque necesitan el IRI del proveedor ya creado. -->
-                    <ProveedorFormulario
+                    <OrganizacionFormulario
                         v-model="formulario"
                         :lugares="store.lugares"
                         v-model:lugaresSeleccionados="lugaresSel"

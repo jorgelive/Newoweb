@@ -112,7 +112,7 @@ export interface PaxCotComponente {
     /**
      * PRESTADOR — quién presta este servicio.
      *
-     * `Proveedor` es la entidad maestra; el prestador es el papel que juega aquí. La
+     * `TravelOrganizacion` es la entidad maestra; el prestador es el papel que juega aquí. La
      * cotización sólo guarda el enlace y el nombre histórico: **el título, la url y las
      * fotos las INYECTA el backend leyendo el catálogo al servir**, así que lo que llega
      * es lo que dice hoy la ficha de la empresa, no una copia del día en que se cotizó.

@@ -61,9 +61,9 @@ class TravelOrganizacionImagenCrudController extends BaseCrudController
     {
         return $crud
             ->showEntityActionsInlined()
-            ->setEntityLabelInSingular('Imagen de TravelOrganizacion')
-            ->setEntityLabelInPlural('Galería de Proveedores')
-            ->setDefaultSort(['proveedor' => 'ASC', 'orden' => 'ASC']);
+            ->setEntityLabelInSingular('Imagen de organización')
+            ->setEntityLabelInPlural('Galería de organizaciones')
+            ->setDefaultSort(['organizacion' => 'ASC', 'orden' => 'ASC']);
     }
 
     /**
@@ -98,18 +98,18 @@ class TravelOrganizacionImagenCrudController extends BaseCrudController
 
     /**
      * Acción personalizada para renderizar la vista de carga masiva.
-     * Obtiene los proveedores disponibles para alimentar el select de TomSelect.
+     * Obtiene los organizaciones disponibles para alimentar el select de TomSelect.
      *
      * @param EntityManagerInterface $em
      * @return Response
      */
     public function renderMassUpload(EntityManagerInterface $em): Response
     {
-        // Obtenemos los proveedores.
-        $proveedores = $em->getRepository(TravelOrganizacion::class)->findBy([], ['nombreComercial' => 'ASC']);
+        // Obtenemos los organizaciones.
+        $organizaciones = $em->getRepository(TravelOrganizacion::class)->findBy([], ['nombreComercial' => 'ASC']);
 
-        return $this->render('panel/travel/proveedor_imagen/mass_upload.html.twig', [
-            'proveedores' => $proveedores,
+        return $this->render('panel/travel/organización_imagen/mass_upload.html.twig', [
+            'organizaciones' => $organizaciones,
             'crud' => $this->configureCrud(Crud::new()),
         ]);
     }
@@ -126,7 +126,7 @@ class TravelOrganizacionImagenCrudController extends BaseCrudController
     {
         $isEmbedded = $this->isEmbedded();
         if (!$isEmbedded){
-            yield AssociationField::new('proveedor', 'TravelOrganizacion')
+            yield AssociationField::new('organizacion', 'Organización')
                 ->autocomplete()
                 ->setColumns(12)
                 ->setHelp('TravelOrganizacion al que pertenece la imagen.');
@@ -147,7 +147,7 @@ class TravelOrganizacionImagenCrudController extends BaseCrudController
             ->setColumns(6);
 
         yield BooleanField::new('isPortada', 'Es Portada')
-            ->setHelp('Marca esta imagen como la imagen principal o de cabecera del proveedor.')
+            ->setHelp('Marca esta imagen como la imagen principal o de cabecera de la organización.')
             ->setColumns(6);
     }
 }

@@ -64,8 +64,8 @@ class TravelOrganizacionServicioCrudController extends BaseCrudController
     {
         return $crud
             ->showEntityActionsInlined()
-            ->setEntityLabelInSingular('Servicio de TravelOrganizacion')
-            ->setEntityLabelInPlural('Servicios de Proveedores')
+            ->setEntityLabelInSingular('Servicio de organización')
+            ->setEntityLabelInPlural('Servicios de organizaciones')
             ->setDefaultSort(['nombre' => 'ASC']);
     }
 
@@ -103,7 +103,7 @@ class TravelOrganizacionServicioCrudController extends BaseCrudController
     {
         $isEmbedded = $this->isEmbedded();
         if (!$isEmbedded){
-            yield AssociationField::new('proveedor', 'TravelOrganizacion')
+            yield AssociationField::new('organizacion', 'Organización')
                 ->autocomplete()
                 ->setColumns(12)
                 ->setHelp('TravelOrganizacion al que pertenece el servicio.');
@@ -148,10 +148,10 @@ class TravelOrganizacionServicioCrudController extends BaseCrudController
             ->hideOnIndex()
             ->hideOnDetail()
             ->setColumns(12)
-            // Mismo criterio que el proveedor, y en cascada: sin título aquí, el servicio no
-            // se muestra al cliente aunque su proveedor sí tenga el suyo.
+            // Mismo criterio que el organización, y en cascada: sin título aquí, el servicio no
+            // se muestra al cliente aunque su organización sí tenga el suyo.
             ->setHelp(
-                'Sin título, este servicio no se le muestra al cliente. Y si el proveedor '
+                'Sin título, este servicio no se le muestra al cliente. Y si el prestador '
                 . 'tiene título pero el servicio no, tampoco se muestra el servicio: la '
                 . 'ausencia de título es lo que oculta, no hay casilla que marcar.'
             );
@@ -169,14 +169,14 @@ class TravelOrganizacionServicioCrudController extends BaseCrudController
         yield TextField::new('virtualGaleria', 'Galería')
             ->onlyOnIndex()
             ->formatValue(fn ($value, $entity) => $this->renderGaleriaThumbnails(
-                $entity->getProveedorServicioImagenes(),
+                $entity->getImagenes(),
                 $entity,
                 $this->uploadPath,
                 'galeria-provserv',
             ))
             ->renderAsHtml();
 
-        yield CollectionField::new('proveedorServicioImagenes', 'Galería de Imágenes del Servicio')
+        yield CollectionField::new('imagenes', 'Galería de Imágenes del Servicio')
             ->onlyOnForms()
             ->setColumns(12)
             ->useEntryCrudForm(TravelOrganizacionServicioImagenCrudController::class)

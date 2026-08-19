@@ -17,7 +17,7 @@ export interface I18nContent {
 
 /**
  * Snapshot de una imagen de galería (proveedor o servicio de proveedor).
- * Espejo minimalista de ProveedorImagen/ProveedorServicioImagen del backend —
+ * Espejo minimalista de OrganizacionImagen/OrganizacionServicioImagen del backend —
  * solo lo necesario para render, sin metadatos de archivo físico (imageName, imageSize).
  */
 export interface ImagenProveedorSnapshot {
@@ -35,7 +35,7 @@ export type MaestroMoneda = components['schemas']['Moneda-componente.item.read']
  * pero el grupo de lectura serializa los objetos completos. Se corrige aquí para
  * que el snapshot de imágenes del proveedor no tenga que pasar por un cast.
  */
-export type Proveedor = Omit<components['schemas']['Proveedor-proveedor.read'], 'proveedorImagenes'> & {
+export type Organizacion = Omit<components['schemas']['Organizacion-organizacion.read'], 'proveedorImagenes'> & {
     id: string;
     '@id'?: string;
     proveedorImagenes?: ImagenProveedorSnapshot[];
@@ -356,7 +356,7 @@ export interface ComponenteTipo {
     prioridad: number;
 }
 
-export interface ProveedorServicioOption {
+export interface OrganizacionServicioOption {
     id: string;
     nombre: string;
     proveedorId: string;
@@ -375,8 +375,8 @@ export interface Catalogos {
     tarifas: Tarifa[];
     plantillasItinerario: Itinerario[];
     poolSegmentos: Segmento[];
-    proveedores: Proveedor[];
-    proveedorServicios: ProveedorServicioOption[];
+    proveedores: Organizacion[];
+    proveedorServicios: OrganizacionServicioOption[];
     tiposComponente: ComponenteTipo[];
     monedas: MaestroMoneda[];
 }
@@ -485,7 +485,7 @@ export type ComponenteCompleto = Omit<CotComponenteBase,
     /**
      * PRESTADOR — enlace y nombre histórico, nada más.
      *
-     * `Proveedor` es la entidad maestra; esto es el papel que juega aquí. Título, url,
+     * `Organizacion` es la entidad maestra; esto es el papel que juega aquí. Título, url,
      * imágenes y contacto NO se guardan: se resuelven contra el catálogo al servir y al
      * mandar la orden. Lo que queda escrito es la degradación — si borran la empresa, el
      * uuid y el nombre son lo único que sobrevive, y con eso la propuesta antigua sigue

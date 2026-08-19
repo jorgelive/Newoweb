@@ -1,7 +1,7 @@
 // ============================================================================
 // CATÁLOGO DE PROVEEDORES
 //
-// Espejo de `App\Travel\Entity\Proveedor` y sus dos satélites. Vive aparte de
+// Espejo de `App\Travel\Entity\Organizacion` y sus dos satélites. Vive aparte de
 // `cotizacionEditorModel.ts` a propósito: aquí se ADMINISTRA el maestro, mientras que
 // allí sólo se lee para congelar snapshots en la cotización.
 //
@@ -19,7 +19,7 @@ export interface I18nTexto {
 }
 
 /** Imagen de galería. `imageUrl` la inyecta el backend ya firmada (MediaTrait). */
-export interface ProveedorImagen {
+export interface OrganizacionImagen {
     id: string;
     '@id'?: string;
     imageUrl: string | null;
@@ -27,7 +27,7 @@ export interface ProveedorImagen {
     isPortada: boolean;
 }
 
-export interface ProveedorServicio {
+export interface OrganizacionServicio {
     id: string;
     '@id'?: string;
     nombre: string | null;
@@ -50,15 +50,15 @@ export interface ProveedorServicio {
  * Es la misma clase de trampa que avisa CLAUDE.md: un tipo generado que se acerca a la
  * verdad engaña más que uno que se equivoca del todo, porque invita a retirar el arreglo.
  */
-type ProveedorBase = components['schemas']['Proveedor-proveedor.read'];
+type OrganizacionBase = components['schemas']['Organizacion-organizacion.read'];
 
-export type Proveedor = Omit<ProveedorBase, 'titulo' | 'descripcion' | 'proveedorImagenes'> & {
+export type Organizacion = Omit<OrganizacionBase, 'titulo' | 'descripcion' | 'proveedorImagenes'> & {
     id: string;
     '@id'?: string;
     titulo?: I18nTexto[];
     descripcion?: I18nTexto[];
-    proveedorImagenes?: ProveedorImagen[];
-    proveedorServicios?: ProveedorServicio[];
+    proveedorImagenes?: OrganizacionImagen[];
+    proveedorServicios?: OrganizacionServicio[];
     /** IRIs: viajan con `readableLink: false`. Se resuelven contra el vocabulario cargado. */
     lugares?: string[];
 };
@@ -120,7 +120,7 @@ export const proveedorVacio = (): ProveedorWrite => ({
 // dice CÓMO se le llama. Hacen falta las dos — marcar visible sin título no da nada que
 // pintar, y el formulario avisa de ese hueco en vez de dejar una tarjeta vacía.
 //
-// ⚠️ Espejo de `Proveedor::puedeMostrarseAlCliente()` en PHP.
+// ⚠️ Espejo de `Organizacion::puedeMostrarseAlCliente()` en PHP.
 //
 // ⚠️ La bandera del maestro es la SEMILLA que se copia al asignar el proveedor a una
 // cotización, no un veto que se relea después: cambiarla aquí no altera propuestas ya
@@ -128,7 +128,7 @@ export const proveedorVacio = (): ProveedorWrite => ({
 // ============================================================================
 
 /** ¿Hay bandera puesta Y texto que enseñar? Espejo de `puedeMostrarseAlCliente()`. */
-export const puedeMostrarseAlCliente = (p: Pick<Proveedor, 'visibleParaCliente' | 'titulo'>): boolean =>
+export const puedeMostrarseAlCliente = (p: Pick<Organizacion, 'visibleParaCliente' | 'titulo'>): boolean =>
     Boolean(p.visibleParaCliente) && (p.titulo ?? []).length > 0;
 
 export const AYUDA_VISIBLE_PARA_CLIENTE =
@@ -153,7 +153,7 @@ export const desdeTituloEs = (valor: string): I18nTexto[] =>
     valor.trim() ? [{ language: 'es', content: valor.trim() }] : [];
 
 /** Portada de la galería, o la primera que haya. Para la miniatura del listado. */
-export const portadaDe = (p: Proveedor): string | null => {
+export const portadaDe = (p: Organizacion): string | null => {
     const imagenes = p.proveedorImagenes ?? [];
     if (!imagenes.length) return null;
 

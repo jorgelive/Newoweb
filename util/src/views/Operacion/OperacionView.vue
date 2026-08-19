@@ -390,7 +390,7 @@ const editarHora = async (servicio: OperacionServicio, evento: Event) => {
 };
 
 /**
- * Proveedor COMERCIAL: a quién se le compra. Sólo importa para la Orden de Servicio
+ * Organizacion COMERCIAL: a quién se le compra. Sólo importa para la Orden de Servicio
  * —`conflictoSeleccion` agrupa por él— así que se edita en segundo plano.
  */
 const editarProveedor = async (servicio: OperacionServicio, evento: Event) => {
@@ -1728,7 +1728,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                      la OS: sin poder corregirlo aquí, dos filas del mismo
                                                      proveedor escrito distinto no se pueden juntar nunca. -->
                                                 <label v-if="mostrarComprador(servicio)" class="mt-1.5 flex items-center gap-1.5">
-                                                    <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider shrink-0" title="Proveedor comercial: a quién se le compra">
+                                                    <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider shrink-0" title="Organizacion comercial: a quién se le compra">
                                                         Compra
                                                     </span>
                                                     <input

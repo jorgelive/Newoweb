@@ -11,13 +11,13 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { miembrosHydra } from '@/services/hydra';
-import type { LugarOpcion, Proveedor, ProveedorServicio, ProveedorWrite } from '@/types/proveedorModel';
+import type { LugarOpcion, Organizacion, OrganizacionServicio, ProveedorWrite } from '@/types/organizacionModel';
 
 const RUTA = '/platform/travel/proveedores';
 
-export const useProveedorStore = defineStore('proveedorCatalogo', () => {
-    const proveedores = ref<Proveedor[]>([]);
-    const proveedorActivo = ref<Proveedor | null>(null);
+export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
+    const proveedores = ref<Organizacion[]>([]);
+    const proveedorActivo = ref<Organizacion | null>(null);
     const isLoading = ref(false);
     const isGuardando = ref(false);
     const error = ref<string | null>(null);
@@ -42,7 +42,7 @@ export const useProveedorStore = defineStore('proveedorCatalogo', () => {
             if (termino.trim()) params.nombreComercial = termino.trim();
 
             const res = await apiClient.get(RUTA, { params });
-            proveedores.value = miembrosHydra<Proveedor>(res.data);
+            proveedores.value = miembrosHydra<Organizacion>(res.data);
         } catch (e) {
             error.value = mensajeDeError(e, 'No se pudo cargar el catálogo de proveedores.');
             proveedores.value = [];
@@ -57,7 +57,7 @@ export const useProveedorStore = defineStore('proveedorCatalogo', () => {
         error.value = null;
         try {
             const res = await apiClient.get(`${RUTA}/${id}`);
-            proveedorActivo.value = res.data as Proveedor;
+            proveedorActivo.value = res.data as Organizacion;
         } catch (e) {
             error.value = mensajeDeError(e, 'No se pudo cargar el proveedor.');
             proveedorActivo.value = null;
@@ -67,12 +67,12 @@ export const useProveedorStore = defineStore('proveedorCatalogo', () => {
     };
 
     /** Devuelve el proveedor creado para que el llamador lo seleccione en el acto. */
-    const crearProveedor = async (datos: ProveedorWrite): Promise<Proveedor | null> => {
+    const crearProveedor = async (datos: ProveedorWrite): Promise<Organizacion | null> => {
         isGuardando.value = true;
         error.value = null;
         try {
             const res = await apiClient.post(RUTA, datos);
-            const creado = res.data as Proveedor;
+            const creado = res.data as Organizacion;
             proveedores.value.unshift(creado);
             return creado;
         } catch (e) {
@@ -93,8 +93,8 @@ export const useProveedorStore = defineStore('proveedorCatalogo', () => {
                 headers: { 'Content-Type': 'application/merge-patch+json' },
             });
             const i = proveedores.value.findIndex((p) => p.id === id);
-            if (i !== -1) proveedores.value[i] = res.data as Proveedor;
-            if (proveedorActivo.value?.id === id) proveedorActivo.value = res.data as Proveedor;
+            if (i !== -1) proveedores.value[i] = res.data as Organizacion;
+            if (proveedorActivo.value?.id === id) proveedorActivo.value = res.data as Organizacion;
             return true;
         } catch (e) {
             error.value = mensajeDeError(e, 'No se pudo guardar el proveedor.');
@@ -161,7 +161,7 @@ export const useProveedorStore = defineStore('proveedorCatalogo', () => {
         }
     };
 
-    const borrarServicio = async (servicio: ProveedorServicio): Promise<boolean> => {
+    const borrarServicio = async (servicio: OrganizacionServicio): Promise<boolean> => {
         error.value = null;
         try {
             await apiClient.delete(servicio['@id'] ?? `/platform/travel/proveedor-servicios/${servicio.id}`);

@@ -15,10 +15,10 @@ import type {
 import { construirParamsBiblia } from '@/types/operacionModel';
 
 /**
- * Datos de contacto vivos de un `Proveedor`, resueltos contra el catálogo.
+ * Datos de contacto vivos de un `Organizacion`, resueltos contra el catálogo.
  *
  * No sale de `api.d.ts` a propósito: es el subconjunto que La Biblia consume del maestro,
- * no la forma del recurso. Declararlo como el `Proveedor` entero obligaría a arrastrar
+ * no la forma del recurso. Declararlo como el `Organizacion` entero obligaría a arrastrar
  * imágenes, servicios y títulos i18n que aquí no se pintan.
  */
 export interface ContactoProveedor {
@@ -54,7 +54,7 @@ export interface BitacoraEstado {
     createdAt: string;
 }
 
-/** Proveedor reducido para el selector de destinatario de la Orden de Servicio. */
+/** Organizacion reducido para el selector de destinatario de la Orden de Servicio. */
 export interface ProveedorOpcion {
     id: string;
     nombreComercial: string;
@@ -340,7 +340,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * con `?id[]=`, igual que las etiquetas de lugar: son 12 proveedores distintos en 42
      * filas, así que fila a fila serían decenas de peticiones para repetir doce respuestas.
      *
-     * Prestador y comprador van en la MISMA petición: los dos son `Proveedor` desde que se
+     * Prestador y comprador van en la MISMA petición: los dos son `Organizacion` desde que se
      * unificaron los papeles, así que separarlos serían dos llamadas al mismo endpoint.
      */
     const resolverContactoDeProveedores = async (): Promise<void> => {

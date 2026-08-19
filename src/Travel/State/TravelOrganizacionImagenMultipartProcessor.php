@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Recibe la subida de una imagen de galería de proveedor por `multipart/form-data`.
+ * Recibe la subida de una imagen de galería de organización por `multipart/form-data`.
  *
  * Mismo patrón que {@see \App\Cotizacion\State\CotizacionFiledocumentoMultipartProcessor}:
  * API Platform denormaliza los campos escalares del formulario, y el binario hay que

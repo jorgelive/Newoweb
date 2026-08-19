@@ -147,7 +147,7 @@ class TravelComponente
     // PROVEEDOR — a quién se le compra esta logística
     //
     // Colgaba de `TravelTarifa`, y ahí el campo quedó **abandonado: 5 de 904**. No por
-    // desidia — un componente llega a tener 19 tarifas y nadie repite el mismo proveedor
+    // desidia — un componente llega a tener 19 tarifas y nadie repite el mismo prestador
     // 19 veces. Al subirlo aquí se llena una vez, que es lo que lo hace realista.
     //
     // Es el mismo movimiento que ya se hizo en la cotización (`docs/Cotizaciones.md` §6.c),
@@ -161,14 +161,14 @@ class TravelComponente
     #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelOrganizacion::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?TravelOrganizacion $proveedor = null;
+    private ?TravelOrganizacion $prestador = null;
 
     /** El servicio concreto que se le compra (ej. el tipo de habitación). */
     #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
     #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelOrganizacionServicio::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?TravelOrganizacionServicio $proveedorServicio = null;
+    private ?TravelOrganizacionServicio $prestadorServicio = null;
 
     /**
      * 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs
@@ -413,31 +413,31 @@ class TravelComponente
      * @return Collection<int, TravelTarifa>
      */
     /**
-     * El servicio elegido tiene que ser de ese proveedor.
+     * El servicio elegido tiene que ser de ese prestador.
      *
      * Vivía en `TravelTarifa`, y se mudó con los campos: cruzarlos sólo tiene sentido donde
      * conviven. Sin esto se puede guardar «Hotel A» con «habitación doble del Hotel B», que
      * no falla al escribir y sale mal en la cotización.
      */
     #[Assert\Callback]
-    public function validarServicioDelProveedor(ExecutionContextInterface $context): void
+    public function validarServicioDelOrganizacion(ExecutionContextInterface $context): void
     {
-        if ($this->proveedorServicio === null || $this->proveedor === null) {
+        if ($this->prestadorServicio === null || $this->prestador === null) {
             return;
         }
 
-        if ($this->proveedorServicio->getProveedor() !== $this->proveedor) {
-            $context->buildViolation('El servicio seleccionado no pertenece al proveedor del componente.')
-                ->atPath('proveedorServicio')
+        if ($this->prestadorServicio->getOrganizacion() !== $this->prestador) {
+            $context->buildViolation('El servicio seleccionado no pertenece al prestador del componente.')
+                ->atPath('prestadorServicio')
                 ->addViolation();
         }
     }
 
-    public function getProveedor(): ?TravelOrganizacion { return $this->proveedor; }
-    public function setProveedor(?TravelOrganizacion $v): self { $this->proveedor = $v; return $this; }
+    public function getOrganizacion(): ?TravelOrganizacion { return $this->prestador; }
+    public function setOrganizacion(?TravelOrganizacion $v): self { $this->prestador = $v; return $this; }
 
-    public function getProveedorServicio(): ?TravelOrganizacionServicio { return $this->proveedorServicio; }
-    public function setProveedorServicio(?TravelOrganizacionServicio $v): self { $this->proveedorServicio = $v; return $this; }
+    public function getOrganizacionServicio(): ?TravelOrganizacionServicio { return $this->prestadorServicio; }
+    public function setOrganizacionServicio(?TravelOrganizacionServicio $v): self { $this->prestadorServicio = $v; return $this; }
 
     /** @return Collection<int, TravelTarifa> */
     public function getTarifas(): Collection

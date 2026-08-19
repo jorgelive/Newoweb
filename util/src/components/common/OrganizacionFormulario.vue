@@ -1,16 +1,16 @@
 <script setup lang="ts">
 /**
- * Los campos de identidad de un `Proveedor`, en un solo sitio.
+ * Los campos de identidad de un `Organizacion`, en un solo sitio.
  *
  * Lo usan dos pantallas que antes habrían acabado con dos copias del mismo formulario:
  *
- *   · `Catalogo/ProveedoresView.vue` — el alta y edición de siempre.
+ *   · `Catalogo/OrganizacionesView.vue` — el alta y edición de siempre.
  *   · el alta inline del editor de cotizaciones, para no tener que salir a buscar el
  *     catálogo cuando la empresa todavía no existe.
  *
  * Lo segundo es lo que hace que esto tenga que ser un componente y no un bloque copiado:
  * el prestador **debe quedar SIEMPRE identificado contra el maestro** —lo dice el propio
- * `Proveedor::POST`— y la única forma de que eso se cumpla es que dar de alta desde el
+ * `Organizacion::POST`— y la única forma de que eso se cumpla es que dar de alta desde el
  * editor cueste lo mismo que escribir texto libre.
  *
  * ── Qué NO incluye, a propósito ─────────────────────────────────────────────
@@ -33,7 +33,7 @@ import {
     AYUDA_LUGARES_PROVEEDOR,
     type ProveedorWrite,
     type LugarOpcion,
-} from '@/types/proveedorModel';
+} from '@/types/organizacionModel';
 
 const props = defineProps<{
     modelValue: ProveedorWrite;

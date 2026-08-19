@@ -34,19 +34,19 @@ class TravelOrganizacionServicioPorOrganizacionExtension implements QueryCollect
             return;
         }
 
-        $proveedorId = $request->query->get('proveedor_id') ?? $request->query->get('proveedor.id');
+        $organizacionId = $request->query->get('organización_id') ?? $request->query->get('organización.id');
 
-        if ($proveedorId) {
+        if ($organizacionId) {
             $rootAlias = $queryBuilder->getRootAliases()[0];
-            $parameterName = $queryNameGenerator->generateParameterName('proveedorId');
+            $parameterName = $queryNameGenerator->generateParameterName('organizacionId');
 
             try {
-                $uuidObject = Uuid::fromString((string) $proveedorId);
+                $uuidObject = Uuid::fromString((string) $organizacionId);
             } catch (\InvalidArgumentException $e) {
                 return;
             }
 
-            $queryBuilder->andWhere(sprintf('%s.proveedor = :%s', $rootAlias, $parameterName))
+            $queryBuilder->andWhere(sprintf('%s.organizacion = :%s', $rootAlias, $parameterName))
                 ->setParameter($parameterName, $uuidObject, 'uuid');
         }
     }

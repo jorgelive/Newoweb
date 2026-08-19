@@ -20,9 +20,9 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
  * Mapeado nativamente con VichUploader para su administración en EasyAdmin.
  */
 #[ApiResource(
-    shortName: 'ProveedorServicioImagen',
+    shortName: 'OrganizacionServicioImagen',
     operations: [
-        new Get(normalizationContext: ['groups' => ['proveedor_servicio:item:read']])
+        new Get(normalizationContext: ['groups' => ['organizacion_servicio:item:read']])
     ],
     routePrefix: '/travel'
 )]
@@ -36,17 +36,17 @@ class TravelOrganizacionServicioImagen
     use TimestampTrait;
     use MediaTrait;
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:item:read'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 0;
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:item:read'])]
     #[ORM\Column(type: 'boolean')]
     private bool $isPortada = false;
 
-    #[ORM\ManyToOne(targetEntity: TravelOrganizacionServicio::class, inversedBy: 'proveedorServicioImagenes')]
-    #[ORM\JoinColumn(name: 'proveedor_servicio_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    private ?TravelOrganizacionServicio $proveedorServicio = null;
+    #[ORM\ManyToOne(targetEntity: TravelOrganizacionServicio::class, inversedBy: 'imagenes')]
+    #[ORM\JoinColumn(name: 'organizacion_servicio_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private ?TravelOrganizacionServicio $organizacionServicio = null;
 
     /* ========================================================================
      * MAPEO DE VICH UPLOADER Y ARCHIVOS FÍSICOS
@@ -55,18 +55,18 @@ class TravelOrganizacionServicioImagen
     #[Vich\UploadableField(mapping: 'travel_proveedor_servicio_galeria', fileNameProperty: 'imageName', size: 'imageSize')]
     private ?File $imageFile = null;
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:item:read'])]
     #[ORM\Column(type: 'string', nullable: true)]
     private ?string $imageName = null;
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:item:read'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $imageSize = null;
 
     /**
      * Propiedad virtual inyectada dinámicamente que expone la ubicación HTTP del recurso.
      */
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:item:read'])]
     private ?string $imageUrl = null;
 
     /**
@@ -88,13 +88,13 @@ class TravelOrganizacionServicioImagen
 
     /**
      * Retorna la cadena representativa de la imagen en EasyAdmin.
-     * Muestra el nombre de la imagen o su asociación al servicio del proveedor.
+     * Muestra el nombre de la imagen o su asociación al servicio de la organización.
      *
      * @return string
      */
     public function __toString(): string
     {
-        $nombreServicio = $this->proveedorServicio ? (string) $this->proveedorServicio : 'Servicio no asignado';
+        $nombreServicio = $this->organizacionServicio ? (string) $this->organizacionServicio : 'Servicio no asignado';
         return sprintf('%s - img - %d', $nombreServicio, $this->orden);
     }
 
@@ -137,19 +137,19 @@ class TravelOrganizacionServicioImagen
     }
 
     /**
-     * Obtiene el servicio de proveedor al que pertenece esta imagen.
+     * Obtiene el servicio de organización al que pertenece esta imagen.
      */
-    public function getProveedorServicio(): ?TravelOrganizacionServicio
+    public function getOrganizacionServicio(): ?TravelOrganizacionServicio
     {
-        return $this->proveedorServicio;
+        return $this->organizacionServicio;
     }
 
     /**
-     * Asigna esta imagen a un servicio de proveedor específico.
+     * Asigna esta imagen a un servicio de organización específico.
      */
-    public function setProveedorServicio(?TravelOrganizacionServicio $proveedorServicio): self
+    public function setOrganizacionServicio(?TravelOrganizacionServicio $organizacionServicio): self
     {
-        $this->proveedorServicio = $proveedorServicio;
+        $this->organizacionServicio = $organizacionServicio;
         return $this;
     }
 

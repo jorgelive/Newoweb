@@ -646,7 +646,7 @@ class CotizacionCotcomponente
      *
      * No resuelve nada contra el catálogo — una entidad no consulta la base, y hacerlo por
      * su cuenta sería una consulta por componente. Quien necesite el dato vivo pasa por
-     * `ProveedorVivoResolver`, que trae los maestros en lote.
+     * `PrestadorVivoResolver`, que trae los maestros en lote.
      *
      * Si el maestro ya no existe, esto **es** el prestador: el uuid y el nombre que
      * quedaron escritos. Con eso una propuesta antigua sigue contando quién prestó el

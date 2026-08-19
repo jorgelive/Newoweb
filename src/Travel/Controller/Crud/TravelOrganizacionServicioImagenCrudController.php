@@ -66,7 +66,7 @@ class TravelOrganizacionServicioImagenCrudController extends BaseCrudController
             ->showEntityActionsInlined()
             ->setEntityLabelInSingular('Imagen de Servicio')
             ->setEntityLabelInPlural('Galería de Servicios')
-            ->setDefaultSort(['proveedorServicio' => 'ASC', 'orden' => 'ASC']);
+            ->setDefaultSort(['organizacionServicio' => 'ASC', 'orden' => 'ASC']);
     }
 
     /**
@@ -110,11 +110,11 @@ class TravelOrganizacionServicioImagenCrudController extends BaseCrudController
      */
     public function renderMassUpload(EntityManagerInterface $em): Response
     {
-        // Obtenemos los servicios de los proveedores ordenados alfabéticamente para facilitar la búsqueda.
-        $proveedorServicios = $em->getRepository(TravelOrganizacionServicio::class)->findBy([], ['nombre' => 'ASC']);
+        // Obtenemos los servicios de los organizaciones ordenados alfabéticamente para facilitar la búsqueda.
+        $organizacionServicios = $em->getRepository(TravelOrganizacionServicio::class)->findBy([], ['nombre' => 'ASC']);
 
-        return $this->render('panel/travel/proveedor_servicio_imagen/mass_upload.html.twig', [
-            'proveedorServicios' => $proveedorServicios,
+        return $this->render('panel/travel/organización_servicio_imagen/mass_upload.html.twig', [
+            'organizaciónServicios' => $organizacionServicios,
             'crud' => $this->configureCrud(Crud::new()),
         ]);
     }
@@ -133,10 +133,10 @@ class TravelOrganizacionServicioImagenCrudController extends BaseCrudController
         $isEmbedded = $this->isEmbedded();
 
         if (!$isEmbedded){
-            yield AssociationField::new('proveedorServicio', 'Servicio del TravelOrganizacion')
+            yield AssociationField::new('organizacionServicio', 'Servicio del TravelOrganizacion')
                 ->autocomplete()
                 ->setColumns(12)
-                ->setHelp('Servicio del proveedor al que pertenece la imágen.');
+                ->setHelp('Servicio del prestador al que pertenece la imágen.');
         }
 
         yield TextField::new('imageFile', 'Subir Imagen')

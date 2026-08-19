@@ -66,8 +66,8 @@ class TravelOrganizacionCrudController extends BaseCrudController
     {
         return $crud
             ->showEntityActionsInlined()
-            ->setEntityLabelInSingular('TravelOrganizacion')
-            ->setEntityLabelInPlural('Proveedores')
+            ->setEntityLabelInSingular('Organización')
+            ->setEntityLabelInPlural('Organizaciones')
             ->setDefaultSort(['nombreComercial' => 'ASC']);
     }
 
@@ -116,11 +116,11 @@ class TravelOrganizacionCrudController extends BaseCrudController
             ->setColumns(6);
 
         yield UrlField::new('url', 'Sitio Web / URL Externa')
-            ->setHelp('Enlace directo corporativo o sitio web del proveedor.')
+            ->setHelp('Enlace directo corporativo o sitio web de la organización.')
             ->setColumns(12);
 
         yield TextField::new('direccion', 'Dirección')
-            ->setHelp('Dirección del proveedor.')
+            ->setHelp('Dirección de la organización.')
             ->setColumns(12);
 
         /* ====================================================================
@@ -129,7 +129,7 @@ class TravelOrganizacionCrudController extends BaseCrudController
          * que hacía que ocultar exigiera borrar el texto. Ver la entidad.
          * ==================================================================== */
         yield BooleanField::new('visibleParaCliente', 'Nombrable ante el cliente')
-            ->setHelp('Permite que este proveedor se muestre en las propuestas. Es el valor '
+            ->setHelp('Permite que este organización se muestre en las propuestas. Es el valor '
                 . 'por defecto al asignarlo: cada cotización puede decidir lo contrario, y '
                 . 'cambiarlo aquí NO altera las propuestas ya emitidas. Sin título público '
                 . 'no hay nada que mostrar aunque esté marcado.')
@@ -166,8 +166,8 @@ class TravelOrganizacionCrudController extends BaseCrudController
             ->autocomplete()
             ->setColumns(12)
             // Cobertura, no ubicación: un operador de Lima que también despacha Ica lleva
-            // las dos. Es lo que permite filtrar «qué me da este proveedor en Lima».
-            ->setHelp('Multivaluado: marca TODOS los centros desde los que opera este proveedor.');
+            // las dos. Es lo que permite filtrar «qué me da esta organización en Lima».
+            ->setHelp('Multivaluado: marca TODOS los centros desde los que opera esta organización.');
 
         yield CollectionField::new('titulo', 'Título')
             ->setEntryType(TranslationTextType::class)
@@ -180,7 +180,7 @@ class TravelOrganizacionCrudController extends BaseCrudController
             // el nombre comercial, el teléfono y la dirección no llevan el grupo público.
             ->setHelp(
                 'Es lo ÚNICO que ve el cliente en la propuesta. Si lo dejas vacío, este '
-                . 'proveedor no se le muestra: la ausencia de título es la forma de ocultarlo, '
+                . 'organización no se le muestra: la ausencia de título es la forma de ocultarlo, '
                 . 'no hace falta ninguna casilla adicional.'
             );
 
@@ -200,14 +200,14 @@ class TravelOrganizacionCrudController extends BaseCrudController
         yield TextField::new('virtualGaleria', 'Galería')
             ->onlyOnIndex()
             ->formatValue(fn ($value, $entity) => $this->renderGaleriaThumbnails(
-                $entity->getProveedorImagenes(),
+                $entity->getImagenes(),
                 $entity,
                 $this->uploadPath,
                 'galeria-proveedor',
             ))
             ->renderAsHtml();
 
-        yield CollectionField::new('proveedorImagenes', 'Galería de Imágenes')
+        yield CollectionField::new('imagenes', 'Galería de Imágenes')
             ->onlyOnForms()
             ->setColumns(12)
             ->useEntryCrudForm(TravelOrganizacionImagenCrudController::class)
@@ -220,9 +220,9 @@ class TravelOrganizacionCrudController extends BaseCrudController
         /* ====================================================================
          * COLECCIÓN ANIDADA DE SERVICIOS
          * Se delega el renderizado al TravelOrganizacionServicioCrudController para
-         * gestionar las habitaciones/servicios directamente desde el proveedor.
+         * gestionar las habitaciones/servicios directamente desde el organización.
          * ==================================================================== */
-        yield CollectionField::new('proveedorServicios', 'Servicios / Habitaciones')
+        yield CollectionField::new('servicios', 'Servicios / Habitaciones')
             ->onlyOnForms()
             ->setColumns(12)
             ->useEntryCrudForm(TravelOrganizacionServicioCrudController::class)

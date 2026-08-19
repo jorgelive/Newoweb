@@ -260,26 +260,26 @@ class TravelComponenteCrudController extends BaseCrudController
          * PANEL: PROVEEDOR — a quién se le compra esta logística
          *
          * Colgaba de cada TravelTarifa y ahí quedó abandonado (5 de 904): un componente
-         * llega a tener 19 tarifas y nadie repite el proveedor 19 veces. Aquí se llena una
+         * llega a tener 19 tarifas y nadie repite el prestador 19 veces. Aquí se llena una
          * vez. Ver `Version20260816240000` y docs/Travel.md §7.
          * ==================================================================== */
-        yield FormField::addPanel('TravelOrganizacion por defecto')->setIcon('fa fa-truck-loading')
+        yield FormField::addPanel('Prestador por defecto')->setIcon('fa fa-truck-loading')
             ->setHelp('Sugerencia al cotizar: el operador puede cambiarla en el motor. '
                 . 'Poblarlo es lo que hace útil el filtro de tarifas por prestador del editor.');
 
-        yield TextField::new('proveedor', 'TravelOrganizacion')
+        yield TextField::new('prestador', 'Prestador')
             ->hideOnForm()
             ->formatValue(static fn ($value) => $value
                 ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-building text-info"></i> %s</span>', htmlspecialchars((string) $value))
                 : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
-        // Gatillo AJAX: al elegir proveedor se recargan sus servicios en el campo de abajo.
+        // Gatillo AJAX: al elegir organización se recargan sus servicios en el campo de abajo.
         yield AdminFieldHelper::controlsAjax(
-            AssociationField::new('proveedor', 'TravelOrganizacion'),
-            'js-proveedor-servicio-api-target',
-            rtrim($this->getParameter('api_host_url'), '/') . '/platform/travel/proveedor-servicios',
-            'proveedor.id',
+            AssociationField::new('prestador', 'Prestador'),
+            'js-prestador-servicio-api-target',
+            rtrim($this->getParameter('api_host_url'), '/') . '/platform/travel/organizacion-servicios',
+            'prestador.id',
             'nombre'
         )
             ->hideOnIndex()
@@ -287,20 +287,20 @@ class TravelComponenteCrudController extends BaseCrudController
             ->setRequired(false)
             ->setColumns(6);
 
-        yield TextField::new('proveedorServicio', 'Servicio Asignado')
+        yield TextField::new('prestadorServicio', 'Servicio Asignado')
             ->hideOnForm()
             ->formatValue(static fn ($value) => $value
                 ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-concierge-bell text-warning"></i> %s</span>', htmlspecialchars((string) $value))
                 : '<span class="text-muted small">Cualquiera</span>')
             ->renderAsHtml();
 
-        // Target del AJAX. La entidad valida que el servicio sea de ese proveedor.
-        yield AssociationField::new('proveedorServicio', 'Servicio del TravelOrganizacion')
+        // Target del AJAX. La entidad valida que el servicio sea de ese organización.
+        yield AssociationField::new('prestadorServicio', 'Servicio del prestador')
             ->hideOnIndex()->hideOnDetail()
             ->setRequired(false)
             ->setHelp('Ej: Habitación Matrimonial Standard.')
             ->setColumns(6)
-            ->setFormTypeOptions(['attr' => ['class' => 'js-proveedor-servicio-api-target']]);
+            ->setFormTypeOptions(['attr' => ['class' => 'js-prestador-servicio-api-target']]);
 
         yield FormField::addPanel('Lugares / Centros de operación')->setIcon('fa fa-map-marker-alt');
 

@@ -127,7 +127,7 @@ class TravelItinerarioCrudController extends BaseCrudController
         yield TextField::new('slug', 'Slug / Código')->setColumns(6)
             ->setHelp('Código de identificación (ej. HD-COMBINADA-POOL-AM). No se envía a nadie.');
         yield TextField::new('nombreInterno', 'Nombre de Plantilla')->setColumns(6)
-            ->setHelp('Nombre operativo, el que puede ir al proveedor.');
+            ->setHelp('Nombre operativo, el que puede ir al prestador.');
 
         yield IntegerField::new('duracionDias', 'Duración Total')
             ->setColumns(4)

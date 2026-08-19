@@ -52,7 +52,7 @@ enum ComponenteTipoEnum: string
     }
 
     /**
-     * Establece la prioridad visual para el proveedor en los manifiestos y reportes operativos.
+     * Establece la prioridad visual para el prestador en los manifiestos y reportes operativos.
      * Menor número indica mayor prioridad (aparece antes).
      *
      * @return int

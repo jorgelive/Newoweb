@@ -25,7 +25,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Entidad que representa un servicio ofrecido por un proveedor (ej. Habitaciones de un Hotel).
+ * Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
  * Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
  */
 #[ApiFilter(SearchFilter::class, properties: [
@@ -33,46 +33,46 @@ use Symfony\Component\Uid\Uuid;
     'nombre' => 'partial'
 ])]
 #[ApiResource(
-    shortName: 'ProveedorServicio',
+    shortName: 'OrganizacionServicio',
     operations: [
         new GetCollection(
-            uriTemplate: '/proveedor-servicios',
-            normalizationContext: ['groups' => ['proveedor_servicio:read']],
+            uriTemplate: '/organizacion-servicios',
+            normalizationContext: ['groups' => ['organizacion_servicio:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
         new Get(
-            uriTemplate: '/proveedor-servicios/{id}',
-            normalizationContext: ['groups' => ['proveedor_servicio:read', 'proveedor_servicio:item:read']],
+            uriTemplate: '/organizacion-servicios/{id}',
+            normalizationContext: ['groups' => ['organizacion_servicio:read', 'organizacion_servicio:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
 
-        // Escritura para el CRUD de catálogo en Vue. `proveedor` es escribible porque el
-        // servicio se crea desde la ficha de su proveedor y llega como IRI.
+        // Escritura para el CRUD de catálogo en Vue. `organizacion` es escribible porque el
+        // servicio se crea desde la ficha de su organizacion y llega como IRI.
         new Post(
-            uriTemplate: '/proveedor-servicios',
-            denormalizationContext: ['groups' => ['proveedor_servicio:write']],
+            uriTemplate: '/organizacion-servicios',
+            denormalizationContext: ['groups' => ['organizacion_servicio:write']],
             securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityPostDenormalizeMessage: 'No tienes permiso para crear servicios de proveedor.'
+            securityPostDenormalizeMessage: 'No tienes permiso para crear servicios de organizacion.'
         ),
         new Put(
-            uriTemplate: '/proveedor-servicios/{id}',
-            denormalizationContext: ['groups' => ['proveedor_servicio:write']],
+            uriTemplate: '/organizacion-servicios/{id}',
+            denormalizationContext: ['groups' => ['organizacion_servicio:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar servicios de proveedor.'
+            securityMessage: 'No tienes permiso para editar servicios de organizacion.'
         ),
         new Patch(
-            uriTemplate: '/proveedor-servicios/{id}',
-            denormalizationContext: ['groups' => ['proveedor_servicio:write']],
+            uriTemplate: '/organizacion-servicios/{id}',
+            denormalizationContext: ['groups' => ['organizacion_servicio:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
-            securityMessage: 'No tienes permiso para editar servicios de proveedor.'
+            securityMessage: 'No tienes permiso para editar servicios de organizacion.'
         ),
-        // Ojo: `CotizacionCotcomponente` guarda un soft-link `proveedorServicioMaestroId`
+        // Ojo: `CotizacionCotcomponente` guarda un soft-link `organizaciónServicioMaestroId`
         // con su título e imágenes ya congelados. Borrar aquí no toca las cotizaciones
         // emitidas.
         new Delete(
-            uriTemplate: '/proveedor-servicios/{id}',
+            uriTemplate: '/organizacion-servicios/{id}',
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
-            securityMessage: 'No tienes permiso para eliminar servicios de proveedor.'
+            securityMessage: 'No tienes permiso para eliminar servicios de organizacion.'
         ),
     ],
     routePrefix: '/travel'
@@ -87,51 +87,51 @@ class TravelOrganizacionServicio
     use AutoTranslateControlTrait;
 
     /**
-     * El id además del `@id`. Sin esto, al leerse anidado dentro de la ficha del proveedor
+     * El id además del `@id`. Sin esto, al leerse anidado dentro de la ficha del organizacion
      * sólo llegaba la IRI y el front no podía construir las URLs de borrado.
      */
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:read', 'organizacion_servicio:item:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;
     }
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'componente:item:read', 'proveedor_servicio:write'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:read', 'organizacion_servicio:item:read', 'componente:item:read', 'organizacion_servicio:write'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
 
     /** @var list<array{language?: string, content?: string|null}> */
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'proveedor_servicio:write'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:read', 'organizacion_servicio:item:read', 'organizacion_servicio:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
     /** @var list<array{language?: string, content?: string|null}> */
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'proveedor_servicio:write'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:read', 'organizacion_servicio:item:read', 'organizacion_servicio:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $descripcion = [];
 
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:read', 'proveedor_servicio:item:read', 'proveedor_servicio:write'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:read', 'organizacion_servicio:item:read', 'organizacion_servicio:write'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $url = null;
 
-    #[Groups(['proveedor_servicio:read', 'proveedor_servicio:item:read', 'componente:item:read', 'proveedor_servicio:write'])]
-    #[ORM\ManyToOne(targetEntity: TravelOrganizacion::class, inversedBy: 'proveedorServicios')]
-    #[ORM\JoinColumn(name: 'proveedor_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    private ?TravelOrganizacion $proveedor = null;
+    #[Groups(['organizacion_servicio:read', 'organizacion_servicio:item:read', 'componente:item:read', 'organizacion_servicio:write'])]
+    #[ORM\ManyToOne(targetEntity: TravelOrganizacion::class, inversedBy: 'servicios')]
+    #[ORM\JoinColumn(name: 'organizacion_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private ?TravelOrganizacion $organizacion = null;
 
     /**
      * @var Collection<int, TravelOrganizacionServicioImagen>
      */
-    #[Groups(['proveedor:item:read', 'proveedor_servicio:item:read'])]
+    #[Groups(['organizacion:item:read', 'organizacion_servicio:item:read'])]
     #[ORM\OneToMany(
-        mappedBy: 'proveedorServicio',
+        mappedBy: 'organizacionServicio',
         targetEntity: TravelOrganizacionServicioImagen::class,
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
-    private Collection $proveedorServicioImagenes;
+    private Collection $imagenes;
 
     /**
      * Constructor de la entidad TravelOrganizacionServicio.
@@ -140,20 +140,20 @@ class TravelOrganizacionServicio
     public function __construct()
     {
         $this->id = Uuid::v7();
-        $this->proveedorServicioImagenes = new ArrayCollection();
+        $this->imagenes = new ArrayCollection();
     }
 
     /**
      * Representación textual legible de la entidad para EasyAdmin.
-     * Incluye el nombre comercial del proveedor para identificar a qué hotel/proveedor pertenece.
+     * Incluye el nombre comercial del organizacion para identificar a qué hotel/organizacion pertenece.
      */
     public function __toString(): string
     {
         $nombreServicio = $this->nombre ?? 'Servicio sin nombre';
-        $nombreProveedor = $this->proveedor?->getNombreComercial();
+        $nombreOrganizacion = $this->organizacion?->getNombreComercial();
 
-        return $nombreProveedor
-            ? sprintf('%s - %s', $nombreProveedor, $nombreServicio)
+        return $nombreOrganizacion
+            ? sprintf('%s - %s', $nombreOrganizacion, $nombreServicio)
             : $nombreServicio;
     }
 
@@ -251,19 +251,19 @@ class TravelOrganizacionServicio
     }
 
     /**
-     * Obtiene el proveedor principal que ofrece este servicio.
+     * Obtiene el organizacion principal que ofrece este servicio.
      */
-    public function getProveedor(): ?TravelOrganizacion
+    public function getOrganizacion(): ?TravelOrganizacion
     {
-        return $this->proveedor;
+        return $this->organizacion;
     }
 
     /**
-     * Establece el proveedor principal que ofrece este servicio.
+     * Establece el organizacion principal que ofrece este servicio.
      */
-    public function setProveedor(?TravelOrganizacion $proveedor): self
+    public function setOrganizacion(?TravelOrganizacion $organizacion): self
     {
-        $this->proveedor = $proveedor;
+        $this->organizacion = $organizacion;
         return $this;
     }
 
@@ -274,22 +274,22 @@ class TravelOrganizacionServicio
      *
      * @return Collection<int, TravelOrganizacionServicioImagen>
      */
-    public function getProveedorServicioImagenes(): Collection
+    public function getImagenes(): Collection
     {
-        return $this->proveedorServicioImagenes;
+        return $this->imagenes;
     }
 
     /**
      * Añade un recurso de imagen a la galería del servicio garantizando la sincronización bidireccional.
      *
-     * @param TravelOrganizacionServicioImagen $proveedorServicioImagen Instancia de la imagen a asociar.
+     * @param TravelOrganizacionServicioImagen $imagen Instancia de la imagen a asociar.
      * @return $this
      */
-    public function addProveedorServicioImagen(TravelOrganizacionServicioImagen $proveedorServicioImagen): self
+    public function addImagen(TravelOrganizacionServicioImagen $imagen): self
     {
-        if (!$this->proveedorServicioImagenes->contains($proveedorServicioImagen)) {
-            $this->proveedorServicioImagenes->add($proveedorServicioImagen);
-            $proveedorServicioImagen->setProveedorServicio($this);
+        if (!$this->imagenes->contains($imagen)) {
+            $this->imagenes->add($imagen);
+            $imagen->setOrganizacionServicio($this);
         }
         return $this;
     }
@@ -297,14 +297,14 @@ class TravelOrganizacionServicio
     /**
      * Remueve un recurso de imagen de la galería del servicio rompiendo el vínculo asociativo.
      *
-     * @param TravelOrganizacionServicioImagen $proveedorServicioImagen Instancia de la imagen a desvincular.
+     * @param TravelOrganizacionServicioImagen $imagen Instancia de la imagen a desvincular.
      * @return $this
      */
-    public function removeProveedorServicioImagen(TravelOrganizacionServicioImagen $proveedorServicioImagen): self
+    public function removeImagen(TravelOrganizacionServicioImagen $imagen): self
     {
-        if ($this->proveedorServicioImagenes->removeElement($proveedorServicioImagen)) {
-            if ($proveedorServicioImagen->getProveedorServicio() === $this) {
-                $proveedorServicioImagen->setProveedorServicio(null);
+        if ($this->imagenes->removeElement($imagen)) {
+            if ($imagen->getOrganizacionServicio() === $this) {
+                $imagen->setOrganizacionServicio(null);
             }
         }
         return $this;
@@ -317,21 +317,21 @@ class TravelOrganizacionServicio
     /**
      * Devuelve el ID casteado como string para su manipulación directa en JS.
      */
-    #[Groups(['proveedor_servicio:read', 'componente:item:read'])]
-    public function getProveedorServicioId(): ?string
+    #[Groups(['organizacion_servicio:read', 'componente:item:read'])]
+    public function getOrganizacionServicioId(): ?string
     {
         return $this->getId() ? (string) $this->getId() : null;
     }
 
     /**
      * Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue.
-     * Concatena el nombre del proveedor para que en los listados del frontend sea fácil identificar a qué hotel pertenece.
+     * Concatena el nombre del organizacion para que en los listados del frontend sea fácil identificar a qué hotel pertenece.
      */
-    #[Groups(['proveedor_servicio:read'])]
+    #[Groups(['organizacion_servicio:read'])]
     public function getEtiquetaOpciones(): string
     {
-        $nombreProveedor = $this->proveedor ? $this->proveedor->getNombreComercial() : 'Desconocido';
-        return sprintf('%s - %s', $nombreProveedor, $this->nombre ?? 'Servicio sin nombre');
+        $nombreOrganizacion = $this->organizacion ? $this->organizacion->getNombreComercial() : 'Desconocido';
+        return sprintf('%s - %s', $nombreOrganizacion, $this->nombre ?? 'Servicio sin nombre');
     }
 
     /**

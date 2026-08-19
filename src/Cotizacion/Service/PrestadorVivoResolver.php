@@ -36,7 +36,7 @@ use Symfony\Component\Uid\Uuid;
  * inyecta `TravelOrganizacionImagenAssetListener` en `postLoad`. Con SQL habría que reimplementar
  * la firma de las URLs.
  */
-final class ProveedorVivoResolver
+final class PrestadorVivoResolver
 {
     /** @var array<string, TravelOrganizacion> */
     private array $proveedores = [];
@@ -104,7 +104,7 @@ final class ProveedorVivoResolver
     public function imagenesDe(TravelOrganizacion $p): array
     {
         $out = [];
-        foreach ($p->getProveedorImagenes() as $img) {
+        foreach ($p->getImagenes() as $img) {
             $out[] = [
                 'imageUrl' => $img->getImageUrl(),
                 'orden' => $img->getOrden(),
@@ -121,7 +121,7 @@ final class ProveedorVivoResolver
     public function imagenesDeServicio(TravelOrganizacionServicio $s): array
     {
         $out = [];
-        foreach ($s->getProveedorServicioImagenes() as $img) {
+        foreach ($s->getImagenes() as $img) {
             $out[] = [
                 'imageUrl' => $img->getImageUrl(),
                 'orden' => $img->getOrden(),

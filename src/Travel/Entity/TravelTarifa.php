@@ -150,10 +150,10 @@ class TravelTarifa
     #[Groups(['componente:item:read', 'componente:write'])]
     #[Assert\Length(
         max: 150,
-        maxMessage: 'El nombre para el proveedor no puede superar los {{ limit }} caracteres.'
+        maxMessage: 'El nombre para el prestador no puede superar los {{ limit }} caracteres.'
     )]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
-    private ?string $nombreParaProveedor = null;
+    private ?string $nombreParaPrestador = null;
 
     public function __construct()
     {
@@ -389,14 +389,14 @@ class TravelTarifa
         return $this;
     }
 
-    public function getNombreParaProveedor(): ?string
+    public function getNombreParaPrestador(): ?string
     {
-        return $this->nombreParaProveedor;
+        return $this->nombreParaPrestador;
     }
 
-    public function setNombreParaProveedor(?string $nombreParaProveedor): self
+    public function setNombreParaPrestador(?string $nombreParaPrestador): self
     {
-        $this->nombreParaProveedor = $nombreParaProveedor;
+        $this->nombreParaPrestador = $nombreParaPrestador;
         return $this;
     }
 
@@ -461,7 +461,7 @@ class TravelTarifa
                 ->addViolation();
         }
 
-        // La comprobación «el servicio pertenece a ese proveedor» se mudó con los campos a
+        // La comprobación «el servicio pertenece a esa organización» se mudó con los campos a
         // TravelComponente: ahí es donde viven ahora los dos y donde tiene sentido cruzarlos.
     }
 }
