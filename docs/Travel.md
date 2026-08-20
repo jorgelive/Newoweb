@@ -691,24 +691,61 @@ Y el dato que justifica todo el rediseño: **«Tren Ollanta Mapi» tiene 12 tari
 El mismo componente, dos operadores. Con el prestador colgando del componente, ese componente
 tendría que mentir sobre 4 tarifas o sobre 12.
 
-### ⚠️ El desplegable dependiente: el nombre del parámetro NO es decorativo
+### 🔥 `SearchFilter` NO puede filtrar por UUID en este proyecto
 
-El CRUD de tarifas filtra «servicios de ESE prestador» con `AdminFieldHelper::controlsAjax()`,
-que mete el nombre del parámetro tal cual en la query
-(`assets/controllers/panel/dependent-select-ajax_controller.js`).
+La trampa más cara del módulo, porque **no da error**: devuelve lista vacía y parece que no hay
+datos.
 
-El CRUD anterior mandaba `prestador.id`, y **ese filtro no existe**. API Platform ignora en
-silencio un parámetro que no esté declarado con `#[ApiFilter]`: la petición no falla, devuelve
-los servicios de **todas** las empresas. El nombre correcto es `organizacion`, que es como está
-declarado en `TravelOrganizacionServicio`.
+Los identificadores son `binary(16)` (`#[ORM\Column(type: 'uuid')]` en `IdTrait`) y
+`api-platform/doctrine-orm` enlaza el valor **sin declarar su tipo**:
 
-Se comprueba en el esquema, que es donde no se puede mentir:
-
-```bash
-php bin/console api:openapi:export -o /tmp/api.json
-# los `parameters` del GET de /platform/travel/organizacion-servicios
-# → id, id[], nombre, organizacion, organizacion[], page
+```php
+// vendor/api-platform/doctrine-orm/Filter/SearchFilter.php
+->setParameter($valueParameter, $values[0]);   // ← falta el tercer argumento: el tipo
 ```
+
+Compara texto contra binario y no casa nunca. Medido contra producción el 20/08/2026 sobre
+`/platform/travel/organizacion-servicios`:
+
+| Petición | Resultado |
+|---|---|
+| `?nombre=Grand` (texto, `partial`) | **1** ✅ |
+| `?id=<uuid>` (uuid, `exact`) | **0** ❌ |
+| `?organizacion=<uuid>` | **0** ❌ |
+| `?organizacion=<IRI completo>` | **0** ❌ |
+
+⚠️ **De ahí sale la regla que cuesta dinero: un filtro de UUID declarado es PEOR que no
+declararlo.**
+
+- **Sin declarar**, API Platform ignora el parámetro y devuelve la colección entera. Está mal,
+  pero **se ve** — y medio editor funcionaba así de casualidad: pedía `?id[]=a&id[]=b` con
+  `pagination=false`, recibía el maestro completo y buscaba dentro.
+- **Declarado**, el filtro **sí se aplica** y devuelve **cero**. Ese mismo día se añadió
+  `id => 'exact'` a `TravelOrganizacion` creyendo que se arreglaba algo, y el selector de
+  prestadores del editor de cotizaciones se quedó en blanco hasta revertirlo.
+
+**Cuando haga falta filtrar por uuid:** un endpoint propio que lo resuelva en PHP, como
+{@see \App\Api\Controller\Travel\TravelOrganizacionServicioOpcionesController} —
+`Uuid::fromString()` y `setParameter(…, 'uuid')`, que es justo el argumento que la librería
+omite—. Con su `#[IsGranted]`: el host de la API cae en `PUBLIC_ACCESS`.
+
+### El desplegable dependiente del CRUD de tarifas
+
+«Servicios de ESE prestador» se arma con `AdminFieldHelper::controlsAjax()` y
+`assets/controllers/panel/dependent-select-ajax_controller.js`. Tres cosas que ya fallaron:
+
+1. **El endpoint no puede ser la colección de API Platform** — por lo de arriba. Apunta a
+   `/platform/travel/organizacion-servicios-opciones`, que devuelve `[{id, nombre}]` y nada más.
+2. **Nada de `->autocomplete()` en esos campos.** Con él, EasyAdmin renderiza el select **vacío**
+   —una sola opción, «Ninguno»—: las opciones se cargan por su propio endpoint remoto, que aquí
+   no se dispara. Y en el padre además pelea por el `data-controller` que escribe `controlsAjax()`.
+3. **Hay que vaciar también las `<option>` del `<select>` nativo.** `ts.clearOptions()` limpia la
+   lista interna de TomSelect, pero el select de debajo conserva lo que pintó el servidor y
+   `ts.sync()` lo relee: el filtro **añadía** los servicios de la empresa elegida y **no quitaba**
+   los de las demás. Comprobado: 4 opciones antes, 1 después.
+
+Verificado en producción con el navegador — Tambo del Inka → su habitación; Hotel Terra → la
+suya; PeruRail → vacío, porque no tiene servicios cargados.
 
 Y `var/probar-crud-tarifa.php` cruza los campos del CRUD contra las propiedades reales de la
 entidad. Nació porque un barrido de renombrado dejó `TextField::new('nombreParaOrganizacion')`
