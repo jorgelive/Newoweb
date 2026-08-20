@@ -35,6 +35,24 @@ export type ApiTemplate = components['schemas']['Template.jsonld-template.read']
  * `motivo` es un CÓDIGO, no una frase: el texto lo escribe el panel, que es quien sabe en qué
  * idioma y con cuántos caracteres cabe.
  */
+/**
+ * Un ASUNTO del hilo: una reserva, un expediente de viaje.
+ *
+ * 🪞 Espejo de `AsuntosDeConversacionController`. Se declara a mano porque el endpoint devuelve
+ * una `JsonResponse` montada (`output: false`) y no entra en `api.d.ts`.
+ *
+ * `etiqueta` la redacta el DOMINIO, que es quien sabe qué se puede enseñar —la casita y las
+ * fechas sí, el localizador y el saldo no—. Aquí se pinta tal cual, no se compone.
+ */
+export interface AsuntoDelHilo {
+    negocio: string;
+    contextType: string;
+    contextId: string;
+    etiqueta: string;
+    esTitular: boolean;
+    origen: string | null;
+}
+
 export interface CanalDisponible {
     id: string;
     nombre: string;
@@ -145,6 +163,16 @@ export const useChatStore = defineStore('chatStore', () => {
      * que nunca sale.
      */
     const canalesDelChat = ref<CanalDisponible[]>([]);
+
+    /**
+     * Los asuntos del chat abierto, y a cuál va lo que se escriba.
+     *
+     * ⚠️ Con un solo asunto el backend lo estampa solo (`AsuntoDelMensaje`), así que el panel
+     * no manda nada y `asuntoElegido` se queda en `null`. El selector sólo aparece cuando de
+     * verdad hay que elegir — con dos o más—, que es cuando `null` significa «ambiguo».
+     */
+    const asuntosDelChat = ref<AsuntoDelHilo[]>([]);
+    const asuntoElegido = ref<AsuntoDelHilo | null>(null);
 
     const templates = ref<ApiTemplate[]>([]);
     const filterStatus = ref<string>('open');
@@ -569,10 +597,13 @@ export const useChatStore = defineStore('chatStore', () => {
         messagesPage.value = 1;
         hasMoreMessages.value = true;
         canalesDelChat.value = [];
+        asuntosDelChat.value = [];
+        asuntoElegido.value = null;
 
-        // Una petición por chat abierto. No es un campo de la colección a propósito:
-        // serializarlo metería un N+1 en un listado de 300 y pico hilos para ahorrar esto.
+        // Una petición por chat abierto. No son campos de la colección a propósito:
+        // serializarlos metería un N+1 en un listado de 300 y pico hilos para ahorrar esto.
         void fetchCanales(id);
+        void fetchAsuntos(id);
 
         try {
             if (found && (found.unreadCount ?? 0) > 0) {
@@ -605,9 +636,13 @@ export const useChatStore = defineStore('chatStore', () => {
      *
      * @param {string} id UUID de la conversación.
      */
-    const fetchCanales = async (id: string): Promise<void> => {
+    const fetchCanales = async (id: string, asunto: AsuntoDelHilo | null = null): Promise<void> => {
         try {
-            const response = await apiClient.get(`/platform/message/conversations/${id}/canales`);
+            const response = await apiClient.get(`/platform/message/conversations/${id}/canales`, {
+                params: asunto
+                    ? { asuntoType: asunto.contextType, asuntoId: asunto.contextId }
+                    : {},
+            });
 
             // Si el operador cambió de chat mientras cargaba, esta respuesta ya no vale.
             if (uuidOf(currentConversation.value) !== id) return;
@@ -616,6 +651,46 @@ export const useChatStore = defineStore('chatStore', () => {
         } catch {
             canalesDelChat.value = [];
         }
+    };
+
+    /**
+     * Trae los asuntos del hilo y preselecciona el titular si hay que elegir.
+     *
+     * @param {string} id UUID de la conversación.
+     */
+    const fetchAsuntos = async (id: string): Promise<void> => {
+        try {
+            const response = await apiClient.get(`/platform/message/conversations/${id}/asuntos`);
+
+            if (uuidOf(currentConversation.value) !== id) return;
+
+            const asuntos = (response.data?.asuntos ?? []) as AsuntoDelHilo[];
+            asuntosDelChat.value = asuntos;
+
+            // Con uno solo no se elige: lo estampa el backend. Con varios se propone el
+            // TITULAR —el hilo que atiende el asunto— y el operador cambia si toca.
+            asuntoElegido.value = asuntos.length > 1
+                ? (asuntos.find(a => a.esTitular) ?? asuntos[0])
+                : null;
+        } catch {
+            asuntosDelChat.value = [];
+            asuntoElegido.value = null;
+        }
+    };
+
+    /**
+     * Cambia el asunto destino y vuelve a preguntar los canales: no son los mismos.
+     *
+     * Es el punto del que cuelga todo lo demás — un expediente de viaje no sale por Beds24 y
+     * una reserva de OTA sí, y hasta ahora el panel no tenía forma de decir a cuál iba.
+     *
+     * @param {AsuntoDelHilo | null} asunto El asunto elegido.
+     */
+    const elegirAsunto = (asunto: AsuntoDelHilo | null): void => {
+        asuntoElegido.value = asunto;
+
+        const id = uuidOf(currentConversation.value);
+        if (id) void fetchCanales(id, asunto);
     };
 
     const loadMoreMessages = async () => {
@@ -669,6 +744,14 @@ export const useChatStore = defineStore('chatStore', () => {
             form.append('status', 'pending');
 
             channels.forEach(channel => form.append('transientChannels[]', channel));
+
+            // A QUÉ asunto va. Sólo cuando hay que elegir: con uno solo lo estampa el backend
+            // (`AsuntoDelMensaje`), y con ninguno es que no hay. Lo que se manda se contrasta
+            // allí contra los enlaces reales del hilo — si no casa, se descarta.
+            if (asuntoElegido.value) {
+                form.append('asuntoType', asuntoElegido.value.contextType);
+                form.append('asuntoId', asuntoElegido.value.contextId);
+            }
 
             if (templateIri) form.append('template', templateIri);
             else form.append('contentLocal', text.trim());
@@ -830,6 +913,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
     };
 });

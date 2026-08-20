@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import { aEstadoMensaje, type EstadoMensaje } from '@/types/mensajeEstadoModel';
-import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation, type ApiAttachment, type ApiMessageQueue } from '@/stores/chat/chatStore.ts';
+import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation, type ApiAttachment, type ApiMessageQueue, type AsuntoDelHilo } from '@/stores/chat/chatStore.ts';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import ConversacionVistaPrevia from '@/components/common/ConversacionVistaPrevia.vue';
@@ -632,6 +632,11 @@ const getMessageDisplayStatus = (msg: ApiMessage): EstadoMensaje => {
 // queda lo que SÍ es de la vista: qué permite la plantilla elegida y la ventana de 24 h.
 // ============================================================================
 
+/** ¿Es este el asunto al que va lo que se escriba? */
+const esAsuntoElegido = (asunto: AsuntoDelHilo): boolean =>
+  store.asuntoElegido?.contextType === asunto.contextType
+  && store.asuntoElegido?.contextId === asunto.contextId;
+
 /** ¿El backend da por usable este canal en el hilo abierto? */
 const canalHabilitado = (id: string): boolean =>
   store.canalesDelChat.some(c => c.id === id && c.disponible);
@@ -700,6 +705,19 @@ const setDefaultChannels = () => {
 
   selectedChannels.value = newChannels;
 };
+
+// Los canales llegan del backend en una petición aparte, así que cuando el watcher de la
+// conversación llama a `setDefaultChannels()` la lista todavía está vacía y no seleccionaría
+// nada. Éste es el que decide de verdad — y el mismo que poda al cambiar de asunto: un canal
+// marcado que deja de estar disponible se quita solo, porque si no el operador vería «enviado»
+// con una salida que el backend acaba de descartar.
+watch(() => store.canalesDelChat, () => {
+  selectedChannels.value = selectedChannels.value.filter(c =>
+    (c === 'beds24' && isBeds24Allowed.value) || (c === 'whatsapp_meta' && isWhatsappAllowed.value)
+  );
+
+  if (selectedChannels.value.length === 0) setDefaultChannels();
+}, { deep: true });
 
 watch(() => store.currentConversation, (newVal) => {
   selectedTemplateId.value = null;
@@ -1496,6 +1514,29 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
         </div>
 
         <footer v-show="activeTab === 'history'" class="bg-white border-t border-slate-100 p-3 md:p-6 shrink-0 relative flex flex-col gap-3 min-w-0 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+
+          <!-- ASUNTO destino. Sólo si hay que elegir: con uno solo lo estampa el backend.
+               Un hilo puede llevar varias reservas —o una reserva y un viaje— desde que las
+               conversaciones se fusionan por persona, y hasta ahora el panel no tenía forma
+               de decir a cuál iba el mensaje. -->
+          <div v-if="store.asuntosDelChat.length > 1"
+               class="flex items-center gap-2 px-1 max-w-4xl mx-auto w-full overflow-x-auto scrollbar-hide">
+            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"><i class="fas fa-folder-open mr-1"></i> Asunto:</span>
+
+            <button
+                v-for="asunto in store.asuntosDelChat"
+                :key="`${asunto.contextType}:${asunto.contextId}`"
+                @click="store.elegirAsunto(asunto)"
+                :class="esAsuntoElegido(asunto)
+                  ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 shadow-sm'"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0 max-w-[16rem]"
+                :title="asunto.esTitular ? asunto.etiqueta : `${asunto.etiqueta} — este hilo no es el titular del asunto`"
+            >
+              <span class="truncate">{{ asunto.etiqueta }}</span>
+              <i v-if="!asunto.esTitular" class="fas fa-user-group text-[9px] opacity-50"></i>
+            </button>
+          </div>
 
           <div class="flex items-center gap-2 px-1 max-w-4xl mx-auto w-full overflow-x-auto scrollbar-hide">
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"><i class="fas fa-satellite-dish mr-1"></i> Salida:</span>

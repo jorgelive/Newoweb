@@ -164,6 +164,46 @@ export interface paths {
         patch: operations["api_messageconversations_id_patch"];
         trace?: never;
     };
+    "/platform/message/conversations/{id}/asuntos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Asuntos del hilo
+         * @description Las reservas y expedientes que cuelgan de esta conversación, con la etiqueta que redacta cada dominio.
+         */
+        get: operations["api_messageconversations_idasuntos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/message/conversations/{id}/canales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Canales disponibles del hilo
+         * @description Qué canales puede usar el operador en esta conversación y, si no, con qué código de motivo. Sustituye la regla que el panel tenía copiada a mano.
+         */
+        get: operations["api_messageconversations_idcanales_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/message/conversations/{id}/read": {
         parameters: {
             query?: never;
@@ -12853,6 +12893,10 @@ export interface components {
              */
             template?: string | null;
             rule?: components["schemas"]["MessageRule-message.read"] | null;
+            /** @description El ASUNTO que programó este mensaje: el par `(tipo, id)` del activo — p. ej. */
+            asuntoType?: string | null;
+            /** @description La otra mitad del par. Ver {@see self::$asuntoType}. */
+            asuntoId?: string | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue-message.read"][];
             attachments?: components["schemas"]["MessageAttachment-message.read"][];
@@ -12897,6 +12941,10 @@ export interface components {
              * @example https://example.com/
              */
             template?: string | null;
+            /** @description El ASUNTO que programó este mensaje: el par `(tipo, id)` del activo — p. ej. */
+            asuntoType?: string | null;
+            /** @description La otra mitad del par. Ver {@see self::$asuntoType}. */
+            asuntoId?: string | null;
             contentLocal?: string | null;
             /** @default outgoing */
             direction: string;
@@ -12926,6 +12974,10 @@ export interface components {
              */
             template?: string | null;
             rule?: components["schemas"]["MessageRule.html-message.read"] | null;
+            /** @description El ASUNTO que programó este mensaje: el par `(tipo, id)` del activo — p. ej. */
+            asuntoType?: string | null;
+            /** @description La otra mitad del par. Ver {@see self::$asuntoType}. */
+            asuntoId?: string | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.html-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.html-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.html-message.read"][];
@@ -12972,6 +13024,10 @@ export interface components {
              */
             template?: string | null;
             rule?: components["schemas"]["MessageRule.jsonld-message.read"] | null;
+            /** @description El ASUNTO que programó este mensaje: el par `(tipo, id)` del activo — p. ej. */
+            asuntoType?: string | null;
+            /** @description La otra mitad del par. Ver {@see self::$asuntoType}. */
+            asuntoId?: string | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.jsonld-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.jsonld-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.jsonld-message.read"][];
@@ -13018,6 +13074,10 @@ export interface components {
              */
             template?: string | null;
             rule?: components["schemas"]["MessageRule.multipart-message.read"] | null;
+            /** @description El ASUNTO que programó este mensaje: el par `(tipo, id)` del activo — p. ej. */
+            asuntoType?: string | null;
+            /** @description La otra mitad del par. Ver {@see self::$asuntoType}. */
+            asuntoId?: string | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.multipart-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.multipart-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.multipart-message.read"][];
@@ -29605,6 +29665,92 @@ export interface operations {
                     "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
                     "application/problem+json": components["schemas"]["ConstraintViolation"];
                     "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_messageconversations_idasuntos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Conversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversation resource */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_messageconversations_idcanales_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Conversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversation resource */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };

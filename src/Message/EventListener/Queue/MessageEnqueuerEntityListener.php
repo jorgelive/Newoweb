@@ -6,6 +6,7 @@ namespace App\Message\EventListener\Queue;
 
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
+use App\Message\Service\Conversacion\AsuntoDelMensaje;
 use App\Message\Service\Queue\MessageDispatcher;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,6 +33,7 @@ readonly class MessageEnqueuerEntityListener
     public function __construct(
         private MessageDispatcher      $dispatcher,
         private EntityManagerInterface $em,
+        private AsuntoDelMensaje       $asuntos,
     ) {}
 
     /**
@@ -43,6 +45,16 @@ readonly class MessageEnqueuerEntityListener
      */
     public function prePersist(Message $message, PrePersistEventArgs $event): void
     {
+        // ── El ASUNTO, antes que nada ───────────────────────────────────────
+        //
+        // Va primero porque de él dependen las dos decisiones de abajo: qué canales se podan
+        // (`MessageDispatcher::acotarAlAsunto()`) y en qué hilo de Beds24 aterriza
+        // (`Beds24SendEnqueuer`). Estampar después sería estampar tarde.
+        //
+        // Y se hace para las DOS direcciones: los entrantes también son de un asunto, y hasta
+        // ahora nacían todos con `asunto_id` nulo — 4889 en producción.
+        $this->asuntos->estampar($message);
+
         // =========================================================================
         // 🔥 ADVERTENCIA ARQUITECTÓNICA (NO MODIFICAR ESTA CONDICIÓN) 🔥
         // =========================================================================

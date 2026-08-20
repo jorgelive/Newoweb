@@ -142,7 +142,7 @@ class Message
 
     /**
      * El ASUNTO que programó este mensaje: el par `(tipo, id)` del activo — p. ej.
-     * `('pms_reserva', <uuid de la reserva>)`. Sólo lo rellena el motor de reglas.
+     * `('pms_reserva', <uuid de la reserva>)`.
      *
      * ── Por qué hace falta ───────────────────────────────────────────────────
      * Con una conversación por reserva, «de qué asunto es este mensaje» era trivial: del único
@@ -163,15 +163,32 @@ class Message
      *    si un repoblado la borra y la recrea, el UUID cambia pero el asunto es el mismo, y
      *    los mensajes ya encolados tienen que seguir reconociéndose como suyos.
      *
-     * `null` significa «programado en la era de una-conversación-por-activo»: el motor lo trata
-     * como perteneciente al asunto propio de la conversación (`contextType`/`contextId` de
-     * ella) y lo adopta —lo estampa— la primera vez que lo vuelve a tocar.
+     * ── Quién lo rellena ────────────────────────────────────────────────────
+     * Lo estampa {@see \App\Message\Service\Conversacion\AsuntoDelMensaje} en el `prePersist`
+     * de TODO mensaje, entrante o saliente. Hasta el 20/08/2026 sólo lo ponía el motor de
+     * reglas, y por eso había 4889 mensajes con el par vacío: el entrante, el del panel y el
+     * del agente nacían todos sin él.
+     *
+     * ── Qué significa `null` ahora ──────────────────────────────────────────
+     * Significaba tres cosas a la vez y no se distinguían. Ahora el número de asuntos del hilo
+     * decide, y `null` vuelve a ser una respuesta:
+     *
+     * ```
+     * 0 asuntos   → null, y es verdad: un walk-in no tiene ninguno
+     * 1 asunto    → se estampa; es determinista
+     * 2 o más     → null = AMBIGUO, lo tiene que decir quien escribe
+     * ```
+     *
+     * Los mensajes anteriores conservan su `null` de legado: el motor los trata como del asunto
+     * propio de la conversación y los adopta la primera vez que los vuelve a tocar.
      */
     #[ORM\Column(name: 'asunto_type', type: 'string', length: 50, nullable: true)]
+    #[Groups(['message:read', 'message:write'])]
     private ?string $asuntoType = null;
 
     /** La otra mitad del par. Ver {@see self::$asuntoType}. */
     #[ORM\Column(name: 'asunto_id', type: 'string', length: 100, nullable: true)]
+    #[Groups(['message:read', 'message:write'])]
     private ?string $asuntoId = null;
 
     /**
@@ -406,6 +423,20 @@ class Message
 
     public function getAsuntoType(): ?string { return $this->asuntoType; }
     public function getAsuntoId(): ?string { return $this->asuntoId; }
+
+    /**
+     * Para el DESERIALIZADOR, que asigna propiedad a propiedad y no sabe de pares.
+     *
+     * ⚠️ En código se usa {@see self::setAsunto()}: el par se pone entero o no se pone, y estos
+     * dos sueltos permiten dejarlo a medias —un tipo sin id— que es un asunto que no existe.
+     * Lo que llega por la API lo contrasta después
+     * {@see \App\Message\Service\Conversacion\AsuntoDelMensaje::estampar()} contra los
+     * enlaces reales del hilo, y lo descarta si no casa.
+     */
+    public function setAsuntoType(?string $asuntoType): self { $this->asuntoType = $asuntoType; return $this; }
+
+    /** Ver {@see self::setAsuntoType()}. */
+    public function setAsuntoId(?string $asuntoId): self { $this->asuntoId = $asuntoId; return $this; }
 
     /** Estampa el asunto dueño del mensaje. Ver {@see self::$asuntoType} para el porqué del par. */
     public function setAsunto(?string $asuntoType, ?string $asuntoId): self

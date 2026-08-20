@@ -22,6 +22,7 @@ use App\Contract\ConversationMilestoneInterface;
 use App\Contract\MapaDeHitos;
 use App\Contract\MomentoDeHito;
 use App\Message\Controller\Api\MarkConversationReadController;
+use App\Message\Controller\Api\AsuntosDeConversacionController;
 use App\Message\Controller\Api\CanalesDeConversacionController;
 use App\Message\Controller\Api\ConversacionPorAsuntoController;
 use App\Message\Controller\Api\UnreadSummaryController;
@@ -97,6 +98,24 @@ use Symfony\Component\Uid\Uuid;
         // API Platform infiere automáticamente: GET /message/conversations/{id}
         // Hereda el escudo global de lectura
         new Get(),
+
+        // Los asuntos del hilo: GET /message/conversations/{id}/asuntos
+        //
+        // El chat los necesita para poder decir a CUÁL va un mensaje. Sin eso, el corte de
+        // canales por asunto no llega a aplicarse y un mensaje del viaje puede salir por el
+        // Beds24 de la reserva. Ver AsuntosDeConversacionController.
+        new Get(
+            uriTemplate: '/conversations/{id}/asuntos',
+            controller: AsuntosDeConversacionController::class,
+            openapi: new Operation(
+                summary: 'Asuntos del hilo',
+                description: 'Las reservas y expedientes que cuelgan de esta conversación, con la etiqueta que redacta cada dominio.'
+            ),
+            security: "is_granted('" . Roles::MENSAJES_SHOW . "')",
+            securityMessage: 'Acceso denegado a las conversaciones.',
+            deserialize: false,
+            output: false
+        ),
 
         // Qué canales ofrecerle al operador: GET /message/conversations/{id}/canales
         //

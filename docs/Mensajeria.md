@@ -8715,10 +8715,61 @@ En el front queda sólo lo que sí es de la vista: qué permite la plantilla ele
 de 24 h. El espejo del tipo se declara en `chatStore.ts` (`CanalDisponible`) citando el
 servicio, porque el endpoint devuelve una `JsonResponse` montada y no entra en `api.d.ts`.
 
-**Lo que esto NO cierra todavía.** Los mensajes del chat no llevan `asunto_id`, así que en un
-hilo fusionado con reserva + viaje el corte no se aplica: el operador puede marcar Beds24 para un
-mensaje del viaje y aterrizará en el hilo de la reserva. Se cierra cuando el chat diga a qué
-asunto va cada mensaje — la misma pieza que falta para el selector multi-asunto.
+#### De qué asunto es cada mensaje
+
+`Message::setAsunto()` tenía **un solo llamador**: el motor de reglas. Los números de producción
+del 20/08/2026 lo dicen todo:
+
+```
+programado por regla     asunto estampado   1011
+programado por regla     asunto NULL          10   ← legado, anterior a la columna
+todo lo demás            asunto NULL        4889   ← entrante, panel y agente
+```
+
+Con lo que `NULL` significaba **tres cosas a la vez** y no se distinguían: legado, «no hay
+asunto» (un walk-in, y es verdad) y «sí lo hay pero nadie lo estampó». La tercera es el 99 %, y
+era inofensiva sólo mientras cada hilo tuviera un asunto: el respaldo acertaba porque no había
+con qué equivocarse.
+
+`AsuntoDelMensaje::estampar()` corre en el `prePersist` de **todo** mensaje —entrante y
+saliente—, antes de fabricar colas, porque de ahí dependen la poda de canales y el hilo de
+Beds24 en el que aterriza. Y deja que el número de asuntos decida:
+
+```
+0 asuntos   → NULL. Es la verdad: un walk-in no tiene ninguno.
+1 asunto    → se ESTAMPA. Determinista, y da el mismo valor que ya calculaba el respaldo.
+2 o más     → NULL, que ahora significa «ambiguo, que lo diga quien escribe».
+```
+
+⚠️ **Lo que llega en la petición no se cree**: se contrasta con los enlaces reales del hilo, y
+si no casa **se borra** en vez de aceptarse. Es la misma regla que se aplica a los `tema_id` que
+elige el modelo, y aquí pesa más: un asunto equivocado no es un texto raro, es un mensaje
+aterrizando en la reserva de otra persona. Al borrarlo cae al respaldo de siempre.
+
+#### El selector del panel
+
+```
+GET /platform/message/conversations/{id}/asuntos
+→ {"asuntos": [{"negocio","contextType","contextId","etiqueta","esTitular","origen"}]}
+```
+
+La `etiqueta` la redacta el **dominio** (`ConversacionEnlaceInterface::getEtiqueta()`), que es
+quien sabe qué se puede enseñar —la casita y las fechas sí, el localizador y el saldo no—. El
+panel la pinta tal cual.
+
+- **Aparece sólo con dos o más asuntos.** Con uno, el backend lo estampa y no hay nada que
+  elegir; poner el selector siempre sería pedirle al operador que confirme lo obvio.
+- Se propone el **titular**, y los no titulares llevan su marca: a un acompañante se le
+  contesta, pero no se le programa nada.
+- **Cambiar de asunto vuelve a pedir los canales**, porque no son los mismos: un expediente de
+  viaje no sale por Beds24 y una reserva de OTA sí. Con eso, el corte de
+  `MessageDispatcher::acotarAlAsunto()` por fin se aplica de verdad.
+
+⚠️ **Los canales llegan en una petición aparte**, así que el `setDefaultChannels()` del watcher
+de la conversación corre con la lista todavía vacía. Quien decide la selección por defecto es el
+watcher de `canalesDelChat` — y es el mismo que **poda**: un canal marcado que deja de estar
+disponible se quita solo, porque si no el operador vería «enviado» con una salida que el backend
+acababa de descartar.
 
 **De regalo, un final que faltaba.** Un mensaje sin ningún canal caía en la rama de éxito y se
 quedaba `QUEUED` **sin una sola cola detrás**: en el panel ponía «encolado» y no salía nunca, que
