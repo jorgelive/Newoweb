@@ -42,7 +42,7 @@ class CotizacionCottarifa
     private ?string $nombreParaProveedorSnapshot = null;
 
     // ─────────────────────────────────────────────────────────────────────────
-    // LOS DOS PAPELES, CONGELADOS
+    // LOS TRES PAPELES, CONGELADOS
     //
     // Se copian de {@see \App\Travel\Entity\TravelTarifa} al colgar la tarifa. Se congelan
     // por lo mismo que el resto de este snapshot: una cotización es un documento HISTÓRICO, y
@@ -64,6 +64,19 @@ class CotizacionCottarifa
     #[Groups(['cotizacion:item:read', 'cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'string', length: 190, nullable: true)]
     private ?string $prestadorNombreSnapshot = null;
+
+    /**
+     * El servicio concreto contratado (ej. el tipo de habitación). SOFT-LINK.
+     *
+     * Se congela con los otros dos y por el mismo motivo: es parte de lo que se prometió.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $prestadorServicioMaestroId = null;
+
+    #[Groups(['cotizacion:item:read', 'cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 190, nullable: true)]
+    private ?string $prestadorServicioNombreSnapshot = null;
 
     /**
      * A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador.
@@ -324,6 +337,12 @@ class CotizacionCottarifa
 
     public function getPrestadorNombreSnapshot(): ?string { return $this->prestadorNombreSnapshot; }
     public function setPrestadorNombreSnapshot(?string $v): self { $this->prestadorNombreSnapshot = $v; return $this; }
+
+    public function getPrestadorServicioMaestroId(): ?string { return $this->prestadorServicioMaestroId; }
+    public function setPrestadorServicioMaestroId(?string $v): self { $this->prestadorServicioMaestroId = $v; return $this; }
+
+    public function getPrestadorServicioNombreSnapshot(): ?string { return $this->prestadorServicioNombreSnapshot; }
+    public function setPrestadorServicioNombreSnapshot(?string $v): self { $this->prestadorServicioNombreSnapshot = $v; return $this; }
 
     public function getCompradorMaestroId(): ?string { return $this->compradorMaestroId; }
     public function setCompradorMaestroId(?string $v): self { $this->compradorMaestroId = $v; return $this; }

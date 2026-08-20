@@ -625,6 +625,48 @@ tono semántico y traducirlo en el front.
   devuelven la empresa. Buscar «Ministerio de Cultura» y esperar sus componentes no funciona:
   el dato está ahora una capa más abajo, en cada tarifa.
 
+### Cómo llegan los tres papeles a la cotización
+
+Las tres relaciones viajan como **IRI** (`readableLink: false`), que es lo correcto para no
+arrastrar la ficha entera ni abrir recursión. Pero el editor tiene que **congelar el nombre** en
+su snapshot, y con un IRI a secas eso costaría una petición por tarifa.
+
+Por eso el nombre viaja al lado, plano: `prestadorNombre`, `prestadorServicioNombre` y
+`compradorNombre` son getters expuestos en `componente:item:read`. Son gratis —la entidad ya está
+cargada— y le ahorran al consumidor una cascada de peticiones para escribir un campo de texto.
+
+Al elegir una tarifa, `cotizacionEditorStore.prestadorDeTarifaParaSnapshot()` copia los seis
+valores a `CotizacionCottarifa`. **No se pintan en el formulario a propósito**: son referencia
+histórica, no campos que se editen.
+
+⚠️ **El comprador NO cae al prestador al congelarlo.** Se guarda lo que hay escrito; qué significa
+el vacío lo decide `CotizacionCotcomponente::resolverComprador()` en PHP. Rellenarlo en el front
+duplicaría la regla y las dos copias acabarían diciendo cosas distintas.
+
+Y una que estuvo rota en silencio: el mapa `proveedorPorTarifa` leía `c.proveedor` del componente
+maestro. Ese campo pasó a llamarse `prestador` el 19/08, así que la guarda `'proveedor' in c` era
+**siempre falsa**: el mapa quedaba vacío y de él colgaban el subtítulo del selector de tarifas
+—que es lo que evita colgar de un componente la tarifa de otro— y el snapshot entero. Ahora lee
+de la tarifa, que es donde vive el dato.
+
+### 🐛 Un getter nuevo no aparece en el esquema: es la caché de metadatos
+
+Cuesta media hora y no da ningún error. Al añadir un **getter virtual** con `#[Groups]`
+—`getPrestadorNombre()`— el campo no salía en `api:openapi:export`, mientras que las propiedades
+ORM añadidas a la vez **sí** salían. `debug:serializer` lo veía; el esquema no.
+
+No es el código: es que `cache:clear` **no purga los pools de metadatos de propiedad** de API
+Platform. Las propiedades ORM se recalculan y los getters virtuales se sirven de la foto vieja.
+
+```bash
+php bin/console cache:pool:clear --all   # ← el que hace falta
+php bin/console cache:clear
+php bin/console api:openapi:export -o /tmp/api.json
+```
+
+Se diagnostica en un minuto añadiendo un getter tonto (`getZzExperimento()`): si **tampoco** él
+aparece, no es tu campo, es la caché.
+
 ### ⚠️ El desplegable dependiente: el nombre del parámetro NO es decorativo
 
 El CRUD de tarifas filtra «servicios de ESE prestador» con `AdminFieldHelper::controlsAjax()`,

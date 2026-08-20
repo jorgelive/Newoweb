@@ -457,6 +457,46 @@ class TravelTarifa
     public function getComprador(): ?TravelOrganizacion { return $this->comprador; }
     public function setComprador(?TravelOrganizacion $v): self { $this->comprador = $v; return $this; }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // LOS NOMBRES, PARA QUIEN CONSUME LA API
+    //
+    // Las tres relaciones de arriba viajan como IRI (`readableLink: false`), que es lo
+    // correcto para no arrastrar la ficha entera ni abrir recursión. Pero el editor de
+    // cotizaciones tiene que CONGELAR el nombre en su snapshot, y con un IRI tendría que
+    // resolverlo una petición por tarifa.
+    //
+    // Así que el nombre viaja al lado, plano. Es barato —ya está cargado— y evita al
+    // consumidor una cascada de peticiones para escribir un campo de texto.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Nombre comercial de quién presta, para congelarlo sin resolver el IRI. */
+    #[Groups(['componente:item:read'])]
+    public function getPrestadorNombre(): ?string
+    {
+        return $this->prestador?->getNombreComercial();
+    }
+
+    /** Nombre del servicio contratado (ej. «Habitación Matrimonial Standard»). */
+    #[Groups(['componente:item:read'])]
+    public function getPrestadorServicioNombre(): ?string
+    {
+        return $this->prestadorServicio?->getNombre();
+    }
+
+    /**
+     * Nombre comercial de a quién se le encarga la compra.
+     *
+     * ⚠️ **No cae al prestador cuando está vacío, a propósito.** Aquí se dice lo que hay
+     * escrito; quien decide qué significa el vacío es la cotización, que ya tiene esa cascada
+     * en `CotizacionCotcomponente::resolverComprador()`. Rellenarlo desde el catálogo
+     * duplicaría la regla en dos sitios y las dos copias se separarían.
+     */
+    #[Groups(['componente:item:read'])]
+    public function getCompradorNombre(): ?string
+    {
+        return $this->comprador?->getNombreComercial();
+    }
+
     #[Groups(['componente:item:read'])]
     public function getTarifaId(): ?string
     {

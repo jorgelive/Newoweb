@@ -282,9 +282,10 @@ export type TarifaBase = components['schemas']['Tarifa-componente.item.read'];
 
 export type ComponenteCatalogo = Componente | ComponentePlaceholder;
 
-// `proveedor` NO se redeclara: el schema ya lo da como `string | null` (IRI) y no es
-// requerido. Repetirlo era ruido — y del tipo que envejece mal, porque una redeclaración
-// sobrevive intacta a que el backend cambie la forma del campo.
+// Los papeles (`prestador`, `prestadorServicio`, `comprador`) NO se redeclaran: el schema ya
+// los da como `string | null` (IRI) y no requeridos, y al lado viajan sus nombres planos
+// (`prestadorNombre`…). Repetirlos era ruido — y del tipo que envejece mal, porque una
+// redeclaración sobrevive intacta a que el backend cambie la forma del campo.
 export type Tarifa = Omit<TarifaBase, 'moneda' | 'titulo'> & {
     moneda: MaestroMoneda;
     titulo: I18nContent[];
@@ -403,9 +404,7 @@ export interface TarifaSnapshot {
     capacidadMinimaSnapshot?: number | null;
     capacidadMaximaSnapshot?: number | null;
     /**
-     * Cómo llama el PROVEEDOR a esta tarifa, para el requerimiento que se le manda.
-     *
-     * Cómo lo llama él, y sí es por línea: el prestador en sí es del componente.
+     * Cómo llama el PRESTADOR a esta tarifa, para el requerimiento que se le manda.
      *
      * Vacío = lo llama igual que nosotros. Ver `resolverDescripcion()` en PHP.
      */
@@ -424,16 +423,25 @@ export interface TarifaSnapshot {
      * avisa y lo deja pasar a propósito— y entonces «el prestador del componente» ya no dice de
      * quién era cada precio.
      *
+     * ⚠️ **La fuente es la TARIFA maestra**, desde el 20/08/2026: el prestador dejó de vivir en
+     * el componente porque un componente puede tener tarifas de empresas distintas. Espejo de
+     * `TravelTarifa::$prestador` (ver `docs/Travel.md` §11).
+     *
      * Es una referencia histórica, no un campo del formulario: se rellena solo al elegir la
      * tarifa y no se edita a mano.
      */
     prestadorMaestroId?: string | null;
     prestadorNombreSnapshot?: string | null;
 
+    /** El servicio contratado (ej. el tipo de habitación). Espejo de `TravelTarifa::$prestadorServicio`. */
+    prestadorServicioMaestroId?: string | null;
+    prestadorServicioNombreSnapshot?: string | null;
+
     /**
-     * A quién se le encargó la compra. Hoy **siempre vacío**: todavía no hay de dónde sacarlo
-     * —ninguna entidad del catálogo lo declara— y no se inventa. El campo existe para que el
-     * dato viaje entero el día que lo haya, en vez de tener que migrar entonces.
+     * A quién se le encargó la compra. **Vacío = se le compra al prestador**, que es el caso
+     * normal — no es un olvido. Espejo de `TravelTarifa::$comprador`.
+     *
+     * Importa porque la Orden de Servicio sale a nombre del comprador, no del prestador.
      */
     compradorMaestroId?: string | null;
     compradorNombreSnapshot?: string | null;

@@ -8378,6 +8378,9 @@ export interface components {
             /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
             prestadorMaestroId?: string | null;
             prestadorNombreSnapshot?: string | null;
+            /** @description El servicio concreto contratado (ej. el tipo de habitación). SOFT-LINK. */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
             compradorMaestroId?: string | null;
             compradorNombreSnapshot?: string | null;
@@ -8433,6 +8436,9 @@ export interface components {
             /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
             prestadorMaestroId?: string | null;
             prestadorNombreSnapshot?: string | null;
+            /** @description El servicio concreto contratado (ej. el tipo de habitación). SOFT-LINK. */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
             compradorMaestroId?: string | null;
             compradorNombreSnapshot?: string | null;
@@ -8479,6 +8485,9 @@ export interface components {
             /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
             prestadorMaestroId?: string | null;
             prestadorNombreSnapshot?: string | null;
+            /** @description El servicio concreto contratado (ej. el tipo de habitación). SOFT-LINK. */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
             compradorMaestroId?: string | null;
             compradorNombreSnapshot?: string | null;
@@ -8578,6 +8587,9 @@ export interface components {
             /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
             prestadorMaestroId?: string | null;
             prestadorNombreSnapshot?: string | null;
+            /** @description El servicio concreto contratado (ej. el tipo de habitación). SOFT-LINK. */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
             compradorMaestroId?: string | null;
             compradorNombreSnapshot?: string | null;
@@ -8633,6 +8645,9 @@ export interface components {
             /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
             prestadorMaestroId?: string | null;
             prestadorNombreSnapshot?: string | null;
+            /** @description El servicio concreto contratado (ej. el tipo de habitación). SOFT-LINK. */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
             compradorMaestroId?: string | null;
             compradorNombreSnapshot?: string | null;
@@ -8732,6 +8747,9 @@ export interface components {
             /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
             prestadorMaestroId?: string | null;
             prestadorNombreSnapshot?: string | null;
+            /** @description El servicio concreto contratado (ej. el tipo de habitación). SOFT-LINK. */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
             compradorMaestroId?: string | null;
             compradorNombreSnapshot?: string | null;
@@ -8787,6 +8805,9 @@ export interface components {
             /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
             prestadorMaestroId?: string | null;
             prestadorNombreSnapshot?: string | null;
+            /** @description El servicio concreto contratado (ej. el tipo de habitación). SOFT-LINK. */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
             compradorMaestroId?: string | null;
             compradorNombreSnapshot?: string | null;
@@ -8886,6 +8907,9 @@ export interface components {
             /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
             prestadorMaestroId?: string | null;
             prestadorNombreSnapshot?: string | null;
+            /** @description El servicio concreto contratado (ej. el tipo de habitación). SOFT-LINK. */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
             compradorMaestroId?: string | null;
             compradorNombreSnapshot?: string | null;
@@ -8941,6 +8965,9 @@ export interface components {
             /** @description Quién PRESTA. SOFT-LINK a `App\Travel\Entity\TravelOrganizacion`. */
             prestadorMaestroId?: string | null;
             prestadorNombreSnapshot?: string | null;
+            /** @description El servicio concreto contratado (ej. el tipo de habitación). SOFT-LINK. */
+            prestadorServicioMaestroId?: string | null;
+            prestadorServicioNombreSnapshot?: string | null;
             /** @description A quién se le encarga la COMPRA. Vacío = se le compra directo al prestador. */
             compradorMaestroId?: string | null;
             compradorNombreSnapshot?: string | null;
@@ -25161,6 +25188,12 @@ export interface components {
              * @example https://example.com/
              */
             comprador?: string | null;
+            /** @description Nombre comercial de quién presta, para congelarlo sin resolver el IRI. */
+            readonly prestadorNombre?: string | null;
+            /** @description Nombre del servicio contratado (ej. «Habitación Matrimonial Standard»). */
+            readonly prestadorServicioNombre?: string | null;
+            /** @description Nombre comercial de a quién se le encarga la compra. */
+            readonly compradorNombre?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
@@ -25265,6 +25298,12 @@ export interface components {
              * @example https://example.com/
              */
             comprador?: string | null;
+            /** @description Nombre comercial de quién presta, para congelarlo sin resolver el IRI. */
+            readonly prestadorNombre?: string | null;
+            /** @description Nombre del servicio contratado (ej. «Habitación Matrimonial Standard»). */
+            readonly prestadorServicioNombre?: string | null;
+            /** @description Nombre comercial de a quién se le encarga la compra. */
+            readonly compradorNombre?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
@@ -25316,6 +25355,12 @@ export interface components {
              * @example https://example.com/
              */
             comprador?: string | null;
+            /** @description Nombre comercial de quién presta, para congelarlo sin resolver el IRI. */
+            readonly prestadorNombre?: string | null;
+            /** @description Nombre del servicio contratado (ej. «Habitación Matrimonial Standard»). */
+            readonly prestadorServicioNombre?: string | null;
+            /** @description Nombre comercial de a quién se le encarga la compra. */
+            readonly compradorNombre?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
@@ -25367,6 +25412,12 @@ export interface components {
              * @example https://example.com/
              */
             comprador?: string | null;
+            /** @description Nombre comercial de quién presta, para congelarlo sin resolver el IRI. */
+            readonly prestadorNombre?: string | null;
+            /** @description Nombre del servicio contratado (ej. «Habitación Matrimonial Standard»). */
+            readonly prestadorServicioNombre?: string | null;
+            /** @description Nombre comercial de a quién se le encarga la compra. */
+            readonly compradorNombre?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };

@@ -423,20 +423,27 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const mapa = new Map<string, { id: string; nombre: string }>();
 
         catalogos.value.allComponentes.forEach(c => {
-            const prov = 'proveedor' in c ? c.proveedor : null;
-            if (!prov) return;
-
-            const id = extractIdStr(prov);
-            const nombre = typeof prov === 'object'
-                ? String((prov as { nombreComercial?: string }).nombreComercial ?? '')
-                : '';
-
-            if (!id && !nombre) return;
-
             const tarifas = ('tarifas' in c ? c.tarifas ?? [] : []) as TarifaLike[];
+
             tarifas.forEach(t => {
                 const tid = extractIdStr(t);
-                if (tid) mapa.set(tid, { id, nombre });
+                if (!tid) return;
+
+                // Desde la TARIFA, no desde el componente: el componente dejó de fijar
+                // prestador el 20/08/2026 porque puede tener tarifas de empresas distintas.
+                // Ver `docs/Travel.md` §11.
+                //
+                // ⚠️ Esto estuvo leyendo `c.proveedor` hasta hoy, y ese campo se llamaba ya
+                // `prestador` desde el renombrado del 19/08: la guarda `'proveedor' in c` era
+                // SIEMPRE falsa, el mapa quedaba vacío y de él colgaban en silencio el
+                // subtítulo del selector y el snapshot entero. Una cadena que no mira ningún
+                // compilador.
+                const id = extractIdStr('prestador' in t ? t.prestador : null);
+                const nombre = String(('prestadorNombre' in t ? t.prestadorNombre : null) ?? '');
+
+                if (!id && !nombre) return;
+
+                mapa.set(tid, { id, nombre });
             });
         });
 
@@ -3162,20 +3169,35 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     }
 
     /**
-     * El prestador de una tarifa del catálogo, en la forma que guarda el snapshot.
+     * Los TRES papeles de una tarifa del catálogo, en la forma que guarda el snapshot.
      *
-     * Sale de `getProveedorDeTarifa()`, que resuelve la tarifa contra su componente maestro. El
-     * comprador va vacío porque hoy no hay de dónde sacarlo, y no se inventa.
+     * Salen de la propia tarifa maestra, que desde el 20/08/2026 es donde viven. El nombre
+     * viaja plano junto al IRI (`prestadorNombre`, `compradorNombre`…) justo para esto: sin
+     * él habría que resolver una petición por tarifa sólo para congelar un texto.
+     *
+     * ⚠️ **El comprador NO cae al prestador cuando está vacío.** Aquí se congela lo que hay
+     * escrito; qué significa el vacío lo decide `CotizacionCotcomponente::resolverComprador()`
+     * en PHP. Rellenarlo aquí duplicaría esa regla y las dos copias acabarían diciendo cosas
+     * distintas.
      */
     function prestadorDeTarifaParaSnapshot(tarifa: TarifaLike): {
         prestadorMaestroId: string | null;
         prestadorNombreSnapshot: string | null;
+        prestadorServicioMaestroId: string | null;
+        prestadorServicioNombreSnapshot: string | null;
+        compradorMaestroId: string | null;
+        compradorNombreSnapshot: string | null;
     } {
-        const prov = getProveedorDeTarifa(tarifa);
+        const iri = (v: unknown): string | null => extractIdStr(v as string) || null;
+        const texto = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v : null);
 
         return {
-            prestadorMaestroId: prov?.id || null,
-            prestadorNombreSnapshot: prov?.nombre || null,
+            prestadorMaestroId: iri('prestador' in tarifa ? tarifa.prestador : null),
+            prestadorNombreSnapshot: texto('prestadorNombre' in tarifa ? tarifa.prestadorNombre : null),
+            prestadorServicioMaestroId: iri('prestadorServicio' in tarifa ? tarifa.prestadorServicio : null),
+            prestadorServicioNombreSnapshot: texto('prestadorServicioNombre' in tarifa ? tarifa.prestadorServicioNombre : null),
+            compradorMaestroId: iri('comprador' in tarifa ? tarifa.comprador : null),
+            compradorNombreSnapshot: texto('compradorNombre' in tarifa ? tarifa.compradorNombre : null),
         };
     }
 
@@ -3946,13 +3968,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             tarifa.nombreParaProveedorSnapshot = maestro.nombreParaPrestador || null;
 
-            // 🏷️ De quién es este precio. El prestador sigue viviendo en el componente
-            // maestro —eso no cambia, y por eso aquí no se pinta ningún campo—: lo que se
-            // hace es dejar de OMITIR la referencia en el snapshot, que ya congela las otras
-            // doce cosas de la tarifa.
+            // 🏷️ Los tres papeles, congelados al elegir la tarifa. No se pintan en el
+            // formulario a propósito: son referencia histórica, no campos que se editen.
             const prov = prestadorDeTarifaParaSnapshot(maestro);
             tarifa.prestadorMaestroId = prov.prestadorMaestroId;
             tarifa.prestadorNombreSnapshot = prov.prestadorNombreSnapshot;
+            tarifa.prestadorServicioMaestroId = prov.prestadorServicioMaestroId;
+            tarifa.prestadorServicioNombreSnapshot = prov.prestadorServicioNombreSnapshot;
+            tarifa.compradorMaestroId = prov.compradorMaestroId;
+            tarifa.compradorNombreSnapshot = prov.compradorNombreSnapshot;
 
             // Y si la línea todavía no tiene prestador, lo toma de la tarifa: el primero que
             // llega manda. Si ya tenía otro NO se pisa —la mezcla la avisa
