@@ -8548,12 +8548,28 @@ móvil: si una agencia reserva para cinco viajeros desde el mismo número, el hi
 agencia y las cinco reservas son cinco asuntos suyos — que es exactamente el modelo. Filtrar por
 «nombres parecidos» partiría ese caso sin ganar nada.
 
-**Los hilos `staff` quedan fuera de momento**, y no por principio: una persona que además
-trabaja aquí sigue siendo una persona, y no hay forma determinista de saber si su WhatsApp viene
-por su reserva o por su trabajo. Es que `EscalarAlEquipoSkill` busca los avisos recientes
-filtrando por `contextType = 'staff'`; al fusionar dejarían de encontrarse y **el enfriamiento
-fallaría abierto: la guardia volvería a sonar entera, de noche y sin causa evidente**. Se unen
-cuando ese filtro deje de depender del `contextType`.
+**Los hilos `staff` también se unen**, y hubo que arreglar dos cosas antes.
+
+Una persona que además trabaja aquí sigue siendo una persona, y **no hay forma determinista de
+saber si su WhatsApp viene por su reserva o por su trabajo**. Partir el hilo no resuelve esa
+ambigüedad: la esconde, y encima parte el historial. Pero fusionarlo rompía el camino de la
+guardia nocturna por dos sitios:
+
+1. **El enfriamiento del escalado.** `EscalarAlEquipoSkill` sabía si a un caso «ya se le hizo
+   sonar el teléfono» trayendo las 100 filas más recientes de las conversaciones `staff` y
+   filtrando en PHP, porque el dato vivía en `metadata['escalado_de']` y el JSON no se consulta
+   sin atar el código a la versión de MySQL. Las dos cotas fallaban: el tope de 100 se llena con
+   el tráfico normal justo el día de más carga —el enfriamiento fallaba abierto **bajo
+   volumen**— y el filtro por `contextType` se rompía al fusionar. Ahora `escalado_de` es una
+   **columna indexada** (`Version20260820320000`) y la consulta es exacta: sin tope, sin filtrar
+   en PHP y sin importar en qué hilo acabó el aviso.
+
+2. **El hilo del operador.** `conversacionStaff()` lo buscaba por `(staff, operadorId)`, así que
+   tras la fusión habría creado uno nuevo **en cada aviso**, partiendo su historial otra vez.
+   Ahora se resuelve por su **teléfono**, que es lo que sobrevive.
+
+⚠️ La columna no se rellena hacia atrás, y es correcto: el enfriamiento mira media hora, así que
+cualquier aviso anterior al despliegue ya está fuera de esa ventana.
 
 `guest_phone` **se queda**: 30 sitios la leen y el panel la pinta. Pasa a ser una copia
 denormalizada; la verdad está en `msg_identidad`.
@@ -8598,8 +8614,6 @@ Y `getEnlaces()` sale de la entidad, que es donde no debía estar: **una entidad
 
 ### Lo que queda
 
-- Que `EscalarAlEquipoSkill` deje de filtrar por `contextType`, para poder unir los 2 hilos
-  `staff` que quedan.
 - El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.
 - Que algo **cree** enlaces de Travel: la tabla existe y el núcleo ya sabe recogerlos, pero
   nadie los cuelga todavía. El sitio natural es al abrir un expediente o al emitir una

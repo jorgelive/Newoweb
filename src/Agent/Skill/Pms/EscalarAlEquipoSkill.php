@@ -15,6 +15,8 @@ use App\Agent\Skill\SkillResult;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\User;
 use App\Message\Entity\Message;
+use App\Message\Enum\IdentidadTipo;
+use App\Message\Service\Conversacion\ResolutorDeHilo;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
 use App\Pms\Entity\PmsReserva;
@@ -111,6 +113,8 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         private PmsDisponibilidadService $disponibilidad,
         private LoggerInterface $logger,
         private ConocimientoGenerico $conocimiento,
+        // Para encontrar el hilo del operador por su teléfono, que sobrevive a la fusión.
+        private ResolutorDeHilo $resolutor,
     ) {}
 
     public function nombre(): string
@@ -463,37 +467,26 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
      */
     private function yaAvisadoHacePoco(MessageConversation $origen): bool
     {
-        $desde = new \DateTimeImmutable(self::ENFRIAMIENTO);
-        $idOrigen = (string) $origen->getId();
-
-        /** @var list<Message> $recientes */
-        $recientes = $this->em->getRepository(Message::class)->createQueryBuilder('m')
-            // ⚠️ ACOTADO A LAS CONVERSACIONES DE STAFF. Sin esto el tope de filas se llena con el
-            // tráfico normal —respuestas del bot a otros huéspedes, tandas de plantillas del
-            // motor de reglas— y el aviso que se busca se cae fuera justo el día de más carga,
-            // que es cuando más avisos hay. El enfriamiento fallaría abierto y volvería a sonar
-            // toda la guardia, en silencio y sólo bajo volumen.
-            ->join('m.conversation', 'c')
-            ->andWhere('c.contextType = :staff')->setParameter('staff', self::CONTEXTO_STAFF)
-            ->andWhere('m.direction = :dir')->setParameter('dir', Message::DIRECTION_OUTGOING)
-            ->andWhere('m.createdAt >= :desde')->setParameter('desde', $desde)
+        // Consulta EXACTA sobre `escalado_de`. Antes se traían las 100 filas más recientes de
+        // las conversaciones `staff` y se filtraba en PHP, porque el dato vivía en un JSON:
+        //
+        //  - la cota de 100 se llenaba con el tráfico normal justo el día de más carga, que es
+        //    cuando más avisos hay — el enfriamiento fallaba abierto bajo volumen;
+        //  - y la cota por `contextType` ataba esto a que el hilo del operador siguiera siendo
+        //    `staff`. Al fusionar el hilo de alguien del equipo que además es huésped, sus
+        //    avisos dejaban de encontrarse y la guardia volvía a sonar entera.
+        //
+        // Con la columna no hay tope, no hay filtro en PHP y no importa en qué hilo acabó.
+        return $this->em->getRepository(Message::class)->createQueryBuilder('m')
+            ->select('COUNT(m.id)')
+            ->andWhere('m.escaladoDe = :origen')->setParameter('origen', (string) $origen->getId())
+            ->andWhere('m.createdAt >= :desde')->setParameter('desde', new \DateTimeImmutable(self::ENFRIAMIENTO))
+            // Los que fallaron no cuentan: si el aviso se quedó en el sitio, hay que volver a
+            // intentarlo.
             ->andWhere('m.status NOT IN (:muertos)')
             ->setParameter('muertos', [Message::STATUS_FAILED, Message::STATUS_CANCELLED])
-            ->orderBy('m.createdAt', 'DESC')
-            ->setMaxResults(100)
-            ->getQuery()->getResult();
-
-        foreach ($recientes as $mensaje) {
-            $metadata = $mensaje->getMetadata();
-
-            if (($metadata['aviso_escalado'] ?? false) === true
-                && ($metadata['escalado_de'] ?? null) === $idOrigen
-            ) {
-                return true;
-            }
-        }
-
-        return false;
+            ->getQuery()
+            ->getSingleScalarResult() > 0;
     }
 
     private function avisar(
@@ -520,7 +513,12 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         $mensaje->addMetadata('aviso_escalado', true);
         // De qué conversación de huésped viene. Sin esto no se puede saber si a este caso ya se
         // le hizo sonar el teléfono hace un rato, que es lo que evita el enfriamiento.
+        //
+        // En COLUMNA además de en metadata: el JSON no se consulta sin atar el código a la
+        // versión de MySQL, y esa limitación obligaba a acotar la búsqueda por `contextType`.
+        // La metadata se conserva porque la lee quien inspecciona un mensaje a mano.
         $mensaje->addMetadata('escalado_de', (string) $origen->getId());
+        $mensaje->setEscaladoDe((string) $origen->getId());
         // Para saber DE QUÉ se avisó sin releer el texto: es lo que falta cuando el enfriamiento
         // silencia un aviso y alguien pregunta después qué se calló.
         $mensaje->addMetadata('motivo_escalado', $motivo);
@@ -611,7 +609,15 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
     {
         $repo = $this->em->getRepository(MessageConversation::class);
 
-        $conversacion = $repo->findOneBy([
+        // Por el TELÉFONO primero: es lo que sobrevive a fusionar el hilo. Si alguien del
+        // equipo es además huésped, su hilo puede haber dejado de ser `staff` — y buscarlo por
+        // ahí crearía uno nuevo en cada aviso, partiendo su historial otra vez.
+        $telefono = (string) $operador->getTelefono();
+        $conversacion = $telefono !== ''
+            ? $this->resolutor->porIdentidad(IdentidadTipo::TELEFONO, $telefono)
+            : null;
+
+        $conversacion ??= $repo->findOneBy([
             'contextType' => self::CONTEXTO_STAFF,
             'contextId' => (string) $operador->getId(),
         ]);
@@ -636,6 +642,8 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         if ($idioma !== null) {
             $conversacion->setIdioma($idioma);
         }
+
+        $this->resolutor->vincular($conversacion, IdentidadTipo::TELEFONO, $telefono, 'staff');
 
         $this->em->persist($conversacion);
 

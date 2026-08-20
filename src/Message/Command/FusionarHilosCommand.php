@@ -95,7 +95,6 @@ final class FusionarHilosCommand extends Command
 
         $unidos = 0;
         $mensajesMovidos = 0;
-        $saltados = [];
 
         foreach ($grupos as $telefono => $ids) {
             // Uno a uno y no con `IN (:ids)`: el id es un BINARY(16) y enlazar un array de
@@ -114,11 +113,6 @@ final class FusionarHilosCommand extends Command
                 => ($a->getCreatedAt()?->getTimestamp() ?? 0) <=> ($b->getCreatedAt()?->getTimestamp() ?? 0));
 
             if (count($hilos) < 2) {
-                continue;
-            }
-
-            if (($motivo = $this->motivoParaNoUnir($hilos)) !== null) {
-                $saltados[] = [$telefono, count($hilos), $motivo];
                 continue;
             }
 
@@ -147,11 +141,6 @@ final class FusionarHilosCommand extends Command
 
             ++$unidos;
             $mensajesMovidos += $mensajes;
-        }
-
-        if ($saltados !== []) {
-            $io->section('Sin unir, para revisar a mano');
-            $io->table(['Teléfono', 'Hilos', 'Motivo'], $saltados);
         }
 
         if ($aplicar) {
@@ -235,22 +224,6 @@ final class FusionarHilosCommand extends Command
             substr($hex, 16, 4),
             substr($hex, 20)
         ));
-    }
-
-    /**
-     * Por qué este grupo no se toca, o `null` si se puede unir.
-     *
-     * @param list<MessageConversation> $hilos
-     */
-    private function motivoParaNoUnir(array $hilos): ?string
-    {
-        foreach ($hilos as $hilo) {
-            if ($hilo->getContextType() === 'staff') {
-                return 'hay un hilo staff: rompería el enfriamiento del escalado';
-            }
-        }
-
-        return null;
     }
 
     /**

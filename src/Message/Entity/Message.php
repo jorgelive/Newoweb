@@ -34,6 +34,8 @@ use App\Message\Contract\MessageQueueItemInterface;
 #[ORM\Index(columns: ['status'], name: 'idx_msg_status')]
 #[ORM\Index(columns: ['direction'], name: 'idx_msg_direction')]
 #[ORM\Index(columns: ['asunto_type', 'asunto_id'], name: 'idx_msg_asunto')]
+// El enfriamiento del escalado consulta por (escalado_de, created_at) en CADA escalado.
+#[ORM\Index(columns: ['escalado_de', 'created_at'], name: 'idx_msg_escalado_de')]
 #[ORM\HasLifecycleCallbacks]
 #[ValidTemplateScope]
 #[ApiResource(
@@ -171,6 +173,27 @@ class Message
     /** La otra mitad del par. Ver {@see self::$asuntoType}. */
     #[ORM\Column(name: 'asunto_id', type: 'string', length: 100, nullable: true)]
     private ?string $asuntoId = null;
+
+    /**
+     * Si este mensaje es un AVISO a la guardia, de qué conversación se escaló.
+     *
+     * ## Por qué una columna y no la metadata
+     *
+     * El dato ya estaba —en `metadata['escalado_de']`— pero JSON no se puede consultar sin atar
+     * el código a la versión de MySQL, así que {@see \App\Agent\Skill\Pms\EscalarAlEquipoSkill}
+     * traía **las 100 filas más recientes de las conversaciones `staff`** y filtraba en PHP.
+     *
+     * Esa cota por `contextType` es el problema: al fusionar el hilo de alguien del equipo que
+     * además es huésped, sus avisos dejan de encontrarse y **el enfriamiento falla abierto — la
+     * guardia vuelve a sonar entera, de noche y sin causa evidente**.
+     *
+     * Con la columna la consulta es exacta: sin tope de filas, sin filtrar en PHP y sin depender
+     * de en qué tipo de hilo acabó el mensaje.
+     *
+     * `null` en todo lo que no sea un aviso, que es la inmensa mayoría.
+     */
+    #[ORM\Column(name: 'escalado_de', type: 'string', length: 36, nullable: true)]
+    private ?string $escaladoDe = null;
 
     /** @var Collection<int, WhatsappMetaSendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappMetaSendQueue::class, cascade: ['persist', 'remove'])]
@@ -377,6 +400,9 @@ class Message
 
     public function getRule(): ?MessageRule { return $this->rule; }
     public function setRule(?MessageRule $rule): self { $this->rule = $rule; return $this; }
+
+    public function getEscaladoDe(): ?string { return $this->escaladoDe; }
+    public function setEscaladoDe(?string $v): self { $this->escaladoDe = $v; return $this; }
 
     public function getAsuntoType(): ?string { return $this->asuntoType; }
     public function getAsuntoId(): ?string { return $this->asuntoId; }
