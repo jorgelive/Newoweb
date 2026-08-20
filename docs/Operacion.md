@@ -257,6 +257,30 @@ en PHP. No hay conexión persistente, ni regla que ya exista en TypeScript, ni f
 los tres motivos que lo justificarían están ausentes. La única pieza que encajaría algún día es
 la maquetación de un PDF, que calcula y no persiste.
 
+#### Qué está probado, y un fallo que salió al probarlo
+
+45 tests unitarios, sin contenedor ni base:
+
+| Archivo | Cubre |
+|---|---|
+| `BibliaReconciliacionTest` | el **sincronizador**: crear, sin cambios, actualizar, huérfano, y las dos ramas del conflicto |
+| `OperacionOrdenEmisionTest` | las reglas de `validar()` y la máquina de estados |
+| `OperacionOrdenDivergenciaTest` | congelar al emitir, la suciedad y la anulación |
+
+El sincronizador se prueba **simulando su única consulta**: `planificar()` sólo toca la base
+para traer las filas de los cotservicios, así que con un stub del repositorio queda toda la
+lógica de comparación al descubierto. Hasta ahora no tenía ninguna prueba.
+
+⚠️ **`createStub` y no `createMock`.** `phpunit.dist.xml` lleva `failOnNotice="true"`, y un mock
+sin expectativas dispara un aviso que tumba la suite — con razón: anuncia una comprobación que
+no existe.
+
+**El fallo que encontraron:** en `EmitirOrdenProcessor`, `validar()` corría **antes** de anular
+la orden anterior. Como `validar()` rechaza un servicio que ya esté en otra orden y al reemitir
+las filas siguen atadas a la que se sustituye, reemitir en una sola llamada fallaba **siempre**
+con «ya está en la orden OS-014» — la orden que uno mismo acababa de pedir que se anulara. El
+orden de esas dos líneas no era cosmético.
+
 #### Lo que queda pendiente
 
 El aviso al proveedor al emitir. Va **después del flush y en asíncrono**: si fuera dentro, una

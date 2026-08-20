@@ -49,6 +49,14 @@ final readonly class EmitirOrdenProcessor implements ProcessorInterface
         }
 
         $servicios = $this->cargar($data->servicioIds);
+
+        // ⚠️ La anulación va ANTES de validar, y el orden no es cosmético: `validar()` rechaza
+        // un servicio que ya esté en otra orden, y al reemitir las filas siguen atadas a la
+        // que se sustituye. Validando primero, reemitir fallaba SIEMPRE con «ya está en la
+        // orden OS-014» — la orden que uno mismo acaba de pedir que se anule.
+        $anterior = $this->anteriorAAnular($data->reemplazaAId);
+        $anterior !== null && $this->emision->anular($anterior);
+
         $this->emision->validar($servicios);
 
         $orden = new OperacionOrdenServicio();
@@ -66,13 +74,9 @@ final readonly class EmitirOrdenProcessor implements ProcessorInterface
         }
 
         // Reemitir = anular la anterior y crear la sucesora. Nunca reescribir el documento
-        // que el proveedor ya tiene.
-        if ($data->reemplazaAId !== null && Uuid::isValid($data->reemplazaAId)) {
-            $anterior = $this->em->find(OperacionOrdenServicio::class, Uuid::fromString($data->reemplazaAId));
-            if ($anterior instanceof OperacionOrdenServicio) {
-                $this->emision->anular($anterior, $orden);
-            }
-        }
+        // que el proveedor ya tiene. La anulación ya ocurrió arriba; aquí sólo se deja escrita
+        // la cadena, que es lo que se consulta cuando un proveedor reclama.
+        $orden->setReemplazaA($anterior);
 
         if (!$data->soloBorrador) {
             $this->emision->emitir($orden);
@@ -82,6 +86,18 @@ final readonly class EmitirOrdenProcessor implements ProcessorInterface
         $this->em->flush();
 
         return $orden;
+    }
+
+    /** La orden que se sustituye, si se está reemitiendo. */
+    private function anteriorAAnular(?string $id): ?OperacionOrdenServicio
+    {
+        if ($id === null || !Uuid::isValid($id)) {
+            return null;
+        }
+
+        $anterior = $this->em->find(OperacionOrdenServicio::class, Uuid::fromString($id));
+
+        return $anterior instanceof OperacionOrdenServicio ? $anterior : null;
     }
 
     /**
