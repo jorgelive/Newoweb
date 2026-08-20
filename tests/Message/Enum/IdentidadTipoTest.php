@@ -35,7 +35,7 @@ final class IdentidadTipoTest extends TestCase
 
     #[Test]
     #[DataProvider('telefonos')]
-    public function elTelefonoSeQuedaEnDigitosYMas(string $entrada, string $esperado): void
+    public function elTelefonoSeQuedaSoloEnDigitos(string $entrada, string $esperado): void
     {
         self::assertSame($esperado, IdentidadTipo::TELEFONO->normalizar($entrada));
     }
@@ -43,11 +43,31 @@ final class IdentidadTipoTest extends TestCase
     /** @return iterable<string, array{string, string}> */
     public static function telefonos(): iterable
     {
-        yield 'ya limpio' => ['+51984123456', '+51984123456'];
-        yield 'con espacios' => ['+51 984 123 456', '+51984123456'];
-        yield 'con guiones' => ['+51-984-123-456', '+51984123456'];
-        yield 'con paréntesis' => ['(+51) 984 123456', '+51984123456'];
         yield 'como lo manda WhatsApp' => ['51984123456', '51984123456'];
+        yield 'con el más delante' => ['+51984123456', '51984123456'];
+        yield 'con espacios' => ['+51 984 123 456', '51984123456'];
+        yield 'con guiones' => ['+51-984-123-456', '51984123456'];
+        yield 'con paréntesis' => ['(+51) 984 123456', '51984123456'];
+    }
+
+    /**
+     * ⚠️ **El `+` se descarta, y ese detalle importa.**
+     *
+     * Se conservaba, y era una partición esperando: `+51984123456` y `51984123456` son el mismo
+     * número y daban DOS identidades — o sea dos hilos para la misma persona, que es justo lo
+     * que esta tabla vino a impedir.
+     *
+     * No saltó nunca porque todos los valores entraron por el mismo sitio: en producción no hay
+     * ni uno con `+` (0 de 280 identidades, 0 de 298 teléfonos de reserva). La puerta la abre el
+     * editor manual, donde alguien lo teclea como se dice.
+     */
+    #[Test]
+    public function elMismoNumeroConYSinElMasEsElMismo(): void
+    {
+        self::assertSame(
+            IdentidadTipo::TELEFONO->normalizar('51984123456'),
+            IdentidadTipo::TELEFONO->normalizar('+51 984 123 456')
+        );
     }
 
     /**
@@ -59,7 +79,7 @@ final class IdentidadTipoTest extends TestCase
     public function elPrefijoNoSeAdivinaAlNormalizar(): void
     {
         self::assertNotSame(
-            IdentidadTipo::TELEFONO->normalizar('+51984123456'),
+            IdentidadTipo::TELEFONO->normalizar('+51 984 123 456'),
             IdentidadTipo::TELEFONO->normalizar('984123456')
         );
     }

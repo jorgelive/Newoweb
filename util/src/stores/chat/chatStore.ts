@@ -679,6 +679,85 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     /**
+     * Añade un identificador a la persona del chat abierto.
+     *
+     * ⚠️ Devuelve el MENSAJE de error del backend cuando lo hay, y no un genérico: el caso que
+     * importa es «ese número ya es de otra conversación», que no es un dato mal escrito sino
+     * una fusión, y el operador tiene que leer cuál es la otra persona para decidir.
+     *
+     * @param {string} tipo `telefono` | `email` | `beds24`.
+     * @param {string} valor El identificador tal como lo teclea el operador; se normaliza en el
+     *                       backend, que es el único sitio donde se normaliza.
+     * @returns {Promise<string | null>} `null` si fue bien; el motivo si no.
+     */
+    const anadirIdentidad = async (tipo: string, valor: string): Promise<string | null> => {
+        const id = uuidOf(currentConversation.value);
+        if (!id) return 'No hay ninguna conversación abierta.';
+
+        try {
+            await apiClient.post(`/platform/message/conversations/${id}/identidades`, { tipo, valor });
+            await refrescarConversacion(id);
+
+            return null;
+        } catch (e: unknown) {
+            return mensajeDeError(e) ?? 'No se pudo añadir el identificador.';
+        }
+    };
+
+    /**
+     * Marca principal, veta / levanta el veto, o retira un identificador.
+     *
+     * `retirada` NO borra: el identificador sigue resolviendo el historial y deja de ser salida.
+     *
+     * @param {string} identidadId UUID de la identidad.
+     * @param {object} cambios Campos a aplicar; los omitidos no se tocan.
+     * @returns {Promise<string | null>} `null` si fue bien; el motivo si no.
+     */
+    const cambiarIdentidad = async (
+        identidadId: string,
+        cambios: { principal?: boolean; bloqueado?: boolean; retirada?: boolean },
+    ): Promise<string | null> => {
+        const id = uuidOf(currentConversation.value);
+        if (!id) return 'No hay ninguna conversación abierta.';
+
+        try {
+            await apiClient.patch(`/platform/message/conversations/${id}/identidades/${identidadId}`, cambios);
+            await refrescarConversacion(id);
+
+            return null;
+        } catch (e: unknown) {
+            return mensajeDeError(e) ?? 'No se pudo cambiar el identificador.';
+        }
+    };
+
+    /**
+     * Recarga la conversación tras tocar sus identidades.
+     *
+     * Hace falta porque cambiar una identidad puede mover el veto del HILO —queda bloqueado sólo
+     * si todos sus teléfonos vivos lo están—, y ese flag lo pinta la barra de canales. Se
+     * refrescan también los canales por lo mismo.
+     */
+    const refrescarConversacion = async (id: string): Promise<void> => {
+        const { data } = await apiClient.get(`/platform/message/conversations/${id}`);
+
+        if (uuidOf(currentConversation.value) !== id) return;
+
+        currentConversation.value = data;
+
+        const enLista = conversations.value.findIndex(c => uuidOf(c) === id);
+        if (enLista !== -1) conversations.value[enLista] = data;
+
+        await fetchCanales(id, asuntoElegido.value);
+    };
+
+    /** El texto que manda el backend en `{"error": "…"}`, si vino. */
+    const mensajeDeError = (e: unknown): string | null => {
+        const cuerpo = (e as { response?: { data?: { error?: string } } })?.response?.data;
+
+        return typeof cuerpo?.error === 'string' ? cuerpo.error : null;
+    };
+
+    /**
      * Cambia el asunto destino y vuelve a preguntar los canales: no son los mismos.
      *
      * Es el punto del que cuelga todo lo demás — un expediente de viaje no sale por Beds24 y
@@ -913,6 +992,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, anadirIdentidad, cambiarIdentidad, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
     };
 });

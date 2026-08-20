@@ -14,6 +14,78 @@ const saving = ref(false);
 const deleting = ref(false);
 const errorMsg = ref('');
 
+// ══ IDENTIFICADORES ════════════════════════════════════════════════════════
+// Son de la PERSONA, no de la reserva: la misma gente vuelve, y repetirlos por reserva se
+// contradice solo. El backend los normaliza y valida —aquí no se toca el valor— porque la
+// normalización tiene que ser LA MISMA que la de la resolución de hilos, o se parten en dos.
+
+const nuevoTipo = ref('telefono');
+const nuevoValor = ref('');
+const errorIdent = ref('');
+const ocupado = ref(false);
+
+/** Vienen serializadas con la conversación (`conversation:read`). */
+interface IdentidadDelPanel {
+  id: string;
+  tipo: string;
+  valor: string;
+  principal: boolean;
+  bloqueado: boolean;
+  bloqueadoMotivo: string | null;
+  retirada: boolean;
+}
+
+const identidades = computed<IdentidadDelPanel[]>(() => {
+  const filas = (props.conversation as unknown as { identidades?: unknown[] }).identidades ?? [];
+
+  return filas.map(f => {
+    const i = f as Record<string, unknown>;
+
+    return {
+      id: uuidDe(i) ?? '',
+      tipo: String(i.tipo ?? 'telefono'),
+      valor: String(i.valor ?? ''),
+      principal: i.principal === true,
+      bloqueado: i.bloqueado === true,
+      bloqueadoMotivo: typeof i.bloqueadoMotivo === 'string' ? i.bloqueadoMotivo : null,
+      // `retiradoEn` viaja en `conversation:read`: una retirada se pinta tachada y sin
+      // acciones, no desaparece. Que siga a la vista es el punto — sigue resolviendo el
+      // historial, y esconderla haría creer que se borró.
+      retirada: i.retiradoEn != null,
+    };
+  });
+});
+
+const anadir = async () => {
+  if (!nuevoValor.value.trim()) return;
+
+  ocupado.value = true;
+  errorIdent.value = await store.anadirIdentidad(nuevoTipo.value, nuevoValor.value) ?? '';
+  ocupado.value = false;
+
+  if (!errorIdent.value) nuevoValor.value = '';
+};
+
+const cambiar = async (id: string, cambios: { principal?: boolean; bloqueado?: boolean; retirada?: boolean }) => {
+  ocupado.value = true;
+  errorIdent.value = await store.cambiarIdentidad(id, cambios) ?? '';
+  ocupado.value = false;
+};
+
+/**
+ * Retirar NO borra: el identificador sigue resolviendo el historial y deja de ser salida.
+ * Se confirma porque afecta a TODOS los asuntos de esa persona, no sólo a la reserva desde la
+ * que se abrió el chat.
+ */
+const retirar = async (ident: IdentidadDelPanel) => {
+  const aviso = `¿Retirar ${ident.valor}?\n\nDeja de usarse para escribir a esta persona en TODOS sus asuntos. `
+    + 'Los mensajes que lleguen desde ese número seguirán entrando en este hilo.';
+
+  if (!window.confirm(aviso)) return;
+
+  await cambiar(ident.id, { retirada: true });
+};
+
 const STATUS_OPTIONS = [
   { value: 'open', label: 'Abierta' },
   { value: 'closed', label: 'Cerrada' },
@@ -156,6 +228,72 @@ const formatDateTime = (iso?: string | null) => {
             </label>
             <input v-if="form.whatsappDisabled" v-model="form.whatsappDisabledReason" type="text" placeholder="Motivo"
                    class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
+          </div>
+
+          <!-- ══ IDENTIFICADORES DE LA PERSONA ══════════════════════════════
+               Por dónde se le reconoce y por dónde se le escribe. Vive aquí y no en la
+               reserva porque son de la PERSONA: la misma gente vuelve, y repetirlos por
+               reserva se contradice solo. Ver docs/Mensajeria.md §24. -->
+          <div class="pt-4 border-t border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identificadores</h3>
+              <span class="text-[9px] font-bold text-slate-300 uppercase">de la persona, no de la reserva</span>
+            </div>
+
+            <p v-if="!identidades.length" class="text-xs text-slate-400 font-bold mb-2">Ninguno todavía.</p>
+
+            <ul class="flex flex-col gap-1.5 mb-3">
+              <li v-for="ident in identidades" :key="ident.id"
+                  class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
+                <i class="text-slate-400 text-[11px] w-3.5 text-center"
+                   :class="ident.tipo === 'email' ? 'fas fa-envelope' : ident.tipo === 'beds24' ? 'fas fa-bed' : 'fas fa-mobile-screen'"></i>
+
+                <span class="flex-1 text-xs font-bold truncate"
+                      :class="ident.retirada ? 'text-slate-300 line-through' : 'text-slate-700'">{{ ident.valor }}</span>
+
+                <span v-if="ident.principal" class="text-[8px] font-black text-[#376875] bg-[#376875]/10 px-1.5 py-0.5 rounded uppercase">Principal</span>
+                <span v-if="ident.bloqueado" :title="ident.bloqueadoMotivo || 'Bloqueado'"
+                      class="text-[8px] font-black text-red-600 bg-red-50 px-1.5 py-0.5 rounded uppercase">Vetado</span>
+
+                <template v-if="!ident.retirada">
+                  <button v-if="!ident.principal" @click="cambiar(ident.id, { principal: true })" :disabled="ocupado"
+                          title="Marcar como salida por defecto"
+                          class="w-6 h-6 rounded-lg text-slate-300 hover:text-[#376875] hover:bg-slate-100 disabled:opacity-40">
+                    <i class="fas fa-star text-[10px]"></i>
+                  </button>
+                  <button @click="cambiar(ident.id, { bloqueado: !ident.bloqueado })" :disabled="ocupado"
+                          :title="ident.bloqueado ? 'Levantar el veto de este número' : 'Vetar sólo este número'"
+                          class="w-6 h-6 rounded-lg hover:bg-slate-100 disabled:opacity-40"
+                          :class="ident.bloqueado ? 'text-red-500 hover:text-green-600' : 'text-slate-300 hover:text-red-500'">
+                    <i class="fas text-[10px]" :class="ident.bloqueado ? 'fa-circle-check' : 'fa-ban'"></i>
+                  </button>
+                  <button @click="retirar(ident)" :disabled="ocupado"
+                          title="Retirar: deja de ser salida, pero sigue resolviendo el historial"
+                          class="w-6 h-6 rounded-lg text-slate-300 hover:text-red-500 hover:bg-slate-100 disabled:opacity-40">
+                    <i class="fas fa-xmark text-[11px]"></i>
+                  </button>
+                </template>
+                <button v-else @click="cambiar(ident.id, {})" disabled
+                        title="Retirada. Para reactivarla, vuelve a añadir el mismo valor."
+                        class="w-6 h-6 rounded-lg text-slate-200"><i class="fas fa-clock-rotate-left text-[10px]"></i></button>
+              </li>
+            </ul>
+
+            <div class="flex gap-1.5">
+              <select v-model="nuevoTipo"
+                      class="bg-white border border-slate-300 rounded-xl px-2 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[#376875]">
+                <option value="telefono">Teléfono</option>
+                <option value="email">Correo</option>
+              </select>
+              <input v-model="nuevoValor" type="text" placeholder="Añadir identificador" @keyup.enter="anadir"
+                     class="flex-1 min-w-0 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[#376875]">
+              <button @click="anadir" :disabled="ocupado || !nuevoValor.trim()"
+                      class="px-3 py-2 bg-[#376875] text-white rounded-xl text-xs font-black disabled:opacity-40">
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+
+            <p v-if="errorIdent" class="text-[11px] font-bold text-red-500 mt-2 leading-snug">{{ errorIdent }}</p>
           </div>
 
           <p v-if="errorMsg" class="text-xs font-bold text-red-500">{{ errorMsg }}</p>

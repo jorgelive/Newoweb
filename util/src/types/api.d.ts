@@ -204,6 +204,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/message/conversations/{id}/identidades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Añade un identificador
+         * @description Añade un teléfono o correo a la persona, o revive el que estaba retirado. 409 si el valor ya pertenece a otra conversación.
+         */
+        post: operations["api_messageconversations_ididentidades_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/message/conversations/{id}/identidades/{identidad}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Cambia un identificador
+         * @description Marca principal, veta o levanta el veto, o retira. Retirar NO borra: el identificador sigue resolviendo el historial y deja de ser salida.
+         */
+        patch: operations["api_messageconversations_ididentidades_identidad_patch"];
+        trace?: never;
+    };
     "/platform/message/conversations/{id}/read": {
         parameters: {
             query?: never;
@@ -3733,7 +3773,10 @@ export interface components {
             guestName?: string | null;
             /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
-            /** @default false */
+            /**
+             * @description El interruptor manual del panel — y tiene que llegar a las IDENTIDADES, no sólo al espejo.
+             * @default false
+             */
             whatsappDisabled: boolean;
             whatsappDisabledReason?: string | null;
             /**
@@ -3802,6 +3845,7 @@ export interface components {
             readonly contextFinancialTotal?: number | null;
             readonly contextFinancialIsCleared?: boolean;
             contextFinancials?: number | null;
+            readonly telefonoPrincipal?: components["schemas"]["MessageIdentidad"] | null;
         };
         "Conversation-conversation.read": {
             /** @default open */
@@ -3811,7 +3855,10 @@ export interface components {
             guestName?: string | null;
             /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
-            /** @default false */
+            /**
+             * @description El interruptor manual del panel — y tiene que llegar a las IDENTIDADES, no sólo al espejo.
+             * @default false
+             */
             whatsappDisabled: boolean;
             whatsappDisabledReason?: string | null;
             /**
@@ -3869,7 +3916,10 @@ export interface components {
             guestName?: string | null;
             /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
-            /** @default false */
+            /**
+             * @description El interruptor manual del panel — y tiene que llegar a las IDENTIDADES, no sólo al espejo.
+             * @default false
+             */
             whatsappDisabled: boolean;
             whatsappDisabledReason?: string | null;
             /**
@@ -3888,7 +3938,10 @@ export interface components {
             guestName?: string | null;
             /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
-            /** @default false */
+            /**
+             * @description El interruptor manual del panel — y tiene que llegar a las IDENTIDADES, no sólo al espejo.
+             * @default false
+             */
             whatsappDisabled: boolean;
             whatsappDisabledReason?: string | null;
             /**
@@ -3940,6 +3993,88 @@ export interface components {
             readonly contextFinancialTotal?: number | null;
             readonly contextFinancialIsCleared?: boolean;
         };
+        "Conversation.jsonMergePatch": {
+            /** @default open */
+            status: string;
+            contextType?: string;
+            contextId?: string;
+            guestName?: string | null;
+            /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
+            guestPhone?: string | null;
+            /**
+             * @description El interruptor manual del panel — y tiene que llegar a las IDENTIDADES, no sólo al espejo.
+             * @default false
+             */
+            whatsappDisabled: boolean;
+            whatsappDisabledReason?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma?: string;
+            /** @default false */
+            idiomaFijado: boolean;
+            /**
+             * @description Resumen en una línea de lo que el huésped ha escrito DESDE LA ÚLTIMA RESPUESTA
+             *     del equipo. Lo genera la IA en segundo plano; ver ResumenConversacionService.
+             */
+            resumenIa?: string | null;
+            /**
+             * Format: date-time
+             * @description Fecha del mensaje más reciente que YA está reflejado en `resumenIa`.
+             */
+            resumenIaHasta?: string | null;
+            /** Format: date-time */
+            lastMessageAt?: string | null;
+            /** Format: date-time */
+            lastInboundAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Puntero exacto para la ventana de servicio de 24 horas de WhatsApp (Meta).
+             */
+            whatsappSessionValidUntil?: string | null;
+            /** @default 0 */
+            unreadCount: number;
+            /** @description Espejo del activo: hitos, ítems, financieros. Ver `docs/Mensajeria.md`. */
+            contextData?: {
+                [key: string]: string | null;
+            } | null;
+            messages?: string[];
+            identidades?: components["schemas"]["MessageIdentidad"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta. */
+            readonly whatsappSessionActive?: boolean;
+            contextOrigin?: string | null;
+            /**
+             * @description Agencia mayorista dueña del contexto. Alimenta el filtro `allowedAgencies`
+             *     de MessageRule::matchesSegmentation().
+             */
+            contextAgency?: string | null;
+            contextStatusTag?: string | null;
+            /**
+             * @description El vínculo que declaró el contexto, o `null` en conversaciones anteriores al campo.
+             * @enum {string|null}
+             */
+            contextVinculo?: "ninguno" | "interesado" | "cliente" | "terminado" | null;
+            /**
+             * @description La forma persistida y la que sale por la API. No cambia de tipo: `conversation:read` la
+             *     serializa tal cual y el front la consume así.
+             */
+            contextMilestones?: {
+                [key: string]: string;
+            };
+            mapaDeHitos?: components["schemas"]["MapaDeHitos"];
+            contextItems?: string[];
+            readonly contextFinancialTotal?: number | null;
+            readonly contextFinancialIsCleared?: boolean;
+            contextFinancials?: number | null;
+            readonly telefonoPrincipal?: components["schemas"]["MessageIdentidad"] | null;
+        };
         "Conversation.jsonld-conversation.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @default open */
             status: string;
@@ -3948,7 +4083,10 @@ export interface components {
             guestName?: string | null;
             /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
-            /** @default false */
+            /**
+             * @description El interruptor manual del panel — y tiene que llegar a las IDENTIDADES, no sólo al espejo.
+             * @default false
+             */
             whatsappDisabled: boolean;
             whatsappDisabledReason?: string | null;
             /**
@@ -4008,7 +4146,10 @@ export interface components {
             guestName?: string | null;
             /** @description Cambiar el teléfono LEVANTA el bloqueo de WhatsApp. */
             guestPhone?: string | null;
-            /** @default false */
+            /**
+             * @description El interruptor manual del panel — y tiene que llegar a las IDENTIDADES, no sólo al espejo.
+             * @default false
+             */
             whatsappDisabled: boolean;
             whatsappDisabledReason?: string | null;
             /**
@@ -13167,6 +13308,23 @@ export interface components {
             valor?: string;
             /** @description Cómo llegó aquí: `whatsapp`, `beds24`, `migracion`, `manual`. */
             origen?: string | null;
+            /**
+             * @description El canal está vetado PARA ESTE NÚMERO.
+             * @default false
+             */
+            readonly bloqueado: boolean;
+            /** @description El error de Meta que lo vetó, tal cual, para que se pueda juzgar si fue real. */
+            readonly bloqueadoMotivo?: string | null;
+            /**
+             * @description La salida por defecto cuando la persona tiene varios identificadores del mismo tipo.
+             * @default false
+             */
+            principal: boolean;
+            /**
+             * Format: date-time
+             * @description Retirada: sigue resolviendo el historial, deja de ser salida. **Es una lápida.**
+             */
+            readonly retiradoEn?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -13181,6 +13339,23 @@ export interface components {
             valor?: string;
             /** @description Cómo llegó aquí: `whatsapp`, `beds24`, `migracion`, `manual`. */
             origen?: string | null;
+            /**
+             * @description El canal está vetado PARA ESTE NÚMERO.
+             * @default false
+             */
+            readonly bloqueado: boolean;
+            /** @description El error de Meta que lo vetó, tal cual, para que se pueda juzgar si fue real. */
+            readonly bloqueadoMotivo?: string | null;
+            /**
+             * @description La salida por defecto cuando la persona tiene varios identificadores del mismo tipo.
+             * @default false
+             */
+            principal: boolean;
+            /**
+             * Format: date-time
+             * @description Retirada: sigue resolviendo el historial, deja de ser salida. **Es una lápida.**
+             */
+            readonly retiradoEn?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -13191,6 +13366,23 @@ export interface components {
             valor?: string;
             /** @description Cómo llegó aquí: `whatsapp`, `beds24`, `migracion`, `manual`. */
             origen?: string | null;
+            /**
+             * @description El canal está vetado PARA ESTE NÚMERO.
+             * @default false
+             */
+            readonly bloqueado: boolean;
+            /** @description El error de Meta que lo vetó, tal cual, para que se pueda juzgar si fue real. */
+            readonly bloqueadoMotivo?: string | null;
+            /**
+             * @description La salida por defecto cuando la persona tiene varios identificadores del mismo tipo.
+             * @default false
+             */
+            principal: boolean;
+            /**
+             * Format: date-time
+             * @description Retirada: sigue resolviendo el historial, deja de ser salida. **Es una lápida.**
+             */
+            readonly retiradoEn?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -13201,6 +13393,23 @@ export interface components {
             valor?: string;
             /** @description Cómo llegó aquí: `whatsapp`, `beds24`, `migracion`, `manual`. */
             origen?: string | null;
+            /**
+             * @description El canal está vetado PARA ESTE NÚMERO.
+             * @default false
+             */
+            readonly bloqueado: boolean;
+            /** @description El error de Meta que lo vetó, tal cual, para que se pueda juzgar si fue real. */
+            readonly bloqueadoMotivo?: string | null;
+            /**
+             * @description La salida por defecto cuando la persona tiene varios identificadores del mismo tipo.
+             * @default false
+             */
+            principal: boolean;
+            /**
+             * Format: date-time
+             * @description Retirada: sigue resolviendo el historial, deja de ser salida. **Es una lápida.**
+             */
+            readonly retiradoEn?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -13211,6 +13420,23 @@ export interface components {
             valor?: string;
             /** @description Cómo llegó aquí: `whatsapp`, `beds24`, `migracion`, `manual`. */
             origen?: string | null;
+            /**
+             * @description El canal está vetado PARA ESTE NÚMERO.
+             * @default false
+             */
+            readonly bloqueado: boolean;
+            /** @description El error de Meta que lo vetó, tal cual, para que se pueda juzgar si fue real. */
+            readonly bloqueadoMotivo?: string | null;
+            /**
+             * @description La salida por defecto cuando la persona tiene varios identificadores del mismo tipo.
+             * @default false
+             */
+            principal: boolean;
+            /**
+             * Format: date-time
+             * @description Retirada: sigue resolviendo el historial, deja de ser salida. **Es una lápida.**
+             */
+            readonly retiradoEn?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -29751,6 +29977,140 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_messageconversations_ididentidades_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Conversation identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new Conversation resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Conversation"];
+                "application/json": components["schemas"]["Conversation"];
+                "text/html": components["schemas"]["Conversation"];
+                "multipart/form-data": components["schemas"]["Conversation"];
+            };
+        };
+        responses: {
+            /** @description Conversation resource created */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_messageconversations_ididentidades_identidad_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Conversation identifier */
+                id: string;
+                /** @description Conversation identifier */
+                identidad: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Conversation resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["Conversation.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description Conversation resource updated */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };

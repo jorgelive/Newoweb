@@ -127,6 +127,7 @@ class MessageIdentidad
      *
      * O sea: «no se borra, se marca» deja de ser filosofía y pasa a ser el mecanismo.
      */
+    #[Groups(['conversation:read'])]
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?DateTimeImmutable $retiradoEn = null;
 
@@ -176,6 +177,23 @@ class MessageIdentidad
 
     /** ¿Sigue siendo una salida válida? Una retirada resuelve, pero no se le escribe. */
     public function estaViva(): bool { return $this->retiradoEn === null; }
+
+    /**
+     * Levanta la lápida. **Sólo por decisión de una persona.**
+     *
+     * La retirada frena al DOMINIO, que re-registra los identificadores en cada recálculo sin
+     * criterio propio. A quien decide a mano no tiene por qué frenarlo: volver a añadir un
+     * número retirado es rectificar, y eso tiene que poder hacerse.
+     *
+     * No lleva `principal`: revivir un identificador no lo convierte en la salida por defecto,
+     * que es otra decisión y se toma aparte.
+     */
+    public function revivir(): self
+    {
+        $this->retiradoEn = null;
+
+        return $this;
+    }
 
     /** Retirar es idempotente: la fecha de la PRIMERA retirada es la que cuenta. */
     public function retirar(DateTimeImmutable $cuando): self

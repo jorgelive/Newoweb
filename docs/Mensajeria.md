@@ -8651,6 +8651,49 @@ retirar un número sería imposible. Con la fila presente, `addIdentidad()` dedu
 vetos vivos es una decisión de persona y se hace mirando la prueba de vida, no dentro de una
 migración.
 
+### El editor de identificadores
+
+Hasta ahora los identificadores sólo **entraban** —`upsertFromContext()` los registra en cada
+recálculo— y no salían nunca. Sin una salida, dos casos reales no tienen arreglo posible:
+
+1. **El número mal tecleado.** Meta rechaza el envío y ese número se queda reclamando el hilo
+   para siempre. Y si pertenece a una persona real, su WhatsApp entra en el hilo del huésped.
+2. **La persona con dos móviles**, uno muerto y otro vivo.
+
+Las reglas viven en `EditorDeIdentidades` —el panel es un cliente más, y el comando de fusión y
+alguna skill van a querer las mismas— y se exponen en dos acciones:
+
+```
+POST  /conversations/{id}/identidades                  añadir (o revivir una retirada)
+PATCH /conversations/{id}/identidades/{identidad}      principal · bloqueado · retirada
+```
+
+| Acción | Qué hace |
+|---|---|
+| **principal** | Marca la salida por defecto y **quita la marca a las demás de su tipo**. Con dos principales habría que elegir por orden de llegada, que no es una decisión: es un accidente reproducible |
+| **bloqueado** | Veta o levanta el veto **de ese número**, y recalcula el espejo del hilo |
+| **retirada** | Deja de ser salida; **sigue resolviendo el historial** |
+
+⚠️ **Añadir un valor que ya es de otro hilo devuelve `409`, no `500`.** `(tipo, valor)` es único:
+moverlo sería robárselo al otro y dejar su historial mudo, y si de verdad son la misma persona lo
+que toca es **fundir**, que decide una persona (`app:message:fusionar-hilos`). Sin ese corte, el
+operador que hacía lo correcto se comía una violación de unicidad. El mensaje nombra a la otra
+persona para que pueda decidir.
+
+⚠️ **Volver a añadir uno retirado lo REVIVE.** La lápida frena al *dominio*, que re-registra sin
+criterio propio; a quien rectifica a mano no tiene por qué frenarlo.
+
+⚠️ **El editor obligó a arreglar la normalización.** `IdentidadTipo::normalizar()` conservaba el
+`+`, así que `+51984123456` y `51984123456` eran **dos identidades del mismo número** — dos hilos
+para la misma persona, justo lo que la tabla vino a impedir. No había saltado nunca porque todos
+los valores entraron por el mismo sitio: **0 de 280 identidades y 0 de 298 teléfonos de reserva
+llevan `+`**. La puerta la abre el editor manual, donde alguien lo teclea como se dice. Ahora se
+descartan todos los símbolos.
+
+⚠️ **La retirada se pinta tachada, no desaparece.** Esconderla haría creer que se borró, y no:
+sigue resolviendo el historial. Y el aviso de confirmación dice lo que de verdad pasa — afecta a
+**todos los asuntos de esa persona**, no sólo a la reserva desde la que se abrió el chat.
+
 ### Los asuntos: cada dominio los aporta, el núcleo no los conoce
 
 Hoy hay dos, y añadir el tercero costará lo mismo:

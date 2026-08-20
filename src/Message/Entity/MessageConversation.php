@@ -24,6 +24,7 @@ use App\Contract\MomentoDeHito;
 use App\Message\Enum\IdentidadTipo;
 use App\Message\Controller\Api\MarkConversationReadController;
 use App\Message\Controller\Api\AsuntosDeConversacionController;
+use App\Message\Controller\Api\IdentidadesDeConversacionController;
 use App\Message\Controller\Api\CanalesDeConversacionController;
 use App\Message\Controller\Api\ConversacionPorAsuntoController;
 use App\Message\Controller\Api\UnreadSummaryController;
@@ -99,6 +100,39 @@ use Symfony\Component\Uid\Uuid;
         // API Platform infiere automáticamente: GET /message/conversations/{id}
         // Hereda el escudo global de lectura
         new Get(),
+
+        // El editor de identificadores de la persona.
+        //
+        // Se LEEN con la conversación (ya van en `conversation:read`); esto es el lado de
+        // escritura. Son acciones y no un PATCH de la colección porque cada una tiene reglas
+        // que hay que poder rechazar con un motivo: añadir un valor que ya es de otro hilo no
+        // es un dato mal escrito, es una fusión, y la decide una persona.
+        new Post(
+            uriTemplate: '/conversations/{id}/identidades',
+            controller: IdentidadesDeConversacionController::class . '::anadir',
+            openapi: new Operation(
+                summary: 'Añade un identificador',
+                description: 'Añade un teléfono o correo a la persona, o revive el que estaba retirado. 409 si el valor ya pertenece a otra conversación.'
+            ),
+            security: "is_granted('" . Roles::MENSAJES_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar la conversación.',
+            deserialize: false,
+            output: false
+        ),
+
+        new Patch(
+            uriTemplate: '/conversations/{id}/identidades/{identidad}',
+            controller: IdentidadesDeConversacionController::class . '::actualizar',
+            openapi: new Operation(
+                summary: 'Cambia un identificador',
+                description: 'Marca principal, veta o levanta el veto, o retira. Retirar NO borra: el identificador sigue resolviendo el historial y deja de ser salida.'
+            ),
+            security: "is_granted('" . Roles::MENSAJES_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar la conversación.',
+            read: false,
+            deserialize: false,
+            output: false
+        ),
 
         // Los asuntos del hilo: GET /message/conversations/{id}/asuntos
         //
