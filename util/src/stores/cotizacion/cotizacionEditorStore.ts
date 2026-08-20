@@ -1,3 +1,4 @@
+import { extractIdStr } from '@/utils/recurso';
 import {defineStore} from 'pinia';
 import { extractApiErrorMessage } from '@/services/apiError';
 import {computed, ref, type Ref} from 'vue';
@@ -138,20 +139,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // ============================================================================
     // 🔥 LÓGICA DE NEGOCIO: ENUMS (Replicado del Backend)
     // ============================================================================
-
-    /**
-     * Id "pelado" de cualquier cosa que identifique a un recurso: una IRI, un id
-     * suelto o el propio objeto (mira `@id`, `id` y `tarifaId`, en ese orden).
-     */
-    const extractIdStr = (val: unknown): string => {
-        if (!val) return '';
-        if (typeof val === 'object') {
-            const obj = val as RecursoHydra;
-            const raw = obj['@id'] ?? obj.id ?? obj.tarifaId;
-            if (raw) return String(raw).split('/').pop() || '';
-        }
-        return String(val).split('/').pop() || '';
-    };
 
     const getTipoComponente = (compId: string | null): string => {
         if (!compId) return 'extras';

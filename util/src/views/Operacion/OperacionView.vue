@@ -20,6 +20,7 @@ import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import { getUrls } from '@/services/apiClient';
 import { mensajeDeErrorApi } from '@/utils/errorApi';
+import { extractIdStr } from '@/utils/recurso';
 import {
     getEstadoOsConfig,
     getEstadoReservaProveedorConfig,
@@ -1072,21 +1073,44 @@ const onDestinatarioEdicion = (id: unknown): void => {
 };
 
 /**
- * Anula la orden y suelta sus filas para poder pedirlas de nuevo.
+ * Reemite: anula la orden y deja la sucesora **ya creada, en borrador**.
  *
- * Reemitir es **anular y crear la sucesora**, nunca reescribir el documento que el proveedor ya
- * tiene. Al soltarse, las filas vuelven a la selección de La Biblia; lo que se haya cancelado
- * en la cotización no entra en la siguiente, porque `motivoNoComprable()` se lo impide.
+ * ⚠️ **En una sola llamada, y ese detalle es el punto.** Si sólo se anulara, las filas quedarían
+ * sueltas en La Biblia y el trabajo se perdería en cuanto el operador cerrara la pestaña o se
+ * distrajera: nadie recuerda al día siguiente qué siete filas iban juntas. Aquí el servidor
+ * anula, valida y vuelve a enlazar dentro de la misma transacción, así que en ningún momento
+ * hay filas huérfanas.
+ *
+ * La sucesora nace **en borrador y no emitida**: reemitir no es mandar otro papel a ciegas, es
+ * rehacerlo para revisarlo. Mientras es borrador sigue siendo una vista viva, así que refleja
+ * lo que La Biblia diga ahora — que es justo lo que había cambiado.
+ *
+ * La anulada conserva sus líneas congeladas: el histórico no se toca. Y `reemplazaAId` deja
+ * escrita la cadena «OS-014 → OS-021», que es lo que se consulta cuando un proveedor reclama.
  */
 const anularParaReemitir = async (orden: OperacionOrdenServicio) => {
-    if (!orden.id) return;
+    const servicioIds = (orden.operacionServicios ?? [])
+        .map(s => extractIdStr(s))
+        .filter(Boolean);
+
+    if (!orden.id || servicioIds.length === 0) return;
+
+    const hoy = hoyIso().replace(/-/g, '');
 
     try {
-        await operacionStore.cambiarEstadoOrden(orden.id, 'cancelada', 'Reemisión: los datos cambiaron en La Biblia');
+        await operacionStore.emitirOrdenServicio({
+            servicioIds,
+            numeroOs: `OS-${hoy}-${String(Math.floor(Math.random() * 900) + 100)}`,
+            compradorMaestroId: orden.compradorMaestroId ?? null,
+            compradorNombre: orden.compradorNombre ?? null,
+            reemplazaAId: orden.id,
+            // Nace en borrador: se revisa y se emite aparte.
+            soloBorrador: true,
+        });
         await cargarBiblia();
     } catch (e) {
-        avisoPapel.value = mensajeDeErrorApi(e, 'No se pudo anular la orden.');
-        window.setTimeout(() => { avisoPapel.value = null; }, 6000);
+        avisoPapel.value = mensajeDeErrorApi(e, 'No se pudo reemitir la orden.');
+        window.setTimeout(() => { avisoPapel.value = null; }, 8000);
     }
 };
 
@@ -2030,8 +2054,11 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                 @click="anularParaReemitir(orden)"
                                 class="mt-1.5 px-2 py-1 text-[10px] font-black text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition-colors"
                             >
-                                Anular para reemitir
+                                Reemitir
                             </button>
+                            <p class="mt-1 text-[9px] text-amber-600 leading-snug">
+                                Se anula ésta y se crea la sucesora en borrador con los datos de hoy. Nada se pierde.
+                            </p>
                         </div>
 
                         <!-- Fila 2: destinatario e importes por moneda -->

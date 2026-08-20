@@ -134,6 +134,44 @@ final class OperacionOrdenDivergenciaTest extends TestCase
         self::assertSame([], $orden->getDivergencias(), 'Una anulada ya no se persigue.');
     }
 
+    /**
+     * El flujo completo de reemisión, que es donde estaba el riesgo de perder trabajo.
+     *
+     * Anular a secas dejaría las filas sueltas en La Biblia: si el operador cierra la pestaña,
+     * nadie recuerda al día siguiente qué siete iban juntas. Por eso la sucesora se crea en el
+     * mismo paso — y **en borrador**, porque reemitir no es mandar otro papel a ciegas.
+     */
+    #[Test]
+    public function reemitirDejaLaSucesoraListaSinPerderElHistorico(): void
+    {
+        $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
+        $vieja = $this->ordenCon($servicio);
+        $emision = new OperacionOrdenEmision();
+        $emision->emitir($vieja);
+
+        // Lo que hace el endpoint: anular primero —así la fila queda libre y `validar()` la
+        // acepta— y volver a enlazarla en la sucesora, todo en la misma transacción.
+        $emision->anular($vieja);
+        $emision->validar([$servicio]);
+
+        $nueva = new OperacionOrdenServicio();
+        $servicio->setOrdenServicio($nueva);
+        $nueva->addOperacionServicio($servicio);
+        $nueva->setReemplazaA($vieja);
+
+        // La vieja conserva su contenido: el histórico no se toca.
+        self::assertCount(1, $vieja->getItems());
+        self::assertSame(EstadoOrdenServicioEnum::CANCELADA, $vieja->getEstadoOs());
+
+        // La sucesora queda EN BORRADOR y sin congelar: es una vista viva hasta que se emita.
+        self::assertFalse($nueva->estaEmitida());
+        self::assertCount(0, $nueva->getItems());
+        self::assertSame($vieja, $nueva->getReemplazaA());
+
+        // Y la fila no quedó suelta en ningún momento.
+        self::assertSame($nueva, $servicio->getOrdenServicio());
+    }
+
     #[Test]
     public function laSucesoraApuntaALaAnulada(): void
     {

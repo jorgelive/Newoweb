@@ -257,6 +257,27 @@ en PHP. No hay conexión persistente, ni regla que ya exista en TypeScript, ni f
 los tres motivos que lo justificarían están ausentes. La única pieza que encajaría algún día es
 la maquetación de un PDF, que calcula y no persiste.
 
+#### La reemisión: la sucesora nace con la anulación, no después
+
+⚠️ **Anular a secas pierde trabajo.** Si el botón sólo anulara, las filas quedarían sueltas en
+La Biblia y bastaría con que el operador cerrara la pestaña: al día siguiente nadie recuerda qué
+siete filas iban juntas ni a quién se le pedían.
+
+Por eso «Reemitir» es **una sola llamada** a `/orden-servicios/emitir` con `reemplazaAId` y
+`soloBorrador: true`. El servidor, en la misma transacción:
+
+```
+1. anula la anterior      →  suelta sus filas · CONSERVA sus líneas congeladas
+2. valida                 →  ahora las filas están libres y pasan
+3. crea la sucesora       →  las vuelve a enlazar · deja escrito `reemplazaA`
+```
+
+En ningún momento hay filas huérfanas.
+
+**Y nace en borrador, no emitida.** Reemitir no es mandar otro papel a ciegas: es rehacerlo para
+revisarlo. Mientras es borrador sigue siendo una vista viva, así que refleja lo que La Biblia
+diga **ahora** — que es justo lo que había cambiado. El operador lo comprueba y emite.
+
 #### Qué está probado, y un fallo que salió al probarlo
 
 45 tests unitarios, sin contenedor ni base:
