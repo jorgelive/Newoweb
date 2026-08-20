@@ -20,6 +20,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
+        private readonly TelefonoDeContacto $telefonos,
         #[Autowire('%pax_book_guide_url%')]
         private readonly string $paxBookGuideUrl,
         #[Autowire('%pax_book_guide_url_nd%')]
@@ -85,7 +86,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
     public function getPhoneNumber(string $contextId): ?string
     {
         $reserva = $this->getReserva($contextId);
-        return $reserva?->getTelefonoContacto();
+        return $this->telefonos->para($reserva);
     }
 
     public function getMetadata(string $contextId): array

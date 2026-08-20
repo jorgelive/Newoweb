@@ -22525,13 +22525,8 @@ export interface components {
             beds24BookIdPrincipal?: string | null;
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
-            /**
-             * @description El operador marca cuál de los dos números es el bueno para contactar.
-             * @default false
-             */
-            telefono2EsPrincipal: boolean;
             /** Format: email */
             emailCliente?: string | null;
             establecimiento?: components["schemas"]["PmsEstablecimiento"];
@@ -22621,8 +22616,6 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
-            /** @description EL número al que hay que escribir. Fuente única de verdad. */
-            readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
             /** @description ¿Está cancelada esta reserva por completo? */
@@ -22638,8 +22631,8 @@ export interface components {
         "PmsReserva-pax_reserva.read": {
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel-pax_reserva.read"] | null;
@@ -22689,13 +22682,8 @@ export interface components {
         "PmsReserva-pms_reserva.read_timestamp.read": {
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
-            /**
-             * @description El operador marca cuál de los dos números es el bueno para contactar.
-             * @default false
-             */
-            telefono2EsPrincipal: boolean;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel-pms_reserva.read_timestamp.read"] | null;
@@ -22737,21 +22725,14 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
-            /** @description EL número al que hay que escribir. Fuente única de verdad. */
-            readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
         "PmsReserva-pms_reserva.write.jsonMergePatch": {
             nombreCliente?: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
-            /**
-             * @description El operador marca cuál de los dos números es el bueno para contactar.
-             * @default false
-             */
-            telefono2EsPrincipal: boolean;
             /** Format: email */
             emailCliente?: string | null;
             contacto?: components["schemas"]["MaestroContacto-pms_reserva.write"] | null;
@@ -22773,12 +22754,6 @@ export interface components {
             nombreCliente: string | null;
             apellidoCliente?: string | null;
             telefono?: string | null;
-            telefono2?: string | null;
-            /**
-             * @description Cuál de los dos números usa el sistema. Ver PmsReserva::getTelefonoContacto().
-             * @default false
-             */
-            telefono2EsPrincipal: boolean;
             /** Format: email */
             emailCliente?: string | null;
             /**
@@ -22815,13 +22790,8 @@ export interface components {
             beds24BookIdPrincipal?: string | null;
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
-            /**
-             * @description El operador marca cuál de los dos números es el bueno para contactar.
-             * @default false
-             */
-            telefono2EsPrincipal: boolean;
             /** Format: email */
             emailCliente?: string | null;
             establecimiento?: components["schemas"]["PmsEstablecimiento.html"];
@@ -22911,8 +22881,6 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
-            /** @description EL número al que hay que escribir. Fuente única de verdad. */
-            readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
             /** @description ¿Está cancelada esta reserva por completo? */
@@ -22928,8 +22896,8 @@ export interface components {
         "PmsReserva.html-pax_reserva.read": {
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel.html-pax_reserva.read"] | null;
@@ -22979,13 +22947,8 @@ export interface components {
         "PmsReserva.html-pms_reserva.read_timestamp.read": {
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
-            /**
-             * @description El operador marca cuál de los dos números es el bueno para contactar.
-             * @default false
-             */
-            telefono2EsPrincipal: boolean;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel.html-pms_reserva.read_timestamp.read"] | null;
@@ -23027,8 +22990,6 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
-            /** @description EL número al que hay que escribir. Fuente única de verdad. */
-            readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
@@ -23037,13 +22998,8 @@ export interface components {
             beds24BookIdPrincipal?: string | null;
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
-            /**
-             * @description El operador marca cuál de los dos números es el bueno para contactar.
-             * @default false
-             */
-            telefono2EsPrincipal: boolean;
             /** Format: email */
             emailCliente?: string | null;
             establecimiento?: components["schemas"]["PmsEstablecimiento.jsonld"];
@@ -23133,8 +23089,6 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
-            /** @description EL número al que hay que escribir. Fuente única de verdad. */
-            readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
             /** @description ¿Está cancelada esta reserva por completo? */
@@ -23152,8 +23106,8 @@ export interface components {
         } & (components["schemas"]["HydraItemBaseSchema"] & {
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel.jsonld-pax_reserva.read"] | null;
@@ -23202,13 +23156,8 @@ export interface components {
         "PmsReserva.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
-            /**
-             * @description El operador marca cuál de los dos números es el bueno para contactar.
-             * @default false
-             */
-            telefono2EsPrincipal: boolean;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel.jsonld-pms_reserva.read_timestamp.read"] | null;
@@ -23250,8 +23199,6 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
-            /** @description EL número al que hay que escribir. Fuente única de verdad. */
-            readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
@@ -23260,13 +23207,8 @@ export interface components {
             beds24BookIdPrincipal?: string | null;
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
-            /**
-             * @description El operador marca cuál de los dos números es el bueno para contactar.
-             * @default false
-             */
-            telefono2EsPrincipal: boolean;
             /** Format: email */
             emailCliente?: string | null;
             establecimiento?: components["schemas"]["PmsEstablecimiento.multipart"];
@@ -23356,8 +23298,6 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
-            /** @description EL número al que hay que escribir. Fuente única de verdad. */
-            readonly telefonoContacto?: string | null;
             /** @description Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX). */
             readonly eventosActivosGuia?: string[];
             /** @description ¿Está cancelada esta reserva por completo? */
@@ -23373,8 +23313,8 @@ export interface components {
         "PmsReserva.multipart-pax_reserva.read": {
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel.multipart-pax_reserva.read"] | null;
@@ -23424,13 +23364,8 @@ export interface components {
         "PmsReserva.multipart-pms_reserva.read_timestamp.read": {
             nombreCliente: string | null;
             apellidoCliente?: string | null;
+            /** @description **SEMILLA.** Lo que trajo el canal o tecleó quien dio de alta la reserva. */
             telefono?: string | null;
-            telefono2?: string | null;
-            /**
-             * @description El operador marca cuál de los dos números es el bueno para contactar.
-             * @default false
-             */
-            telefono2EsPrincipal: boolean;
             /** Format: email */
             emailCliente?: string | null;
             channel?: components["schemas"]["PmsChannel.multipart-pms_reserva.read_timestamp.read"] | null;
@@ -23472,8 +23407,6 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
-            /** @description EL número al que hay que escribir. Fuente única de verdad. */
-            readonly telefonoContacto?: string | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };

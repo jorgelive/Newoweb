@@ -39,11 +39,6 @@ final class PmsReservaIntegrityListener
         if ($tel1 !== null && $tel1 !== '') {
             $entity->setTelefono($this->phoneSanitizer->cleanPhoneNumber($tel1, $paisIso));
         }
-
-        $tel2 = $entity->getTelefono2();
-        if ($tel2 !== null && $tel2 !== '') {
-            $entity->setTelefono2($this->phoneSanitizer->cleanPhoneNumber($tel2, $paisIso));
-        }
     }
 
     /**
@@ -67,15 +62,6 @@ final class PmsReservaIntegrityListener
                 $args->setNewValue('telefono', $clean1);
                 // Es buena práctica actualizar también la entidad en memoria
                 $entity->setTelefono($clean1);
-            }
-        }
-
-        if ($args->hasChangedField('telefono2')) {
-            $newTel2 = (string) $args->getNewValue('telefono2');
-            if ($newTel2 !== '') {
-                $clean2 = $this->phoneSanitizer->cleanPhoneNumber($newTel2, $paisIso);
-                $args->setNewValue('telefono2', $clean2);
-                $entity->setTelefono2($clean2);
             }
         }
     }

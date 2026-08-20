@@ -287,7 +287,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             $this->setIf($payload, 'country2', $reserva->getPais()?->getId());
             $this->setIf($payload, 'email',  $reserva->getEmailCliente());
             $this->setIf($payload, 'phone',  $reserva->getTelefono());
-            $this->setIf($payload, 'mobile', $reserva->getTelefono2());
+            // Sin `mobile`: la reserva guarda UN teléfono, la semilla. El segundo número de
+            // una persona vive en sus identidades, y mandárselo a Beds24 en el campo de otra
+            // reserva sería devolverle un dato que no es de ahí.
         }
 
         // Referencias de Canal: Solo se envían en reservas directas reales.

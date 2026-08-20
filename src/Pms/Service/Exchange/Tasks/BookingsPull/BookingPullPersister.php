@@ -383,14 +383,14 @@ final class BookingPullPersister implements ResetInterface
             $reserva->setPais($pais);
             $reserva->setIdioma($this->resolveIdioma($booking));
 
-            $reserva->setTelefono($phone !== '' ? $this->phoneSanitizer->cleanPhoneNumber($phone, $pais->getId()) : null);
-            $reserva->setTelefono2($mobile !== '' ? $this->phoneSanitizer->cleanPhoneNumber($mobile, $pais->getId()) : null);
-
-            // Los dos números acaban de ser reemplazados por los del canal, así que
-            // "el segundo es el bueno" ya no se refiere a lo que el operador eligió:
-            // apuntaría a un número que nunca vio. Se vuelve al primero por defecto.
-            // Con `datosLocked` cerrado no se llega hasta aquí y su elección aguanta.
-            $reserva->setTelefono2EsPrincipal(false);
+            // Beds24 manda `phone` y `mobile`. Se guarda UNO —la semilla— y se prefiere el
+            // móvil, que es por donde se escribe: `phone` suele ser el fijo del titular.
+            //
+            // El segundo número ya no vive aquí. Un número es de la PERSONA, y repetirlo por
+            // reserva se contradice a la primera; si el huésped tiene dos, se añaden como
+            // identidades suyas desde el panel — ahí sí se puede decir cuál es el bueno.
+            $bruto = $mobile !== '' ? $mobile : $phone;
+            $reserva->setTelefono($bruto !== '' ? $this->phoneSanitizer->cleanPhoneNumber($bruto, $pais->getId()) : null);
 
             // SOLO bloqueamos (cerramos candado) si llegó información sólida
             if ($hasStrongContactData) {

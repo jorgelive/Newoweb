@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Finanzas;
 
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Message\TelefonoDeContacto;
 
 /**
  * ¿Este huésped nos paga desde Perú?
@@ -27,6 +28,10 @@ final readonly class PmsProcedenciaHuesped
 {
     /** Prefijo telefónico de Perú. */
     private const string PREFIJO_PERU = '51';
+
+    public function __construct(private TelefonoDeContacto $telefonos)
+    {
+    }
 
     /**
      * `true` desde Perú, `false` desde fuera, `null` cuando no hay con qué saberlo.
@@ -58,7 +63,7 @@ final readonly class PmsProcedenciaHuesped
             return strtoupper($pais) === 'PE';
         }
 
-        $telefono = preg_replace('/\D/', '', (string) $reserva->getTelefonoContacto());
+        $telefono = preg_replace('/\D/', '', (string) $this->telefonos->para($reserva));
 
         if ($telefono === null || $telefono === '') {
             return null;

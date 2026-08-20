@@ -7,6 +7,7 @@ namespace App\Calendar\Provider;
 use App\Calendar\Dto\CalendarEventDto;
 use App\Calendar\Dto\CalendarResourceDto;
 use App\Calendar\Service\CalendarResourceCatalog;
+use App\Pms\Service\Message\TelefonoDeContacto;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
@@ -37,6 +38,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
     public function __construct(
         private readonly ManagerRegistry $managerRegistry,
         private readonly CalendarResourceCatalog $resourceCatalog,
+        private readonly TelefonoDeContacto $telefonos,
     ) {}
 
     public function supports(array $config): bool
@@ -433,7 +435,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             // dígitos —así lo guarda `PmsReservaIntegrityListener`— y sirve tal cual para
             // wa.me. `null` en un bloqueo, o cuando no hay número ni conversación abierta:
             // el front omite el botón en vez de pintar un enlace muerto.
-            'telefono' => $reserva?->getTelefonoContacto(),
+            'telefono' => $this->telefonos->para($reserva),
             'conversacionId' => $conversacionId,
             'estado' => $evento->getEstado()?->getNombre(),
             // Icono y color del estado, tal como los tiene el maestro. Viajan como DATO y no

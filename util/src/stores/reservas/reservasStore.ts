@@ -222,6 +222,30 @@ export const useReservasStore = defineStore('reservasStore', () => {
     };
 
     /**
+     * El número al que se le escribe a esta reserva, y de dónde salió.
+     *
+     * ⚠️ **No está en la reserva.** El campo `telefono` es la SEMILLA con la que se creó; el
+     * número bueno vive en las identidades de la persona, que es donde se corrige, se retira y
+     * se marca cuál usar. Llegar hasta él es `reserva → enlace titular → hilo → identidad`, y
+     * por eso se pide aparte en vez de serializarlo: en un listado de calendario ese recorrido
+     * sería un N+1 por fila.
+     *
+     * `origen` vale `semilla` cuando la persona aún no tiene identificador propio, y el panel lo
+     * pinta como «sin verificar».
+     */
+    const fetchTelefonoContacto = async (
+        reservaId: string,
+    ): Promise<{ telefono: string | null; origen: 'identidad' | 'semilla' | null } | null> => {
+        try {
+            const { data } = await apiClient.get(`/pms/reservas/${reservaId}/telefono-contacto`);
+
+            return data ?? null;
+        } catch {
+            return null;
+        }
+    };
+
+    /**
      * Resuelve el texto final (variables reemplazadas) de una plantilla de WhatsApp
      * para una reserva. El propio caller arma la URL de wa.me y hace window.open().
      */
@@ -271,6 +295,7 @@ export const useReservasStore = defineStore('reservasStore', () => {
         deleteReserva,
         createReservaCompleta,
         fetchConversacionId,
+        fetchTelefonoContacto,
         fetchWhatsappLink,
         buscarReservas,
         clearActivo,

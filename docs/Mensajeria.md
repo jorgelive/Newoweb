@@ -8651,6 +8651,53 @@ retirar un número sería imposible. Con la fila presente, `addIdentidad()` dedu
 vetos vivos es una decisión de persona y se hace mirando la prueba de vida, no dentro de una
 migración.
 
+### El teléfono de la reserva es una SEMILLA
+
+`PmsReserva::$telefono2` y `$telefono2EsPrincipal` **se retiraron** (`Version20260820380000`).
+Un número es de la **persona**, no de cada reserva: repetido por reserva se contradice a la
+primera, porque el huésped corrige una vez y las demás se quedan con el viejo.
+
+Y el uso decía lo mismo. Medido antes de tocar nada: **2 reservas de 298 tenían `telefono2`, y
+una de las dos llevaba el MISMO número repetido en los dos campos.** `telefono2_es_principal`
+estaba en 0 en todas. Un helper, un flag, un reset en el pull y un espejo en TypeScript para una
+fila útil — que la migración rescató como identidad antes de soltar la columna.
+
+⚠️ **`telefono` se queda, y es lo único que sigue leyéndolo directo:**
+
+| Quién | Lee | Por qué |
+|---|---|---|
+| `PmsReservaMessageContext::getIdentificadores()` | la **semilla** | es lo que CREA la identidad; preguntarle a la identidad sería circular |
+| Todo lo demás | `TelefonoDeContacto` | el número al que se escribe sale de las identidades |
+
+No se proyecta encima el corregido **a propósito**: eso borraría lo que el huésped dio al
+reservar, que es justo el dato que después permite distinguir «se equivocó» de «tiene dos».
+
+**Los ocho consumidores** —enlace de WhatsApp, vCard, plantillas, procedencia, cobros,
+calendario, EasyAdmin y `ListarSalidasSkill`— pasan por `TelefonoDeContacto`, que resuelve
+`reserva → enlace titular → hilo → identidad principal` y **descarta la vetada o retirada**: un
+número muerto no es «el teléfono al que se escribe», así que cae a la semilla, que al menos es
+un dato.
+
+⚠️ **El panel lo pide por su propio endpoint**, no serializado:
+
+```
+GET /pms/reservas/{id}/telefono-contacto → {"telefono": …, "origen": "identidad"|"semilla"}
+```
+
+Serializarlo metería ese recorrido en **cada fila de cada listado del calendario**. Así se pide
+una vez por interacción. Y `origen` lo decide el resolutor, no una comparación de valores: lo
+normal es que identidad y semilla coincidan —aquélla se sembró de ésta—, y compararlas diría
+«semilla» justo cuando sí hay identidad.
+
+En el cajón de la reserva el campo queda de **sólo lectura**, con la marca «sin verificar»
+cuando lo que se ve es la semilla, y un botón **Editar** que lleva al chat. En EasyAdmin el
+campo está **deshabilitado** con el mismo aviso: ese CRUD está de salida y acabará siendo sólo
+de auditoría.
+
+⚠️ **`MaestroContacto` conserva el mismo trío `telefono`/`telefono2`/flag y NO se tocó.** Es otra
+entidad, con sus consumidores, y su camino se decide aparte — hasta entonces, el espejo que su
+docblock declara con `PmsReserva` ya no existe.
+
 ### El editor de identificadores
 
 Hasta ahora los identificadores sólo **entraban** —`upsertFromContext()` los registra en cada

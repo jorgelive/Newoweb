@@ -7,6 +7,7 @@ namespace App\Pms\Controller\Api;
 use App\Message\Entity\MessageTemplate;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Message\PmsMessageDataResolver;
+use App\Pms\Service\Message\TelefonoDeContacto;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,6 +32,7 @@ final class PmsReservaWhatsappLinkController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly PmsMessageDataResolver $messageDataResolver,
+        private readonly TelefonoDeContacto $telefonos,
     ) {}
 
     #[Route('/{id}/whatsapp-link/{templateId}', name: 'app_pms_reserva_whatsapp_link', methods: ['GET'])]
@@ -75,7 +77,7 @@ final class PmsReservaWhatsappLinkController extends AbstractController
 
         $textoFinal = strtr($cuerpoPlantilla, $replacePairs);
 
-        $telefonoLimpio = preg_replace('/[^0-9]/', '', $reserva->getTelefonoContacto() ?? '');
+        $telefonoLimpio = preg_replace('/[^0-9]/', '', $this->telefonos->para($reserva) ?? '');
         if (empty($telefonoLimpio)) {
             throw new UnprocessableEntityHttpException('Esta reserva no tiene un número de teléfono válido.');
         }

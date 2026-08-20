@@ -12,6 +12,7 @@ use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Repository\PmsReservaRepository;
+use App\Pms\Service\Message\TelefonoDeContacto;
 use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -30,6 +31,7 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
 {
     public function __construct(
         private readonly PmsReservaRepository $reservas,
+        private readonly TelefonoDeContacto $telefonos,
         private readonly EntityManagerInterface $em,
     ) {}
 
@@ -76,7 +78,7 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
             moneda: $moneda,
             clienteNombre: $reserva->getNombreApellido(),
             clienteEmail: $reserva->getEmailCliente(),
-            clienteTelefono: $reserva->getTelefonoContacto(),
+            clienteTelefono: $this->telefonos->para($reserva),
         );
     }
 

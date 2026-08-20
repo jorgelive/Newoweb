@@ -37,14 +37,6 @@ final class PmsReservaCrearInput
     public ?string $telefono = null;
 
     #[Groups(['pms_reserva_crear:write'])]
-    #[Assert\Length(max: 30)]
-    public ?string $telefono2 = null;
-
-    /** Cuál de los dos números usa el sistema. Ver PmsReserva::getTelefonoContacto(). */
-    #[Groups(['pms_reserva_crear:write'])]
-    public bool $telefono2EsPrincipal = false;
-
-    #[Groups(['pms_reserva_crear:write'])]
     #[Assert\Email(message: 'El formato del email no es válido.')]
     public ?string $emailCliente = null;
 

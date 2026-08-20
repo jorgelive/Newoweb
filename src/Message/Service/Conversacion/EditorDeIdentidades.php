@@ -81,6 +81,7 @@ final readonly class EditorDeIdentidades
         $hilo->addIdentidad($identidad);
         $this->em->persist($identidad);
         $hilo->recalcularBloqueoWhatsapp();
+        $hilo->recalcularTelefonoPrincipal();
 
         return $identidad;
     }
@@ -96,6 +97,7 @@ final readonly class EditorDeIdentidades
     {
         $identidad->retirar($cuando);
         $identidad->getConversacion()?->recalcularBloqueoWhatsapp();
+        $identidad->getConversacion()?->recalcularTelefonoPrincipal();
 
         $this->logger->info('Identidad retirada.', [
             'conversacion' => (string) $identidad->getConversacion()?->getId(),
@@ -123,6 +125,10 @@ final readonly class EditorDeIdentidades
                 $otra->setPrincipal($otra === $identidad);
             }
         }
+
+        // El destino de los envíos sale de `guestPhone`, no de aquí: sin esta línea, marcar
+        // principal cambiaría lo que pinta el panel y no a dónde sale el mensaje.
+        $hilo?->recalcularTelefonoPrincipal();
     }
 
     /** Veta o levanta el veto de UN identificador, y deja el espejo del hilo al día. */

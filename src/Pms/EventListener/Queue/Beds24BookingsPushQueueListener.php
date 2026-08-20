@@ -37,7 +37,7 @@ final class Beds24BookingsPushQueueListener
 
     // Campos que no disparan sincronización si la reserva está bloqueada (OTA)
     private const IGNORED_FIELDS_ON_LOCKED_OTA = [
-        'nombreCliente', 'apellidoCliente', 'emailCliente', 'telefono', 'telefono2',
+        'nombreCliente', 'apellidoCliente', 'emailCliente', 'telefono',
         'nota', 'comentariosHuesped', 'horaLlegadaCanal', 'pais', 'idioma',
     ];
 

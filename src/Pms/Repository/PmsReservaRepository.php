@@ -95,8 +95,10 @@ class PmsReservaRepository extends ServiceEntityRepository
      * distintas, porque aquí también se opera como agencia y un titular reserva para terceros—.
      * El orden decide, pero la lista deja constancia de que había más de una.
      *
-     * Se busca en los DOS teléfonos de la reserva (`telefono` y `telefono2`) sin mirar
-     * `telefono2EsPrincipal`: ese flag dice a cuál escribimos NOSOTROS, no desde cuál escribe él.
+     * Se busca en el teléfono SEMILLA de la reserva. El segundo campo se retiró: un número
+     * es de la PERSONA y vive en sus identidades, y esta consulta es el respaldo para cuando
+     * la identidad todavía no existe —quien ya la tiene se resuelve antes, por `ResolutorDeHilo`,
+     * que es determinista y sí ve todos sus números.
      *
      * El criterio de coincidencia (exacto o los últimos 8 dígitos) es el mismo que ya usa
      * `WhatsappMetaReceivePersister::resolveConversation()` para las conversaciones, y por el
@@ -169,14 +171,12 @@ class PmsReservaRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('r');
         $coincide = $qb->expr()->orX(
             $qb->expr()->eq('r.telefono', ':exacto'),
-            $qb->expr()->eq('r.telefono2', ':exacto'),
         );
 
         // Con menos de 9 dígitos sólo coincidencia exacta: un sufijo corto engancharía
         // números que no tienen nada que ver.
         if (strlen($limpio) >= 9) {
             $coincide->add($qb->expr()->like('r.telefono', ':cola'));
-            $coincide->add($qb->expr()->like('r.telefono2', ':cola'));
             $qb->setParameter('cola', '%' . substr($limpio, -8));
         }
 

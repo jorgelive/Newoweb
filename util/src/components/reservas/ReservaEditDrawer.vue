@@ -14,7 +14,6 @@ import {
     PMS_ESTADO,
     PMS_ESTADO_PAGO,
     PMS_CHANNEL,
-    telefonoContactoDe,
     pmsUnidadIri,
     pmsReservaIri,
     pmsEventoEstadoIri,
@@ -744,8 +743,6 @@ function clienteVacio() {
         nombreCliente: '',
         apellidoCliente: '',
         telefono: '',
-        telefono2: '',
-        telefono2EsPrincipal: false,
         emailCliente: '',
         pais: '',
         idioma: '',
@@ -929,19 +926,31 @@ const paxResumen = computed(() => {
 });
 
 /**
- * Conversación directa de WhatsApp con el huésped.
+ * El número al que se le escribe, y de dónde salió.
  *
- * Resuelve sobre el FORMULARIO, no sobre lo guardado: el operador puede marcar
- * la casilla de número principal y el botón tiene que apuntar al nuevo número
- * antes de pulsar «Guardar». De ahí el espejo TS de la regla; el backend expone
- * el mismo dato ya resuelto en `telefonoContacto` para quien no edita.
+ * ⚠️ **No se resuelve aquí.** Había un espejo en TypeScript de la regla `telefono ?? telefono2`
+ * porque el operador podía cambiar la elección sin guardar. Ahora el número vive en las
+ * identidades de la persona —fuera de este formulario— y lo resuelve `TelefonoDeContacto` en el
+ * backend, que además sabe si está vetado o retirado. Copiarlo aquí sería reintroducir el
+ * espejo que acabamos de quitar.
  */
+const telefonoContacto = ref<string | null>(null);
+const telefonoOrigen = ref<'identidad' | 'semilla' | null>(null);
+
+async function cargarTelefonoContacto(): Promise<void> {
+    telefonoContacto.value = null;
+    telefonoOrigen.value = null;
+
+    if (!props.reservaId) return;
+
+    const resuelto = await reservasStore.fetchTelefonoContacto(props.reservaId);
+    telefonoContacto.value = resuelto?.telefono ?? null;
+    telefonoOrigen.value = resuelto?.origen ?? null;
+}
+
+/** Conversación de WhatsApp con el huésped, al número resuelto. */
 const whatsappUrl = computed(() => {
-    const numero = telefonoParaWhatsapp(telefonoContactoDe(
-        clienteForm.value.telefono,
-        clienteForm.value.telefono2,
-        clienteForm.value.telefono2EsPrincipal,
-    ));
+    const numero = telefonoParaWhatsapp(telefonoContacto.value);
     return numero ? `https://wa.me/${numero}` : null;
 });
 
@@ -1022,6 +1031,10 @@ async function cargarDatos(): Promise<void> {
     localError.value = null;
     reservasStore.clearActivo();
 
+    // El número al que se escribe no está en la reserva: sale de las identidades de la persona
+    // y se pide aparte. No se espera —la ficha se pinta igual— y llega en cuanto responda.
+    void cargarTelefonoContacto();
+
     try {
         await Promise.all([
             reservasStore.fetchMasters(),
@@ -1061,8 +1074,6 @@ async function cargarDatos(): Promise<void> {
                 nombreCliente: reserva.nombreCliente ?? '',
                 apellidoCliente: reserva.apellidoCliente ?? '',
                 telefono: reserva.telefono ?? '',
-                telefono2: reserva.telefono2 ?? '',
-                telefono2EsPrincipal: reserva.telefono2EsPrincipal ?? false,
                 emailCliente: reserva.emailCliente ?? '',
                 pais: reserva.pais?.id ?? '',
                 idioma: reserva.idioma?.id ?? '',
@@ -1212,8 +1223,6 @@ async function guardar(cerrarAlTerminar = false): Promise<void> {
                 nombreCliente: clienteForm.value.nombreCliente,
                 apellidoCliente: clienteForm.value.apellidoCliente || null,
                 telefono: clienteForm.value.telefono || null,
-                telefono2: clienteForm.value.telefono2 || null,
-                telefono2EsPrincipal: clienteForm.value.telefono2EsPrincipal,
                 emailCliente: clienteForm.value.emailCliente || null,
                 pais: clienteForm.value.pais ? `/platform/maestro/pais/${clienteForm.value.pais}` : null,
                 idioma: clienteForm.value.idioma ? `/platform/maestro/idiomas/${clienteForm.value.idioma}` : null,
@@ -1323,8 +1332,6 @@ async function guardar(cerrarAlTerminar = false): Promise<void> {
                     nombreCliente: clienteForm.value.nombreCliente || null,
                     apellidoCliente: clienteForm.value.apellidoCliente || null,
                     telefono: clienteForm.value.telefono || null,
-                    telefono2: clienteForm.value.telefono2 || null,
-                telefono2EsPrincipal: clienteForm.value.telefono2EsPrincipal,
                     emailCliente: clienteForm.value.emailCliente || null,
                     pais: clienteForm.value.pais ? `/platform/maestro/pais/${clienteForm.value.pais}` : null,
                     idioma: clienteForm.value.idioma ? `/platform/maestro/idiomas/${clienteForm.value.idioma}` : undefined,
@@ -2194,29 +2201,31 @@ async function ejecutarBorrado(): Promise<void> {
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Apellido</p>
                                 <p class="text-sm font-bold text-slate-800 mt-0.5">{{ clienteForm.apellidoCliente || '—' }}</p>
                             </div>
-                            <!-- La insignia marca a cuál llaman WhatsApp, plantillas y vCard.
-                                 Solo se pinta con los dos rellenos: con uno, no hay elección. -->
-                            <div>
+                            <!-- El número al que se ESCRIBE, resuelto desde las identidades de
+                                 la persona. El campo de la reserva es la semilla con la que se
+                                 creó y puede estar desfasado: se avisa cuando es eso lo que se
+                                 ve. Se edita en el chat, en «Identificadores». -->
+                            <div class="col-span-2">
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                                     Teléfono
-                                    <span v-if="clienteForm.telefono && clienteForm.telefono2 && !clienteForm.telefono2EsPrincipal"
-                                        class="px-1.5 py-0.5 bg-[#376875]/10 text-[#376875] rounded normal-case tracking-normal">principal</span>
+                                    <span v-if="telefonoOrigen === 'semilla'"
+                                        title="Es el número con el que se creó la reserva; la persona todavía no tiene identificador propio."
+                                        class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded normal-case tracking-normal">sin verificar</span>
                                 </p>
-                                <div class="flex items-center gap-2 mt-0.5">
-                                    <p class="text-sm font-bold text-slate-800">{{ formatearTelefono(clienteForm.telefono) || '—' }}</p>
-                                    <a v-if="vcardUrl && clienteForm.telefono" :href="vcardUrl" target="_blank" title="Descargar contacto (vCard)"
+                                <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                                    <p class="text-sm font-bold text-slate-800">{{ formatearTelefono(telefonoContacto) || '—' }}</p>
+
+                                    <button @click="abrirChatInterno" :disabled="abriendoChat"
+                                        title="Editar los identificadores de esta persona en el chat"
+                                        class="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-wide transition-colors shrink-0 disabled:opacity-40">
+                                        <i class="fas" :class="abriendoChat ? 'fa-circle-notch fa-spin' : 'fa-pen'"></i> Editar
+                                    </button>
+
+                                    <a v-if="vcardUrl && telefonoContacto" :href="vcardUrl" target="_blank" title="Descargar contacto (vCard)"
                                         class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-black uppercase tracking-wide transition-colors shrink-0">
                                         <i class="fas fa-address-card"></i> vCard
                                     </a>
                                 </div>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
-                                    Teléfono 2
-                                    <span v-if="clienteForm.telefono && clienteForm.telefono2 && clienteForm.telefono2EsPrincipal"
-                                        class="px-1.5 py-0.5 bg-[#376875]/10 text-[#376875] rounded normal-case tracking-normal">principal</span>
-                                </p>
-                                <p class="text-sm font-bold text-slate-800 mt-0.5">{{ formatearTelefono(clienteForm.telefono2) || '—' }}</p>
                             </div>
                             <div class="col-span-2">
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Email</p>
@@ -2252,30 +2261,16 @@ async function ejecutarBorrado(): Promise<void> {
                             <input type="text" v-model="clienteForm.apellidoCliente"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
-                        <label>
+                        <!-- Un solo teléfono, y es la SEMILLA: crea el identificador de la
+                             persona la primera vez. Corregirlo, añadir otro o retirar el
+                             equivocado se hace en el chat — allí el cambio vale para TODAS sus
+                             reservas y no sólo para ésta. -->
+                        <label class="col-span-2">
                             <span class="text-xs font-bold text-slate-500">Teléfono</span>
                             <span v-if="formatearTelefono(clienteForm.telefono) && formatearTelefono(clienteForm.telefono) !== clienteForm.telefono"
                                 class="ml-1.5 text-[10px] font-bold text-slate-400">{{ formatearTelefono(clienteForm.telefono) }}</span>
                             <input type="text" v-model="clienteForm.telefono"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                        </label>
-                        <label>
-                            <span class="text-xs font-bold text-slate-500">Teléfono 2</span>
-                            <span v-if="formatearTelefono(clienteForm.telefono2) && formatearTelefono(clienteForm.telefono2) !== clienteForm.telefono2"
-                                class="ml-1.5 text-[10px] font-bold text-slate-400">{{ formatearTelefono(clienteForm.telefono2) }}</span>
-                            <input type="text" v-model="clienteForm.telefono2"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                        </label>
-
-                        <!-- Elección del número de contacto. Solo tiene sentido con los dos
-                             rellenos: con uno solo, `getTelefonoContacto()` lo usa igual. -->
-                        <label v-if="clienteForm.telefono && clienteForm.telefono2"
-                            class="col-span-2 flex items-center gap-2 -mt-1">
-                            <input type="checkbox" v-model="clienteForm.telefono2EsPrincipal" class="rounded" />
-                            <span class="text-xs font-bold text-slate-500">
-                                Usar el <strong class="text-slate-700">Teléfono 2</strong> para contactar
-                                <span class="font-medium text-slate-400">(WhatsApp, plantillas y vCard)</span>
-                            </span>
                         </label>
                         <label class="col-span-2">
                             <span class="text-xs font-bold text-slate-500">Email</span>

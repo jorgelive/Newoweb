@@ -15,6 +15,7 @@ use App\Pms\Entity\PmsReservaHuesped;
 use App\Pms\Factory\PmsEventoCalendarioFactory;
 use App\Pms\Form\Type\PmsReservaHuespedType;
 use App\Pms\Service\Message\PmsMessageDataResolver;
+use App\Pms\Service\Message\TelefonoDeContacto;
 use App\Security\Roles;
 use App\Twig\Extension\PhoneExtension;
 use Doctrine\ORM\EntityManagerInterface;
@@ -57,7 +58,8 @@ final class PmsReservaCrudController extends BaseCrudController
         private readonly PmsMessageDataResolver $messageDataResolver,
         // Inyectamos nuestro Formateador Twig para usarlo en el Listado/Detalle
         private readonly PhoneExtension $phoneExtension,
-        private readonly ParameterBagInterface $params
+        private readonly ParameterBagInterface $params,
+        private readonly TelefonoDeContacto $telefonos,
     ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
@@ -316,7 +318,7 @@ final class PmsReservaCrudController extends BaseCrudController
         $textoFinal = strtr($cuerpoPlantilla, $replacePairs);
 
         // Se mantiene la regex cruda aquí porque WhatsApp API quiere SÓLO números
-        $telefonoLimpio = preg_replace('/[^0-9]/', '', $reserva->getTelefonoContacto() ?? '');
+        $telefonoLimpio = preg_replace('/[^0-9]/', '', $this->telefonos->para($reserva) ?? '');
 
         if (empty($telefonoLimpio)) {
             $this->addFlash('warning', 'Esta reserva no tiene un número de teléfono válido.');
@@ -366,8 +368,9 @@ final class PmsReservaCrudController extends BaseCrudController
         $inicialCanal = substr(strtoupper($canalNombre), 0, 1);
 
         // LÓGICA DE FORMATEO (Número sanitizado en BD sin '+')
-        // El número de contacto elegido por el operador, no siempre el primero.
-        $telefonoRaw = trim((string) $reserva->getTelefonoContacto());
+        // El número al que se escribe sale de las IDENTIDADES de la persona, no del campo de la
+        // reserva —que es sólo la semilla—. Ver TelefonoDeContacto.
+        $telefonoRaw = trim((string) $this->telefonos->para($reserva));
         $telefonoVcard = '';
 
         if ($telefonoRaw !== '') {
@@ -497,16 +500,32 @@ TXT;
         yield TextField::new('apellidoCliente', 'Apellido')->setColumns(6);
 
         // 🔥 AQUÍ QUEDA LISTO TU CAMPO DE TELÉFONO PARA RENDERIZAR LA PLANTILLA VCARD
-        yield TextField::new('telefono', 'Teléfono / Acciones')
+        // ⚠️ SÓLO LECTURA. El teléfono de la reserva es la SEMILLA: lo que trajo el canal al dar
+        // de alta. Corregirlo aquí no cambia a dónde salen los mensajes —eso lo deciden las
+        // identidades de la persona— y sí dejaría los dos datos contradiciéndose.
+        //
+        // Se edita en el panel del chat, en «Identificadores»: ahí se puede añadir, retirar,
+        // marcar cuál es el bueno y vetar sólo uno, que es lo que este campo nunca supo hacer.
+        //
+        // Este CRUD está de salida y acabará siendo sólo de auditoría; el aviso vale mientras
+        // tanto para que nadie edite creyendo que sirve de algo.
+        yield TextField::new('telefono', 'Teléfono (dato no verificado)')
             ->setColumns(6)
+            ->setFormTypeOption('disabled', true)
+            ->setHelp(
+                '<strong>Dato no verificado:</strong> es el número con el que se creó la reserva. '
+                . 'El número al que se le escribe al huésped se edita en el chat, en '
+                . '<strong>Identificadores</strong> — ahí se puede corregir, añadir otro, '
+                . 'retirar el equivocado y marcar cuál es el bueno.'
+            )
             ->setTemplatePath('panel/pms/pms_reserva/fields/telefono_wa_vcard.html.twig')
             ->formatValue(function ($val, $entity) {
                 if (!$entity instanceof PmsReserva) return $val;
 
-                // Los botones (WhatsApp, vCard) apuntan al número ELEGIDO por el
-                // operador, no al primero: si no, el panel llamaría a un número
-                // distinto del que usan las plantillas y el chat (§12.10).
-                $val = $entity->getTelefonoContacto();
+                // Los botones (WhatsApp, vCard) apuntan al número de las IDENTIDADES, que es
+                // el mismo que usan las plantillas y el chat. El campo de la reserva es la
+                // semilla y puede estar desfasado. Ver TelefonoDeContacto.
+                $val = $this->telefonos->para($entity);
 
                 $formattedPhone = $val ? $this->phoneExtension->formatPhone($val) : null;
                 $chatUrl = null;
@@ -532,34 +551,16 @@ TXT;
 
                 // 🔥 Retornamos una clase anónima. EasyAdmin usa __toString() para pintar texto seguro,
                 // pero Twig puede acceder a las propiedades públicas (raw, formatted, chatUrl) como un objeto.
-                return new class($val, $formattedPhone, $chatUrl, $entity->isTelefono2EsPrincipal()) {
+                return new class($val, $formattedPhone, $chatUrl) {
                     public function __construct(
                         public ?string $raw,
                         public ?string $formatted,
                         public ?string $chatUrl,
-                        /** Para avisar en la plantilla de que el número mostrado es el segundo. */
-                        public bool $esTelefono2 = false,
                     ) {}
                     public function __toString(): string { return (string) $this->formatted; }
                 };
             });
 
-        yield TextField::new('telefono2', 'Teléfono 2')
-            ->setColumns(6)
-            ->formatValue(fn($val) => $val ? $this->phoneExtension->formatPhone($val) : null)
-            ->setHelp('Segundo número del huésped. Hoy los dos suelen ser móviles.');
-
-        // Cuál de los dos usa TODO el sistema (WhatsApp, plantillas, vCard, chat).
-        // La resolución vive en PmsReserva::getTelefonoContacto(); aquí solo se elige.
-        yield BooleanField::new('telefono2EsPrincipal', 'Usar Teléfono 2')
-            ->renderAsSwitch(true)
-            ->setColumns(6)
-            ->hideOnIndex()
-            ->setHelp(
-                'Activa esto si hay que contactar al huésped por el <strong>Teléfono 2</strong>. '
-                . 'Afecta a WhatsApp, a las plantillas de mensajería, a la vCard y al chat. '
-                . 'Con un solo número cargado da igual: se usa el que haya.'
-            );
 
         yield AssociationField::new('pais', 'País')
             ->setColumns(6)

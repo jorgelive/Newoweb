@@ -71,7 +71,10 @@ class PmsReservaMessageContext implements MessageContextInterface
      */
     public function getContextPhone(): ?string
     {
-        return $this->reserva->getTelefonoContacto();
+        // La SEMILLA, no el resuelto: esto es lo que SIEMBRA la identidad y lo que llena
+        // `guestPhone` la primera vez. Leer aquí el teléfono resuelto sería preguntarle a la
+        // identidad por el valor con el que se va a crear la identidad.
+        return $this->reserva->getTelefono();
     }
 
     /**
@@ -89,7 +92,7 @@ class PmsReservaMessageContext implements MessageContextInterface
     {
         $identificadores = [];
 
-        if (($telefono = $this->reserva->getTelefonoContacto()) !== null && trim($telefono) !== '') {
+        if (($telefono = $this->reserva->getTelefono()) !== null && trim($telefono) !== '') {
             $identificadores[IdentidadTipo::TELEFONO->value] = $telefono;
         }
 

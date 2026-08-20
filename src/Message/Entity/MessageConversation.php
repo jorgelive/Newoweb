@@ -779,6 +779,35 @@ class MessageConversation
     }
 
     /**
+     * Deja `guestPhone` apuntando a la identidad PRINCIPAL.
+     *
+     * ⚠️ Sin esto el editor de identidades mentiría. `WhatsappMetaSendEnqueuer` saca el destino
+     * de `guestPhone` —no de las identidades—, así que retirar un número y añadir otro dejaría
+     * los envíos saliendo al retirado: el panel diría una cosa y el mensaje iría a otra, sin un
+     * solo error.
+     *
+     * `guestPhone` es la copia denormalizada que leen 30 sitios; la verdad son las identidades,
+     * y esto es lo que las mantiene de acuerdo.
+     *
+     * Sin principal resoluble no se toca: preferimos el último valor conocido a dejar el hilo
+     * sin teléfono, que apagaría WhatsApp por completo. La ausencia de principal ya la vigila
+     * {@see self::getTelefonoPrincipal()}, que en la duda devuelve `null` en vez de elegir por
+     * orden de llegada.
+     */
+    public function recalcularTelefonoPrincipal(): self
+    {
+        $principal = $this->getTelefonoPrincipal();
+
+        if ($principal !== null && $principal->getValor() !== $this->guestPhone) {
+            // Por el setter a propósito: cambiar de número LEVANTA el veto de WhatsApp, que es
+            // justo lo que se quiere al corregir un teléfono equivocado.
+            $this->setGuestPhone($principal->getValor());
+        }
+
+        return $this;
+    }
+
+    /**
      * El teléfono al que se escribe: el marcado principal, o el único vivo.
      *
      * `null` si no hay ninguno vivo, o si hay varios y ninguno es principal — ahí no se elige

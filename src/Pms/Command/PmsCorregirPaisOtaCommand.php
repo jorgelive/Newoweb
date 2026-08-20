@@ -198,7 +198,6 @@ final class PmsCorregirPaisOtaCommand extends Command
     /** El país que dice el prefijo de alguno de los dos números, o `null` si ninguno lo trae. */
     private function paisSegunElTelefono(PmsReserva $reserva): ?string
     {
-        return $this->telefonos->paisDelNumero((string) $reserva->getTelefono())
-            ?? $this->telefonos->paisDelNumero((string) $reserva->getTelefono2());
+        return $this->telefonos->paisDelNumero((string) $reserva->getTelefono());
     }
 }

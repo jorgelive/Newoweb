@@ -7,6 +7,7 @@ namespace App\Pms\Controller\Api;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Pms\Service\Message\TelefonoDeContacto;
 use JeroenDesloovere\VCard\VCard;
 use libphonenumber\NumberParseException;
 use libphonenumber\PhoneNumberFormat;
@@ -28,6 +29,7 @@ final class PmsReservaVcardController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
+        private readonly TelefonoDeContacto $telefonos,
         #[Autowire('%pax_book_guide_url%')]
         private readonly string $paxBookGuideUrl,
     ) {}
@@ -63,7 +65,7 @@ final class PmsReservaVcardController extends AbstractController
 
         // LÓGICA DE FORMATEO (Número sanitizado en BD sin '+')
         // El número de contacto elegido por el operador, no siempre el primero.
-        $telefonoRaw = trim((string) $reserva->getTelefonoContacto());
+        $telefonoRaw = trim((string) $this->telefonos->para($reserva));
         $telefonoVcard = '';
 
         if ($telefonoRaw !== '') {

@@ -92,10 +92,10 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
                 . 'de buscar_reserva.',
             parametros: [
                 SkillParameter::texto('reserva_id', 'La reserva a corregir, de buscar_reserva.'),
-                SkillParameter::texto('telefono', 'Teléfono con prefijo. Se guarda normalizado.',
-                    requerido: false),
-                SkillParameter::texto('telefono2', 'Segundo número: el del acompañante, el chip '
-                    . 'local que sacaron aquí, o uno que sí funcione en WhatsApp.', requerido: false),
+                SkillParameter::texto('telefono', 'Teléfono del huésped, con prefijo. Se guarda '
+                    . 'normalizado. Si ya tiene uno y te da OTRO distinto, esto lo SUSTITUYE: '
+                    . 'para que la persona tenga dos números a la vez hay que añadirlo en el '
+                    . 'panel del chat, no aquí.', requerido: false),
                 SkillParameter::texto('email', 'Correo del huésped.', requerido: false),
                 SkillParameter::texto('idioma', 'Idioma en que se le escribe: '
                     . implode(', ', self::IDIOMAS) . '.', requerido: false),
@@ -280,10 +280,6 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
             $reserva->setTelefono($tel);
         }
 
-        if (($tel2 = trim((string) ($entrada['telefono2'] ?? ''))) !== '') {
-            $cambios[] = sprintf('teléfono 2: %s → %s', $reserva->getTelefono2() ?? '(vacío)', $tel2);
-            $reserva->setTelefono2($tel2);
-        }
 
         if (($mail = trim((string) ($entrada['email'] ?? ''))) !== '') {
             $cambios[] = sprintf('correo: %s → %s', $reserva->getEmailCliente() ?? '(vacío)', $mail);

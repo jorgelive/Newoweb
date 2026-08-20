@@ -496,9 +496,10 @@ async function onEventClick(info: EventClickArg): Promise<void> {
             localizador: extra.localizador ?? null,
             channelId: reserva.channel?.id ?? null,
             urlCanalExtranet: extra.urlCanalExtranet ?? null,
-            // Ya resuelto por PmsReserva::getTelefonoContacto(): aquí no se
-            // vuelve a decidir cuál de los dos números es el bueno.
-            telefono: (reserva as { telefonoContacto?: string | null }).telefonoContacto ?? null,
+            // El número al que se escribe NO está en la reserva: sale de las identidades de
+            // la persona, y el backend lo resuelve sabiendo además si está vetado o retirado.
+            // Se pide aquí, al abrir el menú, y no serializado en cada fila del calendario.
+            telefono: (await reservasStore.fetchTelefonoContacto(reservaId))?.telefono ?? null,
         };
     } catch {
         /* silencioso: los ítems dependientes (guía / canal) simplemente no aparecen */

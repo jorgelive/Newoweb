@@ -221,8 +221,11 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
             : '';
 
         // El teléfono sale ya en dígitos (`PmsReservaIntegrityListener` lo normaliza al
-        // guardar), así que vale tal cual para wa.me sin limpiarlo aquí. Y se respeta
-        // `telefono2_es_principal`: escribir al número que el huésped NO usa es no escribir.
+        // guardar), así que vale tal cual para wa.me sin limpiarlo aquí.
+        //
+        // Se prefiere la IDENTIDAD principal viva de la persona y sólo se cae al campo de la
+        // reserva si no la tiene: ese campo es la semilla con la que se creó, y escribir al
+        // número que el huésped ya no usa es no escribir.
         $sql = <<<SQL
             SELECT
                 BIN_TO_UUID(e.id)         AS evento_id,
@@ -233,7 +236,13 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
                 TRIM(CONCAT(COALESCE(r.nombre_cliente, ''), ' ', COALESCE(r.apellido_cliente, ''))) AS huesped,
                 r.localizador             AS localizador,
                 e.is_ota                  AS es_ota,
-                NULLIF(IF(r.telefono2_es_principal, r.telefono2, r.telefono), '') AS telefono,
+                NULLIF(COALESCE(
+                    (SELECT i.valor FROM msg_identidad i
+                      WHERE i.conversacion_id = c.id AND i.tipo = 'telefono'
+                        AND i.retirado_en IS NULL AND i.bloqueado = 0
+                      ORDER BY i.principal DESC LIMIT 1),
+                    r.telefono
+                ), '')                    AS telefono,
                 BIN_TO_UUID(c.id)         AS conversacion_id,
                 (SELECT GROUP_CONCAT(TRIM(CONCAT(COALESCE(lu.firstname,''),' ',COALESCE(lu.lastname,'')))
                           ORDER BY lu.username SEPARATOR ', ')

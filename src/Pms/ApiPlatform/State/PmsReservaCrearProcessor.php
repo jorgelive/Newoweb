@@ -68,8 +68,6 @@ final class PmsReservaCrearProcessor implements ProcessorInterface
         $reserva->setNombreCliente($data->nombreCliente);
         $reserva->setApellidoCliente($data->apellidoCliente);
         $reserva->setTelefono($data->telefono);
-        $reserva->setTelefono2($data->telefono2);
-        $reserva->setTelefono2EsPrincipal($data->telefono2EsPrincipal);
         $reserva->setEmailCliente($data->emailCliente);
         $reserva->setNota($data->nota);
 

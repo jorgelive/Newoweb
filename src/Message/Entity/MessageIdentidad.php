@@ -104,7 +104,7 @@ class MessageIdentidad
      * La salida por defecto cuando la persona tiene varios identificadores del mismo tipo.
      *
      * Hoy todos los hilos tienen un teléfono y ya está, así que no decide nada. Existe porque es
-     * lo que permite quitar `PmsReserva::$telefono2` y su flag: «cuál es el bueno» es de la
+     * lo que permitió quitar `PmsReserva::$telefono2` y su flag: «cuál es el bueno» es de la
      * PERSONA, no de cada reserva, y repetido por reserva se contradice solo.
      */
     #[Groups(['conversation:read'])]
