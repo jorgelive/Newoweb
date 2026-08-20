@@ -57,4 +57,15 @@ interface ProveedorDeEnlacesInterface
      * @return list<ConversacionEnlaceInterface>
      */
     public function paraConversacion(MessageConversation $conversacion): array;
+
+    /**
+     * El enlace TITULAR de un asunto, mirando en TODOS los hilos.
+     *
+     * Es la otra dirección de la consulta —del asunto al hilo, no del hilo a los asuntos— y hace
+     * falta para el camino duradero: quien llega con la dirección de un asunto (un `bookId` de
+     * Beds24) necesita saber en qué hilo se atiende, sin pasar por ninguna identidad de persona.
+     *
+     * `null` si este dominio no reconoce el `contextType`, o si el asunto todavía no tiene hilo.
+     */
+    public function titularDeAsunto(string $contextType, string $contextId): ?ConversacionEnlaceInterface;
 }

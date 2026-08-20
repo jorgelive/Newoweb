@@ -297,6 +297,18 @@ final readonly class MessageRuleEngine
         $completo = true;
 
         foreach ($enlaces as $enlace) {
+            // Sólo el TITULAR programa. Un asunto puede colgar de varios hilos —una reserva con
+            // dos huéspedes que escriben desde números distintos son dos personas y dos hilos,
+            // y fundirlos sería mentir— pero la AGENDA no puede duplicarse: la bienvenida, el
+            // recordatorio de saldo y el check-out saldrían dos veces. Y el aviso de pago no es
+            // para el acompañante.
+            //
+            // El no titular sigue existiendo y el agente lo lee: puede contestarle sobre el
+            // asunto. Lo que no hace es programarle nada.
+            if (!$enlace->esTitular()) {
+                continue;
+            }
+
             try {
                 $agenda = AgendaDeAsunto::deEnlace($enlace);
             } catch (Throwable $e) {

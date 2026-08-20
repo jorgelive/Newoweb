@@ -104,6 +104,19 @@ final class MessageRuleEngineTest extends TestCase
             public function getNegocio(): string { return 'prueba'; }
 
             public function paraConversacion(MessageConversation $conversacion): array { return $this->enlaces; }
+
+            public function titularDeAsunto(string $contextType, string $contextId): ?ConversacionEnlaceInterface
+            {
+                foreach ($this->enlaces as $enlace) {
+                    if ($enlace->esTitular()
+                        && $enlace->getContextType() === $contextType
+                        && $enlace->getContextId() === $contextId) {
+                        return $enlace;
+                    }
+                }
+
+                return null;
+            }
         };
 
         return new EnlacesDeConversacion([$proveedor]);
@@ -230,6 +243,56 @@ final class MessageRuleEngineTest extends TestCase
         // que en esta era ES el asunto.
         self::assertSame('pms_reserva', $mensajes[0]->getAsuntoType());
         self::assertSame('R-LEGADO', $mensajes[0]->getAsuntoId());
+    }
+
+    // =========================================================================
+    // EL PAPEL DE TITULAR: QUIÉN RECIBE LA AGENDA
+    // =========================================================================
+
+    /**
+     * Una reserva con dos huéspedes que escriben desde números distintos son DOS personas y dos
+     * hilos —fundirlos sería mentir— y el esquema ya lo permite: el único índice del enlace es
+     * `(conversacion_id, reserva_id)`.
+     *
+     * Lo que no puede duplicarse es la AGENDA. Sin el papel de titular, la bienvenida, el
+     * recordatorio de saldo y el check-out salen dos veces, y el aviso de pago le llega al
+     * acompañante.
+     */
+    #[Test]
+    public function el_acompanante_no_recibe_la_agenda_del_titular(): void
+    {
+        $reserva = new PmsReserva();
+        $reserva->initializeId();
+        $inicio = $this->hito('+5 days noon');
+
+        $hiloAcompanante = new MessageConversation('pms_reserva', (string) $reserva->getId());
+        $enlace = $this->enlace($hiloAcompanante, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicio]), $reserva);
+        $enlace->setEsTitular(false);
+
+        $this->motor([$this->regla()])
+            ->syncConversationRules($hiloAcompanante, MessageRuleEngine::TRIGGER_INSERT);
+
+        self::assertSame([], $this->mensajesDelSistema($hiloAcompanante), 'Al no titular no se le programa nada.');
+    }
+
+    /**
+     * Y el contraste, para que la prueba de arriba no pase por el motivo equivocado: el MISMO
+     * montaje, con el enlace titular, sí programa.
+     */
+    #[Test]
+    public function el_mismo_enlace_marcado_titular_si_programa(): void
+    {
+        $reserva = new PmsReserva();
+        $reserva->initializeId();
+        $inicio = $this->hito('+5 days noon');
+
+        $hiloTitular = new MessageConversation('pms_reserva', (string) $reserva->getId());
+        $this->enlace($hiloTitular, MapaDeHitos::de([ConversationMilestoneInterface::START => $inicio]), $reserva);
+
+        $this->motor([$this->regla()])
+            ->syncConversationRules($hiloTitular, MessageRuleEngine::TRIGGER_INSERT);
+
+        self::assertCount(1, $this->mensajesDelSistema($hiloTitular));
     }
 
     // =========================================================================

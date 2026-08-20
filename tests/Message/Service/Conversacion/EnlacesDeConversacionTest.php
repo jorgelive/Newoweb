@@ -125,6 +125,37 @@ final class EnlacesDeConversacionTest extends TestCase
         self::assertSame([], $servicio->canalesPosibles($this->hilo(), 'cotizacion_file', 'otro'));
     }
 
+    #[Test]
+    public function elAsuntoLlevaASuHiloSinPasarPorNingunaIdentidad(): void
+    {
+        // El camino DURADERO. Quien llega con la dirección de un asunto —el `bookId` de
+        // Beds24— necesita saber en qué hilo aterriza, y por identidad no aguanta: un bookId
+        // es de la ESTANCIA, no de nadie. Hay 46 repartidos en 38 hilos y una misma persona
+        // acumula siete.
+        $hilo = $this->hilo();
+        $servicio = new EnlacesDeConversacion([$this->proveedor(
+            'hotelero',
+            $this->enlaceFalso('hotelero', 'Tu reserva', [], 'pms_reserva', 'r-1', conversacion: $hilo)
+        )]);
+
+        self::assertSame($hilo, $servicio->hiloTitularDe('pms_reserva', 'r-1'));
+        self::assertNull($servicio->hiloTitularDe('pms_reserva', 'otra'), 'Otro asunto no arrastra este hilo.');
+        self::assertNull($servicio->hiloTitularDe('cotizacion_file', 'r-1'), 'Otro dominio tampoco.');
+    }
+
+    #[Test]
+    public function unEnlaceNoTitularNoResuelveElHilo(): void
+    {
+        // El hilo del acompañante existe y el agente lo lee, pero NO es «el hilo de la
+        // reserva»: si lo fuera, un mensaje entrante de Beds24 aterrizaría en el chat del
+        // acompañante en vez del titular.
+        $servicio = new EnlacesDeConversacion([
+            $this->proveedor('hotelero', $this->enlaceFalso('hotelero', 'Tu reserva', [], 'pms_reserva', 'r-1', titular: false, conversacion: $this->hilo())),
+        ]);
+
+        self::assertNull($servicio->hiloTitularDe('pms_reserva', 'r-1'));
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
 
     private function hilo(): MessageConversation
@@ -141,6 +172,19 @@ final class EnlacesDeConversacionTest extends TestCase
             public function getNegocio(): string { return $this->negocio; }
 
             public function paraConversacion(MessageConversation $conversacion): array { return $this->enlaces; }
+
+            public function titularDeAsunto(string $contextType, string $contextId): ?ConversacionEnlaceInterface
+            {
+                foreach ($this->enlaces as $enlace) {
+                    if ($enlace->esTitular()
+                        && $enlace->getContextType() === $contextType
+                        && $enlace->getContextId() === $contextId) {
+                        return $enlace;
+                    }
+                }
+
+                return null;
+            }
         };
     }
 
@@ -151,21 +195,26 @@ final class EnlacesDeConversacionTest extends TestCase
         array $canales = [],
         string $contextType = 'prueba',
         string $contextId = 'x',
+        bool $titular = true,
+        ?MessageConversation $conversacion = null,
     ): ConversacionEnlaceInterface {
-        return new class ($negocio, $etiqueta, $canales, $contextType, $contextId) implements ConversacionEnlaceInterface {
+        return new class ($negocio, $etiqueta, $canales, $titular, $contextType, $contextId, $conversacion) implements ConversacionEnlaceInterface {
             /** @param list<string> $canales */
             public function __construct(
                 private readonly string $negocio,
                 private readonly string $etiqueta,
                 private readonly array $canales,
+                private readonly bool $titular,
                 private readonly string $contextType,
                 private readonly string $contextId,
+                private readonly ?MessageConversation $conversacion,
             ) {}
 
-            public function getConversacion(): ?MessageConversation { return null; }
+            public function getConversacion(): ?MessageConversation { return $this->conversacion; }
             public function getNegocio(): string { return $this->negocio; }
             public function getContextType(): string { return $this->contextType; }
             public function getContextId(): string { return $this->contextId; }
+            public function esTitular(): bool { return $this->titular; }
             public function canalesPosibles(): array { return $this->canales; }
             public function getVinculo(): VinculoComercial { return VinculoComercial::Ninguno; }
             public function getMomento(): MomentoDeFrente { return MomentoDeFrente::Venta; }

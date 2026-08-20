@@ -9,6 +9,7 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Message\Contract\ProveedorDeEnlacesInterface;
 use App\Message\Entity\MessageConversation;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Los expedientes de viaje de un hilo.
@@ -78,5 +79,43 @@ final readonly class CotizacionProveedorDeEnlaces implements ProveedorDeEnlacesI
         }
 
         return $pendientes;
+    }
+
+    /**
+     * El enlace TITULAR de un expediente, mirando en todos los hilos. Ver el contrato.
+     */
+    public function titularDeAsunto(string $contextType, string $contextId): ?CotizacionConversacionEnlace
+    {
+        if ($contextType !== CotizacionConversacionEnlace::CONTEXT_TYPE) {
+            return null;
+        }
+
+        foreach ($this->em->getUnitOfWork()->getScheduledEntityInsertions() as $entidad) {
+            if ($entidad instanceof CotizacionConversacionEnlace
+                && $entidad->esTitular()
+                && $entidad->getContextId() === $contextId) {
+                return $entidad;
+            }
+        }
+
+        // ⚠️ El id va como Uuid CON su tipo. Las columnas son `binary(16)`: pasar la cadena
+        // con guiones compara texto contra binario y la consulta devuelve vacío **sin error**,
+        // que es la trampa que ya costó una tarde con los filtros de Travel (docs/Travel.md §11).
+        if (!Uuid::isValid($contextId)) {
+            return null;
+        }
+
+        /** @var ?CotizacionConversacionEnlace $enlace */
+        $enlace = $this->em->getRepository(CotizacionConversacionEnlace::class)
+            ->createQueryBuilder('e')
+            ->join('e.file', 'f')
+            ->where('f.id = :id')
+            ->andWhere('e.esTitular = true')
+            ->setParameter('id', Uuid::fromString($contextId), 'uuid')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $enlace;
     }
 }

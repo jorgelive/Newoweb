@@ -8678,6 +8678,72 @@ quedaba `QUEUED` **sin una sola cola detrás**: en el panel ponía «encolado» 
 es el peor de los tres finales porque nadie lo va a ir a buscar. Era inalcanzable en la práctica;
 el corte por asunto lo vuelve alcanzable, así que ahora falla diciéndolo.
 
+### El camino duradero: del asunto al hilo, sin identidades
+
+**Beds24 no es una identidad de persona.** Se ve en los datos: 46 `bookId` registrados repartidos
+en **38 hilos**, y una misma persona acumula **siete**. Un `bookId` es la dirección de la
+ESTANCIA en un canal — no puedes escribirle fuera de esa reserva, y cuando la estancia termina el
+hilo de Beds24 muere con ella.
+
+Por eso la resolución no puede colgar de él como si fuera un teléfono:
+
+```
+bookId → identidad efímera → hilo          mientras no haya persona (7 hilos hoy son sólo eso)
+bookId → reserva → enlace TITULAR → hilo   en cuanto la hay  ← el duradero
+```
+
+`EnlacesDeConversacion::hiloTitularDe()` es ese segundo camino, y cada dominio lo sirve con
+`ProveedorDeEnlacesInterface::titularDeAsunto()`. Sobrevive a que la persona cambie de número,
+tenga dos, o no tenga ninguno.
+
+⚠️ **`IdentidadTipo::BEDS24` se queda, pero como identidad EFÍMERA**: nunca principal, nunca
+salida por defecto, no participa en la fusión por persona y no se retira —o el booking existe o
+no, no hay nada que corregir—. Hace falta porque **37 reservas no traen ni teléfono ni correo**
+(la OTA los enmascara) y 35 sí traen `bookId`: sin ese ancla no tendrían dónde agarrarse.
+
+### El papel de TITULAR
+
+Un asunto puede colgar de **varios hilos**, y el esquema ya lo permitía: el único índice del
+enlace es `(conversacion_id, reserva_id)`. El caso real es una reserva con dos huéspedes que
+escriben desde números distintos — dos personas, dos hilos, y fundirlos sería mentir.
+
+Lo que no puede duplicarse es la **agenda**: con dos agendas vivas de la misma reserva, la
+bienvenida, el recordatorio de saldo y el check-out salen dos veces. Y el aviso de pago no es
+para el acompañante.
+
+| Papel | Agenda automática | El agente le contesta sobre el asunto |
+|---|---|---|
+| titular | sí | sí |
+| no titular | **no** | sí |
+
+Lo aplica `MessageRuleEngine::agendasDe()`, que salta los no titulares. Por defecto **titular**:
+un enlace que naciera en `false` por descuido dejaría una reserva sin bienvenida, y eso no lo
+delata nada.
+
+⚠️ **Corrección de un consejo anterior.** Se llegó a proponer que el sincronizador buscara el
+enlace *por reserva* en vez de por `(hilo, reserva)`, «porque una reserva no puede estar en dos
+hilos». Es falso, y habría prohibido justo este caso. El esquema estaba bien; lo que faltaba era
+el papel.
+
+### El titular manda sobre la identidad
+
+`MessageConversationFactory::upsertFromContext()` resuelve ahora en este orden:
+
+```
+0. enlace TITULAR del asunto   ← duradero: si el asunto ya tiene hilo, ése es
+1. identidad                    ← descubrimiento: quién es esta persona, la primera vez
+2. (contextType, contextId)     ← legado
+3. nace
+```
+
+Ese orden cierra un fallo real: **corriges el teléfono de una reserva, el número nuevo resulta
+ser de otro hilo y el asunto MIGRABA solo**, en silencio. Y como el sincronizador busca el enlace
+dentro de la conversación, creaba otro — la misma reserva colgando de dos hilos, con dos agendas,
+y el huésped recibiendo cada automático **dos veces**.
+
+Con el titular delante, el asunto se queda donde está y el número nuevo es un identificador más.
+Unir dos historiales sigue siendo decisión de persona: `app:message:fusionar-hilos`.
+
 ### El efecto de rebote: el walk-in que luego reserva
 
 Resolver por identidad tuvo una consecuencia que no estaba a la vista. Un número desconocido nace

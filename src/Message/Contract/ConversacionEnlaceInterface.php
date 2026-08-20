@@ -142,6 +142,35 @@ interface ConversacionEnlaceInterface
     public function getEtiqueta(): string;
 
     /**
+     * ¿Es ÉSTE el hilo por el que se atiende el asunto?
+     *
+     * ── Por qué un papel y no una restricción ───────────────────────────────
+     * Un asunto puede colgar legítimamente de VARIOS hilos, y el esquema ya lo permite —el
+     * único índice del enlace es `(conversacion_id, reserva_id)`—. El caso real es una reserva
+     * con dos huéspedes que escriben desde números distintos: son dos personas, dos hilos, y
+     * fundirlos sería mentir.
+     *
+     * Pero la agenda de envíos **no puede duplicarse**: el motor programa por asunto, y con dos
+     * agendas vivas de la misma reserva la bienvenida, el recordatorio de saldo y el check-out
+     * salen dos veces. Y el aviso de pago no es para el acompañante.
+     *
+     * Así que la respuesta no era prohibir el segundo enlace, sino decir cuál manda:
+     *
+     * ```
+     *  titular      → recibe la agenda automática. Es el hilo del asunto.
+     *  no titular   → contexto: el agente puede contestarle sobre el asunto, pero no se le
+     *                 programa nada.
+     * ```
+     *
+     * ── Y es el camino DURADERO de resolución ───────────────────────────────
+     * Es lo que permite alcanzar el hilo de una reserva sin depender de un identificador de
+     * persona. Un `bookId` de Beds24 es la dirección del ASUNTO, no de nadie —hay 46 repartidos
+     * en 38 hilos, y una misma persona acumula siete—, así que resolver por él tiene que ser
+     * `bookId → reserva → enlace titular → hilo`, no una identidad más.
+     */
+    public function esTitular(): bool;
+
+    /**
      * Por qué canales se puede alcanzar ESTE asunto. **Lista vacía = sin acotar.**
      *
      * ── Por qué cuelga del asunto y no de la conversación ───────────────────

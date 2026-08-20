@@ -46,6 +46,35 @@ final readonly class EnlacesDeConversacion
     }
 
     /**
+     * El hilo por el que se ATIENDE un asunto, sin pasar por ninguna identidad de persona.
+     *
+     * ── El camino duradero ──────────────────────────────────────────────────
+     * Quien llega con la dirección de un asunto —el `bookId` de Beds24— necesita saber en qué
+     * hilo aterriza. Resolverlo por identidad no aguanta: un `bookId` es de la ESTANCIA, no de
+     * nadie. Hay 46 repartidos en 38 hilos y una misma persona acumula siete, así que como
+     * identificador de persona es sencillamente falso.
+     *
+     * Aquí la cadena es `asunto → enlace titular → hilo`, y sobrevive a que la persona cambie
+     * de número, tenga dos, o no tenga ninguno.
+     *
+     * `null` mientras el asunto no tenga hilo — que es lo que pasa la primera vez, antes de que
+     * el sincronizador lo cuelgue. Ahí manda la identidad, que es para lo que sirve: descubrir
+     * a la persona. Después, manda esto.
+     */
+    public function hiloTitularDe(string $contextType, string $contextId): ?MessageConversation
+    {
+        foreach ($this->proveedores as $proveedor) {
+            $enlace = $proveedor->titularDeAsunto($contextType, $contextId);
+
+            if ($enlace !== null) {
+                return $enlace->getConversacion();
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Los canales por los que se puede alcanzar un asunto. **Vacío = sin acotar.**
      *
      * Con `$asuntoType`/`$asuntoId` responde por ESE asunto; sin ellos devuelve la UNIÓN de

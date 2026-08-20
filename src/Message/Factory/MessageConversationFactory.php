@@ -9,6 +9,7 @@ use App\Message\Contract\MessageContextInterface;
 use App\Message\Contract\SincronizadorDeEnlaceInterface;
 use App\Message\Enum\IdentidadTipo;
 use Psr\Log\LoggerInterface;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Service\Conversacion\ResolutorDeHilo;
 use App\Message\Entity\MessageConversation;
 use Doctrine\ORM\EntityManagerInterface;
@@ -28,6 +29,7 @@ readonly class MessageConversationFactory
     public function __construct(
         private EntityManagerInterface $entityManager,
         private ResolutorDeHilo $resolutor,
+        private EnlacesDeConversacion $enlaces,
         private LoggerInterface $logger,
         #[AutowireIterator('app.message.sincronizador_enlace')]
         private iterable $sincronizadores = [],
@@ -37,7 +39,23 @@ readonly class MessageConversationFactory
     {
         $repository = $this->entityManager->getRepository(MessageConversation::class);
 
-        // 1. Por IDENTIDAD primero: el hilo es de la PERSONA.
+        // 0. El ASUNTO manda si ya tiene hilo. Es el camino DURADERO.
+        //
+        // ⚠️ Va ANTES que la identidad, y ese orden es el arreglo. La identidad sirve para
+        // DESCUBRIR a la persona la primera vez; en cuanto el asunto tiene enlace titular, ése
+        // es su hilo y no se discute. Con la identidad mandando siempre pasaba esto:
+        //
+        //   - corriges el teléfono de una reserva y el nuevo número resulta ser de otro hilo
+        //     → el asunto MIGRABA solo a ese hilo, en silencio. Y como el sincronizador busca
+        //       el enlace dentro de la conversación, creaba otro: la misma reserva colgando de
+        //       dos hilos, con DOS agendas, y el huésped recibiendo cada automático dos veces.
+        //
+        // Con el titular delante, el asunto se queda donde está y el número nuevo es sólo un
+        // identificador más. Unir dos historiales sigue siendo decisión de persona:
+        // `app:message:fusionar-hilos`.
+        $conversation = $this->enlaces->hiloTitularDe($context->getContextType(), $context->getContextId());
+
+        // 1. Por IDENTIDAD: el hilo es de la PERSONA.
         //
         // ⚠️ Este orden es el que impide seguir duplicando hilos. Antes se buscaba sólo por
         // `(contextType, contextId)` —una conversación por reserva— mientras WhatsApp buscaba
@@ -48,7 +66,7 @@ readonly class MessageConversationFactory
         // reserva de OTA el importante es el `bookId` de Beds24, porque nace sin teléfono y sin
         // correo y aun así se le puede escribir.
         $identificadores = $context->getIdentificadores();
-        $conversation = $this->porIdentificadores($identificadores);
+        $conversation ??= $this->porIdentificadores($identificadores);
 
         // 2. Si no, por la llave vieja: es lo que encuentra los hilos que ya existen y todavía
         //    no tienen identidades registradas.

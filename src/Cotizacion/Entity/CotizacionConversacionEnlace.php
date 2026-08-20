@@ -81,6 +81,17 @@ class CotizacionConversacionEnlace implements ConversacionEnlaceInterface
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $agencia = null;
 
+    /**
+     * ¿Es este el hilo por el que se atiende el asunto? Ver el contrato para el porqué.
+     *
+     * Por defecto **sí**: el caso abrumadoramente normal es un asunto con un solo hilo, y el
+     * valor seguro es que la agenda salga. Un enlace que naciera en `false` por descuido dejaría
+     * a una reserva sin bienvenida ni recordatorios, y eso no lo delata nada —nadie echa de
+     * menos un mensaje que no sabía que existía—.
+     */
+    #[ORM\Column(name: 'es_titular', type: 'boolean', options: ['default' => true])]
+    private bool $esTitular = true;
+
     public function __construct(MessageConversation $conversacion, CotizacionFile $file)
     {
         $this->initializeId();
@@ -168,6 +179,9 @@ class CotizacionConversacionEnlace implements ConversacionEnlaceInterface
     {
         return ['whatsapp_meta', 'email'];
     }
+
+    public function esTitular(): bool { return $this->esTitular; }
+    public function setEsTitular(bool $v): self { $this->esTitular = $v; return $this; }
 
     public function comoFrente(): Frente
     {

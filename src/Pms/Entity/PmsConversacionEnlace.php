@@ -97,6 +97,17 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
     #[ORM\Column(type: 'string', length: 30, enumType: VinculoComercial::class, options: ['default' => 'ninguno'])]
     private VinculoComercial $vinculo = VinculoComercial::Ninguno;
 
+    /**
+     * ¿Es este el hilo por el que se atiende el asunto? Ver el contrato para el porqué.
+     *
+     * Por defecto **sí**: el caso abrumadoramente normal es un asunto con un solo hilo, y el
+     * valor seguro es que la agenda salga. Un enlace que naciera en `false` por descuido dejaría
+     * a una reserva sin bienvenida ni recordatorios, y eso no lo delata nada —nadie echa de
+     * menos un mensaje que no sabía que existía—.
+     */
+    #[ORM\Column(name: 'es_titular', type: 'boolean', options: ['default' => true])]
+    private bool $esTitular = true;
+
     /** @var array<string, string> */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $milestones = [];
@@ -479,6 +490,9 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
     {
         return [];
     }
+
+    public function esTitular(): bool { return $this->esTitular; }
+    public function setEsTitular(bool $v): self { $this->esTitular = $v; return $this; }
 
     public function comoFrente(): Frente
     {

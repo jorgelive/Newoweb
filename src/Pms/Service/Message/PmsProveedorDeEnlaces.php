@@ -9,6 +9,7 @@ use App\Message\Entity\MessageConversation;
 use App\Pms\Entity\PmsConversacionEnlace;
 use App\Pms\Entity\PmsReserva;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Los asuntos de alojamiento de un hilo.
@@ -51,6 +52,52 @@ final readonly class PmsProveedorDeEnlaces implements ProveedorDeEnlacesInterfac
         }
 
         return $persistidos;
+    }
+
+    /**
+     * El enlace TITULAR de una reserva, mirando en todos los hilos.
+     *
+     * Es el camino DURADERO: quien llega con la dirección del asunto —el `bookId` de Beds24—
+     * sabe así en qué hilo se atiende, sin pasar por ninguna identidad de persona. Un `bookId`
+     * es de la estancia, no de nadie: hay 46 repartidos en 38 hilos, y una misma persona
+     * acumula siete.
+     *
+     * Mira también lo pendiente, por lo mismo que {@see self::paraConversacion()}: en el flujo
+     * de alta, el enlace se crea y se consulta dentro de la misma unidad de trabajo.
+     */
+    public function titularDeAsunto(string $contextType, string $contextId): ?PmsConversacionEnlace
+    {
+        if ($contextType !== PmsConversacionEnlace::CONTEXT_TYPE) {
+            return null;
+        }
+
+        foreach ($this->em->getUnitOfWork()->getScheduledEntityInsertions() as $entidad) {
+            if ($entidad instanceof PmsConversacionEnlace
+                && $entidad->esTitular()
+                && $entidad->getContextId() === $contextId) {
+                return $entidad;
+            }
+        }
+
+        // ⚠️ El id va como Uuid CON su tipo. Las columnas son `binary(16)`: pasar la cadena
+        // con guiones compara texto contra binario y la consulta devuelve vacío **sin error**,
+        // que es la trampa que ya costó una tarde con los filtros de Travel (docs/Travel.md §11).
+        if (!Uuid::isValid($contextId)) {
+            return null;
+        }
+
+        /** @var ?PmsConversacionEnlace $enlace */
+        $enlace = $this->em->getRepository(PmsConversacionEnlace::class)
+            ->createQueryBuilder('e')
+            ->join('e.reserva', 'r')
+            ->where('r.id = :id')
+            ->andWhere('e.esTitular = true')
+            ->setParameter('id', Uuid::fromString($contextId), 'uuid')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $enlace;
     }
 
     /**
