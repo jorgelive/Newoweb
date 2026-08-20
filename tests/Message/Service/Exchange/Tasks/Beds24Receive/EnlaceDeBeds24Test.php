@@ -91,4 +91,79 @@ final class EnlaceDeBeds24Test extends TestCase
 
         self::assertSame($una, EnlaceDeBeds24::absolutizar($una));
     }
+
+    /**
+     * El caso de la captura del 19/08/2026: la burbuja pintaba `<a href="…` literal, porque el
+     * panel escapa el HTML a propósito. Aplanado, queda una URL que el formateador sí enlaza.
+     */
+    #[Test]
+    public function elAnclaSeAplanaATextoConLaUrlEntera(): void
+    {
+        $salida = EnlaceDeBeds24::normalizar(
+            '<a href="api/booking.com/getattach.php?bookid=88591163&attachid=6924" target="_blank">adjunto</a>'
+        );
+
+        self::assertSame(
+            'adjunto: https://beds24.com/api/booking.com/getattach.php?bookid=88591163&attachid=6924',
+            $salida
+        );
+        self::assertStringNotContainsString('<a', $salida);
+        self::assertStringNotContainsString('href', $salida);
+    }
+
+    /** El orden importa: aplanar antes de absolutizar dejaría la URL corta en el texto. */
+    #[Test]
+    public function normalizarPoneElHostAntesDeAplanar(): void
+    {
+        self::assertStringContainsString(
+            'https://beds24.com/api/x.php',
+            EnlaceDeBeds24::normalizar('<a href="api/x.php">a</a>')
+        );
+    }
+
+    /** Un texto de ancla que no aporta se cae: `https://…: https://…` es ruido. */
+    #[Test]
+    #[DataProvider('anclasSinTextoUtil')]
+    public function siElTextoNoAportaSeQuedaSoloLaUrl(string $html): void
+    {
+        self::assertSame('https://beds24.com/x', EnlaceDeBeds24::aplanarAnclas($html));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function anclasSinTextoUtil(): iterable
+    {
+        yield 'texto vacío' => ['<a href="https://beds24.com/x"></a>'];
+        yield 'sólo espacios' => ['<a href="https://beds24.com/x">   </a>'];
+        yield 'el texto ES la url' => ['<a href="https://beds24.com/x">https://beds24.com/x</a>'];
+        yield 'texto envuelto en etiquetas' => ['<a href="https://beds24.com/x"><span> </span></a>'];
+    }
+
+    /** Las entidades HTML se deshacen: un `&amp;` en la query rompería la descarga. */
+    #[Test]
+    public function deshaceLasEntidadesDeLaUrl(): void
+    {
+        self::assertSame(
+            'x: https://beds24.com/a.php?b=1&c=2',
+            EnlaceDeBeds24::aplanarAnclas('<a href="https://beds24.com/a.php?b=1&amp;c=2">x</a>')
+        );
+    }
+
+    /** Varias anclas en el mismo mensaje se aplanan todas. */
+    #[Test]
+    public function aplanaTodasLasQueHaya(): void
+    {
+        self::assertSame(
+            'uno: https://a.com/1 y dos: https://b.com/2',
+            EnlaceDeBeds24::aplanarAnclas('<a href="https://a.com/1">uno</a> y <a href="https://b.com/2">dos</a>')
+        );
+    }
+
+    /** Lo que no lleva anclas no se toca, ni siquiera el HTML de otra clase. */
+    #[Test]
+    public function sinAnclasNoHaceNada(): void
+    {
+        $html = '<img src="https://a0.muscache.com/im/x.jpg"> Hola';
+
+        self::assertSame($html, EnlaceDeBeds24::aplanarAnclas($html));
+    }
 }

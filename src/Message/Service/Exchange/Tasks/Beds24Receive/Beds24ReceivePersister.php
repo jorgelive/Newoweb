@@ -140,10 +140,11 @@ readonly class Beds24ReceivePersister
                 }
             }
 
-            // 1 bis. Los enlaces de Beds24 vienen SIN host: absolutos o no llevan a ninguna parte
-            // fuera de beds24.com. Ver EnlaceDeBeds24, que explica por qué esto no contradice la
-            // «verdad histórica» de la línea siguiente.
-            $rawContent = EnlaceDeBeds24::absolutizar($rawContent);
+            // 1 bis. Los enlaces de Beds24 vienen SIN host y dentro de un <a>: absolutos o no
+            // llevan a ninguna parte fuera de beds24.com, y en HTML el panel los pinta crudos
+            // porque escapa por seguridad. Ver EnlaceDeBeds24, que explica por qué esto no
+            // contradice la «verdad histórica» de la línea siguiente.
+            $rawContent = EnlaceDeBeds24::normalizar($rawContent);
 
             // Un adjunto de Booking.com llega como enlace y NO se puede descargar desde aquí:
             // `getattach.php` es el sitio legacy y sólo lo abre una sesión de navegador. Se deja

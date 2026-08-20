@@ -37,10 +37,60 @@ namespace App\Message\Service\Exchange\Tasks\Beds24Receive;
  *
  * Es decir: esto hace que el enlace **funcione al pulsarlo**, que es todo lo que se puede hacer
  * sin credenciales de navegador. Ver `docs/Mensajeria.md` §23.
+ *
+ * ## Y por qué además se aplana a texto
+ *
+ * El panel **escapa el HTML a propósito**: `formatoAHtml()` protege del texto del huésped y sólo
+ * enlaza lo que casa `https?://`. Así que un ancla llega entera y se pinta cruda —`<a href="…`
+ * literal en la burbuja—, con la URL suelta subrayada en medio. No se arregla dejando pasar
+ * HTML: se arregla **no mandando HTML**.
+ *
+ * Aplanar tiene un segundo beneficio, que es el que de verdad importa: `strip_tags()` sobre el
+ * ancla dejaba la palabra «adjunto» y nada más, así que **el agente no veía que hubiera un
+ * enlace**. Aplanado, lo ve.
+ *
+ * Reescribir el contenido antes de guardarlo no es nuevo aquí: la rama de Airbnb de
+ * `Beds24ReceivePersister` ya sustituye el mensaje entero por «📷 Imagen recibida desde Airbnb».
+ * Esto es menos destructivo que aquello.
  */
 final readonly class EnlaceDeBeds24
 {
     private const string BASE = 'https://beds24.com/';
+
+    /**
+     * Lo que se aplica al entrar: primero el host, después el aplanado.
+     *
+     * El orden no es indiferente. Aplanar antes dejaría en el texto la URL corta y sin dominio,
+     * que es justo la que no lleva a ninguna parte.
+     */
+    public static function normalizar(string $html): string
+    {
+        return self::aplanarAnclas(self::absolutizar($html));
+    }
+
+    /**
+     * `<a href="X">T</a>` → `T: X`, para que lo pinte el formateador de texto plano.
+     *
+     * Cuando el texto del ancla no aporta —está vacío, o es la propia URL— se queda sólo la URL:
+     * `https://…: https://…` es ruido.
+     */
+    public static function aplanarAnclas(string $html): string
+    {
+        if (!str_contains($html, '<a ')) {
+            return $html;
+        }
+
+        return preg_replace_callback(
+            '#<a\b[^>]*\bhref\s*=\s*(["\'])(.*?)\1[^>]*>(.*?)</a>#is',
+            static function (array $m): string {
+                $url = html_entity_decode($m[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $texto = trim(html_entity_decode(strip_tags($m[3]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+
+                return ($texto === '' || $texto === $url) ? $url : $texto . ': ' . $url;
+            },
+            $html
+        ) ?? $html;
+    }
 
     /**
      * Reescribe a absoluto todo `href`/`src` relativo del HTML.
