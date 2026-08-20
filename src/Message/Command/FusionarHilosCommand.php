@@ -169,9 +169,15 @@ final class FusionarHilosCommand extends Command
      */
     private function gruposDuplicados(?string $soloTelefono): array
     {
+        // ⚠️ Fuera los ya fusionados. Un hilo absorbido conserva su `guest_phone` —no se borra
+        // nada— así que sin esto volvería a aparecer en su grupo para siempre: el comando
+        // diría «21 personas se unificarían» eternamente, moviendo cero mensajes. Ruido que
+        // acaba haciendo que nadie mire la salida.
         $sql = 'SELECT i.valor, LOWER(HEX(i.conversacion_id)) AS cid
                   FROM msg_identidad i
-                 WHERE i.tipo = :tipo';
+                  JOIN msg_conversation c ON c.id = i.conversacion_id
+                 WHERE i.tipo = :tipo
+                   AND JSON_EXTRACT(c.context_data, \'$.fusionado_en\') IS NULL';
         $params = ['tipo' => IdentidadTipo::TELEFONO->value];
 
         if ($soloTelefono !== null) {
@@ -189,7 +195,9 @@ final class FusionarHilosCommand extends Command
         // sin identidad justamente por chocar contra el índice único.
         $sql = 'SELECT REGEXP_REPLACE(c.guest_phone, \'[^0-9+]\', \'\') AS valor, LOWER(HEX(c.id)) AS cid
                   FROM msg_conversation c
-                 WHERE c.guest_phone IS NOT NULL AND REGEXP_REPLACE(c.guest_phone, \'[^0-9+]\', \'\') <> \'\'';
+                 WHERE c.guest_phone IS NOT NULL
+                   AND REGEXP_REPLACE(c.guest_phone, \'[^0-9+]\', \'\') <> \'\'
+                   AND JSON_EXTRACT(c.context_data, \'$.fusionado_en\') IS NULL';
         $params = [];
 
         if ($soloTelefono !== null) {
