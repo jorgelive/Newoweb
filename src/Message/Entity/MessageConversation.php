@@ -247,6 +247,36 @@ class MessageConversation
     public function getContextType(): string { return $this->contextType; }
     public function getContextId(): string { return $this->contextId; }
 
+    /**
+     * Un hilo que nació SIN saber de qué iba pasa a tener asunto.
+     *
+     * `manual` no es un contexto: es el marcador de «entró un número que no reconocíamos»
+     * (`WhatsappMetaReceivePersister::resolveConversation()`, rama D). Cuando esa persona
+     * aparece luego en una reserva, la resolución por identidad devuelve ESTE hilo —que es
+     * justo lo que se quiere, el historial es de la persona— pero la cabecera se quedaba
+     * diciendo `manual` para siempre.
+     *
+     * Y eso no es cosmético: el agente todavía decide por `getContextType()`
+     * (`EnviarPlantillaSkill`, `EscalarAlEquipoSkill`, `AiConversationProcessor`), así que un
+     * hilo `manual` con reserva enlazada le contestaría al huésped que no tiene ninguna
+     * reserva. Antes no pasaba porque nacían dos hilos separados; desde que resuelven al
+     * mismo, hay que promover.
+     *
+     * Sólo se sube DESDE `manual`. Una cabecera que ya tiene asunto real no se pisa: ahí la
+     * respuesta es un enlace más, no reescribir de qué va el hilo.
+     */
+    public function promoverDesdeManual(string $contextType, string $contextId): bool
+    {
+        if ($this->contextType !== 'manual' || $contextType === 'manual') {
+            return false;
+        }
+
+        $this->contextType = $contextType;
+        $this->contextId   = $contextId;
+
+        return true;
+    }
+
     public function getGuestName(): ?string { return $this->guestName; }
     public function setGuestName(?string $guestName): self { $this->guestName = $guestName; return $this; }
 

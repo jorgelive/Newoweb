@@ -2685,10 +2685,27 @@ Detalles que no se ven en el código:
 - Al identificarla, el nombre y el idioma salen de la RESERVA, no del perfil de WhatsApp: en el
   panel se busca por el nombre con el que está reservado, y al huésped se le escribe en su idioma.
 
-⚠️ **Sólo aplica a conversaciones NUEVAS.** Las `manual` que ya existen no se promueven solas: si
-una conversación abierta coincide por teléfono, `resolveConversation()` la reutiliza y nunca llega
-a esta rama. Un huésped con una `manual` viva seguirá sin poder consultar su cuenta hasta que
-alguien la ate.
+⚠️ **Una `manual` que ya existe tampoco llega a esta rama** — `resolveConversation()` la reutiliza
+en el paso A y ni mira si hay reserva viva. Lo que la desatasca es el otro lado:
+`MessageConversationFactory::upsertFromContext()` llama a
+`MessageConversation::promoverDesdeManual()` en cuanto la reserva se recalcula.
+
+**Por qué hizo falta añadirlo, y por qué no antes.** Mientras la búsqueda era por
+`(contextType, contextId)`, un walk-in que después reservaba producía **dos hilos**: el `manual`
+viejo y uno `pms_reserva` nuevo. Mal, pero el segundo funcionaba. Desde que la resolución va por
+IDENTIDAD (§24), la factory encuentra el `manual` y lo reutiliza —que es justo lo que se quiere,
+el historial es de la persona— y le cuelga el enlace del asunto. La cabecera, en cambio, se
+quedaba diciendo `manual`.
+
+Y eso **no es cosmético**: el agente todavía decide por `getContextType()` —`EnviarPlantillaSkill`,
+`EnviarMensajeHuespedSkill`, `EscalarAlEquipoSkill`, `AiConversationProcessor`—, así que el huésped
+preguntaba por su cuenta y se le contestaba que no tiene ninguna reserva **teniéndola enlazada**.
+Un fallo que aparece sólo en la secuencia walk-in → reserva, y que no da ni un error.
+
+La promoción es **de una sola dirección**: sólo sube DESDE `manual`, nunca reescribe una cabecera
+que ya tiene asunto real. El segundo asunto de una persona es un enlace más; pisar la cabecera
+haría que el hilo cambiara de reserva cada vez que se recalcula cualquiera de ellas. Fijado en
+`tests/Message/Entity/MessageConversationPromocionTest.php`.
 
 #### 🏘️ Crear reserva vs añadir estancia: dos skills, un creador
 
@@ -8612,10 +8629,28 @@ tiene pendientes de insertar.
 
 Y `getEnlaces()` sale de la entidad, que es donde no debía estar: **una entidad no consulta**.
 
+### El efecto de rebote: el walk-in que luego reserva
+
+Resolver por identidad tuvo una consecuencia que no estaba a la vista. Un número desconocido nace
+como hilo `manual`; cuando esa persona reserva, la factory ahora **encuentra ese hilo** en vez de
+crear uno — correcto, el historial es de la persona — y le cuelga el enlace de la reserva. Pero la
+cabecera seguía diciendo `manual`, y el agente decide por `getContextType()`: le contestaba al
+huésped que no tiene ninguna reserva teniéndola enlazada.
+
+Lo arregla `MessageConversation::promoverDesdeManual()`, llamado desde
+`MessageConversationFactory::upsertFromContext()`. Sube **sólo desde `manual`** y nunca pisa una
+cabecera con asunto real. El detalle está en §5, junto a la rama que crea el walk-in.
+
+⚠️ Es la forma del problema que hay que vigilar al fusionar o unificar hilos: **lo que se arregla
+en la resolución reaparece en quien lee la cabecera.** Mientras el agente enrute por
+`contextType`/`contextId` y no por los enlaces, la cabecera es dato vivo, no un resto histórico.
+
 ### Lo que queda
 
 - El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.
 - Que algo **cree** enlaces de Travel: la tabla existe y el núcleo ya sabe recogerlos, pero
   nadie los cuelga todavía. El sitio natural es al abrir un expediente o al emitir una
   cotización, como hace `PmsSincronizadorDeEnlace` con las reservas.
-- El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.
+- **Que el agente lea los enlaces en vez de la cabecera.** Es el paso que vuelve la promoción
+  innecesaria y el que hace de verdad multi-asunto al agente: hoy, de las varias reservas de un
+  hilo, sólo ve la de la cabecera.

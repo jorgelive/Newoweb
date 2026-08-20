@@ -66,6 +66,20 @@ readonly class MessageConversationFactory
             $this->entityManager->persist($conversation);
         }
 
+        // 3-bis. Si el hilo que encontramos nació como WALK-IN, ahora sí sabemos de qué va.
+        //
+        // Pasa cuando alguien escribe por WhatsApp ANTES de tener reserva: nace `manual`, y al
+        // reservar la resolución por identidad devuelve ese mismo hilo. Sin esta línea la
+        // cabecera se quedaba en `manual` y el agente —que aún decide por `getContextType()`—
+        // le diría que no tiene ninguna reserva, teniéndola enlazada dos líneas más abajo.
+        if ($conversation->promoverDesdeManual($context->getContextType(), $context->getContextId())) {
+            $this->logger->info('Hilo manual promovido a su asunto real.', [
+                'conversacion' => (string) $conversation->getId(),
+                'context_type' => $context->getContextType(),
+                'context_id'   => $context->getContextId(),
+            ]);
+        }
+
         // 4. Se registran los identificadores. Idempotente, y hace que la próxima resolución
         //    —venga por donde venga— caiga en este mismo hilo.
         foreach ($identificadores as $tipo => $valor) {
