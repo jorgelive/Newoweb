@@ -295,3 +295,56 @@ Un **plan de pagos como dato de la reserva**: cuotas con importe, fecha y estado
   plantilla con `{{ nombre }}` la saluda por el apellido. `RevisarOrdenDelNombreDispatch` sólo
   actúa cuando el nombre entra o cambia: **no cubre el histórico**. Falta un comando que lo
   barra, como se hizo con `app:pms:corregir-pais-ota`.
+
+---
+
+## El comprobante que nadie pudo abrir — 19/08/2026
+
+**Es el mismo agujero de arriba, visto desde el otro lado.** No falta un plan de pagos: falta
+que llegue el dato del pago.
+
+La huésped de la reserva **88591163** (Pasquali, 01–07/09/2026) mandó por Booking.com el
+comprobante de un cargo. El comprobante existe, es legible y es inequívoco:
+
+| Dato | Valor |
+|---|---|
+| Monto | **170,30 USD** |
+| Fecha | 19/08/2026 10:44 |
+| Medio | Mastercard `516499…5726` |
+| Autorización | X49320 |
+| Referencia | «Sussane set» |
+
+**Y no está registrado.** Lo que hay en su cuenta hoy:
+
+```
+cargos    suplemento de limpieza                     15.00
+          [ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]   327.96
+          cargo por servicio                         49.19
+                                                   ───────
+                                                    392.15
+
+pagos     20/06/2026  tarjeta de crédito             69.29
+                                                   ───────
+saldo que muestra el sistema                        322.86
+saldo real, con el comprobante                      152.56   ← 170.30 de diferencia
+```
+
+**Por qué nadie lo anotó:** el adjunto llegó como un enlace que no se podía abrir. El `href`
+venía sin host y el panel lo resolvía contra su propio dominio → 404. Eso ya está arreglado
+(`EnlaceDeBeds24` + `Version20260819235500`, 92 mensajes corregidos), así que a partir de ahora
+el enlace **se abre**. Ver `docs/Mensajeria.md` §23.
+
+Pero el arreglo tiene un techo: el operador puede abrirlo porque tiene sesión en beds24.com; el
+servidor **no puede descargarlo** —está probado que ninguna credencial de la API sirve—. Así que
+el comprobante nunca estará en nuestra base ni lo verá el agente.
+
+**Lo que queda pendiente, por orden:**
+
+1. **Registrar los 170,30 de esta reserva.** Es un dato, no una interpretación: está el número de
+   autorización.
+2. **Revisar los otros 91 mensajes con adjunto.** Ninguno se pudo abrir en su momento, así que
+   cualquiera podría llevar dentro otro comprobante sin anotar. Ahora los enlaces funcionan.
+3. **Decidir si se avisa.** Un adjunto que el sistema no puede leer y que puede ser dinero
+   debería levantar la mano solo, en vez de esperar a que alguien mire el hilo. Es exactamente el
+   caso de «ver valores, no interpretar conversaciones»: hoy el valor está en una imagen que el
+   sistema no ve.

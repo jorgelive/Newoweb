@@ -140,6 +140,21 @@ readonly class Beds24ReceivePersister
                 }
             }
 
+            // 1 bis. Los enlaces de Beds24 vienen SIN host: absolutos o no llevan a ninguna parte
+            // fuera de beds24.com. Ver EnlaceDeBeds24, que explica por qué esto no contradice la
+            // «verdad histórica» de la línea siguiente.
+            $rawContent = EnlaceDeBeds24::absolutizar($rawContent);
+
+            // Un adjunto de Booking.com llega como enlace y NO se puede descargar desde aquí:
+            // `getattach.php` es el sitio legacy y sólo lo abre una sesión de navegador. Se deja
+            // constancia para que no se confunda con un fallo de descarga, que es lo que parece.
+            if (str_contains($rawContent, 'getattach.php')) {
+                $this->logger->info(
+                    'Adjunto de Booking.com en la reserva ' . $targetBookId . ': queda como enlace, '
+                    . 'no se puede espejar (getattach.php exige sesión de beds24.com).'
+                );
+            }
+
             // 2. Verdad histórica: Guardamos exactamente lo que llegó
             $message->setContentExternal($rawContent);
 

@@ -32,6 +32,7 @@ Alcance: `src/Message/` completo, más los dos puntos donde el PMS lo alimenta
 18. [Sincronizar plantillas con Meta](#18-sincronizar-plantillas-con-meta-por-qué-aparecen-duplicados-y-qué-no-hacer)
 19. [Con quién se habla: vínculo, restricción de canal y categoría de conocimiento](#19-con-quién-se-habla-vínculo-restricción-de-canal-y-categoría-de-conocimiento)
 20. [La cirugía: separar la persona del asunto](#20-la-cirugía-separar-la-persona-del-asunto)
+23. [Adjuntos de las OTA: los que llegan y los que sólo se prometen](#23-adjuntos-de-las-ota-los-que-llegan-y-los-que-sólo-se-prometen)
 
 ---
 
@@ -8281,3 +8282,75 @@ es sobre *cuál*. Van en serie y no se pisan, pero un mismo «me pagó 100» pue
 repreguntas seguidas —y la regla de la casa es que dos repreguntas por el mismo pago son una de
 más. Si se ve en los logs, la salida no es quitar el empate: es que `registrar_pago` traiga ya
 resueltas las dos dudas cuando llega desde una aclaración.
+
+---
+
+## 23. Adjuntos de las OTA: los que llegan y los que sólo se prometen
+
+Un adjunto no es un adjunto. Según por dónde entre, llega **el archivo** o llega **una promesa
+de archivo**, y sólo una de las dos se puede guardar.
+
+```
+WhatsApp (Meta)      → media id → se descarga con el token → MessageAttachment ✅
+Airbnb (muscache)    → <img src="https://a0.muscache.com/…">  CDN público → se descarga ✅
+Booking.com (Beds24) → <a href="api/booking.com/getattach.php?…">attachment</a>  ❌
+```
+
+### Por qué el de Booking.com no se puede bajar
+
+`getattach.php` **no es la API**: es el sitio legacy de beds24.com, y autentica por **cookie de
+sesión de navegador**. Probado el 19/08/2026 contra el adjunto real de la reserva 88591163, las
+cuatro formas devuelven lo mismo —la cadena `error`, 5 bytes, con **HTTP 200**—:
+
+| Intento | Resultado |
+|---|---|
+| `token` en cabecera (el de la API v2) | `error` |
+| `Authorization: Bearer <token>` | `error` |
+| `token` en la query | `error` |
+| sin autenticación, con User-Agent de navegador | `error` |
+
+Y la v2 tampoco lo entrega por otra vía: `bookings/messages` devuelve nueve claves
+—`id, authorOwnerId, bookingId, roomId, propertyId, time, read, message, source`— y **ninguna es
+el adjunto**, con `includeAttachments` o sin él; `bookings/attachments` responde 500.
+
+⚠️ **Consecuencia para el código:** los campos `attachment`, `attachmentName` y
+`attachmentMimeType` de {@see \App\Message\Dto\Beds24MessageDto} **nunca se llenan** con este
+proveedor. La rama `elseif (!empty($dto->attachment))` de `Beds24ReceivePersister` no ha
+disparado jamás. No se borra porque el DTO es el contrato del payload —el día que Beds24 los
+mande, ya está—, pero **no se puede contar con ella**.
+
+### El fallo que sí se arregló: el enlace venía sin host
+
+El `href` es relativo (`api/booking.com/getattach.php?…`), que es correcto **dentro** de
+beds24.com y falso fuera. Guardado literal, el panel lo resolvía contra su propio dominio y el
+operador aterrizaba en un 404 de `panel.openperu.pe/api/booking.com/…`. **Eran 92 mensajes.**
+
+Lo arregla {@see \App\Message\Service\Exchange\Tasks\Beds24Receive\EnlaceDeBeds24} al
+entrar, y `Version20260819235500` arrastró los ya guardados.
+
+- **No contradice la «verdad histórica» de `contentExternal`.** Una URL relativa sólo significa
+  algo junto al host que la sirvió; conservarla literal fuera de él no preserva el dato, lo
+  destruye. Se guarda la misma dirección, dicha entera.
+- **No filtra por `getattach.php`.** El HTML lo redactó Beds24, así que cualquier ruta relativa
+  que lleve dentro es suya. Acotarlo al adjunto de hoy dejaría el mismo fallo esperando en el
+  enlace de mañana.
+- **El arrastre fue por SQL, no por el ORM**, y ésa es la parte que hay que recordar: `Message`
+  tiene listeners de `preUpdate` y `postUpdate` —traductor, auto-respondedor, Mercure y el
+  **encolador de envío**—. Tocar 92 mensajes históricos por el ORM podía despertar el encolador y
+  **re-enviárselos a los huéspedes**. Aquí no hay nada que recalcular: se corrige una dirección
+  dentro de un texto.
+
+### Lo que sigue sin resolverse, y por qué importa
+
+El operador puede **abrir** el enlace (tiene sesión en Beds24); el servidor no puede
+**espejarlo**. Así que el archivo no está en nuestra base, no lo ve el agente y no queda con la
+reserva.
+
+Y eso no es una molestia estética. El caso que lo destapó: el 19/08/2026 la huésped de la reserva
+88591163 mandó por este canal el comprobante de un cargo de **170,30 USD**. Nadie pudo abrirlo, y
+el pago **no se registró**: su cuenta sigue diciendo 322,86 de saldo cuando debe 152,56. Un
+comprobante que no se puede abrir es un cobro que no se anota — ver `docs/Pendientes.md`.
+
+Para espejarlo haría falta mantener una sesión de navegador contra beds24.com. **No se ha hecho a
+propósito:** son credenciales de persona, se rompen al cambiar la contraseña o al activar 2FA, y
+el fallo sería silencioso. Si algún día compensa, que sea una decisión tomada, no un parche.
