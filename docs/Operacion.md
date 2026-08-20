@@ -236,6 +236,37 @@ reconciliación. Se reconocen sin ambigüedad —`snapshotOrigen` guarda la foto
 cotización, así que **valor ≠ foto ⟹ lo cambió una persona**— y `Version20260820180000` las mueve
 a la columna override y devuelve la cotizada a su valor de origen.
 
+#### Cuál de los cuatro llega a la Orden
+
+De las cuatro columnas del comprador **sólo un valor viaja**, y la Orden lo guarda en un campo
+que se llama igual que el cotizado — cuidado con eso al leer:
+
+```
+OperacionServicio                          OperacionOrdenServicio
+  comprador_override_maestro_id  ─┐
+  comprador_override_nombre       ├─ el que gane ──►  comprador_maestro_id
+  comprador_maestro_id           ─┤                   comprador_nombre
+  comprador_nombre               ─┘
+```
+
+**La prioridad es `override ?? cotizado`**, resuelta por `getCompradorEfectivoMaestroId()`. Del
+prestador y su servicio **no viaja nada**: la Orden es un documento de compra y va dirigida a
+quien ejecuta el encargo, no a quien opera.
+
+Tres momentos, y los tres leen el efectivo:
+
+1. **Agrupar** — `conflictoSeleccion` exige que las filas seleccionadas compartan
+   `compradorEfectivoMaestroId`. Por **id**, no por texto: «Futurismo» tecleado y «Futurismo
+   Jonathan» del catálogo serían dos órdenes.
+2. **Proponer** — el modal se rellena con el efectivo de la primera fila.
+3. **Decidir** — el operador puede cambiar el destinatario en el modal antes de crear. Esa
+   elección se guarda en la Orden y **no vuelve a mirar al servicio**: la Orden es un documento
+   emitido, no una vista.
+
+⚠️ Una vez creada, cambiar el override en La Biblia **no reescribe la Orden**. Es deliberado —un
+documento ya mandado no cambia solo— pero significa que corregir el destinatario después exige
+editar la Orden, no la fila.
+
 #### «Real» se retiró del vocabulario (20/08/2026)
 
 `real` describía tres cosas distintas y ninguna con precisión. `Version20260820220000`:

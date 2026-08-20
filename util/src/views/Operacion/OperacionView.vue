@@ -653,8 +653,11 @@ const abrirModalOs = () => {
     formOs.value = {
         // Sugerencia: numeroOs es unique y no tiene generador en el backend.
         numeroOs: `OS-${hoy}-${String(Math.floor(Math.random() * 900) + 100)}`,
-        compradorMaestroId: sel[0].compradorMaestroId ?? '',
-        compradorNombre: sel[0].compradorNombre ?? '',
+        // El EFECTIVO, que es por el que agrupa `conflictoSeleccion`. Con el cotizado, una
+        // fila con override proponía la empresa de la cotización mientras la comprobación de
+        // «todos el mismo comprador» miraba otra: el modal se contradecía consigo mismo.
+        compradorMaestroId: sel[0].compradorEfectivoMaestroId ?? '',
+        compradorNombre: sel[0].compradorEfectivoNombre ?? '',
     };
     errorOs.value = null;
     mostrarModalOs.value = true;
