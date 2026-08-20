@@ -8455,6 +8455,42 @@ correo acabarían en dos hilos — exactamente lo que esto viene a cerrar. Por e
 ⚠️ **El prefijo NO se adivina al normalizar.** `+51984123456` y `984123456` son valores
 distintos, y unirlos es una decisión, no una limpieza.
 
+### 🔑 Beds24 también es un identificador
+
+Y es el que hacía falta para cerrar el modelo. **Un hilo de reserva de OTA nace sin teléfono y
+sin correo** —el huésped todavía no ha escrito— y aun así **es alcanzable**: la salida por Beds24
+se dirige con `targetBookId`, no con un número (`Beds24SendQueue`).
+
+```
+telefono:+51984…      ← WhatsApp
+email:nune@…          ← el correo que viene
+beds24:88591163       ← el hilo de OTA, sin datos de contacto
+```
+
+Un identificador es «por dónde se le reconoce **o se le alcanza**», y el `bookId` lo es. Sin él,
+la mitad de los hilos no tendría ninguno y habría que seguir resolviéndolos por
+`(contextType, contextId)` — es decir, mantener los dos criterios vivos y volver a duplicar.
+
+Los declara el dominio, en `MessageContextInterface::getIdentificadores()`: sólo él sabe cuáles
+son. El núcleo los registra y busca con ellos; **no interpreta ninguno**.
+
+### Un solo criterio en la factoría
+
+`MessageConversationFactory::upsertFromContext()` buscaba **sólo** por
+`(contextType, contextId)` —una conversación por reserva— mientras WhatsApp buscaba por
+teléfono. Ahora:
+
+```
+1 · por IDENTIDAD          ← el hilo es de la persona
+2 · por (tipo, id)         ← lo que encuentra los hilos que ya existen
+3 · si no, nace
+4 · se registran los identificadores  ← la próxima resolución cae aquí, venga por donde venga
+```
+
+⚠️ **Si dos identificadores del mismo contexto apuntan a hilos distintos, no se une ninguno**:
+nace uno nuevo y queda un aviso en el log. Unir dos historiales porque comparten un teléfono es
+una decisión de persona, y ya hay 31 hilos esperando esa revisión.
+
 ### Lo aproximado sugiere, no decide
 
 La cola de 8 dígitos sigue existiendo, **degradada a candidato**

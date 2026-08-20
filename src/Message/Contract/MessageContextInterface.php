@@ -20,6 +20,21 @@ interface MessageContextInterface
     public function getContextName(): ?string;
     public function getContextPhone(): ?string;
 
+    /**
+     * Por dónde se reconoce o se ALCANZA a esta persona, además del teléfono.
+     *
+     * ⚠️ Lo escribe el dominio porque sólo él sabe cuáles son. En alojamiento, una reserva de
+     * OTA nace **sin teléfono y sin correo** y aun así se le puede escribir: la salida por
+     * Beds24 se dirige con el `bookId`. Sin este método, esos hilos no tendrían ningún
+     * identificador y habría que seguir resolviéndolos por `(contextType, contextId)` — o sea,
+     * mantener dos criterios vivos y volver a duplicar hilos.
+     *
+     * El núcleo los registra y los usa para buscar; **no interpreta ninguno**.
+     *
+     * @return array<string, string> valor del {@see \App\Message\Enum\IdentidadTipo} => valor
+     */
+    public function getIdentificadores(): array;
+
     // --- DICCIONARIO AGNÓSTICO (Para el campo JSON) ---
     public function getOrigin(): ?string;
     public function getStatusTag(): ?string;

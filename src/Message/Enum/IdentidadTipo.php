@@ -16,6 +16,20 @@ enum IdentidadTipo: string
     case EMAIL = 'email';
 
     /**
+     * El `bookId` de Beds24.
+     *
+     * ⚠️ **No es un dato de contacto, y por eso hacía falta.** Un hilo de reserva de OTA nace
+     * SIN teléfono y SIN correo —el huésped todavía no ha escrito— y aun así es alcanzable: la
+     * salida por Beds24 se dirige con `targetBookId`, no con un número
+     * ({@see \App\Message\Entity\Beds24SendQueue}).
+     *
+     * Un identificador es «por dónde se le reconoce o se le alcanza», y esto lo es. Sin él, la
+     * mitad de los hilos no tendría ninguno y habría que seguir resolviéndolos por
+     * `(contextType, contextId)` — es decir, mantener dos criterios vivos.
+     */
+    case BEDS24 = 'beds24';
+
+    /**
      * Deja el valor en su forma canónica, que es lo que hace fiable la búsqueda exacta.
      *
      * ⚠️ **La normalización vive aquí y sólo aquí.** Si cada sitio que guarda una identidad
@@ -34,6 +48,9 @@ enum IdentidadTipo: string
             // quién lo escriba. `PhoneSanitizer` hace el trabajo fino de país; esto es el
             // mínimo para que la comparación exacta no falle por un guion.
             self::TELEFONO => (string) preg_replace('/[^\d+]/', '', $valor),
+            // Sólo dígitos: el bookId de Beds24 es numérico y llega unas veces como int y
+            // otras como string. Sin esto, `88591163` y `'88591163 '` serían dos identidades.
+            self::BEDS24 => (string) preg_replace('/\D/', '', $valor),
         };
     }
 }

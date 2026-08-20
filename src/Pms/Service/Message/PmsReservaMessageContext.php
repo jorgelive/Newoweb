@@ -7,6 +7,7 @@ namespace App\Pms\Service\Message;
 use App\Contract\ConversationMilestoneInterface;
 use App\Contract\MapaDeHitos;
 use App\Message\Contract\MessageContextInterface;
+use App\Message\Enum\IdentidadTipo;
 use App\Contract\VinculoComercial;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
@@ -71,6 +72,36 @@ class PmsReservaMessageContext implements MessageContextInterface
     public function getContextPhone(): ?string
     {
         return $this->reserva->getTelefonoContacto();
+    }
+
+    /**
+     * Por dónde se alcanza a este huésped.
+     *
+     * ⚠️ **El `bookId` de Beds24 es el importante.** Una reserva de OTA nace sin teléfono y sin
+     * correo —el huésped todavía no ha escrito— y aun así se le puede escribir: la salida por
+     * Beds24 se dirige con él. Sin registrarlo, ese hilo no tendría ningún identificador.
+     *
+     * El correo también, cuando lo hay: es por donde llegarán las respuestas del buzón.
+     *
+     * @return array<string, string>
+     */
+    public function getIdentificadores(): array
+    {
+        $identificadores = [];
+
+        if (($telefono = $this->reserva->getTelefonoContacto()) !== null && trim($telefono) !== '') {
+            $identificadores[IdentidadTipo::TELEFONO->value] = $telefono;
+        }
+
+        if (($email = $this->reserva->getEmailCliente()) !== null && trim($email) !== '') {
+            $identificadores[IdentidadTipo::EMAIL->value] = $email;
+        }
+
+        if (($bookId = $this->reserva->getBeds24BookIdPrincipal()) !== null && trim($bookId) !== '') {
+            $identificadores[IdentidadTipo::BEDS24->value] = $bookId;
+        }
+
+        return $identificadores;
     }
 
     // =========================================================================

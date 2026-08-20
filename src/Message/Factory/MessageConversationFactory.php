@@ -7,6 +7,9 @@ namespace App\Message\Factory;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Message\Contract\MessageContextInterface;
 use App\Message\Contract\SincronizadorDeEnlaceInterface;
+use App\Message\Enum\IdentidadTipo;
+use Psr\Log\LoggerInterface;
+use App\Message\Service\Conversacion\ResolutorDeHilo;
 use App\Message\Entity\MessageConversation;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
@@ -24,6 +27,8 @@ readonly class MessageConversationFactory
      */
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private ResolutorDeHilo $resolutor,
+        private LoggerInterface $logger,
         #[AutowireIterator('app.message.sincronizador_enlace')]
         private iterable $sincronizadores = [],
     ) {}
@@ -32,19 +37,41 @@ readonly class MessageConversationFactory
     {
         $repository = $this->entityManager->getRepository(MessageConversation::class);
 
-        // 1. Buscamos por la Llave Lógica Compuesta (Join Lógico)
-        $conversation = $repository->findOneBy([
+        // 1. Por IDENTIDAD primero: el hilo es de la PERSONA.
+        //
+        // ⚠️ Este orden es el que impide seguir duplicando hilos. Antes se buscaba sólo por
+        // `(contextType, contextId)` —una conversación por reserva— mientras WhatsApp buscaba
+        // por teléfono: dos criterios sobre la misma tabla, y de ahí los 20 teléfonos con más
+        // de un hilo que mide `ConversacionEnlaceInterface`.
+        //
+        // Los identificadores los declara el dominio, que es quien sabe cuáles son: para una
+        // reserva de OTA el importante es el `bookId` de Beds24, porque nace sin teléfono y sin
+        // correo y aun así se le puede escribir.
+        $identificadores = $context->getIdentificadores();
+        $conversation = $this->porIdentificadores($identificadores);
+
+        // 2. Si no, por la llave vieja: es lo que encuentra los hilos que ya existen y todavía
+        //    no tienen identidades registradas.
+        $conversation ??= $repository->findOneBy([
             'contextType' => $context->getContextType(),
             'contextId'   => $context->getContextId(),
         ]);
 
-        // 2. Si no existe, la instanciamos (NACIMIENTO)
+        // 3. Si no existe, la instanciamos (NACIMIENTO)
         if (!$conversation) {
             $conversation = new MessageConversation(
                 $context->getContextType(),
                 $context->getContextId()
             );
             $this->entityManager->persist($conversation);
+        }
+
+        // 4. Se registran los identificadores. Idempotente, y hace que la próxima resolución
+        //    —venga por donde venga— caiga en este mismo hilo.
+        foreach ($identificadores as $tipo => $valor) {
+            if (($caso = IdentidadTipo::tryFrom((string) $tipo)) !== null) {
+                $this->resolutor->vincular($conversation, $caso, $valor, 'contexto');
+            }
         }
 
         // =====================================================================
@@ -115,5 +142,43 @@ readonly class MessageConversationFactory
         }
 
         return $conversation;
+    }
+
+    /**
+     * El primer hilo que reconozca alguno de estos identificadores.
+     *
+     * ⚠️ **Si dos apuntan a hilos distintos NO se elige**: se devuelve `null` y nace uno nuevo,
+     * que es lo reversible. Unir dos historiales porque comparten un teléfono es una decisión
+     * de persona, y ya hay 31 hilos esperando esa revisión — meter más por la puerta de atrás
+     * no ayuda.
+     *
+     * @param array<string, string> $identificadores
+     */
+    private function porIdentificadores(array $identificadores): ?MessageConversation
+    {
+        $encontrados = [];
+
+        foreach ($identificadores as $tipo => $valor) {
+            $caso = IdentidadTipo::tryFrom((string) $tipo);
+
+            if ($caso === null) {
+                continue;
+            }
+
+            if (($hilo = $this->resolutor->porIdentidad($caso, $valor)) !== null) {
+                $encontrados[(string) $hilo->getId()] = $hilo;
+            }
+        }
+
+        if (count($encontrados) > 1) {
+            $this->logger->warning('Identificadores de un mismo contexto apuntan a hilos distintos: no se une ninguno.', [
+                'identificadores' => array_keys($identificadores),
+                'hilos' => array_keys($encontrados),
+            ]);
+
+            return null;
+        }
+
+        return $encontrados === [] ? null : reset($encontrados);
     }
 }

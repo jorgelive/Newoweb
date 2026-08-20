@@ -64,11 +64,27 @@ final class IdentidadTipoTest extends TestCase
         );
     }
 
+    /**
+     * El `bookId` de Beds24: dígitos y nada más.
+     *
+     * Es el identificador de los hilos que nacen **sin teléfono y sin correo** —una reserva de
+     * OTA cuyo huésped todavía no ha escrito— y aun así son alcanzables, porque la salida por
+     * Beds24 se dirige con él. Llega unas veces como entero y otras como texto.
+     */
+    #[Test]
+    public function elBookIdDeBeds24SeQuedaEnDigitos(): void
+    {
+        self::assertSame('88591163', IdentidadTipo::BEDS24->normalizar('88591163'));
+        self::assertSame('88591163', IdentidadTipo::BEDS24->normalizar(' 88591163 '));
+        self::assertSame('88591163', IdentidadTipo::BEDS24->normalizar('#88591163'));
+    }
+
     #[Test]
     public function loQueNoTieneNadaUtilQuedaVacio(): void
     {
         self::assertSame('', IdentidadTipo::TELEFONO->normalizar('   '));
         self::assertSame('', IdentidadTipo::TELEFONO->normalizar('sin número'));
         self::assertSame('', IdentidadTipo::EMAIL->normalizar('  '));
+        self::assertSame('', IdentidadTipo::BEDS24->normalizar('sin id'));
     }
 }
