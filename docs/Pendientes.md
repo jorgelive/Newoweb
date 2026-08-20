@@ -370,10 +370,26 @@ nuestro:** ni `8kwer06x` ni `oxf9ihjq` existen en `fin_enlace_pago`. Se crearon 
 de Izipay, así que no hubo webhook, no hubo registro, y el rastro quedó en una captura de pantalla
 subida al hilo de Booking.
 
-**El patrón, y es lo preocupante:** los 92 adjuntos de `getattach.php` son `host` —los subimos
-nosotros, en 70 conversaciones, desde marzo—. Ninguno viene del huésped. O sea que no es que
-lleguen comprobantes que no podemos leer: es que **se cobra fuera del sistema y luego se
-documenta con una foto**. La foto no suma en ninguna cuenta.
+**El patrón:** los 92 adjuntos de `getattach.php` son `host` —los subimos nosotros, en 70
+conversaciones, desde marzo—. Ninguno viene del huésped. O sea que no es que lleguen comprobantes
+que no podemos leer: es que **se cobra fuera del sistema y luego se documenta con una foto**. La
+foto no suma en ninguna cuenta.
+
+⚠️ **Pero el proceso manual funciona casi siempre, y conviene decirlo.** Revisadas otras cuatro
+reservas de la misma tanda, el enlace tampoco era nuestro (`rbacwxeh` no está en
+`fin_enlace_pago`) **y aun así el pago sí se registró a mano**:
+
+| Reserva | Total | Pagado | |
+|---|---|---|---|
+| Jessa Shillig `90761098` | 260.30 | 86.76 | ✅ |
+| Scott Shillig `90761245` | 246.15 | 82.05 | ✅ |
+| Sarah Beament `86341124` | 330.24 | 330.52 | ✅ (0.28 de más) |
+| Gabriela Avila `85698685` | 0.00 | — | anulada, coherente |
+
+Así que lo de la reserva 88591163 fue **un fallo puntual, no la norma**. Lo que sigue en pie es
+que el registro depende de que una persona se acuerde, y esa vez no se acordó. Eso baja la
+urgencia de los tres puntos de abajo, no los anula: un proceso que funciona «casi siempre» sobre
+dinero acaba fallando, y falla sin avisar.
 
 **Qué hacer, por valor:**
 
@@ -387,3 +403,50 @@ documenta con una foto**. La foto no suma en ninguna cuenta.
 
 ⚠️ Lo que **no** resuelve esto es bajar el adjunto de Beds24: el archivo es nuestro, la foto es
 del cobro que ya hicimos, y recuperarla no registra ningún pago. Ver `docs/Mensajeria.md` §23.
+
+---
+
+## Ampliar Graph: de sólo enviar a leer y vigilar — 19/08/2026
+
+Decisión tomada: el correo deja de ser una salida y pasa a ser también **una entrada**. Sobre la
+mesa hay al menos tres usos, y conviene tratarlos como un mismo proyecto porque comparten la
+aplicación de Graph y el modelo de permisos:
+
+1. **Leer el código de segundo paso de Beds24**, para poder mantener una sesión desde el servidor
+   y bajar los adjuntos (ver `docs/Mensajeria.md` §23).
+2. **Monitorizar confirmaciones de proveedores** — que la organización que presta el servicio haya
+   confirmado, sin que alguien tenga que mirar el buzón.
+3. Lo que vaya saliendo: el usuario anticipa «muchas cosas sobre correo».
+
+### Lo que hay que resolver antes de la primera línea de código
+
+**El permiso.** Hoy la aplicación tiene `Mail.Send` **y nada más**, a propósito. Leer exige añadir
+lectura de buzón, y ahí la pregunta no es «¿qué permiso pido?» sino «¿sobre qué buzones?».
+
+⚠️ **El mecanismo que lo hace seguro ya está montado y hay que reutilizarlo**: la
+`ApplicationAccessPolicy` de `docs/CorreoSaliente.md` es lo que convierte un permiso de tenant en
+uno acotado a buzones concretos. Es la diferencia entre darle al servidor la llave de un buzón y
+darle la del correo de la empresa. Sin esa política, `Mail.Read` es exactamente el escenario
+contra el que ese doc advierte.
+
+**Un buzón por trabajo, no uno para todo.** El de los códigos de Beds24 no debería recibir nada
+más: si además le llegan confirmaciones de proveedores, el alcance del permiso deja de poder
+razonarse por buzón y hay que razonarlo por mensaje, que es donde empiezan los errores.
+
+**Y `docs/CorreoSaliente.md` hay que actualizarlo en la misma sesión en que se amplíe.** Hoy dice
+«`Mail.Send` y nada más» en tres sitios y argumenta explícitamente en contra de ampliar. En cuanto
+se amplíe, ese doc está mintiendo — y un doc que miente cuesta más que no tenerlo. Lo que tiene
+que quedar escrito no es sólo el permiso nuevo, sino **por qué dejó de valer el argumento viejo**.
+
+### Sobre el caso 1, para que no se compre de más
+
+Bajar los adjuntos de Beds24 **no recupera ningún pago**: los 92 son documentos que subimos
+nosotros. Es un archivo, no una fuente de dinero. Si el correo se amplía, que sea por los casos
+2 y 3, y que el 1 vaya de propina.
+
+### Sobre el caso 2
+
+Encaja en `src/Travel/`, con las organizaciones y sus componentes ya modelados: quien presta el
+servicio es `TravelComponente::getPrestador()`, y a quién se le manda el encargo, `getComprador()`
+cuando existe. Falta decidir qué es «confirmado» —¿un correo de vuelta, un estado, una fecha
+límite?— antes de tocar código.
