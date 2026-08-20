@@ -67,6 +67,64 @@ final class EnlacesDeConversacionTest extends TestCase
         self::assertFalse($servicio->tieneNegocio($hilo, 'inventado'));
     }
 
+    #[Test]
+    public function turismoNoOfreceBeds24YAlojamientoNoAcota(): void
+    {
+        $hilo = $this->hilo();
+
+        $soloTurismo = new EnlacesDeConversacion([
+            $this->proveedor('turistico', $this->enlaceFalso('turistico', 'Tu viaje', ['whatsapp_meta', 'email'])),
+        ]);
+        self::assertSame(['whatsapp_meta', 'email'], $soloTurismo->canalesPosibles($hilo));
+
+        // Alojamiento devuelve `[]` = sin acotar: cuál sirve para cada reserva lo decide el
+        // encolador con el `bookId` delante, no este eje.
+        $soloHotel = new EnlacesDeConversacion([
+            $this->proveedor('hotelero', $this->enlaceFalso('hotelero', 'Tu reserva')),
+        ]);
+        self::assertSame([], $soloHotel->canalesPosibles($hilo));
+    }
+
+    #[Test]
+    public function unSoloAsuntoSinAcotarAbreElHiloEntero(): void
+    {
+        // El hilo fusionado: una estancia de Booking y un viaje. Sin decir a qué asunto va el
+        // mensaje, se prefiere ofrecer de más —visible y corregible— a callar un canal
+        // legítimo de la reserva, que no lo echa de menos nadie.
+        $servicio = new EnlacesDeConversacion([
+            $this->proveedor('hotelero', $this->enlaceFalso('hotelero', 'Tu reserva')),
+            $this->proveedor('turistico', $this->enlaceFalso('turistico', 'Tu viaje', ['whatsapp_meta'])),
+        ]);
+
+        self::assertSame([], $servicio->canalesPosibles($this->hilo()));
+    }
+
+    #[Test]
+    public function conElAsuntoDelanteSeAcotaSoloAEse(): void
+    {
+        // Y ésta es la razón de que el eje cuelgue del ASUNTO: en el MISMO hilo, el mensaje al
+        // viaje no puede salir por Beds24 y el de la reserva sí.
+        $servicio = new EnlacesDeConversacion([
+            $this->proveedor('hotelero', $this->enlaceFalso('hotelero', 'Tu reserva', [], 'pms_reserva', 'r-1')),
+            $this->proveedor('turistico', $this->enlaceFalso('turistico', 'Tu viaje', ['whatsapp_meta', 'email'], 'cotizacion_file', 'f-1')),
+        ]);
+
+        self::assertSame(['whatsapp_meta', 'email'], $servicio->canalesPosibles($this->hilo(), 'cotizacion_file', 'f-1'));
+        self::assertSame([], $servicio->canalesPosibles($this->hilo(), 'pms_reserva', 'r-1'));
+    }
+
+    #[Test]
+    public function unAsuntoQueNoEsDeEsteHiloNoAporta(): void
+    {
+        // Sin ningún enlace que case, la unión queda vacía = sin acotar. Es el fallo seguro:
+        // un asunto que no reconocemos no puede cerrar canales.
+        $servicio = new EnlacesDeConversacion([
+            $this->proveedor('turistico', $this->enlaceFalso('turistico', 'Tu viaje', ['whatsapp_meta'], 'cotizacion_file', 'f-1')),
+        ]);
+
+        self::assertSame([], $servicio->canalesPosibles($this->hilo(), 'cotizacion_file', 'otro'));
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
 
     private function hilo(): MessageConversation
@@ -86,15 +144,29 @@ final class EnlacesDeConversacionTest extends TestCase
         };
     }
 
-    private function enlaceFalso(string $negocio, string $etiqueta): ConversacionEnlaceInterface
-    {
-        return new class ($negocio, $etiqueta) implements ConversacionEnlaceInterface {
-            public function __construct(private readonly string $negocio, private readonly string $etiqueta) {}
+    /** @param list<string> $canales */
+    private function enlaceFalso(
+        string $negocio,
+        string $etiqueta,
+        array $canales = [],
+        string $contextType = 'prueba',
+        string $contextId = 'x',
+    ): ConversacionEnlaceInterface {
+        return new class ($negocio, $etiqueta, $canales, $contextType, $contextId) implements ConversacionEnlaceInterface {
+            /** @param list<string> $canales */
+            public function __construct(
+                private readonly string $negocio,
+                private readonly string $etiqueta,
+                private readonly array $canales,
+                private readonly string $contextType,
+                private readonly string $contextId,
+            ) {}
 
             public function getConversacion(): ?MessageConversation { return null; }
             public function getNegocio(): string { return $this->negocio; }
-            public function getContextType(): string { return 'prueba'; }
-            public function getContextId(): string { return 'x'; }
+            public function getContextType(): string { return $this->contextType; }
+            public function getContextId(): string { return $this->contextId; }
+            public function canalesPosibles(): array { return $this->canales; }
             public function getVinculo(): VinculoComercial { return VinculoComercial::Ninguno; }
             public function getMomento(): MomentoDeFrente { return MomentoDeFrente::Venta; }
             public function getMilestones(): array { return []; }

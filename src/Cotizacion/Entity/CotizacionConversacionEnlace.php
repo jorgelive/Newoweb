@@ -149,6 +149,26 @@ class CotizacionConversacionEnlace implements ConversacionEnlaceInterface
         return $nombre !== '' ? sprintf('Tu viaje «%s»', $nombre) : 'Tu viaje';
     }
 
+    /**
+     * Un expediente de viaje NO tiene conversación en Beds24, y no la va a tener.
+     *
+     * Beds24 es el channel manager del alojamiento: su hilo de mensajes cuelga de un
+     * `bookId`, y un expediente de tours no tiene ninguno. No es que hoy falte el dato —es
+     * que no hay dato que falte—, así que el canal se descarta en el origen y no acaba en un
+     * mensaje FALLIDO con «posible restricción de negocio por canal», que es lo que veía el
+     * operador cuando el corte se hacía tarde, dentro del encolador.
+     *
+     * `email` está en la lista aunque el canal esté todavía inactivo: la lista dice qué es
+     * POSIBLE, y el interruptor `isActive` lo decide el núcleo aparte. Ponerlo al revés
+     * obligaría a volver aquí el día que se encienda.
+     *
+     * @return list<string>
+     */
+    public function canalesPosibles(): array
+    {
+        return ['whatsapp_meta', 'email'];
+    }
+
     public function comoFrente(): Frente
     {
         return new Frente(

@@ -8629,6 +8629,55 @@ tiene pendientes de insertar.
 
 Y `getEnlaces()` sale de la entidad, que es donde no debía estar: **una entidad no consulta**.
 
+### Qué canales existen para cada dominio
+
+Beds24 es el channel manager del **alojamiento**: su hilo de mensajes cuelga de un `bookId`. Un
+expediente de viaje no tiene ninguno, y no va a tenerlo. Con un solo negocio eso no hacía falta
+decirlo; con Turismo dentro, sí.
+
+**Cómo se decidía antes** — en tres sitios, ninguno el dominio, y ninguno de verdad:
+
+| Dónde | Qué hacía | Por qué no bastaba |
+|---|---|---|
+| `ChatView.vue` → `isBeds24Allowed` | `contextType !== 'pms_reserva'` a pelo | El front es una **petición**: el operador manda ids en `transientChannels` y una skill del agente también |
+| `MessageDispatcher::resolveChannels()` | plantilla ∩ casillas del operador | Cero conocimiento de dominio |
+| `Beds24SendEnqueuer::isBusinessValid()` | sin `bookId`/config → no encola | Corta **tarde**: si era el único canal, el mensaje acababa `FAILED` con «posible restricción de negocio por canal» |
+
+Que un canal **no exista** no es un envío fallido, y el operador no puede distinguir las dos
+cosas mirando el panel.
+
+**Cómo se decide ahora.** El asunto lo declara: `ConversacionEnlaceInterface::canalesPosibles()`.
+`EnlacesDeConversacion::canalesPosibles()` los junta y `MessageDispatcher::acotarAlAsunto()`
+intersecta antes de encolar — después de las tres reglas, para que el corte se aplique venga el
+canal de donde venga.
+
+| Dominio | Devuelve | Por qué |
+|---|---|---|
+| `hotelero` | `[]` — **sin acotar** | Puede usar los tres. Que UNA reserva tenga `bookId` es un corte más fino y sigue en el encolador: repetirlo aquí sería tenerlo en dos sitios y que uno se quedara atrás |
+| `turistico` | `['whatsapp_meta', 'email']` | Beds24 no existe para un expediente |
+
+⚠️ **Cuelga del asunto, no de la conversación** — por lo mismo que `getOrigen()`. Con los hilos
+fusionados, la misma persona puede tener una estancia de Booking y un viaje en el mismo chat: una
+lista de canales «de la conversación» sería falsa en cuanto hubiera dos.
+
+⚠️ `email` está en la lista de Turismo **aunque el canal siga inactivo**. La lista dice qué es
+posible; el interruptor `isActive` lo decide el núcleo aparte. Al revés obligaría a volver aquí
+el día que se encienda.
+
+⚠️ **Sin asunto en el mensaje, la unión no acota nada** mientras haya un asunto de alojamiento en
+el hilo. Es deliberado: ofrecer un canal de más es visible y se corrige; callar uno legítimo no
+se descubre nunca, porque nadie echa de menos un canal que no se le ofreció.
+
+**Lo que esto NO cierra todavía.** Los mensajes del chat no llevan `asunto_id`, así que en un
+hilo fusionado con reserva + viaje el corte no se aplica: el operador puede marcar Beds24 para un
+mensaje del viaje y aterrizará en el hilo de la reserva. Se cierra cuando el chat diga a qué
+asunto va cada mensaje — la misma pieza que falta para el selector multi-asunto.
+
+**De regalo, un final que faltaba.** Un mensaje sin ningún canal caía en la rama de éxito y se
+quedaba `QUEUED` **sin una sola cola detrás**: en el panel ponía «encolado» y no salía nunca, que
+es el peor de los tres finales porque nadie lo va a ir a buscar. Era inalcanzable en la práctica;
+el corte por asunto lo vuelve alcanzable, así que ahora falla diciéndolo.
+
 ### El efecto de rebote: el walk-in que luego reserva
 
 Resolver por identidad tuvo una consecuencia que no estaba a la vista. Un número desconocido nace

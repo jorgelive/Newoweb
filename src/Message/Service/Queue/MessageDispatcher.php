@@ -7,6 +7,7 @@ namespace App\Message\Service\Queue;
 use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
@@ -25,9 +26,10 @@ readonly class MessageDispatcher
      */
     public function __construct(
         #[TaggedIterator('app.message.enqueuer')]
-        private iterable               $enqueuers,
-        private EntityManagerInterface $em,
-        private LoggerInterface        $logger
+        private iterable                $enqueuers,
+        private EntityManagerInterface  $em,
+        private LoggerInterface         $logger,
+        private EnlacesDeConversacion   $enlaces
     ) {}
 
     /**
@@ -102,7 +104,27 @@ readonly class MessageDispatcher
         // =====================================================================
         // 🔥 LÓGICA DE FALLO Y ÉXITO MEJORADA (Resiliencia Parcial)
         // =====================================================================
-        if (empty($queues) && !empty($channels)) {
+        if (empty($channels)) {
+            // NI UN CANAL. Antes caía en el `else` y el mensaje se quedaba `QUEUED` sin una
+            // sola cola detrás: en el panel se veía «encolado» y no salía nunca, que es el
+            // peor de los tres finales posibles porque nadie lo va a ir a buscar.
+            //
+            // Se vuelve alcanzable de verdad con el corte por asunto —un expediente de viaje
+            // con sólo Beds24 marcado se queda sin nada—, así que el final tiene que decirlo.
+            $message->setStatus(Message::STATUS_FAILED);
+            $message->addMetadata('dispatch_errors', [
+                'Ningún canal disponible para este mensaje: o no se marcó ninguno, o los marcados no existen para este asunto.',
+            ]);
+
+            $this->logger->warning(sprintf(
+                'Mensaje %s sin ningún canal que despachar.',
+                $message->getId()?->toRfc4122() ?? 'N/A'
+            ));
+
+            return [];
+        }
+
+        if (empty($queues)) {
             // FRACASO TOTAL: Había canales previstos, pero NINGUNO generó una cola.
             // (Ya sea porque todos lanzaron excepción, o todos retornaron null por reglas de negocio)
             $message->setStatus(Message::STATUS_FAILED);
@@ -201,26 +223,85 @@ readonly class MessageDispatcher
                 });
             }
 
-            return array_values($resolvedChannels);
+            return $this->acotarAlAsunto($message, array_values($resolvedChannels));
         }
 
         // =====================================================================
         // REGLA 2: SELECCIÓN MANUAL DEL OPERADOR (Texto Libre)
         // =====================================================================
         if (!empty($transientIds)) {
-            return $channelRepo->findBy([
+            return $this->acotarAlAsunto($message, $channelRepo->findBy([
                 'id' => $transientIds,
                 'isActive' => true
-            ]);
+            ]));
         }
 
         // =====================================================================
         // REGLA 3: FALLBACK
         // =====================================================================
         if ($message->getChannel() && $message->getChannel()->isActive()) {
-            return [$message->getChannel()];
+            return $this->acotarAlAsunto($message, [$message->getChannel()]);
         }
 
         return [];
+    }
+
+    /**
+     * Quita los canales que NO existen para el asunto al que va este mensaje.
+     *
+     * ── Por qué hace falta y por qué aquí ───────────────────────────────────
+     * Las tres reglas de arriba no saben de dominios: cruzan lo que permite la plantilla con
+     * lo que marcó el operador. Con un solo negocio daba igual; con Turismo dentro, Beds24
+     * entraba en la lista de un expediente de viaje —que no tiene `bookId` ni lo tendrá— y el
+     * corte llegaba tarde, dentro de `Beds24SendEnqueuer::isBusinessValid()`: como ese
+     * encolador devuelve `null` en vez de encolar, si era el único canal el mensaje acababa
+     * en `STATUS_FAILED` con «posible restricción de negocio por canal». Un canal que no
+     * existe no es un envío fallido.
+     *
+     * Va aquí y no en el front porque el front es una PETICIÓN: el operador manda ids en
+     * `transientChannels` y una skill del agente también. El cierre es esto.
+     *
+     * ── Con qué asunto se acota ─────────────────────────────────────────────
+     * Con el del MENSAJE cuando lo lleva. Si no —la mayoría hoy—, con la unión de los del
+     * hilo, que no acota nada mientras haya un asunto de alojamiento: se prefiere ofrecer un
+     * canal de más, que es visible y se corrige, a callar uno legítimo, que no se descubre.
+     *
+     * @param MessageChannel[] $canales
+     * @return MessageChannel[]
+     */
+    private function acotarAlAsunto(Message $message, array $canales): array
+    {
+        $conversacion = $message->getConversation();
+
+        if ($conversacion === null || $canales === []) {
+            return $canales;
+        }
+
+        $posibles = $this->enlaces->canalesPosibles(
+            $conversacion,
+            $message->getAsuntoType(),
+            $message->getAsuntoId(),
+        );
+
+        // Sin acotar, o un hilo sin ningún asunto colgado: no se toca nada.
+        if ($posibles === []) {
+            return $canales;
+        }
+
+        $permitidos = array_values(array_filter(
+            $canales,
+            static fn (MessageChannel $c): bool => in_array($c->getId(), $posibles, true)
+        ));
+
+        if (count($permitidos) !== count($canales)) {
+            $this->logger->info('Canales descartados: no existen para el asunto de este mensaje.', [
+                'mensaje'   => $message->getId()?->toRfc4122(),
+                'asunto'    => $message->getAsuntoType(),
+                'pedidos'   => array_map(static fn (MessageChannel $c): ?string => $c->getId(), $canales),
+                'posibles'  => $posibles,
+            ]);
+        }
+
+        return $permitidos;
     }
 }

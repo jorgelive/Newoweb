@@ -46,6 +46,47 @@ final readonly class EnlacesDeConversacion
     }
 
     /**
+     * Los canales por los que se puede alcanzar un asunto. **Vacío = sin acotar.**
+     *
+     * Con `$asuntoType`/`$asuntoId` responde por ESE asunto; sin ellos devuelve la UNIÓN de
+     * los de todo el hilo, que es lo correcto cuando no se sabe a cuál va el mensaje: acotar
+     * de más callaría un canal legítimo del otro asunto, y eso no se descubre —nadie echa de
+     * menos un canal que nunca se le ofreció—.
+     *
+     * ⚠️ La unión es deliberadamente PERMISIVA. El corte fino lo hace quien sí sabe a qué
+     * asunto va el mensaje: `MessageDispatcher` pasa el asunto del `Message` cuando lo lleva.
+     *
+     * @return list<string>
+     */
+    public function canalesPosibles(
+        MessageConversation $conversacion,
+        ?string $asuntoType = null,
+        ?string $asuntoId = null,
+    ): array {
+        $union = [];
+
+        foreach ($this->de($conversacion) as $enlace) {
+            if ($asuntoType !== null && $asuntoId !== null
+                && ($enlace->getContextType() !== $asuntoType || $enlace->getContextId() !== $asuntoId)) {
+                continue;
+            }
+
+            $canales = $enlace->canalesPosibles();
+
+            // Un solo asunto sin acotar abre el hilo entero: no hay nada que intersecar.
+            if ($canales === []) {
+                return [];
+            }
+
+            foreach ($canales as $canal) {
+                $union[$canal] = true;
+            }
+        }
+
+        return array_keys($union);
+    }
+
+    /**
      * ¿Este hilo tiene algún asunto de un negocio concreto?
      *
      * El negocio es una cadena opaca para el núcleo: se compara, no se interpreta.

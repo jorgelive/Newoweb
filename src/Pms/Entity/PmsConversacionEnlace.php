@@ -465,6 +465,21 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
             : sprintf('Tu reserva %s', implode(', ', $partes));
     }
 
+    /**
+     * Sin acotar: una reserva puede alcanzarse por los tres canales.
+     *
+     * Cuál sirve para UNA reserva concreta es otra pregunta —depende de que tenga
+     * `beds24_book_id` y de que no sea directa— y la contesta `Beds24SendEnqueuer` con los
+     * metadatos delante. Repetir aquí esa comprobación sería tener el mismo corte en dos
+     * sitios y que uno de los dos se quedara atrás.
+     *
+     * @return list<string>
+     */
+    public function canalesPosibles(): array
+    {
+        return [];
+    }
+
     public function comoFrente(): Frente
     {
         return new Frente(

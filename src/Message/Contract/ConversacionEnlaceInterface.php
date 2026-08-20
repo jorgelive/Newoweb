@@ -141,6 +141,31 @@ interface ConversacionEnlaceInterface
      */
     public function getEtiqueta(): string;
 
+    /**
+     * Por qué canales se puede alcanzar ESTE asunto. **Lista vacía = sin acotar.**
+     *
+     * ── Por qué cuelga del asunto y no de la conversación ───────────────────
+     * Por lo mismo que {@see self::getOrigen()}: con los hilos fusionados por persona, la misma
+     * conversación puede llevar una estancia de Booking —que SÍ tiene hilo en Beds24— y un
+     * expediente de tours, que no lo tiene ni lo tendrá nunca. Una lista de canales «de la
+     * conversación» sería falsa en cuanto hubiera dos asuntos, y elegir «el principal» es
+     * justo el error que la separación persona/asunto vino a corregir.
+     *
+     * ── Estructural, no por registro ────────────────────────────────────────
+     * ⚠️ Esto responde «¿existe este canal para este negocio?», no «¿está listo hoy este
+     * registro?». Que una reserva concreta tenga `beds24_book_id` es un corte más fino y vive
+     * donde ya funciona, en `Beds24SendEnqueuer::isBusinessValid()`. Mezclarlos duplicaría esa
+     * comprobación en cada dominio.
+     *
+     * Por eso alojamiento devuelve `[]` —puede usar los tres canales, y cuál sirve para cada
+     * reserva lo decide el encolador— y Turismo devuelve su lista: no es que hoy no pueda, es
+     * que un expediente de viaje no tiene conversación en un channel manager de hoteles.
+     *
+     * @return list<string> Ids de {@see \App\Message\Entity\MessageChannel}. Opacos para
+     *                      quien los consume: se intersecan, no se interpretan.
+     */
+    public function canalesPosibles(): array;
+
     /** El asunto en la forma que consume el triaje. */
     public function comoFrente(): Frente;
 }
