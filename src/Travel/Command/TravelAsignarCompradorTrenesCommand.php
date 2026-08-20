@@ -26,8 +26,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * 6 componentes y `IR ` son 12 en 4. No por el prestador, porque todavía está sin poblar — de
  * hecho este comando existe para adelantar la mitad útil mientras eso se llena a mano.
  *
- * ⚠️ **No toca el prestador.** Podría deducirse del mismo prefijo, pero eso es una afirmación
- * sobre de quién es el precio y merece decidirse aparte; aquí sólo se dice a quién se le encarga.
+ * También pone el **prestador** por el mismo prefijo: `PR ` → PeruRail, `IR ` → IncaRail.
+ *
+ * ⚠️ **Sólo los trenes, y no por timidez.** Buscar la empresa dentro del nombre de la tarifa
+ * produce falsos positivos que ensucian datos de dinero: «Hostal Mallqui» casa con tarifas
+ * llamadas «Hostal por pax» —la palabra común es «hostal»— y «Hotel Dazzler - Miraflores» con
+ * «Auto a Miraflores Noche», donde Miraflares es el DESTINO. Un prestador equivocado es peor que
+ * ninguno: el vacío se ve, el error no. El prefijo `PR `/`IR ` es estructural y por eso se fía.
  *
  * ⚠️ **Apaga la traducción antes de guardar.** `TravelTarifa` lleva `#[AutoTranslate]` en el
  * título y `ejecutarTraduccion` arranca en `true`, así que un `flush` normal dispararía el
@@ -38,11 +43,17 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:travel:comprador-trenes',
-    description: 'Asigna OpenPeru Tickets como comprador de las tarifas PR (PeruRail) e IR (IncaRail).'
+    description: 'Asigna prestador (PeruRail/IncaRail) y comprador (OpenPeru Tickets) a las tarifas de tren.'
 )]
 final class TravelAsignarCompradorTrenesCommand extends Command
 {
     private const string COMPRADOR = 'OpenPeru Tickets';
+
+    /** Prefijo → quién PRESTA. El prefijo es estructural, no una corazonada sobre el nombre. */
+    private const array PRESTADOR_POR_PREFIJO = [
+        'PR ' => 'PeruRail',
+        'IR ' => 'IncaRail',
+    ];
 
     /**
      * El prefijo es la marca: `PR Expedition Adulto`, `IR Ejecutivo`.
@@ -59,13 +70,16 @@ final class TravelAsignarCompradorTrenesCommand extends Command
 
     protected function configure(): void
     {
-        $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Enseña lo que haría sin escribir.');
+        $this
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Enseña lo que haría sin escribir.')
+            ->addOption('crear-faltantes', null, InputOption::VALUE_NONE, 'Da de alta la organización que falte del catálogo.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $simulacro = (bool) $input->getOption('dry-run');
+        $crearFaltantes = (bool) $input->getOption('crear-faltantes');
 
         $comprador = $this->em->getRepository(TravelOrganizacion::class)
             ->findOneBy(['nombreComercial' => self::COMPRADOR]);
@@ -89,47 +103,82 @@ final class TravelAsignarCompradorTrenesCommand extends Command
             return Command::SUCCESS;
         }
 
+        // Los prestadores, uno por prefijo. El que falte se avisa o se crea, según se pida.
+        $prestadores = [];
+        $faltan = [];
+        foreach (self::PRESTADOR_POR_PREFIJO as $prefijo => $nombreEmpresa) {
+            $empresa = $this->em->getRepository(TravelOrganizacion::class)
+                ->findOneBy(['nombreComercial' => $nombreEmpresa]);
+
+            if ($empresa instanceof TravelOrganizacion) {
+                $prestadores[$prefijo] = $empresa;
+                continue;
+            }
+
+            $faltan[$prefijo] = $nombreEmpresa;
+
+            if ($crearFaltantes && !$simulacro) {
+                $empresa = new TravelOrganizacion();
+                $empresa->setNombreComercial($nombreEmpresa);
+                $empresa->setRazonSocial($nombreEmpresa);
+                $this->em->persist($empresa);
+                $prestadores[$prefijo] = $empresa;
+                $io->note(sprintf('Alta de «%s» en el catálogo.', $nombreEmpresa));
+            }
+        }
+
+        if ($faltan !== [] && !$crearFaltantes) {
+            $io->warning(sprintf(
+                'Sin prestador por no estar en el catálogo: %s. Sus tarifas se quedan sin él '
+                . '(el comprador sí se pone). Añade --crear-faltantes para darlas de alta.',
+                implode(', ', $faltan)
+            ));
+        }
+
         $io->title(sprintf('%d tarifa(s) de tren%s', count($tarifas), $simulacro ? ' — SIMULACRO' : ''));
 
         $porComponente = [];
-        $tocadas = 0;
-        $yaEstaban = 0;
+        $compradores = 0;
+        $puestos = 0;
 
         foreach ($tarifas as $tarifa) {
             $componente = $tarifa->getComponente()?->getNombre() ?? '¿?';
+            $prefijo = str_starts_with($tarifa->getNombreInterno() ?? '', 'PR ') ? 'PR ' : 'IR ';
+            $prestador = $prestadores[$prefijo] ?? null;
 
-            if ($tarifa->getComprador() === $comprador) {
-                ++$yaEstaban;
-                $porComponente[$componente]['ya'] = ($porComponente[$componente]['ya'] ?? 0) + 1;
-                continue;
+            $cambia = false;
+
+            if ($tarifa->getComprador() !== $comprador) {
+                ++$compradores;
+                $cambia = true;
+                if (!$simulacro) { $tarifa->setComprador($comprador); }
             }
 
-            ++$tocadas;
-            $porComponente[$componente]['nuevo'] = ($porComponente[$componente]['nuevo'] ?? 0) + 1;
-
-            if ($simulacro) {
-                continue;
+            if ($prestador !== null && $tarifa->getPrestador() !== $prestador) {
+                ++$puestos;
+                $cambia = true;
+                $porComponente[$componente][$prefijo] = ($porComponente[$componente][$prefijo] ?? 0) + 1;
+                if (!$simulacro) { $tarifa->setPrestador($prestador); }
             }
 
-            // Ver el docblock: sin esto se traducen 69 títulos por poner un id.
-            $tarifa->setEjecutarTraduccion(false);
-            $tarifa->setComprador($comprador);
+            // Ver el docblock: sin esto se traducen los títulos por poner un id de empresa.
+            if ($cambia && !$simulacro) { $tarifa->setEjecutarTraduccion(false); }
         }
 
         $filas = [];
         foreach ($porComponente as $nombre => $cuenta) {
-            $filas[] = [$nombre, $cuenta['nuevo'] ?? 0, $cuenta['ya'] ?? 0];
+            $filas[] = [$nombre, $cuenta['PR '] ?? 0, $cuenta['IR '] ?? 0];
         }
-        $io->table(['Componente', 'Se asignan', 'Ya lo tenían'], $filas);
+        $io->table(['Componente', 'PeruRail', 'IncaRail'], $filas);
 
         if ($simulacro) {
-            $io->warning(sprintf('%d se asignarían, %d ya lo tenían. Nada escrito.', $tocadas, $yaEstaban));
+            $io->warning(sprintf('%d prestador(es) y %d comprador(es) se pondrían. Nada escrito.', $puestos, $compradores));
 
             return Command::SUCCESS;
         }
 
         $this->em->flush();
-        $io->success(sprintf('%d tarifa(s) con comprador «%s». %d ya lo tenían.', $tocadas, self::COMPRADOR, $yaEstaban));
+        $io->success(sprintf('%d prestador(es) y %d comprador(es) asignados.', $puestos, $compradores));
 
         return Command::SUCCESS;
     }
