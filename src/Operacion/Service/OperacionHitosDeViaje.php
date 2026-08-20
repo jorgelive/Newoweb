@@ -127,7 +127,7 @@ final readonly class OperacionHitosDeViaje
     /**
      * La fecha con su hora de recojo, cuando la hay.
      *
-     * `horaRecojoReal` es texto libre («06:15») porque el operador la teclea como se la da el
+     * `horaRecojo` es texto libre («06:15») porque el operador la teclea como se la da el
      * proveedor. Si no se puede leer, se deja el día a secas en vez de inventarse una hora: un
      * mensaje que llega el día correcto a una hora rara es recuperable; uno que llega el día
      * equivocado, no.
@@ -135,7 +135,7 @@ final readonly class OperacionHitosDeViaje
     private function cuando(OperacionServicio $servicio): DateTimeImmutable
     {
         $fecha = DateTimeImmutable::createFromInterface($servicio->getFechaServicio())->setTime(0, 0);
-        $hora = trim((string) $servicio->getHoraRecojoReal());
+        $hora = trim((string) $servicio->getHoraRecojo());
 
         if (preg_match('/^(\d{1,2}):(\d{2})/', $hora, $partes) !== 1) {
             return $fecha;

@@ -185,7 +185,7 @@ nada—. Aplica a los seis modales de la pantalla (expediente, pagos, bitácora,
 mensajes), no sólo al nuevo. Sin esto, volver con un modal abierto mandaba al menú y perdía
 dónde estabas.
 
-### <a id="318"></a>3.18 Los tres papeles: cotizado ↔ real, y el fin de los conflictos (2026-08-20)
+### <a id="318"></a>3.18 Los tres papeles: cotizado ↔ override, y el fin de los conflictos (2026-08-20)
 
 **Es la respuesta al problema que quedó abierto: la sincronización entre La Biblia y el
 componente de la cotización.** No se resolvió — se hizo desaparecer.
@@ -204,19 +204,18 @@ con la ficha del catálogo aunque se leyera igual.
 
 #### La forma
 
-La convención que esta entidad ya usaba dos veces —`horaComponente` ↔ `horaRecojoReal`,
-`costoCotizado` ↔ `costoRealOperativo`— aplicada a los tres papeles:
+Dos columnas por papel: la que dice lo cotizado y la que lo **anula**.
 
-| Lo que dijo la cotización | Lo que decide operaciones |
+| Lo que dijo la cotización | Lo que anula operaciones |
 |---|---|
-| `prestadorMaestroId` / `prestadorNombre` | `prestadorRealMaestroId` / `prestadorRealNombre` |
-| `prestadorServicioMaestroId` / `…Nombre` | `prestadorServicioRealMaestroId` / `…RealNombre` |
-| `compradorMaestroId` / `compradorNombre` | `compradorRealMaestroId` / `compradorRealNombre` |
+| `prestadorMaestroId` / `prestadorNombre` | `prestadorOverrideMaestroId` / `prestadorOverrideNombre` |
+| `prestadorServicioMaestroId` / `…Nombre` | `prestadorServicioOverrideMaestroId` / `…OverrideNombre` |
+| `compradorMaestroId` / `compradorNombre` | `compradorOverrideMaestroId` / `compradorOverrideNombre` |
 
 ```
 la cotización escribe SÓLO la de la izquierda   →  nunca pisa al operador
 el operador escribe SÓLO la de la derecha       →  nunca lo pisa la cotización
-lo que vale = real ?? cotizado
+lo que vale = override ?? cotizado
 ```
 
 No hay nada que adivinar, así que **no hay conflicto**. Lo que vale lo dan
@@ -235,7 +234,23 @@ vienen a impedir. La Orden agrupa por `compradorEfectivoMaestroId`, por **id** y
 Las ediciones antiguas vivían en la columna cotizada, y allí las habría pisado la siguiente
 reconciliación. Se reconocen sin ambigüedad —`snapshotOrigen` guarda la foto de lo que puso la
 cotización, así que **valor ≠ foto ⟹ lo cambió una persona**— y `Version20260820180000` las mueve
-a la columna real y devuelve la cotizada a su valor de origen.
+a la columna override y devuelve la cotizada a su valor de origen.
+
+#### «Real» se retiró del vocabulario (20/08/2026)
+
+`real` describía tres cosas distintas y ninguna con precisión. `Version20260820220000`:
+
+| Antes | Ahora | Por qué |
+|---|---|---|
+| `prestador_real_*`, `comprador_real_*` | `*_override_*` | no es «lo real», es **lo que anula** a lo cotizado. Vacío = sin cambio |
+| `hora_recojo_real` | `hora_recojo` | no hay otra hora de recojo con la que confundirla; el par es con `hora_componente`, la vendida |
+| `costo_real_operativo` | `costo_negociado` | dice de dónde sale la cifra: de negociar, no de una verdad superior |
+| `moneda_real` | `moneda_negociada` | va con el costo; dejarla en «real» la habría dejado huérfana |
+
+⚠️ **La migración va a mano, con `CHANGE` y no con `ADD` + `DROP`.** Doctrine propone lo segundo
+para cinco de las columnas —`doctrine:schema:update --dump-sql` lo enseña— y eso **borra el
+contenido**: crea la nueva vacía y tira la vieja con lo que hubiera dentro. Misma trampa que en
+`Version20260819230000`.
 
 #### El contacto: fuera las copias congeladas
 

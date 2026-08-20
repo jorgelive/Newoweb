@@ -300,7 +300,7 @@ const quitarExpediente = async () => {
 // ============================================================================
 // AGRUPACIÓN POR DÍA
 //
-// El backend ya ordena por fechaServicio y horaRecojoReal. Aquí sólo se parte en
+// El backend ya ordena por fechaServicio y horaRecojo. Aquí sólo se parte en
 // días y se empujan al final los servicios sin hora, ordenados por prioridad
 // operativa (guiado/transporte antes que tickets): un cuadro de tráfico se lee
 // de arriba abajo por hora, y lo que no tiene hora estorba en medio.
@@ -328,8 +328,8 @@ const serviciosPorDia = computed<GrupoDia[]>(() => {
         .map(([fecha, servicios]) => ({
             fecha,
             servicios: [...servicios].sort((a, b) => {
-                const ha = a.horaRecojoReal || '';
-                const hb = b.horaRecojoReal || '';
+                const ha = a.horaRecojo || '';
+                const hb = b.horaRecojo || '';
                 if (ha && hb) return ha.localeCompare(hb);
                 if (ha) return -1;
                 if (hb) return 1;
@@ -379,14 +379,14 @@ const editarHora = async (servicio: OperacionServicio, evento: Event) => {
     const valor = input.value.trim();
 
     if (valor === '') {
-        await guardarCampo(servicio, { horaRecojoReal: null });
+        await guardarCampo(servicio, { horaRecojo: null });
         return;
     }
     if (!PATRON_HORA.test(valor)) {
-        input.value = servicio.horaRecojoReal ?? '';
+        input.value = servicio.horaRecojo ?? '';
         return;
     }
-    await guardarCampo(servicio, { horaRecojoReal: valor });
+    await guardarCampo(servicio, { horaRecojo: valor });
 };
 
 /**
@@ -408,8 +408,8 @@ const resolverEmpresa = (texto: string): ProveedorOpcion | null =>
 const editarPapel = async (
     servicio: OperacionServicio,
     evento: Event,
-    campoId: 'prestadorRealMaestroId' | 'compradorRealMaestroId',
-    campoNombre: 'prestadorRealNombre' | 'compradorRealNombre',
+    campoId: 'prestadorOverrideMaestroId' | 'compradorOverrideMaestroId',
+    campoNombre: 'prestadorOverrideNombre' | 'compradorOverrideNombre',
     efectivoActual: string,
 ) => {
     const input = evento.target as HTMLInputElement;
@@ -439,7 +439,7 @@ const avisoPapel = ref<string | null>(null);
 
 /** COMPRADOR: a quién se le manda el encargo. Es por quien agrupa la Orden de Servicio. */
 const editarProveedor = (servicio: OperacionServicio, evento: Event) =>
-    editarPapel(servicio, evento, 'compradorRealMaestroId', 'compradorRealNombre', servicio.compradorEfectivoNombre ?? '');
+    editarPapel(servicio, evento, 'compradorOverrideMaestroId', 'compradorOverrideNombre', servicio.compradorEfectivoNombre ?? '');
 
 /**
  * PRESTADOR: quién opera y dónde se recoge. Es el dato que el cuadro de tráfico lee
@@ -449,13 +449,13 @@ const editarProveedor = (servicio: OperacionServicio, evento: Event) =>
  * el pasajero. Ver docs/Operacion.md §3.3.b.
  */
 const editarPrestador = (servicio: OperacionServicio, evento: Event) =>
-    editarPapel(servicio, evento, 'prestadorRealMaestroId', 'prestadorRealNombre', servicio.prestadorEfectivoNombre ?? '');
+    editarPapel(servicio, evento, 'prestadorOverrideMaestroId', 'prestadorOverrideNombre', servicio.prestadorEfectivoNombre ?? '');
 
 /** El servicio contratado (el tipo de habitación). Texto libre: no es una empresa. */
 const editarServicioPrestador = async (servicio: OperacionServicio, evento: Event) => {
     const valor = (evento.target as HTMLInputElement).value.trim();
     if (valor === (servicio.prestadorServicioEfectivoNombre ?? '')) return;
-    await guardarCampo(servicio, { prestadorServicioRealNombre: valor || null });
+    await guardarCampo(servicio, { prestadorServicioOverrideNombre: valor || null });
 };
 
 /** Lo que dijo la cotización, para enseñarlo al lado cuando operaciones puso otra cosa. */
@@ -463,8 +463,8 @@ const cotizadoDe = (s: OperacionServicio): string | null => {
     if (!s.papelIntervenido) return null;
 
     const partes: string[] = [];
-    if (s.prestadorRealNombre && s.prestadorNombre) partes.push(s.prestadorNombre);
-    if (s.compradorRealNombre && s.compradorNombre) partes.push(s.compradorNombre);
+    if (s.prestadorOverrideNombre && s.prestadorNombre) partes.push(s.prestadorNombre);
+    if (s.compradorOverrideNombre && s.compradorNombre) partes.push(s.compradorNombre);
 
     return partes.length ? `Cotizado: ${partes.join(' · ')}` : null;
 };
@@ -510,7 +510,7 @@ const nombreComponenteDe = (s: OperacionServicio): string | null => operacionSto
 // COSTO REAL — lo que de verdad se pagó, frente a lo que decía la cotización
 //
 // `costoCotizado` viene del snapshot y lo gobierna la cotización: la reconciliación
-// puede cambiarlo. `costoRealOperativo` es del operador y **nadie más lo toca** —
+// puede cambiarlo. `costoNegociado` es del operador y **nadie más lo toca** —
 // ni el snapshot ni la reconciliación—, porque es el único sitio donde vive lo que
 // el proveedor acabó cobrando. El delta entre ambos es el margen operativo.
 //
@@ -528,7 +528,7 @@ const nombreComponenteDe = (s: OperacionServicio): string | null => operacionSto
 
 /** Diferencia real − cotizado. Positiva = costó más de lo previsto. */
 const deltaOperativo = (s: OperacionServicio): number | null => {
-    const real = Number(s.costoRealOperativo ?? 0);
+    const real = Number(s.costoNegociado ?? 0);
     if (real === 0) return null;   // sin registrar: no hay delta que enseñar
     return real - Number(s.costoCotizado ?? 0);
 };
@@ -733,7 +733,7 @@ const serviciosDeOrdenAbierta = computed<OperacionServicio[]>(() => {
  * dos pantallas justo cuando estás cerrando el precio con el proveedor, que es el momento en
  * que tienes la orden delante.
  *
- * Toca `costoRealOperativo` y `monedaReal`, que son campos DEL OPERADOR: la reconciliación no
+ * Toca `costoNegociado` y `monedaNegociada`, que son campos DEL OPERADOR: la reconciliación no
  * los pisa jamás. El cotizado no se toca, que es la referencia con la que se concilia.
  */
 /**
@@ -1028,15 +1028,15 @@ const registrarEditor = (id: string, el: unknown): void => {
  */
 const onGuardarCosto = async (
     servicio: OperacionServicio,
-    payload: { costoRealOperativo: string; monedaReal: string },
+    payload: { costoNegociado: string; monedaNegociada: string },
 ): Promise<void> => {
     const id = idDe(servicio);
     if (!id) return;   // el editor sólo se pinta sobre filas con id, pero por si acaso
 
     try {
         await operacionStore.actualizarServicio(id, {
-            costoRealOperativo: payload.costoRealOperativo,
-            monedaReal: `/platform/maestro/monedas/${payload.monedaReal}`,
+            costoNegociado: payload.costoNegociado,
+            monedaNegociada: `/platform/maestro/monedas/${payload.monedaNegociada}`,
         });
 
         // En Órdenes se refresca SÓLO la orden tocada —no la lista entera— para que
@@ -1605,15 +1605,15 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                  Ver docs/Operacion.md §3.15. -->
                                             <td class="px-3 py-3 whitespace-nowrap align-top">
                                                 <input
-                                                    :value="servicio.horaRecojoReal ?? ''"
+                                                    :value="servicio.horaRecojo ?? ''"
                                                     @change="editarHora(servicio, $event)"
                                                     :placeholder="servicio.horaComponente || '--:--'"
                                                     maxlength="5"
                                                     class="w-[3.8rem] text-xs font-black text-slate-900 bg-slate-100 px-1.5 py-1 rounded-lg border border-slate-200 tabular-nums text-center outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
-                                                    :class="{ 'text-slate-400': !servicio.horaRecojoReal }"
+                                                    :class="{ 'text-slate-400': !servicio.horaRecojo }"
                                                     title="Hora de recojo. Vacía = se usa la hora con la que se vendió."
                                                 />
-                                                <p v-if="servicio.horaComponente && servicio.horaRecojoReal && servicio.horaRecojoReal !== servicio.horaComponente"
+                                                <p v-if="servicio.horaComponente && servicio.horaRecojo && servicio.horaRecojo !== servicio.horaComponente"
                                                    class="text-[8px] font-bold text-slate-400 text-center mt-0.5 tabular-nums"
                                                    title="Hora con la que se vendió al cliente">
                                                     vend. {{ servicio.horaComponente }}
@@ -1742,8 +1742,8 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                                 :costo-cotizado="servicio.costoCotizado"
                                                                 :desglose="servicio.desgloseCotizado"
                                                                 :moneda-cotizada="servicio.monedaCotizada?.id ?? ''"
-                                                                :costo-real="servicio.costoRealOperativo"
-                                                                :moneda-real="servicio.monedaReal?.id ?? null"
+                                                                :costo-negociado="servicio.costoNegociado"
+                                                                :moneda-negociada="servicio.monedaNegociada?.id ?? null"
                                                                 :monedas="operacionStore.monedas"
                                                                 @guardar="(pl) => onGuardarCosto(servicio, pl)"
                                                             />
@@ -1784,7 +1784,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                     :placeholder="servicio.soloReferencia ? 'Referencia' : 'Por asignar'"
                                                     :class="[
                                                         'w-full max-w-[11rem] text-sm font-bold bg-transparent px-2 py-1 rounded-lg border outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium',
-                                                        servicio.prestadorRealNombre
+                                                        servicio.prestadorOverrideNombre
                                                             ? 'text-[#376875] border-[#376875]/30'
                                                             : 'text-slate-700 border-transparent hover:border-slate-200',
                                                     ]"
@@ -1800,7 +1800,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                 <!-- El servicio contratado: el tipo de habitación. Texto
                                                      libre porque no es una empresa. -->
                                                 <input
-                                                    v-if="servicio.prestadorServicioEfectivoNombre || servicio.prestadorRealNombre"
+                                                    v-if="servicio.prestadorServicioEfectivoNombre || servicio.prestadorOverrideNombre"
                                                     :value="servicio.prestadorServicioEfectivoNombre ?? ''"
                                                     @change="editarServicioPrestador(servicio, $event)"
                                                     placeholder="Servicio contratado"
@@ -1842,7 +1842,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                         placeholder="Sin definir"
                                                         :class="[
                                                             'w-full max-w-[8rem] text-[10px] font-bold bg-transparent px-1 py-0.5 rounded border outline-none focus:ring-1 focus:ring-[#376875] focus:bg-white focus:text-slate-700 placeholder:text-slate-300 placeholder:font-medium',
-                                                            servicio.compradorRealNombre
+                                                            servicio.compradorOverrideNombre
                                                                 ? 'text-[#376875] border-[#376875]/30'
                                                                 : 'text-slate-400 border-transparent hover:border-slate-200',
                                                         ]"
@@ -1869,8 +1869,8 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                             :costo-cotizado="servicio.costoCotizado"
                                                             :desglose="servicio.desgloseCotizado"
                                                             :moneda-cotizada="servicio.monedaCotizada?.id ?? ''"
-                                                            :costo-real="servicio.costoRealOperativo"
-                                                            :moneda-real="servicio.monedaReal?.id ?? null"
+                                                            :costo-negociado="servicio.costoNegociado"
+                                                            :moneda-negociada="servicio.monedaNegociada?.id ?? null"
                                                             :monedas="operacionStore.monedas"
                                                             @guardar="(pl) => onGuardarCosto(servicio, pl)"
                                                         />
@@ -2069,8 +2069,8 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                 :costo-cotizado="s.costoCotizado"
                                                 :desglose="s.desgloseCotizado"
                                                 :moneda-cotizada="s.monedaCotizada?.id ?? ''"
-                                                :costo-real="s.costoRealOperativo"
-                                                :moneda-real="s.monedaReal?.id ?? null"
+                                                :costo-negociado="s.costoNegociado"
+                                                :moneda-negociada="s.monedaNegociada?.id ?? null"
                                                 :monedas="operacionStore.monedas"
                                                 @guardar="(pl) => onGuardarCosto(s, pl)"
                                             />

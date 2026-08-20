@@ -56,11 +56,11 @@ export type OperacionOrdenServicioWrite = Omit<
 
 export type OperacionServicioWrite = Omit<
     components['schemas']['OperacionServicio-operacion.write'],
-    'ordenServicio' | 'monedaCotizada' | 'monedaReal'
+    'ordenServicio' | 'monedaCotizada' | 'monedaNegociada'
 > & {
     ordenServicio?: string | null;  // IRI OperacionOrdenServicio
     monedaCotizada: string;         // IRI MaestroMoneda
-    monedaReal: string;             // IRI MaestroMoneda — la NEGOCIADA, editable por ítem
+    monedaNegociada: string;             // IRI MaestroMoneda — la NEGOCIADA, editable por ítem
 };
 
 export type OperacionMensajeWrite = Omit<

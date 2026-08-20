@@ -41,8 +41,8 @@ class BibliaReconciliacionService
      * Campos que la cotización gobierna, con su etiqueta para el diff.
      *
      * Los que NO están aquí pertenecen al operador y la reconciliación no los toca
-     * jamás: `estadoReservaProveedor`, `estadoOperacion`, `costoRealOperativo`, `horaRecojoReal`, `montoVenta`,
-     * `monedaReal` y `ordenServicio`. Esa lista corta es media razón de ser del módulo.
+     * jamás: `estadoReservaProveedor`, `estadoOperacion`, `costoNegociado`, `horaRecojo`, `montoVenta`,
+     * `monedaNegociada` y `ordenServicio`. Esa lista corta es media razón de ser del módulo.
      */
     private const ETIQUETAS = [
         'fechaServicio'         => 'Fecha',
@@ -248,8 +248,8 @@ class BibliaReconciliacionService
                     $fila->setCotizacionComponente($componente);
                     $this->snapshot->aplicarValores($fila, $valores, $componente);
                     $fila->setMontoVenta('0.00');
-                    $fila->setCostoRealOperativo('0.00');
-                    $fila->setMonedaReal($fila->getMonedaCotizada());
+                    $fila->setCostoNegociado('0.00');
+                    $fila->setMonedaNegociada($fila->getMonedaCotizada());
                     $this->em->persist($fila);
                     ++$creados;
                     break;
@@ -493,7 +493,7 @@ class BibliaReconciliacionService
         if ($fila->getOrdenServicio() !== null) {
             return 'No se puede borrar: pertenece a una Orden de Servicio y se perdería el rastro de lo que se pidió al proveedor.';
         }
-        if ((float) $fila->getCostoRealOperativo() !== 0.0) {
+        if ((float) $fila->getCostoNegociado() !== 0.0) {
             return 'No se puede borrar: tiene costo real registrado y no está en ningún otro sitio.';
         }
 

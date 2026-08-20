@@ -77,8 +77,8 @@ class BibliaSnapshotService
                 // Campos que nacen vacíos y pertenecen al operador, no a la cotización:
                 // la reconciliación nunca los toca (ver BibliaReconciliacionService).
                 $ops->setMontoVenta('0.00');
-                $ops->setCostoRealOperativo('0.00');
-                $ops->setMonedaReal($ops->getMonedaCotizada());
+                $ops->setCostoNegociado('0.00');
+                $ops->setMonedaNegociada($ops->getMonedaCotizada());
 
                 $this->em->persist($ops);
                 $creados[] = $ops;
@@ -189,7 +189,7 @@ class BibliaSnapshotService
 
         return [
             'fechaServicio'         => $fechaServicio->format('Y-m-d'),
-            // La hora VENDIDA. `horaRecojoReal` ya no se snapshotea: es del operador, como el
+            // La hora VENDIDA. `horaRecojo` ya no se snapshotea: es del operador, como el
             // costo real, y la reconciliación no lo toca. Ver docs/Operacion.md §3.15.
             'horaComponente'        => $this->resolverHoraRecojo($cotcomponente),
             // A quién se le MANDA el encargo. Es lo que agrupa y firma la OS.

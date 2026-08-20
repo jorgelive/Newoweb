@@ -101,7 +101,7 @@ class OperacionOrdenServicio
      * que en la vida real es una sola.
      *
      * El dinero vive AHORA en cada ítem, que es donde tiene sentido: `costoCotizado` con su
-     * moneda (lo que dijo el cotizador, referencial) y `costoRealOperativo` con la suya (lo
+     * moneda (lo que dijo el cotizador, referencial) y `costoNegociado` con la suya (lo
      * que se negoció, editable). La pantalla suma POR MONEDA a partir de ahí.
      *
      * Estos dos campos se conservan sólo como apunte manual de conciliación —al proveedor no
@@ -240,20 +240,20 @@ class OperacionOrdenServicio
 
         foreach ($this->operacionServicios as $servicio) {
             $cotizado = (float) $servicio->getCostoCotizado();
-            $real     = (float) $servicio->getCostoRealOperativo();
+            $real     = (float) $servicio->getCostoNegociado();
 
             $monedaCotizada = $servicio->getMonedaCotizada()?->getId() ?? '—';
             // La moneda de lo negociado puede ser OTRA: se cotiza en dólares y se cierra en
             // soles. Sin este reparto, ese importe se sumaría bajo la moneda equivocada.
-            $monedaReal = $servicio->getMonedaReal()?->getId() ?? $monedaCotizada;
+            $monedaNegociada = $servicio->getMonedaNegociada()?->getId() ?? $monedaCotizada;
 
             $acumulado[$monedaCotizada] ??= ['cotizado' => 0.0, 'real' => 0.0, 'pagado' => 0.0];
             $acumulado[$monedaCotizada]['cotizado'] += $cotizado;
 
-            $acumulado[$monedaReal] ??= ['cotizado' => 0.0, 'real' => 0.0, 'pagado' => 0.0];
+            $acumulado[$monedaNegociada] ??= ['cotizado' => 0.0, 'real' => 0.0, 'pagado' => 0.0];
             // Mientras nadie negocie, «real» es el cotizado: un cero ahí se leería como
             // «pactado en cero», que es lo contrario de «todavía sin pactar».
-            $acumulado[$monedaReal]['real'] += $real > 0.0 ? $real : ($monedaReal === $monedaCotizada ? $cotizado : 0.0);
+            $acumulado[$monedaNegociada]['real'] += $real > 0.0 ? $real : ($monedaNegociada === $monedaCotizada ? $cotizado : 0.0);
         }
 
         ksort($acumulado);

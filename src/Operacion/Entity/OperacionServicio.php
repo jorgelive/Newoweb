@@ -64,7 +64,7 @@ use Symfony\Component\Uid\Uuid;
     denormalizationContext: ['groups' => ['operacion:write']],
     // La Biblia se lee siempre en orden de despacho: primero el día, luego la hora.
     // Sin esto la colección llega en orden arbitrario de la BD y el cuadro es inservible.
-    order: ['fechaServicio' => 'ASC', 'horaRecojoReal' => 'ASC'],
+    order: ['fechaServicio' => 'ASC', 'horaRecojo' => 'ASC'],
     paginationClientItemsPerPage: true,
     paginationItemsPerPage: 100
 )]
@@ -83,7 +83,7 @@ use Symfony\Component\Uid\Uuid;
 // fechaServicio necesita DateFilter, no SearchFilter: 'exact' sólo permite un día suelto
 // y el tráfico se planifica por rango (fechaServicio[after] / fechaServicio[before]).
 #[ApiFilter(DateFilter::class, properties: ['fechaServicio'])]
-#[ApiFilter(OrderFilter::class, properties: ['fechaServicio', 'horaRecojoReal', 'tipoComponente', 'descripcionServicio'])]
+#[ApiFilter(OrderFilter::class, properties: ['fechaServicio', 'horaRecojo', 'tipoComponente', 'descripcionServicio'])]
 #[ORM\Entity]
 #[ORM\Table(name: 'operacion_servicio')]
 #[ORM\Index(columns: ['fecha_servicio'], name: 'idx_ops_servicio_fecha')]
@@ -153,12 +153,12 @@ class OperacionServicio
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 10, nullable: true)]
-    private ?string $horaRecojoReal = null;
+    private ?string $horaRecojo = null;
 
     /**
      * La hora del componente TAL COMO SE VENDIÓ al cliente. No editable.
      *
-     * `horaRecojoReal` es la que el operador fija para el recojo y puede diferir; ésta es la
+     * `horaRecojo` es la que el operador fija para el recojo y puede diferir; ésta es la
      * referencia inmutable de la cotización. La fila muestra la de recojo (o ésta como
      * fallback si no hay), y debajo ésta siempre, como «vendida». Antes las dos eran el mismo
      * campo, así que fijar el recojo pisaba la hora vendida y se perdía la referencia.
@@ -242,8 +242,8 @@ class OperacionServicio
     // LO QUE DECIDE OPERACIONES — el mismo par «cotizado / real» de la hora y el costo
     //
     // Arriba está lo que dijo la COTIZACIÓN; aquí lo que operaciones acaba haciendo. Es la
-    // convención que esta entidad ya usa dos veces: `horaComponente` ↔ `horaRecojoReal`,
-    // `costoCotizado` ↔ `costoRealOperativo`. Un tercer nombre para la misma idea sólo
+    // convención que esta entidad ya usa dos veces: `horaComponente` ↔ `horaRecojo`,
+    // `costoCotizado` ↔ `costoNegociado`. Un tercer nombre para la misma idea sólo
     // haría que hubiera que aprenderla otra vez.
     //
     // 🔑 **Y es lo que disuelve el problema de la sincronización, no lo que lo resuelve.**
@@ -267,27 +267,27 @@ class OperacionServicio
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
-    private ?string $prestadorRealMaestroId = null;
+    private ?string $prestadorOverrideMaestroId = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
-    private ?string $prestadorRealNombre = null;
+    private ?string $prestadorOverrideNombre = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
-    private ?string $prestadorServicioRealMaestroId = null;
+    private ?string $prestadorServicioOverrideMaestroId = null;
 
     #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $prestadorServicioRealNombre = null;
+    private ?string $prestadorServicioOverrideNombre = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
-    private ?string $compradorRealMaestroId = null;
+    private ?string $compradorOverrideMaestroId = null;
 
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
-    private ?string $compradorRealNombre = null;
+    private ?string $compradorOverrideNombre = null;
 
     /**
      * Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden.
@@ -382,12 +382,12 @@ class OperacionServicio
 
     #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
-    private string $costoRealOperativo = '0.00';
+    private string $costoNegociado = '0.00';
 
     #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
-    #[ORM\JoinColumn(name: 'moneda_real', referencedColumnName: 'id', nullable: true)]
-    private ?MaestroMoneda $monedaReal = null;
+    #[ORM\JoinColumn(name: 'moneda_negociada', referencedColumnName: 'id', nullable: true)]
+    private ?MaestroMoneda $monedaNegociada = null;
 
     /**
      * ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
@@ -630,8 +630,8 @@ class OperacionServicio
     public function getEstadoReservaProveedorDesde(): ?\DateTimeImmutable { return $this->estadoReservaProveedorDesde; }
     public function setEstadoReservaProveedorDesde(?\DateTimeImmutable $d): self { $this->estadoReservaProveedorDesde = $d; return $this; }
 
-    public function getHoraRecojoReal(): ?string { return $this->horaRecojoReal; }
-    public function setHoraRecojoReal(?string $horaRecojoReal): self { $this->horaRecojoReal = $horaRecojoReal; return $this; }
+    public function getHoraRecojo(): ?string { return $this->horaRecojo; }
+    public function setHoraRecojo(?string $horaRecojo): self { $this->horaRecojo = $horaRecojo; return $this; }
 
     public function getHoraComponente(): ?string { return $this->horaComponente; }
     public function setHoraComponente(?string $h): self { $this->horaComponente = $h; return $this; }
@@ -648,23 +648,23 @@ class OperacionServicio
     public function getPrestadorServicioMaestroId(): ?string { return $this->prestadorServicioMaestroId; }
     public function setPrestadorServicioMaestroId(?string $v): self { $this->prestadorServicioMaestroId = $v; return $this; }
 
-    public function getPrestadorRealMaestroId(): ?string { return $this->prestadorRealMaestroId; }
-    public function setPrestadorRealMaestroId(?string $v): self { $this->prestadorRealMaestroId = $v; return $this; }
+    public function getPrestadorOverrideMaestroId(): ?string { return $this->prestadorOverrideMaestroId; }
+    public function setPrestadorOverrideMaestroId(?string $v): self { $this->prestadorOverrideMaestroId = $v; return $this; }
 
-    public function getPrestadorRealNombre(): ?string { return $this->prestadorRealNombre; }
-    public function setPrestadorRealNombre(?string $v): self { $this->prestadorRealNombre = $v; return $this; }
+    public function getPrestadorOverrideNombre(): ?string { return $this->prestadorOverrideNombre; }
+    public function setPrestadorOverrideNombre(?string $v): self { $this->prestadorOverrideNombre = $v; return $this; }
 
-    public function getPrestadorServicioRealMaestroId(): ?string { return $this->prestadorServicioRealMaestroId; }
-    public function setPrestadorServicioRealMaestroId(?string $v): self { $this->prestadorServicioRealMaestroId = $v; return $this; }
+    public function getPrestadorServicioOverrideMaestroId(): ?string { return $this->prestadorServicioOverrideMaestroId; }
+    public function setPrestadorServicioOverrideMaestroId(?string $v): self { $this->prestadorServicioOverrideMaestroId = $v; return $this; }
 
-    public function getPrestadorServicioRealNombre(): ?string { return $this->prestadorServicioRealNombre; }
-    public function setPrestadorServicioRealNombre(?string $v): self { $this->prestadorServicioRealNombre = $v; return $this; }
+    public function getPrestadorServicioOverrideNombre(): ?string { return $this->prestadorServicioOverrideNombre; }
+    public function setPrestadorServicioOverrideNombre(?string $v): self { $this->prestadorServicioOverrideNombre = $v; return $this; }
 
-    public function getCompradorRealMaestroId(): ?string { return $this->compradorRealMaestroId; }
-    public function setCompradorRealMaestroId(?string $v): self { $this->compradorRealMaestroId = $v; return $this; }
+    public function getCompradorOverrideMaestroId(): ?string { return $this->compradorOverrideMaestroId; }
+    public function setCompradorOverrideMaestroId(?string $v): self { $this->compradorOverrideMaestroId = $v; return $this; }
 
-    public function getCompradorRealNombre(): ?string { return $this->compradorRealNombre; }
-    public function setCompradorRealNombre(?string $v): self { $this->compradorRealNombre = $v; return $this; }
+    public function getCompradorOverrideNombre(): ?string { return $this->compradorOverrideNombre; }
+    public function setCompradorOverrideNombre(?string $v): self { $this->compradorOverrideNombre = $v; return $this; }
 
     // ─────────────────────────────────────────────────────────────────────────
     // LO QUE VALE — real si operaciones decidió otra cosa, cotizado si no
@@ -682,20 +682,20 @@ class OperacionServicio
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getPrestadorEfectivoMaestroId(): ?string
     {
-        return $this->prestadorRealMaestroId ?? $this->prestadorMaestroId;
+        return $this->prestadorOverrideMaestroId ?? $this->prestadorMaestroId;
     }
 
     /** El nombre del prestador que vale. */
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getPrestadorEfectivoNombre(): ?string
     {
-        return self::primeroConTexto($this->prestadorRealNombre, $this->prestadorNombre);
+        return self::primeroConTexto($this->prestadorOverrideNombre, $this->prestadorNombre);
     }
 
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getPrestadorServicioEfectivoNombre(): ?string
     {
-        return self::primeroConTexto($this->prestadorServicioRealNombre, $this->prestadorServicioNombre);
+        return self::primeroConTexto($this->prestadorServicioOverrideNombre, $this->prestadorServicioNombre);
     }
 
     /**
@@ -704,22 +704,22 @@ class OperacionServicio
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getCompradorEfectivoMaestroId(): ?string
     {
-        return $this->compradorRealMaestroId ?? $this->compradorMaestroId;
+        return $this->compradorOverrideMaestroId ?? $this->compradorMaestroId;
     }
 
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getCompradorEfectivoNombre(): ?string
     {
-        return self::primeroConTexto($this->compradorRealNombre, $this->compradorNombre);
+        return self::primeroConTexto($this->compradorOverrideNombre, $this->compradorNombre);
     }
 
     /** ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function hasPapelIntervenido(): bool
     {
-        return $this->prestadorRealMaestroId !== null
-            || $this->prestadorServicioRealMaestroId !== null
-            || $this->compradorRealMaestroId !== null;
+        return $this->prestadorOverrideMaestroId !== null
+            || $this->prestadorServicioOverrideMaestroId !== null
+            || $this->compradorOverrideMaestroId !== null;
     }
 
     /**
@@ -886,11 +886,11 @@ class OperacionServicio
     public function getMonedaCotizada(): ?MaestroMoneda { return $this->monedaCotizada; }
     public function setMonedaCotizada(?MaestroMoneda $monedaCotizada): self { $this->monedaCotizada = $monedaCotizada; return $this; }
 
-    public function getCostoRealOperativo(): string { return $this->costoRealOperativo; }
-    public function setCostoRealOperativo(string $costoRealOperativo): self { $this->costoRealOperativo = $costoRealOperativo; return $this; }
+    public function getCostoNegociado(): string { return $this->costoNegociado; }
+    public function setCostoNegociado(string $costoNegociado): self { $this->costoNegociado = $costoNegociado; return $this; }
 
-    public function getMonedaReal(): ?MaestroMoneda { return $this->monedaReal; }
-    public function setMonedaReal(?MaestroMoneda $monedaReal): self { $this->monedaReal = $monedaReal; return $this; }
+    public function getMonedaNegociada(): ?MaestroMoneda { return $this->monedaNegociada; }
+    public function setMonedaNegociada(?MaestroMoneda $monedaNegociada): self { $this->monedaNegociada = $monedaNegociada; return $this; }
 
     public function getEstadoReservaProveedor(): EstadoReservaProveedorEnum { return $this->estadoReservaProveedor; }
     public function setEstadoReservaProveedor(EstadoReservaProveedorEnum $estadoReservaProveedor): self { $this->estadoReservaProveedor = $estadoReservaProveedor; return $this; }

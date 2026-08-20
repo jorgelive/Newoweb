@@ -31,7 +31,7 @@ final class OperacionHitosDeViajeTest extends TestCase
         $servicio = new OperacionServicio();
         $servicio->setDescripcionServicio($descripcion);
         $servicio->setFechaServicio(new DateTimeImmutable($fecha));
-        $servicio->setHoraRecojoReal($hora);
+        $servicio->setHoraRecojo($hora);
         $servicio->setEstadoOperacion($estado);
 
         return $servicio;
@@ -90,7 +90,7 @@ final class OperacionHitosDeViajeTest extends TestCase
     }
 
     /**
-     * `horaRecojoReal` es texto libre que teclea el operador. Si no se puede leer se deja el día
+     * `horaRecojo` es texto libre que teclea el operador. Si no se puede leer se deja el día
      * a secas: un mensaje a una hora rara se recupera, uno el día equivocado no.
      */
     #[Test]

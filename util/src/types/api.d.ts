@@ -14452,7 +14452,7 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
-            horaRecojoReal?: string | null;
+            horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
             prestadorMaestroId?: string | null;
@@ -14466,12 +14466,12 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
-            prestadorRealMaestroId?: string | null;
-            prestadorRealNombre?: string | null;
-            prestadorServicioRealMaestroId?: string | null;
-            prestadorServicioRealNombre?: string | null;
-            compradorRealMaestroId?: string | null;
-            compradorRealNombre?: string | null;
+            prestadorOverrideMaestroId?: string | null;
+            prestadorOverrideNombre?: string | null;
+            prestadorServicioOverrideMaestroId?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
+            compradorOverrideMaestroId?: string | null;
+            compradorOverrideNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14498,8 +14498,8 @@ export interface components {
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
-            costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
             /**
              * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
@@ -14565,7 +14565,7 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
-            prestadorServicioRealNombre?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14584,8 +14584,8 @@ export interface components {
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
             /** @default 0.00 */
-            costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
             /**
              * Format: date-time
              * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
@@ -14641,15 +14641,15 @@ export interface components {
             cotizacionTarifa?: string | null;
             /** Format: date-time */
             fechaServicio?: string;
-            horaRecojoReal?: string | null;
+            horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
-            prestadorRealMaestroId?: string | null;
-            prestadorRealNombre?: string | null;
-            prestadorServicioRealMaestroId?: string | null;
-            prestadorServicioRealNombre?: string | null;
-            compradorRealMaestroId?: string | null;
-            compradorRealNombre?: string | null;
+            prestadorOverrideMaestroId?: string | null;
+            prestadorOverrideNombre?: string | null;
+            prestadorServicioOverrideMaestroId?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
+            compradorOverrideMaestroId?: string | null;
+            compradorOverrideNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14681,12 +14681,12 @@ export interface components {
              */
             monedaCotizada?: string | null;
             /** @default 0.00 */
-            costoRealOperativo: string;
+            costoNegociado: string;
             /**
              * Format: iri-reference
              * @example https://example.com/
              */
-            monedaReal?: string | null;
+            monedaNegociada?: string | null;
             /**
              * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
@@ -14716,15 +14716,15 @@ export interface components {
             cotizacionTarifa?: string | null;
             /** Format: date-time */
             fechaServicio?: string;
-            horaRecojoReal?: string | null;
+            horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
-            prestadorRealMaestroId?: string | null;
-            prestadorRealNombre?: string | null;
-            prestadorServicioRealMaestroId?: string | null;
-            prestadorServicioRealNombre?: string | null;
-            compradorRealMaestroId?: string | null;
-            compradorRealNombre?: string | null;
+            prestadorOverrideMaestroId?: string | null;
+            prestadorOverrideNombre?: string | null;
+            prestadorServicioOverrideMaestroId?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
+            compradorOverrideMaestroId?: string | null;
+            compradorOverrideNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14756,12 +14756,12 @@ export interface components {
              */
             monedaCotizada?: string | null;
             /** @default 0.00 */
-            costoRealOperativo: string;
+            costoNegociado: string;
             /**
              * Format: iri-reference
              * @example https://example.com/
              */
-            monedaReal?: string | null;
+            monedaNegociada?: string | null;
             /**
              * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
@@ -14783,7 +14783,7 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.html-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
-            horaRecojoReal?: string | null;
+            horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
             prestadorMaestroId?: string | null;
@@ -14797,12 +14797,12 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
-            prestadorRealMaestroId?: string | null;
-            prestadorRealNombre?: string | null;
-            prestadorServicioRealMaestroId?: string | null;
-            prestadorServicioRealNombre?: string | null;
-            compradorRealMaestroId?: string | null;
-            compradorRealNombre?: string | null;
+            prestadorOverrideMaestroId?: string | null;
+            prestadorOverrideNombre?: string | null;
+            prestadorServicioOverrideMaestroId?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
+            compradorOverrideMaestroId?: string | null;
+            compradorOverrideNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14829,8 +14829,8 @@ export interface components {
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
-            costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
             /**
              * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
@@ -14896,7 +14896,7 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
-            prestadorServicioRealNombre?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14915,8 +14915,8 @@ export interface components {
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
             /** @default 0.00 */
-            costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
             /**
              * Format: date-time
              * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
@@ -14964,7 +14964,7 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.jsonld-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
-            horaRecojoReal?: string | null;
+            horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
             prestadorMaestroId?: string | null;
@@ -14978,12 +14978,12 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
-            prestadorRealMaestroId?: string | null;
-            prestadorRealNombre?: string | null;
-            prestadorServicioRealMaestroId?: string | null;
-            prestadorServicioRealNombre?: string | null;
-            compradorRealMaestroId?: string | null;
-            compradorRealNombre?: string | null;
+            prestadorOverrideMaestroId?: string | null;
+            prestadorOverrideNombre?: string | null;
+            prestadorServicioOverrideMaestroId?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
+            compradorOverrideMaestroId?: string | null;
+            compradorOverrideNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -15010,8 +15010,8 @@ export interface components {
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
-            costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
             /**
              * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
@@ -15077,7 +15077,7 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
-            prestadorServicioRealNombre?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -15096,8 +15096,8 @@ export interface components {
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
             /** @default 0.00 */
-            costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
             /**
              * Format: date-time
              * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
@@ -15145,7 +15145,7 @@ export interface components {
             cotizacionTarifa?: components["schemas"]["CotizacionCottarifa.multipart-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             fechaServicio?: string;
-            horaRecojoReal?: string | null;
+            horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
             prestadorMaestroId?: string | null;
@@ -15159,12 +15159,12 @@ export interface components {
             prestadorServicioMaestroId?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
-            prestadorRealMaestroId?: string | null;
-            prestadorRealNombre?: string | null;
-            prestadorServicioRealMaestroId?: string | null;
-            prestadorServicioRealNombre?: string | null;
-            compradorRealMaestroId?: string | null;
-            compradorRealNombre?: string | null;
+            prestadorOverrideMaestroId?: string | null;
+            prestadorOverrideNombre?: string | null;
+            prestadorServicioOverrideMaestroId?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
+            compradorOverrideMaestroId?: string | null;
+            compradorOverrideNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -15191,8 +15191,8 @@ export interface components {
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
             /** @default 0.00 */
-            costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
             /**
              * @description ¿El proveedor ya me confirmó este servicio? Es el estado que dice si **la plaza existe**.
              * @default sin-solicitar
@@ -15258,7 +15258,7 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
-            prestadorServicioRealNombre?: string | null;
+            prestadorServicioOverrideNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -15277,8 +15277,8 @@ export interface components {
             costoCotizado: string;
             monedaCotizada?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
             /** @default 0.00 */
-            costoRealOperativo: string;
-            monedaReal?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
+            costoNegociado: string;
+            monedaNegociada?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
             /**
              * Format: date-time
              * @description Desde cuándo el servicio está en el estado de reserva ACTUAL.
@@ -33396,7 +33396,7 @@ export interface operations {
                 "fechaServicio[after]"?: string;
                 "fechaServicio[strictly_after]"?: string;
                 "order[fechaServicio]"?: "asc" | "desc";
-                "order[horaRecojoReal]"?: "asc" | "desc";
+                "order[horaRecojo]"?: "asc" | "desc";
                 "order[tipoComponente]"?: "asc" | "desc";
                 "order[descripcionServicio]"?: "asc" | "desc";
             };

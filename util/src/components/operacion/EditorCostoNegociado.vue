@@ -26,8 +26,8 @@ const props = defineProps<{
     costoCotizado: string;
     monedaCotizada: string;
     /** Lo negociado hoy. Vacío/0 = todavía sin negociar. */
-    costoReal: string | null;
-    monedaReal: string | null;
+    costoNegociado: string | null;
+    monedaNegociada: string | null;
     /** Códigos de moneda del maestro (`PEN`, `USD`…). */
     monedas: string[];
     /** Compacto para la tarjeta móvil; algo mayor en escritorio. */
@@ -49,7 +49,7 @@ interface DesgloseLinea {
 }
 
 const emit = defineEmits<{
-    (e: 'guardar', payload: { costoRealOperativo: string; monedaReal: string }): void;
+    (e: 'guardar', payload: { costoNegociado: string; monedaNegociada: string }): void;
 }>();
 
 const PATRON_IMPORTE = /^\d{1,10}([.,]\d{1,2})?$/;
@@ -63,21 +63,21 @@ const borradorCosto = ref('');
 const borradorMoneda = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
 
-const hayNegociado = computed(() => Number(props.costoReal ?? 0) > 0);
+const hayNegociado = computed(() => Number(props.costoNegociado ?? 0) > 0);
 // El cotizado de referencia sólo tiene sentido cuando el negociado LO CAMBIA. Si se negoció el
 // mismo importe (o no se negoció), repetirlo es ruido: se muestra una sola línea.
 const difiereDelCotizado = computed(() =>
     hayNegociado.value
-    && Number(props.costoReal).toFixed(2) !== Number(props.costoCotizado).toFixed(2));
-const monedaMostrada = computed(() => props.monedaReal || props.monedaCotizada);
+    && Number(props.costoNegociado).toFixed(2) !== Number(props.costoCotizado).toFixed(2));
+const monedaMostrada = computed(() => props.monedaNegociada || props.monedaCotizada);
 
 /** El importe formateado para leer en reposo. */
 const importeReposo = computed(() =>
-    hayNegociado.value ? Number(props.costoReal).toFixed(2) : '');
+    hayNegociado.value ? Number(props.costoNegociado).toFixed(2) : '');
 
 const abrir = async (): Promise<void> => {
     error.value = null;
-    borradorCosto.value = hayNegociado.value ? Number(props.costoReal).toFixed(2) : '';
+    borradorCosto.value = hayNegociado.value ? Number(props.costoNegociado).toFixed(2) : '';
     borradorMoneda.value = monedaMostrada.value;
     editando.value = true;
     await nextTick();
@@ -93,11 +93,11 @@ const cancelar = (): void => {
 const guardar = (): void => {
     const valor = borradorCosto.value.trim().replace(',', '.');
 
-    let costoRealOperativo: string;
+    let costoNegociado: string;
     if (valor === '') {
-        costoRealOperativo = '0.00';   // vaciar = «vuelve a no estar negociado»
+        costoNegociado = '0.00';   // vaciar = «vuelve a no estar negociado»
     } else if (PATRON_IMPORTE.test(valor)) {
-        costoRealOperativo = Number(valor).toFixed(2);
+        costoNegociado = Number(valor).toFixed(2);
     } else {
         error.value = `«${borradorCosto.value}» no es un importe.`;
         return;
@@ -105,8 +105,8 @@ const guardar = (): void => {
 
     // El padre resuelve el IRI y hace el PATCH; aquí sólo se decide QUÉ guardar. La moneda
     // se manda SIEMPRE, no sólo cuando cambia: si se guarda importe sin moneda, el backend
-    // suma por `monedaReal` y quedaría desparejado del número que el operador está viendo.
-    emit('guardar', { costoRealOperativo, monedaReal: borradorMoneda.value });
+    // suma por `monedaNegociada` y quedaría desparejado del número que el operador está viendo.
+    emit('guardar', { costoNegociado, monedaNegociada: borradorMoneda.value });
 
     editando.value = false;
     guardado.value = true;

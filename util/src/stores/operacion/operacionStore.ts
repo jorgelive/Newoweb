@@ -134,7 +134,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * Permite filtrar por rango de fechas, expediente, cotización, tipo de componente
      * y estados, garantizando que el equipo de tráfico solo vea la logística activa.
      *
-     * El orden lo impone el backend (fechaServicio ASC, horaRecojoReal ASC declarado en
+     * El orden lo impone el backend (fechaServicio ASC, horaRecojo ASC declarado en
      * el #[ApiResource]); no reordenar aquí salvo para agrupar en pantalla.
      */
     const fetchServicios = async (filtros: FiltrosBiblia = {}): Promise<void> => {
