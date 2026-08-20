@@ -8517,8 +8517,43 @@ porque hay teléfonos repartidos en varios hilos y el índice único los rechaza
 migración entera. Con `IGNORE` el **más antiguo** se lleva la identidad —es el del historial
 largo— y el resto siguen existiendo y visibles, sólo que un mensaje nuevo irá al primero.
 
-**Fusionar los duplicados toca historial real**, así que va en un comando aparte con
-`--dry-run`, no dentro de una migración. Está pendiente.
+### El comando de fusión
+
+`app:message:fusionar-hilos`. **Simula salvo que se pase `--aplicar`** — al revés que el resto
+de comandos del repo, que usan `--dry-run` como opción. Mueve miles de mensajes y no tiene
+vuelta atrás razonable: con la convención normal, un despiste al teclear lo ejecuta.
+
+**Los mensajes no se pisan.** Son filas con su fecha: reasignarlas produce una sola línea de
+tiempo continua. Lo único que choca es la cabecera, y cada campo tiene su regla:
+
+| Campo | Regla |
+|---|---|
+| `guestName` | el **más completo**, no el más nuevo: «Susana Jiménez Bustamante» dice más que «Jimenez Susana» |
+| `idioma` | gana el que esté **fijado a mano** |
+| `status` | **abierto** si alguno lo estaba |
+| `whatsappDisabled` | **desactivado** si alguno lo estaba: es seguridad, va por el lado prudente |
+| `whatsappSessionValidUntil` | el **más lejano**: la ventana de 24 h es del número, no del hilo |
+| `resumenIa` | se **borra**: resume una conversación que ya no es ésa |
+
+⚠️ **Manda la FECHA: sobrevive el más antiguo**, que es el del historial largo. Pero el nombre
+NO lo hereda por ser el más antiguo — la fecha decide quién vive, el nombre lo decide quién es
+más completo.
+
+⚠️ **No se borra nada.** El hilo absorbido queda `archived` con `fusionado_en` en su
+`contextData`, así que un enlace del panel que apuntara a él sigue llevando a algo que explica
+qué pasó.
+
+⚠️ **Se agrupa por teléfono SIN mirar el nombre.** La conversación es con quien sostiene el
+móvil: si una agencia reserva para cinco viajeros desde el mismo número, el hilo es de la
+agencia y las cinco reservas son cinco asuntos suyos — que es exactamente el modelo. Filtrar por
+«nombres parecidos» partiría ese caso sin ganar nada.
+
+**Los hilos `staff` quedan fuera de momento**, y no por principio: una persona que además
+trabaja aquí sigue siendo una persona, y no hay forma determinista de saber si su WhatsApp viene
+por su reserva o por su trabajo. Es que `EscalarAlEquipoSkill` busca los avisos recientes
+filtrando por `contextType = 'staff'`; al fusionar dejarían de encontrarse y **el enfriamiento
+fallaría abierto: la guardia volvería a sonar entera, de noche y sin causa evidente**. Se unen
+cuando ese filtro deje de depender del `contextType`.
 
 `guest_phone` **se queda**: 30 sitios la leen y el panel la pinta. Pasa a ser una copia
 denormalizada; la verdad está en `msg_identidad`.
@@ -8563,7 +8598,8 @@ Y `getEnlaces()` sale de la entidad, que es donde no debía estar: **una entidad
 
 ### Lo que queda
 
-- El comando de fusión de hilos duplicados.
+- Que `EscalarAlEquipoSkill` deje de filtrar por `contextType`, para poder unir los 2 hilos
+  `staff` que quedan.
 - El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.
 - Que algo **cree** enlaces de Travel: la tabla existe y el núcleo ya sabe recogerlos, pero
   nadie los cuelga todavía. El sitio natural es al abrir un expediente o al emitir una
