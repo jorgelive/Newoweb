@@ -22,6 +22,7 @@ use App\Contract\ConversationMilestoneInterface;
 use App\Contract\MapaDeHitos;
 use App\Contract\MomentoDeHito;
 use App\Message\Controller\Api\MarkConversationReadController;
+use App\Message\Controller\Api\CanalesDeConversacionController;
 use App\Message\Controller\Api\ConversacionPorAsuntoController;
 use App\Message\Controller\Api\UnreadSummaryController;
 use App\Security\Roles;
@@ -96,6 +97,23 @@ use Symfony\Component\Uid\Uuid;
         // API Platform infiere automáticamente: GET /message/conversations/{id}
         // Hereda el escudo global de lectura
         new Get(),
+
+        // Qué canales ofrecerle al operador: GET /message/conversations/{id}/canales
+        //
+        // Es una petición por chat abierto, no un campo del listado: serializarlo habría
+        // metido un N+1 en una colección de 300 y pico hilos.
+        new Get(
+            uriTemplate: '/conversations/{id}/canales',
+            controller: CanalesDeConversacionController::class,
+            openapi: new Operation(
+                summary: 'Canales disponibles del hilo',
+                description: 'Qué canales puede usar el operador en esta conversación y, si no, con qué código de motivo. Sustituye la regla que el panel tenía copiada a mano.'
+            ),
+            security: "is_granted('" . Roles::MENSAJES_SHOW . "')",
+            securityMessage: 'Acceso denegado a las conversaciones.',
+            deserialize: false,
+            output: false
+        ),
 
         // Para operaciones custom, solo escribes la parte final de la ruta.
         // API Platform lo concatena: POST /message/conversations/{id}/read

@@ -23,6 +23,25 @@ export type ApiTemplate = components['schemas']['Template.jsonld-template.read']
  * Heredamos la estructura robusta de OpenAPI pero flexibilizamos `contextMilestones`.
  * Esto previene errores de tipado estricto cuando el PMS envía estructuras de fechas variables.
  */
+/**
+ * Un canal y si el operador puede usarlo en este hilo.
+ *
+ * 🪞 Espejo de `CanalesDisponibles::para()` en
+ * `src/Message/Service/Conversacion/CanalesDisponibles.php`. **Se declara a mano y no sale de
+ * `api.d.ts`** porque el endpoint devuelve una `JsonResponse` montada (`output: false`), así
+ * que API Platform no documenta su forma. Si allí cambia la forma o nace un código de motivo
+ * nuevo, esto se toca en la misma sesión.
+ *
+ * `motivo` es un CÓDIGO, no una frase: el texto lo escribe el panel, que es quien sabe en qué
+ * idioma y con cuántos caracteres cabe.
+ */
+export interface CanalDisponible {
+    id: string;
+    nombre: string;
+    disponible: boolean;
+    motivo: 'no_existe_para_el_asunto' | 'sin_datos_o_vetado' | null;
+}
+
 type BaseApiConversation = components['schemas']['Conversation-conversation.read'];
 export type ApiConversation = Omit<BaseApiConversation, 'contextMilestones'> & {
     '@id'?: string;
@@ -108,6 +127,25 @@ export const useChatStore = defineStore('chatStore', () => {
     const conversations = ref<ApiConversation[]>([]);
     const currentConversation = ref<ApiConversation | null>(null);
     const messages = ref<ApiMessage[]>([]);
+    /**
+     * Qué canales puede usar el operador en el chat abierto, según el BACKEND.
+     *
+     * ⚠️ Antes esto se decidía aquí, en TypeScript: `ChatView.vue` comprobaba
+     * `contextType !== 'pms_reserva'` y una lista de orígenes copiada a mano de
+     * `Beds24SendEnqueuer`. Era la misma regla de negocio escrita dos veces —lo que
+     * `CLAUDE.md` prohíbe— y, peor, la copia juzgaba por la CABECERA del hilo: la señal que
+     * dejó de ser fiable el día que las conversaciones se fusionaron por persona, porque un
+     * hilo puede llevar una estancia de Booking y un viaje a la vez y la cabecera sólo nombra
+     * a uno.
+     *
+     * 🪞 Fuente única: `CanalesDisponibles::para()`. Aquí no se decide, se pinta.
+     *
+     * Vacío mientras carga o si la petición falla; el chat entonces no ofrece ningún canal,
+     * que es el lado seguro: ofrecer uno que no funciona termina en «enviado» y un mensaje
+     * que nunca sale.
+     */
+    const canalesDelChat = ref<CanalDisponible[]>([]);
+
     const templates = ref<ApiTemplate[]>([]);
     const filterStatus = ref<string>('open');
 
@@ -530,6 +568,11 @@ export const useChatStore = defineStore('chatStore', () => {
         loadingMessages.value = true;
         messagesPage.value = 1;
         hasMoreMessages.value = true;
+        canalesDelChat.value = [];
+
+        // Una petición por chat abierto. No es un campo de la colección a propósito:
+        // serializarlo metería un N+1 en un listado de 300 y pico hilos para ahorrar esto.
+        void fetchCanales(id);
 
         try {
             if (found && (found.unreadCount ?? 0) > 0) {
@@ -554,6 +597,24 @@ export const useChatStore = defineStore('chatStore', () => {
             error.value = 'Error al cargar historial del chat.';
         } finally {
             loadingMessages.value = false;
+        }
+    };
+
+    /**
+     * Trae del backend los canales usables en un hilo. Ver `canalesDelChat`.
+     *
+     * @param {string} id UUID de la conversación.
+     */
+    const fetchCanales = async (id: string): Promise<void> => {
+        try {
+            const response = await apiClient.get(`/platform/message/conversations/${id}/canales`);
+
+            // Si el operador cambió de chat mientras cargaba, esta respuesta ya no vale.
+            if (uuidOf(currentConversation.value) !== id) return;
+
+            canalesDelChat.value = (response.data?.canales ?? []) as CanalDisponible[];
+        } catch {
+            canalesDelChat.value = [];
         }
     };
 
@@ -769,6 +830,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
     };
 });

@@ -617,14 +617,37 @@ const getMessageDisplayStatus = (msg: ApiMessage): EstadoMensaje => {
   return aEstadoMensaje(msg.status);
 };
 
-const isBeds24Allowed = computed(() => {
-  const chat = store.currentConversation;
-  if (!chat) return false;
+// ============================================================================
+// QUÉ CANALES SE OFRECEN
+//
+// ⚠️ La pregunta «¿existe este canal para este hilo?» YA NO SE RESPONDE AQUÍ.
+//
+// Se respondía con `contextType !== 'pms_reserva'` y una lista de orígenes copiada a mano de
+// `Beds24SendEnqueuer`: la misma regla de negocio escrita dos veces, que es lo que CLAUDE.md
+// prohíbe. Y la copia juzgaba por la CABECERA del hilo — la señal que dejó de ser fiable el
+// día que las conversaciones se fusionaron por persona, porque un hilo puede llevar una
+// estancia de Booking y un viaje a la vez y la cabecera sólo nombra a uno.
+//
+// Ahora lo dice el backend (`store.canalesDelChat` ← `CanalesDisponibles::para()`) y aquí sólo
+// queda lo que SÍ es de la vista: qué permite la plantilla elegida y la ventana de 24 h.
+// ============================================================================
 
-  if (chat.contextType !== 'pms_reserva') return false;
-  const origin = (chat.contextOrigin || '').toLowerCase();
-  const bannedOrigins = ['directo', 'whatsapp'];
-  if (bannedOrigins.includes(origin)) return false;
+/** ¿El backend da por usable este canal en el hilo abierto? */
+const canalHabilitado = (id: string): boolean =>
+  store.canalesDelChat.some(c => c.id === id && c.disponible);
+
+/** Por qué no, para el tooltip. `null` si está disponible o si aún no cargó. */
+const motivoCanal = (id: string): string | null => {
+  const canal = store.canalesDelChat.find(c => c.id === id);
+  if (!canal || canal.disponible) return null;
+
+  return canal.motivo === 'no_existe_para_el_asunto'
+    ? 'Este asunto no se atiende por este canal.'
+    : 'El canal no está disponible para este huésped ahora mismo.';
+};
+
+const isBeds24Allowed = computed(() => {
+  if (!canalHabilitado('beds24')) return false;
 
   if (selectedTemplateId.value) {
     const tpl = store.templates.find(t => (t['@id'] || t.id) === selectedTemplateId.value);
@@ -635,22 +658,17 @@ const isBeds24Allowed = computed(() => {
 });
 
 const isWhatsappAllowed = computed(() => {
-  const chat = store.currentConversation;
-  if (!chat) return false;
+  if (!canalHabilitado('whatsapp_meta')) return false;
 
-  if (chat.whatsappDisabled) return false;
-
-  const sessionActive = chat.whatsappSessionActive;
+  const sessionActive = store.currentConversation?.whatsappSessionActive ?? false;
 
   if (selectedTemplateId.value) {
     const tpl = store.templates.find(t => (t['@id'] || t.id) === selectedTemplateId.value);
     if (!tpl) return false;
-
     if (!tpl.whatsappMetaActive) return false;
 
+    // Fuera de la ventana de 24 h sólo salen las plantillas oficiales de Meta.
     return !(!sessionActive && !tpl.whatsappMetaOfficial);
-
-    
   }
 
   return sessionActive;
@@ -675,7 +693,9 @@ const setDefaultChannels = () => {
 
   if (newChannels.length === 0) {
     if (isBeds24Allowed.value) newChannels.push('beds24');
-    if (chat.whatsappSessionActive && !chat.whatsappDisabled) newChannels.push('whatsapp_meta');
+    // Antes repetía aquí la regla (`whatsappSessionActive && !whatsappDisabled`), que era la
+    // tercera copia de lo mismo. La ventana de 24 h ya la mira `isWhatsappAllowed`.
+    if (isWhatsappAllowed.value) newChannels.push('whatsapp_meta');
   }
 
   selectedChannels.value = newChannels;
@@ -1491,7 +1511,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-800 shadow-sm'
                 ]"
                 class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0"
-                :title="!isBeds24Allowed ? 'Beds24 no está disponible o la plantilla lo tiene inactivo' : ''"
+                :title="!isBeds24Allowed ? (motivoCanal('beds24') ?? 'La plantilla elegida no sale por Beds24') : ''"
             >
               <i class="fas fa-bed"></i> Beds24
               <i v-if="!isBeds24Allowed" class="fas fa-ban text-[9px] ml-0.5 opacity-50"></i>
@@ -1516,6 +1536,7 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 
                 <i v-if="store.currentConversation?.whatsappDisabled" class="fas fa-exclamation-triangle text-red-500 animate-pulse ml-1 text-[10px]" title="Canal Bloqueado"></i>
                 <i v-else-if="!store.currentConversation?.whatsappSessionActive" class="fas fa-lock text-[10px] ml-1" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-700/50' : 'text-slate-400'" title="Sesión de 24h inactiva"></i>
+                <i v-else-if="!isWhatsappAllowed" class="fas fa-ban text-[9px] ml-0.5 opacity-50" :title="motivoCanal('whatsapp_meta') ?? 'La plantilla elegida no sale por WhatsApp'"></i>
               </button>
 
               <div v-if="store.currentConversation?.whatsappDisabled" class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-red-600 text-white text-[9px] p-2 rounded shadow-lg z-100 w-48 text-center font-black uppercase tracking-tighter whitespace-normal">

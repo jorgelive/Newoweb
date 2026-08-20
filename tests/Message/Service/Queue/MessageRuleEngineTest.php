@@ -130,6 +130,11 @@ final class MessageRuleEngineTest extends TestCase
 
             public function supports(MessageChannel $channel): bool { return $channel->getId() === $this->canalId; }
             public function isValid(Message $message): bool { return true; }
+            public function disponiblePara(
+                MessageConversation $conversacion,
+                ?string $asuntoType = null,
+                ?string $asuntoId = null
+            ): bool { return true; }
             public function isAlreadyEnqueued(Message $message): bool { return false; }
             public function createQueueEntity(
                 Message $message,

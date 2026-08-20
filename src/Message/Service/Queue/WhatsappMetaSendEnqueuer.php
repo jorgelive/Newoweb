@@ -11,6 +11,7 @@ use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
+use App\Message\Entity\MessageConversation;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\MessageDataResolverRegistry;
 use DateTimeImmutable;
@@ -216,12 +217,26 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
     {
         $conversation = $message->getConversation();
 
-        // Opcional: El único motivo lógico para invalidarlo sería que no haya teléfono
-        if (!$conversation || empty($conversation->getGuestPhone())) {
-            return false;
-        }
+        return $conversation !== null && $this->disponiblePara($conversation);
+    }
 
-        return true;
+    /**
+     * Sin teléfono no hay WhatsApp, y con el canal vetado tampoco.
+     *
+     * ⚠️ El veto se comprueba AQUÍ además de en `createQueueEntity()`. No es redundante: el
+     * panel pregunta por esta vía para saber qué casillas ofrecer, y sin la comprobación
+     * ofrecería WhatsApp en un hilo que Meta ya rechazó — el operador escribiría, le diría
+     * «enviado» y el mensaje moriría en el encolador.
+     *
+     * El asunto no entra: un teléfono alcanza a la persona, no a una de sus reservas.
+     */
+    public function disponiblePara(
+        MessageConversation $conversacion,
+        ?string $asuntoType = null,
+        ?string $asuntoId = null
+    ): bool {
+        return !$conversacion->isWhatsappDisabled()
+            && trim((string) $conversacion->getGuestPhone()) !== '';
     }
 
 }

@@ -11,6 +11,7 @@ use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
+use App\Message\Entity\MessageConversation;
 use App\Message\Service\MessageDataResolverRegistry;
 use App\Pms\Entity\PmsChannel;
 use DateTimeImmutable;
@@ -167,14 +168,26 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
     public function isValid(Message $message): bool
     {
         $conversation = $message->getConversation();
+
         if (!$conversation) {
             return false;
         }
 
         // Mismo motivo que en `createQueueEntity()`: la poda de canales tiene que juzgar por el
         // `source` del asunto de ESTE mensaje, no por el de la conversación.
-        $asuntoType = $message->getAsuntoType() ?? $conversation->getContextType();
-        $asuntoId = $message->getAsuntoId() ?? $conversation->getContextId();
+        return $this->disponiblePara($conversation, $message->getAsuntoType(), $message->getAsuntoId());
+    }
+
+    /**
+     * La MISMA regla, preguntable sin mensaje. Ver el contrato para el porqué.
+     */
+    public function disponiblePara(
+        MessageConversation $conversacion,
+        ?string $asuntoType = null,
+        ?string $asuntoId = null
+    ): bool {
+        $asuntoType ??= $conversacion->getContextType();
+        $asuntoId ??= $conversacion->getContextId();
 
         $resolver = $this->resolverRegistry->getResolver($asuntoType);
         if (!$resolver) {

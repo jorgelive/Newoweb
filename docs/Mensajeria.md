@@ -8668,6 +8668,53 @@ el día que se encienda.
 el hilo. Es deliberado: ofrecer un canal de más es visible y se corrige; callar uno legítimo no
 se descubre nunca, porque nadie echa de menos un canal que no se le ofreció.
 
+#### El panel ya no adivina: pregunta
+
+`ChatView.vue` decidía Beds24 con una regla **copiada a mano**:
+
+```js
+if (chat.contextType !== 'pms_reserva') return false;   // ← espejo sin declarar
+const bannedOrigins = ['directo', 'whatsapp'];          // ← copia de Beds24SendEnqueuer
+```
+
+Dos problemas a la vez. Es la misma regla de negocio escrita dos veces —lo que `CLAUDE.md`
+prohíbe sin declararla como espejo en ambos lados— y la copia juzga por la **cabecera** del
+hilo, la señal que dejó de ser fiable al fusionar por persona.
+
+Ahora lo contesta el backend:
+
+```
+GET /platform/message/conversations/{id}/canales
+→ {"canales": [{"id","nombre","disponible","motivo"}]}
+```
+
+`CanalesDisponibles::para()` junta las dos capas **preguntando a quien ya las sabe**, sin decidir
+nada por su cuenta:
+
+| Capa | Quién contesta | Qué decide |
+|---|---|---|
+| ¿**Existe** el canal para este asunto? | `ConversacionEnlaceInterface::canalesPosibles()` | estructural: un viaje no tiene Beds24 |
+| ¿Está **usable** ahora? | `ChannelEnqueuerInterface::disponiblePara()` | por registro: sin `bookId`, sin teléfono, canal vetado |
+
+`disponiblePara()` es nuevo en el contrato y es **el mismo cuerpo que `isValid()`**, que ahora
+delega en él: una implementación por canal, usada por el despachador y por el panel.
+
+⚠️ **No se sondea con un `Message` de mentira.** Fue la primera idea y es una trampa:
+`Message::setConversation()` se engancha a la colección del hilo, que cascadea `persist`, así
+que el sondeo habría dejado mensajes fantasma en cuanto algo hiciera flush en la misma petición.
+
+⚠️ **Es una petición por chat abierto, no un campo del listado.** Serializarlo metería un N+1 en
+una colección de 300 y pico hilos para ahorrar una llamada por clic.
+
+⚠️ `motivo` viaja como **código opaco** (`no_existe_para_el_asunto`, `sin_datos_o_vetado`), no
+como frase: el texto lo escribe el panel, que sabe en qué idioma y con cuántos caracteres cabe.
+Y un canal activo **sin encolador** —`email` hoy— se ofrece **apagado, no ausente**: que
+desaparezca impide distinguir «no existe» de «todavía no está montado».
+
+En el front queda sólo lo que sí es de la vista: qué permite la plantilla elegida y la ventana
+de 24 h. El espejo del tipo se declara en `chatStore.ts` (`CanalDisponible`) citando el
+servicio, porque el endpoint devuelve una `JsonResponse` montada y no entra en `api.d.ts`.
+
 **Lo que esto NO cierra todavía.** Los mensajes del chat no llevan `asunto_id`, así que en un
 hilo fusionado con reserva + viaje el corte no se aplica: el operador puede marcar Beds24 para un
 mensaje del viaje y aterrizará en el hilo de la reserva. Se cierra cuando el chat diga a qué
