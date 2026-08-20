@@ -348,3 +348,42 @@ el comprobante nunca estará en nuestra base ni lo verá el agente.
    debería levantar la mano solo, en vez de esperar a que alguien mire el hilo. Es exactamente el
    caso de «ver valores, no interpretar conversaciones»: hoy el valor está en una imagen que el
    sistema no ve.
+
+---
+
+## El enlace de pago hecho fuera del sistema — 19/08/2026
+
+Investigando el adjunto de la reserva 88591163 salió la causa de raíz, y no es la que parecía.
+
+**La máquina para esto ya existe y funciona.** `PmsReservaOrigenCobroResolver::registrarCobro()`
+—que dispara el webhook de la pasarela— registra el pago solo, y lo hace *bien*:
+
+| Lo que hace | Con qué |
+|---|---|
+| Registra el **neto**, no lo que cobró la tarjeta | `setMonto($enlace->getMontoNeto())` |
+| Guarda el recargo aparte, sin mezclarlo | `setComisionPorcentaje($enlace->getRecargoPorcentaje())` |
+| Deja la referencia de la transacción | `setReferencia($enlace->getTransaccionUuid())` |
+| Usa la fecha real del cobro | `setFechaPago($enlace->getPagadoEn())` |
+
+Es exactamente lo que hubo que hacer a mano el 19/08. **No se disparó porque el enlace no era
+nuestro:** ni `8kwer06x` ni `oxf9ihjq` existen en `fin_enlace_pago`. Se crearon a mano en el panel
+de Izipay, así que no hubo webhook, no hubo registro, y el rastro quedó en una captura de pantalla
+subida al hilo de Booking.
+
+**El patrón, y es lo preocupante:** los 92 adjuntos de `getattach.php` son `host` —los subimos
+nosotros, en 70 conversaciones, desde marzo—. Ninguno viene del huésped. O sea que no es que
+lleguen comprobantes que no podemos leer: es que **se cobra fuera del sistema y luego se
+documenta con una foto**. La foto no suma en ninguna cuenta.
+
+**Qué hacer, por valor:**
+
+1. **Que los enlaces de cobro salgan siempre del panel.** Es la única de las tres que elimina el
+   trabajo manual en vez de vigilarlo. Falta averiguar por qué hoy no se usa: ¿no cubre algún
+   caso, no se conoce, o es más incómodo que el panel de Izipay?
+2. **Conciliar contra Izipay.** Para lo cobrado por fuera, traer las transacciones de la pasarela
+   y casarlas con reservas. Pesca también lo que se cobre a mano en el futuro.
+3. **Avisar del descuadre.** Un enlace enviado por chat sin pago registrado a los N días debería
+   levantar la mano. Es la red, no la solución.
+
+⚠️ Lo que **no** resuelve esto es bajar el adjunto de Beds24: el archivo es nuestro, la foto es
+del cobro que ya hicimos, y recuperarla no registra ningún pago. Ver `docs/Mensajeria.md` §23.
