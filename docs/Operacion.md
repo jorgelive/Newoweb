@@ -237,6 +237,23 @@ reconciliación. Se reconocen sin ambigüedad —`snapshotOrigen` guarda la foto
 cotización, así que **valor ≠ foto ⟹ lo cambió una persona**— y `Version20260820180000` las mueve
 a la columna real y devuelve la cotizada a su valor de origen.
 
+#### El contacto: fuera las copias congeladas
+
+`prestadorTelefono` y `prestadorDireccion` eran una copia por fila y **nunca se llenaron**:
+0 de 42 en producción. El snapshot las ponía a `null` y la pantalla no tenía dónde escribirlas,
+así que sólo eran una segunda fuente de verdad esperando a discrepar del catálogo.
+
+Lo que las delató fue la **asimetría**: el comprador —a quien de verdad se le manda la Orden—
+nunca las tuvo, porque su contacto siempre se resolvió vivo desde `TravelOrganizacion` por su id.
+Dos mecanismos distintos para el mismo dato, y el congelado era el del papel que **no** recibe
+la Orden.
+
+Ahora los dos salen del mismo sitio: `contactoDeOrganizacion(maestroId)` en el store, con
+`contactoDePrestador()` y `contactoDeComprador()` encima. **Por el id EFECTIVO**: si operaciones
+cambió el prestador, el teléfono que hace falta es el de la empresa nueva. Corregir un número en
+la ficha lo corrige en todas las filas — justo lo que una copia por fila impedía
+(`Version20260820200000`).
+
 #### En la pantalla
 
 El input va contra un `<datalist>` del catálogo, uno solo para todo el cuadro: con un selector

@@ -215,8 +215,6 @@ class BibliaSnapshotService
             // Quien los rellena es `operacionStore.resolverContactoDeProveedores()`, en lote
             // contra el maestro al cargar el cuadro. Las columnas siguen existiendo como
             // respaldo de los proveedores sin maestro. Ver docs/Operacion.md §3.8.
-            'prestadorTelefono'     => null,
-            'prestadorDireccion'    => null,
             'descripcionServicio'   => $this->resolverDescripcion($tarifa, $cotcomponente),
             // El nombre interno, aparte y sin resolver: `descripcionServicio` lo tapa en
             // cuanto la tarifa tiene `nombreParaProveedor`, y los dos hacen falta a la vez.
@@ -284,12 +282,6 @@ class BibliaSnapshotService
         }
         if ($aplica('prestadorNombre')) {
             $ops->setPrestadorNombre($this->comoTexto($valores['prestadorNombre']));
-        }
-        if ($aplica('prestadorTelefono')) {
-            $ops->setPrestadorTelefono($this->comoTexto($valores['prestadorTelefono']));
-        }
-        if ($aplica('prestadorDireccion')) {
-            $ops->setPrestadorDireccion($this->comoTexto($valores['prestadorDireccion']));
         }
         if ($aplica('tarifaNombre')) {
             $ops->setTarifaNombre($this->comoTexto($valores['tarifaNombre']));

@@ -346,7 +346,12 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     const resolverContactoDeProveedores = async (): Promise<void> => {
         const ids = new Set<string>();
 
+        // Los EFECTIVOS, no los cotizados: si operaciones cambió el prestador o el comprador,
+        // el contacto que hace falta es el de la empresa nueva. Se piden también los cotizados
+        // porque la fila sigue enseñándolos como «Cotizado: …».
         servicios.value.forEach((s) => {
+            if (s.prestadorEfectivoMaestroId) ids.add(s.prestadorEfectivoMaestroId);
+            if (s.compradorEfectivoMaestroId) ids.add(s.compradorEfectivoMaestroId);
             if (s.prestadorMaestroId) ids.add(s.prestadorMaestroId);
             if (s.compradorMaestroId) ids.add(s.compradorMaestroId);
         });
@@ -420,24 +425,39 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     /**
-     * El contacto del prestador de una fila: **el maestro manda, lo guardado es la red**.
+     * El contacto de una organización, **siempre vivo desde el catálogo**.
      *
-     * Ese orden es la degradación que sostiene a los proveedores de un solo uso. Si el
-     * proveedor está en el catálogo se usa su dato vivo; si se dio de baja, se borró, o
-     * nunca estuvo, queda lo que la fila tenga congelado. Al revés —guardado primero— un
-     * número viejo taparía para siempre al corregido en el catálogo.
+     * Ya no hay copia congelada por fila. La hubo para el prestador —`prestadorTelefono` y
+     * `prestadorDireccion`— y acabó en 0 de 42: el snapshot las ponía a `null` y la pantalla
+     * no tenía dónde escribirlas, así que sólo eran una segunda fuente de verdad esperando a
+     * discrepar. Corregir el teléfono en la ficha ahora lo corrige en todas las filas.
+     *
+     * ⚠️ Se resuelve por el id **EFECTIVO**: si operaciones cambió el prestador, el teléfono
+     * que hace falta es el de la empresa nueva, no el de la que se cotizó.
      */
-    const contactoDePrestador = (servicio: OperacionServicio): ContactoProveedor => {
-        const vivo = servicio.prestadorMaestroId
-            ? contactoPorProveedor.value[servicio.prestadorMaestroId]
-            : undefined;
+    const contactoDeOrganizacion = (maestroId?: string | null): ContactoProveedor => {
+        const vivo = maestroId ? contactoPorProveedor.value[maestroId] : undefined;
 
         return {
-            telefono: vivo?.telefono || servicio.prestadorTelefono || null,
-            direccion: vivo?.direccion || servicio.prestadorDireccion || null,
+            telefono: vivo?.telefono || null,
+            direccion: vivo?.direccion || null,
             email: vivo?.email || null,
         };
     };
+
+    /** Quién opera y dónde se recoge. */
+    const contactoDePrestador = (servicio: OperacionServicio): ContactoProveedor =>
+        contactoDeOrganizacion(servicio.prestadorEfectivoMaestroId);
+
+    /**
+     * A quién se le manda el encargo — **es a éste a quien se le envía la Orden de Servicio**.
+     *
+     * Existe porque la asimetría era el fallo: el prestador tenía copia congelada y el
+     * comprador no, siendo el comprador el destinatario real. Ahora los dos salen del mismo
+     * sitio y por el mismo camino.
+     */
+    const contactoDeComprador = (servicio: OperacionServicio): ContactoProveedor =>
+        contactoDeOrganizacion(servicio.compradorEfectivoMaestroId);
 
     /**
      * Nombre interno del segmento para una fila mono-segmento sin plantilla, o `null` si no
@@ -787,6 +807,8 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         fetchMonedas,
         contactoPorProveedor,
         contactoDePrestador,
+        contactoDeComprador,
+        contactoDeOrganizacion,
         nombreSegmentoDeServicio,
         fetchServicios,
         fetchLugares,

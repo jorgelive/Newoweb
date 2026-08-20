@@ -14464,9 +14464,6 @@ export interface components {
             prestadorServicioNombre?: string | null;
             /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
-            prestadorTelefono?: string | null;
-            prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
             prestadorRealMaestroId?: string | null;
@@ -14647,9 +14644,6 @@ export interface components {
             horaRecojoReal?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
-            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
-            prestadorTelefono?: string | null;
-            prestadorDireccion?: string | null;
             prestadorRealMaestroId?: string | null;
             prestadorRealNombre?: string | null;
             prestadorServicioRealMaestroId?: string | null;
@@ -14725,9 +14719,6 @@ export interface components {
             horaRecojoReal?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
-            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
-            prestadorTelefono?: string | null;
-            prestadorDireccion?: string | null;
             prestadorRealMaestroId?: string | null;
             prestadorRealNombre?: string | null;
             prestadorServicioRealMaestroId?: string | null;
@@ -14804,9 +14795,6 @@ export interface components {
             prestadorServicioNombre?: string | null;
             /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
-            prestadorTelefono?: string | null;
-            prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
             prestadorRealMaestroId?: string | null;
@@ -14988,9 +14976,6 @@ export interface components {
             prestadorServicioNombre?: string | null;
             /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
-            prestadorTelefono?: string | null;
-            prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
             prestadorRealMaestroId?: string | null;
@@ -15172,9 +15157,6 @@ export interface components {
             prestadorServicioNombre?: string | null;
             /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
-            prestadorTelefono?: string | null;
-            prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
             prestadorRealMaestroId?: string | null;

@@ -206,14 +206,17 @@ class OperacionServicio
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $prestadorServicioMaestroId = null;
 
-    /** Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
-    #[Groups(['operacion:item:read', 'operacion:write'])]
-    #[ORM\Column(type: 'string', length: 50, nullable: true)]
-    private ?string $prestadorTelefono = null;
-
-    #[Groups(['operacion:item:read', 'operacion:write'])]
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $prestadorDireccion = null;
+    // El TELÉFONO y la DIRECCIÓN no se guardan aquí, y es deliberado desde el 20/08/2026.
+    //
+    // Estuvieron como copia congelada por fila y acabaron en **0 de 42**: el snapshot los
+    // ponía a `null` y la pantalla no tenía dónde escribirlos, así que sólo eran una segunda
+    // fuente de verdad esperando a discrepar. Y eran asimétricos: el comprador —a quien de
+    // verdad se le manda la Orden— nunca los tuvo, porque su contacto siempre se resolvió
+    // vivo desde el catálogo por su id.
+    //
+    // Ahora los dos papeles hacen lo mismo: el contacto se resuelve contra
+    // `TravelOrganizacion` por el id EFECTIVO. Corregir un teléfono en el catálogo lo corrige
+    // en todas las filas, que es justo lo que una copia por fila impedía.
 
     // ─────────────────────────────────────────────────────────────────────────
     // COMPRADOR — a quién se le MANDA el encargo de comprar
@@ -736,12 +739,6 @@ class OperacionServicio
 
     public function getPrestadorNombre(): ?string { return $this->prestadorNombre; }
     public function setPrestadorNombre(?string $v): self { $this->prestadorNombre = $v; return $this; }
-
-    public function getPrestadorTelefono(): ?string { return $this->prestadorTelefono; }
-    public function setPrestadorTelefono(?string $v): self { $this->prestadorTelefono = $v; return $this; }
-
-    public function getPrestadorDireccion(): ?string { return $this->prestadorDireccion; }
-    public function setPrestadorDireccion(?string $v): self { $this->prestadorDireccion = $v; return $this; }
 
     /**
      * El id como texto, EMBEBIDO en la orden.
