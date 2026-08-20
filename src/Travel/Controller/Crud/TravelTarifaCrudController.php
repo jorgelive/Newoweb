@@ -151,7 +151,10 @@ class TravelTarifaCrudController extends BaseCrudController
     {
         $isEmbedded = $this->isEmbedded();
         $apiHostUrl = rtrim($this->getParameter('api_host_url'), '/');
-        $endpointOrganizacionServicio = $apiHostUrl . '/platform/travel/organizacion-servicios';
+        // Endpoint PROPIO, no la colección de API Platform: su SearchFilter no puede filtrar por
+        // UUID —ids binarios, parámetro enlazado como texto— así que `?organizacion=<uuid>` devuelve
+        // siempre cero. Ver TravelOrganizacionServicioOpcionesController.
+        $endpointOrganizacionServicio = $apiHostUrl . '/platform/travel/organizacion-servicios-opciones';
 
         yield FormField::addPanel('Identificación y Costo')->setIcon('fa fa-tag');
 
@@ -224,11 +227,7 @@ class TravelTarifaCrudController extends BaseCrudController
         //
         // Gatillo AJAX: al elegir prestador se recargan SUS servicios en el campo de abajo.
         //
-        // ⚠️ El parámetro se llama `organizacion` porque así se llama el filtro declarado en
-        // `TravelOrganizacionServicio`. No es un detalle de estilo: API Platform **ignora en
-        // silencio** un parámetro que no esté en su `#[ApiFilter]`, así que un nombre inventado
-        // no da error — devuelve los servicios de TODAS las empresas. Es exactamente lo que
-        // hacía el `prestador.id` del CRUD anterior.
+        // El parámetro se llama `organizacion` porque así lo lee el endpoint de arriba.
         yield AdminFieldHelper::controlsAjax(
             AssociationField::new('prestador', 'Prestador'),
             'js-prestador-servicio-api-target',

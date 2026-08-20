@@ -29,16 +29,19 @@ use Symfony\Component\Uid\Uuid;
  * Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
  */
 /**
- * ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
- * colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
- * así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
- * llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
- * disfrazado. Un filtro que no está no falla: devuelve de más.
+ * ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+ * `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+ * nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+ * que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+ * `?organizacion=<uuid>` devuelve 0.
+ *
+ * Y declararlo roto es peor que no tenerlo, porque sale en el esquema y en `api.d.ts` como si
+ * funcionara. Para eso está
+ * {@see \App\Api\Controller\Travel\TravelOrganizacionServicioOpcionesController}, que
+ * resuelve el UUID en PHP.
  */
 #[ApiFilter(SearchFilter::class, properties: [
-    'id' => 'exact',
-    'nombre' => 'partial',
-    'organizacion' => 'exact'
+    'nombre' => 'partial'
 ])]
 #[ApiResource(
     shortName: 'OrganizacionServicio',

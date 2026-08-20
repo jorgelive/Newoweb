@@ -30,12 +30,23 @@ use Symfony\Component\Uid\Uuid;
  * Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
  */
 /**
- * `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
- * verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
- * funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
+ * ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.**
+ *
+ * `SearchFilter` **no puede filtrar por UUID en este proyecto**: los identificadores se guardan
+ * como `binary(16)` y la librería enlaza el valor sin decir su tipo —`setParameter($p, $values[0])`
+ * en `Filter/SearchFilter.php`—, así que compara texto contra binario y no casa nunca. Comprobado
+ * contra producción el 20/08/2026: `?nombreComercial=Tambo` devuelve 1 y `?id=<uuid>` devuelve 0.
+ *
+ * Declararlo es PEOR que no declararlo. Sin declarar, API Platform ignora el parámetro y la
+ * colección vuelve entera: las cargas por lote del editor (`?id[]=a&id[]=b&pagination=false`)
+ * funcionan de casualidad, porque quien llama busca luego por id dentro de la lista. Declarado,
+ * el filtro **sí se aplica** y devuelve **cero** — que es como se rompió el selector de
+ * prestadores del editor durante unas horas ese mismo día.
+ *
+ * Si algún día hace falta filtrar por id de verdad, va por un endpoint propio que resuelva el
+ * UUID en PHP. Ver {@see \App\Api\Controller\Travel\TravelOrganizacionServicioOpcionesController}.
  */
 #[ApiFilter(SearchFilter::class, properties: [
-    'id' => 'exact',
     'nombreComercial' => 'partial',
     'razonSocial' => 'partial'
 ])]

@@ -15226,11 +15226,7 @@ export interface components {
                 moneda?: string | null;
             }[];
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         Organizacion: {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15285,11 +15281,7 @@ export interface components {
             /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
             readonly virtualLugares?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion-organizacion.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15324,11 +15316,7 @@ export interface components {
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
             readonly etiquetaOpciones?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15364,11 +15352,7 @@ export interface components {
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
             readonly etiquetaOpciones?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion-organizacion.write": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15396,11 +15380,7 @@ export interface components {
             /** @description Lugares donde opera. Lado DUEÑO. */
             lugares?: string[];
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion-organizacion.write.jsonMergePatch": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15428,29 +15408,17 @@ export interface components {
             /** @description Lugares donde opera. Lado DUEÑO. */
             lugares?: string[];
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion-organizacion_servicio.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.html": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15505,11 +15473,7 @@ export interface components {
             /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
             readonly virtualLugares?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.html-organizacion.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15544,11 +15508,7 @@ export interface components {
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
             readonly etiquetaOpciones?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.html-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15584,29 +15544,17 @@ export interface components {
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
             readonly etiquetaOpciones?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.html-organizacion_servicio.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.html-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15661,11 +15609,7 @@ export interface components {
             /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
             readonly virtualLugares?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.jsonld-organizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15700,11 +15644,7 @@ export interface components {
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
             readonly etiquetaOpciones?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.jsonld-organizacion.read_organizacion.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15740,29 +15680,17 @@ export interface components {
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
             readonly etiquetaOpciones?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.jsonld-organizacion_servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.jsonld-organizacion_servicio.read_organizacion_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.multipart": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15817,11 +15745,7 @@ export interface components {
             /** @description Virtual para EasyAdmin (evita el 500 de TextField + renderAsHtml). */
             readonly virtualLugares?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.multipart-organizacion.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15856,11 +15780,7 @@ export interface components {
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
             readonly etiquetaOpciones?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.multipart-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -15896,20 +15816,12 @@ export interface components {
             /** @description Expone la representación visual amigable de la entidad para inyectarse en un TomSelect o componente de Vue. */
             readonly etiquetaOpciones?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.multipart-organizacion_servicio.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
-        /**
-         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
-         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
-         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
-         */
+        /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         "Organizacion.multipart-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
@@ -16319,11 +16231,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         OrganizacionServicio: {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16368,11 +16280,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16390,11 +16302,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio-organizacion_servicio.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16416,11 +16328,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16443,11 +16355,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio-organizacion_servicio.write": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16468,11 +16380,11 @@ export interface components {
             organizacion?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio-organizacion_servicio.write.jsonMergePatch": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16493,11 +16405,11 @@ export interface components {
             organizacion?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.html": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16542,11 +16454,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.html-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16564,11 +16476,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.html-organizacion_servicio.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16590,11 +16502,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.html-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16617,11 +16529,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16666,11 +16578,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.jsonld-organizacion.read_organizacion.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16688,11 +16600,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.jsonld-organizacion_servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16714,11 +16626,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.jsonld-organizacion_servicio.read_organizacion_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16741,11 +16653,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.multipart": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16790,11 +16702,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.multipart-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16812,11 +16724,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.multipart-organizacion_servicio.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16838,11 +16750,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
-         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
-         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
-         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
-         *     disfrazado. Un filtro que no está no falla: devuelve de más.
+         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
+         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
+         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
+         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
+         *     `?organizacion=<uuid>` devuelve 0.
          */
         "OrganizacionServicio.multipart-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -33731,8 +33643,6 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
-                id?: string;
-                "id[]"?: string[];
                 nombreComercial?: string;
                 razonSocial?: string;
             };
@@ -34277,11 +34187,7 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
-                id?: string;
-                "id[]"?: string[];
                 nombre?: string;
-                organizacion?: string;
-                "organizacion[]"?: string[];
             };
             header?: never;
             path?: never;
