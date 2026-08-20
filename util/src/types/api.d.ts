@@ -1120,6 +1120,46 @@ export interface paths {
         patch: operations["api_opsoperacion_orden_servicios_id_patch"];
         trace?: never;
     };
+    "/platform/ops/orden-servicios/emitir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a OperacionOrdenServicio resource.
+         * @description Creates a OperacionOrdenServicio resource.
+         */
+        post: operations["api_opsorden-serviciosemitir_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/ops/orden-servicios/{id}/estado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a OperacionOrdenServicio resource.
+         * @description Creates a OperacionOrdenServicio resource.
+         */
+        post: operations["api_opsorden-servicios_idestado_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/ops/operacion_pagos": {
         parameters: {
             query?: never;
@@ -14133,10 +14173,16 @@ export interface components {
             updatedAt?: string | null;
         };
         "OperacionOrdenServicio-operacion.item.read_timestamp.read": {
+            items?: components["schemas"]["OperacionOrdenServicioItem-operacion.item.read_timestamp.read"][];
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            readonly divergencias?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            readonly sucia?: boolean;
         };
         "OperacionOrdenServicio-operacion.mensaje.read_timestamp.read": {
             /** Format: date-time */
@@ -14156,6 +14202,7 @@ export interface components {
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
             /**
+             * @description ⚠️ **Sin `operacion:write`, a propósito.** Se mueve por `/orden-servicios/{id}/estado`.
              * @default borrador
              * @enum {string}
              */
@@ -14163,6 +14210,8 @@ export interface components {
             monedaOs?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
             totalOs?: string | null;
             operacionServicios?: components["schemas"]["OperacionServicio-operacion.read_timestamp.read"][];
+            items?: components["schemas"]["OperacionOrdenServicioItem-operacion.read_timestamp.read"][];
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"] | null;
             mensajes?: components["schemas"]["OperacionMensaje-operacion.read_timestamp.read"][];
             id?: string;
             /** Format: date-time */
@@ -14177,6 +14226,10 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
+            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            readonly divergencias?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            readonly sucia?: boolean;
         };
         "OperacionOrdenServicio-operacion.write": {
             numeroOs?: string;
@@ -14187,11 +14240,6 @@ export interface components {
             file?: string;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
-            /**
-             * @default borrador
-             * @enum {string}
-             */
-            estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
             /**
              * Format: iri-reference
              * @description El importe de la orden, a nivel de cabecera. **Opcional, y ya no se pide al crearla.**
@@ -14211,11 +14259,6 @@ export interface components {
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
             /**
-             * @default borrador
-             * @enum {string}
-             */
-            estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
-            /**
              * Format: iri-reference
              * @description El importe de la orden, a nivel de cabecera. **Opcional, y ya no se pide al crearla.**
              * @example https://example.com/
@@ -14224,11 +14267,42 @@ export interface components {
             totalOs?: string | null;
             id?: string;
         };
+        "OperacionOrdenServicio.CambiarEstadoOrdenInput-operacion.orden.write": {
+            /**
+             * @default
+             * @enum {string}
+             */
+            estado: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
+            /** @description Por qué se anula. Queda en la orden como parte de su historia. */
+            motivo?: string | null;
+        };
+        "OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write": {
+            /** @description Las filas de La Biblia que entran en la orden. */
+            servicioIds?: string[];
+            /** @default  */
+            numeroOs: string;
+            /** @description A quién se le manda el encargo. Vacío = se toma el comprador efectivo de las filas. */
+            compradorMaestroId?: string | null;
+            compradorNombre?: string | null;
+            /** @description La orden que ésta sustituye, si se está reemitiendo. */
+            reemplazaAId?: string | null;
+            /**
+             * @description ¿Se deja en borrador en vez de emitir?
+             * @default false
+             */
+            soloBorrador: boolean;
+        };
         "OperacionOrdenServicio.html-operacion.item.read_timestamp.read": {
+            items?: components["schemas"]["OperacionOrdenServicioItem.html-operacion.item.read_timestamp.read"][];
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio.html-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            readonly divergencias?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            readonly sucia?: boolean;
         };
         "OperacionOrdenServicio.html-operacion.mensaje.read_timestamp.read": {
             /** Format: date-time */
@@ -14248,6 +14322,7 @@ export interface components {
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
             /**
+             * @description ⚠️ **Sin `operacion:write`, a propósito.** Se mueve por `/orden-servicios/{id}/estado`.
              * @default borrador
              * @enum {string}
              */
@@ -14255,6 +14330,8 @@ export interface components {
             monedaOs?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
             totalOs?: string | null;
             operacionServicios?: components["schemas"]["OperacionServicio.html-operacion.read_timestamp.read"][];
+            items?: components["schemas"]["OperacionOrdenServicioItem.html-operacion.read_timestamp.read"][];
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"] | null;
             mensajes?: components["schemas"]["OperacionMensaje.html-operacion.read_timestamp.read"][];
             id?: string;
             /** Format: date-time */
@@ -14269,13 +14346,24 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
+            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            readonly divergencias?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            readonly sucia?: boolean;
         };
-        "OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read": {
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-        };
+            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            readonly divergencias?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            readonly sucia?: boolean;
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
+            items?: components["schemas"]["OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read"][];
+        });
         "OperacionOrdenServicio.jsonld-operacion.mensaje.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
             createdAt?: string;
@@ -14288,19 +14376,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "OperacionOrdenServicio.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
-            numeroOs?: string;
-            file?: components["schemas"]["CotizacionFile.jsonld-operacion.read_timestamp.read"];
-            compradorMaestroId?: string | null;
-            compradorNombre?: string | null;
-            /**
-             * @default borrador
-             * @enum {string}
-             */
-            estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
-            monedaOs?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
-            totalOs?: string | null;
-            operacionServicios?: components["schemas"]["OperacionServicio.jsonld-operacion.read_timestamp.read"][];
+        "OperacionOrdenServicio.jsonld-operacion.read_timestamp.read": {
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"] | null;
             mensajes?: components["schemas"]["OperacionMensaje.jsonld-operacion.read_timestamp.read"][];
             id?: string;
             /** Format: date-time */
@@ -14315,12 +14392,37 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
-        };
+            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            readonly divergencias?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            readonly sucia?: boolean;
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
+            numeroOs?: string;
+            file?: components["schemas"]["CotizacionFile.jsonld-operacion.read_timestamp.read"];
+            compradorMaestroId?: string | null;
+            compradorNombre?: string | null;
+            /**
+             * @description ⚠️ **Sin `operacion:write`, a propósito.** Se mueve por `/orden-servicios/{id}/estado`.
+             * @default borrador
+             * @enum {string}
+             */
+            estadoOs: "borrador" | "emitida" | "confirmada" | "completada" | "cancelada";
+            monedaOs?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
+            totalOs?: string | null;
+            operacionServicios?: components["schemas"]["OperacionServicio.jsonld-operacion.read_timestamp.read"][];
+            items?: components["schemas"]["OperacionOrdenServicioItem.jsonld-operacion.read_timestamp.read"][];
+        });
         "OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read": {
+            items?: components["schemas"]["OperacionOrdenServicioItem.multipart-operacion.item.read_timestamp.read"][];
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read"] | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            readonly divergencias?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            readonly sucia?: boolean;
         };
         "OperacionOrdenServicio.multipart-operacion.mensaje.read_timestamp.read": {
             /** Format: date-time */
@@ -14340,6 +14442,7 @@ export interface components {
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
             /**
+             * @description ⚠️ **Sin `operacion:write`, a propósito.** Se mueve por `/orden-servicios/{id}/estado`.
              * @default borrador
              * @enum {string}
              */
@@ -14347,6 +14450,8 @@ export interface components {
             monedaOs?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
             totalOs?: string | null;
             operacionServicios?: components["schemas"]["OperacionServicio.multipart-operacion.read_timestamp.read"][];
+            items?: components["schemas"]["OperacionOrdenServicioItem.multipart-operacion.read_timestamp.read"][];
+            reemplazaA?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"] | null;
             mensajes?: components["schemas"]["OperacionMensaje.multipart-operacion.read_timestamp.read"][];
             id?: string;
             /** Format: date-time */
@@ -14361,6 +14466,202 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
+            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            readonly divergencias?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            readonly sucia?: boolean;
+        };
+        "OperacionOrdenServicioItem-operacion.item.read_timestamp.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /** @default  */
+            descripcion: string;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda-operacion.item.read_timestamp.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicioItem-operacion.read_timestamp.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /** @default  */
+            descripcion: string;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda-operacion.read_timestamp.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicioItem.html-operacion.item.read_timestamp.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /** @default  */
+            descripcion: string;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda.html-operacion.item.read_timestamp.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicioItem.html-operacion.read_timestamp.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /** @default  */
+            descripcion: string;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda.html-operacion.read_timestamp.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /** @default  */
+            descripcion: string;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda.jsonld-operacion.item.read_timestamp.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicioItem.jsonld-operacion.read_timestamp.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /** @default  */
+            descripcion: string;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda.jsonld-operacion.read_timestamp.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicioItem.multipart-operacion.item.read_timestamp.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /** @default  */
+            descripcion: string;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda.multipart-operacion.item.read_timestamp.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "OperacionOrdenServicioItem.multipart-operacion.read_timestamp.read": {
+            /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+            operacionServicioId?: string | null;
+            /** @default  */
+            descripcion: string;
+            /** Format: date-time */
+            fechaServicio?: string | null;
+            /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+            hora?: string | null;
+            cantidadPax?: number | null;
+            cantidad?: string | null;
+            /** @default 0.00 */
+            importe: string;
+            moneda?: components["schemas"]["Moneda.multipart-operacion.read_timestamp.read"] | null;
+            /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+            prestadorNombre?: string | null;
+            prestadorServicioNombre?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
         "OperacionPago-operacion.pago.read_timestamp.read": {
@@ -33208,6 +33509,137 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_opsorden-serviciosemitir_post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new OperacionOrdenServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write"];
+                "application/json": components["schemas"]["OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write"];
+                "text/html": components["schemas"]["OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write"];
+                "multipart/form-data": components["schemas"]["OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionOrdenServicio resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_opsorden-servicios_idestado_post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionOrdenServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new OperacionOrdenServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionOrdenServicio.CambiarEstadoOrdenInput-operacion.orden.write"];
+                "application/json": components["schemas"]["OperacionOrdenServicio.CambiarEstadoOrdenInput-operacion.orden.write"];
+                "text/html": components["schemas"]["OperacionOrdenServicio.CambiarEstadoOrdenInput-operacion.orden.write"];
+                "multipart/form-data": components["schemas"]["OperacionOrdenServicio.CambiarEstadoOrdenInput-operacion.orden.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionOrdenServicio resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

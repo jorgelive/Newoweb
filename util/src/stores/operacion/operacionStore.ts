@@ -589,34 +589,54 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     /**
-     * Genera una nueva Orden de Servicio y agrupa los servicios seleccionados.
+     * Emite una Orden de Servicio entera **en una sola llamada**.
      *
-     * Este método existe para empaquetar servicios huérfanos que pertenecen al mismo
-     * proveedor dentro del mismo File, creando la cabecera que se usará para el envío
-     * formal de correos y la liquidación contable.
+     * Antes esto se orquestaba aquí: un `POST` para la cabecera y luego un `PATCH` por cada
+     * servicio para atarlo. Si la pestaña se caía en medio quedaban filas atadas a una orden
+     * que no llegó a existir, y las reglas de coherencia vivían la mitad en el navegador —dos
+     * pestañas abiertas armaban lo que la vista impedía—.
      *
-     * @param {OperacionOrdenServicioWrite} payload - Cabecera de la orden.
-     * @param {string[]} serviciosIds - Array de UUIDs de servicios a agrupar en esta OS.
+     * Ahora el servidor valida antes de tocar nada, crea, enlaza y congela en una transacción,
+     * y devuelve la orden completa. Ver `EmitirOrdenProcessor`.
      */
-    const crearOrdenServicio = async (payload: OperacionOrdenServicioWrite, serviciosIds: string[]): Promise<OperacionOrdenServicio> => {
+    const emitirOrdenServicio = async (datos: {
+        servicioIds: string[];
+        numeroOs: string;
+        compradorMaestroId?: string | null;
+        compradorNombre?: string | null;
+        reemplazaAId?: string | null;
+        soloBorrador?: boolean;
+    }): Promise<OperacionOrdenServicio> => {
         isLoading.value = true;
         try {
-            // 1. Crear cabecera
-            const response = await apiClient.post('/platform/ops/operacion_orden_servicios', payload);
-            const nuevaOs = response.data;
-            ordenesServicio.value.unshift(nuevaOs);
+            const { data } = await apiClient.post('/platform/ops/orden-servicios/emitir', datos);
+            ordenesServicio.value.unshift(data);
 
-            // 2. Asociar los servicios huérfanos a la nueva OS
-            if (!nuevaOs.id || serviciosIds.length === 0) return nuevaOs;
-            const osIri = `/platform/ops/operacion_orden_servicios/${nuevaOs.id}`;
-            await Promise.all(serviciosIds.map(id =>
-                actualizarServicio(id, { ordenServicio: osIri })
-            ));
+            return data;
+        } finally {
+            isLoading.value = false;
+        }
+    };
 
-            return nuevaOs;
-        } catch (error) {
-            console.error('Error al generar la Orden de Servicio:', error);
-            throw error;
+    /**
+     * Mueve una orden de estado. Emitir congela su contenido; anular suelta sus filas.
+     *
+     * Es una ACCIÓN y no un `PATCH` de `estadoOs`: ese campo ya no es escribible. Con dos
+     * puertas a la misma transición, las reglas se escapan por la que no mira nadie — y es
+     * aquí donde cuelga lo que pase al emitir (avisar al proveedor, generar el PDF).
+     */
+    const cambiarEstadoOrden = async (
+        id: string,
+        estado: string,
+        motivo?: string | null,
+    ): Promise<OperacionOrdenServicio> => {
+        isLoading.value = true;
+        try {
+            const { data } = await apiClient.post(`/platform/ops/orden-servicios/${id}/estado`, { estado, motivo: motivo ?? null });
+            const i = ordenesServicio.value.findIndex(o => o.id === id);
+            if (i >= 0) ordenesServicio.value[i] = data;
+
+            return data;
         } finally {
             isLoading.value = false;
         }
@@ -818,7 +838,8 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         fetchCotizacionesDeExpediente,
         actualizarServicio,
         fetchOrdenesServicio,
-        crearOrdenServicio,
+        emitirOrdenServicio,
+        cambiarEstadoOrden,
         actualizarOrdenServicio,
         fetchMensajesPorOrden,
         registrarMensaje

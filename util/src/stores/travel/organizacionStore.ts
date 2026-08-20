@@ -7,6 +7,7 @@
 // y rompe el histórico financiero.
 // ============================================================================
 
+import { mensajeDeErrorApi } from '@/utils/errorApi';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { apiClient } from '@/services/apiClient';
@@ -25,11 +26,6 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
     /** Vocabulario de lugares. Se carga una vez: cambia poco y lo usan todos los formularios. */
     const lugares = ref<LugarOpcion[]>([]);
 
-    const mensajeDeError = (e: unknown, porDefecto: string): string => {
-        const r = (e as { response?: { data?: Record<string, unknown> } })?.response?.data;
-        return String(r?.['hydra:description'] ?? r?.detail ?? porDefecto);
-    };
-
     /**
      * Listado. `termino` filtra por nombre comercial con el SearchFilter `partial` que ya
      * declara la entidad; sin término trae la primera página completa.
@@ -44,7 +40,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             const res = await apiClient.get(RUTA, { params });
             proveedores.value = miembrosHydra<Organizacion>(res.data);
         } catch (e) {
-            error.value = mensajeDeError(e, 'No se pudo cargar el catálogo de proveedores.');
+            error.value = mensajeDeErrorApi(e, 'No se pudo cargar el catálogo de proveedores.');
             proveedores.value = [];
         } finally {
             isLoading.value = false;
@@ -59,7 +55,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             const res = await apiClient.get(`${RUTA}/${id}`);
             proveedorActivo.value = res.data as Organizacion;
         } catch (e) {
-            error.value = mensajeDeError(e, 'No se pudo cargar el proveedor.');
+            error.value = mensajeDeErrorApi(e, 'No se pudo cargar el proveedor.');
             proveedorActivo.value = null;
         } finally {
             isLoading.value = false;
@@ -76,7 +72,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             proveedores.value.unshift(creado);
             return creado;
         } catch (e) {
-            error.value = mensajeDeError(e, 'No se pudo crear el proveedor.');
+            error.value = mensajeDeErrorApi(e, 'No se pudo crear el proveedor.');
             return null;
         } finally {
             isGuardando.value = false;
@@ -97,7 +93,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             if (proveedorActivo.value?.id === id) proveedorActivo.value = res.data as Organizacion;
             return true;
         } catch (e) {
-            error.value = mensajeDeError(e, 'No se pudo guardar el proveedor.');
+            error.value = mensajeDeErrorApi(e, 'No se pudo guardar el proveedor.');
             return false;
         } finally {
             isGuardando.value = false;
@@ -118,7 +114,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             if (proveedorActivo.value?.id === id) proveedorActivo.value = null;
             return true;
         } catch (e) {
-            error.value = mensajeDeError(e, 'No se pudo eliminar el proveedor.');
+            error.value = mensajeDeErrorApi(e, 'No se pudo eliminar el proveedor.');
             return false;
         }
     };
@@ -156,7 +152,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             });
             return true;
         } catch (e) {
-            error.value = mensajeDeError(e, 'No se pudo crear el servicio.');
+            error.value = mensajeDeErrorApi(e, 'No se pudo crear el servicio.');
             return false;
         }
     };
@@ -167,7 +163,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             await apiClient.delete(servicio['@id'] ?? `/platform/travel/organizacion-servicios/${servicio.id}`);
             return true;
         } catch (e) {
-            error.value = mensajeDeError(e, 'No se pudo eliminar el servicio.');
+            error.value = mensajeDeErrorApi(e, 'No se pudo eliminar el servicio.');
             return false;
         }
     };
@@ -195,7 +191,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             });
             return true;
         } catch (e) {
-            error.value = mensajeDeError(e, 'No se pudo subir la imagen.');
+            error.value = mensajeDeErrorApi(e, 'No se pudo subir la imagen.');
             return false;
         }
     };
@@ -206,7 +202,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             await apiClient.delete(`/platform/travel/organizacion_imagens/${imagenId}`);
             return true;
         } catch (e) {
-            error.value = mensajeDeError(e, 'No se pudo eliminar la imagen.');
+            error.value = mensajeDeErrorApi(e, 'No se pudo eliminar la imagen.');
             return false;
         }
     };
@@ -226,7 +222,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
                 { headers: { 'Content-Type': 'application/merge-patch+json' } });
             return true;
         } catch (e) {
-            error.value = mensajeDeError(e, 'No se pudo marcar la portada.');
+            error.value = mensajeDeErrorApi(e, 'No se pudo marcar la portada.');
             return false;
         }
     };

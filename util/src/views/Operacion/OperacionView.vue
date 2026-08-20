@@ -19,6 +19,7 @@ import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type B
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import { getUrls } from '@/services/apiClient';
+import { mensajeDeErrorApi } from '@/utils/errorApi';
 import {
     getEstadoOsConfig,
     getEstadoReservaProveedorConfig,
@@ -668,30 +669,24 @@ const confirmarOs = async () => {
     const sel = serviciosSeleccionados.value;
     if (sel.length === 0) return;
 
-    const fileId = sel[0].file?.id;
-    if (!fileId) {
-        errorOs.value = 'Faltan el expediente o la moneda del servicio; revisa el snapshot.';
-        return;
-    }
-
     guardandoOs.value = true;
     errorOs.value = null;
     try {
-        await operacionStore.crearOrdenServicio(
-            {
-                numeroOs: formOs.value.numeroOs,
-                file: `/platform/sales/cotizacion_files/${fileId}`,
-                compradorMaestroId: formOs.value.compradorMaestroId || null,
-                compradorNombre: formOs.value.compradorNombre || null,
-                estadoOs: 'borrador',
-            },
-            sel.map(s => s.id!).filter(Boolean)
-        );
+        await operacionStore.emitirOrdenServicio({
+            servicioIds: sel.map(s => s.id!).filter(Boolean),
+            numeroOs: formOs.value.numeroOs,
+            compradorMaestroId: formOs.value.compradorMaestroId || null,
+            compradorNombre: formOs.value.compradorNombre || null,
+            // Se emite ya: el borrador existe para componer, y aquí ya está compuesta.
+            soloBorrador: false,
+        });
         mostrarModalOs.value = false;
         seleccionados.value = [];
         await cargarBiblia();
-    } catch {
-        errorOs.value = 'No se pudo crear la Orden de Servicio. Revisa que el número no esté repetido.';
+    } catch (e) {
+        // El servidor explica QUÉ falló —expedientes distintos, un servicio ya en otra orden,
+        // algo que no se compra—. Repetir un mensaje genérico encima de eso lo tapaba.
+        errorOs.value = mensajeDeErrorApi(e, 'No se pudo emitir la Orden de Servicio.');
     } finally {
         guardandoOs.value = false;
     }
@@ -1087,11 +1082,18 @@ const guardarEdicion = async () => {
             numeroOs: formEdicion.value.numeroOs,
             compradorMaestroId: formEdicion.value.compradorMaestroId || null,
             compradorNombre: formEdicion.value.compradorNombre || null,
-            estadoOs: formEdicion.value.estadoOs as OperacionOrdenServicio['estadoOs'],
         });
+
+        // El estado va por su propia acción y DESPUÉS de la cabecera: emitir congela el
+        // contenido, así que lo congelado tiene que ser ya el número y el destinatario buenos.
+        if (formEdicion.value.estadoOs !== orden.estadoOs) {
+            await operacionStore.cambiarEstadoOrden(orden.id, formEdicion.value.estadoOs);
+        }
+
         ordenEditando.value = null;
-    } catch {
-        errorEdicion.value = 'No se pudo guardar. Comprueba que el número de OS no esté repetido.';
+        await cargarBiblia();
+    } catch (e) {
+        errorEdicion.value = mensajeDeErrorApi(e, 'No se pudo guardar. Comprueba que el número de OS no esté repetido.');
     } finally {
         guardandoEdicion.value = false;
     }

@@ -10,6 +10,10 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
+use App\Operacion\ApiPlatform\Dto\CambiarEstadoOrdenInput;
+use App\Operacion\ApiPlatform\Dto\EmitirOrdenInput;
+use App\Operacion\ApiPlatform\State\CambiarEstadoOrdenProcessor;
+use App\Operacion\ApiPlatform\State\EmitirOrdenProcessor;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Cotizacion\Entity\CotizacionFile;
@@ -43,6 +47,37 @@ use Symfony\Component\Uid\Uuid;
         new Patch(
             security: "is_granted('" . Roles::OPERACIONES_WRITE . "')",
             securityMessage: 'No tienes permiso para actualizar órdenes de servicio.'
+        ),
+
+        // ─────────────────────────────────────────────────────────────────────
+        // ACCIONES — lo que un PATCH no puede hacer bien
+        //
+        // Crear una orden eran N `PATCH` para atar cada fila más un `POST` para la cabecera,
+        // orquestados desde el navegador: si la pestaña se caía en medio quedaban filas
+        // atadas a una orden que no llegó a existir. Y las reglas vivían la mitad en
+        // `conflictoSeleccion` del front, así que dos pestañas armaban lo que la vista
+        // impedía.
+        //
+        // Mismo patrón que `/cotizacions/{id}/operacion/aplicar`: una llamada, una
+        // transacción, y la respuesta trae ya el estado nuevo.
+        // ─────────────────────────────────────────────────────────────────────
+        new Post(
+            uriTemplate: '/orden-servicios/emitir',
+            denormalizationContext: ['groups' => ['operacion:orden:write']],
+            input: EmitirOrdenInput::class,
+            security: "is_granted('" . Roles::OPERACIONES_WRITE . "')",
+            securityMessage: 'No tienes permiso para emitir órdenes de servicio.',
+            read: false,
+            processor: EmitirOrdenProcessor::class
+        ),
+        new Post(
+            uriTemplate: '/orden-servicios/{id}/estado',
+            denormalizationContext: ['groups' => ['operacion:orden:write']],
+            input: CambiarEstadoOrdenInput::class,
+            security: "is_granted('" . Roles::OPERACIONES_WRITE . "')",
+            securityMessage: 'No tienes permiso para cambiar el estado de una orden.',
+            read: false,
+            processor: CambiarEstadoOrdenProcessor::class
         ),
         new Delete(
             security: "is_granted('" . Roles::OPERACIONES_DELETE . "')",
@@ -87,7 +122,14 @@ class OperacionOrdenServicio
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $compradorNombre = null;
 
-    #[Groups(['operacion:read', 'operacion:write'])]
+    /**
+     * ⚠️ **Sin `operacion:write`, a propósito.** Se mueve por `/orden-servicios/{id}/estado`.
+     *
+     * Emitir congela el contenido y anular suelta las filas: dos cosas que un `PATCH` genérico
+     * no sabe distinguir de corregir el número de la orden. Con dos puertas a la misma
+     * transición, las reglas se escapan por la que no mira nadie.
+     */
+    #[Groups(['operacion:read'])]
     #[ORM\Column(type: 'string', length: 30, enumType: EstadoOrdenServicioEnum::class, options: ['default' => 'borrador'])]
     private EstadoOrdenServicioEnum $estadoOs = EstadoOrdenServicioEnum::BORRADOR;
 
@@ -138,6 +180,26 @@ class OperacionOrdenServicio
     private Collection $operacionServicios;
 
     /**
+     * Las líneas CONGELADAS. Se llenan al emitir y no se vuelven a tocar.
+     *
+     * @var Collection<int, OperacionOrdenServicioItem>
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\OneToMany(mappedBy: 'orden', targetEntity: OperacionOrdenServicioItem::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $items;
+
+    /**
+     * La Orden a la que ésta sustituye.
+     *
+     * Anular sin decir qué la reemplaza deja la historia coja: «OS-014 anulada → OS-021» es la
+     * pregunta que se hace de verdad cuando un proveedor reclama.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?self $reemplazaA = null;
+
+    /**
      * @var Collection<int, OperacionMensaje>
      */
     #[Groups(['operacion:read'])]
@@ -158,6 +220,7 @@ class OperacionOrdenServicio
     {
         $this->initializeId();
         $this->operacionServicios = new ArrayCollection();
+        $this->items = new ArrayCollection();
         $this->mensajes = new ArrayCollection();
         $this->pagos = new ArrayCollection();
     }
@@ -275,6 +338,111 @@ class OperacionOrdenServicio
     }
 
     public function getOperacionServicios(): Collection { return $this->operacionServicios; }
+
+    /** @return Collection<int, OperacionOrdenServicioItem> */
+    public function getItems(): Collection { return $this->items; }
+
+    public function addItem(OperacionOrdenServicioItem $item): self
+    {
+        if (!$this->items->contains($item)) {
+            $this->items->add($item);
+            $item->setOrden($this);
+        }
+
+        return $this;
+    }
+
+    public function getReemplazaA(): ?self { return $this->reemplazaA; }
+    public function setReemplazaA(?self $v): self { $this->reemplazaA = $v; return $this; }
+
+    /** ¿Ya es un documento? Un borrador todavía se compone; una emitida sólo se anula. */
+    public function estaEmitida(): bool
+    {
+        return $this->estadoOs !== EstadoOrdenServicioEnum::BORRADOR;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DIVERGENCIA — la Orden dice una cosa y La Biblia ya dice otra
+    //
+    // Después de emitir, La Biblia sigue moviéndose: la cotización sincroniza —el cambio de
+    // fecha se hace **allí**, para que el programa que ve el cliente quede al día— y el
+    // operador ajusta sus overrides. Entonces el documento y la realidad se separan.
+    //
+    // Puede ser correcto —se pidieron 3 pax y ahora son 4: hay que pedir uno más— o un
+    // descuido. La Orden **no se corrige sola**: un documento ya mandado no cambia solo. Lo que
+    // hace es **marcarse sucia** para que una persona decida y reemita.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * En qué se separó el documento de lo que hoy dice La Biblia.
+     *
+     * Compara cada línea congelada con su fila viva, buscándola por el soft-link. Sin consultas:
+     * las filas vivas de esta Orden ya están en `$this->operacionServicios`.
+     *
+     * @return list<string>
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getDivergencias(): array
+    {
+        if (!$this->estaEmitida() || $this->estadoOs === EstadoOrdenServicioEnum::CANCELADA) {
+            return [];   // un borrador es una vista viva; una anulada ya no se persigue
+        }
+
+        $vivos = [];
+        foreach ($this->operacionServicios as $servicio) {
+            $vivos[(string) $servicio->getId()] = $servicio;
+        }
+
+        $avisos = [];
+
+        foreach ($this->items as $item) {
+            $id = $item->getOperacionServicioId();
+            $servicio = $id !== null ? ($vivos[$id] ?? null) : null;
+            $que = $item->getDescripcion() !== '' ? mb_substr($item->getDescripcion(), 0, 34) : 'un servicio';
+
+            // Se soltó de esta Orden: lo movieron, lo cancelaron o se anuló la fila.
+            if ($servicio === null) {
+                $avisos[] = sprintf('«%s» ya no está en esta orden', $que);
+                continue;
+            }
+
+            $fechaItem = $item->getFechaServicio()?->format('d/m/Y');
+            $fechaViva = $servicio->getFechaServicio()?->format('d/m/Y');
+            if ($fechaItem !== $fechaViva) {
+                $avisos[] = sprintf('«%s»: se pidió para el %s y ahora es el %s',
+                    $que, $fechaItem ?? '—', $fechaViva ?? '—');
+            }
+
+            if ($item->getCantidadPax() !== $servicio->getCantidadPax()) {
+                $avisos[] = sprintf('«%s»: se pidieron %s pax y ahora son %s',
+                    $que, $item->getCantidadPax() ?? '—', $servicio->getCantidadPax());
+            }
+
+            if (!self::mismoImporte($item->getImporte(), $servicio->getCostoNegociado(), $servicio->getCostoCotizado())) {
+                $avisos[] = sprintf('«%s»: el importe cambió', $que);
+            }
+        }
+
+        return $avisos;
+    }
+
+    /** ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function isSucia(): bool
+    {
+        return $this->getDivergencias() !== [];
+    }
+
+    /**
+     * Mientras nadie negocie, el importe vivo es el cotizado — igual que en el desglose por
+     * moneda. Comparar contra un cero de «todavía sin pactar» marcaría sucia toda orden nueva.
+     */
+    private static function mismoImporte(string $congelado, string $negociado, string $cotizado): bool
+    {
+        $vivo = (float) $negociado > 0.0 ? $negociado : $cotizado;
+
+        return abs((float) $congelado - (float) $vivo) < 0.005;
+    }
 
     public function addOperacionServicio(OperacionServicio $operacionServicio): self
     {

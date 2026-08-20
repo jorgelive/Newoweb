@@ -1,0 +1,147 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Operacion\Entity;
+
+use App\Entity\Maestro\MaestroMoneda;
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
+use DateTimeInterface;
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
+
+/**
+ * Una línea CONGELADA de una Orden de Servicio: lo que el documento pidió.
+ *
+ * ## Por qué existe
+ *
+ * Hasta ahora la Orden no tenía contenido propio: sus ítems eran las filas vivas de La Biblia
+ * enlazadas por `orden_servicio_id`. Eso dejaba una contradicción sin salida:
+ *
+ *     liberas las filas  →  la Orden anulada queda VACÍA
+ *     las dejas atadas   →  no se pueden volver a pedir en otra Orden
+ *
+ * Con la línea congelada las dos cosas son ciertas a la vez. **Anular = soltar el vínculo vivo
+ * y conservar el congelado**: la Orden sigue diciendo lo que pidió y la fila queda libre para
+ * entrar en la siguiente.
+ *
+ * Es el mismo movimiento que este código ya hizo dos veces: `CotizacionCottarifa` congela la
+ * tarifa y guarda `tarifaMaestraId` como soft-link; `OperacionServicio` congela la cotización y
+ * guarda su componente.
+ *
+ * ## Cuándo se congela
+ *
+ * Al **EMITIR**, no al crear. Un `borrador` todavía no es un documento: mientras se compone
+ * conviene que siga siendo una vista viva, para que corregir un pax en La Biblia se refleje.
+ * Ver {@see \App\Operacion\Service\OperacionOrdenEmision}.
+ *
+ * ## El enlace hacia atrás
+ *
+ * `operacionServicioId` es un **soft-link** (texto, no relación) a propósito: sobrevive a que
+ * la fila se borre y permite preguntar «¿en qué órdenes estuvo este servicio?» aunque el
+ * vínculo vivo ya se haya movido a otra. Una relación con `ON DELETE SET NULL` perdería
+ * justamente eso.
+ */
+#[ORM\Entity]
+#[ORM\Table(name: 'operacion_orden_servicio_item')]
+#[ORM\HasLifecycleCallbacks]
+class OperacionOrdenServicioItem
+{
+    use IdTrait;
+    use TimestampTrait;
+
+    #[ORM\ManyToOne(targetEntity: OperacionOrdenServicio::class, inversedBy: 'items')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    private ?OperacionOrdenServicio $orden = null;
+
+    /** Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $operacionServicioId = null;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LO QUE DIJO EL DOCUMENTO — nada de esto se vuelve a tocar
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 255)]
+    private string $descripcion = '';
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'date', nullable: true)]
+    private ?DateTimeInterface $fechaServicio = null;
+
+    /** Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 10, nullable: true)]
+    private ?string $hora = null;
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $cantidadPax = null;
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
+    private ?string $cantidad = null;
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
+    private string $importe = '0.00';
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?MaestroMoneda $moneda = null;
+
+    /** Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $prestadorNombre = null;
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $prestadorServicioNombre = null;
+
+    public function __construct()
+    {
+        $this->initializeId();
+    }
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getId(): ?Uuid { return $this->id; }
+
+    public function getOrden(): ?OperacionOrdenServicio { return $this->orden; }
+    public function setOrden(?OperacionOrdenServicio $v): self { $this->orden = $v; return $this; }
+
+    public function getOperacionServicioId(): ?string { return $this->operacionServicioId; }
+    public function setOperacionServicioId(?string $v): self { $this->operacionServicioId = $v; return $this; }
+
+    public function getDescripcion(): string { return $this->descripcion; }
+    public function setDescripcion(string $v): self { $this->descripcion = $v; return $this; }
+
+    public function getFechaServicio(): ?DateTimeInterface { return $this->fechaServicio; }
+    public function setFechaServicio(?DateTimeInterface $v): self { $this->fechaServicio = $v; return $this; }
+
+    public function getHora(): ?string { return $this->hora; }
+    public function setHora(?string $v): self { $this->hora = $v; return $this; }
+
+    public function getCantidadPax(): ?int { return $this->cantidadPax; }
+    public function setCantidadPax(?int $v): self { $this->cantidadPax = $v; return $this; }
+
+    public function getCantidad(): ?string { return $this->cantidad; }
+    public function setCantidad(?string $v): self { $this->cantidad = $v; return $this; }
+
+    public function getImporte(): string { return $this->importe; }
+    public function setImporte(string $v): self { $this->importe = $v; return $this; }
+
+    public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
+    public function setMoneda(?MaestroMoneda $v): self { $this->moneda = $v; return $this; }
+
+    public function getPrestadorNombre(): ?string { return $this->prestadorNombre; }
+    public function setPrestadorNombre(?string $v): self { $this->prestadorNombre = $v; return $this; }
+
+    public function getPrestadorServicioNombre(): ?string { return $this->prestadorServicioNombre; }
+    public function setPrestadorServicioNombre(?string $v): self { $this->prestadorServicioNombre = $v; return $this; }
+}
