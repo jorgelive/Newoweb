@@ -15,7 +15,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRouter, onBeforeRouteLeave } from 'vue-router';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import EditorCostoNegociado from '@/components/operacion/EditorCostoNegociado.vue';
-import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado, type PagoProveedor, type ExpedienteDetalle } from '@/stores/operacion/operacionStore';
+import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado, type PagoProveedor, type ExpedienteDetalle, type ProveedorOpcion } from '@/stores/operacion/operacionStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import { getUrls } from '@/services/apiClient';
@@ -390,28 +390,83 @@ const editarHora = async (servicio: OperacionServicio, evento: Event) => {
 };
 
 /**
- * Organizacion COMERCIAL: a quién se le compra. Sólo importa para la Orden de Servicio
- * —`conflictoSeleccion` agrupa por él— así que se edita en segundo plano.
+ * Los tres papeles se editan sobre su columna REAL, nunca sobre la cotizada.
+ *
+ * Es lo que hace que la sincronización con la cotización deje de ser un problema: el snapshot
+ * escribe sólo la cotizada y el operador sólo la real, así que nadie pisa a nadie y no hay
+ * conflicto que resolver. Lo que vale es `…Efectivo…`, que el backend ya calcula.
+ *
+ * ⚠️ **Se guarda id + nombre, no el texto tecleado.** La Orden de Servicio agrupa por
+ * comprador: «Futurismo» y «Futurismo Jonathan» serían dos órdenes distintas. Por eso el input
+ * va contra un `<datalist>` del catálogo y, si lo escrito no casa con ninguna empresa, se
+ * revierte en vez de guardar un nombre suelto.
  */
-const editarProveedor = async (servicio: OperacionServicio, evento: Event) => {
-    const valor = (evento.target as HTMLInputElement).value.trim();
-    if (valor === (servicio.compradorNombre ?? '')) return;
-    await guardarCampo(servicio, { compradorNombre: valor || null });
+const resolverEmpresa = (texto: string): ProveedorOpcion | null =>
+    operacionStore.proveedores.find(p => p.nombreComercial.toLowerCase() === texto.toLowerCase()) ?? null;
+
+/** Vacío = «vuelve a lo cotizado», que es distinto de «no hay nadie». */
+const editarPapel = async (
+    servicio: OperacionServicio,
+    evento: Event,
+    campoId: 'prestadorRealMaestroId' | 'compradorRealMaestroId',
+    campoNombre: 'prestadorRealNombre' | 'compradorRealNombre',
+    efectivoActual: string,
+) => {
+    const input = evento.target as HTMLInputElement;
+    const texto = input.value.trim();
+
+    if (texto === efectivoActual) return;
+
+    if (texto === '') {
+        await guardarCampo(servicio, { [campoId]: null, [campoNombre]: null });
+        return;
+    }
+
+    const empresa = resolverEmpresa(texto);
+
+    if (!empresa) {
+        // Ni se guarda a medias ni se inventa: se devuelve lo que había y se dice por qué.
+        input.value = efectivoActual;
+        avisoPapel.value = `«${texto}» no está en el catálogo de organizaciones. Dala de alta primero.`;
+        window.setTimeout(() => { avisoPapel.value = null; }, 6000);
+        return;
+    }
+
+    await guardarCampo(servicio, { [campoId]: empresa.id, [campoNombre]: empresa.nombreComercial });
 };
+
+const avisoPapel = ref<string | null>(null);
+
+/** COMPRADOR: a quién se le manda el encargo. Es por quien agrupa la Orden de Servicio. */
+const editarProveedor = (servicio: OperacionServicio, evento: Event) =>
+    editarPapel(servicio, evento, 'compradorRealMaestroId', 'compradorRealNombre', servicio.compradorEfectivoNombre ?? '');
 
 /**
  * PRESTADOR: quién opera y dónde se recoge. Es el dato que el cuadro de tráfico lee
- * de un vistazo, y por eso manda en la celda por encima del proveedor comercial.
+ * de un vistazo, y por eso manda en la celda por encima del comprador.
  *
- * Viene resuelto del snapshot (componente → día → proveedor de la tarifa), así que en
- * el caso normal ya trae el mismo nombre que el comercial y no hay nada que escribir.
  * En una fila de referencia es el ÚNICO de los dos que existe: el hotel que reservó
  * el pasajero. Ver docs/Operacion.md §3.3.b.
  */
-const editarPrestador = async (servicio: OperacionServicio, evento: Event) => {
+const editarPrestador = (servicio: OperacionServicio, evento: Event) =>
+    editarPapel(servicio, evento, 'prestadorRealMaestroId', 'prestadorRealNombre', servicio.prestadorEfectivoNombre ?? '');
+
+/** El servicio contratado (el tipo de habitación). Texto libre: no es una empresa. */
+const editarServicioPrestador = async (servicio: OperacionServicio, evento: Event) => {
     const valor = (evento.target as HTMLInputElement).value.trim();
-    if (valor === (servicio.prestadorNombre ?? '')) return;
-    await guardarCampo(servicio, { prestadorNombre: valor || null });
+    if (valor === (servicio.prestadorServicioEfectivoNombre ?? '')) return;
+    await guardarCampo(servicio, { prestadorServicioRealNombre: valor || null });
+};
+
+/** Lo que dijo la cotización, para enseñarlo al lado cuando operaciones puso otra cosa. */
+const cotizadoDe = (s: OperacionServicio): string | null => {
+    if (!s.papelIntervenido) return null;
+
+    const partes: string[] = [];
+    if (s.prestadorRealNombre && s.prestadorNombre) partes.push(s.prestadorNombre);
+    if (s.compradorRealNombre && s.compradorNombre) partes.push(s.compradorNombre);
+
+    return partes.length ? `Cotizado: ${partes.join(' · ')}` : null;
 };
 
 /**
@@ -431,8 +486,8 @@ const editarPrestador = async (servicio: OperacionServicio, evento: Event) => {
 const mostrarComprador = (s: OperacionServicio): boolean => {
     if (s.soloReferencia) return false;   // no se compra: no hay proveedor que fijar
 
-    const comprador = (s.compradorNombre ?? '').trim();
-    return comprador === '' || comprador !== (s.prestadorNombre ?? '').trim();
+    const comprador = (s.compradorEfectivoNombre ?? '').trim();
+    return comprador === '' || comprador !== (s.prestadorEfectivoNombre ?? '').trim();
 };
 
 /** Teléfono en formato marcable: el operador llama desde el propio cuadro. */
@@ -537,7 +592,9 @@ const conflictoSeleccion = computed<string | null>(() => {
     // Se agrupa por COMPRADOR, no por proveedor: la orden va a quien la ejecuta. Dos
     // servicios de proveedores distintos que compra Futurismo caben en la misma orden;
     // agrupar por proveedor los partía en dos sin motivo.
-    const compradores = new Set(sel.map(s => s.compradorNombre ?? ''));
+    // Por el id EFECTIVO, no por el texto: un nombre tecleado no agrupa con la ficha del
+    // catálogo aunque se lea igual, y el efectivo es el que respeta lo que decidió operaciones.
+    const compradores = new Set(sel.map(s => s.compradorEfectivoMaestroId ?? ''));
     if (compradores.size > 1) return 'Los servicios seleccionados tienen compradores distintos.';
 
     // 🔓 Las monedas distintas YA NO bloquean. Bloqueaban porque el total vivía en la
@@ -1070,7 +1127,15 @@ const formatearFecha = (iso?: string | null): string => {
 onMounted(async () => {
     // El vocabulario primero: sin él los chips no existen y el operador no puede filtrar.
     // Las monedas van en paralelo: hacen falta para el selector de la moneda negociada.
-    await Promise.all([operacionStore.fetchLugares(), operacionStore.fetchMonedas()]);
+    //
+    // Y el catálogo de organizaciones, que antes sólo se pedía al abrir el modal de la Orden:
+    // ahora alimenta el `<datalist>` de prestador y comprador de CADA fila, así que tiene que
+    // estar antes de que el operador pueda escribir. Es idempotente.
+    await Promise.all([
+        operacionStore.fetchLugares(),
+        operacionStore.fetchMonedas(),
+        operacionStore.fetchProveedores(),
+    ]);
     await cargarBiblia();
 });
 
@@ -1095,6 +1160,22 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
 
 <template>
     <div class="h-screen bg-[#F8FAFC] flex flex-col font-sans overflow-hidden">
+
+        <!-- UNA sola lista para todas las filas del cuadro. Con un selector por fila el DOM
+             crecería a 99 opciones × cientos de filas; el `<datalist>` se declara una vez y
+             cada input lo referencia por id. Es lo que hace que el papel quede ENLAZADO al
+             catálogo sin cambiar la ergonomía de un cuadro tan denso. -->
+        <datalist id="catalogo-organizaciones">
+            <option v-for="p in operacionStore.proveedores" :key="p.id" :value="p.nombreComercial" />
+        </datalist>
+
+        <!-- Lo escrito no estaba en el catálogo: se revirtió y se dice por qué. -->
+        <div
+            v-if="avisoPapel"
+            class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-amber-50 border border-amber-300 text-amber-800 text-xs font-bold shadow-lg"
+        >
+            <i class="fas fa-triangle-exclamation mr-1.5"></i>{{ avisoPapel }}
+        </div>
 
         <!-- ================================================================
              HEADER
@@ -1697,10 +1778,33 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                  proveedor comercial sólo si difiere. Ver docs/Operacion.md §3.3.b -->
                                             <td class="px-3 py-3 hidden md:table-cell align-top">
                                                 <input
-                                                    :value="servicio.prestadorNombre ?? ''"
+                                                    :value="servicio.prestadorEfectivoNombre ?? ''"
                                                     @change="editarPrestador(servicio, $event)"
+                                                    list="catalogo-organizaciones"
                                                     :placeholder="servicio.soloReferencia ? 'Referencia' : 'Por asignar'"
-                                                    class="w-full max-w-[11rem] text-sm font-bold text-slate-700 bg-transparent px-2 py-1 rounded-lg border border-transparent hover:border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium"
+                                                    :class="[
+                                                        'w-full max-w-[11rem] text-sm font-bold bg-transparent px-2 py-1 rounded-lg border outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium',
+                                                        servicio.prestadorRealNombre
+                                                            ? 'text-[#376875] border-[#376875]/30'
+                                                            : 'text-slate-700 border-transparent hover:border-slate-200',
+                                                    ]"
+                                                />
+
+                                                <!-- Lo que dijo la cotización, informativo. Sólo cuando
+                                                     operaciones puso otra cosa: si coinciden, repetirlo
+                                                     en cada fila convierte el dato en ruido. -->
+                                                <p v-if="cotizadoDe(servicio)" class="ml-2 text-[9px] font-medium text-slate-400 italic">
+                                                    {{ cotizadoDe(servicio) }}
+                                                </p>
+
+                                                <!-- El servicio contratado: el tipo de habitación. Texto
+                                                     libre porque no es una empresa. -->
+                                                <input
+                                                    v-if="servicio.prestadorServicioEfectivoNombre || servicio.prestadorRealNombre"
+                                                    :value="servicio.prestadorServicioEfectivoNombre ?? ''"
+                                                    @change="editarServicioPrestador(servicio, $event)"
+                                                    placeholder="Servicio contratado"
+                                                    class="mt-0.5 ml-2 w-full max-w-[11rem] text-[10px] font-medium text-slate-500 bg-transparent px-1 py-0.5 rounded border border-transparent hover:border-slate-200 outline-none focus:ring-1 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300"
                                                 />
 
                                                 <!-- Los datos del recojo: es para lo que existe la fila
@@ -1732,10 +1836,16 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                         Compra
                                                     </span>
                                                     <input
-                                                        :value="servicio.compradorNombre ?? ''"
+                                                        :value="servicio.compradorEfectivoNombre ?? ''"
                                                         @change="editarProveedor(servicio, $event)"
+                                                        list="catalogo-organizaciones"
                                                         placeholder="Sin definir"
-                                                        class="w-full max-w-[8rem] text-[10px] font-bold text-slate-400 bg-transparent px-1 py-0.5 rounded border border-transparent hover:border-slate-200 outline-none focus:ring-1 focus:ring-[#376875] focus:bg-white focus:text-slate-700 placeholder:text-slate-300 placeholder:font-medium"
+                                                        :class="[
+                                                            'w-full max-w-[8rem] text-[10px] font-bold bg-transparent px-1 py-0.5 rounded border outline-none focus:ring-1 focus:ring-[#376875] focus:bg-white focus:text-slate-700 placeholder:text-slate-300 placeholder:font-medium',
+                                                            servicio.compradorRealNombre
+                                                                ? 'text-[#376875] border-[#376875]/30'
+                                                                : 'text-slate-400 border-transparent hover:border-slate-200',
+                                                        ]"
                                                     />
                                                 </label>
                                             </td>

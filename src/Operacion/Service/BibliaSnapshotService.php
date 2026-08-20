@@ -204,6 +204,7 @@ class BibliaSnapshotService
             'prestadorNombre'       => $prestador['nombre'] ?? null,
             // Qué servicio del prestador, para el voucher. Nulo si el componente no lo fija.
             'prestadorServicioNombre' => trim($prestador['servicioNombre'] ?? '') ?: null,
+            'prestadorServicioMaestroId' => $prestador['servicioMaestroId'] ?? null,
             // Nulos A PROPÓSITO, y son el único par de campos que se deja así.
             //
             // El nombre se congela porque es la identidad con la que se vendió; el teléfono
@@ -268,6 +269,9 @@ class BibliaSnapshotService
         }
         if ($aplica('prestadorServicioNombre')) {
             $ops->setPrestadorServicioNombre($this->comoTexto($valores['prestadorServicioNombre']));
+        }
+        if ($aplica('prestadorServicioMaestroId')) {
+            $ops->setPrestadorServicioMaestroId($this->comoTexto($valores['prestadorServicioMaestroId']));
         }
         if ($aplica('compradorMaestroId')) {
             $ops->setCompradorMaestroId($this->comoTexto($valores['compradorMaestroId']));

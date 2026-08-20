@@ -185,6 +185,71 @@ nada—. Aplica a los seis modales de la pantalla (expediente, pagos, bitácora,
 mensajes), no sólo al nuevo. Sin esto, volver con un modal abierto mandaba al menú y perdía
 dónde estabas.
 
+### <a id="318"></a>3.18 Los tres papeles: cotizado ↔ real, y el fin de los conflictos (2026-08-20)
+
+**Es la respuesta al problema que quedó abierto: la sincronización entre La Biblia y el
+componente de la cotización.** No se resolvió — se hizo desaparecer.
+
+#### El problema
+
+Había **una sola columna** para dos cosas distintas. `BibliaSnapshotService` escribía
+`prestadorNombre` desde la cotización, y el operador la sobrescribía a mano en el cuadro de
+tráfico. Con dos autores sobre la misma celda, cada reconciliación tenía que **adivinar quién
+había sido** —comparando contra `snapshotOrigen`— y sacar un conflicto para que decidiera una
+persona.
+
+Y encima el operador editaba **texto libre**: `compradorMaestroId` seguía apuntando a la empresa
+anterior. La Orden de Servicio **agrupa por comprador**, así que un nombre tecleado no agrupaba
+con la ficha del catálogo aunque se leyera igual.
+
+#### La forma
+
+La convención que esta entidad ya usaba dos veces —`horaComponente` ↔ `horaRecojoReal`,
+`costoCotizado` ↔ `costoRealOperativo`— aplicada a los tres papeles:
+
+| Lo que dijo la cotización | Lo que decide operaciones |
+|---|---|
+| `prestadorMaestroId` / `prestadorNombre` | `prestadorRealMaestroId` / `prestadorRealNombre` |
+| `prestadorServicioMaestroId` / `…Nombre` | `prestadorServicioRealMaestroId` / `…RealNombre` |
+| `compradorMaestroId` / `compradorNombre` | `compradorRealMaestroId` / `compradorRealNombre` |
+
+```
+la cotización escribe SÓLO la de la izquierda   →  nunca pisa al operador
+el operador escribe SÓLO la de la derecha       →  nunca lo pisa la cotización
+lo que vale = real ?? cotizado
+```
+
+No hay nada que adivinar, así que **no hay conflicto**. Lo que vale lo dan
+`getPrestadorEfectivoNombre()`, `getPrestadorServicioEfectivoNombre()`,
+`getCompradorEfectivoMaestroId()` y compañía.
+
+⚠️ **Los campos cotizados perdieron `operacion:write`.** Si la API siguiera aceptándolos habría
+otra vez dos autores sobre la misma celda y el conflicto volvería por la puerta de atrás.
+
+⚠️ **Todo lo que actúe sobre estos papeles lee el EFECTIVO.** Leer `getCompradorNombre()` a secas
+es leer lo que dijo la cotización e ignorar lo que hizo el equipo — justo lo que estos campos
+vienen a impedir. La Orden agrupa por `compradorEfectivoMaestroId`, por **id** y no por texto.
+
+#### El rescate de lo ya editado
+
+Las ediciones antiguas vivían en la columna cotizada, y allí las habría pisado la siguiente
+reconciliación. Se reconocen sin ambigüedad —`snapshotOrigen` guarda la foto de lo que puso la
+cotización, así que **valor ≠ foto ⟹ lo cambió una persona**— y `Version20260820180000` las mueve
+a la columna real y devuelve la cotizada a su valor de origen.
+
+#### En la pantalla
+
+El input va contra un `<datalist>` del catálogo, uno solo para todo el cuadro: con un selector
+por fila el DOM crecería a 99 opciones × cientos de filas. Si lo escrito no casa con ninguna
+empresa **se revierte y se avisa**, en vez de guardar un nombre suelto que rompería la agrupación
+de la Orden.
+
+Cuando operaciones cambió algo, el campo se pinta en color y debajo aparece «Cotizado: …» como
+informativo. Si coinciden no se pinta nada: repetirlo en cada fila convertiría el dato en ruido.
+
+Vaciar el campo **no** significa «no hay nadie», significa «vuelve a lo cotizado» — por eso
+`primeroConTexto()` trata la cadena vacía como ausente.
+
 ### <a id="315"></a>3.15 La hora de recojo y la vendida son campos distintos (2026-08-17)
 
 `horaRecojoReal` y `horaComponente` eran el mismo campo, así que fijar el recojo pisaba la hora

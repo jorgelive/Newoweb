@@ -14462,11 +14462,19 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
+            /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
+            prestadorRealMaestroId?: string | null;
+            prestadorRealNombre?: string | null;
+            prestadorServicioRealMaestroId?: string | null;
+            prestadorServicioRealNombre?: string | null;
+            compradorRealMaestroId?: string | null;
+            compradorRealNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14520,6 +14528,16 @@ export interface components {
             readonly soloReferencia?: boolean;
             /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
             readonly segmentoUnicoMaestroId?: string | null;
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
             /**
@@ -14550,6 +14568,7 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
+            prestadorServicioRealNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14579,6 +14598,16 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
             /** @description El id como texto, EMBEBIDO en la orden. */
             readonly servicioId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
@@ -14618,18 +14647,15 @@ export interface components {
             horaRecojoReal?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
-            prestadorMaestroId?: string | null;
-            prestadorNombre?: string | null;
-            /**
-             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
-             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
-             */
-            prestadorServicioNombre?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
-            compradorMaestroId?: string | null;
-            compradorNombre?: string | null;
+            prestadorRealMaestroId?: string | null;
+            prestadorRealNombre?: string | null;
+            prestadorServicioRealMaestroId?: string | null;
+            prestadorServicioRealNombre?: string | null;
+            compradorRealMaestroId?: string | null;
+            compradorRealNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14699,18 +14725,15 @@ export interface components {
             horaRecojoReal?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
-            prestadorMaestroId?: string | null;
-            prestadorNombre?: string | null;
-            /**
-             * @description QUÉ le provee el prestador, con su nombre de servicio: «habitación suite superior», no
-             *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
-             */
-            prestadorServicioNombre?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
-            compradorMaestroId?: string | null;
-            compradorNombre?: string | null;
+            prestadorRealMaestroId?: string | null;
+            prestadorRealNombre?: string | null;
+            prestadorServicioRealMaestroId?: string | null;
+            prestadorServicioRealNombre?: string | null;
+            compradorRealMaestroId?: string | null;
+            compradorRealNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14779,11 +14802,19 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
+            /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
+            prestadorRealMaestroId?: string | null;
+            prestadorRealNombre?: string | null;
+            prestadorServicioRealMaestroId?: string | null;
+            prestadorServicioRealNombre?: string | null;
+            compradorRealMaestroId?: string | null;
+            compradorRealNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14837,6 +14868,16 @@ export interface components {
             readonly soloReferencia?: boolean;
             /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
             readonly segmentoUnicoMaestroId?: string | null;
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
             /**
@@ -14867,6 +14908,7 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
+            prestadorServicioRealNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14896,6 +14938,16 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
             /** @description El id como texto, EMBEBIDO en la orden. */
             readonly servicioId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
@@ -14934,11 +14986,19 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
+            /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
+            prestadorRealMaestroId?: string | null;
+            prestadorRealNombre?: string | null;
+            prestadorServicioRealMaestroId?: string | null;
+            prestadorServicioRealNombre?: string | null;
+            compradorRealMaestroId?: string | null;
+            compradorRealNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -14992,6 +15052,16 @@ export interface components {
             readonly soloReferencia?: boolean;
             /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
             readonly segmentoUnicoMaestroId?: string | null;
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
             /**
@@ -15022,6 +15092,7 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
+            prestadorServicioRealNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -15051,6 +15122,16 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
             /** @description El id como texto, EMBEBIDO en la orden. */
             readonly servicioId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
@@ -15089,11 +15170,19 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
+            /** @description El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
+            prestadorServicioMaestroId?: string | null;
             /** @description Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
             prestadorTelefono?: string | null;
             prestadorDireccion?: string | null;
             compradorMaestroId?: string | null;
             compradorNombre?: string | null;
+            prestadorRealMaestroId?: string | null;
+            prestadorRealNombre?: string | null;
+            prestadorServicioRealMaestroId?: string | null;
+            prestadorServicioRealNombre?: string | null;
+            compradorRealMaestroId?: string | null;
+            compradorRealNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -15147,6 +15236,16 @@ export interface components {
             readonly soloReferencia?: boolean;
             /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
             readonly segmentoUnicoMaestroId?: string | null;
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */
             readonly cotizacionId?: string | null;
             /**
@@ -15177,6 +15276,7 @@ export interface components {
              *     «Hotel 4 estrellas». Es lo primero que va en el voucher.
              */
             prestadorServicioNombre?: string | null;
+            prestadorServicioRealNombre?: string | null;
             /** @description Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden. */
             descripcionServicio?: string;
             /** @description El nombre INTERNO de la tarifa, siempre, sin resolver nada. */
@@ -15206,6 +15306,16 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El id del prestador que vale. */
+            readonly prestadorEfectivoMaestroId?: string | null;
+            /** @description El nombre del prestador que vale. */
+            readonly prestadorEfectivoNombre?: string | null;
+            readonly prestadorServicioEfectivoNombre?: string | null;
+            /** @description El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.** */
+            readonly compradorEfectivoMaestroId?: string | null;
+            readonly compradorEfectivoNombre?: string | null;
+            /** @description ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+            readonly papelIntervenido?: boolean;
             /** @description El id como texto, EMBEBIDO en la orden. */
             readonly servicioId?: string | null;
             /** @description El id de la COTIZACIÓN de la que cuelga el servicio, para saltar a su editor. */

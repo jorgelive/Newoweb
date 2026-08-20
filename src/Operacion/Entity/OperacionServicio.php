@@ -181,11 +181,11 @@ class OperacionServicio
     // comprador y nadie tiene que llenar nada.
     // ─────────────────────────────────────────────────────────────────────────
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $prestadorMaestroId = null;
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $prestadorNombre = null;
 
@@ -197,9 +197,14 @@ class OperacionServicio
      * queda nulo y `descripcionServicio` cae a los otros nombres (nombreParaProveedor, tarifa,
      * componente). Ver `resolverDescripcion()`.
      */
-    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $prestadorServicioNombre = null;
+
+    /** El servicio del catálogo del que salió el nombre de arriba. Lo escribe el snapshot. */
+    #[Groups(['operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $prestadorServicioMaestroId = null;
 
     /** Teléfono y dirección congelados: es lo que el transportista necesita al operar. */
     #[Groups(['operacion:item:read', 'operacion:write'])]
@@ -222,13 +227,64 @@ class OperacionServicio
     // la empresa modelada como proveedor. Un solo catálogo, una sola pregunta.
     // ─────────────────────────────────────────────────────────────────────────
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $compradorMaestroId = null;
 
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $compradorNombre = null;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LO QUE DECIDE OPERACIONES — el mismo par «cotizado / real» de la hora y el costo
+    //
+    // Arriba está lo que dijo la COTIZACIÓN; aquí lo que operaciones acaba haciendo. Es la
+    // convención que esta entidad ya usa dos veces: `horaComponente` ↔ `horaRecojoReal`,
+    // `costoCotizado` ↔ `costoRealOperativo`. Un tercer nombre para la misma idea sólo
+    // haría que hubiera que aprenderla otra vez.
+    //
+    // 🔑 **Y es lo que disuelve el problema de la sincronización, no lo que lo resuelve.**
+    // Antes había UNA columna para las dos cosas: el snapshot la escribía desde la
+    // cotización y el operador la sobrescribía a mano, así que cada reconciliación tenía
+    // que ADIVINAR quién había sido —comparando contra `snapshotOrigen`— y sacar un
+    // conflicto para que decidiera una persona. Con dos columnas no hay nada que adivinar:
+    //
+    //     la cotización escribe SÓLO la de arriba   →  nunca pisa al operador
+    //     el operador escribe SÓLO la de abajo      →  nunca lo pisa la cotización
+    //     lo que vale = real ?? cotizado
+    //
+    // Por eso los campos de arriba perdieron `operacion:write`: si la API siguiera
+    // aceptándolos, volvería a haber dos autores sobre la misma celda y el conflicto
+    // regresaría por la puerta de atrás.
+    //
+    // ⚠️ Se guarda **id + nombre**, no texto suelto. La Orden de Servicio agrupa por
+    // comprador, y un nombre tecleado no agrupa con la ficha del catálogo aunque se lea
+    // igual: «Futurismo» y «Futurismo Jonathan» son dos órdenes distintas.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $prestadorRealMaestroId = null;
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $prestadorRealNombre = null;
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $prestadorServicioRealMaestroId = null;
+
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $prestadorServicioRealNombre = null;
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 36, nullable: true)]
+    private ?string $compradorRealMaestroId = null;
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $compradorRealNombre = null;
 
     /**
      * Cómo conoce el PROVEEDOR este servicio. Es lo que va en la Orden.
@@ -585,6 +641,95 @@ class OperacionServicio
 
     public function getCompradorNombre(): ?string { return $this->compradorNombre; }
     public function setCompradorNombre(?string $v): self { $this->compradorNombre = $v; return $this; }
+
+    public function getPrestadorServicioMaestroId(): ?string { return $this->prestadorServicioMaestroId; }
+    public function setPrestadorServicioMaestroId(?string $v): self { $this->prestadorServicioMaestroId = $v; return $this; }
+
+    public function getPrestadorRealMaestroId(): ?string { return $this->prestadorRealMaestroId; }
+    public function setPrestadorRealMaestroId(?string $v): self { $this->prestadorRealMaestroId = $v; return $this; }
+
+    public function getPrestadorRealNombre(): ?string { return $this->prestadorRealNombre; }
+    public function setPrestadorRealNombre(?string $v): self { $this->prestadorRealNombre = $v; return $this; }
+
+    public function getPrestadorServicioRealMaestroId(): ?string { return $this->prestadorServicioRealMaestroId; }
+    public function setPrestadorServicioRealMaestroId(?string $v): self { $this->prestadorServicioRealMaestroId = $v; return $this; }
+
+    public function getPrestadorServicioRealNombre(): ?string { return $this->prestadorServicioRealNombre; }
+    public function setPrestadorServicioRealNombre(?string $v): self { $this->prestadorServicioRealNombre = $v; return $this; }
+
+    public function getCompradorRealMaestroId(): ?string { return $this->compradorRealMaestroId; }
+    public function setCompradorRealMaestroId(?string $v): self { $this->compradorRealMaestroId = $v; return $this; }
+
+    public function getCompradorRealNombre(): ?string { return $this->compradorRealNombre; }
+    public function setCompradorRealNombre(?string $v): self { $this->compradorRealNombre = $v; return $this; }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LO QUE VALE — real si operaciones decidió otra cosa, cotizado si no
+    //
+    // ⚠️ **Todo lo que actúe sobre estos tres papeles pasa por aquí**: la Orden de Servicio,
+    // el voucher, el cuadro de tráfico y los reportes. Leer `getCompradorNombre()` a secas es
+    // leer lo que dijo la cotización e ignorar lo que hizo el equipo — que es exactamente el
+    // fallo que estos campos vienen a impedir.
+    //
+    // Se exponen a la API porque el front los pinta, y calcularlos allí sería el mismo espejo
+    // en dos idiomas.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** El id del prestador que vale. */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getPrestadorEfectivoMaestroId(): ?string
+    {
+        return $this->prestadorRealMaestroId ?? $this->prestadorMaestroId;
+    }
+
+    /** El nombre del prestador que vale. */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getPrestadorEfectivoNombre(): ?string
+    {
+        return self::primeroConTexto($this->prestadorRealNombre, $this->prestadorNombre);
+    }
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getPrestadorServicioEfectivoNombre(): ?string
+    {
+        return self::primeroConTexto($this->prestadorServicioRealNombre, $this->prestadorServicioNombre);
+    }
+
+    /**
+     * El id del comprador que vale. **Es por el que agrupa la Orden de Servicio.**
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getCompradorEfectivoMaestroId(): ?string
+    {
+        return $this->compradorRealMaestroId ?? $this->compradorMaestroId;
+    }
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getCompradorEfectivoNombre(): ?string
+    {
+        return self::primeroConTexto($this->compradorRealNombre, $this->compradorNombre);
+    }
+
+    /** ¿Operaciones cambió alguno de los tres? Para pintar el «cotizado: …» al lado. */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function hasPapelIntervenido(): bool
+    {
+        return $this->prestadorRealMaestroId !== null
+            || $this->prestadorServicioRealMaestroId !== null
+            || $this->compradorRealMaestroId !== null;
+    }
+
+    /**
+     * Cadena vacía cuenta como ausente.
+     *
+     * Un `''` guardado por un formulario que se dejó en blanco significa «no lo puse», no
+     * «quiero que no haya nada»: sin esto, borrar el campo taparía el valor cotizado con un
+     * hueco en vez de devolver el original.
+     */
+    private static function primeroConTexto(?string $real, ?string $cotizado): ?string
+    {
+        return trim($real ?? '') !== '' ? $real : $cotizado;
+    }
 
     public function getPrestadorMaestroId(): ?string { return $this->prestadorMaestroId; }
     public function setPrestadorMaestroId(?string $v): self { $this->prestadorMaestroId = $v; return $this; }
