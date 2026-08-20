@@ -82,15 +82,20 @@ const router = createRouter({
         // CATÁLOGO DE PROVEEDORES (maestro de Travel)
         //
         // Fuera de /catalogo a propósito: eso es producto pre-armado para vender, y esto
-        // es el maestro de con quién se opera. Vive aquí para que dar de alta un
-        // proveedor no obligue a salir de la SPA hacia EasyAdmin — que era lo que
+        // es el maestro de con quién se opera. Vive aquí para que dar de alta una
+        // organización no obligue a salir de la SPA hacia EasyAdmin — que era lo que
         // empujaba al operador al campo de texto libre.
         // ============================================================================
         {
-            path: '/proveedores',
-            name: 'proveedores',
+            path: '/organizaciones',
+            name: 'organizaciones',
             component: () => import('../views/Catalogo/OrganizacionesView.vue')
         },
+
+        // El camino viejo sigue llevando al sitio: la ruta estuvo meses en marcadores y en
+        // enlaces pegados por chat, y romperlos no limpia nada, sólo deja a alguien mirando
+        // una pantalla en blanco.
+        { path: '/proveedores', redirect: { name: 'organizaciones' } },
 
         // ============================================================================
         // MÓDULO DE RESERVAS (Calendario PMS)

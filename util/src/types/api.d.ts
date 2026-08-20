@@ -2743,6 +2743,17 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem"][];
             tarifas?: string[];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -2763,16 +2774,6 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            organizacion?: string | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            organizacionServicio?: string | null;
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -2799,6 +2800,17 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa-componente.item.read"][];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -2821,6 +2833,17 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -2845,6 +2868,17 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.write"][];
             tarifas?: components["schemas"]["Tarifa-componente.write"][];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
         };
@@ -2887,6 +2921,17 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.html"][];
             tarifas?: string[];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente.html"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -2907,16 +2952,6 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            organizacion?: string | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            organizacionServicio?: string | null;
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -2943,6 +2978,17 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.html-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.html-componente.item.read"][];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -2965,6 +3011,17 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3009,6 +3066,17 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld"][];
             tarifas?: string[];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente.jsonld"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3029,16 +3097,6 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            organizacion?: string | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            organizacionServicio?: string | null;
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -3065,6 +3123,17 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.jsonld-componente.item.read"][];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3087,6 +3156,17 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3131,6 +3211,17 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart"][];
             tarifas?: string[];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente.multipart"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3151,16 +3242,6 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            organizacion?: string | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            organizacionServicio?: string | null;
             readonly virtualTitulo?: string;
             readonly virtualServicios?: string;
             readonly virtualItems?: string;
@@ -3187,6 +3268,17 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.multipart-componente.item.read"][];
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3209,6 +3301,17 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -15240,8 +15343,9 @@ export interface components {
             }[];
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         Organizacion: {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15298,8 +15402,9 @@ export interface components {
             readonly virtualLugares?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion-organizacion.read": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15336,8 +15441,9 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15375,8 +15481,9 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion-organizacion.write": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15406,8 +15513,9 @@ export interface components {
             lugares?: string[];
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion-organizacion.write.jsonMergePatch": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15437,24 +15545,27 @@ export interface components {
             lugares?: string[];
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion-organizacion_servicio.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.html": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15511,8 +15622,9 @@ export interface components {
             readonly virtualLugares?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.html-organizacion.read": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15549,8 +15661,9 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.html-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15588,24 +15701,27 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.html-organizacion_servicio.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.html-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15662,8 +15778,9 @@ export interface components {
             readonly virtualLugares?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.jsonld-organizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15700,8 +15817,9 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.jsonld-organizacion.read_organizacion.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15739,24 +15857,27 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.jsonld-organizacion_servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.jsonld-organizacion_servicio.read_organizacion_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.multipart": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15813,8 +15934,9 @@ export interface components {
             readonly virtualLugares?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.multipart-organizacion.read": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15851,8 +15973,9 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.multipart-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -15890,16 +16013,18 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.multipart-organizacion_servicio.read": {
             /** @description Obtiene el nombre comercial de la organización. */
             nombreComercial?: string;
         };
         /**
-         * @description Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+         *     verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+         *     funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
          */
         "Organizacion.multipart-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre comercial de la organización. */
@@ -16310,8 +16435,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         OrganizacionServicio: {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16356,8 +16484,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16375,8 +16506,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio-organizacion_servicio.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16398,8 +16532,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16422,8 +16559,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio-organizacion_servicio.write": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16444,8 +16584,11 @@ export interface components {
             organizacion?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio-organizacion_servicio.write.jsonMergePatch": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16466,8 +16609,11 @@ export interface components {
             organizacion?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.html": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16512,8 +16658,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.html-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16531,8 +16680,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.html-organizacion_servicio.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16554,8 +16706,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.html-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16578,8 +16733,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16624,8 +16782,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.jsonld-organizacion.read_organizacion.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16643,8 +16804,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.jsonld-organizacion_servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16666,8 +16830,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.jsonld-organizacion_servicio.read_organizacion_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16690,8 +16857,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.multipart": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16736,8 +16906,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.multipart-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16755,8 +16928,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.multipart-organizacion_servicio.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -16778,8 +16954,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
-         *     Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
+         * @description ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+         *     colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+         *     así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+         *     llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+         *     disfrazado. Un filtro que no está no falla: devuelve de más.
          */
         "OrganizacionServicio.multipart-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -33554,6 +33733,8 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
+                id?: string;
+                "id[]"?: string[];
                 nombreComercial?: string;
                 razonSocial?: string;
             };
@@ -34101,6 +34282,8 @@ export interface operations {
                 id?: string;
                 "id[]"?: string[];
                 nombre?: string;
+                organizacion?: string;
+                "organizacion[]"?: string[];
             };
             header?: never;
             path?: never;

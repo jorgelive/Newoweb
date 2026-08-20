@@ -13,7 +13,7 @@ import { apiClient } from '@/services/apiClient';
 import { miembrosHydra } from '@/services/hydra';
 import type { LugarOpcion, Organizacion, OrganizacionServicio, ProveedorWrite } from '@/types/organizacionModel';
 
-const RUTA = '/platform/travel/proveedores';
+const RUTA = '/platform/travel/organizaciones';
 
 export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
     const proveedores = ref<Organizacion[]>([]);
@@ -150,7 +150,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
     const crearServicio = async (proveedorIri: string, nombre: string): Promise<boolean> => {
         error.value = null;
         try {
-            await apiClient.post('/platform/travel/proveedor-servicios', {
+            await apiClient.post('/platform/travel/organizacion-servicios', {
                 nombre,
                 proveedor: proveedorIri,
             });
@@ -164,7 +164,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
     const borrarServicio = async (servicio: OrganizacionServicio): Promise<boolean> => {
         error.value = null;
         try {
-            await apiClient.delete(servicio['@id'] ?? `/platform/travel/proveedor-servicios/${servicio.id}`);
+            await apiClient.delete(servicio['@id'] ?? `/platform/travel/organizacion-servicios/${servicio.id}`);
             return true;
         } catch (e) {
             error.value = mensajeDeError(e, 'No se pudo eliminar el servicio.');
@@ -190,7 +190,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             fd.append('orden', String(orden));
             fd.append('isPortada', esPortada ? '1' : '0');
 
-            await apiClient.post('/platform/travel/proveedor_imagens', fd, {
+            await apiClient.post('/platform/travel/organizacion_imagens', fd, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             return true;
@@ -203,7 +203,7 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
     const borrarImagen = async (imagenId: string): Promise<boolean> => {
         error.value = null;
         try {
-            await apiClient.delete(`/platform/travel/proveedor_imagens/${imagenId}`);
+            await apiClient.delete(`/platform/travel/organizacion_imagens/${imagenId}`);
             return true;
         } catch (e) {
             error.value = mensajeDeError(e, 'No se pudo eliminar la imagen.');
@@ -219,10 +219,10 @@ export const useOrganizacionStore = defineStore('proveedorCatalogo', () => {
             const anterior = actuales.find((i) => i.isPortada && i.id !== imagenId);
 
             if (anterior) {
-                await apiClient.patch(`/platform/travel/proveedor_imagens/${anterior.id}`, { isPortada: false },
+                await apiClient.patch(`/platform/travel/organizacion_imagens/${anterior.id}`, { isPortada: false },
                     { headers: { 'Content-Type': 'application/merge-patch+json' } });
             }
-            await apiClient.patch(`/platform/travel/proveedor_imagens/${imagenId}`, { isPortada: true },
+            await apiClient.patch(`/platform/travel/organizacion_imagens/${imagenId}`, { isPortada: true },
                 { headers: { 'Content-Type': 'application/merge-patch+json' } });
             return true;
         } catch (e) {

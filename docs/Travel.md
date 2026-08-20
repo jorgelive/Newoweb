@@ -218,15 +218,54 @@ nombre; si no, directamente al prestador.
 |---|---|
 | Clases PHP y sus archivos | `Proveedor*` → `TravelOrganizacion*` |
 | Tablas (migración `Version20260819200000`) | `travel_proveedor*` → `travel_organizacion*`, cinco en total |
-| **Columnas** | **sin tocar**, incluidas las `proveedor_id` |
-| **API** (`shortName`, `uriTemplate`) | **sin tocar**: sigue siendo `/proveedores` y `ProveedorServicio` |
+| Columnas | `proveedor_id` → `prestador_id` (migración `Version20260819230000`, con `CHANGE`) |
+| **API** (`shortName`, `uriTemplate`) | `/proveedores` → `/organizaciones`, `/proveedor-servicios` → `/organizacion-servicios`, `/proveedor_imagens` → `/organizacion_imagens` |
+| Ruta de la SPA | `/proveedores` → `/organizaciones`, **con redirección** desde la vieja |
 | Mapeos de VichUploader | **sin tocar**: resuelven a carpetas en disco con imágenes ya subidas |
-| Nombres de ruta | **sin tocar** |
 
-La API se queda fuera porque su `shortName` viaja al esquema, de ahí a `api.d.ts` y de ahí a
-`proveedorModel.ts` y `proveedorStore.ts` de `util/`: renombrarla es un segundo frente que no
-aporta nada al modelo de dominio. Las columnas se quedan porque el papel que juega cada enlace
-—prestador, comprador— es la **fase 2**, y decidirlo ahora sería adivinar.
+La API entró en el renombrado en una segunda tanda (`46a0d25a`), a petición explícita: «ya no son
+proveedores, esto debe quedar limpio, nada de referencias antiguas».
+
+⚠️ **Y ahí está la factura, que se pagó el 19/08/2026.** Cambiar `uriTemplate` mueve la ruta
+entera, pero **las URLs del front son cadenas**: no las ve PHPStan, no las ve `vue-tsc`, no las
+ve ESLint. Quedaron trece apuntando a rutas que ya no existían, repartidas en tres stores:
+
+| Archivo | URLs muertas |
+|---|---|
+| `util/src/stores/travel/organizacionStore.ts` | 7 |
+| `util/src/stores/cotizacion/cotizacionEditorStore.ts` | 4 |
+| `util/src/stores/operacion/operacionStore.ts` | 2 |
+
+Lo que se veía por fuera: el desplegable de prestador en el editor de cotizaciones decía «no se
+encontraron resultados» para cualquier búsqueda. No hay error en pantalla porque el store captura
+el 404 y deja la lista vacía — **el fallo se disfraza de catálogo sin coincidencias**.
+
+**La regla que sale de aquí:** al mover un `uriTemplate`, `grep` de la ruta vieja en `util/` y
+`pax/` es parte del cambio, no una comprobación posterior. Y regenerar `api.d.ts`, que tampoco
+avisa solo.
+
+### Un filtro que no está no falla: devuelve de más
+
+Buscando lo anterior salieron dos filtros que **nunca existieron** y que el front llevaba
+llamando desde siempre. API Platform ignora en silencio un parámetro que no esté declarado con
+`#[ApiFilter]`, así que la petición no daba error: devolvía la colección entera.
+
+| Petición | Qué pasaba |
+|---|---|
+| `organizacion-servicios?proveedor_id=X` | volvían los servicios de **todas** las empresas |
+| `organizaciones?id[]=a&id[]=b` | volvía el maestro entero con `pagination=false` |
+
+La segunda funcionaba de casualidad —quien llamaba buscaba luego por id dentro de la lista—. La
+primera **no**: el editor etiquetaba como del prestador elegido todo lo que llegara, así que el
+desplegable de servicios enseñaba el catálogo entero disfrazado. Los filtros ya están declarados
+en las dos entidades.
+
+Se comprueba en el propio esquema, que es donde no se puede mentir:
+
+```bash
+php bin/console api:openapi:export -o /tmp/api.json
+# y mirar los `parameters` del GET de la colección
+```
 
 ### Lo que queda pendiente (fase 2)
 

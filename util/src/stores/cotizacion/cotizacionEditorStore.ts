@@ -1664,7 +1664,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         try {
             // Asumiendo que quieres buscar por nombre comercial
-            const res = await apiClient.get(`/platform/travel/proveedores?nombreComercial=${encodeURIComponent(query)}`);
+            const res = await apiClient.get(`/platform/travel/organizaciones?nombreComercial=${encodeURIComponent(query)}`);
 
             miembrosHydra<Organizacion>(res.data).forEach((item) => {
                 if (!yaEnColeccion(catalogos.value.proveedores, item)) {
@@ -1908,7 +1908,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (proveedoresToFetch.size > 0) {
                 const idsParam = Array.from(proveedoresToFetch).map(id => `id[]=${id}`).join('&');
                 fetchPromises.push(
-                    apiClient.get(`/platform/travel/proveedores?${idsParam}&pagination=false`)
+                    apiClient.get(`/platform/travel/organizaciones?${idsParam}&pagination=false`)
                         .then(res => { catalogos.value.proveedores = res.data['hydra:member'] || res.data['member'] || []; })
                         .catch(() => null)
                 );
@@ -3976,7 +3976,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             return;
         }
         try {
-            const res = await apiClient.get(`/platform/travel/proveedor-servicios?proveedor_id=${proveedorId}&pagination=false`);
+            const res = await apiClient.get(`/platform/travel/organizacion-servicios?organizacion=${proveedorId}&pagination=false`);
             if (gen !== undefined && gen !== navGen) return;
             const raw = miembrosHydra<RecursoHydra & { nombre?: string }>(res.data);
             catalogos.value.proveedorServicios = raw.map((ps) => ({
@@ -4066,7 +4066,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (!componente || !datos.nombreComercial.trim()) return false;
 
         try {
-            const res = await apiClient.post('/platform/travel/proveedores', datos);
+            const res = await apiClient.post('/platform/travel/organizaciones', datos);
             const creado = res.data;
             const id = extractIdStr(creado?.id || creado?.['@id'] || '');
             if (!id) return false;

@@ -29,7 +29,13 @@ use Symfony\Component\Uid\Uuid;
  * Entidad de Catálogo Maestro que representa un TravelOrganizacion logístico u hotelero.
  * Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
  */
+/**
+ * `id` está para que las cargas por lote del editor y de Operación —`?id[]=a&id[]=b`— filtren de
+ * verdad. Sin él la petición se ignoraba y volvía el maestro entero con `pagination=false`;
+ * funcionaba de casualidad, porque quien llamaba buscaba luego por id dentro de la lista.
+ */
 #[ApiFilter(SearchFilter::class, properties: [
+    'id' => 'exact',
     'nombreComercial' => 'partial',
     'razonSocial' => 'partial'
 ])]

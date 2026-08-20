@@ -28,9 +28,17 @@ use Symfony\Component\Uid\Uuid;
  * Entidad que representa un servicio ofrecido por un organizacion (ej. Habitaciones de un Hotel).
  * Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
  */
+/**
+ * ⚠️ `organizacion` NO es decorativo: sin él, `?organizacion=…` se ignora en silencio y la
+ * colección devuelve los servicios de TODAS las empresas. El editor de cotizaciones filtraba
+ * así desde siempre —con un `?proveedor_id=` que tampoco existía— y luego etiquetaba lo que
+ * llegara como del prestador elegido, así que el desplegable enseñaba el catálogo entero
+ * disfrazado. Un filtro que no está no falla: devuelve de más.
+ */
 #[ApiFilter(SearchFilter::class, properties: [
     'id' => 'exact',
-    'nombre' => 'partial'
+    'nombre' => 'partial',
+    'organizacion' => 'exact'
 ])]
 #[ApiResource(
     shortName: 'OrganizacionServicio',

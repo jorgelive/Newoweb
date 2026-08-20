@@ -209,7 +209,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         if (proveedores.value.length) return;   // idempotente: el modal puede abrirse muchas veces
 
         try {
-            const res = await apiClient.get('/platform/travel/proveedores?pagination=false');
+            const res = await apiClient.get('/platform/travel/organizaciones?pagination=false');
             const miembros = res.data['hydra:member'] || res.data['member'] || [];
 
             proveedores.value = miembros
@@ -358,7 +358,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
 
         try {
             const query = Array.from(ids).map((id) => `id[]=${id}`).join('&');
-            const res = await apiClient.get(`/platform/travel/proveedores?${query}&pagination=false`);
+            const res = await apiClient.get(`/platform/travel/organizaciones?${query}&pagination=false`);
             const miembros = res.data['hydra:member'] || res.data['member'] || [];
 
             const mapa: Record<string, ContactoProveedor> = {};
