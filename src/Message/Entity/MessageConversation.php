@@ -16,7 +16,6 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\Operation;
 use App\Entity\Maestro\MaestroIdioma;
-use App\Pms\Entity\PmsConversacionEnlace;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Contract\ConversationMilestoneInterface;
@@ -214,41 +213,11 @@ class MessageConversation
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $messages;
 
-    /**
-     * Los ASUNTOS de alojamiento de los que se habla en este hilo.
-     *
-     * ── Por qué una colección y no `contextId` ──────────────────────────────
-     * Porque una conversación es de una PERSONA, y una persona puede tener varios asuntos: el
-     * titular que reserva para terceros, el huésped que vuelve, el que está alojado y además
-     * pregunta por ampliar. Con `(contextType, contextId)` como identidad hacía falta **una
-     * conversación por reserva**, y eso parte el historial: medido en producción, 20 teléfonos
-     * con más de un hilo, uno con 247 mensajes repartidos en dos, y un titular con 7
-     * conversaciones creadas el mismo día. El agente atiende una y no ve las demás.
-     *
-     * ── Convive con `contextType`/`contextId`, de momento ───────────────────
-     * ⚠️ Esto es aditivo: **hoy no lo lee nadie**. Las dos columnas viejas siguen siendo la
-     * verdad para `MessageRuleEngine` y para todo lo que segmenta por contexto, y se retiran
-     * cuando el motor sepa programar por asunto. Mientras tanto, un enlace es una copia
-     * paralela; la migración que los puebla lo hace sin tocar las columnas.
-     *
-     * ── Por qué una colección por módulo y no una polimórfica ───────────────
-     * Habrá una hermana para cotizaciones y otra para los hilos libres. Doctrine sabe hacer
-     * herencia de tabla única, pero mete a los tres módulos en una tabla compartida con las
-     * columnas de todos —y con eso, `Cotizacion` volvería a depender del esquema del PMS, que
-     * es justo la dependencia que se está quitando. Cada módulo, su tabla y su FK real; lo que
-     * los une es {@see \App\Message\Contract\ConversacionEnlaceInterface}, no una tabla.
-     *
-     * @var Collection<int, PmsConversacionEnlace>
-     */
-    #[ORM\OneToMany(mappedBy: 'conversacion', targetEntity: PmsConversacionEnlace::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private Collection $enlacesPms;
-
     public function __construct(string $contextType, string $contextId)
     {
         $this->contextType = $contextType;
         $this->contextId   = $contextId;
         $this->messages    = new ArrayCollection();
-        $this->enlacesPms  = new ArrayCollection();
         $this->identidades = new ArrayCollection();
         $this->contextData = [];
         $this->id          = Uuid::v7();
@@ -607,58 +576,14 @@ class MessageConversation
         return $this;
     }
 
-    /**
-     * TODOS los asuntos colgados de este hilo, vengan del módulo que vengan.
-     *
-     * Es el punto único de convergencia entre las colecciones físicas por módulo y el contrato
-     * de dominio, calcado de {@see Message::getAllQueues()}: quien programa envíos
-     * (`MessageRuleEngine`) itera asuntos sin saber de qué tabla salen. 🔥 Al añadir un módulo
-     * (cotizaciones, hilos libres) su colección DEBE sumarse aquí, o sus asuntos serán
-     * invisibles para el motor: no dará error, simplemente nunca programará sus mensajes.
-     *
-     * Vacío significa «conversación de la era anterior»: el motor cae entonces a
-     * `contextType`/`contextId`/`contextData` de esta entidad, que siguen siendo la verdad
-     * hasta que la retirada (§20 de docs/Mensajeria.md) llegue a su último paso.
-     *
-     * @return list<\App\Message\Contract\ConversacionEnlaceInterface>
-     */
-    public function getEnlaces(): array
-    {
-        $enlaces = [];
-
-        foreach ($this->enlacesPms as $enlace) {
-            $enlaces[] = $enlace;
-        }
-
-        return $enlaces;
-    }
-
-    /**
-     * Los asuntos de alojamiento de este hilo. Ver {@see self::$enlacesPms}.
-     *
-     * @return Collection<int, PmsConversacionEnlace>
-     */
-    public function getEnlacesPms(): Collection
-    {
-        return $this->enlacesPms;
-    }
-
-    public function addEnlacePms(PmsConversacionEnlace $enlace): self
-    {
-        if (!$this->enlacesPms->contains($enlace)) {
-            $this->enlacesPms->add($enlace);
-            $enlace->setConversacion($this);
-        }
-
-        return $this;
-    }
-
-    public function removeEnlacePms(PmsConversacionEnlace $enlace): self
-    {
-        if ($this->enlacesPms->removeElement($enlace) && $enlace->getConversacion() === $this) {
-            $enlace->setConversacion(null);
-        }
-
-        return $this;
-    }
+    // Los ASUNTOS del hilo NO cuelgan de aquí, y es deliberado desde el 20/08/2026.
+    //
+    // Había una colección tipada a `PmsConversacionEnlace` y un `use` del PMS en este archivo:
+    // el núcleo de mensajería conocía un dominio. Con eso, añadir Travel costaba la entidad,
+    // otra colección, otro `use` y otra línea en `getEnlaces()` — y un cliente de hotel que
+    // además compra tours multiplicaba el problema.
+    //
+    // Ahora cada dominio los aporta por `ProveedorDeEnlacesInterface` y quien los junta es
+    // `EnlacesDeConversacion`. Enchufar un dominio es UNA clase. Y de paso queda donde debía:
+    // una entidad no consulta, y reunir lo de varios dominios exige preguntar a cada uno.
 }

@@ -11,7 +11,10 @@ use App\Contract\MomentoDeHito;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
+use App\Message\Contract\ConversacionEnlaceInterface;
+use App\Message\Contract\ProveedorDeEnlacesInterface;
 use App\Message\Entity\MessageConversation;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Entity\MessageRule;
 use App\Contract\VinculoComercial;
 use App\Message\Entity\WhatsappMetaSendQueue;
@@ -80,7 +83,30 @@ final class MessageRuleEngineTest extends TestCase
             static fn (string $clase, mixed $id): MessageChannel => new MessageChannel()->setId((string) $id)
         );
 
-        return new MessageRuleEngine($em, new NullLogger(), $enqueuers);
+        return new MessageRuleEngine($em, new NullLogger(), $enqueuers, $this->enlacesDe(...$this->enlaces));
+    }
+
+    /** @var list<ConversacionEnlaceInterface> Los asuntos que verá el motor en esta prueba. */
+    private array $enlaces = [];
+
+    /**
+     * El servicio de enlaces con un proveedor de mentira.
+     *
+     * Antes los asuntos se colgaban de la conversación con `addEnlacePms()`, lo que ataba el
+     * test a una entidad del PMS para probar el motor de MENSAJERÍA. Ahora se inyectan.
+     */
+    private function enlacesDe(ConversacionEnlaceInterface ...$enlaces): EnlacesDeConversacion
+    {
+        $proveedor = new class (array_values($enlaces)) implements ProveedorDeEnlacesInterface {
+            /** @param list<ConversacionEnlaceInterface> $enlaces */
+            public function __construct(private readonly array $enlaces) {}
+
+            public function getNegocio(): string { return 'prueba'; }
+
+            public function paraConversacion(MessageConversation $conversacion): array { return $this->enlaces; }
+        };
+
+        return new EnlacesDeConversacion([$proveedor]);
     }
 
     /** Encolador que da por bueno todo lo del canal indicado: el camino feliz del worker. */
@@ -147,7 +173,9 @@ final class MessageRuleEngineTest extends TestCase
         $enlace->setMilestones($hitos);
         $enlace->setOrigen($origen);
         $enlace->setCreatedAt(new DateTimeImmutable('-1 hour'));
-        $conversacion->addEnlacePms($enlace);
+        // Se ACUMULA: hay pruebas con varios asuntos en el mismo hilo, y reemplazar la lista
+        // dejaba sólo el último — que es justo lo contrario de lo que esas pruebas comprueban.
+        $this->enlaces[] = $enlace;
 
         return $enlace;
     }
@@ -472,7 +500,7 @@ final class MessageRuleEngineTest extends TestCase
         // El enlace podrido: sin reserva detrás, su contextId es la cadena vacía.
         $roto = new PmsConversacionEnlace($conversacion, null);
         $roto->setCreatedAt(new DateTimeImmutable('-1 hour'));
-        $conversacion->addEnlacePms($roto);
+        $this->enlaces[] = $roto;
 
         // Un pendiente de un asunto que hoy no aparece: con el panorama roto no se puede saber
         // si fue retirado o si simplemente no cargó, así que tiene que sobrevivir la pasada.

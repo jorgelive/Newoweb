@@ -8487,10 +8487,34 @@ largo— y el resto siguen existiendo y visibles, sólo que un mensaje nuevo ir�
 `guest_phone` **se queda**: 30 sitios la leen y el panel la pinta. Pasa a ser una copia
 denormalizada; la verdad está en `msg_identidad`.
 
+### Los asuntos: cada dominio los aporta, el núcleo no los conoce
+
+`MessageConversation` importaba `PmsConversacionEnlace` y tenía una colección tipada a él, así
+que **el núcleo de mensajería conocía un dominio**. Añadir Travel costaba cuatro cosas: la
+entidad, otra colección, otro `use` y otra línea en `getEnlaces()`. Y un cliente de hotel que
+además compra tours lo multiplicaba.
+
+Ahora cada dominio implementa `ProveedorDeEnlacesInterface` y `EnlacesDeConversacion` los junta
+con `#[AutowireIterator]`. **Enchufar un dominio es UNA clase.**
+
+⚠️ **No se movió un solo dato, y ésa fue la clave.** La primera idea era una tabla común de
+enlaces con `negocio`/`context_type`/`context_id` — 331 filas migradas. Pero el acoplamiento
+estaba en la **colección**, no en el esquema: quitarla no necesita tocar la base. Y una tabla
+común habría convertido `reserva_id` en un `context_id` de texto, perdiendo una garantía puesta
+a mano: esa FK **no lleva `CASCADE` a propósito**, porque «borrar una reserva no puede llevarse
+por delante el hilo de mensajes con esa persona». Cada dominio con su tabla la conserva.
+
+⚠️ **El proveedor mira también lo que aún no está en la base.** La colección servía para eso —lo
+decía el comentario de `PmsSincronizadorDeEnlace`— y una consulta a secas no vería un enlace
+creado en la misma petición: el sincronizador crearía un duplicado y el índice único reventaría
+al hacer flush. `PmsProveedorDeEnlaces` junta las filas persistidas con las que el `UnitOfWork`
+tiene pendientes de insertar.
+
+Y `getEnlaces()` sale de la entidad, que es donde no debía estar: **una entidad no consulta**.
+
 ### Lo que queda
 
 - El comando de fusión de hilos duplicados.
-- **Enlaces genéricos**: hoy `MessageConversation` importa `PmsConversacionEnlace` y tiene una
-  colección por dominio, así que añadir Travel obligaría a tocar el núcleo — justo lo que
-  `CLAUDE.md` dice que no debe pasar. Una sola tabla con `negocio` como dato lo cierra.
+- **Travel enchufado**: `TravelConversacionEnlace` con su tabla y su FK al expediente, más su
+  proveedor. Con lo anterior hecho, son dos clases y ninguna toca el núcleo.
 - El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.

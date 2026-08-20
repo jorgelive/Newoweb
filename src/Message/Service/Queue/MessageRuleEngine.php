@@ -11,6 +11,7 @@ use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Entity\MessageRule;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -73,7 +74,9 @@ final readonly class MessageRuleEngine
         private EntityManagerInterface $em,
         private LoggerInterface $logger,
         #[TaggedIterator('app.message.enqueuer')]
-        private iterable $enqueuers
+        private iterable $enqueuers,
+        // Los asuntos del hilo, vengan del dominio que vengan.
+        private readonly EnlacesDeConversacion $enlaces
     ) {}
 
     /**
@@ -284,7 +287,7 @@ final readonly class MessageRuleEngine
      */
     private function agendasDe(MessageConversation $conversation): array
     {
-        $enlaces = $conversation->getEnlaces();
+        $enlaces = $this->enlaces->de($conversation);
 
         if ($enlaces === []) {
             return [[AgendaDeAsunto::deConversacion($conversation)], true];

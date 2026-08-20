@@ -8,6 +8,7 @@ use App\Contract\ConversationMilestoneInterface;
 use App\Message\Entity\MessageConversation;
 use App\Contract\VinculoComercial;
 use App\Pms\Entity\PmsConversacionEnlace;
+use App\Pms\Service\Message\PmsProveedorDeEnlaces;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Message\PmsHitosDeEstancia;
 use Doctrine\ORM\EntityManagerInterface;
@@ -58,6 +59,7 @@ final class PoblarEnlacesCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly PmsHitosDeEstancia $hitos,
+        private readonly PmsProveedorDeEnlaces $proveedor,
     ) {
         parent::__construct();
     }
@@ -84,7 +86,7 @@ final class PoblarEnlacesCommand extends Command
         $huerfanas = [];
 
         foreach ($conversaciones as $conversacion) {
-            if (!$conversacion->getEnlacesPms()->isEmpty()) {
+            if ($this->proveedor->paraConversacion($conversacion) !== []) {
                 $yaTenian++;
 
                 // No se salta: se le REFRESCAN los hitos. Un enlace poblado antes de que
@@ -92,7 +94,7 @@ final class PoblarEnlacesCommand extends Command
                 // «ya existe» signifique «no lo miro» convierte cada mejora del cálculo en una
                 // migración de datos a mano.
                 if (!$dryRun) {
-                    foreach ($conversacion->getEnlacesPms() as $existente) {
+                    foreach ($this->proveedor->paraConversacion($conversacion) as $existente) {
                         $reservaExistente = $existente->getReserva();
 
                         if ($reservaExistente !== null) {

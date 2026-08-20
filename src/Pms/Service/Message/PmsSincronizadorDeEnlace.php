@@ -39,6 +39,7 @@ final readonly class PmsSincronizadorDeEnlace implements SincronizadorDeEnlaceIn
     public function __construct(
         private EntityManagerInterface $em,
         private PmsHitosDeEstancia $hitos,
+        private PmsProveedorDeEnlaces $proveedor,
     ) {}
 
     public function supports(?string $contextType): bool
@@ -73,13 +74,11 @@ final readonly class PmsSincronizadorDeEnlace implements SincronizadorDeEnlaceIn
         // decidir después si el aviso vuelve y con qué condiciones.
         if ($cancelada && $enlace === null) {
             $enlace = new PmsConversacionEnlace($conversacion, $reserva);
-            $conversacion->addEnlacePms($enlace);
             $this->em->persist($enlace);
         }
 
         if ($enlace === null) {
             $enlace = new PmsConversacionEnlace($conversacion, $reserva);
-            $conversacion->addEnlacePms($enlace);
             $this->em->persist($enlace);
         }
 
@@ -130,19 +129,12 @@ final readonly class PmsSincronizadorDeEnlace implements SincronizadorDeEnlaceIn
     /**
      * El enlace de ESTA reserva en ESTE hilo, o `null`.
      *
-     * Se busca en la colección ya cargada y no con una consulta: la conversación acaba de pasar
-     * por la factoría, así que sus enlaces están en memoria, y una conversación tiene unos pocos
-     * —no cientos—. Además así funciona con enlaces recién creados en la misma unidad de trabajo,
-     * que una consulta a la base todavía no vería.
+     * Lo resuelve el proveedor del dominio, que junta lo guardado con lo que la unidad de
+     * trabajo tiene pendiente — hace falta lo segundo porque un enlace recién creado en esta
+     * misma petición no lo vería una consulta, y sin eso se crearía un duplicado.
      */
     private function enlaceDe(MessageConversation $conversacion, PmsReserva $reserva): ?PmsConversacionEnlace
     {
-        foreach ($conversacion->getEnlacesPms() as $enlace) {
-            if ($enlace->getReserva()?->getId()?->equals($reserva->getId()) === true) {
-                return $enlace;
-            }
-        }
-
-        return null;
+        return $this->proveedor->paraReserva($conversacion, $reserva);
     }
 }
