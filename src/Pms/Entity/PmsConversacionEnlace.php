@@ -81,7 +81,10 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
         ConversationMilestoneInterface::SERVICE,
     ];
 
-    #[ORM\ManyToOne(targetEntity: MessageConversation::class, inversedBy: 'enlacesPms')]
+    // Sin `inversedBy`: la colección `enlacesPms` del núcleo se retiró al desacoplar los
+    // dominios, y el atributo se quedó apuntando a una propiedad que ya no existe. Doctrine lo
+    // tolera al arrancar y sólo lo delata `doctrine:schema:validate`.
+    #[ORM\ManyToOne(targetEntity: MessageConversation::class)]
     #[ORM\JoinColumn(name: 'conversacion_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?MessageConversation $conversacion = null;
 

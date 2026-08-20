@@ -21,6 +21,7 @@ use App\Entity\Trait\TimestampTrait;
 use App\Contract\ConversationMilestoneInterface;
 use App\Contract\MapaDeHitos;
 use App\Contract\MomentoDeHito;
+use App\Message\Enum\IdentidadTipo;
 use App\Message\Controller\Api\MarkConversationReadController;
 use App\Message\Controller\Api\AsuntosDeConversacionController;
 use App\Message\Controller\Api\CanalesDeConversacionController;
@@ -376,7 +377,37 @@ class MessageConversation
 
     // Getters y Setters
     public function isWhatsappDisabled(): bool { return $this->whatsappDisabled; }
-    public function setWhatsappDisabled(bool $disabled): self { $this->whatsappDisabled = $disabled; return $this; }
+    /**
+     * El interruptor manual del panel — y tiene que llegar a las IDENTIDADES, no sólo al espejo.
+     *
+     * ⚠️ Sin propagar, un desbloqueo desde el panel duraba hasta el siguiente
+     * `recalcularBloqueoWhatsapp()`: la columna volvía a ponerse en `true` porque la verdad
+     * —el veto de cada número— seguía intacta. El operador lo desbloqueaba, se guardaba, y
+     * revivía solo sin que nada lo explicara.
+     *
+     * Desbloquear levanta el veto de todos sus teléfonos vivos: es una persona diciendo «este
+     * número sí funciona», y es más fiable que el `131026` que lo puso — hay un caso medido con
+     * NUEVE mensajes entrantes y el canal apagado.
+     *
+     * Bloquear a mano no toca las identidades: no dice cuál falló, así que se queda en el
+     * espejo. Es el lado prudente.
+     */
+    public function setWhatsappDisabled(bool $disabled): self
+    {
+        $this->whatsappDisabled = $disabled;
+
+        if (!$disabled) {
+            foreach ($this->identidades as $identidad) {
+                if ($identidad->getTipo() === IdentidadTipo::TELEFONO && $identidad->estaViva()) {
+                    $identidad->desbloquear();
+                }
+            }
+
+            $this->whatsappDisabledReason = null;
+        }
+
+        return $this;
+    }
 
     public function getWhatsappDisabledReason(): ?string { return $this->whatsappDisabledReason; }
     public function setWhatsappDisabledReason(?string $reason): self { $this->whatsappDisabledReason = $reason; return $this; }
@@ -651,6 +682,74 @@ class MessageConversation
      * Idempotente a propósito: se llama en cada mensaje entrante, y comprobarlo aquí evita que
      * cada llamador tenga que acordarse.
      */
+    /**
+     * Recalcula el ESPEJO del veto de WhatsApp a partir de las identidades.
+     *
+     * ── La regla, y por qué es «todas» y no «alguna» ────────────────────────
+     * El hilo queda bloqueado sólo si **todos** sus teléfonos vivos lo están. Con «alguna» un
+     * número muerto seguiría apagando el canal para una persona que tiene otro que sí funciona,
+     * que es exactamente el fallo que este cambio viene a quitar.
+     *
+     * Sin ningún teléfono vivo el hilo NO queda bloqueado: no es que esté vetado, es que no hay
+     * a dónde escribir, y de eso ya se ocupa `WhatsappMetaSendEnqueuer::disponiblePara()`
+     * mirando el teléfono. Confundir «vetado» con «sin datos» pinta un aviso rojo de Meta donde
+     * sólo falta un dato.
+     *
+     * ⚠️ Esto se llama DESPUÉS de tocar una identidad. La verdad vive en `msg_identidad`; esta
+     * columna existe porque `MessageRuleEngineListener::CAMPOS_CRITICOS` lee el change set de
+     * Doctrine, que sólo ve campos mapeados.
+     */
+    public function recalcularBloqueoWhatsapp(): self
+    {
+        $vivos = [];
+
+        foreach ($this->identidades as $identidad) {
+            if ($identidad->getTipo() === IdentidadTipo::TELEFONO && $identidad->estaViva()) {
+                $vivos[] = $identidad;
+            }
+        }
+
+        if ($vivos === []) {
+            $this->whatsappDisabled = false;
+            $this->whatsappDisabledReason = null;
+
+            return $this;
+        }
+
+        $bloqueados = array_values(array_filter($vivos, static fn (MessageIdentidad $i): bool => $i->isBloqueado()));
+
+        $this->whatsappDisabled = count($bloqueados) === count($vivos);
+        $this->whatsappDisabledReason = $this->whatsappDisabled
+            ? $bloqueados[0]->getBloqueadoMotivo()
+            : null;
+
+        return $this;
+    }
+
+    /**
+     * El teléfono al que se escribe: el marcado principal, o el único vivo.
+     *
+     * `null` si no hay ninguno vivo, o si hay varios y ninguno es principal — ahí no se elige
+     * por orden de llegada, que sería mandarle el mensaje a quien resulte estar primero en la
+     * colección.
+     */
+    public function getTelefonoPrincipal(): ?MessageIdentidad
+    {
+        $vivos = [];
+
+        foreach ($this->identidades as $identidad) {
+            if ($identidad->getTipo() === IdentidadTipo::TELEFONO && $identidad->estaViva()) {
+                if ($identidad->isPrincipal()) {
+                    return $identidad;
+                }
+
+                $vivos[] = $identidad;
+            }
+        }
+
+        return count($vivos) === 1 ? $vivos[0] : null;
+    }
+
     public function addIdentidad(MessageIdentidad $identidad): self
     {
         foreach ($this->identidades as $existente) {

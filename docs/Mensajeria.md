@@ -8591,6 +8591,66 @@ cualquier aviso anterior al despliegue ya está fuera de esa ventana.
 `guest_phone` **se queda**: 30 sitios la leen y el panel la pinta. Pasa a ser una copia
 denormalizada; la verdad está en `msg_identidad`.
 
+### El veto de WhatsApp es del NÚMERO, no de la persona
+
+`whatsapp_disabled` vivía en la conversación, o sea en la **persona**: un número muerto apagaba
+el canal para todo el hilo —y desde la fusión, para todos sus asuntos—, incluido el número bueno
+de quien tiene dos. Pero Meta rechaza **un envío a un destino**; el veto es de ese destino.
+
+Y el flag no significaba lo que parecía. Los dos únicos hilos vetados de producción dicen cosas
+opuestas:
+
+| Hilo | Entrantes | Último | Veredicto |
+|---|---|---|---|
+| Varvara Ziuvanova | 1 | 06/04/2026 | número plausiblemente muerto |
+| Adriana C. Martínez | **9** | 14/08/2026 | **ese número funciona** |
+
+Un `131026` no es prueba de número equivocado. Lo que sí discrimina es la **prueba de vida**: si
+por ese número entró algún mensaje, funciona.
+
+**Lo que se movió** (`Version20260820360000`):
+
+| Campo | Dónde | Para qué |
+|---|---|---|
+| `bloqueado` + `bloqueado_motivo` | `msg_identidad` | el veto, del número |
+| `principal` | `msg_identidad` | la salida por defecto cuando hay varias |
+| `retirado_en` | `msg_identidad` | la **lápida** |
+
+⚠️ **La columna de la conversación se queda, como espejo.** No es dejadez: es entrada de
+`MessageRuleEngineListener::CAMPOS_CRITICOS`, que lee el change set de Doctrine y **sólo ve
+campos mapeados**. Un getter derivado habría apagado la re-evaluación de reglas —y con ella el
+rescate de los mensajes cancelados por falta de canal— sin un solo error. Mismo trato que
+`guest_phone`. Lo recalcula `MessageConversation::recalcularBloqueoWhatsapp()`.
+
+⚠️ **La regla es «todos», no «alguno».** El hilo queda vetado sólo si **todos** sus teléfonos
+vivos lo están. Con «alguno», un número muerto seguiría apagando el canal de quien tiene otro
+que funciona — que es el fallo que esto viene a quitar. Y sin ningún teléfono vivo **no** queda
+vetado: eso no es veto, es falta de datos, y confundirlos pinta un aviso rojo de Meta donde sólo
+falta un dato.
+
+⚠️ **`retirado_en` no es sólo memoria: es el mecanismo.** `upsertFromContext()` re-registra los
+identificadores del dominio en **cada recálculo**, así que si la fila se borrara, el siguiente
+pull de Beds24 —que reescribe `telefono` mientras `datosLocked` esté abierto— la resucitaría y
+retirar un número sería imposible. Con la fila presente, `addIdentidad()` deduplica por
+`(tipo, valor)` y no vuelve a añadirla. «No se borra, se marca» deja de ser filosofía.
+
+**Dos consecuencias que había que arreglar en el mismo movimiento:**
+
+- **El desbloqueo manual del panel** duraba hasta el siguiente recálculo: la columna volvía a
+  ponerse sola porque la verdad seguía intacta. Ahora `setWhatsappDisabled(false)` levanta el
+  veto de todos los teléfonos vivos — es una persona diciendo «este número sí funciona», y eso
+  es más fiable que el `131026` que lo puso. Bloquear a mano **no** toca las identidades: no
+  dice cuál falló, así que se queda en el espejo.
+- **La fusión ya no propaga a lo bruto.** El *«si alguno lo estaba, se queda desactivado»* era
+  el lado prudente cuando el flag era del hilo; ahora el veto viaja con su identidad y el
+  resultado sale solo. Se recalcula por SQL **después del flush**: las identidades se mueven con
+  `UPDATE` directo —la colección de la entidad no las ve— y hacerlo antes tampoco valdría,
+  porque el flush escribiría encima el valor viejo que la entidad lleva en memoria.
+
+⚠️ **La migración copia el estado FIEL**, sin juzgar si el bloqueo era correcto. Revisar los
+vetos vivos es una decisión de persona y se hace mirando la prueba de vida, no dentro de una
+migración.
+
 ### Los asuntos: cada dominio los aporta, el núcleo no los conoce
 
 Hoy hay dos, y añadir el tercero costará lo mismo:

@@ -145,6 +145,14 @@ final class FusionarHilosCommand extends Command
 
         if ($aplicar) {
             $this->em->flush();
+
+            // DESPUÉS del flush, y por SQL. Las identidades se mueven con `UPDATE` directo, así
+            // que la colección de la entidad no las ve; y hacerlo antes tampoco valdría porque
+            // el flush escribiría encima el valor viejo que la entidad lleva en memoria.
+            foreach ($this->supervivientes as $destino) {
+                $this->recalcularBloqueo($destino);
+            }
+
             $io->success(sprintf('%d persona(s) unificadas, %d mensaje(s) movidos.', $unidos, $mensajesMovidos));
 
             return Command::SUCCESS;
@@ -275,6 +283,8 @@ final class FusionarHilosCommand extends Command
             $this->mover('cotizacion_conversacion_enlace', 'conversacion_id', $origen, $destino);
             $this->mover('msg_identidad', 'conversacion_id', $origen, $destino);
 
+            $this->supervivientes[$destino] = $destino;
+
             $this->fusionarCabecera($superviviente, $absorbido);
 
             $absorbido->setStatus(MessageConversation::STATUS_ARCHIVED);
@@ -282,6 +292,36 @@ final class FusionarHilosCommand extends Command
             $datos['fusionado_en'] = $destino;
             $absorbido->setContextData($datos);
         }
+    }
+
+    /** @var array<string, string> Los hilos que sobrevivieron, indexados para no repetirlos. */
+    private array $supervivientes = [];
+
+    /**
+     * El veto de WhatsApp del hilo, a partir de las identidades que acabe teniendo.
+     *
+     * Vetado sólo si TIENE teléfonos vivos y **todos** están bloqueados. Antes esto se resolvía
+     * propagando a lo bruto —«si alguno lo estaba, se queda desactivado»—, que era el lado
+     * prudente cuando el flag era del hilo; ahora es de cada número y unir a alguien con uno
+     * muerto y otro vivo tiene que dejarle WhatsApp encendido.
+     */
+    private function recalcularBloqueo(string $conversacion): void
+    {
+        $this->db->executeStatement(<<<'SQL'
+            UPDATE msg_conversation c
+               SET c.whatsapp_disabled = IF(
+                     (SELECT COUNT(*) FROM msg_identidad i
+                       WHERE i.conversacion_id = c.id AND i.tipo = 'telefono' AND i.retirado_en IS NULL) > 0
+                     AND (SELECT COUNT(*) FROM msg_identidad i
+                           WHERE i.conversacion_id = c.id AND i.tipo = 'telefono'
+                             AND i.retirado_en IS NULL AND i.bloqueado = 0) = 0,
+                     1, 0),
+                   c.whatsapp_disabled_reason = (
+                     SELECT i.bloqueado_motivo FROM msg_identidad i
+                      WHERE i.conversacion_id = c.id AND i.tipo = 'telefono'
+                        AND i.retirado_en IS NULL AND i.bloqueado = 1 LIMIT 1)
+             WHERE c.id = UNHEX(REPLACE(:id, '-', ''))
+        SQL, ['id' => $conversacion]);
     }
 
     /**
@@ -327,10 +367,14 @@ final class FusionarHilosCommand extends Command
             $superviviente->setStatus(MessageConversation::STATUS_OPEN);
         }
 
-        if ($absorbido->isWhatsappDisabled()) {
-            $superviviente->setWhatsappDisabled(true);
-            $superviviente->setWhatsappDisabledReason($absorbido->getWhatsappDisabledReason());
-        }
+        // El veto de WhatsApp YA NO se propaga a lo bruto.
+        //
+        // Antes: «si alguno lo estaba, se queda desactivado» — el lado prudente cuando el flag
+        // era del hilo. Ahora es de cada NÚMERO y viaja con su identidad, así que unir a alguien
+        // con un número muerto y otro vivo tiene la respuesta correcta sin decidir nada aquí:
+        // el hilo sólo queda vetado si TODOS sus teléfonos vivos lo están.
+        //
+        // Se recalcula al final de la fusión, cuando las identidades ya se movieron.
 
         $ventanaB = $absorbido->getWhatsappSessionValidUntil();
         $ventanaA = $superviviente->getWhatsappSessionValidUntil();

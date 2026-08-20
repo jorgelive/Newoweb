@@ -446,15 +446,21 @@ readonly class WhatsappMetaReceivePersister
                 ];
             }
 
-            // 🛑 BLOQUEO PERMANENTE DEL CANAL EN LA CONVERSACIÓN
+            // 🛑 BLOQUEO PERMANENTE — DEL NÚMERO, NO DE LA PERSONA
+            //
+            // ⚠️ Antes se marcaba la CONVERSACIÓN, y ahí el veto es de todo el hilo: un número
+            // muerto apagaba WhatsApp para esa persona entera y —desde la fusión— para todos
+            // sus asuntos, incluido el número bueno de quien tiene dos.
+            //
+            // Meta rechaza un ENVÍO A UN DESTINO, así que se veta ese destino. El hilo queda
+            // bloqueado sólo si TODOS sus teléfonos vivos lo están, y de eso se ocupa
+            // `recalcularBloqueoWhatsapp()`.
             $permanentErrors = ['131026', '131051', '131030'];
             if (in_array($errorCode, $permanentErrors, true)) {
-                $conversation = $message->getConversation();
-                if ($conversation !== null && !$conversation->isWhatsappDisabled()) {
-                    $conversation->setWhatsappDisabled(true);
-                    $conversation->setWhatsappDisabledReason(sprintf('Meta Error %s: %s', $errorCode, $metaDataToMerge['error_reason'] ?? 'Número inválido'));
-                    $this->em->persist($conversation);
-                }
+                $this->vetarDestino(
+                    $message,
+                    sprintf('Meta Error %s: %s', $errorCode, $metaDataToMerge['error_reason'] ?? 'Número inválido')
+                );
             }
         }
 
@@ -711,6 +717,58 @@ readonly class WhatsappMetaReceivePersister
         } catch (Throwable $e) {
             $this->logger->error("Excepción al descargar Media de Meta ({$mediaId}): " . $e->getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Veta el número al que se intentó enviar ESTE mensaje.
+     *
+     * El destino se congela en la cola al encolar (`destinationPhone`), que es el número al que
+     * Meta dijo que no. Se prefiere a `guestPhone` porque la cabecera pudo cambiar entre el
+     * encolado y la respuesta del webhook — y vetar el número nuevo por un fallo del viejo es
+     * justo el error que este cambio quita.
+     *
+     * Si esa identidad no está registrada todavía, se veta el hilo entero como antes: es el
+     * comportamiento de siempre y no empeora nada, pero queda en el log para poder verlo.
+     */
+    private function vetarDestino(Message $message, string $motivo): void
+    {
+        $conversation = $message->getConversation();
+
+        if ($conversation === null) {
+            return;
+        }
+
+        $destino = null;
+        foreach ($message->getAllQueues() as $cola) {
+            if (method_exists($cola, 'getDestinationPhone') && $cola->getDestinationPhone() !== null) {
+                $destino = (string) $cola->getDestinationPhone();
+                break;
+            }
+        }
+
+        $destino ??= (string) $conversation->getGuestPhone();
+        $normalizado = IdentidadTipo::TELEFONO->normalizar($destino);
+
+        foreach ($conversation->getIdentidades() as $identidad) {
+            if ($identidad->getTipo() === IdentidadTipo::TELEFONO && $identidad->getValor() === $normalizado) {
+                $identidad->bloquear($motivo);
+                $conversation->recalcularBloqueoWhatsapp();
+                $this->em->persist($conversation);
+
+                return;
+            }
+        }
+
+        $this->logger->warning('Meta vetó un número que no está registrado como identidad: se veta el hilo entero.', [
+            'conversacion' => (string) $conversation->getId(),
+            'destino' => $normalizado,
+        ]);
+
+        if (!$conversation->isWhatsappDisabled()) {
+            $conversation->setWhatsappDisabled(true);
+            $conversation->setWhatsappDisabledReason($motivo);
+            $this->em->persist($conversation);
         }
     }
 }
