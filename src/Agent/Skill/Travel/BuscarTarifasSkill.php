@@ -15,6 +15,7 @@ use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelTarifa;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Las tarifas del catálogo maestro, con sus restricciones y su prestador.
@@ -67,9 +68,12 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
                 . 'límite», y eso significa que la tarifa vale para cualquiera en ese eje. Para '
                 . 'los precios de alojamiento por noche usa consultar_tarifas.',
             parametros: [
+                SkillParameter::texto('componente_id', 'Id exacto del componente, tal y como '
+                    . 'lo devolvió buscar_componentes. Si lo tienes, úsalo: es exacto y evita '
+                    . 'traer los que se llaman parecido.', requerido: false),
                 SkillParameter::texto('busqueda', 'Nombre del componente (ej. «Machu Picchu», '
                     . '«city tour») o del prestador (ej. «Ministerio de Cultura»). Basta un '
-                    . 'trozo del nombre.'),
+                    . 'trozo del nombre. Omítelo si pasas componente_id.', requerido: false),
                 SkillParameter::texto('procedencia', 'Filtra por «nacional», «extranjero» o '
                     . '«can». Úsalo sólo si lo dicen.', requerido: false),
                 SkillParameter::entero('pax', 'Número de personas, para quedarse con las tarifas '
@@ -96,20 +100,25 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
     /** @param array<string, mixed> $entrada */
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        $componenteId = trim((string) ($entrada['componente_id'] ?? ''));
         $busqueda = trim((string) ($entrada['busqueda'] ?? ''));
 
-        if (mb_strlen($busqueda) < 3) {
+        if ($componenteId === '' && mb_strlen($busqueda) < 3) {
             return SkillResult::error(
-                'Dime al menos tres letras del componente o del prestador: con menos salen '
-                . 'cientos de tarifas y ninguna sirve.'
+                'Dime al menos tres letras del componente o del prestador, o pásame el '
+                . 'componente_id de buscar_componentes: con menos salen cientos de tarifas y '
+                . 'ninguna sirve.'
             );
         }
 
-        $componentes = $this->componentesQueCoinciden($busqueda);
+        // El id manda sobre el nombre: si ya se eligió un componente, no se re-adivina.
+        $componentes = $componenteId !== ''
+            ? $this->porId($componenteId)
+            : $this->componentesQueCoinciden($busqueda);
 
         if ($componentes === []) {
             return SkillResult::ok([
-                'busqueda' => $busqueda,
+                'busqueda' => $busqueda !== '' ? $busqueda : $componenteId,
                 'componentes' => [],
                 'instruccion' => 'No hay ningún componente ni prestador que se llame así. NO te '
                     . 'inventes un precio: dile que no lo encuentras y pregúntale por el nombre '
@@ -155,7 +164,7 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
         }
 
         return SkillResult::ok(array_filter([
-            'busqueda' => $busqueda,
+            'busqueda' => $busqueda !== '' ? $busqueda : $componenteId,
             'componentes' => $salida,
             'hay_mas' => $total >= self::TOPE ? true : null,
             'instruccion' => $salida === []
@@ -163,6 +172,22 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
                     . 'pediste. Dilo así, y ofrece quitar el filtro.'
                 : null,
         ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * El componente exacto, cuando ya se eligió uno con buscar_componentes.
+     *
+     * @return list<TravelComponente>
+     */
+    private function porId(string $id): array
+    {
+        if (!Uuid::isValid($id)) {
+            return [];
+        }
+
+        $c = $this->em->find(TravelComponente::class, Uuid::fromString($id));
+
+        return $c instanceof TravelComponente ? [$c] : [];
     }
 
     /**

@@ -242,13 +242,41 @@ aporta nada al modelo de dominio. Las columnas se quedan porque el papel que jue
 
 ## 6 ter. Las tarifas desde el agente (19/08/2026)
 
-Tres skills, para el rol de **operaciones**:
+Cuatro skills, para el rol de **operaciones**, pensadas para encadenarse:
+
+```
+buscar_componentes  →  buscar_tarifas  →  modificar_tarifa
+   (¿cuál es?)          (¿cuánto y         (cambiar, con
+                         con qué             previsualización)
+                         condiciones?)
+```
 
 | Skill | Riesgo | Rol | Qué hace |
 |---|---|---|---|
-| `buscar_tarifas` | Lectura | `OPERACIONES_SHOW` | lista las tarifas de un componente con sus restricciones y su prestador |
+| `buscar_componentes` | Lectura | `OPERACIONES_SHOW` | encuentra el servicio por nombre, **lugar**, prestador o tipo |
+| `buscar_tarifas` | Lectura | `OPERACIONES_SHOW` | sus tarifas con restricciones y prestador; acepta `componente_id` |
 | `crear_tarifa` | **Escritura** | `OPERACIONES_WRITE` | añade una tarifa a un componente |
 | `modificar_tarifa` | **Escritura** | `OPERACIONES_WRITE` | cambia una que ya existe |
+
+### Por qué hace falta `buscar_componentes`
+
+Para tocar una tarifa hay que traer su `tarifa_id`, y para eso hay que dar con su componente.
+`buscar_tarifas` ya lo hacía **si se acertaba el nombre** — y ahí estaba el problema: hay 221
+componentes y el operador dice «el bus a Puno» cuando en el catálogo pone «Transporte Aeropuerto
+Juliaca - Hotel Puno». Sin una forma de mirar el catálogo, la única salida era abrir el panel, y
+entonces el agente no sirve para esto.
+
+Por eso busca **ancho** —nombre, lugar, prestador y tipo a la vez— y devuelve **poco**: lo justo
+para reconocer el servicio y encadenar. **No trae precios**: llenaría la respuesta de importes
+que nadie ha pedido, y para eso está la siguiente.
+
+⚠️ Lo que sí trae siempre es **cuántas tarifas tiene cada uno**, que es el dato que decide el
+paso siguiente. Un componente con 0 no es un fallo de búsqueda: es uno sin precios cargados, y
+hay que decirlo así. Uno con 19 avisa de que «¿cuánto cuesta?» va a necesitar condiciones antes
+que un importe.
+
+Y `buscar_tarifas` acepta `componente_id`: cuando ya se eligió uno, **el id manda sobre el
+nombre** y no se re-adivina.
 
 ### Crear y modificar están separadas, y el empate las cubre
 
@@ -299,6 +327,8 @@ invisibles para todo lo demás. Ver CLAUDE.md, «lista vacía = sin acotar».
 segundo en transacción con **rollback**. Seis casos, incluido el del bug de arriba:
 
 ```
+0. buscar «puno» tipo transporte → Transporte Aeropuerto Juliaca - Hotel Puno
+   y por su componente_id        → Auto 150 PEN (1–4 pax), Bus 600 (9–25), Master 300 (5–14)
 1. previsualizar crear     → no escribe            904 → 904
 2. procedencia inventada   → rechazada con la lista de válidas
 3. rango al revés (30–5)   → rechazado
