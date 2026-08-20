@@ -1071,6 +1071,25 @@ const onDestinatarioEdicion = (id: unknown): void => {
     formEdicion.value.compradorNombre = elegido?.nombreComercial ?? '';
 };
 
+/**
+ * Anula la orden y suelta sus filas para poder pedirlas de nuevo.
+ *
+ * Reemitir es **anular y crear la sucesora**, nunca reescribir el documento que el proveedor ya
+ * tiene. Al soltarse, las filas vuelven a la selección de La Biblia; lo que se haya cancelado
+ * en la cotización no entra en la siguiente, porque `motivoNoComprable()` se lo impide.
+ */
+const anularParaReemitir = async (orden: OperacionOrdenServicio) => {
+    if (!orden.id) return;
+
+    try {
+        await operacionStore.cambiarEstadoOrden(orden.id, 'cancelada', 'Reemisión: los datos cambiaron en La Biblia');
+        await cargarBiblia();
+    } catch (e) {
+        avisoPapel.value = mensajeDeErrorApi(e, 'No se pudo anular la orden.');
+        window.setTimeout(() => { avisoPapel.value = null; }, 6000);
+    }
+};
+
 const guardarEdicion = async () => {
     const orden = ordenEditando.value;
     if (!orden?.id) return;
@@ -1311,8 +1330,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                             v-for="l in operacionStore.lugares"
                             :key="l.id"
                             @click="alternarLugar(l.id)"
-                            :class="lugaresSeleccionados.includes(l.id)
-                                ? 'bg-[#376875] text-white border-[#376875]'
+                            :class="lugaresSeleccionados.includes(l.id) ? 'bg-[#376875] text-white border-[#376875]'
                                 : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
                             class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
                         >
@@ -1327,8 +1345,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                         -->
                         <button
                             @click="alternarLugar(SIN_LUGAR)"
-                            :class="lugaresSeleccionados.includes(SIN_LUGAR)
-                                ? 'bg-amber-500 text-white border-amber-500'
+                            :class="lugaresSeleccionados.includes(SIN_LUGAR) ? 'bg-amber-500 text-white border-amber-500'
                                 : 'bg-white text-amber-600 border-amber-200 hover:border-amber-400'"
                             class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
                             title="Servicios sin etiqueta de lugar (componentes manuales o sin catalogar)"
@@ -1455,8 +1472,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                 v-for="t in TIPOS_COMPONENTE"
                                 :key="t.value"
                                 @click="alternarTipo(t.value)"
-                                :class="tiposSeleccionados.includes(t.value)
-                                    ? 'bg-slate-900 text-white border-slate-900'
+                                :class="tiposSeleccionados.includes(t.value) ? 'bg-slate-900 text-white border-slate-900'
                                     : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
                                 class="flex items-center gap-1.5 px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
                             >
@@ -1566,20 +1582,19 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             <th class="px-3 py-3 w-8"></th>
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Hora</th>
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Servicio</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden lg:table-cell">Expediente</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:table-cell">Pax</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden md:table-cell" title="Quién opera el servicio y dónde se recoge. Debajo, a quién se le compra cuando no es el mismo.">Prestador</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden xl:table-cell text-right" title="Cotizado (de la cotización) frente a real (lo que se pagó). El delta es el margen operativo.">Costo</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Expediente</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Pax</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest" title="Quién opera el servicio y dónde se recoge. Debajo, a quién se le compra cuando no es el mismo.">Prestador</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right" title="Cotizado (de la cotización) frente a real (lo que se pagó). El delta es el margen operativo.">Costo</th>
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Reserva</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:table-cell">Operación</th>
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Operación</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
                                         <tr
                                             v-for="servicio in grupo.servicios"
                                             :key="servicio.id"
-                                            :class="[
-                                                seleccionados.includes(servicio.id ?? '') ? 'bg-[#376875]/5' : '',
+                                            :class="[ seleccionados.includes(servicio.id ?? '') ? 'bg-[#376875]/5' : '',
                                                 servicio.estadoComponente === 'cancelado' || servicio.modoComponente === 'reemplazado' ? 'opacity-55' : '',
                                             ]"
                                             class="hover:bg-slate-50/80 transition-colors"
@@ -1734,7 +1749,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                         </p>
 
                                                         <!-- 🔥 EL COSTO NEGOCIADO, EN MÓVIL.
-                                                             La columna «Costo» es `hidden xl:table-cell`: sólo
+                                                             La columna «Costo» es ``: sólo
                                                              existe a partir de 1280px, así que en el teléfono
                                                              —la herramienta principal— este campo no se había
                                                              podido tocar nunca. Se negocia de pie y con el móvil
@@ -1759,7 +1774,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
 
                                             <!-- Expediente: clic → modal con namelist, documentos y
                                                  salto a la cotización. Ver §3.17. -->
-                                            <td class="px-3 py-3 hidden lg:table-cell align-top">
+                                            <td class="px-3 py-3 align-top">
                                                 <button v-if="servicio.file?.id" @click="abrirExpediente(servicio)"
                                                         class="text-left max-w-[12rem] group/exp">
                                                     <p class="text-sm font-bold text-[#376875] truncate group-hover/exp:underline decoration-dotted">
@@ -1773,7 +1788,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             </td>
 
                                             <!-- Pax -->
-                                            <td class="px-3 py-3 hidden sm:table-cell whitespace-nowrap align-top">
+                                            <td class="px-3 py-3 whitespace-nowrap align-top">
                                                 <span class="text-xs font-black text-slate-600 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
                                                     <i class="fas fa-users text-slate-400 mr-1"></i>{{ servicio.cantidadPax }}
                                                 </span>
@@ -1781,14 +1796,13 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
 
                                             <!-- Prestador (quién opera / dónde se recoge) y, debajo, el
                                                  proveedor comercial sólo si difiere. Ver docs/Operacion.md §3.3.b -->
-                                            <td class="px-3 py-3 hidden md:table-cell align-top">
+                                            <td class="px-3 py-3 align-top">
                                                 <input
                                                     :value="servicio.prestadorEfectivoNombre ?? ''"
                                                     @change="editarPrestador(servicio, $event)"
                                                     list="catalogo-organizaciones"
                                                     :placeholder="servicio.soloReferencia ? 'Referencia' : 'Por asignar'"
-                                                    :class="[
-                                                        'w-full max-w-[11rem] text-sm font-bold bg-transparent px-2 py-1 rounded-lg border outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium',
+                                                    :class="[ 'w-full max-w-[11rem] text-sm font-bold bg-transparent px-2 py-1 rounded-lg border outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium',
                                                         servicio.prestadorOverrideNombre
                                                             ? 'text-[#376875] border-[#376875]/30'
                                                             : 'text-slate-700 border-transparent hover:border-slate-200',
@@ -1845,8 +1859,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                         @change="editarProveedor(servicio, $event)"
                                                         list="catalogo-organizaciones"
                                                         placeholder="Sin definir"
-                                                        :class="[
-                                                            'w-full max-w-[8rem] text-[10px] font-bold bg-transparent px-1 py-0.5 rounded border outline-none focus:ring-1 focus:ring-[#376875] focus:bg-white focus:text-slate-700 placeholder:text-slate-300 placeholder:font-medium',
+                                                        :class="[ 'w-full max-w-[8rem] text-[10px] font-bold bg-transparent px-1 py-0.5 rounded border outline-none focus:ring-1 focus:ring-[#376875] focus:bg-white focus:text-slate-700 placeholder:text-slate-300 placeholder:font-medium',
                                                             servicio.compradorOverrideNombre
                                                                 ? 'text-[#376875] border-[#376875]/30'
                                                                 : 'text-slate-400 border-transparent hover:border-slate-200',
@@ -1856,7 +1869,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             </td>
 
                                             <!-- Costo: cotizado (solo lectura) vs real (editable) -->
-                                            <td class="px-3 py-3 hidden xl:table-cell align-top text-right whitespace-nowrap">
+                                            <td class="px-3 py-3 align-top text-right whitespace-nowrap">
                                                 <p class="text-[10px] font-bold text-slate-400 tabular-nums">
                                                     <span class="text-slate-300 mr-1">{{ servicio.monedaCotizada?.id || '' }}</span>{{ importe(servicio.costoCotizado) }}
                                                 </p>
@@ -1918,7 +1931,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             </td>
 
                                             <!-- Estado operación editable -->
-                                            <td class="px-3 py-3 hidden sm:table-cell whitespace-nowrap align-top">
+                                            <td class="px-3 py-3 whitespace-nowrap align-top">
                                                 <select
                                                     :value="servicio.estadoOperacion"
                                                     @change="guardarCampo(servicio, { estadoOperacion: ($event.target as HTMLSelectElement).value })"
@@ -1998,6 +2011,27 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                 <i :class="['fas text-[9px]', getEstadoOsConfig(orden.estadoOs).icon]"></i>
                                 {{ getEstadoOsConfig(orden.estadoOs).label }}
                             </span>
+                        </div>
+
+                        <!-- SUCIA: La Biblia se movió después de emitir. No se corrige sola —un
+                             documento mandado no cambia solo—: se avisa para que una persona
+                             decida y reemita. El detalle va debajo porque «algo cambió» sin
+                             decir QUÉ obliga a ir a buscarlo. -->
+                        <div v-if="orden.sucia" class="px-3 py-2 bg-amber-50 border-b border-amber-200">
+                            <p class="text-[10px] font-black text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fas fa-triangle-exclamation"></i>
+                                Ya no coincide con La Biblia
+                            </p>
+                            <ul class="mt-1 space-y-0.5">
+                                <li v-for="(d, i) in orden.divergencias" :key="i" class="text-[10px] text-amber-700 leading-snug">· {{ d }}</li>
+                            </ul>
+                            <button
+                                v-if="orden.id"
+                                @click="anularParaReemitir(orden)"
+                                class="mt-1.5 px-2 py-1 text-[10px] font-black text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition-colors"
+                            >
+                                Anular para reemitir
+                            </button>
                         </div>
 
                         <!-- Fila 2: destinatario e importes por moneda -->

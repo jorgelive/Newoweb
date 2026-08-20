@@ -185,6 +185,84 @@ nada—. Aplica a los seis modales de la pantalla (expediente, pagos, bitácora,
 mensajes), no sólo al nuevo. Sin esto, volver con un modal abierto mandaba al menú y perdía
 dónde estabas.
 
+### <a id="319"></a>3.19 La Orden es un documento: contenido propio y acciones (2026-08-20)
+
+#### El contenido
+
+Hasta ahora la Orden **no tenía contenido propio**: sus ítems eran las filas vivas de La Biblia
+enlazadas por `orden_servicio_id`. Eso dejaba una contradicción sin salida:
+
+```
+liberas las filas  →  la Orden anulada queda VACÍA
+las dejas atadas   →  no se pueden volver a pedir en otra Orden
+```
+
+`OperacionOrdenServicioItem` congela lo que el documento pidió —descripción, fecha, hora, pax,
+cantidad, importe con su moneda, prestador y servicio por NOMBRE— más `operacionServicioId` como
+**soft-link** hacia atrás. Anular = **soltar el vínculo vivo y conservar el congelado**.
+
+⚠️ **Se congela al EMITIR, no al crear.** Un `borrador` todavía se compone y debe seguir siendo
+una vista viva; al emitirlo pasa a ser un documento, y un documento dice lo que decía el día que
+se mandó.
+
+⚠️ **Lo cancelado no vuelve a entrar, y no hizo falta marcarlo.** Al soltarse la fila queda
+disponible, pero `OperacionServicio::motivoNoComprable()` le impide entrar en la siguiente si el
+componente está cancelado o reemplazado. La guarda ya existía: reutilizarla es un mecanismo menos.
+
+`reemplazaA` encadena las reemisiones — «OS-014 anulada → OS-021» es la pregunta que se hace de
+verdad cuando un proveedor reclama.
+
+#### La suciedad
+
+Después de emitir, La Biblia sigue moviéndose: **el cambio de fecha se hace en la cotización**,
+para que el programa que ve el cliente quede al día, y de ahí baja por el snapshot. Entonces el
+documento y la realidad se separan.
+
+`getDivergencias()` compara cada línea congelada con su fila viva y `isSucia()` lo resume. La
+Orden **no se corrige sola** —un documento mandado no cambia solo—: se marca y una persona
+decide. En pantalla sale el detalle («se pidió para el 01/09 y ahora es el 04/09») y un botón
+que anula para reemitir.
+
+Dos afinados que evitan avisos falsos: un `borrador` nunca está sucio, y un `costoNegociado` en
+cero **no** cuenta como cambio —mientras nadie pacte, lo vivo es lo cotizado—.
+
+#### Las acciones
+
+Crear una orden eran *N* `PATCH` para atar cada fila más un `POST` para la cabecera, orquestados
+desde el navegador. Si la pestaña se caía en medio quedaban filas atadas a una orden que no llegó
+a existir, y las reglas vivían la mitad en `conflictoSeleccion` del front — dos pestañas abiertas
+armaban lo que la vista impedía.
+
+```
+POST /platform/ops/orden-servicios/emitir        valida · crea · enlaza · congela · devuelve
+POST /platform/ops/orden-servicios/{id}/estado   valida la transición · ejecuta · devuelve
+```
+
+Mismo patrón que `/cotizacions/{id}/operacion/aplicar`, que ya existía en el módulo.
+
+⚠️ **`estadoOs` salió de `operacion:write`.** Con dos puertas a la misma transición las reglas se
+escapan por la que no mira nadie: un `PATCH` genérico no sabe distinguir «emitir» —que congela—
+de «corregir el número». Lo cazó el typecheck del front al quitarlo, que es la señal de que la
+puerta quedó cerrada de verdad.
+
+Las validaciones viven ahora en `OperacionOrdenEmision::validar()`: un solo expediente, un solo
+comprador **por id** y todo comprable. Se comprueban **antes de tocar nada**, así el error llega
+entero y no a mitad de una orden ya medio construida.
+
+#### Por qué NO un microservicio Node/Nuxt
+
+Se evaluó y se descartó con la regla que ya está escrita en `CLAUDE.md`: **Node calcula, PHP
+persiste**. Emitir una orden **escribe** —cabecera, ítems, vínculos, estado—, y la lógica ya vive
+en PHP. No hay conexión persistente, ni regla que ya exista en TypeScript, ni falta de cliente:
+los tres motivos que lo justificarían están ausentes. La única pieza que encajaría algún día es
+la maquetación de un PDF, que calcula y no persiste.
+
+#### Lo que queda pendiente
+
+El aviso al proveedor al emitir. Va **después del flush y en asíncrono**: si fuera dentro, una
+caída del correo tumbaría una orden que ya está bien emitida. El sitio es
+`CambiarEstadoOrdenProcessor`.
+
 ### <a id="318"></a>3.18 Los tres papeles: cotizado ↔ override, y el fin de los conflictos (2026-08-20)
 
 **Es la respuesta al problema que quedó abierto: la sincronización entre La Biblia y el
