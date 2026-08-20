@@ -486,22 +486,48 @@ const proveedorDeTarifaActiva = computed(() =>
     store.getProveedorDeTarifa(store.tarifaActiva?.tarifaMaestraId));
 
 /**
- * ⚠️ La tarifa elegida es de un proveedor distinto al prestador del componente.
+ * ⚠️ Lo que la tarifa elegida dice y NO coincide con lo que ya tiene la línea.
  *
- * NO se bloquea: hay razones legítimas —le compras al consolidador lo que opera otro— y un
- * candado dejaría esa tarifa inseleccionable. Pero es también el error más caro de cotizar
- * cuando es un despiste, porque no se nota hasta que hay que pedirle el servicio a alguien
- * que nunca la cotizó. Por eso se avisa y se deja pasar.
+ * **Sólo avisa, nunca bloquea.** Hay razones legítimas —le compras al consolidador lo que
+ * opera otro— y un candado dejaría esa tarifa inseleccionable. Pero es también el error más
+ * caro de cotizar cuando es un despiste, porque no se nota hasta que hay que pedirle el
+ * servicio a alguien que nunca lo cotizó. Por eso se avisa y se deja pasar.
+ *
+ * Compara los TRES papeles, no sólo el prestador: el comprador decide a nombre de quién sale
+ * la Orden de Servicio, así que mezclarlo sin querer manda el encargo a otra empresa.
+ *
+ * Devuelve la lista de desajustes; vacía significa que encaja o que no hay con qué comparar
+ * —la primera tarifa siembra la línea, así que nunca desajusta consigo misma—.
  */
-const tarifaDeOtroProveedor = computed<string | null>(() => {
-  const prov = proveedorDeTarifaActiva.value;
-  const prestador = prestadorParaFiltro.value;
+const desajustesDeTarifa = computed<string[]>(() => {
+  const papeles = store.getPapelesDeTarifa(store.tarifaActiva?.tarifaMaestraId);
+  const linea = store.componenteEnEdicion;
 
-  if (!prov?.id || !prestador?.maestroId) return null;
-  if (prov.id === prestador.maestroId) return null;
+  if (!papeles || !linea) return [];
 
-  return prov.nombre || 'otro proveedor';
+  const distinto = (deLaTarifa: string | null, deLaLinea: string | null | undefined): boolean =>
+      !!deLaTarifa && !!store.extractIdStr(deLaLinea ?? null) && store.extractIdStr(deLaLinea ?? null) !== deLaTarifa;
+
+  const avisos: string[] = [];
+
+  if (distinto(papeles.prestadorMaestroId, linea.prestadorMaestroId)) {
+    avisos.push(`prestador ${papeles.prestadorNombreSnapshot || 'distinto'}, y la línea tiene ${linea.prestadorNombreSnapshot || 'otro'}`);
+  }
+
+  if (distinto(papeles.prestadorServicioMaestroId, linea.prestadorServicioMaestroId)) {
+    avisos.push(`servicio ${papeles.prestadorServicioNombreSnapshot || 'distinto'}, y la línea tiene ${linea.prestadorServicioNombreSnapshot || 'otro'}`);
+  }
+
+  if (distinto(papeles.compradorMaestroId, linea.compradorMaestroId)) {
+    avisos.push(`comprador ${papeles.compradorNombreSnapshot || 'distinto'}, y la línea tiene ${linea.compradorNombreSnapshot || 'otro'} — la Orden saldría a ese nombre`);
+  }
+
+  return avisos;
 });
+
+/** El aviso ya redactado, o null si no hay nada que avisar. */
+const tarifaDeOtroProveedor = computed<string | null>(() =>
+    desajustesDeTarifa.value.length ? desajustesDeTarifa.value.join('; ') : null);
 
 const filtroTarifasActivo = computed(() =>
     !!idsTarifasDelPrestador.value
@@ -2506,7 +2532,7 @@ store.$onAction(({ name, args }) => {
                           ? 'bg-red-50 text-red-700 border-red-300'
                           : 'bg-slate-100 text-slate-600 border-slate-200'"
                       :title="tarifaDeOtroProveedor
-                          ? `Esta tarifa es de ${proveedorDeTarifaActiva.nombre}, pero el prestador del componente es ${prestadorParaFiltro?.nombre || 'otro'}. Puede ser correcto —a veces se le compra a uno lo que opera otro—, pero compruébalo.`
+                          ? `Esta tarifa trae ${tarifaDeOtroProveedor}. Puede ser correcto —a veces se le compra a uno lo que opera otro—, pero compruébalo. No se cambia nada: manda lo que ya tiene la línea.`
                           : `Tarifa de ${proveedorDeTarifaActiva.nombre}`">
                   <i class="mr-1" :class="tarifaDeOtroProveedor ? 'fas fa-triangle-exclamation' : 'fas fa-truck-loading text-slate-400'"></i>
                   {{ proveedorDeTarifaActiva.nombre }}

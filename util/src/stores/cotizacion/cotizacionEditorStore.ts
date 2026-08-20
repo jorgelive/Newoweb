@@ -47,6 +47,7 @@ import {
     SegmentoComponenteProcesado,
     Servicio,
     SnapshotItem,
+    PapelesDeTarifa,
     Tarifa,
     TarifaBase,
     TarifaCategoriaValue,
@@ -419,8 +420,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * hay que recorrer `allComponentes` en vez de mirar la tarifa. Es el mismo camino que usa
      * el filtro blando del selector.
      */
-    const proveedorPorTarifa = computed<Map<string, { id: string; nombre: string }>>(() => {
-        const mapa = new Map<string, { id: string; nombre: string }>();
+    /**
+     * Los tres papeles de cada tarifa del catálogo, indexados por su id.
+     *
+     * Un solo mapa para los tres: son el mismo dato leído del mismo sitio, y tenerlos
+     * separados garantizaba que un día uno se actualizara y el otro no.
+     */
+    const papelesPorTarifa = computed<Map<string, PapelesDeTarifa>>(() => {
+        const mapa = new Map<string, PapelesDeTarifa>();
 
         catalogos.value.allComponentes.forEach(c => {
             const tarifas = ('tarifas' in c ? c.tarifas ?? [] : []) as TarifaLike[];
@@ -438,22 +445,30 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 // SIEMPRE falsa, el mapa quedaba vacío y de él colgaban en silencio el
                 // subtítulo del selector y el snapshot entero. Una cadena que no mira ningún
                 // compilador.
-                const id = extractIdStr('prestador' in t ? t.prestador : null);
-                const nombre = String(('prestadorNombre' in t ? t.prestadorNombre : null) ?? '');
-
-                if (!id && !nombre) return;
-
-                mapa.set(tid, { id, nombre });
+                mapa.set(tid, papelesDeTarifaMaestra(t));
             });
         });
 
         return mapa;
     });
 
-    /** El proveedor de una tarifa del catálogo, o null si no se puede resolver. */
+    /** Los tres papeles de una tarifa del catálogo. Vacíos si no está definida. */
+    const getPapelesDeTarifa = (t: TarifaLike | string | null | undefined): PapelesDeTarifa | null => {
+        const id = extractIdStr(t as string);
+        return id ? (papelesPorTarifa.value.get(id) ?? null) : null;
+    };
+
+    /**
+     * El prestador de una tarifa del catálogo, o null si no lo tiene.
+     *
+     * Se queda como atajo del anterior porque media vista lo llama así, y porque la pregunta
+     * «¿de quién es este precio?» merece una respuesta corta.
+     */
     const getProveedorDeTarifa = (t: TarifaLike | string | null | undefined): { id: string; nombre: string } | null => {
-        const id = typeof t === 'string' ? extractIdStr(t) : extractIdStr(t);
-        return id ? (proveedorPorTarifa.value.get(id) ?? null) : null;
+        const p = getPapelesDeTarifa(t);
+        if (!p?.prestadorMaestroId && !p?.prestadorNombreSnapshot) return null;
+
+        return { id: p.prestadorMaestroId ?? '', nombre: p.prestadorNombreSnapshot ?? '' };
     };
 
     /**
@@ -3163,7 +3178,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // desde `Version20260816240000`, pero la línea tiene que recordar de cuál vino: una
             // cotización puede acabar con tarifas de componentes distintos —el editor lo avisa
             // y lo deja pasar— y entonces «el prestador del componente» ya no lo dice.
-            ...prestadorDeTarifaParaSnapshot(tarifa),
+            ...papelesDeTarifaMaestra(tarifa),
             sobreescribirTraduccion: false
         };
     }
@@ -3180,14 +3195,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * en PHP. Rellenarlo aquí duplicaría esa regla y las dos copias acabarían diciendo cosas
      * distintas.
      */
-    function prestadorDeTarifaParaSnapshot(tarifa: TarifaLike): {
-        prestadorMaestroId: string | null;
-        prestadorNombreSnapshot: string | null;
-        prestadorServicioMaestroId: string | null;
-        prestadorServicioNombreSnapshot: string | null;
-        compradorMaestroId: string | null;
-        compradorNombreSnapshot: string | null;
-    } {
+    function papelesDeTarifaMaestra(tarifa: TarifaLike): PapelesDeTarifa {
         const iri = (v: unknown): string | null => extractIdStr(v as string) || null;
         const texto = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v : null);
 
@@ -3199,6 +3207,54 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             compradorMaestroId: iri('comprador' in tarifa ? tarifa.comprador : null),
             compradorNombreSnapshot: texto('compradorNombre' in tarifa ? tarifa.compradorNombre : null),
         };
+    }
+
+    /**
+     * La primera tarifa que trae un papel se lo pone a la línea. Las siguientes no lo pisan.
+     *
+     * ## Por qué «el primero manda» y no «el último»
+     *
+     * Porque el segundo suele ser el despiste. Colgar de una línea una tarifa de otra empresa
+     * es legítimo —le compras al consolidador lo que opera otro— pero es también el error más
+     * caro de cotizar cuando no es intencionado, y no se nota hasta que hay que pedirle el
+     * servicio a alguien que nunca lo cotizó. Si el último ganara, ese despiste reescribiría
+     * en silencio lo que ya estaba bien.
+     *
+     * ## Por qué NO bloquea
+     *
+     * Un candado dejaría esa tarifa inseleccionable y el caso legítimo existe. Se avisa y se
+     * deja pasar: `desajusteDeTarifa` en la vista.
+     *
+     * ⚠️ **El servicio va atado al prestador, no suelto.** Sólo se siembra si la línea acaba
+     * de tomar ese prestador o ya lo tenía: rellenar el servicio desde una tarifa de OTRA
+     * empresa dejaría la línea diciendo «Hotel A» con «habitación del Hotel B» — la misma
+     * incoherencia que `TravelTarifa::validarConsistenciaLogica()` impide en el catálogo.
+     *
+     * El comprador sí es independiente: a quién se le encarga la compra no depende de quién
+     * preste, que es justo su razón de ser.
+     */
+    function sembrarPapelesEnLinea(linea: ComponenteCompleto | null, papeles: PapelesDeTarifa): void {
+        if (!linea) return;
+
+        const vacio = (v: string | null | undefined): boolean => !extractIdStr(v ?? null);
+
+        if (papeles.prestadorMaestroId && vacio(linea.prestadorMaestroId)) {
+            linea.prestadorMaestroId = papeles.prestadorMaestroId;
+            linea.prestadorNombreSnapshot = papeles.prestadorNombreSnapshot;
+        }
+
+        const mismoPrestador = !papeles.prestadorMaestroId
+            || extractIdStr(linea.prestadorMaestroId ?? null) === papeles.prestadorMaestroId;
+
+        if (papeles.prestadorServicioMaestroId && mismoPrestador && vacio(linea.prestadorServicioMaestroId)) {
+            linea.prestadorServicioMaestroId = papeles.prestadorServicioMaestroId;
+            linea.prestadorServicioNombreSnapshot = papeles.prestadorServicioNombreSnapshot;
+        }
+
+        if (papeles.compradorMaestroId && vacio(linea.compradorMaestroId)) {
+            linea.compradorMaestroId = papeles.compradorMaestroId;
+            linea.compradorNombreSnapshot = papeles.compradorNombreSnapshot;
+        }
     }
 
     const encontrarComponentePorTarifaId = (tarifaId: string): ComponenteCompleto | null => {
@@ -3970,7 +4026,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             // 🏷️ Los tres papeles, congelados al elegir la tarifa. No se pintan en el
             // formulario a propósito: son referencia histórica, no campos que se editen.
-            const prov = prestadorDeTarifaParaSnapshot(maestro);
+            const prov = papelesDeTarifaMaestra(maestro);
             tarifa.prestadorMaestroId = prov.prestadorMaestroId;
             tarifa.prestadorNombreSnapshot = prov.prestadorNombreSnapshot;
             tarifa.prestadorServicioMaestroId = prov.prestadorServicioMaestroId;
@@ -3978,14 +4034,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             tarifa.compradorMaestroId = prov.compradorMaestroId;
             tarifa.compradorNombreSnapshot = prov.compradorNombreSnapshot;
 
-            // Y si la línea todavía no tiene prestador, lo toma de la tarifa: el primero que
-            // llega manda. Si ya tenía otro NO se pisa —la mezcla la avisa
-            // `tarifaDeOtroProveedor` en la vista, que llega antes y deja decidir a la persona.
-            const linea = componenteActualDeTarifa.value;
-            if (linea && prov.prestadorMaestroId && !extractIdStr(linea.prestadorMaestroId)) {
-                linea.prestadorMaestroId = prov.prestadorMaestroId;
-                linea.prestadorNombreSnapshot = prov.prestadorNombreSnapshot;
-            }
+            // Y la LÍNEA toma de la tarifa los papeles que todavía no tenga: el primero que
+            // llega manda. Lo que ya estaba NO se pisa —la mezcla la avisa `desajusteDeTarifa`
+            // en la vista, que llega antes y deja decidir a la persona—.
+            sembrarPapelesEnLinea(componenteActualDeTarifa.value, prov);
         }
     };
 
@@ -4313,7 +4365,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,
         resumenFinanciero, gruposUpgrade, itinerarioDinamico, totalCostoNeto, ventaSugerida,
         getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, calcularPernoctes,
-        isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, getTarifaSublabel, getProveedorDeTarifa, extractIdStr,
+        isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, getTarifaSublabel, getProveedorDeTarifa, getPapelesDeTarifa, extractIdStr,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,
         updateNumPaxGlobal, agregarServicio, eliminarServicio, agregarComponente, eliminarComponente,
         agregarSnapshotItem, eliminarSnapshotItem, toggleUpsellComponent, isComponenteBloqueado,

@@ -280,6 +280,23 @@ export type Segmento = Omit<
 };
 export type TarifaBase = components['schemas']['Tarifa-componente.item.read'];
 
+/**
+ * Los tres papeles de una tarifa, en la forma en que se congelan.
+ *
+ * Espejo de las seis columnas de `App\Cotizacion\Entity\CotizacionCottarifa` y de los seis
+ * campos que expone `App\Travel\Entity\TravelTarifa` — los mismos nombres a propósito: la
+ * copia va de una a la otra sin traducir, y que coincidan es lo que hace obvio de dónde sale
+ * cada cosa.
+ */
+export interface PapelesDeTarifa {
+    prestadorMaestroId: string | null;
+    prestadorNombreSnapshot: string | null;
+    prestadorServicioMaestroId: string | null;
+    prestadorServicioNombreSnapshot: string | null;
+    compradorMaestroId: string | null;
+    compradorNombreSnapshot: string | null;
+}
+
 export type ComponenteCatalogo = Componente | ComponentePlaceholder;
 
 // Los papeles (`prestador`, `prestadorServicio`, `comprador`) NO se redeclaran: el schema ya

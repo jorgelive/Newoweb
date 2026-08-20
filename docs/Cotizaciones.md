@@ -770,6 +770,45 @@ Ver `docs/Operacion.md` §3.3 para el lado operativo. En pax la referencia viaja
 `no_incluido`), no sólo en la entidad — como todo lo que pasa por snapshot, **hay que re-guardar
 la cotización** para que aparezca en una propuesta antigua.
 
+### Cómo se llena la línea: el primero manda, el segundo avisa (20/08/2026)
+
+Los tres papeles viven en la **tarifa maestra** (`TravelTarifa`), no en el componente — un
+componente puede tener tarifas de empresas distintas, ver `docs/Travel.md` §11. Al colgar una
+tarifa de una línea pasan dos cosas, y conviene no confundirlas:
+
+1. **Se congelan en la cottarifa**, siempre y sin preguntar. Es el snapshot: registra de quién
+   era ESE precio, y no cambia aunque después se edite el maestro.
+2. **Se siembran en el cotcomponente** sólo si el hueco está vacío. `sembrarPapelesEnLinea()`
+   en `cotizacionEditorStore.ts`.
+
+```
+tarifa 1ª  →  la línea no tiene nada  →  toma prestador, servicio y comprador
+tarifa 2ª  →  la línea ya tiene       →  NO se pisa; si difiere, se avisa
+```
+
+**Por qué manda el primero y no el último.** Porque el segundo suele ser el despiste. Colgar de
+una línea una tarifa de otra empresa es legítimo —le compras al consolidador lo que opera otro—
+pero es también el error más caro de cotizar cuando no es intencionado, y no se nota hasta que
+hay que pedirle el servicio a alguien que nunca lo cotizó. Si ganara el último, ese despiste
+reescribiría en silencio lo que ya estaba bien.
+
+**Por qué no bloquea.** Un candado dejaría esa tarifa inseleccionable y el caso legítimo existe.
+`desajustesDeTarifa` en `CotizacionEditorView.vue` compara los tres papeles y redacta el aviso;
+la insignia se pone en rojo y el tooltip dice qué no encaja. Nada más: no cambia datos.
+
+⚠️ **El servicio va atado al prestador, no suelto.** Sólo se siembra si la línea acaba de tomar
+ese prestador o ya lo tenía. Rellenarlo desde una tarifa de otra empresa dejaría la línea
+diciendo «Hotel A» con «habitación del Hotel B» — la misma incoherencia que
+`TravelTarifa::validarConsistenciaLogica()` impide en el catálogo.
+
+El **comprador sí es independiente**: a quién se le encarga la compra no depende de quién preste,
+que es justo su razón de ser. Y es el que más cuesta si se cuela: la Orden de Servicio sale a su
+nombre.
+
+**Sin test automático.** `util/` no tiene runner (`package.json` sólo trae `typecheck` y `lint`),
+así que esto se verifica a mano: colgar una tarifa con prestador de una línea vacía y ver que la
+toma; colgar después una de otra empresa y ver que la línea **no** cambia y sale el aviso.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -869,7 +908,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Precio "desde" del escaparate del catálogo** → `preciosDesde[]` (bloque "Precios de Exhibición" del editor) → `PaxCatalogoPortadaView.vue` / `CatalogoDashboard.vue`. No es lo mismo que el flag anterior (§6.b).
 - **En qué idioma ve el cliente la propuesta** → `idiomaCliente` (§6). Alta: `handleCreate` en `DashboardView.vue`. Cambio posterior: selector de `FileDetalle.vue` → propaga `CotizacionFileIdiomaClienteListener`. Por versión: selector del editor.
 - **Qué pasa al pasar una versión a `confirmado`** → dispara `CotizacionConfirmadaEventListener` y genera el cuadro de tráfico del Centro de Operaciones. Es un **snapshot y sólo en la transición**: lo que edites después no llega. El botón «Revisar cambios de operación» (editor, junto al selector de estado) y el icono de diff de `FileDetalle.vue` abren un panel que compara y aplica **sólo lo que apruebes, campo a campo**: `POST .../operacion/plan` y `POST .../operacion/aplicar`. Detalle completo en `docs/Operacion.md` §3.5 y §7.1. **Ojo:** para llegar a `confirmado` hay que pasar el guard de `publicable` — ver §4.b.
-- **Quién presta un servicio (hotel del pasajero, vuelo no incluido)** → `prestador*` en `CotizacionCotcomponente`. Sin cascada y sin default por día: los dos se retiraron. `resolverPrestador()` es un lector, **espejo en PHP y TS**. Filtros blandos: `opcionesTarifasFiltradas` (tarifa maestra) y `opcionesProveedoresTarifa` (proveedor) en `CotizacionEditorView.vue`. Ver §6.c — y ojo: el filtro de tarifas necesita `travel_tarifa.proveedor_id`, hoy casi vacío.
+- **Quién presta un servicio (hotel del pasajero, vuelo no incluido)** → `prestador*` en `CotizacionCotcomponente`. Sin cascada y sin default por día: los dos se retiraron. `resolverPrestador()` es un lector, **espejo en PHP y TS**. Filtros blandos: `opcionesTarifasFiltradas` (tarifa maestra) y `opcionesProveedoresTarifa` (proveedor) en `CotizacionEditorView.vue`. Ver §6.c. La fuente es `travel_tarifa.prestador_id` (y `comprador_id`), que vuelven a existir desde el 20/08/2026 — nacen vacíos y se llenan a mano en el tarifario.
 - **Que al prestador se le nombre (o no) ante el cliente** → `CotizacionCotcomponente::$prestadorVisible`. **Espejo triple**: el normalizer, `construirInclusiones()` y `onPrestadorComponenteChange()` (que lo siembra). Ya **no** se deriva del `modo`; el flag de anonimato global sigue sin taparlo. Ver §6.c.
 - **Quién presta un componente** → `CotizacionCotcomponente::$prestador*`, soft-link a `Proveedor` o escrito a mano. Se edita en el inspector del COMPONENTE, junto al comprador. Ver §6.c.
 - **A quién se le encarga ejecutar la compra** → `compradorMaestroId` + `compradorNombreSnapshot` en `CotizacionCotcomponente`, soft-link al catálogo de proveedores. Cascada en `resolverComprador()`, **espejo en PHP y TS**. Llega a Operación por `BibliaSnapshotService`. Ver §6.c — **siempre un `Proveedor`, nunca una persona**, y **nunca** le pongas grupo público.
