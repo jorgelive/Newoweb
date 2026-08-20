@@ -257,6 +257,54 @@ en PHP. No hay conexión persistente, ni regla que ya exista en TypeScript, ni f
 los tres motivos que lo justificarían están ausentes. La única pieza que encajaría algún día es
 la maquetación de un PDF, que calcula y no persiste.
 
+#### Dos severidades: lo que obliga a reemitir y lo que sólo hay que aplicar
+
+No todo lo que se mueve tiene la misma consecuencia, y meterlo todo en «sucia» convierte el
+aviso en ruido que nadie mira.
+
+**Mayor → reemitir** (`getDivergencias()`, aviso ámbar). Si el proveedor tuviera esta orden
+delante, estaría leyendo algo que ya no es cierto:
+
+| Condición | |
+|---|---|
+| **Cambió el comprador** | el peor de todos: la orden **ya se mandó a la empresa equivocada** |
+| La fila ya no está en la orden | |
+| Cambió la fecha | se toca en la cotización, para que el programa del cliente quede al día |
+| Cambiaron los pax | |
+| Cambió el importe | |
+| Cambió la hora **ya confirmada** | modificación: hay que avisar al cliente y al proveedor |
+
+**Menor → aplicar** (`getCambiosMenores()`, aviso azul, botón «Actualizar y avisar»):
+
+| Condición | |
+|---|---|
+| Aparece la hora de recojo **por primera vez** | el proveedor la **confirmó** |
+
+⚠️ **La hora tiene dos lados, y confundirlos rompe el flujo normal.** Cuando le pides un
+servicio a un proveedor, **la hora te la dice él al confirmar**: que aparezca es el final
+correcto del proceso, no un descuido. Tratarlo como cambio sucio obligaría a reemitir **cada
+orden que sale bien**.
+
+Lo que distingue una cosa de la otra es `OperacionOrdenServicioItem::$horaRecojoConfirmada`,
+congelado al emitir:
+
+```
+estaba NULA  y ahora hay hora   →  confirmó      →  menor
+estaba PUESTA y ahora es otra   →  modificó      →  mayor
+```
+
+Y el aviso que sale **no es el mismo**: al cliente se le confirma la hora para su programa y al
+proveedor se le acusa recibo. Mandar un «cambio de horario» donde hubo una confirmación siembra
+dudas sobre un servicio que va bien.
+
+`POST /platform/ops/orden-servicios/{id}/aplicar-menores` copia el dato al documento y **la
+orden sigue emitida**. De ahí cuelgan las acciones; hoy quedan en el log y el envío va aparte y
+en asíncrono, porque una caída del correo no puede deshacer una actualización ya aplicada.
+
+⚠️ Y el **botón es otro**, no el de reemitir. Confirmar una hora y rehacer un documento son dos
+gestos con consecuencias muy distintas; darles el mismo botón invita a usar el destructivo por
+costumbre.
+
 #### La reemisión: la sucesora nace con la anulación, no después
 
 ⚠️ **Anular a secas pierde trabajo.** Si el botón sólo anulara, las filas quedarían sueltas en

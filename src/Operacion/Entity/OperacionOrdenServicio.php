@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use App\Operacion\ApiPlatform\Dto\CambiarEstadoOrdenInput;
 use App\Operacion\ApiPlatform\Dto\EmitirOrdenInput;
+use App\Operacion\ApiPlatform\State\AplicarCambiosMenoresProcessor;
 use App\Operacion\ApiPlatform\State\CambiarEstadoOrdenProcessor;
 use App\Operacion\ApiPlatform\State\EmitirOrdenProcessor;
 use ApiPlatform\Metadata\Post;
@@ -69,6 +70,17 @@ use Symfony\Component\Uid\Uuid;
             securityMessage: 'No tienes permiso para emitir órdenes de servicio.',
             read: false,
             processor: EmitirOrdenProcessor::class
+        ),
+        // Lo que NO obliga a reemitir: el proveedor confirmó la hora. Se actualiza el
+        // documento y se avisa —confirmación, no modificación—, y la orden sigue válida.
+        new Post(
+            uriTemplate: '/orden-servicios/{id}/aplicar-menores',
+            security: "is_granted('" . Roles::OPERACIONES_WRITE . "')",
+            securityMessage: 'No tienes permiso para actualizar órdenes de servicio.',
+            read: false,
+            deserialize: false,
+            validate: false,
+            processor: AplicarCambiosMenoresProcessor::class
         ),
         new Post(
             uriTemplate: '/orden-servicios/{id}/estado',
@@ -374,31 +386,41 @@ class OperacionOrdenServicio
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * En qué se separó el documento de lo que hoy dice La Biblia.
+     * Lo que separa al documento de La Biblia **y obliga a reemitir**.
      *
-     * Compara cada línea congelada con su fila viva, buscándola por el soft-link. Sin consultas:
-     * las filas vivas de esta Orden ya están en `$this->operacionServicios`.
+     * Aquí sólo entra lo que cambia el trato: si el proveedor tuviera esta orden delante,
+     * estaría leyendo algo que ya no es cierto. Lo que se resuelve actualizando y avisando va
+     * en {@see self::getCambiosMenores()}.
      *
      * @return list<string>
      */
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getDivergencias(): array
     {
-        if (!$this->estaEmitida() || $this->estadoOs === EstadoOrdenServicioEnum::CANCELADA) {
-            return [];   // un borrador es una vista viva; una anulada ya no se persigue
-        }
-
-        $vivos = [];
-        foreach ($this->operacionServicios as $servicio) {
-            $vivos[(string) $servicio->getId()] = $servicio;
+        if (!$this->vigilable()) {
+            return [];
         }
 
         $avisos = [];
 
+        // El COMPRADOR es el peor de todos: la orden ya se mandó a la empresa equivocada.
+        // Va antes que nada porque no depende de ninguna línea concreta.
+        foreach ($this->operacionServicios as $servicio) {
+            $efectivo = $servicio->getCompradorEfectivoMaestroId();
+
+            if ($efectivo !== null && $efectivo !== $this->compradorMaestroId) {
+                $avisos[] = sprintf(
+                    'se pidió a %s y ahora se le compra a %s',
+                    $this->compradorNombre ?? '—',
+                    $servicio->getCompradorEfectivoNombre() ?? '—'
+                );
+                break;
+            }
+        }
+
         foreach ($this->items as $item) {
-            $id = $item->getOperacionServicioId();
-            $servicio = $id !== null ? ($vivos[$id] ?? null) : null;
-            $que = $item->getDescripcion() !== '' ? mb_substr($item->getDescripcion(), 0, 34) : 'un servicio';
+            $servicio = $this->vivoDe($item);
+            $que = $this->etiqueta($item);
 
             // Se soltó de esta Orden: lo movieron, lo cancelaron o se anuló la fila.
             if ($servicio === null) {
@@ -421,22 +443,128 @@ class OperacionOrdenServicio
             if (!self::mismoImporte($item->getImporte(), $servicio->getCostoNegociado(), $servicio->getCostoCotizado())) {
                 $avisos[] = sprintf('«%s»: el importe cambió', $que);
             }
+
+            // Hora que YA estaba confirmada y ahora es otra: eso es una modificación, y hay
+            // que avisar al cliente y al proveedor. Que aparezca por primera vez, no.
+            $confirmada = $item->getHoraRecojoConfirmada();
+            if ($confirmada !== null && $confirmada !== $servicio->getHoraRecojo()) {
+                $avisos[] = sprintf('«%s»: el recojo era a las %s y ahora es a las %s',
+                    $que, $confirmada, $servicio->getHoraRecojo() ?? '—');
+            }
         }
 
         return $avisos;
     }
 
-    /** ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+    /**
+     * Lo que se resuelve **actualizando la orden**, sin reemitir.
+     *
+     * De momento sólo la hora de recojo que aparece por primera vez, y es el caso más común
+     * de todos: cuando le pides un servicio a un proveedor, **la hora te la dice él al
+     * confirmar**. Que aparezca es el final normal del flujo, no un descuido — tratarlo como
+     * cambio sucio obligaría a reemitir cada orden que sale bien.
+     *
+     * Lo que sí hay que hacer es **confirmarla a las dos partes**: al cliente, para su
+     * programa, y al proveedor, como acuse. Pero es una confirmación, no una modificación, y
+     * el aviso que se manda no es el mismo.
+     *
+     * @return list<string>
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getCambiosMenores(): array
+    {
+        if (!$this->vigilable()) {
+            return [];
+        }
+
+        $avisos = [];
+
+        foreach ($this->items as $item) {
+            $servicio = $this->vivoDe($item);
+
+            if ($servicio === null || $item->getHoraRecojoConfirmada() !== null) {
+                continue;
+            }
+
+            if (($hora = $servicio->getHoraRecojo()) !== null) {
+                $avisos[] = sprintf('«%s»: el proveedor confirmó el recojo a las %s', $this->etiqueta($item), $hora);
+            }
+        }
+
+        return $avisos;
+    }
+
+    /** ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function isSucia(): bool
     {
         return $this->getDivergencias() !== [];
     }
 
+    /** ¿Hay algo que aplicar sin reemitir? Pinta el aviso azul, con su botón. */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function hasCambiosMenores(): bool
+    {
+        return $this->getCambiosMenores() !== [];
+    }
+
     /**
-     * Mientras nadie negocie, el importe vivo es el cotizado — igual que en el desglose por
-     * moneda. Comparar contra un cero de «todavía sin pactar» marcaría sucia toda orden nueva.
+     * Copia los cambios menores al documento. **No reemite: la orden sigue siendo válida.**
+     *
+     * Devuelve lo aplicado para que quien llame sepa qué avisar — es de aquí de donde cuelgan
+     * las acciones: confirmar la hora al cliente y acusarla al proveedor.
+     *
+     * @return list<string>
      */
+    public function aplicarCambiosMenores(): array
+    {
+        $aplicados = $this->getCambiosMenores();
+
+        foreach ($this->items as $item) {
+            $servicio = $this->vivoDe($item);
+
+            if ($servicio === null || $item->getHoraRecojoConfirmada() !== null) {
+                continue;
+            }
+
+            if (($hora = $servicio->getHoraRecojo()) !== null) {
+                $item->setHoraRecojoConfirmada($hora);
+                $item->setHora($hora);
+            }
+        }
+
+        return $aplicados;
+    }
+
+    /** Un borrador es una vista viva; una anulada ya no se persigue. */
+    private function vigilable(): bool
+    {
+        return $this->estaEmitida() && $this->estadoOs !== EstadoOrdenServicioEnum::CANCELADA;
+    }
+
+    /** La fila viva de una línea congelada, buscada por el soft-link. Sin consultas. */
+    private function vivoDe(OperacionOrdenServicioItem $item): ?OperacionServicio
+    {
+        $id = $item->getOperacionServicioId();
+
+        if ($id === null) {
+            return null;
+        }
+
+        foreach ($this->operacionServicios as $servicio) {
+            if ((string) $servicio->getId() === $id) {
+                return $servicio;
+            }
+        }
+
+        return null;
+    }
+
+    private function etiqueta(OperacionOrdenServicioItem $item): string
+    {
+        return $item->getDescripcion() !== '' ? mb_substr($item->getDescripcion(), 0, 34) : 'un servicio';
+    }
+
     private static function mismoImporte(string $congelado, string $negociado, string $cotizado): bool
     {
         $vivo = (float) $negociado > 0.0 ? $negociado : $cotizado;

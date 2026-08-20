@@ -619,6 +619,26 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     /**
+     * Aplica lo que NO obliga a reemitir: hoy, la hora que el proveedor acaba de confirmar.
+     *
+     * Actualiza el documento y la orden **sigue emitida**. El aviso que sale de aquí es una
+     * confirmación al cliente y un acuse al proveedor, no un «cambio de horario»: mandar una
+     * modificación donde hubo una confirmación siembra dudas sobre un servicio que va bien.
+     */
+    const aplicarCambiosMenores = async (id: string): Promise<OperacionOrdenServicio> => {
+        isLoading.value = true;
+        try {
+            const { data } = await apiClient.post(`/platform/ops/orden-servicios/${id}/aplicar-menores`, {});
+            const i = ordenesServicio.value.findIndex(o => o.id === id);
+            if (i >= 0) ordenesServicio.value[i] = data;
+
+            return data;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
+    /**
      * Mueve una orden de estado. Emitir congela su contenido; anular suelta sus filas.
      *
      * Es una ACCIÓN y no un `PATCH` de `estadoOs`: ese campo ya no es escribible. Con dos
@@ -840,6 +860,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         fetchOrdenesServicio,
         emitirOrdenServicio,
         cambiarEstadoOrden,
+        aplicarCambiosMenores,
         actualizarOrdenServicio,
         fetchMensajesPorOrden,
         registrarMensaje

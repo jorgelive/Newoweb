@@ -78,6 +78,22 @@ class OperacionOrdenServicioItem
     #[ORM\Column(type: 'string', length: 10, nullable: true)]
     private ?string $hora = null;
 
+    /**
+     * La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula.
+     *
+     * ⚠️ Se guarda aparte de `$hora` porque distingue dos cosas que se parecen y no lo son:
+     *
+     *     estaba NULA y ahora hay hora   →  el proveedor CONFIRMÓ. Cambio menor.
+     *     estaba puesta y ahora es otra  →  MODIFICACIÓN. Hay que reemitir y avisar.
+     *
+     * Cuando le pides un servicio a un proveedor, la hora te la dice él al confirmar: que
+     * aparezca es el final normal del flujo, no un descuido de nadie. Tratarlo como cambio
+     * sucio obligaría a reemitir cada orden que sale bien.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 10, nullable: true)]
+    private ?string $horaRecojoConfirmada = null;
+
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $cantidadPax = null;
@@ -126,6 +142,9 @@ class OperacionOrdenServicioItem
 
     public function getHora(): ?string { return $this->hora; }
     public function setHora(?string $v): self { $this->hora = $v; return $this; }
+
+    public function getHoraRecojoConfirmada(): ?string { return $this->horaRecojoConfirmada; }
+    public function setHoraRecojoConfirmada(?string $v): self { $this->horaRecojoConfirmada = $v; return $this; }
 
     public function getCantidadPax(): ?int { return $this->cantidadPax; }
     public function setCantidadPax(?int $v): self { $this->cantidadPax = $v; return $this; }

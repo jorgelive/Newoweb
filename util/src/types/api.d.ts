@@ -1140,6 +1140,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/ops/orden-servicios/{id}/aplicar-menores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a OperacionOrdenServicio resource.
+         * @description Creates a OperacionOrdenServicio resource.
+         */
+        post: operations["api_opsorden-servicios_idaplicar-menores_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/ops/orden-servicios/{id}/estado": {
         parameters: {
             query?: never;
@@ -14179,9 +14199,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
-            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
         };
         "OperacionOrdenServicio-operacion.mensaje.read_timestamp.read": {
@@ -14226,9 +14248,11 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
-            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
-            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
         };
         "OperacionOrdenServicio-operacion.write": {
@@ -14299,9 +14323,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
-            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
         };
         "OperacionOrdenServicio.html-operacion.mensaje.read_timestamp.read": {
@@ -14346,9 +14372,11 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
-            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
-            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
         };
         "OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read": {
@@ -14357,9 +14385,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
-            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
         } & (components["schemas"]["HydraItemBaseSchema"] & {
             items?: components["schemas"]["OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read"][];
@@ -14392,9 +14422,11 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
-            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
-            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
         } & (components["schemas"]["HydraItemBaseSchema"] & {
             numeroOs?: string;
@@ -14419,9 +14451,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
-            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
         };
         "OperacionOrdenServicio.multipart-operacion.mensaje.read_timestamp.read": {
@@ -14466,9 +14500,11 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
-            /** @description En qué se separó el documento de lo que hoy dice La Biblia. */
+            /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
-            /** @description ¿Hay que reemitir? Es lo que pinta el aviso en la pantalla. */
+            /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
+            readonly cambiosMenores?: string[];
+            /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
         };
         "OperacionOrdenServicioItem-operacion.item.read_timestamp.read": {
@@ -14480,6 +14516,8 @@ export interface components {
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
             hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14504,6 +14542,8 @@ export interface components {
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
             hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14528,6 +14568,8 @@ export interface components {
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
             hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14552,6 +14594,8 @@ export interface components {
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
             hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14576,6 +14620,8 @@ export interface components {
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
             hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14600,6 +14646,8 @@ export interface components {
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
             hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14624,6 +14672,8 @@ export interface components {
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
             hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14648,6 +14698,8 @@ export interface components {
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
             hora?: string | null;
+            /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
+            horaRecojoConfirmada?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -33545,6 +33597,73 @@ export interface operations {
                 "application/json": components["schemas"]["OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write"];
                 "text/html": components["schemas"]["OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write"];
                 "multipart/form-data": components["schemas"]["OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionOrdenServicio resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_opsorden-servicios_idaplicar-menores_post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionOrdenServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new OperacionOrdenServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+                "application/json": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+                "text/html": components["schemas"]["OperacionOrdenServicio-operacion.write"];
+                "multipart/form-data": components["schemas"]["OperacionOrdenServicio-operacion.write"];
             };
         };
         responses: {

@@ -1088,6 +1088,25 @@ const onDestinatarioEdicion = (id: unknown): void => {
  * La anulada conserva sus líneas congeladas: el histórico no se toca. Y `reemplazaAId` deja
  * escrita la cadena «OS-014 → OS-021», que es lo que se consulta cuando un proveedor reclama.
  */
+/**
+ * Aplica los cambios menores: la orden se actualiza y **sigue emitida**.
+ *
+ * Botón aparte del de reemitir a propósito. Confirmar la hora que dio el proveedor y rehacer un
+ * documento porque cambió la fecha son dos gestos con consecuencias muy distintas, y darles el
+ * mismo botón invita a usar el destructivo por costumbre.
+ */
+const aplicarMenores = async (orden: OperacionOrdenServicio) => {
+    if (!orden.id) return;
+
+    try {
+        await operacionStore.aplicarCambiosMenores(orden.id);
+        await cargarBiblia();
+    } catch (e) {
+        avisoPapel.value = mensajeDeErrorApi(e, 'No se pudo actualizar la orden.');
+        window.setTimeout(() => { avisoPapel.value = null; }, 8000);
+    }
+};
+
 const anularParaReemitir = async (orden: OperacionOrdenServicio) => {
     const servicioIds = (orden.operacionServicios ?? [])
         .map(s => extractIdStr(s))
@@ -2037,11 +2056,35 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                             </span>
                         </div>
 
+                        <!-- CAMBIO MENOR: el proveedor confirmó la hora. No obliga a reemitir
+                             —es el final normal del flujo, no un descuido— así que va en azul y
+                             con su propio botón: darle el mismo que a reemitir invitaría a usar
+                             el destructivo por costumbre. -->
+                        <div v-if="orden.cambiosMenores?.length" class="px-3 py-2 bg-sky-50 border-b border-sky-200">
+                            <p class="text-[10px] font-black text-sky-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fas fa-circle-info"></i>
+                                Confirmación del proveedor
+                            </p>
+                            <ul class="mt-1 space-y-0.5">
+                                <li v-for="(d, i) in orden.cambiosMenores" :key="i" class="text-[10px] text-sky-700 leading-snug">· {{ d }}</li>
+                            </ul>
+                            <button
+                                v-if="orden.id"
+                                @click="aplicarMenores(orden)"
+                                class="mt-1.5 px-2 py-1 text-[10px] font-black text-sky-900 bg-sky-100 hover:bg-sky-200 border border-sky-300 rounded-lg transition-colors"
+                            >
+                                Actualizar y avisar
+                            </button>
+                            <p class="mt-1 text-[9px] text-sky-600 leading-snug">
+                                La orden sigue vigente. Se confirma la hora al cliente y al proveedor.
+                            </p>
+                        </div>
+
                         <!-- SUCIA: La Biblia se movió después de emitir. No se corrige sola —un
                              documento mandado no cambia solo—: se avisa para que una persona
                              decida y reemita. El detalle va debajo porque «algo cambió» sin
                              decir QUÉ obliga a ir a buscarlo. -->
-                        <div v-if="orden.sucia" class="px-3 py-2 bg-amber-50 border-b border-amber-200">
+                        <div v-if="orden.divergencias?.length" class="px-3 py-2 bg-amber-50 border-b border-amber-200">
                             <p class="text-[10px] font-black text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
                                 <i class="fas fa-triangle-exclamation"></i>
                                 Ya no coincide con La Biblia

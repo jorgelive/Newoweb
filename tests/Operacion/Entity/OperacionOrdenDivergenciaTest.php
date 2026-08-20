@@ -117,6 +117,86 @@ final class OperacionOrdenDivergenciaTest extends TestCase
         self::assertStringContainsString('el importe cambió', $orden->getDivergencias()[0]);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // MAYOR vs MENOR — la hora tiene dos lados
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Que la hora aparezca por primera vez es el proveedor CONFIRMANDO, no un cambio.
+     *
+     * Es el final normal del flujo: cuando le pides un servicio, la hora te la dice él al
+     * confirmar. Marcarlo sucio obligaría a reemitir cada orden que sale bien.
+     */
+    #[Test]
+    public function laHoraQueAparecePorPrimeraVezEsUnCambioMenor(): void
+    {
+        $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
+        $orden = $this->ordenCon($servicio);
+        (new OperacionOrdenEmision())->emitir($orden);
+
+        $servicio->setHoraRecojo('07:45');
+
+        self::assertFalse($orden->isSucia(), 'Confirmar no es modificar: no obliga a reemitir.');
+        self::assertTrue($orden->hasCambiosMenores());
+        self::assertStringContainsString('confirmó el recojo a las 07:45', $orden->getCambiosMenores()[0]);
+    }
+
+    /** Y cambiarla DESPUÉS de confirmada sí es una modificación: hay que reemitir y avisar. */
+    #[Test]
+    public function cambiarLaHoraYaConfirmadaSiEnsucia(): void
+    {
+        $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00')->setHoraRecojo('08:00');
+        $orden = $this->ordenCon($servicio);
+        (new OperacionOrdenEmision())->emitir($orden);
+
+        $servicio->setHoraRecojo('06:00');
+
+        self::assertTrue($orden->isSucia());
+        self::assertStringContainsString('el recojo era a las 08:00 y ahora es a las 06:00', $orden->getDivergencias()[0]);
+        self::assertFalse($orden->hasCambiosMenores());
+    }
+
+    /** Aplicar el menor actualiza el documento y la orden deja de tener nada pendiente. */
+    #[Test]
+    public function aplicarElMenorActualizaElDocumentoSinReemitir(): void
+    {
+        $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
+        $orden = $this->ordenCon($servicio);
+        (new OperacionOrdenEmision())->emitir($orden);
+        $servicio->setHoraRecojo('07:45');
+
+        $aplicados = $orden->aplicarCambiosMenores();
+
+        self::assertCount(1, $aplicados, 'Devuelve lo aplicado: de ahí cuelgan los avisos.');
+        self::assertFalse($orden->hasCambiosMenores());
+        self::assertSame(EstadoOrdenServicioEnum::EMITIDA, $orden->getEstadoOs(), 'Sigue emitida: no se reemite.');
+
+        $item = $orden->getItems()->first();
+        self::assertInstanceOf(OperacionOrdenServicioItem::class, $item);
+        self::assertSame('07:45', $item->getHoraRecojoConfirmada());
+    }
+
+    /**
+     * El comprador es el peor de todos: la orden ya se mandó a la empresa equivocada.
+     */
+    #[Test]
+    public function cambiarElCompradorEnsuciaLaOrden(): void
+    {
+        $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00')
+            ->setCompradorMaestroId('openperu-tickets')
+            ->setCompradorNombre('OpenPeru Tickets');
+        $orden = $this->ordenCon($servicio);
+        $orden->setCompradorMaestroId('openperu-tickets')->setCompradorNombre('OpenPeru Tickets');
+        (new OperacionOrdenEmision())->emitir($orden);
+
+        // Operaciones decide que el encargo va a otra empresa.
+        $servicio->setCompradorOverrideMaestroId('futurismo')->setCompradorOverrideNombre('Futurismo Jonathan');
+
+        self::assertTrue($orden->isSucia());
+        self::assertStringContainsString('se pidió a OpenPeru Tickets y ahora se le compra a Futurismo Jonathan',
+            $orden->getDivergencias()[0]);
+    }
+
     /** Anular: la Orden CONSERVA su contenido y la fila queda libre. Es la razón de todo esto. */
     #[Test]
     public function anularSueltaLaFilaYConservaElContenido(): void

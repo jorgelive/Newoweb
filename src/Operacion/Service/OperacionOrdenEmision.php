@@ -55,6 +55,9 @@ final readonly class OperacionOrdenEmision
                     ->setFechaServicio($servicio->getFechaServicio())
                     // La hora que se pidió: la pactada si la hay, si no la vendida.
                     ->setHora($servicio->getHoraRecojo() ?? $servicio->getHoraComponente())
+                    // Nula si el proveedor todavía no la ha confirmado. Es lo que distingue
+                    // «confirmó» de «cambió» cuando aparezca. Ver el docblock del ítem.
+                    ->setHoraRecojoConfirmada($servicio->getHoraRecojo())
                     ->setCantidadPax($servicio->getCantidadPax())
                     ->setCantidad((string) $servicio->getCantidadComponente())
                     // Mientras nadie negocie, lo que se pide es lo cotizado: un cero se leería
