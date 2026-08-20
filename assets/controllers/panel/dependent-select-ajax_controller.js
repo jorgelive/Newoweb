@@ -70,6 +70,15 @@ export default class extends Controller {
         ts.clear(true);
         ts.clearOptions();
 
+        // ⚠️ Y también las <option> del <select> NATIVO, que es lo que se olvidaba.
+        //
+        // `clearOptions()` vacía la lista interna de TomSelect, pero el select de debajo
+        // conserva las opciones que pintó el servidor —todas las del catálogo—. Como más abajo
+        // se llama a `ts.sync()`, TomSelect las relee del DOM y vuelven: el filtro AÑADÍA las de
+        // la empresa elegida y no quitaba las demás, así que el desplegable seguía ofreciendo
+        // servicios de otras. Comprobado en el panel: 4 opciones antes, 1 después de esto.
+        childSelect.querySelectorAll('option').forEach((o) => { if (o.value) o.remove(); });
+
         if (!parentId) return;
 
         const apiUrl = new URL(this.urlValue);
