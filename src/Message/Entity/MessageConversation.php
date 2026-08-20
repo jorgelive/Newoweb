@@ -249,6 +249,7 @@ class MessageConversation
         $this->contextId   = $contextId;
         $this->messages    = new ArrayCollection();
         $this->enlacesPms  = new ArrayCollection();
+        $this->identidades = new ArrayCollection();
         $this->contextData = [];
         $this->id          = Uuid::v7();
     }
@@ -569,6 +570,41 @@ class MessageConversation
     public function __toString(): string
     {
         return sprintf('%s (%s)', $this->guestName ?? 'Sin Nombre', $this->guestPhone ?? 'Sin Teléfono');
+    }
+
+    /**
+     * Por dónde se reconoce a esta persona: teléfonos, correos.
+     *
+     * La identidad vivía aplastada en `$guestPhone` —un valor, un canal— y por eso el correo
+     * no tenía dónde ir. Ver {@see MessageIdentidad}.
+     *
+     * @var Collection<int, MessageIdentidad>
+     */
+    #[Groups(['conversation:read'])]
+    #[ORM\OneToMany(mappedBy: 'conversacion', targetEntity: MessageIdentidad::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $identidades;
+
+    /** @return Collection<int, MessageIdentidad> */
+    public function getIdentidades(): Collection { return $this->identidades; }
+
+    /**
+     * Añade un identificador si no lo tenía ya.
+     *
+     * Idempotente a propósito: se llama en cada mensaje entrante, y comprobarlo aquí evita que
+     * cada llamador tenga que acordarse.
+     */
+    public function addIdentidad(MessageIdentidad $identidad): self
+    {
+        foreach ($this->identidades as $existente) {
+            if ($existente->getTipo() === $identidad->getTipo() && $existente->getValor() === $identidad->getValor()) {
+                return $this;
+            }
+        }
+
+        $this->identidades->add($identidad);
+        $identidad->setConversacion($this);
+
+        return $this;
     }
 
     /**

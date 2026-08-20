@@ -8,6 +8,8 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Exchange\Entity\MetaConfig;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
+use App\Message\Enum\IdentidadTipo;
+use App\Message\Service\Conversacion\ResolutorDeHilo;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Service\Inbound\InboundMenuResolver;
@@ -39,6 +41,8 @@ readonly class WhatsappMetaReceivePersister
         // Para identificar al huésped por su número al abrir una conversación nueva.
         private PmsReservaRepository         $reservas,
         private PhoneSanitizer               $phoneSanitizer,
+        // Un solo resolutor para todos los canales: antes cada uno buscaba a su manera.
+        private ResolutorDeHilo              $resolutor,
     ) {}
 
     /**
@@ -535,38 +539,32 @@ readonly class WhatsappMetaReceivePersister
      */
     private function resolveConversation(string $phone, string $guestName): MessageConversation
     {
-        $repo = $this->em->getRepository(MessageConversation::class);
+        // A. Por IDENTIDAD exacta. Determinista: `(tipo, valor)` es único.
+        $conversation = $this->resolutor->porIdentidad(IdentidadTipo::TELEFONO, $phone);
 
-        // A. Búsqueda Exacta (El escenario ideal)
-        // Búsqueda Unificada: Prioriza el número exacto o el "corazón" del número (fallback para OTAs).
-        // Se ordena por fecha de creación (DESC) para asegurar que siempre obtenemos la conversación más reciente.
-        $qb = $repo->createQueryBuilder('c')
-            ->where('c.status = :status')
-            ->setParameter('status', MessageConversation::STATUS_OPEN)
-            ->orderBy('c.createdAt', 'DESC')
-            ->setMaxResults(1);
-
-        if (strlen($phone) >= 9) {
-            // Extraemos los últimos 8 dígitos para ignorar prefijos internacionales duplicados o signos colados
-            $coreNumber = substr($phone, -8);
-            $qb->andWhere('c.guestPhone = :exactPhone OR c.guestPhone LIKE :phoneTail')
-                ->setParameter('exactPhone', $phone)
-                ->setParameter('phoneTail', '%' . $coreNumber);
-        } else {
-            // Si el número es muy corto, forzamos solo la búsqueda exacta para evitar falsos positivos
-            $qb->andWhere('c.guestPhone = :exactPhone')
-                ->setParameter('exactPhone', $phone);
+        // B. Si no, por la COLA del número: mismo teléfono con otro prefijo internacional.
+        //    Devuelve una sospecha, no una certeza, y queda registrada — antes esto decidía en
+        //    silencio y podía unir el historial de dos personas. Si casa con dos hilos, no
+        //    elige ninguno: nace uno nuevo, que es lo reversible.
+        $porCola = false;
+        if ($conversation === null) {
+            $conversation = $this->resolutor->candidatoPorColaDeTelefono($phone);
+            $porCola = $conversation !== null;
         }
 
-        /** @var MessageConversation|null $conversation */
-        $conversation = $qb->getQuery()->getOneOrNullResult();
+        if ($conversation !== null) {
+            // El número exacto queda registrado: la próxima vez la coincidencia es exacta y no
+            // hay que volver a adivinar. Cada mensaje mejora la resolución del siguiente.
+            if ($porCola) {
+                $this->resolutor->vincular($conversation, IdentidadTipo::TELEFONO, $phone, 'whatsapp');
+            }
 
-        if ($conversation) {
             // Actualizamos el nombre si el de WhatsApp es más fresco o si la OTA nos dejó "Guest"
             $currentName = $conversation->getGuestName();
             if (empty($currentName) || stripos($currentName, 'Guest') !== false || $currentName === 'Desconocido (WhatsApp)') {
                 $conversation->setGuestName($guestName);
             }
+
             return $conversation;
         }
 
@@ -604,6 +602,7 @@ readonly class WhatsappMetaReceivePersister
             $conversation->setGuestName($reserva->getNombreApellido() ?: $guestName);
             $conversation->setStatus(MessageConversation::STATUS_OPEN);
             $conversation->setIdioma($reserva->getIdioma() ?? $this->idiomaPorDefecto());
+            $this->resolutor->vincular($conversation, IdentidadTipo::TELEFONO, $phone, 'whatsapp');
 
             $this->em->persist($conversation);
 
@@ -623,6 +622,8 @@ readonly class WhatsappMetaReceivePersister
         if ($idiomaDefault) {
             $conversation->setIdioma($idiomaDefault);
         }
+
+        $this->resolutor->vincular($conversation, IdentidadTipo::TELEFONO, $phone, 'whatsapp');
 
         $this->em->persist($conversation);
 

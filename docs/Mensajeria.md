@@ -8406,3 +8406,91 @@ bajar una imagen.
 Los otros riesgos, para que la decisión se tome con ellos delante: son credenciales de persona,
 se rompen al cambiar la contraseña, y si Beds24 mete un captcha o cambia el formulario **el fallo
 es silencioso** —igual que lo fue éste—.
+
+---
+
+## 24. La identidad del hilo: un grupo de identificadores, no una columna
+
+### El problema
+
+Había **dos resolutores con claves distintas** escribiendo en la misma tabla:
+
+```
+WhatsApp entrante                Beds24 / OTA entrante
+      │                                  │
+por TELÉFONO                    por (contextType, contextId)
+      │                                  │
+      └────────► MessageConversation ◄───┘
+```
+
+Y el de teléfono emparejaba con `LIKE '%últimos 8 dígitos'` para tolerar prefijos
+internacionales distintos: resuelve un problema real y **puede casar con otra persona** sin
+dejar rastro.
+
+El resultado está medido en `ConversacionEnlaceInterface`: **20 teléfonos con más de un hilo**,
+uno con 247 mensajes repartidos en dos, otro con 122 en cuatro. *«Cuando el agente le atiende,
+ve una y el historial de las otras no existe para él.»*
+
+Y el fondo del asunto: la identidad vivía en **una columna**, `guestPhone`. Un valor, un canal.
+No había dónde poner un segundo teléfono ni el correo por el que la misma persona contesta.
+
+### La forma
+
+Dos ejes independientes colgando de la conversación, y **ninguno conoce un dominio**:
+
+```
+Conversación
+   ├─ identidades  telefono:+51984…  ·  email:nune@…     ← por dónde se le reconoce
+   └─ enlaces      pms/pms_reserva/…  ·  travel/…         ← de qué se habla
+```
+
+`(tipo, valor)` es **único**: un identificador pertenece a un hilo y sólo a uno. Eso hace la
+resolución determinista.
+
+⚠️ **La normalización vive en `IdentidadTipo::normalizar()` y sólo ahí.** Correo a minúsculas y
+recortado; teléfono a dígitos y `+`. Si cada sitio normalizara a su manera, dos formas del mismo
+correo acabarían en dos hilos — exactamente lo que esto viene a cerrar. Por eso
+`MessageIdentidad` normaliza **en el constructor**: no hay forma de crear una sin pasar por ahí.
+
+⚠️ **El prefijo NO se adivina al normalizar.** `+51984123456` y `984123456` son valores
+distintos, y unirlos es una decisión, no una limpieza.
+
+### Lo aproximado sugiere, no decide
+
+La cola de 8 dígitos sigue existiendo, **degradada a candidato**
+(`ResolutorDeHilo::candidatoPorColaDeTelefono()`):
+
+- casa con **un** hilo → se usa, **se registra en el log** y el número exacto queda vinculado,
+  así que la próxima vez la coincidencia es exacta;
+- casa con **dos** → no se elige ninguno y nace uno nuevo, que es lo reversible;
+- no casa → hilo nuevo.
+
+Cada mensaje que entra mejora la resolución del siguiente.
+
+### `status` fuera de la clave
+
+Buscar sólo entre los abiertos hacía que cerrar un hilo creara otro con el siguiente mensaje. El
+historial no se perdía, pero **dejaba de estar donde se le busca**. Ahora se resuelve esté como
+esté y, si estaba cerrado, **se reabre**: cerrar significa «no hay nada pendiente», no «empieza
+otro».
+
+### El arrastre, y por qué `INSERT IGNORE`
+
+`Version20260820280000` convierte cada `guest_phone` en una identidad. Va con **`INSERT IGNORE`**
+porque hay teléfonos repartidos en varios hilos y el índice único los rechazaría, tumbando la
+migración entera. Con `IGNORE` el **más antiguo** se lleva la identidad —es el del historial
+largo— y el resto siguen existiendo y visibles, sólo que un mensaje nuevo irá al primero.
+
+**Fusionar los duplicados toca historial real**, así que va en un comando aparte con
+`--dry-run`, no dentro de una migración. Está pendiente.
+
+`guest_phone` **se queda**: 30 sitios la leen y el panel la pinta. Pasa a ser una copia
+denormalizada; la verdad está en `msg_identidad`.
+
+### Lo que queda
+
+- El comando de fusión de hilos duplicados.
+- **Enlaces genéricos**: hoy `MessageConversation` importa `PmsConversacionEnlace` y tiene una
+  colección por dominio, así que añadir Travel obligaría a tocar el núcleo — justo lo que
+  `CLAUDE.md` dice que no debe pasar. Una sola tabla con `negocio` como dato lo cierra.
+- El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.
