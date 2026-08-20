@@ -667,6 +667,30 @@ php bin/console api:openapi:export -o /tmp/api.json
 Se diagnostica en un minuto añadiendo un getter tonto (`getZzExperimento()`): si **tampoco** él
 aparece, no es tu campo, es la caché.
 
+### Los trenes se compran a OpenPeru Tickets, no a PeruRail
+
+Regla de negocio que no se ve en el modelo: los billetes de **PeruRail** e **IncaRail** no se le
+piden al operador. Los saca **OpenPeru Tickets**, una división nuestra modelada como organización
+—un solo catálogo, una sola pregunta—. Y como la Orden de Servicio sale a nombre del **comprador**,
+dejarlo vacío haría que el encargo se le mandara al tren.
+
+Sembrado con `app:travel:comprador-trenes` (idempotente, con `--dry-run`): **69 tarifas en 6
+componentes**, las que empiezan por `PR ` (57) o `IR ` (12).
+
+Identifica **por el prefijo del nombre**, no por el prestador, porque el prestador todavía está
+sin poblar. Y no lo rellena: deducirlo del mismo prefijo sería una afirmación sobre de quién es el
+precio, y eso merece decidirse aparte.
+
+⚠️ **El comando apaga la traducción antes de guardar**, y hay que copiar ese gesto en cualquier
+carga masiva sobre `TravelTarifa`: lleva `#[AutoTranslate]` en el título y `ejecutarTraduccion`
+**no está mapeado y arranca en `true`**, así que un `flush` normal dispara el traductor de todas
+las filas tocadas para rellenar idiomas que nadie pidió. Poner un id de empresa no cambia ningún
+texto.
+
+Y el dato que justifica todo el rediseño: **«Tren Ollanta Mapi» tiene 12 tarifas `PR` y 4 `IR`**.
+El mismo componente, dos operadores. Con el prestador colgando del componente, ese componente
+tendría que mentir sobre 4 tarifas o sobre 12.
+
 ### ⚠️ El desplegable dependiente: el nombre del parámetro NO es decorativo
 
 El CRUD de tarifas filtra «servicios de ESE prestador» con `AdminFieldHelper::controlsAjax()`,
