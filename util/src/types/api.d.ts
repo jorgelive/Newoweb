@@ -96,6 +96,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/message/conversations/por-asunto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * El hilo de un asunto
+         * @description Resuelve la conversación de una reserva o expediente por su enlace titular. 204 si el asunto todavía no tiene hilo.
+         */
+        get: operations["api_messageconversationspor-asunto_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/message/conversations/unread-summary": {
         parameters: {
             query?: never;
@@ -3665,47 +3685,6 @@ export interface components {
             readonly title?: string | null;
             readonly instance?: string | null;
         };
-        ConversacionEnlaceInterface: {
-            /**
-             * Format: iri-reference
-             * @description El hilo del que cuelga.
-             * @example https://example.com/
-             */
-            readonly conversacion?: string | null;
-            /** @description `hotelero` | `turistico`. La misma clave que `ActorInterface::dominios()`. */
-            readonly negocio?: string;
-            /**
-             * @description `pms_reserva`, `cotizacion_file`… Se conserva —aunque el enlace ya sepa de qué tabla es—
-             *     porque es la clave con la que las reglas de mensajería segmentan hoy, y cambiarla de
-             *     forma es un trabajo aparte del de mover los datos.
-             */
-            readonly contextType?: string;
-            readonly contextId?: string;
-            /**
-             * @description ¿Vendido o vendiéndose? Sale del estado del activo, y lo decide cada dominio: en
-             *     alojamiento lo dice el estado de la reserva; en un tour podría decirlo el pago.
-             * @enum {string}
-             */
-            readonly vinculo?: "ninguno" | "interesado" | "cliente" | "terminado";
-            /** @enum {string} */
-            readonly momento?: "venta" | "operacion";
-            /** @description Las fechas con las que se programan los envíos: llegada, salida, creación… */
-            readonly milestones?: {
-                [key: string]: string;
-            };
-            /** @description `directo`, `airbnb`, `booking`… De qué canal vino ESTE asunto. */
-            readonly origen?: string | null;
-            /** @description Agencia mayorista dueña del asunto. La otra mitad de la segmentación. */
-            readonly agencia?: string | null;
-            /**
-             * Format: date-time
-             * @description Cuándo se persistió el enlace. `null` significa «nació en esta misma unidad de trabajo
-             *     y todavía no se flusheó».
-             */
-            readonly createdAt?: string | null;
-            /** @description Cómo se le nombra a quien escribe: «Tu reserva Casita 3, 12/03–15/03». */
-            readonly etiqueta?: string;
-        };
         Conversation: {
             /** @default open */
             status: string;
@@ -3750,7 +3729,7 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             messages?: string[];
-            readonly enlacesPms?: components["schemas"]["PmsConversacionEnlace"][];
+            identidades?: components["schemas"]["MessageIdentidad"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -3783,7 +3762,6 @@ export interface components {
             readonly contextFinancialTotal?: number | null;
             readonly contextFinancialIsCleared?: boolean;
             contextFinancials?: number | null;
-            readonly enlaces?: components["schemas"]["ConversacionEnlaceInterface"][];
         };
         "Conversation-conversation.read": {
             /** @default open */
@@ -3820,6 +3798,7 @@ export interface components {
             /** @default 0 */
             unreadCount: number;
             messages?: string[];
+            identidades?: components["schemas"]["MessageIdentidad-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -3896,6 +3875,7 @@ export interface components {
             /** @default 0 */
             unreadCount: number;
             messages?: string[];
+            identidades?: components["schemas"]["MessageIdentidad.html-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -3955,6 +3935,7 @@ export interface components {
             /** @default 0 */
             unreadCount: number;
             messages?: string[];
+            identidades?: components["schemas"]["MessageIdentidad.jsonld-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -4014,6 +3995,7 @@ export interface components {
             /** @default 0 */
             unreadCount: number;
             messages?: string[];
+            identidades?: components["schemas"]["MessageIdentidad.multipart-conversation.read"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -13113,6 +13095,65 @@ export interface components {
             id: string;
             name: string;
         };
+        MessageIdentidad: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            conversacion?: string;
+            /** @enum {string} */
+            tipo?: "telefono" | "email" | "beds24";
+            /** @description Ya normalizado por {@see IdentidadTipo::normalizar()}. Nunca se guarda en crudo. */
+            valor?: string;
+            /** @description Cómo llegó aquí: `whatsapp`, `beds24`, `migracion`, `manual`. */
+            origen?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "MessageIdentidad-conversation.read": {
+            /** @enum {string} */
+            tipo?: "telefono" | "email" | "beds24";
+            /** @description Ya normalizado por {@see IdentidadTipo::normalizar()}. Nunca se guarda en crudo. */
+            valor?: string;
+            /** @description Cómo llegó aquí: `whatsapp`, `beds24`, `migracion`, `manual`. */
+            origen?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "MessageIdentidad.html-conversation.read": {
+            /** @enum {string} */
+            tipo?: "telefono" | "email" | "beds24";
+            /** @description Ya normalizado por {@see IdentidadTipo::normalizar()}. Nunca se guarda en crudo. */
+            valor?: string;
+            /** @description Cómo llegó aquí: `whatsapp`, `beds24`, `migracion`, `manual`. */
+            origen?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "MessageIdentidad.jsonld-conversation.read": {
+            /** @enum {string} */
+            tipo?: "telefono" | "email" | "beds24";
+            /** @description Ya normalizado por {@see IdentidadTipo::normalizar()}. Nunca se guarda en crudo. */
+            valor?: string;
+            /** @description Cómo llegó aquí: `whatsapp`, `beds24`, `migracion`, `manual`. */
+            origen?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "MessageIdentidad.multipart-conversation.read": {
+            /** @enum {string} */
+            tipo?: "telefono" | "email" | "beds24";
+            /** @description Ya normalizado por {@see IdentidadTipo::normalizar()}. Nunca se guarda en crudo. */
+            valor?: string;
+            /** @description Cómo llegó aquí: `whatsapp`, `beds24`, `migracion`, `manual`. */
+            origen?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
         "MessageRule-message.read": Record<string, never>;
         "MessageRule.html-message.read": Record<string, never>;
         "MessageRule.jsonld-message.read": Record<string, never>;
@@ -18840,57 +18881,6 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-        };
-        PmsConversacionEnlace: {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            conversacion?: string;
-            /**
-             * Format: iri-reference
-             * @description Sin `onDelete: CASCADE` a propósito: borrar una reserva no puede llevarse por delante el
-             *     hilo de mensajes con esa persona. Quien borre una reserva tiene que decidir qué hace con
-             *     su enlace, y que le falle el borrado es preferible a perder la conversación en silencio.
-             * @example https://example.com/
-             */
-            reserva?: string;
-            /**
-             * @default ninguno
-             * @enum {string}
-             */
-            vinculo: "ninguno" | "interesado" | "cliente" | "terminado";
-            milestones?: {
-                [key: string]: string;
-            };
-            /**
-             * @description Los hitos DERIVADOS de los tramos: llegada, salidas temporales, reingresos, cambios de
-             *     casita, salida final. Cada uno con su fecha y su detalle.
-             */
-            hitos?: {
-                [key: string]: string | null;
-            }[];
-            /** @description `directo`, `airbnb`, `booking`… De qué canal vino este asunto. */
-            origen?: string | null;
-            agencia?: string | null;
-            /** @description La etiqueta cruda del canal (`confirmed`, `inquiry`…), tal como llegó. */
-            statusTag?: string | null;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            readonly negocio?: string;
-            readonly contextType?: string;
-            readonly contextId?: string;
-            /**
-             * @description Vendiéndose mientras no haya cliente; en operación en cuanto lo hay.
-             * @enum {string}
-             */
-            readonly momento?: "venta" | "operacion";
-            mapaDeHitos?: components["schemas"]["MapaDeHitos"];
-            readonly etiqueta?: string;
         };
         PmsEstablecimiento: {
             beds24Config: components["schemas"]["Beds24Config"];
@@ -29361,6 +29351,51 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "api_messageconversationspor-asunto_get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversation resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Conversation.jsonld-conversation.read"];
+                    "application/json": components["schemas"]["Conversation-conversation.read"];
+                    "text/html": components["schemas"]["Conversation.html-conversation.read"];
+                    "multipart/form-data": components["schemas"]["Conversation.multipart-conversation.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

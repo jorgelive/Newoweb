@@ -22,6 +22,7 @@ use App\Contract\ConversationMilestoneInterface;
 use App\Contract\MapaDeHitos;
 use App\Contract\MomentoDeHito;
 use App\Message\Controller\Api\MarkConversationReadController;
+use App\Message\Controller\Api\ConversacionPorAsuntoController;
 use App\Message\Controller\Api\UnreadSummaryController;
 use App\Security\Roles;
 use DateTime;
@@ -66,6 +67,27 @@ use Symfony\Component\Uid\Uuid;
             read: false,
             deserialize: false,
             output: false
+        ),
+
+        // El hilo de un ASUNTO: GET /message/conversations/por-asunto?contextType=&contextId=
+        //
+        // Va ANTES del Get de item por lo mismo que `unread-summary`: `/conversations/{id}`
+        // capturaría «por-asunto» como identificador.
+        //
+        // Sustituye a filtrar la colección por `contextType`/`contextId`, que resuelve por la
+        // CABECERA y desde la fusión de hilos devuelve el hilo equivocado —26 reservas abrían
+        // un archivado con 0 mensajes—. Ver ConversacionPorAsuntoController.
+        new Get(
+            uriTemplate: '/conversations/por-asunto',
+            controller: ConversacionPorAsuntoController::class,
+            openapi: new Operation(
+                summary: 'El hilo de un asunto',
+                description: 'Resuelve la conversación de una reserva o expediente por su enlace titular. 204 si el asunto todavía no tiene hilo.'
+            ),
+            security: "is_granted('" . Roles::MENSAJES_SHOW . "')",
+            securityMessage: 'Acceso denegado a las conversaciones.',
+            read: false,
+            deserialize: false
         ),
 
         // API Platform infiere automáticamente: GET /message/conversations

@@ -8701,6 +8701,47 @@ salida por defecto, no participa en la fusión por persona y no se retira —o e
 no, no hay nada que corregir—. Hace falta porque **37 reservas no traen ni teléfono ni correo**
 (la OTA los enmascara) y 35 sí traen `bookId`: sin ese ancla no tendrían dónde agarrarse.
 
+### ⚠️ El front resolvía por la cabecera, y abría el hilo equivocado
+
+La fusión de hilos dejó una regresión que no daba error, y por eso no se vio hasta buscarla.
+
+Los dos caminos del panel hacia el chat —`reservasStore.fetchConversacionId()` y
+`chatStore.fetchConversacionPorContexto()`— filtraban la colección:
+
+```
+GET /platform/message/conversations?contextType=pms_reserva&contextId=…
+```
+
+Eso resuelve por la **cabecera** del hilo. Funcionaba con una conversación por reserva, y dejó
+de funcionar en cuanto se fusionaron: la cabecera del superviviente apunta a UNA de sus
+reservas, y los hilos absorbidos —archivados y con 0 mensajes— **conservan la suya**.
+
+Medido el 20/08/2026: **26 reservas abrían un hilo archivado y vacío** teniendo su conversación
+viva al lado.
+
+| Desde la reserva de… | El panel abría | Lo real |
+|---|---|---|
+| Yael Shifman (×3) | archivado, 0 mensajes | su hilo, **42 mensajes** |
+| Eduardo Agustín Falle | archivado, 0 mensajes | **62 mensajes** |
+| Lucho Gonez | archivado, 0 mensajes | el hilo de **Susan Acuña**, 164 |
+
+Y no devolvía `null` —que al menos habría ocultado el botón—: devolvía una conversación
+**válida y equivocada**.
+
+**La resolución correcta es el enlace titular**, y va por su propio endpoint:
+
+```
+GET /platform/message/conversations/por-asunto?contextType=&contextId=
+```
+
+`ConversacionPorAsuntoController` → `EnlacesDeConversacion::hiloTitularDe()`. Devuelve `204`
+cuando el asunto todavía no tiene hilo, que es una respuesta normal y el front la trata como
+«no ofrezcas el chat».
+
+⚠️ **La regla se mira en un solo sitio.** Si añades otro camino del panel al chat, resuelve por
+`/por-asunto`; filtrar la colección por `contextType`/`contextId` vuelve a traer el hilo
+equivocado, y sin un solo error en el log.
+
 ### El papel de TITULAR
 
 Un asunto puede colgar de **varios hilos**, y el esquema ya lo permitía: el único índice del

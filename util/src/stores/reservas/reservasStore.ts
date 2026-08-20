@@ -200,15 +200,25 @@ export const useReservasStore = defineStore('reservasStore', () => {
 
     /**
      * Busca la conversación de chat interno vinculada a una reserva.
-     * Devuelve su UUID o null si todavía no existe (igual que el legacy: si no
-     * hay fila en msg_conversation, no se ofrece la opción de abrir el chat).
+     * Devuelve su UUID o null si todavía no existe: sin hilo, no se ofrece abrir el chat.
+     *
+     * ⚠️ **No se filtra la colección por `contextType`/`contextId`.** Eso resuelve por la
+     * CABECERA del hilo, y desde que las conversaciones se fusionan por persona la cabecera
+     * del superviviente apunta a UNA de sus reservas mientras los hilos absorbidos —archivados
+     * y vacíos— conservan la suya. Medido el 20/08/2026: **26 reservas abrían un hilo
+     * archivado con 0 mensajes** teniendo su conversación viva al lado, y sin dar error.
+     *
+     * `/por-asunto` resuelve por el ENLACE TITULAR, que es el camino que sobrevive a la
+     * fusión y a que la persona tenga varias reservas en el mismo hilo. Espejo del backend:
+     * `EnlacesDeConversacion::hiloTitularDe()`.
      */
     const fetchConversacionId = async (reservaId: string): Promise<string | null> => {
-        const res = await apiClient.get('/platform/message/conversations', {
+        const res = await apiClient.get('/platform/message/conversations/por-asunto', {
             params: { contextType: 'pms_reserva', contextId: reservaId },
         });
-        const items = res.data['hydra:member'] || res.data['member'] || [];
-        return items[0]?.id ?? null;
+
+        // 204 sin cuerpo cuando el asunto todavía no tiene hilo.
+        return res.data?.id ?? null;
     };
 
     /**

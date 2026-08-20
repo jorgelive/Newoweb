@@ -689,11 +689,16 @@ export const useChatStore = defineStore('chatStore', () => {
      */
     const fetchConversacionPorContexto = async (contextType: string, contextId: string): Promise<ApiConversation | null> => {
         try {
-            const response = await apiClient.get('/platform/message/conversations', {
+            // Por el ENLACE TITULAR, no filtrando la colección por cabecera: ver el aviso en
+            // `reservasStore.fetchConversacionId()`. Filtrar por cabecera devolvía el hilo
+            // equivocado —archivado y vacío— en 26 reservas, y sin dar error.
+            const response = await apiClient.get('/platform/message/conversations/por-asunto', {
                 params: { contextType, contextId },
             });
 
-            return extractData<ApiConversation>(response)[0] ?? null;
+            return (response.data as ApiConversation | undefined)?.['@id'] !== undefined
+                ? response.data as ApiConversation
+                : null;
         } catch {
             return null;
         }
