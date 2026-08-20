@@ -8340,6 +8340,44 @@ entrar, y `Version20260819235500` arrastró los ya guardados.
   **re-enviárselos a los huéspedes**. Aquí no hay nada que recalcular: se corrige una dirección
   dentro de un texto.
 
+### El segundo fallo: el HTML se pintaba crudo
+
+El panel **escapa el HTML a propósito**. `formatoAHtml()` protege del texto del huésped y sólo
+enlaza lo que casa `https?://`, así que el ancla salía literal en la burbuja —`<a href="…`— con
+la URL suelta subrayada en medio.
+
+No se arregla dejando pasar HTML. Se arregla **no mandando HTML**:
+`EnlaceDeBeds24::aplanarAnclas()` convierte `<a href="X">T</a>` en `T: X`, y el formateador de
+texto plano lo enlaza solo. Si el texto del ancla no aporta —vacío, o es la propia URL— se queda
+sólo la URL, porque `https://…: https://…` es ruido.
+
+El segundo beneficio es el que de verdad importa: `strip_tags()` sobre el ancla dejaba la palabra
+«adjunto» y nada más, así que **el agente no veía que hubiera un enlace**. Aplanado, lo ve.
+
+⚠️ Dentro de `normalizar()` el orden no es indiferente: **primero el host, después el aplanado**.
+Al revés dejaría en el texto la URL corta, que es justo la que no lleva a ninguna parte.
+
+El arrastre de lo ya guardado va por `app:message:aplanar-enlaces-beds24` y no por migración: la
+transformación no es un `REPLACE` —el texto del ancla y la URL cambian en cada fila— y reescribir
+en SQL lo que ya está probado en PHP es duplicar la regla.
+
+### 🔥 El enlace es de UN SOLO USO
+
+Dato confirmado en operación el 19/08/2026, y cambia el cálculo entero: `getattach.php` sirve el
+archivo **una vez**. El primero que lo pulse se lo lleva; a partir de ahí el enlace está muerto
+para todos los demás.
+
+Consecuencias, por orden de importancia:
+
+1. **Descargarlo en el servidor deja de ser una comodidad y pasa a ser la única forma de
+   conservarlo.** Mientras el archivo dependa de que una persona pulse, cada adjunto es un dato
+   que existe una vez y desaparece.
+2. **Hay una ventana abierta, y se cierra sola.** Los 92 enlaces históricos nunca se pudieron
+   pulsar —daban 404—, así que salvo el de la reserva 88591163 **probablemente siguen sin
+   consumir**. Ahora que funcionan, cada clic de un operador gasta uno de forma irreversible.
+3. Por eso el arreglo del enlace, por sí solo, **no cierra el problema**: lo convierte en una
+   carrera.
+
 ### Lo que sigue sin resolverse, y por qué importa
 
 El operador puede **abrir** el enlace (tiene sesión en Beds24); el servidor no puede
@@ -8351,6 +8389,20 @@ Y eso no es una molestia estética. El caso que lo destapó: el 19/08/2026 la hu
 el pago **no se registró**: su cuenta sigue diciendo 322,86 de saldo cuando debe 152,56. Un
 comprobante que no se puede abrir es un cobro que no se anota — ver `docs/Pendientes.md`.
 
-Para espejarlo haría falta mantener una sesión de navegador contra beds24.com. **No se ha hecho a
-propósito:** son credenciales de persona, se rompen al cambiar la contraseña o al activar 2FA, y
-el fallo sería silencioso. Si algún día compensa, que sea una decisión tomada, no un parche.
+Para espejarlo haría falta mantener una **sesión de navegador** contra beds24.com. Sigue sin
+hacerse, pero con el dato del uso único la balanza cambió: ya no es una comodidad.
+
+El camino existe y es corto: el login de Beds24 es usuario y contraseña más un **código enviado
+por correo**, y el tenant ya tiene Graph configurado, así que ese código se puede leer sin
+intervención humana.
+
+⚠️ **Lo que hoy lo bloquea es un permiso, y es deliberado.** La aplicación de Graph tiene
+`Mail.Send` **y nada más** —ver `docs/CorreoSaliente.md`, que además argumenta en contra de
+conceder `Mail.ReadWrite`—. Leer el código exige añadir lectura de buzón, y eso sólo es aceptable
+con la `ApplicationAccessPolicy` que ya existe allí: acotada a **un buzón dedicado** que no reciba
+nada más. Sin esa acotación, se le está dando al servidor la llave del correo de la empresa para
+bajar una imagen.
+
+Los otros riesgos, para que la decisión se tome con ellos delante: son credenciales de persona,
+se rompen al cambiar la contraseña, y si Beds24 mete un captcha o cambia el formulario **el fallo
+es silencioso** —igual que lo fue éste—.
