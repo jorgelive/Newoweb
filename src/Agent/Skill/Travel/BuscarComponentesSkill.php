@@ -27,7 +27,7 @@ use Doctrine\ORM\EntityManagerInterface;
  * turístico Cusco – Puno». Sin una forma de mirar el catálogo, la única salida era abrir el
  * panel — y entonces el agente no sirve para esto.
  *
- * Por eso esta skill busca **ancho**: por nombre, por tipo, por lugar y por prestador. Devuelve
+ * Por eso esta skill busca **ancho**: por nombre, por tipo y por lugar. Devuelve
  * poco de cada componente —lo justo para reconocerlo y para encadenar— y **no trae las
  * tarifas**: para eso está la otra, y traerlas aquí llenaría la respuesta de precios que nadie
  * ha pedido.
@@ -59,7 +59,7 @@ final readonly class BuscarComponentesSkill implements SkillInterface, SkillDomi
                 . 'cuando no sabes el nombre exacto: úsala para «¿qué transportes tenemos a '
                 . 'Puno?», «busca el boleto de Machu Picchu», «¿qué servicios damos en el Valle '
                 . 'Sagrado?», «¿qué tiene contratado el Ministerio de Cultura?». Busca a la vez '
-                . 'por nombre, lugar y prestador, y puedes acotar por tipo. Devuelve el '
+                . 'por nombre o por lugar, y puedes acotar por tipo. Devuelve el '
                 . 'componente_id y CUÁNTAS tarifas tiene cada uno: con ese id, buscar_tarifas te '
                 . 'da los precios exactos. Si un componente sale con 0 tarifas no es que la '
                 . 'búsqueda falle: es que no tiene precios cargados, y eso hay que decirlo. NO '
@@ -122,13 +122,14 @@ final readonly class BuscarComponentesSkill implements SkillInterface, SkillDomi
 
         $qb = $this->em->getRepository(TravelComponente::class)
             ->createQueryBuilder('c')
-            ->leftJoin('c.prestador', 'p')->addSelect('p')
             ->leftJoin('c.lugares', 'l')->addSelect('l')
             ->orderBy('c.nombre', 'ASC')
             ->setMaxResults(self::TOPE + 1);
 
         if ($busqueda !== '') {
-            $qb->andWhere('c.nombre LIKE :q OR p.nombreComercial LIKE :q OR l.nombre LIKE :q')
+            // Sin empresa: el componente ya no fija prestador —sus tarifas pueden ser de
+            // varias— así que sólo quedan el nombre y el lugar.
+            $qb->andWhere('c.nombre LIKE :q OR l.nombre LIKE :q')
                 ->setParameter('q', '%' . $busqueda . '%');
         }
 
@@ -179,7 +180,6 @@ final readonly class BuscarComponentesSkill implements SkillInterface, SkillDomi
             'nombre' => $c->getNombre(),
             'tipo' => $c->getTipo()->value,
             'duracion' => $c->getDuracion(),
-            'prestador' => $c->getPrestador()?->getNombreComercial(),
             'lugares' => $lugares !== [] ? implode(', ', $lugares) : null,
             // El dato que decide el paso siguiente: 0 = sin precios cargados.
             'tarifas' => $c->getTarifas()->count(),

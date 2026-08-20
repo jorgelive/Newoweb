@@ -143,33 +143,6 @@ class TravelComponente
     #[ORM\OrderBy(['nombreInterno' => 'ASC'])]
     private Collection $tarifas;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // PROVEEDOR — a quién se le compra esta logística
-    //
-    // Colgaba de `TravelTarifa`, y ahí el campo quedó **abandonado: 5 de 904**. No por
-    // desidia — un componente llega a tener 19 tarifas y nadie repite el mismo prestador
-    // 19 veces. Al subirlo aquí se llena una vez, que es lo que lo hace realista.
-    //
-    // Es el mismo movimiento que ya se hizo en la cotización (`docs/Cotizaciones.md` §6.c),
-    // un nivel más arriba. Y desbloquea el filtro de tarifas por prestador del editor, que
-    // depende de este vínculo y hoy casi nunca se activa por falta de dato.
-    //
-    // `readableLink: false` como el resto: la API devuelve IRIs y corta la recursividad.
-    // ─────────────────────────────────────────────────────────────────────────
-
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
-    #[ApiProperty(readableLink: false)]
-    #[ORM\ManyToOne(targetEntity: TravelOrganizacion::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?TravelOrganizacion $prestador = null;
-
-    /** El servicio concreto que se le compra (ej. el tipo de habitación). */
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
-    #[ApiProperty(readableLink: false)]
-    #[ORM\ManyToOne(targetEntity: TravelOrganizacionServicio::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?TravelOrganizacionServicio $prestadorServicio = null;
-
     /**
      * 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs
      */
@@ -412,33 +385,6 @@ class TravelComponente
      *
      * @return Collection<int, TravelTarifa>
      */
-    /**
-     * El servicio elegido tiene que ser de ese prestador.
-     *
-     * Vivía en `TravelTarifa`, y se mudó con los campos: cruzarlos sólo tiene sentido donde
-     * conviven. Sin esto se puede guardar «Hotel A» con «habitación doble del Hotel B», que
-     * no falla al escribir y sale mal en la cotización.
-     */
-    #[Assert\Callback]
-    public function validarServicioDelPrestador(ExecutionContextInterface $context): void
-    {
-        if ($this->prestadorServicio === null || $this->prestador === null) {
-            return;
-        }
-
-        if ($this->prestadorServicio->getOrganizacion() !== $this->prestador) {
-            $context->buildViolation('El servicio seleccionado no pertenece al prestador del componente.')
-                ->atPath('prestadorServicio')
-                ->addViolation();
-        }
-    }
-
-    public function getPrestador(): ?TravelOrganizacion { return $this->prestador; }
-    public function setPrestador(?TravelOrganizacion $v): self { $this->prestador = $v; return $this; }
-
-    public function getPrestadorServicio(): ?TravelOrganizacionServicio { return $this->prestadorServicio; }
-    public function setPrestadorServicio(?TravelOrganizacionServicio $v): self { $this->prestadorServicio = $v; return $this; }
-
     /** @return Collection<int, TravelTarifa> */
     public function getTarifas(): Collection
     {

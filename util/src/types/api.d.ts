@@ -2800,17 +2800,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa-componente.item.read"][];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -2833,17 +2822,6 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -2868,17 +2846,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.write"][];
             tarifas?: components["schemas"]["Tarifa-componente.write"][];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
         };
@@ -2978,17 +2945,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.html-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.html-componente.item.read"][];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3011,17 +2967,6 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3123,17 +3068,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.jsonld-componente.item.read"][];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3156,17 +3090,6 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3268,17 +3191,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart-componente.item.read"][];
             tarifas?: components["schemas"]["Tarifa.multipart-componente.item.read"][];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */
@@ -3301,17 +3213,6 @@ export interface components {
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
             anticipacionalerta?: number | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
             lugares?: string[];
             /** Format: uuid */

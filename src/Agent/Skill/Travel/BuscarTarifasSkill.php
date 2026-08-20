@@ -18,7 +18,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Las tarifas del catálogo maestro, con sus restricciones y su prestador.
+ * Las tarifas del catálogo maestro, con sus restricciones.
+ *
+ * ⚠️ **No dice de quién es el precio, y no es un olvido.** El componente dejó de fijar
+ * prestador el 20/08/2026: sus tarifas pueden venir de empresas distintas —PeruRail e
+ * IncaRail para el mismo tren—, así que un prestador arriba mentía sobre todas menos una.
+ * Quién presta se decide al cotizar. Ver `docs/Travel.md` §6 quater.
  *
  * ### Qué problema resuelve
  *
@@ -60,7 +65,7 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
                 . 'con su precio, sus restricciones y quién las presta. Úsala para «¿qué tarifas '
                 . 'tiene el boleto de Machu Picchu?», «¿cuánto cuesta el city tour para '
                 . 'extranjeros?», «¿qué precio tenemos con el Ministerio de Cultura?». Busca por '
-                . 'nombre del componente, o por el del prestador si preguntan por una empresa. '
+                . 'nombre del componente. '
                 . 'Cada tarifa vuelve con sus CONDICIONES —privado o compartido, nacional o '
                 . 'extranjero, categoría, edades y capacidad— y eso es lo que hay que leer antes '
                 . 'de decir un precio: dos tarifas del mismo servicio se distinguen por ahí, no '
@@ -72,8 +77,8 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
                     . 'lo devolvió buscar_componentes. Si lo tienes, úsalo: es exacto y evita '
                     . 'traer los que se llaman parecido.', requerido: false),
                 SkillParameter::texto('busqueda', 'Nombre del componente (ej. «Machu Picchu», '
-                    . '«city tour») o del prestador (ej. «Ministerio de Cultura»). Basta un '
-                    . 'trozo del nombre. Omítelo si pasas componente_id.', requerido: false),
+                    . '«city tour»). Basta un trozo del nombre. Omítelo si pasas '
+                    . 'componente_id.', requerido: false),
                 SkillParameter::texto('procedencia', 'Filtra por «nacional», «extranjero» o '
                     . '«can». Úsalo sólo si lo dicen.', requerido: false),
                 SkillParameter::entero('pax', 'Número de personas, para quedarse con las tarifas '
@@ -105,7 +110,7 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
 
         if ($componenteId === '' && mb_strlen($busqueda) < 3) {
             return SkillResult::error(
-                'Dime al menos tres letras del componente o del prestador, o pásame el '
+                'Dime al menos tres letras del componente, o pásame el '
                 . 'componente_id de buscar_componentes: con menos salen cientos de tarifas y '
                 . 'ninguna sirve.'
             );
@@ -120,7 +125,7 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
             return SkillResult::ok([
                 'busqueda' => $busqueda !== '' ? $busqueda : $componenteId,
                 'componentes' => [],
-                'instruccion' => 'No hay ningún componente ni prestador que se llame así. NO te '
+                'instruccion' => 'No hay ningún componente que se llame así. NO te '
                     . 'inventes un precio: dile que no lo encuentras y pregúntale por el nombre '
                     . 'exacto, o que lo busque en el catálogo.',
             ]);
@@ -152,13 +157,9 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
                 continue;
             }
 
-            $prestador = $componente->getPrestador();
-
             $salida[] = array_filter([
                 'componente' => $componente->getNombre(),
                 'componente_id' => (string) $componente->getId(),
-                'prestador' => $prestador?->getNombreComercial(),
-                'prestador_servicio' => $componente->getPrestadorServicio()?->getNombre(),
                 'tarifas' => $tarifas,
             ], static fn ($v) => $v !== null);
         }
@@ -191,7 +192,7 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
     }
 
     /**
-     * Componentes cuyo nombre —o el de su prestador— contiene la búsqueda.
+     * Componentes cuyo nombre contiene la búsqueda.
      *
      * @return list<TravelComponente>
      */
@@ -200,11 +201,9 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
         /** @var list<TravelComponente> $r */
         $r = $this->em->getRepository(TravelComponente::class)
             ->createQueryBuilder('c')
-            ->leftJoin('c.prestador', 'p')
-            ->addSelect('p')
             ->leftJoin('c.tarifas', 't')
             ->addSelect('t')
-            ->andWhere('c.nombre LIKE :q OR p.nombreComercial LIKE :q')
+            ->andWhere('c.nombre LIKE :q')
             ->setParameter('q', '%' . $busqueda . '%')
             ->orderBy('c.nombre', 'ASC')
             ->setMaxResults(12)

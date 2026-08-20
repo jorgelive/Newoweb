@@ -575,18 +575,46 @@ tono semántico y traducirlo en el front.
 
 ## 11. Trampas conocidas
 
-- **El proveedor subió de `TravelTarifa` a `TravelComponente`** (`Version20260816240000`).
-  Estaba en **5 de 904** tarifas y `proveedor_servicio_id` en **0 de 904** — no por desidia
-  sino porque un componente llega a tener 19 tarifas y nadie repite el mismo proveedor 19
-  veces. El campo no se abandonó: nació impagable. Ahora se llena una vez por componente, y
-  eso desbloquea el filtro de tarifas por prestador del editor de cotizaciones, que depende
-  de este vínculo. Mismo movimiento que ya se hizo en la cotización
-  (`docs/Cotizaciones.md` §6.c), un nivel más arriba.
+- **El catálogo Travel NO dice quién presta un servicio, y es deliberado** desde el
+  20/08/2026 (`Version20260820120000`). Merece leerse entero porque el campo estuvo en dos
+  sitios en una semana y en los dos estaba mal.
 
-  Se queda en la tarifa `nombreParaProveedor`: eso **sí** es por línea de precio —cómo llama
-  el proveedor a esa tarifa concreta— y es lo que la Orden de Servicio usa para hablarle en
+  Colgaba de `TravelTarifa` y ahí quedó vacío: **5 de 904**, con `proveedor_servicio_id` en
+  **0 de 904**. El diagnóstico de entonces —«nació impagable: un componente llega a tener 19
+  tarifas y nadie repite la misma empresa 19 veces»— era correcto, y por eso
+  `Version20260816240000` lo subió a `TravelComponente`, donde se llena una vez.
+
+  ⚠️ **Y era la conclusión equivocada, porque el argumento de ergonomía tapaba uno de
+  corrección.** Un componente **puede tener tarifas de empresas distintas**: «Tren Ollanta –
+  Machu Picchu» se compra a PeruRail y a IncaRail; el Boleto de Machu Picchu, al Ministerio o
+  a un revendedor. Un prestador único arriba no es un valor por defecto incómodo — es una
+  afirmación **falsa sobre todas las tarifas menos una**, y encima impedía cargar las demás.
+  «Tren Mapi Poroy» tiene 15 tarifas: ninguna cifra de «una empresa por componente» sobrevive
+  a ese dato.
+
+  Que el campo se abandonara en la tarifa no significaba que estuviera en el sitio
+  equivocado: significaba que **nadie tenía todavía un motivo para llenarlo**. Se resolvió
+  moviéndolo, que es lo que parecía barato, en vez de preguntando por qué no se llenaba.
+
+  **Dónde vive ahora:** quién presta el servicio es una decisión de **cotización**, no de
+  catálogo. Se resuelve al elegir la tarifa y ya estaba modelado allí
+  (`CotizacionCotcomponente::resolverPrestador()`, `docs/Cotizaciones.md` §6.c).
+
+  Se fueron con él `prestadorServicio` —sólo existía para acotar al de arriba—, la validación
+  cruzada `validarServicioDelPrestador()` y el panel «Prestador por defecto» del CRUD, cuya
+  ayuda además prometía activar un filtro de tarifas por prestador que **nunca miró este
+  campo**: `prestadorEsperadoDeTarifaActiva` lee el prestador del *cotcomponente* y devuelve
+  `null` si no lo hay. Llenarlo en el catálogo no activaba nada.
+
+  Se queda en la tarifa `nombreParaPrestador`: eso **sí** es por línea de precio —cómo llama
+  esa empresa a esa tarifa concreta— y es lo que la Orden de Servicio usa para hablarle en
   su idioma («Del Origen Al Presente de Lima») en vez de con nuestro código interno («Pool
-  City Lima CT002»).
+  City Lima CT002»). Que ese campo sí tenga sentido por tarifa es, de hecho, la pista que
+  estaba ahí desde el principio.
+
+  **Consecuencia para el agente:** `buscar_componentes` y `buscar_tarifas` ya no buscan ni
+  devuelven la empresa. Buscar «Ministerio de Cultura» y esperar sus componentes deja de
+  funcionar, porque esa relación ya no existe en el catálogo.
 - **`ComponenteItemModoEnum` no lo usa nadie.** Es un duplicado de `ItemModoEnum` con dos
   casos extra (`CORTESIA`, `REEMPLAZADO`); `TravelComponenteItem` usa `ItemModoEnum`. Ojo al
   elegir cuál tocar: el que manda es `ItemModoEnum`.
