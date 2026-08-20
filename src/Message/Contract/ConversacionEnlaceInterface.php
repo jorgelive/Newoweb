@@ -171,6 +171,16 @@ interface ConversacionEnlaceInterface
     public function esTitular(): bool;
 
     /**
+     * Cambia el papel. Lo usa el panel cuando una persona decide cuál de los hilos atiende.
+     *
+     * ⚠️ Quien lo llame tiene que **degradar al titular anterior**: un asunto con dos titulares
+     * programaría la agenda dos veces, que es justo lo que el papel vino a evitar. Esa parte no
+     * puede vivir aquí —hace falta ver todos los hilos del asunto— y está en
+     * {@see \App\Message\Service\Conversacion\EnlacesDeConversacion::cambiarTitular()}.
+     */
+    public function marcarTitular(bool $esTitular): self;
+
+    /**
      * Por qué canales se puede alcanzar ESTE asunto. **Lista vacía = sin acotar.**
      *
      * ── Por qué cuelga del asunto y no de la conversación ───────────────────

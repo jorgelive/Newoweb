@@ -758,6 +758,37 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     /**
+     * Marca este hilo como TITULAR de un asunto: el que recibe la agenda automática.
+     *
+     * El otro sigue existiendo y el agente le contesta sobre el asunto; lo que deja de recibir
+     * son los envíos programados —bienvenida, recordatorio de saldo, check-out—. Es la decisión
+     * de a quién de los dos se le escribe cuando una reserva la atienden dos personas desde
+     * números distintos.
+     *
+     * @param {AsuntoDelHilo} asunto El asunto cuyo titular pasa a ser este hilo.
+     * @returns {Promise<string | null>} `null` si fue bien; el motivo si no.
+     */
+    const hacerseTitular = async (asunto: AsuntoDelHilo): Promise<string | null> => {
+        const id = uuidOf(currentConversation.value);
+        if (!id) return 'No hay ninguna conversación abierta.';
+
+        try {
+            const { data } = await apiClient.patch(`/platform/message/conversations/${id}/asuntos`, {
+                contextType: asunto.contextType,
+                contextId: asunto.contextId,
+            });
+
+            if (uuidOf(currentConversation.value) === id) {
+                asuntosDelChat.value = (data?.asuntos ?? []) as AsuntoDelHilo[];
+            }
+
+            return null;
+        } catch (e: unknown) {
+            return mensajeDeError(e) ?? 'No se pudo cambiar el titular.';
+        }
+    };
+
+    /**
      * Cambia el asunto destino y vuelve a preguntar los canales: no son los mismos.
      *
      * Es el punto del que cuelga todo lo demás — un expediente de viaje no sale por Beds24 y
@@ -992,6 +1023,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, anadirIdentidad, cambiarIdentidad, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
     };
 });

@@ -118,4 +118,22 @@ final readonly class CotizacionProveedorDeEnlaces implements ProveedorDeEnlacesI
 
         return $enlace;
     }
+
+    public function enlaceDeAsunto(
+        MessageConversation $conversacion,
+        string $contextType,
+        string $contextId
+    ): ?CotizacionConversacionEnlace {
+        if ($contextType !== CotizacionConversacionEnlace::CONTEXT_TYPE) {
+            return null;
+        }
+
+        foreach ($this->paraConversacion($conversacion) as $enlace) {
+            if ($enlace->getContextId() === $contextId) {
+                return $enlace;
+            }
+        }
+
+        return null;
+    }
 }

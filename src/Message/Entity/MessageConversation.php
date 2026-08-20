@@ -141,13 +141,31 @@ use Symfony\Component\Uid\Uuid;
         // Beds24 de la reserva. Ver AsuntosDeConversacionController.
         new Get(
             uriTemplate: '/conversations/{id}/asuntos',
-            controller: AsuntosDeConversacionController::class,
+            controller: AsuntosDeConversacionController::class . '::listar',
             openapi: new Operation(
                 summary: 'Asuntos del hilo',
                 description: 'Las reservas y expedientes que cuelgan de esta conversación, con la etiqueta que redacta cada dominio.'
             ),
             security: "is_granted('" . Roles::MENSAJES_SHOW . "')",
             securityMessage: 'Acceso denegado a las conversaciones.',
+            deserialize: false,
+            output: false
+        ),
+
+        // Mover el papel de TITULAR: PATCH /message/conversations/{id}/asuntos
+        //
+        // Es la decisión de a cuál de los dos hilos se le programan los envíos cuando una
+        // reserva la atienden dos personas desde números distintos.
+        new Patch(
+            uriTemplate: '/conversations/{id}/asuntos',
+            controller: AsuntosDeConversacionController::class . '::cambiarTitular',
+            openapi: new Operation(
+                summary: 'Marca este hilo como titular de un asunto',
+                description: 'Mueve el papel de titular y degrada al anterior: dos titulares programarían la agenda dos veces.'
+            ),
+            security: "is_granted('" . Roles::MENSAJES_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar la conversación.',
+            read: false,
             deserialize: false,
             output: false
         ),

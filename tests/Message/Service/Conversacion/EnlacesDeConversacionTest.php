@@ -156,6 +156,39 @@ final class EnlacesDeConversacionTest extends TestCase
         self::assertNull($servicio->hiloTitularDe('pms_reserva', 'r-1'));
     }
 
+    #[Test]
+    public function promover_un_hilo_a_titular_degrada_al_anterior(): void
+    {
+        // ⚠️ Es TODO el test. Un asunto con dos titulares programaría su agenda dos veces —la
+        // bienvenida, el recordatorio de saldo y el check-out, duplicados—, que es justo lo que
+        // el papel vino a evitar. Promover sin degradar es peor que no promover.
+        $titular = $this->hilo();
+        $acompanante = $this->hilo();
+
+        $viejo = $this->enlaceFalso('hotelero', 'Tu reserva', [], 'pms_reserva', 'r-1', conversacion: $titular);
+        $nuevo = $this->enlaceFalso('hotelero', 'Tu reserva', [], 'pms_reserva', 'r-1', titular: false, conversacion: $acompanante);
+
+        $servicio = new EnlacesDeConversacion([$this->proveedor('hotelero', $viejo, $nuevo)]);
+
+        self::assertTrue($servicio->cambiarTitular($acompanante, 'pms_reserva', 'r-1'));
+        self::assertTrue($nuevo->esTitular());
+        self::assertFalse($viejo->esTitular(), 'El anterior tiene que quedar degradado.');
+    }
+
+    #[Test]
+    public function no_se_puede_hacer_titular_de_un_asunto_que_no_cuelga_del_hilo(): void
+    {
+        // No se inventa el enlace: un titular sin enlace sería un asunto atendido desde una
+        // conversación que no lo tiene.
+        $ajeno = $this->hilo();
+        $servicio = new EnlacesDeConversacion([$this->proveedor(
+            'hotelero',
+            $this->enlaceFalso('hotelero', 'Tu reserva', [], 'pms_reserva', 'r-1', conversacion: $this->hilo())
+        )]);
+
+        self::assertFalse($servicio->cambiarTitular($ajeno, 'pms_reserva', 'r-1'));
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
 
     private function hilo(): MessageConversation
@@ -185,6 +218,22 @@ final class EnlacesDeConversacionTest extends TestCase
 
                 return null;
             }
+
+            public function enlaceDeAsunto(
+                MessageConversation $conversacion,
+                string $contextType,
+                string $contextId
+            ): ?ConversacionEnlaceInterface {
+                foreach ($this->enlaces as $enlace) {
+                    if ($enlace->getConversacion() === $conversacion
+                        && $enlace->getContextType() === $contextType
+                        && $enlace->getContextId() === $contextId) {
+                        return $enlace;
+                    }
+                }
+
+                return null;
+            }
         };
     }
 
@@ -204,7 +253,7 @@ final class EnlacesDeConversacionTest extends TestCase
                 private readonly string $negocio,
                 private readonly string $etiqueta,
                 private readonly array $canales,
-                private readonly bool $titular,
+                private bool $titular,
                 private readonly string $contextType,
                 private readonly string $contextId,
                 private readonly ?MessageConversation $conversacion,
@@ -215,6 +264,7 @@ final class EnlacesDeConversacionTest extends TestCase
             public function getContextType(): string { return $this->contextType; }
             public function getContextId(): string { return $this->contextId; }
             public function esTitular(): bool { return $this->titular; }
+            public function marcarTitular(bool $esTitular): self { $this->titular = $esTitular; return $this; }
             public function canalesPosibles(): array { return $this->canales; }
             public function getVinculo(): VinculoComercial { return VinculoComercial::Ninguno; }
             public function getMomento(): MomentoDeFrente { return MomentoDeFrente::Venta; }

@@ -100,6 +100,24 @@ final readonly class PmsProveedorDeEnlaces implements ProveedorDeEnlacesInterfac
         return $enlace;
     }
 
+    public function enlaceDeAsunto(
+        MessageConversation $conversacion,
+        string $contextType,
+        string $contextId
+    ): ?PmsConversacionEnlace {
+        if ($contextType !== PmsConversacionEnlace::CONTEXT_TYPE) {
+            return null;
+        }
+
+        foreach ($this->paraConversacion($conversacion) as $enlace) {
+            if ($enlace->getContextId() === $contextId) {
+                return $enlace;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * El enlace de ESTA reserva en ESTE hilo, o `null`.
      *

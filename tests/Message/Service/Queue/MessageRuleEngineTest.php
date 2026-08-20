@@ -117,6 +117,12 @@ final class MessageRuleEngineTest extends TestCase
 
                 return null;
             }
+
+            public function enlaceDeAsunto(
+                MessageConversation $conversacion,
+                string $contextType,
+                string $contextId
+            ): ?ConversacionEnlaceInterface { return null; }
         };
 
         return new EnlacesDeConversacion([$proveedor]);

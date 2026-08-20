@@ -146,6 +146,7 @@ final class CanalesDisponiblesTest extends TestCase
             public function getCreatedAt(): ?DateTimeImmutable { return null; }
             public function getEtiqueta(): string { return 'Asunto de prueba'; }
             public function esTitular(): bool { return true; }
+            public function marcarTitular(bool $esTitular): self { return $this; }
             public function canalesPosibles(): array { return $this->posibles; }
             public function comoFrente(): Frente { return new Frente('prueba', MomentoDeFrente::Venta, 'Asunto de prueba'); }
         };
@@ -156,6 +157,12 @@ final class CanalesDisponiblesTest extends TestCase
             public function getNegocio(): string { return 'prueba'; }
             public function paraConversacion(MessageConversation $conversacion): array { return [$this->enlace]; }
             public function titularDeAsunto(string $contextType, string $contextId): ?ConversacionEnlaceInterface { return null; }
+
+            public function enlaceDeAsunto(
+                MessageConversation $conversacion,
+                string $contextType,
+                string $contextId
+            ): ?ConversacionEnlaceInterface { return null; }
         };
 
         return new EnlacesDeConversacion([$proveedor]);

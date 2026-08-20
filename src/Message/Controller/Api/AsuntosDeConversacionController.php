@@ -9,7 +9,10 @@ use App\Message\Entity\MessageConversation;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Security\Roles;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 
 /**
@@ -36,14 +39,22 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 final class AsuntosDeConversacionController extends AbstractController
 {
     public function __construct(
-        private readonly EnlacesDeConversacion $enlaces
+        private readonly EnlacesDeConversacion $enlaces,
+        private readonly EntityManagerInterface $em,
     ) {}
 
-    public function __invoke(MessageConversation $data): JsonResponse
+    /** GET — los asuntos del hilo. */
+    public function listar(MessageConversation $data): JsonResponse
     {
         $this->denyAccessUnlessGranted(Roles::MENSAJES_SHOW, null, 'Acceso denegado a las conversaciones.');
 
-        $asuntos = array_map(
+        return new JsonResponse(['asuntos' => $this->comoLista($data)]);
+    }
+
+    /** @return list<array{negocio: string, contextType: string, contextId: string, etiqueta: string, esTitular: bool, origen: string|null}> */
+    private function comoLista(MessageConversation $conversacion): array
+    {
+        return array_map(
             static fn (ConversacionEnlaceInterface $e): array => [
                 'negocio'     => $e->getNegocio(),
                 'contextType' => $e->getContextType(),
@@ -52,9 +63,38 @@ final class AsuntosDeConversacionController extends AbstractController
                 'esTitular'   => $e->esTitular(),
                 'origen'      => $e->getOrigen(),
             ],
-            $this->enlaces->de($data)
+            $this->enlaces->de($conversacion)
         );
+    }
 
-        return new JsonResponse(['asuntos' => $asuntos]);
+    /**
+     * PATCH — mueve el papel de TITULAR de un asunto a este hilo.
+     *
+     * Es la decisión de «a quién de los dos se le programan los envíos» cuando una reserva la
+     * atienden dos personas desde números distintos. Al otro se le sigue contestando; lo que no
+     * recibe es la agenda automática.
+     */
+    public function cambiarTitular(MessageConversation $data, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(Roles::MENSAJES_WRITE, null, 'No tienes permiso para editar la conversación.');
+
+        /** @var array<string, mixed> $cuerpo */
+        $cuerpo = json_decode($request->getContent() ?: '{}', true) ?: [];
+        $tipo = trim((string) ($cuerpo['contextType'] ?? ''));
+        $id   = trim((string) ($cuerpo['contextId'] ?? ''));
+
+        if ($tipo === '' || $id === '') {
+            return new JsonResponse(['error' => 'Falta el asunto.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if (!$this->enlaces->cambiarTitular($data, $tipo, $id)) {
+            // No se inventa el enlace: un titular sin enlace sería un asunto atendido desde una
+            // conversación que no lo tiene colgado.
+            return new JsonResponse(['error' => 'Ese asunto no cuelga de esta conversación.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $this->em->flush();
+
+        return new JsonResponse(['asuntos' => $this->comoLista($data)]);
     }
 }

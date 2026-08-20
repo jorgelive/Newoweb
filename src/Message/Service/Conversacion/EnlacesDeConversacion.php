@@ -116,6 +116,52 @@ final readonly class EnlacesDeConversacion
     }
 
     /**
+     * Mueve el papel de TITULAR de un asunto a este hilo.
+     *
+     * ── Por qué no basta con poner el flag ──────────────────────────────────
+     * Un asunto con **dos titulares** programaría su agenda dos veces —la bienvenida, el
+     * recordatorio de saldo y el check-out, duplicados—, que es exactamente lo que el papel vino
+     * a evitar. Así que promover uno exige degradar al otro, y eso hay que hacerlo mirando
+     * TODOS los hilos del asunto, no sólo éste: por eso vive aquí y no en la entidad.
+     *
+     * Idempotente: si ya era el titular, no pasa nada.
+     *
+     * @return bool `false` si este hilo no tiene ese asunto colgado — no se inventa el enlace,
+     *              porque un titular sin enlace es un asunto atendido desde una conversación que
+     *              no lo tiene.
+     */
+    public function cambiarTitular(MessageConversation $hilo, string $contextType, string $contextId): bool
+    {
+        $nuevo = null;
+
+        foreach ($this->proveedores as $proveedor) {
+            $nuevo = $proveedor->enlaceDeAsunto($hilo, $contextType, $contextId);
+
+            if ($nuevo !== null) {
+                break;
+            }
+        }
+
+        if ($nuevo === null) {
+            return false;
+        }
+
+        // Primero se degrada al anterior. Al revés habría un instante con dos titulares, y si
+        // algo fallara en medio se quedaría así — con la agenda duplicada, que es el daño.
+        $anterior = $this->hiloTitularDe($contextType, $contextId);
+
+        if ($anterior !== null && $anterior !== $hilo) {
+            foreach ($this->proveedores as $proveedor) {
+                $proveedor->enlaceDeAsunto($anterior, $contextType, $contextId)?->marcarTitular(false);
+            }
+        }
+
+        $nuevo->marcarTitular(true);
+
+        return true;
+    }
+
+    /**
      * ¿Este hilo tiene algún asunto de un negocio concreto?
      *
      * El negocio es una cadena opaca para el núcleo: se compara, no se interpreta.

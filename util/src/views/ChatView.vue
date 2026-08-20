@@ -632,6 +632,30 @@ const getMessageDisplayStatus = (msg: ApiMessage): EstadoMensaje => {
 // queda lo que SÍ es de la vista: qué permite la plantilla elegida y la ventana de 24 h.
 // ============================================================================
 
+const cambiandoTitular = ref(false);
+const errorTitular = ref('');
+
+/**
+ * Trae a este hilo la agenda del asunto elegido.
+ *
+ * Se confirma porque el otro hilo DEJA de recibir los envíos programados, y eso no se ve desde
+ * aquí: quien lo pulse tiene que saber que está moviendo algo de otra conversación.
+ */
+const hacerseTitular = async () => {
+  const asunto = store.asuntoElegido;
+  if (!asunto) return;
+
+  const aviso = `¿Atender «${asunto.etiqueta}» desde este chat?\n\n`
+    + 'Los envíos programados de ese asunto pasan aquí y dejan de salir por el otro hilo. '
+    + 'Al otro se le sigue pudiendo contestar.';
+
+  if (!window.confirm(aviso)) return;
+
+  cambiandoTitular.value = true;
+  errorTitular.value = await store.hacerseTitular(asunto) ?? '';
+  cambiandoTitular.value = false;
+};
+
 /** ¿Es este el asunto al que va lo que se escriba? */
 const esAsuntoElegido = (asunto: AsuntoDelHilo): boolean =>
   store.asuntoElegido?.contextType === asunto.contextType
@@ -1534,9 +1558,23 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                 :title="asunto.esTitular ? asunto.etiqueta : `${asunto.etiqueta} — este hilo no es el titular del asunto`"
             >
               <span class="truncate">{{ asunto.etiqueta }}</span>
-              <i v-if="!asunto.esTitular" class="fas fa-user-group text-[9px] opacity-50"></i>
+              <i v-if="!asunto.esTitular" class="fas fa-user-group text-[9px] opacity-50"
+                 title="Este hilo NO recibe los envíos programados de este asunto"></i>
+            </button>
+
+            <!-- Sólo si el asunto elegido lo atiende OTRO hilo. Es el caso de la reserva con
+                 dos huéspedes: a los dos se les contesta, pero la agenda es de uno. -->
+            <button v-if="store.asuntoElegido && !store.asuntoElegido.esTitular"
+                    @click="hacerseTitular"
+                    :disabled="cambiandoTitular"
+                    title="Pasar a este hilo los envíos programados de este asunto"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all shrink-0 disabled:opacity-40">
+              <i class="fas text-[10px] mr-1" :class="cambiandoTitular ? 'fa-circle-notch fa-spin' : 'fa-star'"></i>
+              Atender aquí
             </button>
           </div>
+
+          <p v-if="errorTitular" class="text-[11px] font-bold text-red-500 px-1 max-w-4xl mx-auto w-full">{{ errorTitular }}</p>
 
           <div class="flex items-center gap-2 px-1 max-w-4xl mx-auto w-full overflow-x-auto scrollbar-hide">
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"><i class="fas fa-satellite-dish mr-1"></i> Salida:</span>

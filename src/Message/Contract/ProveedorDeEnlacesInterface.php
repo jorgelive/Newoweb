@@ -68,4 +68,16 @@ interface ProveedorDeEnlacesInterface
      * `null` si este dominio no reconoce el `contextType`, o si el asunto todavía no tiene hilo.
      */
     public function titularDeAsunto(string $contextType, string $contextId): ?ConversacionEnlaceInterface;
+
+    /**
+     * El enlace de UN asunto en UN hilo concreto, titular o no.
+     *
+     * `titularDeAsunto()` responde «¿dónde se atiende?»; esto responde «¿qué fila une a estos
+     * dos?», que es lo que hace falta para promover el hilo de un acompañante a titular.
+     */
+    public function enlaceDeAsunto(
+        MessageConversation $conversacion,
+        string $contextType,
+        string $contextId
+    ): ?ConversacionEnlaceInterface;
 }

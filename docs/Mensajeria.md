@@ -8962,6 +8962,24 @@ Lo aplica `MessageRuleEngine::agendasDe()`, que salta los no titulares. Por defe
 un enlace que naciera en `false` por descuido dejaría una reserva sin bienvenida, y eso no lo
 delata nada.
 
+**Se mueve desde el panel**, en el selector de asuntos: al elegir uno que atiende otro hilo
+aparece **«Atender aquí»**.
+
+```
+PATCH /platform/message/conversations/{id}/asuntos   {"contextType": …, "contextId": …}
+```
+
+⚠️ **Promover exige degradar, y en ese orden.** `EnlacesDeConversacion::cambiarTitular()` baja
+primero al anterior y sube después: al revés habría un instante con **dos titulares**, y si algo
+fallara en medio se quedaría así — con la agenda duplicada, que es el daño que el papel evita.
+Vive en el servicio y no en la entidad porque hay que mirar TODOS los hilos del asunto.
+
+⚠️ **No se inventa el enlace.** Si el asunto no cuelga de ese hilo, responde `404`: un titular sin
+enlace sería un asunto atendido desde una conversación que no lo tiene.
+
+Y el aviso del panel dice lo que de verdad pasa — el otro hilo **deja de recibir** los envíos
+programados—, porque eso no se ve desde aquí: se está moviendo algo de otra conversación.
+
 ⚠️ **Corrección de un consejo anterior.** Se llegó a proponer que el sincronizador buscara el
 enlace *por reserva* en vez de por `(hilo, reserva)`, «porque una reserva no puede estar en dos
 hilos». Es falso, y habría prohibido justo este caso. El esquema estaba bien; lo que faltaba era

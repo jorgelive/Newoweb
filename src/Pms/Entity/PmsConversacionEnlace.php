@@ -497,6 +497,9 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
     public function esTitular(): bool { return $this->esTitular; }
     public function setEsTitular(bool $v): self { $this->esTitular = $v; return $this; }
 
+    /** Ver el contrato: quien lo llame tiene que degradar al titular anterior. */
+    public function marcarTitular(bool $esTitular): self { return $this->setEsTitular($esTitular); }
+
     public function comoFrente(): Frente
     {
         return new Frente(
