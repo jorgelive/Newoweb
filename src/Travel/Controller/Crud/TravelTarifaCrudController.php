@@ -213,6 +213,15 @@ class TravelTarifaCrudController extends BaseCrudController
                 : '<span class="text-muted small">Sin definir</span>')
             ->renderAsHtml();
 
+        // ⚠️ SIN `->autocomplete()`, y comprobado en el navegador el 20/08/2026: con él, EasyAdmin
+        // renderiza el select VACÍO —una sola opción, la de «Ninguno»— porque las opciones se
+        // cargan por su propio endpoint remoto, que aquí no llega a dispararse. Y en el padre
+        // además estorba: `controlsAjax()` escribe `data-controller`, así que los dos mecanismos
+        // se pelean por el mismo atributo.
+        //
+        // Con 99 organizaciones un select normal se maneja bien, y es lo que hace el resto del
+        // panel. Se ve en un segundo si vuelve a romperse: el desplegable sale sin opciones.
+        //
         // Gatillo AJAX: al elegir prestador se recargan SUS servicios en el campo de abajo.
         //
         // ⚠️ El parámetro se llama `organizacion` porque así se llama el filtro declarado en
@@ -230,7 +239,6 @@ class TravelTarifaCrudController extends BaseCrudController
             ->hideOnIndex()
             ->hideOnDetail()
             ->setRequired(false)
-            ->autocomplete()
             ->setHelp('De quién es este precio.')
             ->setColumns(6);
 
@@ -259,7 +267,6 @@ class TravelTarifaCrudController extends BaseCrudController
         yield AssociationField::new('comprador', 'Comprador')
             ->hideOnIndex()->hideOnDetail()
             ->setRequired(false)
-            ->autocomplete()
             ->setHelp('A quién se le manda el encargo. VACÍO = se le compra al prestador, que es '
                 . 'lo normal. Se llena sólo cuando el encargo va a otro: le compras a Futurismo '
                 . 'las entradas que presta el Ministerio, y la Orden sale a nombre de Futurismo.')
