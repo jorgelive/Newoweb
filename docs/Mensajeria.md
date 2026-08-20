@@ -8489,6 +8489,19 @@ denormalizada; la verdad está en `msg_identidad`.
 
 ### Los asuntos: cada dominio los aporta, el núcleo no los conoce
 
+Hoy hay dos, y añadir el tercero costará lo mismo:
+
+| Dominio | Enlace | Asunto |
+|---|---|---|
+| `hotelero` | `PmsConversacionEnlace` | una reserva |
+| `turistico` | `CotizacionConversacionEnlace` | un **expediente** de viaje |
+
+⚠️ Travel cuelga del **expediente y no de la cotización**: un expediente tiene varias versiones
+—se propone, el cliente pide cambios, se emite la v2— y el cliente habla de *su viaje*, no de la
+versión vigente. Colgar la cotización obligaría a mover el enlace en cada revisión y el hilo
+contaría una historia partida.
+
+
 `MessageConversation` importaba `PmsConversacionEnlace` y tenía una colección tipada a él, así
 que **el núcleo de mensajería conocía un dominio**. Añadir Travel costaba cuatro cosas: la
 entidad, otra colección, otro `use` y otra línea en `getEnlaces()`. Y un cliente de hotel que
@@ -8515,6 +8528,8 @@ Y `getEnlaces()` sale de la entidad, que es donde no debía estar: **una entidad
 ### Lo que queda
 
 - El comando de fusión de hilos duplicados.
-- **Travel enchufado**: `TravelConversacionEnlace` con su tabla y su FK al expediente, más su
-  proveedor. Con lo anterior hecho, son dos clases y ninguna toca el núcleo.
+- El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.
+- Que algo **cree** enlaces de Travel: la tabla existe y el núcleo ya sabe recogerlos, pero
+  nadie los cuelga todavía. El sitio natural es al abrir un expediente o al emitir una
+  cotización, como hace `PmsSincronizadorDeEnlace` con las reservas.
 - El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.
