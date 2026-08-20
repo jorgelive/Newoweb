@@ -195,16 +195,77 @@ class TravelTarifaCrudController extends BaseCrudController
             ->setColumns(6);
 
         /* ====================================================================
-         * PANEL: OPERACIONES B2B (REQUERIMIENTOS LOGÍSTICOS)
+         * PANEL: OPERACIONES B2B — los tres roles, por LÍNEA DE PRECIO
          *
-         * El PROVEEDOR ya no vive aquí: subió a TravelComponente, porque un componente
-         * llega a tener 19 tarifas y nadie repite el mismo organización 19 veces — el campo
-         * acabó en 5 de 904. Lo que sí es por línea de precio es el nombre de abajo.
+         * Aquí y no en el componente: un componente puede tener tarifas de empresas
+         * distintas —«Tren Ollanta – Machu Picchu» se compra a PeruRail y a IncaRail—, así
+         * que una empresa única arriba mentía sobre todas las tarifas menos una.
+         * Ver `docs/Travel.md` §11.
          * ==================================================================== */
         yield FormField::addPanel('Operaciones B2B (Requerimientos)')->setIcon('fa fa-truck-loading')
-            ->setHelp('El prestador se define en el Componente. Aquí sólo cómo llama ÉL a esta tarifa.');
+            ->setHelp('De quién es ESTE precio y a quién se le encarga la compra. Es por tarifa, '
+                . 'no por componente: el mismo servicio puede comprarse a varias empresas.');
 
-        yield TextField::new('nombreParaOrganizacion', 'Nombre en Tarifario del TravelOrganizacion')
+        yield TextField::new('prestador', 'Prestador')
+            ->hideOnForm()
+            ->formatValue(static fn ($value) => $value
+                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-building text-info"></i> %s</span>', htmlspecialchars((string) $value))
+                : '<span class="text-muted small">Sin definir</span>')
+            ->renderAsHtml();
+
+        // Gatillo AJAX: al elegir prestador se recargan SUS servicios en el campo de abajo.
+        //
+        // ⚠️ El parámetro se llama `organizacion` porque así se llama el filtro declarado en
+        // `TravelOrganizacionServicio`. No es un detalle de estilo: API Platform **ignora en
+        // silencio** un parámetro que no esté en su `#[ApiFilter]`, así que un nombre inventado
+        // no da error — devuelve los servicios de TODAS las empresas. Es exactamente lo que
+        // hacía el `prestador.id` del CRUD anterior.
+        yield AdminFieldHelper::controlsAjax(
+            AssociationField::new('prestador', 'Prestador'),
+            'js-prestador-servicio-api-target',
+            $endpointOrganizacionServicio,
+            'organizacion',
+            'nombre'
+        )
+            ->hideOnIndex()
+            ->hideOnDetail()
+            ->setRequired(false)
+            ->autocomplete()
+            ->setHelp('De quién es este precio.')
+            ->setColumns(6);
+
+        yield TextField::new('prestadorServicio', 'Servicio del prestador')
+            ->hideOnForm()
+            ->formatValue(static fn ($value) => $value
+                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-concierge-bell text-warning"></i> %s</span>', htmlspecialchars((string) $value))
+                : '<span class="text-muted small">—</span>')
+            ->renderAsHtml();
+
+        // Destino del AJAX de arriba. La entidad valida que el servicio sea de ese prestador.
+        yield AssociationField::new('prestadorServicio', 'Servicio del prestador')
+            ->hideOnIndex()->hideOnDetail()
+            ->setRequired(false)
+            ->setHelp('Ej: Habitación Matrimonial Standard. Se llena al elegir prestador.')
+            ->setColumns(6)
+            ->setFormTypeOptions(['attr' => ['class' => 'js-prestador-servicio-api-target']]);
+
+        yield TextField::new('comprador', 'Comprador')
+            ->hideOnForm()
+            ->formatValue(static fn ($value) => $value
+                ? sprintf('<span class="badge bg-light text-dark border"><i class="fas fa-file-invoice text-success"></i> %s</span>', htmlspecialchars((string) $value))
+                : '<span class="text-muted small">Al prestador</span>')
+            ->renderAsHtml();
+
+        yield AssociationField::new('comprador', 'Comprador')
+            ->hideOnIndex()->hideOnDetail()
+            ->setRequired(false)
+            ->autocomplete()
+            ->setHelp('A quién se le manda el encargo. VACÍO = se le compra al prestador, que es '
+                . 'lo normal. Se llena sólo cuando el encargo va a otro: le compras a Futurismo '
+                . 'las entradas que presta el Ministerio, y la Orden sale a nombre de Futurismo.')
+            ->setColumns(6);
+
+        yield TextField::new('nombreParaPrestador', 'Nombre en el tarifario del prestador')
             ->setRequired(false)
             ->setHelp('El texto exacto que el prestador reconoce en sus reservas (Ej: Ticket Tren Expedition).')
             ->setColumns(12);

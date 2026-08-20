@@ -612,9 +612,42 @@ tono semántico y traducirlo en el front.
   City Lima CT002»). Que ese campo sí tenga sentido por tarifa es, de hecho, la pista que
   estaba ahí desde el principio.
 
-  **Consecuencia para el agente:** `buscar_componentes` y `buscar_tarifas` ya no buscan ni
-  devuelven la empresa. Buscar «Ministerio de Cultura» y esperar sus componentes deja de
-  funcionar, porque esa relación ya no existe en el catálogo.
+  **Y el 20/08, la conclusión de las dos vueltas: vuelven a `TravelTarifa`**
+  (`Version20260820140000`), que es la única granularidad en la que la afirmación es cierta —
+  el componente no tiene un prestador, cada tarifa sí. Con ellos llega **`comprador`**, que es
+  lo que faltaba: da el motivo para llenarlos, porque la Orden de Servicio sale a nombre de
+  quien recibe el encargo. Vacío = se le compra al prestador, el caso normal.
+
+  La validación cruzada vuelve con los campos, a `TravelTarifa::validarConsistenciaLogica()`:
+  el servicio elegido tiene que ser del prestador **de esa tarifa**.
+
+  **Consecuencia para el agente:** `buscar_componentes` y `buscar_tarifas` no buscan ni
+  devuelven la empresa. Buscar «Ministerio de Cultura» y esperar sus componentes no funciona:
+  el dato está ahora una capa más abajo, en cada tarifa.
+
+### ⚠️ El desplegable dependiente: el nombre del parámetro NO es decorativo
+
+El CRUD de tarifas filtra «servicios de ESE prestador» con `AdminFieldHelper::controlsAjax()`,
+que mete el nombre del parámetro tal cual en la query
+(`assets/controllers/panel/dependent-select-ajax_controller.js`).
+
+El CRUD anterior mandaba `prestador.id`, y **ese filtro no existe**. API Platform ignora en
+silencio un parámetro que no esté declarado con `#[ApiFilter]`: la petición no falla, devuelve
+los servicios de **todas** las empresas. El nombre correcto es `organizacion`, que es como está
+declarado en `TravelOrganizacionServicio`.
+
+Se comprueba en el esquema, que es donde no se puede mentir:
+
+```bash
+php bin/console api:openapi:export -o /tmp/api.json
+# los `parameters` del GET de /platform/travel/organizacion-servicios
+# → id, id[], nombre, organizacion, organizacion[], page
+```
+
+Y `var/probar-crud-tarifa.php` cruza los campos del CRUD contra las propiedades reales de la
+entidad. Nació porque un barrido de renombrado dejó `TextField::new('nombreParaOrganizacion')`
+apuntando a una propiedad que se llama `nombreParaPrestador` — una cadena que no ve PHPStan, ni
+`vue-tsc`, ni ningún test, y que sólo revienta al abrir el formulario.
 - **`ComponenteItemModoEnum` no lo usa nadie.** Es un duplicado de `ItemModoEnum` con dos
   casos extra (`CORTESIA`, `REEMPLAZADO`); `TravelComponenteItem` usa `ItemModoEnum`. Ojo al
   elegir cuál tocar: el que manda es `ItemModoEnum`.

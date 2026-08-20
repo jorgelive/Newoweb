@@ -155,6 +155,54 @@ class TravelTarifa
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombreParaPrestador = null;
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // LOS TRES ROLES, POR LÍNEA DE PRECIO
+    //
+    // Aquí y no en `TravelComponente`, y esto ya dio dos vueltas: un componente **puede
+    // tener tarifas de empresas distintas** —«Tren Ollanta – Machu Picchu» se compra a
+    // PeruRail y a IncaRail—, así que una empresa única arriba era una afirmación falsa
+    // sobre todas las tarifas menos una. Ver `docs/Travel.md` §11.
+    //
+    // Que el campo estuviera vacío cuando vivía aquí (5 de 904) no significaba que
+    // estuviera en el sitio equivocado: significaba que nadie tenía todavía un motivo para
+    // llenarlo. El motivo llegó con la Orden de Servicio, que sale a nombre del COMPRADOR.
+    //
+    // `nombreParaPrestador`, justo encima, es de esta misma idea y nunca se movió: es la
+    // pista de que el sitio era éste.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Quién PRESTA el servicio: de quién es este precio. */
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ApiProperty(readableLink: false)]
+    #[ORM\ManyToOne(targetEntity: TravelOrganizacion::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?TravelOrganizacion $prestador = null;
+
+    /** El servicio concreto que se le compra (ej. el tipo de habitación). */
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ApiProperty(readableLink: false)]
+    #[ORM\ManyToOne(targetEntity: TravelOrganizacionServicio::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?TravelOrganizacionServicio $prestadorServicio = null;
+
+    /**
+     * A quién se le MANDA el encargo de comprar.
+     *
+     * ⚠️ **Vacío significa «se le compra al prestador»**, que es el caso normal — por eso
+     * puede quedarse sin llenar en casi todas las tarifas. Sólo se rellena cuando el encargo
+     * va a otro: le compras a Futurismo las entradas que presta el Ministerio de Cultura, y
+     * entonces la Orden de Servicio tiene que salir a nombre de Futurismo.
+     *
+     * Sale del mismo catálogo que el prestador, también para los internos: «Openperu Tickets»
+     * es una parte de la empresa modelada como organización. Un solo catálogo, una sola
+     * pregunta.
+     */
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ApiProperty(readableLink: false)]
+    #[ORM\ManyToOne(targetEntity: TravelOrganizacion::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?TravelOrganizacion $comprador = null;
+
     public function __construct()
     {
         $this->initializeId();
@@ -400,6 +448,15 @@ class TravelTarifa
         return $this;
     }
 
+    public function getPrestador(): ?TravelOrganizacion { return $this->prestador; }
+    public function setPrestador(?TravelOrganizacion $v): self { $this->prestador = $v; return $this; }
+
+    public function getPrestadorServicio(): ?TravelOrganizacionServicio { return $this->prestadorServicio; }
+    public function setPrestadorServicio(?TravelOrganizacionServicio $v): self { $this->prestadorServicio = $v; return $this; }
+
+    public function getComprador(): ?TravelOrganizacion { return $this->comprador; }
+    public function setComprador(?TravelOrganizacion $v): self { $this->comprador = $v; return $this; }
+
     #[Groups(['componente:item:read'])]
     public function getTarifaId(): ?string
     {
@@ -461,7 +518,17 @@ class TravelTarifa
                 ->addViolation();
         }
 
-        // La comprobación «el servicio pertenece a esa organización» se mudó con los campos a
-        // TravelComponente: ahí es donde viven ahora los dos y donde tiene sentido cruzarlos.
+        // 3. El servicio elegido tiene que ser del prestador de ESTA tarifa.
+        //
+        // Sin esto se guarda «Hotel A» con «habitación doble del Hotel B»: no falla al
+        // escribir y sale mal en la cotización, que es el peor momento para enterarse.
+        if ($this->prestadorServicio !== null
+            && $this->prestador !== null
+            && $this->prestadorServicio->getOrganizacion() !== $this->prestador
+        ) {
+            $context->buildViolation('El servicio seleccionado no pertenece al prestador de esta tarifa.')
+                ->atPath('prestadorServicio')
+                ->addViolation();
+        }
     }
 }

@@ -2743,17 +2743,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem"][];
             tarifas?: string[];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -2888,17 +2877,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.html"][];
             tarifas?: string[];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente.html"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3011,17 +2989,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld"][];
             tarifas?: string[];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente.jsonld"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -3134,17 +3101,6 @@ export interface components {
             anticipacionalerta?: number | null;
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart"][];
             tarifas?: string[];
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            prestador?: string | null;
-            /**
-             * Format: iri-reference
-             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
-             * @example https://example.com/
-             */
-            prestadorServicio?: string | null;
             servicios?: string[];
             readonly segmentoComponentesInyectados?: components["schemas"]["TravelSegmentoComponente.multipart"][];
             /** @description Centros de operación / lugares. Este es el lado DUEÑO. */
@@ -25187,6 +25143,24 @@ export interface components {
             rol: "estandar" | "operativo" | "alternativa";
             comisionOverride?: string | null;
             nombreParaPrestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Quién PRESTA el servicio: de quién es este precio.
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
+            /**
+             * Format: iri-reference
+             * @description A quién se le MANDA el encargo de comprar.
+             * @example https://example.com/
+             */
+            comprador?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
@@ -25224,6 +25198,24 @@ export interface components {
             rol: "estandar" | "operativo" | "alternativa";
             comisionOverride?: string | null;
             nombreParaPrestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Quién PRESTA el servicio: de quién es este precio.
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
+            /**
+             * Format: iri-reference
+             * @description A quién se le MANDA el encargo de comprar.
+             * @example https://example.com/
+             */
+            comprador?: string | null;
         };
         "Tarifa.html-componente.item.read": {
             nombreInterno: string;
@@ -25255,6 +25247,24 @@ export interface components {
             rol: "estandar" | "operativo" | "alternativa";
             comisionOverride?: string | null;
             nombreParaPrestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Quién PRESTA el servicio: de quién es este precio.
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
+            /**
+             * Format: iri-reference
+             * @description A quién se le MANDA el encargo de comprar.
+             * @example https://example.com/
+             */
+            comprador?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
@@ -25288,6 +25298,24 @@ export interface components {
             rol: "estandar" | "operativo" | "alternativa";
             comisionOverride?: string | null;
             nombreParaPrestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Quién PRESTA el servicio: de quién es este precio.
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
+            /**
+             * Format: iri-reference
+             * @description A quién se le MANDA el encargo de comprar.
+             * @example https://example.com/
+             */
+            comprador?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
@@ -25321,6 +25349,24 @@ export interface components {
             rol: "estandar" | "operativo" | "alternativa";
             comisionOverride?: string | null;
             nombreParaPrestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Quién PRESTA el servicio: de quién es este precio.
+             * @example https://example.com/
+             */
+            prestador?: string | null;
+            /**
+             * Format: iri-reference
+             * @description El servicio concreto que se le compra (ej. el tipo de habitación).
+             * @example https://example.com/
+             */
+            prestadorServicio?: string | null;
+            /**
+             * Format: iri-reference
+             * @description A quién se le MANDA el encargo de comprar.
+             * @example https://example.com/
+             */
+            comprador?: string | null;
             readonly tarifaId?: string | null;
             readonly etiquetaOpciones?: string;
         };
