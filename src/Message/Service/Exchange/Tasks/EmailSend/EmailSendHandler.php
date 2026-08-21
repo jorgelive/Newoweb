@@ -41,6 +41,13 @@ final readonly class EmailSendHandler implements ExchangeHandlerInterface
 
         $item->setExternalId(isset($data['messageId']) ? (string) $data['messageId'] : null);
 
+        // ⚠️ **CIERRA LA COLA.** El orquestador no lo hace: delega el estado final en el handler
+        // de cada canal, y sin esta línea el ítem se queda en `processing` con su bloqueo puesto.
+        // Entonces el watchdog lo declara `watchdog_timeout` pasado el TTL, vuelve a `failed` con
+        // reintento pendiente… y **el correo sale por segunda vez**. Pasó con el primer envío
+        // real: el mensaje llegó, la cola se quedó abierta.
+        $item->markSuccess(new DateTimeImmutable());
+
         $mensaje = $item->getMessage();
 
         if ($mensaje !== null) {
@@ -65,6 +72,8 @@ final readonly class EmailSendHandler implements ExchangeHandlerInterface
 
         $motivo = $e->getMessage() !== '' ? $e->getMessage() : ($item->getFailedReason() ?? 'Error desconocido al enviar el correo.');
         $mensaje = $item->getMessage();
+
+        $item->setFailedReason($motivo);
 
         if ($mensaje !== null) {
             $this->merger->merge($mensaje, 'email', ['error_reason' => $motivo], 'email', null);
