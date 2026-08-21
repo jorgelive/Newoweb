@@ -7342,7 +7342,25 @@ Lo detecta `PmsSincronizadorDeEnlace` comparando las unidades que cubría el enl
 las que cubre **después** del recálculo. Si desaparece alguna y quedan otras, es parcial; si no
 queda ninguna, es total y la trata la rama de arriba.
 
-⚠️ **Dos trampas, las dos con test:**
+⚠️ **Tres trampas, las tres con test:**
+
+0. **Mudarse de casita NO es perder una casita**, y comparando nombres se ven igual.
+   `array_diff(['Casita 2'], ['Casita 5'])` da «perdió la Casita 2» cuando al huésped sólo se le
+   cambió de puerta — una reasignación de rutina antes de la llegada. Y como los hitos históricos
+   sobreviven a todo recálculo (trampa 1), ese hecho falso se quedaba escrito para siempre.
+
+   Lo que distingue una pérdida es que la reserva pase a cubrirse con **menos casitas**: mudarse
+   mantiene la cuenta, que te cancelen una de dos no. De ahí el `count($ahora) < count($antes)`.
+
+   ⚠️ Queda una imprecisión conocida y se prefiere a la anterior: si en el mismo recálculo se
+   cancela una casita **y** se reasigna otra, la cuenta baja y entre las «perdidas» viaja también
+   la reasignada — se nombra una casita de más en un aviso que ya es correcto en lo esencial, en
+   vez de disparar uno entero cada vez que alguien cambia de puerta.
+
+   Hoy esto es **latente**: las seis reglas activas cuelgan de `created_at`, `start` y `end`, y
+   ninguna de `partial_cancellation`. El daño era ensuciar historiales que no se pueden limpiar,
+   no mandar un mensaje equivocado — pero el hito está en el desplegable del CRUD justo para que
+   alguien cuelgue una regla de él.
 
 1. Una cancelación parcial es un **hecho**, no un estado derivado: los tramos que la provocaron
    ya no existen, así que no se puede volver a deducir. `setHitos()` reemplaza los hitos

@@ -114,7 +114,22 @@ final readonly class PmsSincronizadorDeEnlace implements SincronizadorDeEnlaceIn
         $ahora = $enlace->unidadesDerivadas();
         $perdidas = array_values(array_diff($antes, $ahora));
 
-        if ($perdidas !== [] && $ahora !== []) {
+        // ⚠️ **Perder una casita y MUDARSE de casita se ven igual comparando nombres.**
+        //
+        // Esto miraba sólo `array_diff`, así que reasignar a un huésped de la Casita 2 a la 5
+        // —mismas fechas, operación de rutina antes de la llegada— se anotaba como «perdió la
+        // Casita 2». Y los hitos históricos **sobreviven a todo recálculo por diseño**: un hecho
+        // falso escrito ahí no se limpia después.
+        //
+        // Lo que de verdad distingue una pérdida es que la reserva pase a cubrirse con MENOS
+        // casitas a la vez. Mudarse mantiene la cuenta; que te cancelen una de dos, no.
+        //
+        // ⚠️ Queda una imprecisión conocida y se prefiere a la anterior: si en el mismo
+        // recálculo se cancela una casita Y se reasigna otra, la cuenta baja y entre las
+        // «perdidas» viaja también la reasignada. Se nombra una casita de más en un aviso que ya
+        // es correcto en lo esencial —sí hubo pérdida—, en vez de inventar un aviso entero cada
+        // vez que alguien cambia de puerta.
+        if ($perdidas !== [] && $ahora !== [] && count($ahora) < count($antes)) {
             $enlace->anotarCancelacionParcial(implode(' + ', $perdidas));
         }
 
