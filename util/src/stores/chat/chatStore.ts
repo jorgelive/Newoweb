@@ -1039,6 +1039,44 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     /**
+     * ABRE el hilo de un asunto que todavía no lo tiene.
+     *
+     * ── Por qué existe ──────────────────────────────────────────────────────
+     * Hasta ahora una conversación sólo nacía de rebote —al guardar la reserva o el expediente,
+     * o cuando el cliente escribía primero—. Si se cortaba, el panel decía «esta reserva todavía
+     * no tiene conversación» y ahí se acababa el camino: había que ir a tocar y volver a guardar
+     * la reserva para que el listener la recreara. Para un proveedor no nacía nunca.
+     *
+     * ⚠️ **Es idempotente: si ya existe, devuelve la que hay.** Por dentro es el mismo
+     * `upsertFromContext()` que usa el camino normal, que resuelve por enlace titular, por
+     * identidad y por la llave legada antes de crear nada. Así que se puede llamar sin
+     * comprobar antes, y dos operadores a la vez no abren dos hilos.
+     *
+     * Un hilo abierto por aquí es indistinguible de uno nacido solo: siembra las identidades,
+     * crea el enlace del asunto y vuelca el `contextData`.
+     *
+     * @param {string} contextType Tipo de asunto ('pms_reserva', 'cotizacion_file', 'travel_organizacion').
+     * @param {string} contextId UUID del asunto en su dominio.
+     * @returns {Promise<{ conversacion: ApiConversation } | { error: string }>} El motivo escrito
+     *   cuando no se puede —sin datos de contacto, asunto inexistente, dominio sin soporte—,
+     *   para pintarlo tal cual: el backend lo redacta mejor que un código de estado.
+     */
+    const abrirConversacion = async (
+        contextType: string,
+        contextId: string
+    ): Promise<{ conversacion: ApiConversation } | { error: string }> => {
+        try {
+            const { data } = await apiClient.post('/platform/message/conversations/abrir', { contextType, contextId });
+
+            return { conversacion: data as ApiConversation };
+        } catch (e: unknown) {
+            const respuesta = (e as { response?: { data?: { error?: string } } }).response;
+
+            return { error: respuesta?.data?.error ?? 'No se pudo abrir la conversación.' };
+        }
+    };
+
+    /**
      * Edita la cabecera de la conversación (nombre/teléfono del huésped, idioma, WhatsApp)
      * vía PATCH (merge-patch+json). Sincroniza el resultado en `currentConversation` y en
      * la lista `conversations` para que el inbox refleje el cambio sin recargar.
@@ -1103,6 +1141,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, abrirConversacion, updateConversation, deleteConversation
     };
 });

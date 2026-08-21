@@ -8,7 +8,6 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\MessageDataResolverRegistry;
-use App\Pms\Entity\PmsChannel; // 🔥 IMPORTANTE
 use Doctrine\ORM\EntityManagerInterface;
 
 readonly class MessageFactory
@@ -31,9 +30,10 @@ readonly class MessageFactory
             $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
             $meta = $resolver ? $resolver->getMetadata($conversation->getContextId()) : [];
 
-            // La misma pregunta que hace `Beds24SendEnqueuer`, y ahora con la misma respuesta:
-            // {@see PmsChannel::esDePlataforma()}.
-            $isDirect = !PmsChannel::esDePlataforma((string) ($meta['source'] ?? ''));
+            // La misma pregunta que hace `Beds24SendEnqueuer`, con la misma respuesta y del
+            // mismo sitio: la trae el dominio ya resuelta en `es_plataforma`. El núcleo no sabe
+            // qué canales existen ni cuáles son nuestros — y no tiene por qué.
+            $isDirect = ($meta['es_plataforma'] ?? false) !== true;
         }
 
         $activeChannels = $this->em->getRepository(MessageChannel::class)->findBy(['isActive' => true]);

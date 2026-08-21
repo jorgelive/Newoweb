@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { useChatStore } from '@/stores/chat/chatStore.ts';
+import { uuidDe } from '@/services/hydra';
 import { getUrls } from '@/services/apiClient';
 import { formatearTelefono, telefonoParaWhatsapp } from '@/utils/telefono';
 import { enfocarEnScroller } from '@/utils/scrollEnfoque';
@@ -986,16 +987,43 @@ function cerrarPlantillasSiFuera(e: MouseEvent): void {
 
 const abriendoChat = ref(false);
 
+/**
+ * Abre el hilo de esta reserva y devuelve su UUID, o `null` dejando escrito el motivo.
+ *
+ * El backend lo redacta —«no hay ni teléfono ni correo registrados», «ese asunto ya no
+ * existe»— y aquí se pinta tal cual: sabe mejor que nosotros qué falta.
+ *
+ * @param donde Dónde escribir el error. Por defecto arriba (`localError`); el botón de
+ *   identificadores pasa el suyo porque está al final del scroll — ver el aviso de
+ *   `errorTelefono`.
+ */
+async function abrirHilo(donde?: (msg: string) => void): Promise<string | null> {
+    if (!props.reservaId) return null;
+
+    const resultado = await chatStore.abrirConversacion('pms_reserva', props.reservaId);
+
+    if ('error' in resultado) {
+        (donde ?? ((m: string) => { localError.value = m; }))(resultado.error);
+
+        return null;
+    }
+
+    return uuidDe(resultado.conversacion);
+}
+
 async function abrirChatInterno(): Promise<void> {
     if (!props.reservaId) return;
 
     abriendoChat.value = true;
     try {
-        const convId = await reservasStore.fetchConversacionId(props.reservaId);
-        if (!convId) {
-            localError.value = 'Esta reserva todavía no tiene una conversación de chat.';
-            return;
-        }
+        // Sin hilo todavía, se ABRE. Antes esto era el final del camino —«no tiene
+        // conversación»— y para escribirle había que tocar y volver a guardar la reserva, para
+        // que el listener la recreara de rebote. La apertura es idempotente, así que llamarla
+        // sobre una reserva que sí tenía hilo devuelve ése.
+        const convId = await reservasStore.fetchConversacionId(props.reservaId)
+            ?? await abrirHilo();
+
+        if (!convId) return;   // `abrirHilo()` ya dejó escrito el motivo
 
         // El drawer se cierra ANTES de navegar a propósito: ReservasView cancela la
         // salida de ruta mientras haya un drawer abierto (onBeforeRouteLeave, para
@@ -1028,12 +1056,13 @@ async function editarIdentificadores(): Promise<void> {
     abriendoChat.value = true;
 
     try {
-        const convId = await reservasStore.fetchConversacionId(props.reservaId);
+        // Igual que arriba: si no hay hilo, se abre. Es justo lo que este botón necesita —el
+        // editor de identificadores no puede existir sin hilo—, y decir «se creará con el
+        // primer mensaje» era mandar al operador a esperar un mensaje que quizá nunca llegue.
+        const convId = await reservasStore.fetchConversacionId(props.reservaId)
+            ?? await abrirHilo(msg => { errorTelefono.value = msg; });
 
-        if (!convId) {
-            errorTelefono.value = 'Esta reserva todavía no tiene conversación: el identificador se creará con el primer mensaje.';
-            return;
-        }
+        if (!convId) return;
 
         // Igual que `abrirChatInterno`: cerrar ANTES de navegar, porque ReservasView cancela la
         // salida de ruta mientras haya un cajón abierto.

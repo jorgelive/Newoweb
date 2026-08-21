@@ -26,6 +26,7 @@ use App\Message\Controller\Api\MarkConversationReadController;
 use App\Message\Controller\Api\AsuntosDeConversacionController;
 use App\Message\Controller\Api\IdentidadesDeConversacionController;
 use App\Message\Controller\Api\CanalesDeConversacionController;
+use App\Message\Controller\Api\AbrirConversacionController;
 use App\Message\Controller\Api\ConversacionPorAsuntoController;
 use App\Message\Controller\Api\UnreadSummaryController;
 use App\Security\Roles;
@@ -92,6 +93,29 @@ use Symfony\Component\Uid\Uuid;
             securityMessage: 'Acceso denegado a las conversaciones.',
             read: false,
             deserialize: false
+        ),
+
+        // ABRIR el hilo de un asunto que todavía no lo tiene.
+        //
+        // Va antes del Get de item por lo mismo que los otros: `/conversations/{id}` capturaría
+        // «abrir» como identificador.
+        //
+        // Es POST y no un parámetro del GET de arriba porque **crea**: un `?crear=1` lo
+        // dispararía cualquier recarga o precarga del navegador. Y es idempotente igual — si el
+        // asunto ya tiene hilo devuelve ése, con 200 en vez de 201.
+        new Post(
+            uriTemplate: '/conversations/abrir',
+            controller: AbrirConversacionController::class,
+            openapi: new Operation(
+                summary: 'Abre el hilo de un asunto',
+                description: 'Crea la conversación de una reserva, un expediente o una organización si no existe, y devuelve la que ya hubiera. '
+                    . '201 si nace, 200 si ya estaba, 409 con el motivo si el asunto no existe o no tiene ningún dato de contacto.'
+            ),
+            security: "is_granted('" . Roles::MENSAJES_WRITE . "')",
+            securityMessage: 'No tienes permiso para abrir conversaciones.',
+            read: false,
+            deserialize: false,
+            output: false
         ),
 
         // API Platform infiere automáticamente: GET /message/conversations

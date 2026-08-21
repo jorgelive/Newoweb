@@ -328,11 +328,17 @@ nuevos. Por eso importa que el canal N+1 sea barato.
   que una reserva de otro channel manager sencillamente no le valida. No hay que inventar
   enrutado nuevo.
 
-  ⚠️ **«¿Es nuestra esta reserva?» se pregunta en UN sitio:** `PmsChannel::esDePlataforma()`. La
-  lista de orígenes propios (`directo`, `manual`, `web`, `''`) estaba escrita **tres veces**
-  —`Beds24SendEnqueuer` dos, `MessageFactory` una— y **dos de las tres sin `strtolower`**: un
-  canal guardado como «Directo» pasaba un filtro y no el otro. Es la misma pregunta que decide
-  si el correo de un asunto es un alias de plataforma o el de la persona (ver §24).
+  ⚠️ **«¿Es nuestra esta reserva?» la responde el DOMINIO, y el núcleo sólo transporta la
+  respuesta.** La lista de orígenes propios (`directo`, `manual`, `web`, `''`) estaba escrita
+  **tres veces dentro de `src/Message/`** —`Beds24SendEnqueuer` dos, `MessageFactory` una— y
+  **dos de las tres sin `strtolower`**: un canal guardado como «Directo» pasaba un filtro y no
+  el otro.
+
+  Hoy la responde `PmsReserva::esDePlataforma()` —mirando `pms_channel.es_directo`, ver §24— y
+  viaja como `es_plataforma` en la metadata del resolver. El núcleo **ya no importa `PmsChannel`**:
+  no sabe qué canales existen ni cuáles son nuestros, y no tiene por qué. Un dominio sin channel
+  manager sencillamente no trae la clave, y el canal se apaga solo — ver la tabla de claves en
+  `MessageDataResolverInterface::getMetadata()`.
 - La conversación se identifica por `contextType`+`contextId` (la reserva del PMS): dos channel
   managers sobre la misma reserva **no** duplican chat.
 
@@ -5426,6 +5432,9 @@ arreglar** — ver el aviso al final de esta sección.
 | Cambiar qué reservas usan alias de plataforma en vez del correo personal | `src/Pms/Entity/PmsConversacionEnlace.php` | `correoEsExclusivo()` (→ `PmsChannel::esDePlataforma()`) |
 | Cambiar qué orígenes se consideran «reserva nuestra» | `src/Pms/Entity/PmsChannel.php` | `ORIGENES_PROPIOS` / `esDePlataforma()` — **única fuente**: la usan Beds24, `MessageFactory` y el correo |
 | Cambiar qué identificadores pueden marcarse como principales | `src/Message/Service/Conversacion/EditorDeIdentidades.php` | `marcarPrincipal()` — la regla vive en `AliasDePlataforma` |
+| **Abrir el hilo de un asunto que no lo tiene** | `src/Message/Service/Conversacion/AperturaDeHilo.php` | `abrir()` — `POST /message/conversations/abrir` |
+| Enchufar un dominio NUEVO a la apertura de hilos | `src/<Modulo>/Service/Message/` | una clase que implemente `ProveedorDeContextoInterface`; se autolocaliza |
+| Cambiar si una reserva es «de plataforma» | `src/Pms/Entity/PmsReserva.php` | `esDePlataforma()` — **única fuente**; viaja como `es_plataforma` en la metadata |
 | **Cambiar qué direcciones se consideran «de la plataforma»** | `src/Message/Service/Conversacion/AliasDePlataforma.php` | `esAlias()` / `de()` / `elHiloTieneAsuntosExclusivos()` — 🪞 espejo en `EditConversationModal.vue` |
 | Cambiar el texto que se COPIA para WhatsApp desde el panel | `util/src/utils/formatoDeTexto.ts` + `src/Message/Service/Formato/FormatoDeTexto.php` | `paraWhatsapp()` — **espejo: los dos** |
 | Cambiar QUÉ copia el botón del asistente | `util/src/utils/formatoDeTexto.ts` | `bloqueCopiable()` — el bloque ``` si hay uno, si no todo |
@@ -9462,6 +9471,85 @@ cabecera con asunto real. El detalle está en §5, junto a la rama que crea el w
 ⚠️ Es la forma del problema que hay que vigilar al fusionar o unificar hilos: **lo que se arregla
 en la resolución reaparece en quien lee la cabecera.** Mientras el agente enrute por
 `contextType`/`contextId` y no por los enlaces, la cabecera es dato vivo, no un resto histórico.
+
+### Abrir un hilo: la operación que no existía (21/08/2026)
+
+**Hasta hoy no había forma de empezar una conversación.** Sólo nacían de rebote, y por tres
+caminos que nadie elige:
+
+```
+PmsReservaRecalculoService          al guardar cualquier cosa de la reserva
+CotizacionFileConversacionListener  al guardar el expediente
+Beds24ReceivePersister / Meta       cuando el cliente escribe primero
+```
+
+Si una se cortaba, el panel decía «esta reserva todavía no tiene conversación» **y ahí se
+acababa**. Para volver a escribirle había que ir a la reserva, tocar cualquier campo y guardarla,
+para que el listener la recreara de rebote. Y para un proveedor no nacía nunca: nadie guarda una
+organización «con motivo de escribirle».
+
+El alta a mano de EasyAdmin parecía la salida y no lo era: crea la fila, pero **no siembra
+identidades, no crea el enlace del asunto y no vuelca el `contextData`**. Nace un hilo que no
+resuelve a nadie, no encuentra su reserva y no sabe por qué canales puede salir.
+
+#### Las piezas
+
+| Pieza | Qué hace |
+|---|---|
+| `ProveedorDeContextoInterface` | El contrato que faltaba: «dame el contexto de este asunto», por tag |
+| `AperturaDeHilo::abrir()` | Pregunta quién soporta el `contextType`, pide el contexto y llama a `upsertFromContext()` |
+| `POST /message/conversations/abrir` | `{contextType, contextId}` → `201` si nace, `200` si ya estaba, `409` con el motivo |
+| `chatStore.abrirConversacion()` | El lado del panel; devuelve `{conversacion}` o `{error}` con el texto del backend |
+
+Implementaciones: `PmsProveedorDeContexto`, `CotizacionProveedorDeContexto`,
+`TravelProveedorDeContexto`. **Un dominio nuevo sólo tiene que crear la clase** — ni un `match`,
+ni un `if`, ni tocar el registro.
+
+#### Por qué el contrato es un proveedor y no el contexto suelto
+
+Porque el `MessageContextInterface` **sólo se construía dentro del guardado del dominio**: el
+recálculo del PMS lo arma con la reserva y su cabecera financiera delante, el listener de
+Cotización con el expediente. Nadie podía pedir uno. El contrato nuevo es exactamente esa puerta
+—«ármamelo para este id»— y nada más: es de sólo lectura sobre el dominio, no crea reservas.
+
+#### ⚠️ POST, no `?crear=1`
+
+`GET /conversations/por-asunto` sigue devolviendo `204` cuando no hay hilo, y **no se le añadió
+un parámetro para crear**. Un efecto de lado en un GET lo dispara cualquier recarga, cualquier
+precarga del navegador y cualquier reintento automático. Un hilo se abre porque alguien lo
+decide.
+
+Aun así es **idempotente**: por dentro es `upsertFromContext()`, que resuelve por enlace titular,
+por identidad y por la llave legada antes de crear nada. Dos operadores pulsando a la vez no
+abren dos hilos. Por eso el panel lo llama sin comprobar antes.
+
+#### ⚠️ Sin ningún identificador NO se abre
+
+Un hilo cuyo dueño no se puede reconocer por ningún teléfono, correo ni `bookId` no recibe, no
+sale, y deja en la bandeja una fila que nadie puede cerrar. Se lanza con el motivo escrito —«no
+hay ni teléfono ni correo registrados»— y el panel lo pinta tal cual. Es la misma guarda que
+`CotizacionFileConversacionListener` ya aplicaba, pero en silencio; aquí hay alguien delante
+esperando.
+
+Los tres motivos se distinguen a propósito, porque mandan a sitios distintos:
+
+| Motivo | Qué tiene que hacer quien lo lee |
+|---|---|
+| «todavía no se pueden abrir conversaciones de X» | Falta implementar el contrato: es cosa nuestra |
+| «ese asunto ya no existe» | Se borró la reserva o el expediente |
+| «no hay ni teléfono ni correo» | Añadir un dato de contacto y reintentar |
+
+#### Verificado con datos reales
+
+`var/probar-apertura-de-hilo.php`, en transacción con `rollback`. Corta el hilo de una reserva
+real —hilo y enlace borrados— y lo vuelve a abrir: **vuelve con sus identidades, su nombre, su
+enlace marcado como titular y su `contextData`**. Y abre el de una organización proveedora, que
+nunca había tenido: nace con el teléfono del catálogo sembrado y el canal de correo apagado,
+porque esa organización no tiene correo.
+
+⚠️ La sonda **cablea el grafo a mano**: este proyecto no tiene entorno `test` con
+`framework.test`, así que los servicios son privados y el contenedor no los da. Si mañana se
+añade un cuarto proveedor de contexto y no se añade allí, la sonda deja de cubrirlo.
 
 ### Lo que queda
 

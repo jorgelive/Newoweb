@@ -786,10 +786,77 @@ apuntando a una propiedad que se llama `nombreParaPrestador` — una cadena que 
 
 ---
 
+## 11 bis. Escribirle a un proveedor (21/08/2026)
+
+`src/Travel/` entra en la mensajería por primera vez, y por la puerta pequeña: una
+`TravelOrganizacion` pasa a ser **alguien a quien se le puede escribir**.
+
+```
+src/Travel/Service/Message/
+├── TravelOrganizacionMessageContext.php   el adaptador: la organización vista como interlocutor
+└── TravelProveedorDeContexto.php          «ármame el contexto de esta organización»
+```
+
+`CONTEXT_TYPE = 'travel_organizacion'`.
+
+### ⚠️ Un proveedor NO es un asunto, y por eso casi todo va vacío
+
+Los dos contextos que existían —una reserva, un expediente— son **asuntos**: algo que empieza,
+termina, se cobra y se cancela. Una organización no: es un interlocutor permanente. Lo que
+devuelve vacío **es la respuesta correcta**, no un hueco por rellenar:
+
+| Método | Devuelve | Por qué |
+|---|---|---|
+| `getMilestones()` | vacío | No hay hitos que programar. Se le escribe a mano, no por reglas |
+| `getItems()` | vacío | No hay casitas ni servicios que listar |
+| `getFinancialTotal()` | `null` | Lo que se le deba vive en el expediente, no en la organización |
+| `isCancelled()` | `false` | Una organización no se cancela: deja de usarse |
+| `getVinculo()` | `Cliente` | Y no es un error de nombre — ver abajo |
+
+⚠️ **`VinculoComercial::Cliente` para un proveedor.** El enum dice «hay un contexto vivo detrás y
+se le atiende», que es exactamente la situación. `Interesado` abriría las reglas de venta sobre
+alguien a quien no le vendemos nada.
+
+⚠️ **Idioma `es`, y sin fijar.** El catálogo no guarda el idioma de la organización, así que es
+una suposición: son proveedores locales. Al no fijarla, el primer mensaje que llegue en otro
+idioma la corrige. El defecto del PMS (`en`, pensado para huéspedes extranjeros) acertaría menos.
+
+### Beds24 se apaga solo — sin desactivar nada
+
+No hay `MessageDataResolverInterface` para `travel_organizacion`, así que la metadata sale vacía,
+`es_plataforma` no viene, y tanto `MessageFactory` como `Beds24SendEnqueuer` descartan el canal.
+**No hace falta desactivarlo**: no traer la clave ya lo dice. Ver la tabla de claves en
+`MessageDataResolverInterface::getMetadata()` y `docs/Mensajeria.md` §24.
+
+WhatsApp y correo funcionan con el teléfono y el correo del catálogo, sembrados como identidades
+al abrir el hilo.
+
+### El hilo nace cuando alguien decide escribir, no al guardar
+
+Es el único de los tres dominios **sin listener detrás**, y a propósito: una organización se
+guarda muchas veces —se le corrige la dirección, se le sube una foto— y ninguna de esas veces
+significa «quiero hablar con ella». Se abre con `POST /message/conversations/abrir`
+(`docs/Mensajeria.md` §24, «Abrir un hilo»), que es idempotente.
+
+⚠️ **Sin teléfono ni correo no se abre**, con el motivo escrito. Un hilo que no resuelve a nadie
+no recibe, no sale y deja en la bandeja una fila que nadie puede cerrar.
+
+### Lo que NO tiene todavía
+
+- **Ningún punto de entrada en el panel.** El mecanismo y el endpoint están; falta el botón. Hoy
+  se abre llamando a la API.
+- **Ni enlace de conversación ni `ConversacionEnlaceInterface`.** Deliberado: un proveedor no
+  tiene asuntos que colgar. El día que los tenga —una orden de servicio concreta, un reclamo—
+  ése será el momento de crear la entidad de enlace, no antes.
+- **Ni resolver de datos**, así que no hay variables de plantilla propias. Se le escribe texto
+  libre.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
+| **Escribirle a una organización proveedora** | `src/Travel/Service/Message/TravelProveedorDeContexto.php` | `para()` — el hilo lo abre `POST /message/conversations/abrir` |
+| Cambiar qué datos de contacto siembra el hilo de un proveedor | `src/Travel/Service/Message/TravelOrganizacionMessageContext.php` | `getIdentificadores()` |
 | Que un componente aparezca sólo en cierta plantilla o día | `src/Travel/Entity/TravelSegmentoComponente.php` | `$itinerarioContexto`, `$dia` |
 | Cambiar la regla de «una sola hora de servicio completo por día» | `src/Travel/EventListener/TravelSegmentoComponentePromocionUnicaListener.php` | `onFlush()` |
 | Reordenar segmentos dentro de la plantilla | `src/Travel/Entity/TravelItinerarioSegmentoRel.php` | `$dia`, `$orden` |

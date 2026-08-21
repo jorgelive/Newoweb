@@ -120,6 +120,12 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'beds24_book_id' => $targetBookId,
             'beds24_config'  => $reserva->getEstablecimiento()?->getBeds24Config(),
             'source'         => $sourceId,
+            // ⚠️ **Ya resuelto, no el identificador.** `source` viaja para que las plantillas
+            // puedan acotarse por canal —el núcleo lo compara contra lo que alguien configuró,
+            // sin entenderlo—, pero «¿hay una plataforma de por medio?» es una CONSECUENCIA, y
+            // quien la conoce es el dominio. Publicándola aquí, `MessageFactory` y
+            // `Beds24SendEnqueuer` dejan de importar `PmsChannel` para deducirla ellos.
+            'es_plataforma'  => $reserva->esDePlataforma(),
         ];
     }
 

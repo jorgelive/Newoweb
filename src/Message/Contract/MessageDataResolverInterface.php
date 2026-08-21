@@ -38,14 +38,37 @@ interface MessageDataResolverInterface
     public function getPhoneNumber(string $contextId): ?string;
 
     /**
-     * Obtiene IDs externos o configuraciones de enrutamiento específicas para los Providers
-     * (Ej: API de Beds24, IDs de integraciones).
+     * IDs externos y consecuencias del dominio que el núcleo transporta sin entender.
+     *
+     * ── Lo que va aquí y lo que NO ──────────────────────────────────────────
+     * Van **identificadores opacos** (`beds24_book_id`, `beds24_config`, `source`) y
+     * **consecuencias ya resueltas** (`es_plataforma`). No van datos crudos que obliguen al
+     * núcleo a deducir la consecuencia él mismo: eso es conocimiento de dominio dentro de un
+     * servicio transversal, y lo que produce es una copia de las reglas del dominio por cada
+     * sitio que las necesita.
+     *
+     * Y ya pasó: la lista de canales «propios» del PMS estuvo escrita **tres veces dentro de
+     * `src/Message/`**, dos de ellas sin normalizar, y una reserva podía ser directa para un
+     * filtro y de plataforma para el otro.
+     *
+     * ── Las claves que hoy consume el núcleo ────────────────────────────────
+     * | Clave | Tipo | Quién la lee | Para qué |
+     * |---|---|---|---|
+     * | `es_plataforma` | `bool` | `MessageFactory`, `Beds24SendEnqueuer` | Si hay una OTA entre el cliente y nosotros: decide si el canal del channel manager se ofrece y si se permite mandar por él |
+     * | `source` | `string` | `ValidTemplateScopeValidator`, `MessageCrudController` | Acotar plantillas por origen. **Se compara, no se interpreta**: contra lo que alguien puso en `MessageTemplate::allowedSources` |
+     * | `agency_id` | `string` | los mismos | Acotar plantillas por agencia, igual |
+     * | `beds24_book_id`, `beds24_config` | `mixed` | `Beds24SendEnqueuer` | La dirección de la estancia en el channel manager |
+     *
+     * ⚠️ **Ausente se lee como `false`/vacío en todas.** Un dominio que no tenga channel manager
+     * —Turismo, y mañana Travel— sencillamente no trae esas claves, y el canal se apaga solo. No
+     * hace falta que devuelva `es_plataforma => false` para «desactivarlo»: no traerla ya lo
+     * dice.
      *
      * @param string $contextId El UUID de la entidad.
      * @return array<string, mixed>
      *
      * @example
-     * return ['beds24_book_id' => '12345678'];
+     * return ['beds24_book_id' => '12345678', 'source' => 'booking', 'es_plataforma' => true];
      */
     public function getMetadata(string $contextId): array;
 

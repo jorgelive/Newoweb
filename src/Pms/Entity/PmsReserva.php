@@ -671,6 +671,33 @@ class PmsReserva
     }
 
     /**
+     * ¿Hay una PLATAFORMA entre el huésped y nosotros?
+     *
+     * ── La única fuente de esta pregunta ────────────────────────────────────
+     * Se responde en cuatro sitios con consecuencias distintas —si el canal Beds24 se ofrece,
+     * si se permite mandar por su API, si el correo del asunto es un alias exclusivo, y qué
+     * plantillas encajan— y tenían que responderla igual o la reserva es «de plataforma» para
+     * uno y «nuestra» para otro. Estaba escrita tres veces como lista de códigos, dos de ellas
+     * sin normalizar; ahora es esto.
+     *
+     * ⚠️ **Manda el flag del canal, no su identificador.** «¿Es venta directa?» ya se responde
+     * en la base (`pms_channel.es_directo`, editable desde el panel): un canal nuevo dado de
+     * alta mañana como directo se trataría como plataforma si esto mirase una lista de códigos,
+     * y su correo dejaría de aceptar el principal sin un solo error.
+     *
+     * La lista estática queda de respaldo para la reserva sin canal —cargada a mano—, donde no
+     * hay fila que mirar.
+     */
+    public function esDePlataforma(): bool
+    {
+        $canal = $this->getChannel();
+
+        return $canal !== null
+            ? !$canal->getEsDirecto()
+            : PmsChannel::esDePlataforma(null);
+    }
+
+    /**
      * 2. EL ARMADOR DE URL MULTI-CANAL
      */
     #[Groups(['pms_reserva:read'])]

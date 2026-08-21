@@ -508,11 +508,9 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
      */
     public function correoEsExclusivo(): bool
     {
-        $canal = $this->reserva?->getChannel();
-
-        return $canal !== null
-            ? !$canal->getEsDirecto()
-            : PmsChannel::esDePlataforma($this->origen);
+        // Lo contesta la reserva, que es de quien es el dato. Si ya no está cargada, queda el
+        // `origen` que se copió del contexto: peor, pero mejor que inventarse una respuesta.
+        return $this->reserva?->esDePlataforma() ?? PmsChannel::esDePlataforma($this->origen);
     }
 
     /**

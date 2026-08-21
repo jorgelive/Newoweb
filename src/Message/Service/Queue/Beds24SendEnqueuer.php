@@ -13,7 +13,6 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\MessageDataResolverRegistry;
-use App\Pms\Entity\PmsChannel;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
@@ -65,13 +64,22 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         $metadata = $resolver->getMetadata($asuntoId);
 
         // 🔥 REGLA DE SEGURIDAD ESTRICTA: ¿Es Reserva Directa?
-        // ⚠️ Una sola fuente: {@see PmsChannel::esDePlataforma()}. La lista estaba escrita aquí,
-        // otra vez en `disponiblePara()` —ésa sí con `strtolower`— y una tercera en
-        // `MessageFactory`. Tres copias con dos criterios distintos: un canal guardado como
-        // «Directo» pasaba el filtro de un sitio y no el del otro.
+        // ⚠️ **La respuesta viene hecha del dominio**, no se deduce aquí.
+        //
+        // Esto miraba una lista de identificadores del PMS (`directo`, `manual`, `web`, `''`)
+        // escrita dentro del núcleo — y escrita otras dos veces, en `disponiblePara()` y en
+        // `MessageFactory`, dos de las tres sin normalizar: un canal guardado como «Directo»
+        // pasaba el filtro de un sitio y no el del otro.
+        //
+        // Ahora el resolver publica `es_plataforma` ya resuelto y esto no sabe qué es un canal,
+        // ni que existe algo llamado Airbnb. Un dominio nuevo sólo tiene que traer la clave.
+        //
+        // Sin resolver o sin metadatos, `false`: se asume reserva propia y se corta. Es el mismo
+        // valor que daba la lista vieja con `source` vacío, y es el lado seguro — no mandar por
+        // una plataforma que quizá no exista.
         $source = (string) ($metadata['source'] ?? '');
 
-        if (!PmsChannel::esDePlataforma($source)) {
+        if (($metadata['es_plataforma'] ?? false) !== true) {
             throw new RuntimeException(sprintf('Operación denegada: No se permite enviar mensajes por la API de Beds24 a reservas directas (Canal: %s).', $source ?: 'Desconocido'));
         }
 
@@ -199,7 +207,7 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
 
         $metadata = $resolver->getMetadata($asuntoId);
         // Si la reserva es nuestra, el canal Beds24 no pinta nada: no hay plataforma que relaye.
-        if (!PmsChannel::esDePlataforma((string) ($metadata['source'] ?? ''))) {
+        if (($metadata['es_plataforma'] ?? false) !== true) {
             return false;
         }
 
