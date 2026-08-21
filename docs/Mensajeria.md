@@ -9549,6 +9549,33 @@ primero y ofrece escribir el segundo.
 Quien **persiste** la semilla es la pantalla, con su propio «Guardar»: el componente no sabe qué
 es un expediente ni una organización. Por eso los valores le llegan como `v-model`.
 
+#### ⚠️ Y si se teclea un identificador que YA es de alguien
+
+Tiene **dos finales y ninguno se ve**. Medido contra producción y local:
+
+| Estado del asunto | Qué pasa |
+|---|---|
+| **Sin hilo todavía** | Se engancha al hilo de ESA persona: el asunto pasa a ser uno más de los suyos. Correcto si es el cliente que vuelve; invisible si fue un dedazo |
+| **Con hilo propio** | El identificador **se descarta**. La resolución encuentra primero su enlace titular y `ResolutorDeHilo::vincular()` se niega a robárselo a su dueño, porque `(tipo, valor)` es único |
+
+En los dos casos de descarte queda un `warning` en el log y **nada en pantalla**: el operador
+guarda, sigue viendo el dato en el campo —es la semilla, ahí sigue— y da por hecho que se
+registró.
+
+**Lo que NO se hizo:** permitir el robo, o fusionar los dos hilos automáticamente. Unir
+historiales es una decisión de persona y tiene su herramienta (`app:message:fusionar-hilos`); un
+dedazo no puede mudar la conversación de alguien.
+
+**Lo que sí:** preguntar antes de guardar, que es cuando se puede corregir.
+`ContactoDeIdentidad` consulta `GET /platform/message/identidades/duenio` con retardo mientras se
+teclea y avisa con el nombre del dueño —el mismo recurso y el mismo criterio que ya usaba el alta
+de reservas—:
+
+> ⚠️ Este número ya es de **Giovanna Sardenberg**. Si es la misma persona, este asunto pasará a
+> su conversación; si no, no se guardará como identificador.
+
+Los dos finales en una frase, porque el operador es el único que sabe cuál de los dos quiere.
+
 #### Qué pasa con los asuntos que ya existían
 
 Nada se rompe y nada hay que migrar. El dato sigue viéndose —marcado **sin verificar**— y se

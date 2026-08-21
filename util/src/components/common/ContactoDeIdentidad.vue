@@ -85,6 +85,42 @@ const correoEsIdentidad = computed(() => contacto.value?.correoOrigen === 'ident
 /** ¿El padre nos pasó los modelos? Sin ellos no se puede ofrecer edición de la semilla. */
 const editable = computed(() => props.telefono !== undefined || props.correo !== undefined);
 
+// ══ ¿ESTE IDENTIFICADOR YA ES DE ALGUIEN? ══════════════════════════════════
+//
+// ── Lo que pasa sin este aviso, medido ──────────────────────────────────────
+// Teclear un número que ya existe tiene DOS finales y ninguno se ve:
+//
+//   · el asunto todavía sin hilo → se engancha al hilo de ESA persona, y el expediente pasa a
+//     ser un asunto suyo. Correcto si es el cliente que vuelve; invisible si fue un dedazo.
+//   · el asunto ya con hilo propio → el identificador **se descarta**, porque `(tipo, valor)` es
+//     único y no se le roba a su dueño. Queda un warning en el log y nada en pantalla: el
+//     operador guarda, ve el dato en el campo —es la semilla, sigue ahí— y da por hecho que se
+//     registró.
+//
+// Así que se pregunta ANTES de guardar, que es cuando se puede corregir. Mismo recurso que usa
+// el alta de reservas (`ReservaEditDrawer`).
+const duenioTelefono = ref<{ nombre: string | null } | null>(null);
+const duenioCorreo = ref<{ nombre: string | null } | null>(null);
+
+let temporizador: ReturnType<typeof setTimeout> | null = null;
+
+/** Con retardo: se teclea dígito a dígito y no hay que preguntar por cada uno. */
+const comprobarDuenios = (): void => {
+    if (temporizador) clearTimeout(temporizador);
+
+    temporizador = setTimeout(async () => {
+        duenioTelefono.value = telefonoEsIdentidad.value || !props.telefono
+            ? null
+            : await chatStore.fetchDuenioDeIdentificador('telefono', props.telefono);
+
+        duenioCorreo.value = correoEsIdentidad.value || !props.correo
+            ? null
+            : await chatStore.fetchDuenioDeIdentificador('email', props.correo);
+    }, 400);
+};
+
+watch(() => [props.telefono, props.correo], comprobarDuenios);
+
 const cargar = async (): Promise<void> => {
     contacto.value = null;
     error.value = null;
@@ -165,9 +201,17 @@ defineExpose({ recargar: cargar });
                 <i v-if="contacto?.telefono" class="fas fa-phone text-[#376875]/40 text-xs mr-1.5"></i>
                 {{ contacto?.telefono ? formatearTelefono(contacto.telefono) : (cargando ? '…' : '—') }}
             </p>
-            <input v-else :value="telefono ?? ''" @input="emit('update:telefono', ($event.target as HTMLInputElement).value)"
-                   type="tel" placeholder="+51 987 654 321"
-                   class="mt-1 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875]" />
+            <template v-else>
+                <input :value="telefono ?? ''" @input="emit('update:telefono', ($event.target as HTMLInputElement).value)"
+                       type="tel" placeholder="+51 987 654 321"
+                       class="mt-1 w-full bg-white border rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875]"
+                       :class="duenioTelefono ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200 bg-white'" />
+                <p v-if="duenioTelefono" class="mt-1 text-[10px] font-bold text-amber-700 leading-snug">
+                    <i class="fas fa-triangle-exclamation mr-1"></i>
+                    Este número ya es de <strong>{{ duenioTelefono.nombre || 'otra persona' }}</strong>.
+                    Si es la misma, este asunto pasará a su conversación; si no, no se guardará como identificador.
+                </p>
+            </template>
         </div>
 
         <div v-if="muestraCorreo" class="px-3 py-2.5">
@@ -182,9 +226,17 @@ defineExpose({ recargar: cargar });
                 <i v-if="contacto?.correo" class="fas fa-envelope text-[#376875]/40 text-xs mr-1.5"></i>
                 {{ contacto?.correo ?? (cargando ? '…' : '—') }}
             </p>
-            <input v-else :value="correo ?? ''" @input="emit('update:correo', ($event.target as HTMLInputElement).value)"
-                   type="email" placeholder="cliente@ejemplo.com"
-                   class="mt-1 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875]" />
+            <template v-else>
+                <input :value="correo ?? ''" @input="emit('update:correo', ($event.target as HTMLInputElement).value)"
+                       type="email" placeholder="cliente@ejemplo.com"
+                       class="mt-1 w-full border rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875]"
+                       :class="duenioCorreo ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200 bg-white'" />
+                <p v-if="duenioCorreo" class="mt-1 text-[10px] font-bold text-amber-700 leading-snug">
+                    <i class="fas fa-triangle-exclamation mr-1"></i>
+                    Este correo ya es de <strong>{{ duenioCorreo.nombre || 'otra persona' }}</strong>.
+                    Si es la misma, este asunto pasará a su conversación; si no, no se guardará como identificador.
+                </p>
+            </template>
         </div>
 
         <div class="px-3 py-2 flex items-center gap-2 flex-wrap">
