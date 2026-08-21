@@ -217,6 +217,11 @@ class Message
     #[Groups(['message:read'])]
     private Collection $whatsappMetaSendQueues;
 
+    /** @var Collection<int, EmailSendQueue> */
+    #[ORM\OneToMany(mappedBy: 'message', targetEntity: EmailSendQueue::class, cascade: ['persist', 'remove'])]
+    #[Groups(['message:read'])]
+    private Collection $emailSendQueues;
+
     /** @var Collection<int, Beds24SendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: Beds24SendQueue::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
@@ -277,6 +282,7 @@ class Message
     {
         $this->id = Uuid::v7();
         $this->whatsappMetaSendQueues = new ArrayCollection();
+        $this->emailSendQueues = new ArrayCollection();
         $this->beds24SendQueues       = new ArrayCollection();
         $this->attachments            = new ArrayCollection();
 
@@ -691,6 +697,19 @@ class Message
     // COLECCIONES
     // =========================================================================
 
+    /** @return Collection<int, EmailSendQueue> */
+    public function getEmailSendQueues(): Collection { return $this->emailSendQueues; }
+
+    public function addEmailSendQueue(EmailSendQueue $queue): self
+    {
+        if (!$this->emailSendQueues->contains($queue)) {
+            $this->emailSendQueues->add($queue);
+            $queue->setMessage($this);
+        }
+
+        return $this;
+    }
+
     /** @return Collection<int, WhatsappMetaSendQueue> */
     public function getWhatsappMetaSendQueues(): Collection { return $this->whatsappMetaSendQueues; }
 
@@ -811,6 +830,10 @@ class Message
             $queues[] = $q;
         }
 
+        foreach ($this->emailSendQueues as $q) {
+            $queues[] = $q;
+        }
+
         return $queues;
     }
 
@@ -833,6 +856,8 @@ class Message
             $this->addBeds24SendQueue($queue);
         } elseif ($queue instanceof WhatsappMetaSendQueue) {
             $this->addWhatsappMetaSendQueue($queue);
+        } elseif ($queue instanceof EmailSendQueue) {
+            $this->addEmailSendQueue($queue);
         }
 
         return $this;

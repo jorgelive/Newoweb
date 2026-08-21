@@ -8799,6 +8799,58 @@ con un aviso en el log; si de verdad es la misma persona, lo decide alguien con
 dominio re-registra los identificadores en CADA recálculo, así que sin la lápida el siguiente
 pull de Beds24 resucitaría el que acabas de retirar.
 
+### El canal de CORREO
+
+Entra por el motor de Exchange y no por una llamada suelta al mailer, porque lo que hacía falta
+no era mandar un correo —eso es una línea— sino **mandarlo con red**: cola persistente,
+reintentos con espera, bloqueo por worker para que dos no manden lo mismo, y auditoría. Todo eso
+ya estaba resuelto y funcionando para Beds24 y WhatsApp.
+
+| Pieza | Qué hace |
+|---|---|
+| `EmailConfig` | El buzón remitente. **Sin credenciales**: el DSN de Graph vive en `MAILER_DSN` |
+| `EmailSendQueue` | El correo esperando salir, con destino y asunto **congelados** |
+| `EmailSendEnqueuer` | Resuelve a quién se le escribe y con qué título |
+| `MailerExchangeClient` | El transporte: Symfony Mailer sobre Graph, alias `email` |
+| `EmailSendTask` + provider/strategy/handler | El enganche con el motor |
+
+**Destino y asunto se congelan al encolar.** Entre programar un recordatorio y mandarlo pueden
+pasar días, y en ese rato el correo de la persona puede cambiar, retirarse o vetarse. Un mensaje
+sale a donde se decidió que saliera — es lo mismo que hace WhatsApp con `destinationPhone`.
+
+**El cuerpo, en cambio, se resuelve al enviar**, como en todos los canales: las variables llevan
+los datos del día en que sale, no los de cuando se programó.
+
+⚠️ **El asunto cuando no hay plantilla sale de la ETIQUETA del asunto** —«Tu reserva Casita 3,
+02/03–09/03»—, que la redacta el dominio y está pensada justo para eso. Un título genérico en la
+bandeja de alguien con tres reservas no dice de cuál va.
+
+⚠️ **El endpoint `email_send` es un marcador.** `HomogeneousBatch` exige uno porque los demás
+canales hablan con una API; el destino de un correo es un buzón. Se prefirió una fila inerte a
+hacer opcional el endpoint en el motor, que obligaría a revisar los canales que ya funcionan. Su
+repositorio **no hace `innerJoin` al endpoint** por lo mismo: habría devuelto cero filas en
+silencio, dejando la cola llena y el worker sin nada que hacer.
+
+⚠️ **El mailer no devuelve códigos HTTP.** O entrega al transporte o lanza. El cliente responde
+`200` al salir y `502` al fallar, para que el motor decida el reintento con el mismo criterio que
+usa con los demás. Ese `502` es convención de aquí, no algo que dijera un servidor.
+
+⚠️ **«Aceptado por el transporte» no es «entregado».** Graph confirma que recogió el correo, no
+que llegara: los rebotes vienen después y por otro camino. Se marca `sent`, nunca `delivered`.
+
+#### Antes de encenderlo
+
+La migración deja **el buzón sin dirección y el canal apagado**, a propósito: activarlo con un
+remitente vacío deja los correos fallando de uno en uno. Hay que poner un **buzón real** del
+tenant —Graph rechaza enviar «como» un alias, y el fallo llega tarde; ver `docs/CorreoSaliente.md`
+§6.1— y luego activar `EmailConfig` y la fila `email` de `msg_channel`.
+
+⚠️ **A dónde se escribe hoy.** Los **25** correos-identidad de la base son alias
+`@guest.booking.com`: funcionan como destino porque Booking los reenvía, pero son direcciones de
+ASUNTO —una por reserva— y llevan la conversación por la plataforma. Para un huésped de OTA sin
+confirmar, `RestriccionCanal::OtaPreReserva` sigue aplicando sobre el CONTENIDO; el canal en sí
+no está restringido. Conviene tenerlo delante antes de encenderlo para reservas de OTA.
+
 ### Turismo entra en la mensajería
 
 La tabla `cotizacion_conversacion_enlace` y su proveedor llevaban días en pie y **nadie los

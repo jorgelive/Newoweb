@@ -808,6 +808,32 @@ class MessageConversation
     }
 
     /**
+     * El correo al que se escribe. Mismo criterio que el teléfono; ver
+     * {@see self::getTelefonoPrincipal()}.
+     *
+     * ⚠️ Hoy **todos** los correos-identidad de la base son alias `@guest.booking.com`, o sea
+     * direcciones de ASUNTO —una por reserva— y no contactos de la persona. Funcionan como
+     * destino, porque Booking los reenvía; pero el día que entren correos reales conviene que
+     * el envío mire el correo del asunto y no el del hilo. Está en docs/Mensajeria.md §24.
+     */
+    public function getCorreoPrincipal(): ?MessageIdentidad
+    {
+        $vivos = [];
+
+        foreach ($this->identidades as $identidad) {
+            if ($identidad->getTipo() === IdentidadTipo::EMAIL && $identidad->estaViva() && !$identidad->isBloqueado()) {
+                if ($identidad->isPrincipal()) {
+                    return $identidad;
+                }
+
+                $vivos[] = $identidad;
+            }
+        }
+
+        return count($vivos) === 1 ? $vivos[0] : null;
+    }
+
+    /**
      * El teléfono al que se escribe: el marcado principal, o el único vivo.
      *
      * `null` si no hay ninguno vivo, o si hay varios y ninguno es principal — ahí no se elige
