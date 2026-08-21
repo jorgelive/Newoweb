@@ -8690,7 +8690,13 @@ normal es que identidad y semilla coincidan —aquélla se sembró de ésta—, 
 «semilla» justo cuando sí hay identidad.
 
 En el cajón de la reserva el campo queda de **sólo lectura**, con la marca «sin verificar»
-cuando lo que se ve es la semilla, y un botón **Editar** que lleva al chat. En EasyAdmin el
+cuando lo que se ve es la semilla, y un botón **Editar** que abre el editor de identificadores
+(`/chat?id=…&editar=identidades`).
+
+⚠️ **Al EDITAR una reserva que ya existe, el teléfono y el correo ni se pintan.** Sólo aparecen
+al CREAR, que es cuando son la semilla. Editarlos en una reserva viva no cambiaría a dónde salen
+los mensajes —eso lo deciden las identidades— y dejaría los dos datos contradiciéndose; en su
+sitio hay una línea que dice dónde se editan de verdad. En EasyAdmin el
 campo está **deshabilitado** con el mismo aviso: ese CRUD está de salida y acabará siendo sólo
 de auditoría.
 
@@ -8736,6 +8742,18 @@ para la misma persona, justo lo que la tabla vino a impedir. No había saltado n
 los valores entraron por el mismo sitio: **0 de 280 identidades y 0 de 298 teléfonos de reserva
 llevan `+`**. La puerta la abre el editor manual, donde alguien lo teclea como se dice. Ahora se
 descartan todos los símbolos.
+
+⚠️ **El teléfono NO se edita como campo suelto.** El modal tenía un input `guestPhone` encima
+de la lista, y con la identidad principal arrastrándolo se veía **dos veces en la misma
+pantalla** —arriba el campo y abajo la fila con su insignia— y editarlo a mano duraba hasta el
+siguiente recálculo. Se quitó. Sólo queda un aviso ámbar para el caso que sí importa: `guestPhone`
+apuntando a un número que **no está en la lista**, que pasa en los hilos anteriores a esta tabla y
+significa que se le está escribiendo a un número que no se puede ni vetar ni retirar.
+
+⚠️ **Las identidades `beds24` se muestran sin acciones.** No es un olvido: un `bookId` es la
+dirección de UNA ESTANCIA en un canal, no un punto de contacto de la persona. No se puede marcar
+como salida por defecto, ni vetar —Meta no lo rechaza—, ni retirar: o el booking existe o no.
+Se enseña porque es lo único que ancla a los huéspedes de OTA que llegan sin teléfono ni correo.
 
 ⚠️ **La retirada se pinta tachada, no desaparece.** Esconderla haría creer que se borró, y no:
 sigue resolviendo el historial. Y el aviso de confirmación dice lo que de verdad pasa — afecta a

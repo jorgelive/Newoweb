@@ -56,6 +56,22 @@ const identidades = computed<IdentidadDelPanel[]>(() => {
   });
 });
 
+/**
+ * El teléfono del hilo cuando NO figura entre sus identidades.
+ *
+ * `guestPhone` es la copia denormalizada por la que salen los envíos. Lo normal es que sea el de
+ * la identidad principal; cuando no lo es, hay un número operando fuera de la lista y no se
+ * puede ni vetar ni retirar. `null` en el caso normal, para no repetir el dato en pantalla.
+ */
+const telefonoHuerfano = computed<string | null>(() => {
+  const actual = (props.conversation.guestPhone ?? '').replace(/\D/g, '');
+  if (!actual) return null;
+
+  const registrado = identidades.value.some(i => i.tipo === 'telefono' && i.valor.replace(/\D/g, '') === actual);
+
+  return registrado ? null : props.conversation.guestPhone ?? null;
+});
+
 const anadir = async () => {
   if (!nuevoValor.value.trim()) return;
 
@@ -95,7 +111,6 @@ const STATUS_OPTIONS = [
 const form = ref({
   status: 'open',
   guestName: '',
-  guestPhone: '',
   idiomaId: '',
   idiomaFijado: false,
   whatsappDisabled: false,
@@ -108,7 +123,6 @@ const resetForm = () => {
   form.value = {
     status: c.status || 'open',
     guestName: c.guestName || '',
-    guestPhone: c.guestPhone || '',
     idiomaId: idiomaRef ? idiomaRef.split('/').pop() || '' : '',
     idiomaFijado: !!c.idiomaFijado,
     whatsappDisabled: !!c.whatsappDisabled,
@@ -137,7 +151,6 @@ const handleSave = async () => {
   const payload: Record<string, unknown> = {
     status: form.value.status,
     guestName: form.value.guestName.trim() || null,
-    guestPhone: form.value.guestPhone.trim() || null,
     idiomaFijado: form.value.idiomaFijado,
     whatsappDisabled: form.value.whatsappDisabled,
     whatsappDisabledReason: form.value.whatsappDisabled ? (form.value.whatsappDisabledReason.trim() || null) : null
@@ -199,11 +212,12 @@ const formatDateTime = (iso?: string | null) => {
                    class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
           </div>
 
-          <div>
-            <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Teléfono</label>
-            <input v-model="form.guestPhone" type="text" placeholder="Sin teléfono"
-                   class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
-          </div>
+          <!-- ⚠️ El campo «Teléfono» YA NO SE EDITA AQUÍ.
+               `guestPhone` es la copia denormalizada de la identidad PRINCIPAL —lo recalcula
+               `recalcularTelefonoPrincipal()` en cuanto se toca una identidad—, así que
+               editarlo a mano duraba hasta el siguiente cambio y de paso se veía dos veces en
+               la misma pantalla: aquí y en la lista de abajo con su insignia. Se edita donde
+               vive la verdad, en «Identificadores». -->
 
           <div>
             <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Idioma</label>
@@ -242,6 +256,15 @@ const formatDateTime = (iso?: string | null) => {
 
             <p v-if="!identidades.length" class="text-xs text-slate-400 font-bold mb-2">Ninguno todavía.</p>
 
+            <!-- El hilo tiene teléfono pero NADIE lo reclama como identidad: pasa en los hilos
+                 anteriores a esta tabla. Se avisa porque es justo el número por el que se le
+                 escribe hoy y no se puede ni retirar ni vetar hasta registrarlo. -->
+            <p v-if="telefonoHuerfano" class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2 leading-snug">
+              <i class="fas fa-triangle-exclamation mr-1"></i>
+              Se le escribe a <strong>{{ telefonoHuerfano }}</strong>, que no está en esta lista.
+              Añádelo para poder marcarlo, vetarlo o retirarlo.
+            </p>
+
             <ul class="flex flex-col gap-1.5 mb-3">
               <li v-for="ident in identidades" :key="ident.id"
                   class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
@@ -255,7 +278,16 @@ const formatDateTime = (iso?: string | null) => {
                 <span v-if="ident.bloqueado" :title="ident.bloqueadoMotivo || 'Bloqueado'"
                       class="text-[8px] font-black text-red-600 bg-red-50 px-1.5 py-0.5 rounded uppercase">Vetado</span>
 
-                <template v-if="!ident.retirada">
+                <!-- ⚠️ Beds24 no lleva acciones, y no es un olvido: un `bookId` es la
+                     dirección de UNA ESTANCIA en un canal, no un punto de contacto de la
+                     persona. No se le puede marcar como salida por defecto, ni vetarlo —Meta
+                     no lo rechaza—, ni retirarlo: o el booking existe o no existe. Se enseña
+                     porque es lo único que ancla a los huéspedes de OTA que llegan sin
+                     teléfono ni correo. Ver docs/Mensajeria.md §24. -->
+                <span v-if="ident.tipo === 'beds24'" class="text-[8px] font-black text-slate-300 uppercase tracking-wide pr-1"
+                      title="Dirección de la estancia en Beds24. No es un contacto de la persona.">estancia</span>
+
+                <template v-else-if="!ident.retirada">
                   <button v-if="!ident.principal" @click="cambiar(ident.id, { principal: true })" :disabled="ocupado"
                           title="Marcar como salida por defecto"
                           class="w-6 h-6 rounded-lg text-slate-300 hover:text-[#376875] hover:bg-slate-100 disabled:opacity-40">
@@ -273,9 +305,10 @@ const formatDateTime = (iso?: string | null) => {
                     <i class="fas fa-xmark text-[11px]"></i>
                   </button>
                 </template>
-                <button v-else @click="cambiar(ident.id, {})" disabled
-                        title="Retirada. Para reactivarla, vuelve a añadir el mismo valor."
-                        class="w-6 h-6 rounded-lg text-slate-200"><i class="fas fa-clock-rotate-left text-[10px]"></i></button>
+                <span v-else class="w-6 h-6 flex items-center justify-center text-slate-200"
+                      title="Retirada. Para reactivarla, vuelve a añadir el mismo valor.">
+                  <i class="fas fa-clock-rotate-left text-[10px]"></i>
+                </span>
               </li>
             </ul>
 

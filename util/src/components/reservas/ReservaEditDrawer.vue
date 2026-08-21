@@ -2301,22 +2301,33 @@ async function ejecutarBorrado(): Promise<void> {
                             <input type="text" v-model="clienteForm.apellidoCliente"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
                         </label>
-                        <!-- Un solo teléfono, y es la SEMILLA: crea el identificador de la
-                             persona la primera vez. Corregirlo, añadir otro o retirar el
-                             equivocado se hace en el chat — allí el cambio vale para TODAS sus
-                             reservas y no sólo para ésta. -->
-                        <label class="col-span-2">
-                            <span class="text-xs font-bold text-slate-500">Teléfono</span>
-                            <span v-if="formatearTelefono(clienteForm.telefono) && formatearTelefono(clienteForm.telefono) !== clienteForm.telefono"
-                                class="ml-1.5 text-[10px] font-bold text-slate-400">{{ formatearTelefono(clienteForm.telefono) }}</span>
-                            <input type="text" v-model="clienteForm.telefono"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                        </label>
-                        <label class="col-span-2">
-                            <span class="text-xs font-bold text-slate-500">Email</span>
-                            <input type="email" v-model="clienteForm.emailCliente"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                        </label>
+                        <!-- ⚠️ TELÉFONO y EMAIL sólo al CREAR: son la SEMILLA con la que nace
+                             el identificador de la persona.
+                             En una reserva que ya existe no se pintan, y no es por estorbar:
+                             editarlos aquí no cambiaría a dónde salen los mensajes —eso lo
+                             deciden las identidades— y dejaría los dos datos contradiciéndose.
+                             Para eso está el botón «Editar» del teléfono en la vista, que lleva
+                             al editor donde el cambio vale para TODAS sus reservas. -->
+                        <template v-if="isCreate">
+                            <label class="col-span-2">
+                                <span class="text-xs font-bold text-slate-500">Teléfono</span>
+                                <span v-if="formatearTelefono(clienteForm.telefono) && formatearTelefono(clienteForm.telefono) !== clienteForm.telefono"
+                                    class="ml-1.5 text-[10px] font-bold text-slate-400">{{ formatearTelefono(clienteForm.telefono) }}</span>
+                                <input type="text" v-model="clienteForm.telefono"
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                            </label>
+                            <label class="col-span-2">
+                                <span class="text-xs font-bold text-slate-500">Email</span>
+                                <input type="email" v-model="clienteForm.emailCliente"
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                            </label>
+                        </template>
+
+                        <p v-else class="col-span-2 text-[11px] font-bold text-slate-400 leading-snug bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            <i class="fas fa-id-card mr-1"></i>
+                            El teléfono y el correo son de la <strong class="text-slate-500">persona</strong>, no de esta reserva.
+                            Se editan desde el botón <strong class="text-slate-500">Editar</strong> del teléfono, en la vista.
+                        </p>
                         <label>
                             <span class="text-xs font-bold text-slate-500">País</span>
                             <select v-model="clienteForm.pais"
