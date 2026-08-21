@@ -15,6 +15,7 @@ use App\Message\Service\Inbound\InboundMenuResolver;
 use App\Message\Service\MessageJsonMerger;
 use App\Message\Service\Translation\GuestLanguageDetectorService;
 use App\Pms\Entity\PmsInformacionFinanciera;
+use App\Pms\Entity\PmsConversacionEnlace;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Repository\PmsReservaRepository;
 use App\Pms\Service\Message\PmsReservaMessageContext;
@@ -106,6 +107,18 @@ readonly class Beds24ReceivePersister
             // =================================================================
             $message = new Message();
             $message->setConversation($conversation);
+
+            // ── El ASUNTO, que aquí SÍ se sabe ──────────────────────────────
+            // Entramos por un `bookId`, y un bookId es de UNA estancia: la reserva está en la
+            // mano. Sin esta línea, `AsuntoDelMensaje` veía un hilo con varios asuntos, lo
+            // declaraba ambiguo y lo dejaba en `null` — tirando el dato que la propia dirección
+            // del mensaje ya daba.
+            //
+            // La regla de ambigüedad es el defecto correcto para quien NO lo sabe; no debe
+            // pisar a quien sí. Lo que se estampa se contrasta igualmente contra los enlaces
+            // del hilo antes de guardarse.
+            $message->setAsunto(PmsConversacionEnlace::CONTEXT_TYPE, (string) $reserva->getId());
+
             $message->setBeds24ExternalId($extId);
             $message->setChannel($channel);
             $message->setSenderType($source);

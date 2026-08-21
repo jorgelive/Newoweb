@@ -8704,6 +8704,51 @@ de auditoría.
 entidad, con sus consumidores, y su camino se decide aparte — hasta entonces, el espejo que su
 docblock declara con `PmsReserva` ya no existe.
 
+### Con varias reservas de la misma persona, ¿por qué Beds24 sale el mensaje?
+
+La cadena está en `Beds24SendEnqueuer::createQueueEntity()`:
+
+```php
+$asuntoType = $message->getAsuntoType() ?? $conversation->getContextType();
+$asuntoId   = $message->getAsuntoId()   ?? $conversation->getContextId();
+$metadata   = $resolver->getMetadata($asuntoId);   // → beds24_book_id + beds24_config
+```
+
+**Manda el asunto del MENSAJE**, y el `bookId` sale de ahí. El respaldo es la cabecera del hilo
+— que con varios asuntos nombra a uno solo, así que sin asunto estampado los mensajes de las
+tres reservas saldrían por el mismo booking.
+
+El caso medido (20/08/2026), un hilo con tres:
+
+| localizador | canal | bookId | estancia |
+|---|---|---|---|
+| 3C7XBZ | booking | `83724737` | feb 2027 |
+| 6XTD5R | **directo** | `88979281` | jun–jul 2026 |
+| D7KYFS | booking | `90853942` | mar 2027 |
+
+El `directo` se resuelve solo: `isBusinessValid()` rechaza `source = directo`, así que ahí la
+casilla Beds24 ni se ofrece.
+
+**Dos correcciones que este caso destapó:**
+
+- **El entrante de Beds24 SÍ sabe de qué reserva viene** —se entra por un `bookId`, que es de
+  una estancia— y no lo estampaba. `AsuntoDelMensaje` veía varios asuntos, lo declaraba ambiguo
+  y lo dejaba en `null`, **tirando el dato que la propia dirección del mensaje daba**. La regla
+  de ambigüedad es el defecto correcto para quien no lo sabe; no debe pisar a quien sí.
+- **El defecto del selector era arbitrario.** El panel proponía `find(esTitular)`, y `esTitular`
+  significa «este hilo atiende este asunto», no «éste es el principal»: en un hilo fusionado
+  **todos** lo son, así que caía en el orden de creación del enlace. Ahora el backend devuelve
+  los asuntos **ordenados por relevancia** —en curso, luego el más próximo a llegar, luego los
+  pasados de más reciente a más antiguo— con el mismo criterio que `findVivasByTelefono()` aplica
+  al WhatsApp entrante. Un solo sitio decidiendo «cuál es la de ahora».
+
+⚠️ **Los alias `@guest.booking.com` son direcciones de ASUNTO, no contactos de la persona.** En
+producción, los **25** correos-identidad de toda la base son alias de Booking, y cada uno
+pertenece a una reserva concreta (175 distintos, sólo 1 compartido por más de una). Hoy la
+identidad resuelve el HILO, no el asunto — igual que pasaba con el `bookId`. El día que entre el
+canal de correo, un alias entrante tiene que resolver su reserva por `pms_reserva.email_cliente`
+y **estampar el asunto**, exactamente como acaba de hacer el receptor de Beds24.
+
 ### El editor de identificadores
 
 Hasta ahora los identificadores sólo **entraban** —`upsertFromContext()` los registra en cada

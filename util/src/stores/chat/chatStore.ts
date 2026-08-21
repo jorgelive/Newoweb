@@ -668,10 +668,13 @@ export const useChatStore = defineStore('chatStore', () => {
             asuntosDelChat.value = asuntos;
 
             // Con uno solo no se elige: lo estampa el backend. Con varios se propone el
-            // TITULAR —el hilo que atiende el asunto— y el operador cambia si toca.
-            asuntoElegido.value = asuntos.length > 1
-                ? (asuntos.find(a => a.esTitular) ?? asuntos[0])
-                : null;
+            // PRIMERO, que el backend ya devuelve ordenado por relevancia — el que está en
+            // curso, si no el más próximo a llegar.
+            //
+            // ⚠️ Antes se buscaba `esTitular`, y eso estaba mal: significa «este hilo atiende
+            // este asunto», no «éste es el principal». En un hilo fusionado los tres asuntos son
+            // titulares del suyo, así que caía en el orden de creación del enlace.
+            asuntoElegido.value = asuntos.length > 1 ? asuntos[0] : null;
         } catch {
             asuntosDelChat.value = [];
             asuntoElegido.value = null;

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Api;
 
+use App\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\ConversacionEnlaceInterface;
+use DateTimeImmutable;
+use Exception;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Security\Roles;
@@ -51,9 +54,32 @@ final class AsuntosDeConversacionController extends AbstractController
         return new JsonResponse(['asuntos' => $this->comoLista($data)]);
     }
 
-    /** @return list<array{negocio: string, contextType: string, contextId: string, etiqueta: string, esTitular: bool, origen: string|null}> */
+    /**
+     * Los asuntos ORDENADOS por relevancia: el que está en curso, luego el más próximo a
+     * llegar, y al final los pasados de más reciente a más antiguo.
+     *
+     * ── Por qué ordena el backend y no el panel ─────────────────────────────
+     * Porque es el mismo criterio que ya usa `PmsReservaRepository::findVivasByTelefono()`
+     * cuando entra un WhatsApp de alguien con varias reservas vivas. Dos sitios decidiendo «cuál
+     * de sus reservas es la de ahora» con criterios distintos es la deriva que este repo tiene
+     * documentada; y el panel sólo tiene que tomar el primero.
+     *
+     * ⚠️ **`esTitular` NO sirve para esto.** Significa «este hilo atiende este asunto», no «éste
+     * es el asunto principal»: en un hilo fusionado los tres asuntos son titulares del suyo, así
+     * que ordenar por ahí devolvía el orden de creación del enlace — un defecto arbitrario que
+     * acertaba por casualidad.
+     *
+     * @return list<array{negocio: string, contextType: string, contextId: string, etiqueta: string, esTitular: bool, origen: string|null}>
+     */
     private function comoLista(MessageConversation $conversacion): array
     {
+        $enlaces = $this->enlaces->de($conversacion);
+        $hoy = new DateTimeImmutable('today');
+
+        usort($enlaces, static function (ConversacionEnlaceInterface $a, ConversacionEnlaceInterface $b) use ($hoy): int {
+            return self::relevancia($a, $hoy) <=> self::relevancia($b, $hoy);
+        });
+
         return array_map(
             static fn (ConversacionEnlaceInterface $e): array => [
                 'negocio'     => $e->getNegocio(),
@@ -63,8 +89,55 @@ final class AsuntosDeConversacionController extends AbstractController
                 'esTitular'   => $e->esTitular(),
                 'origen'      => $e->getOrigen(),
             ],
-            $this->enlaces->de($conversacion)
+            $enlaces
         );
+    }
+
+    /**
+     * Menor es más relevante. Tres tramos, y el orden dentro de cada uno es el natural.
+     *
+     * Un asunto sin fechas —un expediente de viaje que aún no tiene itinerario— cae entre los
+     * futuros y los pasados: no es urgente, pero tampoco está terminado.
+     *
+     * @return array{int, int} [tramo, desempate]
+     */
+    private static function relevancia(ConversacionEnlaceInterface $enlace, DateTimeImmutable $hoy): array
+    {
+        $hitos = $enlace->getMilestones();
+        $inicio = self::fecha($hitos[ConversationMilestoneInterface::START] ?? null);
+        $fin = self::fecha($hitos[ConversationMilestoneInterface::END] ?? null);
+
+        // 0 · En curso: ya empezó y no ha terminado. Es de lo que se está hablando ahora.
+        if ($inicio !== null && $inicio <= $hoy && ($fin === null || $fin >= $hoy)) {
+            return [0, 0];
+        }
+
+        // 1 · Por llegar: la más próxima primero.
+        if ($inicio !== null && $inicio > $hoy) {
+            return [1, (int) $inicio->format('Ymd')];
+        }
+
+        // 2 · Sin fechas.
+        if ($inicio === null) {
+            return [2, 0];
+        }
+
+        // 3 · Pasados: el más reciente primero, de ahí el signo.
+        return [3, -(int) $inicio->format('Ymd')];
+    }
+
+    private static function fecha(?string $valor): ?DateTimeImmutable
+    {
+        if ($valor === null || trim($valor) === '') {
+            return null;
+        }
+
+        try {
+            return new DateTimeImmutable($valor);
+        } catch (Exception) {
+            // Un hito con formato roto no puede tumbar el listado entero: cuenta como sin fecha.
+            return null;
+        }
     }
 
     /**
