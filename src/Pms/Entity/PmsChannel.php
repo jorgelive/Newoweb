@@ -41,6 +41,24 @@ class PmsChannel
     public const CANAL_PAGO_TOTAL   = [self::CODIGO_AIRBNB, self::CODIGO_VRBO];
 
     /**
+     * Orígenes en los que la reserva es NUESTRA: no hay plataforma de por medio.
+     *
+     * Es lo que decide si al huésped se le puede escribir a su correo de siempre o hay que
+     * pasar por el relay de la OTA. Estaba escrita **tres veces** —dos en `Beds24SendEnqueuer`,
+     * una con `strtolower` y otra sin él— que es justo la deriva de doble criterio que este
+     * repo tiene documentada.
+     *
+     * La cadena vacía cuenta como propia: una reserva sin canal es una que se cargó a mano.
+     */
+    public const array ORIGENES_PROPIOS = [self::CODIGO_DIRECTO, 'manual', 'web', ''];
+
+    /** ¿Este origen es una plataforma que se interpone entre el huésped y nosotros? */
+    public static function esDePlataforma(?string $origen): bool
+    {
+        return !in_array(strtolower(trim((string) $origen)), self::ORIGENES_PROPIOS, true);
+    }
+
+    /**
      * El ID es el código string.
      * Importante: Al ser ID natural, NO lleva GeneratedValue.
      */

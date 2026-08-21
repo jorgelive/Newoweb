@@ -183,6 +183,15 @@ class CotizacionConversacionEnlace implements ConversacionEnlaceInterface
         return $correo !== '' ? $correo : null;
     }
 
+    /**
+     * Nunca: Turismo vende directo. El correo del expediente es el de la persona, y si ésta tiene
+     * marcado otro como principal, ése manda.
+     */
+    public function correoEsExclusivo(): bool
+    {
+        return false;
+    }
+
     public function canalesPosibles(): array
     {
         return ['whatsapp_meta', 'email'];

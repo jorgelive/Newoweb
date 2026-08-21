@@ -8,6 +8,7 @@ use App\Exchange\Entity\EmailConfig;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
 use App\Message\Contract\ChannelEnqueuerInterface;
+use App\Message\Contract\ConversacionEnlaceInterface;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\EmailSendQueue;
 use App\Message\Entity\Message;
@@ -22,11 +23,15 @@ use RuntimeException;
 /**
  * Pone un mensaje en la cola de correo.
  *
- * ── El destino sale del ASUNTO, y si no, de las identidades ─────────────────
+ * ── El destino: de la persona, salvo cuando es de la plataforma ─────────────
  * No hay un `guestEmail` en la conversación, y es mejor así: hay casos en que «el correo de esa
  * persona» sencillamente no existe. Booking emite **un alias por reserva**, así que alguien con
- * dos estancias tiene dos, y elegir por orden de llegada es escribirle al hilo equivocado de la
- * plataforma. Manda el asunto; el identificador principal es el respaldo. Ver `destino()`.
+ * dos estancias tiene dos.
+ *
+ * Así que hay dos regímenes y no uno: en una reserva de OTA manda el alias del asunto y no hay
+ * respaldo —sin alias, el canal se apaga—; en todo lo demás manda el correo que una persona haya
+ * marcado como **principal**, y el del asunto es sólo la semilla de cuando aún no había otro.
+ * Ver `destino()`.
  *
  * ⚠️ Se **congela** en la cola. Entre encolar y enviar pueden pasar días —un recordatorio se
  * programa con antelación— y en ese rato el correo puede cambiar o retirarse. Un mensaje sale a
@@ -133,7 +138,12 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
     {
         $conversation = $message->getConversation();
 
-        return $conversation !== null && $this->disponiblePara($conversation);
+        // ⚠️ **Con el asunto del mensaje delante.** Preguntándolo a secas, un hilo con dos
+        // estancias de OTA y ningún correo personal no tiene destino —no se puede elegir por
+        // adivinación— y el canal se declaraba inválido aunque el mensaje SÍ dijera de cuál
+        // habla. El motor lo podaba y el correo no salía, sin nada que lo explicara.
+        return $conversation !== null
+            && $this->disponiblePara($conversation, $message->getAsuntoType(), $message->getAsuntoId());
     }
 
     /** Sin correo al que escribir no hay canal. Ver el contrato. */
@@ -148,39 +158,68 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
     /**
      * A qué correo se le escribe.
      *
-     * ── El orden, y por qué ─────────────────────────────────────────────────
+     * ── Lo que decide NO es el canal, es de quién es la dirección ───────────
      * ```
-     * 1. el correo del ASUNTO elegido      ← lo dice quien escribe: manda
-     * 2. el identificador PRINCIPAL        ← lo marcó una persona a mano
-     * 3. el correo del único asunto        ← no hay con qué equivocarse
+     * dirección de la PLATAFORMA   → el alias del asunto, y punto
+     *   (asunto con correoEsExclusivo())   sin alias ⇒ null ⇒ el canal se apaga
+     *
+     * dirección de la PERSONA      → 1. el identificador PRINCIPAL
+     *   (todo lo demás)                   2. el correo que sembró el asunto
      * ```
      *
-     * El asunto va primero porque en una reserva de OTA el correo **es del asunto**: Booking
-     * emite un alias por reserva, así que «el correo de esa persona» no existe cuando tiene dos
-     * estancias. Elegir por orden de llegada sería mandarle el mensaje al hilo equivocado de la
-     * plataforma.
+     * ── Por qué el principal manda ahora, y antes no ────────────────────────
+     * Esto ponía el asunto primero **siempre**, con el principal de respaldo. Era la regla de la
+     * OTA aplicada a todo el mundo, y para una reserva directa está al revés: el correo del
+     * asunto es un dato **sembrado al crearla** —lo que alguien tecleó una vez— y el principal es
+     * lo que una persona marcó mirando la ficha, muchas veces después de que el primero rebotara.
+     * Con el orden viejo, marcar un correo como principal no cambiaba nada mientras hubiera un
+     * asunto elegido: el editor de identidades parecía funcionar y no servía para nada.
      *
-     * Y si no se dijo el asunto, manda el principal: eso lo marcó alguien mirando, y una
-     * decisión de persona pesa más que una deducción.
+     * ── Y por qué la OTA no tiene respaldo ──────────────────────────────────
+     * ⚠️ Es la única rama del módulo donde «no hay dato» significa **no enviar**. Escribirle al
+     * correo personal de un huésped de Booking saca la conversación de la plataforma —que es
+     * justo lo que ésta penaliza— y además rompe la promesa de que el hilo de esa reserva vive
+     * donde la reserva. Antes se caía al principal en silencio; ahora el canal se apaga y el
+     * panel lo enseña apagado, que es visible.
+     *
+     * Sin asunto elegido y con uno solo en el hilo, ése decide: no hay con qué equivocarse.
      */
     private function destino(MessageConversation $conversacion, ?string $asuntoType, ?string $asuntoId): ?string
     {
+        $elegido = $this->asuntoElegido($conversacion, $asuntoType, $asuntoId);
+
+        if ($elegido?->correoEsExclusivo() === true) {
+            return $elegido->correoDeContacto();
+        }
+
+        return $conversacion->getCorreoPrincipal()?->getValor() ?? $elegido?->correoDeContacto();
+    }
+
+    /**
+     * De qué asunto va este correo, si es que se puede saber.
+     *
+     * El que digan `asuntoType`/`asuntoId`; y si no dicen nada pero el hilo sólo tiene uno, ése.
+     * Con dos o más sin elegir se devuelve `null` a propósito: adivinar cuál es exactamente el
+     * error que abre la puerta a mandarle a alguien el alias de la reserva equivocada.
+     */
+    private function asuntoElegido(
+        MessageConversation $conversacion,
+        ?string $asuntoType,
+        ?string $asuntoId
+    ): ?ConversacionEnlaceInterface {
         $asuntos = $this->enlaces->de($conversacion);
 
         if ($asuntoType !== null && $asuntoId !== null) {
             foreach ($asuntos as $asunto) {
                 if ($asunto->getContextType() === $asuntoType && $asunto->getContextId() === $asuntoId) {
-                    return $asunto->correoDeContacto() ?? $conversacion->getCorreoPrincipal()?->getValor();
+                    return $asunto;
                 }
             }
+
+            return null;
         }
 
-        if (($principal = $conversacion->getCorreoPrincipal()?->getValor()) !== null) {
-            return $principal;
-        }
-
-        // Un solo asunto: su correo ES el de la conversación, sin ambigüedad que resolver.
-        return count($asuntos) === 1 ? $asuntos[0]->correoDeContacto() : null;
+        return count($asuntos) === 1 ? $asuntos[0] : null;
     }
 
     /**

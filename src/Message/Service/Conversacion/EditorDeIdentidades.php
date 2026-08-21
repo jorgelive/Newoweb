@@ -35,6 +35,7 @@ final readonly class EditorDeIdentidades
     public function __construct(
         private EntityManagerInterface $em,
         private LoggerInterface $logger,
+        private EnlacesDeConversacion $enlaces,
     ) {
     }
 
@@ -120,6 +121,13 @@ final readonly class EditorDeIdentidades
 
         $hilo = $identidad->getConversacion();
 
+        if ($hilo !== null && $this->esDeUnaPlataforma($hilo, $identidad)) {
+            throw new RuntimeException(
+                'Ese correo no es suyo: lo emite la plataforma para UNA reserva, y sólo sirve para ésa. '
+                . 'Marca como principal un correo personal.'
+            );
+        }
+
         foreach ($hilo?->getIdentidades() ?? [] as $otra) {
             if ($otra->getTipo() === $identidad->getTipo()) {
                 $otra->setPrincipal($otra === $identidad);
@@ -137,6 +145,45 @@ final readonly class EditorDeIdentidades
         $bloqueado ? $identidad->bloquear($motivo) : $identidad->desbloquear();
 
         $identidad->getConversacion()?->recalcularBloqueoWhatsapp();
+    }
+
+    /**
+     * ¿Este correo lo emitió una OTA para una reserva concreta?
+     *
+     * ── Por qué se deduce y no se guarda ────────────────────────────────────
+     * Porque el dato ya existe: el alias ES el `correoDeContacto()` de un asunto que se declara
+     * exclusivo. Guardarlo aparte en la identidad crearía un segundo autor sobre el mismo hecho,
+     * y el día que una reserva directa se reclasifique como de OTA —o al revés— la copia
+     * mentiría sin que nada lo dijera.
+     *
+     * Que el alias esté registrado como identidad **es correcto y hace falta**: es lo que hace
+     * que el correo entrante de Booking caiga en el hilo de esa persona. Lo que no puede es ser
+     * la salida por defecto de TODO, porque entonces la reserva de Airbnb del mes que viene
+     * saldría por el buzón de la de Booking del mes pasado.
+     *
+     * ⚠️ Espejo en el panel: `EditConversationModal.vue` esconde la estrella con esta misma
+     * regla, comparando contra `correoExclusivo` de la lista de asuntos. Si cambia aquí, cambia
+     * allí — el de aquí es el que manda, el de allí sólo evita ofrecer un botón que va a fallar.
+     */
+    private function esDeUnaPlataforma(MessageConversation $hilo, MessageIdentidad $identidad): bool
+    {
+        if ($identidad->getTipo() !== IdentidadTipo::EMAIL) {
+            return false;
+        }
+
+        foreach ($this->enlaces->de($hilo) as $asunto) {
+            if (!$asunto->correoEsExclusivo()) {
+                continue;
+            }
+
+            $alias = $asunto->correoDeContacto();
+
+            if ($alias !== null && strcasecmp(trim($alias), $identidad->getValor()) === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function revivir(MessageIdentidad $identidad): void

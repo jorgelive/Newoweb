@@ -151,6 +151,7 @@ final class OrdenDeAsuntosTest extends TestCase
             public function getCreatedAt(): ?DateTimeImmutable { return null; }
             public function getEtiqueta(): string { return $this->etiqueta; }
             public function correoDeContacto(): ?string { return null; }
+            public function correoEsExclusivo(): bool { return false; }
             public function esTitular(): bool { return true; }
             public function marcarTitular(bool $esTitular): self { return $this; }
             public function canalesPosibles(): array { return []; }

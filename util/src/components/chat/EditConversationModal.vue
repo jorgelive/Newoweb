@@ -33,7 +33,21 @@ interface IdentidadDelPanel {
   bloqueado: boolean;
   bloqueadoMotivo: string | null;
   retirada: boolean;
+  /** Alias que emitió una OTA para UNA reserva: no puede ser la salida por defecto de todo. */
+  deLaPlataforma: boolean;
 }
+
+/**
+ * Los alias de plataforma del hilo, en minúsculas para comparar.
+ *
+ * 🪞 Espejo de `EditorDeIdentidades::esDeUnaPlataforma()`, que es quien de verdad lo impide. Si
+ * la regla cambia allí, cambia aquí — esto sólo evita ofrecer un botón que va a responder 409.
+ */
+const aliasDePlataforma = computed<Set<string>>(() => new Set(
+  store.asuntosDelChat
+    .map(a => a.correoExclusivo?.trim().toLowerCase())
+    .filter((c): c is string => !!c)
+));
 
 const identidades = computed<IdentidadDelPanel[]>(() => {
   const filas = (props.conversation as unknown as { identidades?: unknown[] }).identidades ?? [];
@@ -52,6 +66,7 @@ const identidades = computed<IdentidadDelPanel[]>(() => {
       // acciones, no desaparece. Que siga a la vista es el punto — sigue resolviendo el
       // historial, y esconderla haría creer que se borró.
       retirada: i.retiradoEn != null,
+      deLaPlataforma: aliasDePlataforma.value.has(String(i.valor ?? '').trim().toLowerCase()),
     };
   });
 });
@@ -286,6 +301,13 @@ const formatDateTime = (iso?: string | null) => {
                      teléfono ni correo. Ver docs/Mensajeria.md §24. -->
                 <span v-if="ident.tipo === 'beds24'" class="text-[8px] font-black text-slate-300 uppercase tracking-wide pr-1"
                       title="Dirección de la estancia en Beds24. No es un contacto de la persona.">estancia</span>
+
+                <!-- El alias de una OTA tampoco es un contacto de la persona: Booking emite
+                     uno POR RESERVA y sólo vale para ésa. Se enseña —hace falta para que su
+                     correo entrante caiga en este hilo— pero sin estrella: marcarlo como
+                     salida por defecto mandaría la reserva de mañana al buzón de la de ayer. -->
+                <span v-else-if="ident.deLaPlataforma" class="text-[8px] font-black text-slate-300 uppercase tracking-wide pr-1"
+                      title="Alias que emite la plataforma para una reserva concreta. Sólo se usa para ese asunto.">plataforma</span>
 
                 <template v-else-if="!ident.retirada">
                   <button v-if="!ident.principal" @click="cambiar(ident.id, { principal: true })" :disabled="ocupado"

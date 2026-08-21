@@ -264,6 +264,7 @@ final class EnlacesDeConversacionTest extends TestCase
             public function getContextType(): string { return $this->contextType; }
             public function getContextId(): string { return $this->contextId; }
             public function correoDeContacto(): ?string { return null; }
+            public function correoEsExclusivo(): bool { return false; }
             public function esTitular(): bool { return $this->titular; }
             public function marcarTitular(bool $esTitular): self { $this->titular = $esTitular; return $this; }
             public function canalesPosibles(): array { return $this->canales; }

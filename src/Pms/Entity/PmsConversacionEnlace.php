@@ -500,6 +500,17 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
         return $correo !== '' ? $correo : null;
     }
 
+    /**
+     * Exclusivo cuando la reserva viene de una OTA: el alias es la única puerta.
+     *
+     * Una reserva directa —o cargada a mano— trae el correo de verdad del huésped, y ahí manda
+     * lo que una persona haya marcado como principal.
+     */
+    public function correoEsExclusivo(): bool
+    {
+        return PmsChannel::esDePlataforma($this->origen);
+    }
+
     public function canalesPosibles(): array
     {
         return [];

@@ -327,6 +327,12 @@ nuevos. Por eso importa que el canal N+1 sea barato.
   decide si la reserva es suya. `Beds24SendEnqueuer` mira `beds24_book_id`/`beds24_config`, así
   que una reserva de otro channel manager sencillamente no le valida. No hay que inventar
   enrutado nuevo.
+
+  ⚠️ **«¿Es nuestra esta reserva?» se pregunta en UN sitio:** `PmsChannel::esDePlataforma()`. La
+  lista de orígenes propios (`directo`, `manual`, `web`, `''`) estaba escrita **tres veces**
+  —`Beds24SendEnqueuer` dos, `MessageFactory` una— y **dos de las tres sin `strtolower`**: un
+  canal guardado como «Directo» pasaba un filtro y no el otro. Es la misma pregunta que decide
+  si el correo de un asunto es un alias de plataforma o el de la persona (ver §24).
 - La conversación se identifica por `contextType`+`contextId` (la reserva del PMS): dos channel
   managers sobre la misma reserva **no** duplican chat.
 
@@ -5416,6 +5422,10 @@ arreglar** — ver el aviso al final de esta sección.
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
+| **Cambiar a qué correo se le escribe** | `src/Message/Service/Queue/EmailSendEnqueuer.php` | `destino()` + `asuntoElegido()` — dos regímenes, §24 |
+| Cambiar qué reservas usan alias de plataforma en vez del correo personal | `src/Pms/Entity/PmsConversacionEnlace.php` | `correoEsExclusivo()` (→ `PmsChannel::esDePlataforma()`) |
+| Cambiar qué orígenes se consideran «reserva nuestra» | `src/Pms/Entity/PmsChannel.php` | `ORIGENES_PROPIOS` / `esDePlataforma()` — **única fuente**: la usan Beds24, `MessageFactory` y el correo |
+| Cambiar qué identificadores pueden marcarse como principales | `src/Message/Service/Conversacion/EditorDeIdentidades.php` | `marcarPrincipal()` + `esDeUnaPlataforma()` — 🪞 espejo en `EditConversationModal.vue` |
 | Cambiar el texto que se COPIA para WhatsApp desde el panel | `util/src/utils/formatoDeTexto.ts` + `src/Message/Service/Formato/FormatoDeTexto.php` | `paraWhatsapp()` — **espejo: los dos** |
 | Cambiar QUÉ copia el botón del asistente | `util/src/utils/formatoDeTexto.ts` | `bloqueCopiable()` — el bloque ``` si hay uno, si no todo |
 | Cambiar cómo se pinta un bloque de código en el panel | `util/src/utils/formatoDeTexto.ts` | `formatoAHtml()`, marcadores `\x02`/`\x03` |
@@ -8839,19 +8849,70 @@ sale a donde se decidió que saliera — es lo mismo que hace WhatsApp con `dest
 **El cuerpo, en cambio, se resuelve al enviar**, como en todos los canales: las variables llevan
 los datos del día en que sale, no los de cuando se programó.
 
-⚠️ **El DESTINO sale del asunto, no de la persona.** Booking emite **un alias por reserva**
-—`sacuna.311134@` y `sacuna.672272@` son la misma señora y dos estancias—, así que en un hilo con
-las dos «el correo de esa persona» no existe. El orden es:
+#### El destino: dos regímenes, y lo que los separa no es el canal
+
+**Lo que decide a dónde sale un correo es de quién es la dirección**, no por qué canal entró el
+mensaje. Un teléfono alcanza a la PERSONA: da igual de qué reserva se hable. Un correo normal,
+igual. Pero una OTA **se interpone**: Booking emite un alias por reserva
+—`sacuna.311134@` y `sacuna.672272@` son la misma señora y dos estancias— y ésa es la única
+dirección por la que se le puede escribir sin salirse de la plataforma.
+
+Lo dice el asunto de sí mismo, con `ConversacionEnlaceInterface::correoEsExclusivo()`:
 
 ```
-1. el correo del ASUNTO elegido      ← lo dice quien escribe: manda
-2. el identificador PRINCIPAL        ← lo marcó una persona a mano
-3. el correo del único asunto        ← no hay con qué equivocarse
+de la PLATAFORMA   → el alias del asunto, y punto
+  (correoEsExclusivo() === true)   sin alias ⇒ null ⇒ EL CANAL SE APAGA
+
+de la PERSONA      → 1. el identificador PRINCIPAL     ← lo marcó alguien mirando
+  (todo lo demás)    2. el correo que sembró el asunto ← lo tecleó alguien al crearla
 ```
 
-Con dos alias y ningún asunto elegido **no se elige ninguno**: mandarlo al equivocado saca la
-conversación del hilo bueno de la plataforma. Por eso el panel propone asunto solo — ver abajo— y
+En el PMS lo resuelve `PmsChannel::esDePlataforma($origen)`; en Turismo es `false` siempre, que
+vende directo.
+
+⚠️ **El principal manda ahora, y antes no.** Esto ponía el asunto primero **siempre**, con el
+principal de respaldo: era la regla de la OTA aplicada a todo el mundo. Para una reserva directa
+está al revés —el correo del asunto es lo que alguien tecleó una vez; el principal es lo que otra
+persona marcó mirando la ficha, muchas veces porque el primero rebotaba— y el efecto era que
+**marcar un correo como principal no cambiaba nada** mientras hubiera un asunto elegido: el
+editor de identidades parecía funcionar y no servía para nada.
+
+⚠️ **Y la OTA no tiene respaldo: es la única rama del módulo donde «no hay dato» significa NO
+ENVIAR.** Antes se caía al correo personal en silencio, y eso saca la conversación de la
+plataforma —justo lo que ésta penaliza— además de romper la promesa de que el hilo de esa reserva
+vive donde la reserva. Ahora el canal se apaga y el panel lo enseña apagado, que es visible.
+
+Con dos asuntos y ninguno elegido **no se elige ninguno**: mandarlo al alias equivocado saca la
+conversación del hilo bueno de la plataforma. Por eso el panel propone asunto solo —ver abajo— y
 al hacerlo el botón de correo se enciende.
+
+⚠️ **`isValid()` pregunta CON el asunto del mensaje delante.** Preguntándolo a secas, un hilo con
+dos estancias de OTA y ningún correo personal no tiene destino, y el canal se declaraba inválido
+aunque el mensaje sí dijera de cuál habla: el motor lo podaba y el correo no salía sin nada que
+lo explicara.
+
+#### El alias no puede ser «el correo principal»
+
+`EditorDeIdentidades::marcarPrincipal()` **rechaza** una identidad cuyo valor sea el alias de un
+asunto exclusivo, con un 409 y el motivo escrito. Marcarlo mandaría la estancia de Airbnb del mes
+que viene al buzón de la de Booking del mes pasado.
+
+Que el alias esté **registrado como identidad es correcto y hace falta**: es lo que hace que el
+correo entrante de Booking caiga en el hilo de esa persona. Lo que no puede es ser la salida por
+defecto de todo.
+
+Se **deduce**, no se guarda: el alias ya ES el `correoDeContacto()` de un asunto que se declara
+exclusivo, y una copia en la identidad crearía un segundo autor sobre el mismo hecho —el día que
+una reserva se reclasifique, mentiría—.
+
+🪞 El panel esconde la estrella con la misma regla, comparando contra `correoExclusivo` de la
+lista de asuntos (`AsuntosDeConversacionController::comoLista()` →
+`EditConversationModal.vue`). **El de PHP es el que manda**; el del panel sólo evita ofrecer un
+botón que va a responder 409. Si cambia uno, cambia el otro.
+
+⚠️ Ese `<span>` va con `v-else-if`, encadenado detrás del de Beds24. Con un `v-if` suelto rompe
+la cadena y el `<template v-else-if="!ident.retirada">` de abajo pasa a colgar de él, devolviendo
+los botones a las identidades de Beds24 — que no deben tenerlos.
 
 ⚠️ **El asunto cuando no hay plantilla sale de la ETIQUETA del asunto** —«Tu reserva Casita 3,
 02/03–09/03»—, que la redacta el dominio y está pensada justo para eso. Un título genérico en la

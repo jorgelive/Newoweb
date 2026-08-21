@@ -199,6 +199,29 @@ interface ConversacionEnlaceInterface
     public function correoDeContacto(): ?string;
 
     /**
+     * ¿El correo de este asunto es **exclusivo suyo**, o vale el de la persona?
+     *
+     * ── La distinción que ordena todo el eje ────────────────────────────────
+     * Un teléfono alcanza a la PERSONA: da igual de qué reserva se hable, se le escribe a su
+     * número. Un correo normal, igual. Pero una OTA **se interpone**: Booking emite un alias por
+     * reserva y ésa es la única dirección por la que se le puede escribir sin salirse de la
+     * plataforma — que es justo lo que penalizan.
+     *
+     * Así que lo que decide el destino no es el CANAL, es si la dirección es de la persona o de
+     * la plataforma:
+     *
+     * ```
+     * de la PERSONA     → manda el identificador principal; el asunto sólo aporta si no hay
+     * de la PLATAFORMA  → manda el asunto, SIEMPRE. Y si no trae dirección, el canal se apaga:
+     *                     escribir al correo personal sería sacar la conversación de la OTA
+     * ```
+     *
+     * ⚠️ Por eso no hay respaldo cuando es exclusivo. Es la única rama del módulo donde «no hay
+     * dato» significa **no enviar** en vez de «busca por otro lado».
+     */
+    public function correoEsExclusivo(): bool;
+
+    /**
      * Por qué canales se puede alcanzar ESTE asunto. **Lista vacía = sin acotar.**
      *
      * ── Por qué cuelga del asunto y no de la conversación ───────────────────

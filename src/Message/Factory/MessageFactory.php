@@ -31,10 +31,9 @@ readonly class MessageFactory
             $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
             $meta = $resolver ? $resolver->getMetadata($conversation->getContextId()) : [];
 
-            $source = (string) ($meta['source'] ?? '');
-            $canalesDirectos = [PmsChannel::CODIGO_DIRECTO, 'manual', 'web', ''];
-
-            $isDirect = in_array($source, $canalesDirectos, true);
+            // La misma pregunta que hace `Beds24SendEnqueuer`, y ahora con la misma respuesta:
+            // {@see PmsChannel::esDePlataforma()}.
+            $isDirect = !PmsChannel::esDePlataforma((string) ($meta['source'] ?? ''));
         }
 
         $activeChannels = $this->em->getRepository(MessageChannel::class)->findBy(['isActive' => true]);

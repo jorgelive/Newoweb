@@ -23,11 +23,14 @@ use ReflectionMethod;
 /**
  * A qué correo se le escribe.
  *
- * ── Por qué no basta «el correo de la persona» ──────────────────────────────
+ * ── Dos regímenes, no uno ───────────────────────────────────────────────────
  * Booking emite **un alias por reserva**: `sacuna.311134@guest.booking.com` y
  * `sacuna.672272@guest.booking.com` son la misma señora y dos estancias distintas. En un hilo
  * con las dos, «el correo de esa persona» no existe — y elegir por orden de llegada es
- * escribirle al hilo equivocado de la plataforma.
+ * escribirle al hilo equivocado de la plataforma. Ahí manda el asunto y **no hay respaldo**.
+ *
+ * En una reserva directa el correo es de verdad suyo, y ahí manda lo que una persona marcó como
+ * principal: el del asunto es sólo la semilla de cuando aún no había otro.
  *
  * Medido: los **25** correos-identidad de la base son alias de Booking.
  */
@@ -39,8 +42,8 @@ final class DestinoDeCorreoTest extends TestCase
         // Es el caso que lo motivó: dos estancias de Booking, dos alias, ninguno principal.
         $hilo = $this->hilo();
         $enq = $this->encolador($hilo, [
-            ['r-1', 'sacuna.311134@guest.booking.com'],
-            ['r-2', 'sacuna.672272@guest.booking.com'],
+            ['r-1', 'sacuna.311134@guest.booking.com', true],
+            ['r-2', 'sacuna.672272@guest.booking.com', true],
         ]);
 
         self::assertSame('sacuna.672272@guest.booking.com', $this->destino($enq, $hilo, 'pms_reserva', 'r-2'));
@@ -54,8 +57,8 @@ final class DestinoDeCorreoTest extends TestCase
         // equivocado saca la conversación del hilo bueno de Booking.
         $hilo = $this->hilo();
         $enq = $this->encolador($hilo, [
-            ['r-1', 'sacuna.311134@guest.booking.com'],
-            ['r-2', 'sacuna.672272@guest.booking.com'],
+            ['r-1', 'sacuna.311134@guest.booking.com', true],
+            ['r-2', 'sacuna.672272@guest.booking.com', true],
         ]);
 
         self::assertNull($this->destino($enq, $hilo, null, null));
@@ -67,9 +70,56 @@ final class DestinoDeCorreoTest extends TestCase
         // Lo que pide el caso normal: un hilo con una reserva ya tiene destino, y el botón de
         // correo sale habilitado sin que nadie toque el selector.
         $hilo = $this->hilo();
-        $enq = $this->encolador($hilo, [['r-1', 'sacuna.311134@guest.booking.com']]);
+        $enq = $this->encolador($hilo, [['r-1', 'sacuna.311134@guest.booking.com', true]]);
 
         self::assertSame('sacuna.311134@guest.booking.com', $this->destino($enq, $hilo, null, null));
+    }
+
+    #[Test]
+    public function el_alias_de_la_plataforma_gana_al_principal(): void
+    {
+        // Lo contrario de lo que vale para el resto, y a propósito: escribirle al correo
+        // personal saca la conversación de Booking, que es justo lo que la plataforma penaliza.
+        $hilo = $this->hilo();
+        $principal = new MessageIdentidad(IdentidadTipo::EMAIL, 'nune@ejemplo.com');
+        $principal->setPrincipal(true);
+        $hilo->addIdentidad($principal);
+
+        $enq = $this->encolador($hilo, [['r-1', 'sacuna.311134@guest.booking.com', true]]);
+
+        self::assertSame('sacuna.311134@guest.booking.com', $this->destino($enq, $hilo, 'pms_reserva', 'r-1'));
+    }
+
+    #[Test]
+    public function una_ota_sin_alias_apaga_el_canal_aunque_haya_principal(): void
+    {
+        // ⚠️ La única rama del módulo donde «no hay dato» significa NO ENVIAR. Antes se caía al
+        // correo personal en silencio; ahora el panel enseña el botón apagado, que es visible.
+        $hilo = $this->hilo();
+        $principal = new MessageIdentidad(IdentidadTipo::EMAIL, 'nune@ejemplo.com');
+        $principal->setPrincipal(true);
+        $hilo->addIdentidad($principal);
+
+        $enq = $this->encolador($hilo, [['r-1', null, true]]);
+
+        self::assertNull($this->destino($enq, $hilo, 'pms_reserva', 'r-1'));
+        self::assertFalse($enq->disponiblePara($hilo, 'pms_reserva', 'r-1'));
+    }
+
+    #[Test]
+    public function en_una_reserva_directa_el_principal_gana_al_correo_del_asunto(): void
+    {
+        // El del asunto es lo que alguien tecleó al crearla; el principal es lo que otra persona
+        // marcó mirando la ficha, muchas veces porque el primero rebotó. Con el orden viejo,
+        // marcar principal no cambiaba nada mientras hubiera un asunto elegido.
+        $hilo = $this->hilo();
+        $principal = new MessageIdentidad(IdentidadTipo::EMAIL, 'el.bueno@ejemplo.com');
+        $principal->setPrincipal(true);
+        $hilo->addIdentidad($principal);
+
+        $enq = $this->encolador($hilo, [['r-1', 'el.que.rebota@ejemplo.com', false]]);
+
+        self::assertSame('el.bueno@ejemplo.com', $this->destino($enq, $hilo, 'pms_reserva', 'r-1'));
     }
 
     #[Test]
@@ -83,8 +133,8 @@ final class DestinoDeCorreoTest extends TestCase
         $hilo->addIdentidad($principal);
 
         $enq = $this->encolador($hilo, [
-            ['r-1', 'sacuna.311134@guest.booking.com'],
-            ['r-2', 'sacuna.672272@guest.booking.com'],
+            ['r-1', 'sacuna.311134@guest.booking.com', true],
+            ['r-2', 'sacuna.672272@guest.booking.com', true],
         ]);
 
         self::assertSame('nune@ejemplo.com', $this->destino($enq, $hilo, null, null));
@@ -99,7 +149,7 @@ final class DestinoDeCorreoTest extends TestCase
         $principal->setPrincipal(true);
         $hilo->addIdentidad($principal);
 
-        $enq = $this->encolador($hilo, [['r-1', null]]);
+        $enq = $this->encolador($hilo, [['r-1', null, false]]);
 
         self::assertSame('nune@ejemplo.com', $this->destino($enq, $hilo, 'pms_reserva', 'r-1'));
     }
@@ -108,7 +158,7 @@ final class DestinoDeCorreoTest extends TestCase
     public function sin_correo_por_ningun_lado_no_hay_canal(): void
     {
         $hilo = $this->hilo();
-        $enq = $this->encolador($hilo, [['r-1', null]]);
+        $enq = $this->encolador($hilo, [['r-1', null, false]]);
 
         self::assertNull($this->destino($enq, $hilo, 'pms_reserva', 'r-1'));
         self::assertFalse($enq->disponiblePara($hilo, 'pms_reserva', 'r-1'));
@@ -126,10 +176,10 @@ final class DestinoDeCorreoTest extends TestCase
         return new ReflectionMethod(EmailSendEnqueuer::class, 'destino')->invoke($enq, $hilo, $tipo, $id);
     }
 
-    /** @param list<array{string, ?string}> $asuntos [contextId, correo] */
+    /** @param list<array{string, ?string, bool}> $asuntos [contextId, correo, ¿exclusivo?] */
     private function encolador(MessageConversation $hilo, array $asuntos): EmailSendEnqueuer
     {
-        $enlaces = array_map(fn (array $a): ConversacionEnlaceInterface => $this->enlace($a[0], $a[1]), $asuntos);
+        $enlaces = array_map(fn (array $a): ConversacionEnlaceInterface => $this->enlace($a[0], $a[1], $a[2]), $asuntos);
 
         $proveedor = new class ($enlaces) implements ProveedorDeEnlacesInterface {
             /** @param list<ConversacionEnlaceInterface> $enlaces */
@@ -147,10 +197,14 @@ final class DestinoDeCorreoTest extends TestCase
         );
     }
 
-    private function enlace(string $id, ?string $correo): ConversacionEnlaceInterface
+    private function enlace(string $id, ?string $correo, bool $exclusivo): ConversacionEnlaceInterface
     {
-        return new class ($id, $correo) implements ConversacionEnlaceInterface {
-            public function __construct(private readonly string $id, private readonly ?string $correo) {}
+        return new class ($id, $correo, $exclusivo) implements ConversacionEnlaceInterface {
+            public function __construct(
+                private readonly string $id,
+                private readonly ?string $correo,
+                private readonly bool $exclusivo,
+            ) {}
 
             public function getConversacion(): ?MessageConversation { return null; }
             public function getNegocio(): string { return 'prueba'; }
@@ -165,6 +219,7 @@ final class DestinoDeCorreoTest extends TestCase
             public function getCreatedAt(): ?DateTimeImmutable { return null; }
             public function getEtiqueta(): string { return 'Tu reserva ' . $this->id; }
             public function correoDeContacto(): ?string { return $this->correo; }
+            public function correoEsExclusivo(): bool { return $this->exclusivo; }
             public function esTitular(): bool { return true; }
             public function marcarTitular(bool $v): self { return $this; }
             public function canalesPosibles(): array { return []; }

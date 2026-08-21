@@ -65,10 +65,13 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         $metadata = $resolver->getMetadata($asuntoId);
 
         // 🔥 REGLA DE SEGURIDAD ESTRICTA: ¿Es Reserva Directa?
+        // ⚠️ Una sola fuente: {@see PmsChannel::esDePlataforma()}. La lista estaba escrita aquí,
+        // otra vez en `disponiblePara()` —ésa sí con `strtolower`— y una tercera en
+        // `MessageFactory`. Tres copias con dos criterios distintos: un canal guardado como
+        // «Directo» pasaba el filtro de un sitio y no el del otro.
         $source = (string) ($metadata['source'] ?? '');
-        $canalesDirectos = [PmsChannel::CODIGO_DIRECTO, 'manual', 'web', ''];
 
-        if (in_array($source, $canalesDirectos, true)) {
+        if (!PmsChannel::esDePlataforma($source)) {
             throw new RuntimeException(sprintf('Operación denegada: No se permite enviar mensajes por la API de Beds24 a reservas directas (Canal: %s).', $source ?: 'Desconocido'));
         }
 
@@ -195,11 +198,8 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         }
 
         $metadata = $resolver->getMetadata($asuntoId);
-        $source = strtolower((string) ($metadata['source'] ?? ''));
-
-        // Si es directo, el canal Beds24 ya no es válido
-        $canalesDirectos = ['directo', 'manual', 'web', ''];
-        if (in_array($source, $canalesDirectos, true)) {
+        // Si la reserva es nuestra, el canal Beds24 no pinta nada: no hay plataforma que relaye.
+        if (!PmsChannel::esDePlataforma((string) ($metadata['source'] ?? ''))) {
             return false;
         }
 

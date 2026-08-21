@@ -51,6 +51,14 @@ export interface AsuntoDelHilo {
     etiqueta: string;
     esTitular: boolean;
     origen: string | null;
+    /**
+     * El alias que emitió la plataforma para ESTE asunto, o `null` si el correo es el personal.
+     *
+     * 🪞 Lo decide `ConversacionEnlaceInterface::correoEsExclusivo()` en PHP. Aquí sólo sirve
+     * para no ofrecer una estrella que el backend va a rechazar: quien de verdad lo impide es
+     * `EditorDeIdentidades::marcarPrincipal()`.
+     */
+    correoExclusivo: string | null;
 }
 
 export interface CanalDisponible {

@@ -69,7 +69,12 @@ final class AsuntosDeConversacionController extends AbstractController
      * que ordenar por ahí devolvía el orden de creación del enlace — un defecto arbitrario que
      * acertaba por casualidad.
      *
-     * @return list<array{negocio: string, contextType: string, contextId: string, etiqueta: string, esTitular: bool, origen: string|null}>
+     * `correoExclusivo` es el alias que emitió la plataforma para ESTE asunto, o `null` si el
+     * correo del asunto es el personal del huésped. El panel lo usa para dos cosas: no ofrecer
+     * marcarlo como principal —{@see \App\Message\Service\Conversacion\EditorDeIdentidades::marcarPrincipal()},
+     * que es quien de verdad lo impide— y saber que el botón de correo depende del asunto elegido.
+     *
+     * @return list<array{negocio: string, contextType: string, contextId: string, etiqueta: string, esTitular: bool, origen: string|null, correoExclusivo: string|null}>
      */
     private function comoLista(MessageConversation $conversacion): array
     {
@@ -88,6 +93,7 @@ final class AsuntosDeConversacionController extends AbstractController
                 'etiqueta'    => $e->getEtiqueta(),
                 'esTitular'   => $e->esTitular(),
                 'origen'      => $e->getOrigen(),
+                'correoExclusivo' => $e->correoEsExclusivo() ? $e->correoDeContacto() : null,
             ],
             $enlaces
         );
