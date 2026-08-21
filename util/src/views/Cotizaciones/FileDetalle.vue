@@ -4,12 +4,13 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 import MaskedDateInput from '@/components/MaskedDateInput.vue';   // ajusta ruta
 import SearchableSelect from '@/components/SearchableSelect.vue';
+import ContactoDeIdentidad from '@/components/common/ContactoDeIdentidad.vue';
+import { uuidDe } from '@/services/hydra';
 import PlanOperacionModal from '@/components/operacion/PlanOperacionModal.vue';
 import { apiClient } from '@/services/apiClient';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { getUrls } from '@/services/apiClient';
 import { ESTADO_FILE_LABELS } from '@/types/cotizacionEditorModel';
-import { formatearTelefono } from '@/utils/telefono';
 
 import type { ApiPais } from '@/types/maestroModel';
 
@@ -80,9 +81,13 @@ const idiomaFileDropdown = ref(false);
 const idiomasDisponibles = computed(() => fileStore.idiomasDisponibles);
 
 // ============================================================================
-// TELÉFONO — máscara de display (formateo compartido en @/utils/telefono)
+// CONTACTO — ya no se pinta aquí
+//
+// El teléfono y el correo del expediente son la semilla de la identidad; se enseñan (y se
+// editan) desde `ContactoDeIdentidad`, que los resuelve por el hilo. Aquí sólo queda el id
+// que ese componente necesita.
 // ============================================================================
-const telefonoFocused = ref(false);
+const fileId = computed<string | null>(() => uuidDe(file.value ?? null));
 
 // ============================================================================
 // PAÍS DEL EXPEDIENTE
@@ -582,28 +587,19 @@ const eliminarDocumento = async (iri?: string) => {
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Titular</label>
                 <input v-model="file.pasajeroPrincipal" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none">
               </div>
+              <!-- ⚠️ CONTACTO: se ENSEÑA, no se edita.
+                   El teléfono y el correo del expediente son la SEMILLA con la que se creó la
+                   identidad de esa persona; a partir de ahí el dato bueno vive en las
+                   identidades, que es donde se corrige, se retira y se marca cuál se usa.
+                   Con el `<input>` puesto, el operador cambiaba el número, veía su cambio
+                   guardado, y los mensajes seguían saliendo al viejo — porque el envío lee la
+                   identidad. Ver `ContactoDeIdentidad` y docs/Mensajeria.md §24. -->
               <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email</label>
-                <input v-model="file.email" type="email" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none">
-              </div>
-              <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Teléfono</label>
-                <div class="relative">
-                  <input
-                      v-model="file.telefono"
-                      type="tel"
-                      placeholder="+51 987 654 321"
-                      @focus="telefonoFocused = true"
-                      @blur="telefonoFocused = false"
-                      class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none transition-colors"
-                      :class="!telefonoFocused && file.telefono ? 'text-transparent caret-transparent' : ''"
-                  >
-                  <div v-if="!telefonoFocused && file.telefono"
-                       class="absolute inset-0 flex items-center px-3 text-sm font-bold text-slate-800 pointer-events-none select-none rounded-lg">
-                    <i class="fas fa-phone text-[#376875]/40 text-xs mr-2"></i>
-                    {{ formatearTelefono(file.telefono) }}
-                  </div>
-                </div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Contacto</label>
+                <ContactoDeIdentidad
+                    context-type="cotizacion_file"
+                    :context-id="fileId"
+                />
               </div>
               <div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">País de Origen</label>

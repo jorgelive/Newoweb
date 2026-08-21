@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Message;
 
-use App\Message\Entity\MessageIdentidad;
-use App\Message\Enum\IdentidadTipo;
-use App\Message\Service\Conversacion\EnlacesDeConversacion;
+use App\Message\Service\Conversacion\ContactoDelAsunto;
 use App\Pms\Entity\PmsConversacionEnlace;
 use App\Pms\Entity\PmsReserva;
 
@@ -23,62 +21,42 @@ use App\Pms\Entity\PmsReserva;
  * editor, y la reserva se queda con el viejo para siempre. Repetido en cada reserva de la misma
  * persona, el conflicto se multiplica.
  *
- * ── El respaldo, y por qué existe ───────────────────────────────────────────
- * Si el asunto todavía no tiene hilo —una reserva recién creada, antes de que corra el
- * recálculo— no hay identidad de la que tirar. Ahí se devuelve la semilla, que es exactamente
- * lo que se usaba antes: el peor caso es el comportamiento de siempre.
+ * ── Ya no resuelve: DELEGA ──────────────────────────────────────────────────
+ * La regla dejó de ser del PMS el 21/08/2026, cuando el expediente de Turismo y las
+ * organizaciones proveedoras pasaron a necesitar exactamente la misma —y el correo además del
+ * teléfono—. Vive en {@see \App\Message\Service\Conversacion\ContactoDelAsunto}, que la
+ * responde para cualquier dominio a partir de dos cosas que ya existían: el hilo del asunto y
+ * el contexto que publica sus semillas.
+ *
+ * Esta clase se queda como la puerta del PMS —tipada a `PmsReserva`, que es lo que tienen sus
+ * llamadores— y **no repite ni un `if`**. Copiarla para el tercer dominio habría dado tres
+ * versiones que envejecen por separado, y la tercera es siempre la que se olvida de mirar si la
+ * identidad está vetada.
  */
 final readonly class TelefonoDeContacto
 {
-    public function __construct(private EnlacesDeConversacion $enlaces)
+    public function __construct(private ContactoDelAsunto $contacto)
     {
     }
 
     public function para(?PmsReserva $reserva): ?string
     {
-        if ($reserva === null) {
-            return null;
-        }
-
-        $identidad = $this->identidadDe($reserva);
-
-        if ($identidad !== null) {
-            return $identidad->getValor();
-        }
-
-        $semilla = trim((string) $reserva->getTelefono());
-
-        return $semilla !== '' ? $semilla : null;
+        return $this->resuelto($reserva)['telefono'] ?? null;
     }
 
-    /**
-     * ¿El número sale de una IDENTIDAD verificable, o del campo de la reserva?
-     *
-     * No se puede deducir comparando valores: lo normal es que coincidan —la identidad se
-     * sembró desde ahí—, así que compararlos diría «semilla» justo cuando sí hay identidad. Lo
-     * tiene que contestar quien lo resolvió.
-     */
+    /** ¿El número sale de una IDENTIDAD verificable, o del campo de la reserva? */
     public function vieneDeIdentidad(?PmsReserva $reserva): bool
     {
-        return $reserva !== null && $this->identidadDe($reserva) !== null;
+        return ($this->resuelto($reserva)['telefonoOrigen'] ?? null) === 'identidad';
     }
 
-    /** La identidad principal de la persona de esta reserva, si su asunto ya tiene hilo. */
-    private function identidadDe(PmsReserva $reserva): ?MessageIdentidad
+    /** @return array{telefono?: ?string, telefonoOrigen?: ?string} */
+    private function resuelto(?PmsReserva $reserva): array
     {
-        $hilo = $this->enlaces->hiloTitularDe(
-            PmsConversacionEnlace::CONTEXT_TYPE,
-            (string) $reserva->getId()
-        );
+        if ($reserva === null) {
+            return [];
+        }
 
-        $principal = $hilo?->getTelefonoPrincipal();
-
-        // Vetado o retirado no es «el teléfono al que se escribe»: es el que NO hay que usar.
-        // Se prefiere caer a la semilla —que al menos es un dato— a ofrecer un número muerto.
-        return $principal !== null
-            && $principal->getTipo() === IdentidadTipo::TELEFONO
-            && !$principal->isBloqueado()
-                ? $principal
-                : null;
+        return $this->contacto->para(PmsConversacionEnlace::CONTEXT_TYPE, (string) $reserva->getId());
     }
 }

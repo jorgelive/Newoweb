@@ -25,6 +25,7 @@
  * copiar un formulario.
  */
 import { computed } from 'vue';
+import ContactoDeIdentidad from '@/components/common/ContactoDeIdentidad.vue';
 import {
     tituloEs,
     desdeTituloEs,
@@ -43,6 +44,18 @@ const props = defineProps<{
     lugaresSeleccionados?: string[];
     /** Oculta razón social, dirección y web: el alta inline sólo necesita lo imprescindible. */
     compacto?: boolean;
+    /**
+     * UUID de la organización **si ya existe**.
+     *
+     * Es lo que parte el bloque de contacto en dos comportamientos, y la distinción importa:
+     *
+     *  - **Sin id (alta):** teléfono y correo se teclean. Son la SEMILLA con la que nacerá la
+     *    identidad de ese proveedor; sin ellos no hay a quién escribir y el hilo no se abriría.
+     *  - **Con id (edición):** dejan de editarse aquí. El dato bueno ya vive en las
+     *    identidades, y un `<input>` que se guarda pero no cambia a dónde sale el mensaje es
+     *    peor que no tenerlo.
+     */
+    organizacionId?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -118,7 +131,16 @@ const alternarLugar = (iri: string): void => {
       </p>
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
+    <!-- ═══ CONTACTO ═════════════════════════════════════════════════════════
+         Ya creada: se enseña lo que dice la IDENTIDAD y se edita allí. Ver el prop
+         `organizacionId` y `ContactoDeIdentidad`. -->
+    <div v-if="organizacionId">
+      <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">Contacto</label>
+      <ContactoDeIdentidad context-type="travel_organizacion" :context-id="organizacionId" />
+    </div>
+
+    <!-- Alta: aquí sí se teclean, porque son la semilla de la identidad que va a nacer. -->
+    <div v-else class="grid grid-cols-2 gap-3">
       <div>
         <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">Teléfono</label>
         <input :value="modelValue.telefono ?? ''" @input="set('telefono', ($event.target as HTMLInputElement).value)"

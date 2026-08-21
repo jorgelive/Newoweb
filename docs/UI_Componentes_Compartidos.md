@@ -652,10 +652,42 @@ táctiles sin el modo dispositivo de las DevTools, así que ni ESLint ni `vue-ts
 dicen nada sobre si el gesto se siente bien. El umbral (88 px con roce 2.4, o sea ~211 px de
 dedo) es el número a ajustar si resulta duro o si salta solo.
 
+## 3.h `ContactoDeIdentidad` — el contacto se enseña, no se edita (2026-08-21)
+
+Teléfono y correo de un asunto, resueltos desde la **identidad** de la persona, con el aviso de
+«sin verificar» cuando lo que se ve es todavía la semilla. Un botón lleva al editor de
+identificadores; si el asunto no tiene hilo, lo abre antes.
+
+Props: `contextType` (`pms_reserva`, `cotizacion_file`, `travel_organizacion`… opaco, aquí no se
+interpreta), `contextId`, y `conCorreo` para ocultar el correo donde el dominio no lo use.
+
+### Por qué el `<input>` tenía que desaparecer, no deshabilitarse
+
+El campo del asunto es la semilla con la que nació la identidad; el envío lee la identidad. Con
+el `<input>` puesto, el operador cambiaba el número, **veía su cambio guardado**, y los mensajes
+seguían saliendo al viejo. Un dato que se puede editar y no sirve es peor que uno que no se puede
+editar.
+
+Deshabilitarlo tampoco valía: seguiría enseñando el valor del asunto, que es el desfasado.
+
+### La excepción que confirma la regla
+
+En el **alta** de un proveedor los campos sí se teclean: ahí son la semilla con la que va a nacer
+la identidad, y sin ellos no hay a quién escribir. Lo parte el prop `organizacionId` de
+`OrganizacionFormulario` — sin id se teclea, con id se enseña.
+
+### La regla vive en PHP
+
+`ContactoDelAsunto::para()`, una sola para los tres dominios (ver `docs/Mensajeria.md` §24). Aquí
+**no se recalcula nada**: el componente pinta lo que llega, incluido el `origen`, porque
+compararlo en el navegador daría «semilla» cuando sí hay identidad —lo normal es que ambos
+valores coincidan—.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
+| **Que una pantalla deje de editar teléfono/correo** | la vista | `ContactoDeIdentidad.vue` con `contextType` + `contextId` (§3.h) |
 | **Cambiar cuánto hay que tirar para que recargue** | `GestoDeRecarga.vue` | `UMBRAL` (88 px) y `ROCE` (2.4) — sólo se juzga en un móvil real (§3.g) |
 | Que el gesto refresque datos en vez de recargar la página | `GestoDeRecarga.vue` | `alSoltar()` — es el único punto que cambia (§3.g) |
 | Impedir el gesto en una pantalla concreta | la raíz de ese overlay | atributo `data-sin-recarga`, que se hereda (§3.g) |

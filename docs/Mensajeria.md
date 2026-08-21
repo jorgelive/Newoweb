@@ -5432,6 +5432,8 @@ arreglar** — ver el aviso al final de esta sección.
 | Cambiar qué reservas usan alias de plataforma en vez del correo personal | `src/Pms/Entity/PmsConversacionEnlace.php` | `correoEsExclusivo()` (→ `PmsChannel::esDePlataforma()`) |
 | Cambiar qué orígenes se consideran «reserva nuestra» | `src/Pms/Entity/PmsChannel.php` | `ORIGENES_PROPIOS` / `esDePlataforma()` — **única fuente**: la usan Beds24, `MessageFactory` y el correo |
 | Cambiar qué identificadores pueden marcarse como principales | `src/Message/Service/Conversacion/EditorDeIdentidades.php` | `marcarPrincipal()` — la regla vive en `AliasDePlataforma` |
+| **Cambiar de dónde sale el teléfono/correo de un asunto** | `src/Message/Service/Conversacion/ContactoDelAsunto.php` | `para()` — regla única de los tres dominios |
+| Que una pantalla deje de editar el contacto | la vista | `ContactoDeIdentidad.vue` con `contextType` + `contextId` |
 | **Abrir el hilo de un asunto que no lo tiene** | `src/Message/Service/Conversacion/AperturaDeHilo.php` | `abrir()` — `POST /message/conversations/abrir` |
 | Enchufar un dominio NUEVO a la apertura de hilos | `src/<Modulo>/Service/Message/` | una clase que implemente `ProveedorDeContextoInterface`; se autolocaliza |
 | Cambiar si una reserva es «de plataforma» | `src/Pms/Entity/PmsReserva.php` | `esDePlataforma()` — **única fuente**; viaja como `es_plataforma` en la metadata |
@@ -9471,6 +9473,66 @@ cabecera con asunto real. El detalle está en §5, junto a la rama que crea el w
 ⚠️ Es la forma del problema que hay que vigilar al fusionar o unificar hilos: **lo que se arregla
 en la resolución reaparece en quien lee la cabecera.** Mientras el agente enrute por
 `contextType`/`contextId` y no por los enlaces, la cabecera es dato vivo, no un resto histórico.
+
+### El contacto de un asunto: identidad o semilla, y quién lo dice (21/08/2026)
+
+`ContactoDelAsunto::para($contextType, $contextId)` → teléfono, correo, y **el origen de cada
+uno**.
+
+El teléfono y el correo que guarda un asunto —una reserva, un expediente, una organización— son
+la **semilla** con la que nació la identidad de esa persona. A partir de ahí dejan de ser la
+verdad: el dato bueno vive en las identidades, que es donde se corrige, se retira, se veta y se
+marca cuál se usa.
+
+| origen | qué significa | cómo se pinta |
+|---|---|---|
+| `identidad` | Sale de la identidad principal, viva y no vetada | dato firme |
+| `semilla` | Todavía no hay identidad: es lo que se tecleó al crear el asunto | con la etiqueta **sin verificar** |
+| `null` | No hay ni una cosa ni la otra | «—» |
+
+⚠️ **El origen no se puede deducir comparando valores.** Lo normal es que la identidad y la
+semilla coincidan —aquélla se sembró de ésta—, así que compararlas diría «semilla» justo cuando
+sí hay identidad. Lo tiene que contestar quien lo resolvió.
+
+⚠️ **Una identidad vetada o retirada NO es el dato de contacto**: es el que no hay que usar. Se
+cae a la semilla, que al menos es un dato, antes que ofrecer un número muerto.
+
+#### Una sola regla para los tres dominios
+
+Esto vivía en `TelefonoDeContacto`, que sólo sabía de reservas y sólo del teléfono. Copiarlo para
+Turismo y para el catálogo de proveedores habría dado **tres versiones que envejecen por
+separado**, y la tercera es siempre la que se olvida de mirar si la identidad está vetada.
+
+El dominio sólo aporta dos cosas, y las dos ya existían: el **hilo** del asunto
+(`EnlacesDeConversacion::hiloTitularDe()`) y la **semilla**
+(`ProveedorDeContextoInterface` → `getIdentificadores()`). Un dominio nuevo que implemente el
+contrato de contexto entra sin tocar nada.
+
+`TelefonoDeContacto` se queda como la puerta tipada del PMS y **delega**. Medido en producción
+antes de dar el refactor por bueno: coincide con el genérico en 80 reservas, 0 discrepancias.
+
+#### El campo dejó de pintarse donde estaba
+
+`GET /platform/message/contacto?contextType=&contextId=` lo publica, y
+`ContactoDeIdentidad.vue` lo pinta. Sustituye a los `<input>` de teléfono y correo en:
+
+| Pantalla | Antes | Ahora |
+|---|---|---|
+| Cajón de la reserva | ya estaba (sólo teléfono) | igual, vía la regla común |
+| **Detalle del expediente** (`FileDetalle.vue`) | dos `<input>` editables | tarjeta de sólo lectura + «Editar» |
+| **Proveedor** (`OrganizacionFormulario.vue`) | dos `<input>` editables | editables **sólo al crear**; en edición, la tarjeta |
+
+⚠️ **Por qué no basta con dejar el `<input>` deshabilitado.** Estaba editable y se guardaba, pero
+el envío lee la identidad: el operador cambiaba el número, veía su cambio guardado, y los
+mensajes seguían saliendo al viejo. **Un dato que se puede editar y no sirve es peor que uno que
+no se puede editar.**
+
+⚠️ **En el alta de un proveedor los campos SÍ se teclean**, y no es una excepción caprichosa: ahí
+son la semilla con la que nacerá la identidad. Sin ellos no hay a quién escribir y el hilo ni se
+abriría. Lo parte el prop `organizacionId`: sin id, se teclea; con id, se enseña.
+
+El botón «Editar» lleva al editor de identificadores del chat y **abre el hilo si no existe**
+—reutilizando `abrirConversacion`—, porque el editor vive dentro de la conversación.
 
 ### Abrir un hilo: la operación que no existía (21/08/2026)
 

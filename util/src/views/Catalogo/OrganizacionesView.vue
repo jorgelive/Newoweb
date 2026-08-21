@@ -24,6 +24,7 @@ import {
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import { usePermisosStore } from '@/stores/permisosStore';
 import OrganizacionFormulario from '@/components/common/OrganizacionFormulario.vue';
+import ContactoDeIdentidad from '@/components/common/ContactoDeIdentidad.vue';
 
 const store = useOrganizacionStore();
 const chatStore = useChatStore();
@@ -431,20 +432,14 @@ onMounted(async () => {
                             </p>
                         </div>
 
-                        <!-- Contacto. Todo pulsable: es lo que se viene a buscar aquí. -->
+                        <!-- ⚠️ El contacto sale de la IDENTIDAD, no del catálogo.
+                             Esto pintaba `formulario.telefono` y `formulario.email` —lo que
+                             guarda la organización—, que es la SEMILLA: si alguien corrigió el
+                             número en los identificadores, la ficha seguía enseñando el viejo y
+                             los mensajes salían al nuevo. Dos sitios contándolo distinto. -->
+                        <ContactoDeIdentidad v-if="editandoId" context-type="travel_organizacion" :context-id="editandoId" />
+
                         <div class="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                            <div class="px-3 py-2.5">
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Teléfono</p>
-                                <a v-if="formulario.telefono" :href="`tel:${formulario.telefono}`"
-                                   class="text-sm font-bold text-[#376875] hover:underline">{{ formulario.telefono }}</a>
-                                <p v-else class="text-sm font-bold text-slate-300">—</p>
-                            </div>
-                            <div class="px-3 py-2.5">
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Correo</p>
-                                <a v-if="formulario.email" :href="`mailto:${formulario.email}`"
-                                   class="text-sm font-bold text-[#376875] hover:underline break-all">{{ formulario.email }}</a>
-                                <p v-else class="text-sm font-bold text-slate-300">—</p>
-                            </div>
                             <div v-if="formulario.direccion" class="px-3 py-2.5">
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Dirección</p>
                                 <p class="text-sm font-bold text-slate-700">{{ formulario.direccion }}</p>
@@ -492,10 +487,13 @@ onMounted(async () => {
                     <!-- Mismo formulario que el alta inline del editor de cotizaciones: uno
                          solo, para que no diverjan. Servicios y galería se quedan fuera
                          porque necesitan el IRI del proveedor ya creado. -->
+                    <!-- `organizacionId` sólo en edición: al crear, teléfono y correo son la
+                         semilla que se teclea; después se editan en la identidad. -->
                     <OrganizacionFormulario
                         v-model="formulario"
                         :lugares="store.lugares"
                         v-model:lugaresSeleccionados="lugaresSel"
+                        :organizacion-id="editandoId"
                     />
 
                     <!-- Servicios y galería sólo con el proveedor ya creado: ambos necesitan
