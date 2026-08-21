@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, type Compon
 import { useRouter } from 'vue-router';
 import { useReservasStore, extractApiErrorMessage } from '@/stores/reservas/reservasStore';
 import { useMaestroStore } from '@/stores/maestroStore';
+import { useChatStore } from '@/stores/chat/chatStore.ts';
 import { getUrls } from '@/services/apiClient';
 import { formatearTelefono, telefonoParaWhatsapp } from '@/utils/telefono';
 import { enfocarEnScroller } from '@/utils/scrollEnfoque';
@@ -73,6 +74,8 @@ const emit = defineEmits<{
 const router = useRouter();
 const reservasStore = useReservasStore();
 const maestroStore = useMaestroStore();
+// Sólo para preguntar de quién es un teléfono o un correo al crear. Ver `comprobarDuenio()`.
+const chatStore = useChatStore();
 
 const isCreate = computed(() => !props.eventoId && !!props.createDefaults);
 const isCreateReserva = computed(() => isCreate.value && props.createKind === 'reserva');
@@ -1042,6 +1045,34 @@ async function editarIdentificadores(): Promise<void> {
         abriendoChat.value = false;
     }
 }
+
+// ══ A QUIÉN PERTENECEN LOS DATOS QUE SE TECLEAN (sólo al crear) ═══════════
+//
+// Al guardar, `MessageConversationFactory` decide de quién es la reserva mirando el teléfono y
+// el correo. Son tres desenlaces y el operador no ve ninguno hasta que ya pasó:
+//
+//   · nadie los tiene ....................... nace una conversación
+//   · el teléfono ya es de alguien .......... la reserva SE SUMA a su conversación
+//   · teléfono de uno y correo de otro ...... manda el teléfono y EL CORREO SE DESCARTA
+//
+// El tercero obliga a avisar —se teclea un dato que no se guarda— y el segundo conviene verlo,
+// porque es lo que confirma que va a caer en el hilo correcto.
+
+const duenioTelefono = ref<{ nombre: string | null } | null>(null);
+const duenioEmail = ref<{ nombre: string | null } | null>(null);
+
+const comprobarDuenio = async (tipo: 'telefono' | 'email'): Promise<void> => {
+    if (!isCreate.value) return;
+
+    const valor = tipo === 'telefono' ? clienteForm.value.telefono : clienteForm.value.emailCliente;
+    const destino = tipo === 'telefono' ? duenioTelefono : duenioEmail;
+
+    destino.value = valor ? await chatStore.fetchDuenioDeIdentificador(tipo, valor) : null;
+};
+
+/** El correo se pierde si es de OTRA persona distinta a la del teléfono. Ver el bloque de arriba. */
+const correoSeDescarta = computed(() =>
+    !!duenioTelefono.value && !!duenioEmail.value && duenioTelefono.value.nombre !== duenioEmail.value.nombre);
 
 const vcardUrl = computed(() => {
     if (!props.reservaId) return null;
@@ -2313,13 +2344,27 @@ async function ejecutarBorrado(): Promise<void> {
                                 <span class="text-xs font-bold text-slate-500">Teléfono</span>
                                 <span v-if="formatearTelefono(clienteForm.telefono) && formatearTelefono(clienteForm.telefono) !== clienteForm.telefono"
                                     class="ml-1.5 text-[10px] font-bold text-slate-400">{{ formatearTelefono(clienteForm.telefono) }}</span>
-                                <input type="text" v-model="clienteForm.telefono"
+                                <input type="text" v-model="clienteForm.telefono" @blur="comprobarDuenio('telefono')"
                                     class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                                <span v-if="duenioTelefono" class="block mt-1 text-[11px] font-bold text-[#376875] leading-snug">
+                                    <i class="fas fa-user-check mr-1"></i>
+                                    Es de <strong>{{ duenioTelefono.nombre || 'un contacto sin nombre' }}</strong>: la reserva se sumará a su conversación.
+                                </span>
                             </label>
                             <label class="col-span-2">
                                 <span class="text-xs font-bold text-slate-500">Email</span>
-                                <input type="email" v-model="clienteForm.emailCliente"
+                                <input type="email" v-model="clienteForm.emailCliente" @blur="comprobarDuenio('email')"
                                     class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                                <span v-if="correoSeDescarta" class="block mt-1 text-[11px] font-bold text-amber-700 leading-snug">
+                                    <i class="fas fa-triangle-exclamation mr-1"></i>
+                                    Este correo es de <strong>{{ duenioEmail?.nombre || 'otra persona' }}</strong>, no de
+                                    {{ duenioTelefono?.nombre || 'quien tiene ese teléfono' }}.
+                                    <strong>No se guardará</strong>: manda el teléfono.
+                                </span>
+                                <span v-else-if="duenioEmail" class="block mt-1 text-[11px] font-bold text-[#376875] leading-snug">
+                                    <i class="fas fa-user-check mr-1"></i>
+                                    Ya es de <strong>{{ duenioEmail.nombre || 'un contacto sin nombre' }}</strong>.
+                                </span>
                             </label>
                         </template>
 

@@ -761,6 +761,33 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     /**
+     * ¿De quién es ya este teléfono o este correo?
+     *
+     * Lo consulta el formulario de NUEVA RESERVA para avisar antes de guardar: si el teléfono
+     * ya es de alguien, la reserva se sumará a su conversación; y si el teléfono es de una
+     * persona y el correo de otra, **el correo se descarta**. Sin esto, las tres cosas pasan a
+     * ciegas y el operador teclea un dato que no se guarda.
+     *
+     * @param {string} tipo `telefono` | `email`.
+     * @param {string} valor Tal como se teclea; lo normaliza el backend, que es donde tiene que
+     *                       normalizarse para que el aviso y el guardado miren el mismo valor.
+     */
+    const fetchDuenioDeIdentificador = async (
+        tipo: string,
+        valor: string,
+    ): Promise<{ conversacionId: string; nombre: string | null; retirada: boolean } | null> => {
+        if (!valor.trim()) return null;
+
+        try {
+            const { data } = await apiClient.get('/platform/message/identidades/duenio', { params: { tipo, valor } });
+
+            return data?.duenio ?? null;
+        } catch {
+            return null;
+        }
+    };
+
+    /**
      * Marca este hilo como TITULAR de un asunto: el que recibe la agenda automática.
      *
      * El otro sigue existiendo y el agente le contesta sobre el asunto; lo que deja de recibir
@@ -1026,6 +1053,6 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     return {
-        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
+        conversations, filteredConversations, currentConversation, canalesDelChat, fetchCanales, asuntosDelChat, asuntoElegido, elegirAsunto, hacerseTitular, anadirIdentidad, cambiarIdentidad, fetchDuenioDeIdentificador, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, getExternalContextUrl, getReservaContextId, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk, fetchConversacionParaStalk, fetchConversacionPorContexto, updateConversation, deleteConversation
     };
 });

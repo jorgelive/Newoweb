@@ -177,18 +177,30 @@ readonly class MessageConversationFactory
     }
 
     /**
-     * El primer hilo que reconozca alguno de estos identificadores.
+     * El hilo que reconozca alguno de estos identificadores.
      *
-     * ⚠️ **Si dos apuntan a hilos distintos NO se elige**: se devuelve `null` y nace uno nuevo,
-     * que es lo reversible. Unir dos historiales porque comparten un teléfono es una decisión
-     * de persona, y ya hay 31 hilos esperando esa revisión — meter más por la puerta de atrás
-     * no ayuda.
+     * ── Cuando apuntan a hilos DISTINTOS: manda el teléfono ─────────────────
+     * Pasa al crear una reserva tecleando un teléfono que ya es de alguien y un correo que es de
+     * otra persona. Antes no se elegía ninguno y nacía un hilo nuevo, y el resultado era peor
+     * que cualquiera de las dos opciones: el hilo nuevo se quedaba **sin identidades** —las dos
+     * eran ajenas— pero **con `guestPhone`**, así que los envíos salían por ese número y las
+     * respuestas aterrizaban en el hilo del dueño. Conversación partida, y de una sola dirección
+     * en cada mitad.
+     *
+     * Gana el teléfono porque es el canal que de verdad lleva conversación. El correo se
+     * **descarta**: no se le quita a su dueño —`ResolutorDeHilo::vincular()` lo impide— y queda
+     * el aviso en el log con lo que se dejó fuera.
+     *
+     * ⚠️ **Sólo desempata el TELÉFONO.** Si el empate es entre un correo y un `bookId`, se sigue
+     * sin elegir: ahí no hay una señal más fuerte que otra, y unir historiales a ciegas es lo que
+     * este módulo lleva una semana deshaciendo.
      *
      * @param array<string, string> $identificadores
      */
     private function porIdentificadores(array $identificadores): ?MessageConversation
     {
         $encontrados = [];
+        $porTelefono = null;
 
         foreach ($identificadores as $tipo => $valor) {
             $caso = IdentidadTipo::tryFrom((string) $tipo);
@@ -199,18 +211,33 @@ readonly class MessageConversationFactory
 
             if (($hilo = $this->resolutor->porIdentidad($caso, $valor)) !== null) {
                 $encontrados[(string) $hilo->getId()] = $hilo;
+
+                if ($caso === IdentidadTipo::TELEFONO) {
+                    $porTelefono = $hilo;
+                }
             }
         }
 
-        if (count($encontrados) > 1) {
-            $this->logger->warning('Identificadores de un mismo contexto apuntan a hilos distintos: no se une ninguno.', [
-                'identificadores' => array_keys($identificadores),
-                'hilos' => array_keys($encontrados),
-            ]);
-
-            return null;
+        if (count($encontrados) <= 1) {
+            return $encontrados === [] ? null : reset($encontrados);
         }
 
-        return $encontrados === [] ? null : reset($encontrados);
+        if ($porTelefono !== null) {
+            $this->logger->warning('Identificadores de un mismo contexto apuntan a hilos distintos: manda el teléfono.', [
+                'identificadores' => array_keys($identificadores),
+                'hilos' => array_keys($encontrados),
+                'elegido' => (string) $porTelefono->getId(),
+                'descartados' => array_values(array_diff(array_keys($encontrados), [(string) $porTelefono->getId()])),
+            ]);
+
+            return $porTelefono;
+        }
+
+        $this->logger->warning('Identificadores de un mismo contexto apuntan a hilos distintos y ninguno es un teléfono: no se une ninguno.', [
+            'identificadores' => array_keys($identificadores),
+            'hilos' => array_keys($encontrados),
+        ]);
+
+        return null;
     }
 }

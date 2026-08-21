@@ -8758,9 +8758,38 @@ recálculo, y ahí `upsertFromContext()` decide de quién es la reserva.
 |---|---|
 | Teléfono nuevo, correo nuevo | Nace un hilo y se registran los dos |
 | **Teléfono de alguien que ya existe** | La reserva **se cuelga de ese hilo**: es la misma persona volviendo, y es justo el caso que la tabla vino a resolver. No se duplica nada |
-| Teléfono de un hilo **y** correo de otro | No se elige ninguno —unir historiales es decisión de persona—, nace un tercero, y los ajenos **se quedan donde están** |
+| Teléfono de un hilo **y** correo de otro | **Manda el teléfono**: la reserva entra en SU hilo y el correo se descarta |
 
-⚠️ **Ese tercer caso reventaba.** `vincular()` insertaba a ciegas, y `(tipo, valor)` es único: el
+#### Por qué en el empate manda el teléfono
+
+Hasta el 20/08/2026 no se elegía ninguno, en nombre de «unir historiales es decisión de persona».
+Pero **no elegir salía peor que cualquiera de las dos opciones**: nacía un hilo **sin identidades**
+—las dos eran ajenas y `vincular()` no se las quita a su dueño— y **con `guestPhone`**, porque el
+espejo se rellena aparte.
+
+```
+salida  →  el hilo nuevo escribe a X
+entrada ←  la respuesta desde X aterriza en el hilo del DUEÑO de X
+```
+
+Conversación partida, y de una sola dirección en cada mitad. Sin un solo error.
+
+Gana el teléfono porque es el canal que de verdad lleva conversación — y porque en esta base los
+**25** correos-identidad son alias `@guest.booking.com`, o sea direcciones de asunto, no señales
+de quién es la persona. El correo no se le quita a su dueño: se descarta, y queda en el log qué
+se dejó fuera.
+
+⚠️ **Sólo desempata el TELÉFONO.** Entre un correo y un `bookId` se sigue sin elegir: ahí no hay
+una señal más fuerte que otra.
+
+⚠️ **Y el operador lo ve ANTES de guardar.** `GET /platform/message/identidades/duenio` responde
+de quién es un teléfono o un correo, y el formulario de nueva reserva lo pinta bajo el campo: si
+el teléfono ya es de alguien, que la reserva se sumará a su conversación; y si el correo es de
+otra persona, que **no se guardará**. Un dato que se teclea y no se guarda tiene que decirse.
+La normalización la hace el backend, no el formulario: si el aviso mirara un valor y el guardado
+otro, diría lo contrario de lo que va a pasar.
+
+⚠️ **Ese tercer caso además reventaba.** `vincular()` insertaba a ciegas, y `(tipo, valor)` es único: el
 `INSERT` moría al hacer flush. Y lo que fallaba no era el hilo — era **la reserva, que no se
 podía guardar**, con un error de clave duplicada que no dice nada de lo que pasó. Ahora se salta
 con un aviso en el log; si de verdad es la misma persona, lo decide alguien con
