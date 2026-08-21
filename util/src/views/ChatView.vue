@@ -705,6 +705,17 @@ const isBeds24Allowed = computed(() => {
   return true;
 });
 
+const isEmailAllowed = computed(() => {
+  if (!canalHabilitado('email')) return false;
+
+  if (selectedTemplateId.value) {
+    const tpl = store.templates.find(t => (t['@id'] || t.id) === selectedTemplateId.value);
+    if (tpl && !tpl.emailActive) return false;
+  }
+
+  return true;
+});
+
 const isWhatsappAllowed = computed(() => {
   if (!canalHabilitado('whatsapp_meta')) return false;
 
@@ -744,6 +755,9 @@ const setDefaultChannels = () => {
     // Antes repetía aquí la regla (`whatsappSessionActive && !whatsappDisabled`), que era la
     // tercera copia de lo mismo. La ventana de 24 h ya la mira `isWhatsappAllowed`.
     if (isWhatsappAllowed.value) newChannels.push('whatsapp_meta');
+
+    // El correo NO se marca solo, aunque esté disponible: en un chat se contesta por donde
+    // llegó el mensaje, y mandar un correo es una decisión aparte. Se ofrece; no se presume.
   }
 
   selectedChannels.value = newChannels;
@@ -755,9 +769,16 @@ const setDefaultChannels = () => {
 // marcado que deja de estar disponible se quita solo, porque si no el operador vería «enviado»
 // con una salida que el backend acaba de descartar.
 watch(() => store.canalesDelChat, () => {
-  selectedChannels.value = selectedChannels.value.filter(c =>
-    (c === 'beds24' && isBeds24Allowed.value) || (c === 'whatsapp_meta' && isWhatsappAllowed.value)
-  );
+  // ⚠️ El mapa, y no una condición por canal: cuando se añadió el correo, la versión anterior
+  // lo quitaba de la selección en cuanto se marcaba —no estaba entre los dos nombres escritos a
+  // mano— y el botón parecía no responder.
+  const permitido: Record<string, boolean> = {
+    beds24: isBeds24Allowed.value,
+    whatsapp_meta: isWhatsappAllowed.value,
+    email: isEmailAllowed.value,
+  };
+
+  selectedChannels.value = selectedChannels.value.filter(c => permitido[c] === true);
 
   if (selectedChannels.value.length === 0) setDefaultChannels();
 }, { deep: true });
@@ -1641,6 +1662,29 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
                 {{ store.currentConversation?.whatsappDisabledReason || 'Canal bloqueado por error de Meta' }}
               </div>
             </div>
+
+            <!-- ⚠️ TERCER botón escrito a mano, y eso ya es una señal: esta barra debería
+                 pintarse recorriendo `store.canalesDelChat`, que el backend ya devuelve con su
+                 nombre y su disponibilidad. Se deja explícito por ahora porque WhatsApp tiene
+                 adornos propios —el candado de las 24 h, el aviso rojo del veto de Meta— que un
+                 bucle genérico perdería; pero el cuarto canal no debería necesitar tocar esto. -->
+            <button
+                type="button"
+                @click="isEmailAllowed ? toggleChannel('email') : null"
+                :disabled="!isEmailAllowed"
+                :class="[
+                  !isEmailAllowed
+                    ? 'bg-slate-50 text-slate-300 border-slate-100 opacity-60 cursor-not-allowed'
+                    : selectedChannels.includes('email')
+                      ? 'bg-amber-50 text-amber-700 border-amber-200 shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-800 shadow-sm'
+                ]"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0"
+                :title="!isEmailAllowed ? (motivoCanal('email') ?? 'La plantilla elegida no sale por correo') : 'Enviar por correo'"
+            >
+              <i class="fas fa-envelope"></i> Correo
+              <i v-if="!isEmailAllowed" class="fas fa-ban text-[9px] ml-0.5 opacity-50"></i>
+            </button>
 
           </div>
 
