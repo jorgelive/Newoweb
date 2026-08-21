@@ -1008,6 +1008,41 @@ async function abrirChatInterno(): Promise<void> {
     }
 }
 
+/**
+ * Lleva al editor de identificadores de esta persona.
+ *
+ * ⚠️ **El error se guarda aparte de `localError` a propósito.** Ése se pinta arriba del todo del
+ * scroll, y este botón está abajo, en «Datos del titular»: si la reserva no tenía hilo, el aviso
+ * aparecía fuera de la pantalla y desde el móvil se veía exactamente como si el botón no hiciera
+ * nada. Un fallo invisible es peor que uno feo.
+ */
+const errorTelefono = ref<string | null>(null);
+
+async function editarIdentificadores(): Promise<void> {
+    if (!props.reservaId) return;
+
+    errorTelefono.value = null;
+    abriendoChat.value = true;
+
+    try {
+        const convId = await reservasStore.fetchConversacionId(props.reservaId);
+
+        if (!convId) {
+            errorTelefono.value = 'Esta reserva todavía no tiene conversación: el identificador se creará con el primer mensaje.';
+            return;
+        }
+
+        // Igual que `abrirChatInterno`: cerrar ANTES de navegar, porque ReservasView cancela la
+        // salida de ruta mientras haya un cajón abierto.
+        emit('close');
+        await router.push({ path: '/chat', query: { id: convId, editar: 'identidades' } });
+    } catch {
+        errorTelefono.value = 'No se pudo abrir el editor de identificadores.';
+    } finally {
+        abriendoChat.value = false;
+    }
+}
+
 const vcardUrl = computed(() => {
     if (!props.reservaId) return null;
     return `${getUrls().api}/pms/reservas/${props.reservaId}/vcard`;
@@ -2215,8 +2250,8 @@ async function ejecutarBorrado(): Promise<void> {
                                 <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                     <p class="text-sm font-bold text-slate-800">{{ formatearTelefono(telefonoContacto) || '—' }}</p>
 
-                                    <button @click="abrirChatInterno" :disabled="abriendoChat"
-                                        title="Editar los identificadores de esta persona en el chat"
+                                    <button type="button" @click="editarIdentificadores" :disabled="abriendoChat"
+                                        title="Editar los identificadores de esta persona: añadir, retirar, marcar cuál se usa"
                                         class="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-wide transition-colors shrink-0 disabled:opacity-40">
                                         <i class="fas" :class="abriendoChat ? 'fa-circle-notch fa-spin' : 'fa-pen'"></i> Editar
                                     </button>
@@ -2226,6 +2261,11 @@ async function ejecutarBorrado(): Promise<void> {
                                         <i class="fas fa-address-card"></i> vCard
                                     </a>
                                 </div>
+
+                                <!-- Aquí y no arriba del scroll: ver `errorTelefono`. -->
+                                <p v-if="errorTelefono" class="text-[11px] font-bold text-rose-600 mt-1.5 leading-snug">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>{{ errorTelefono }}
+                                </p>
                             </div>
                             <div class="col-span-2">
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Email</p>

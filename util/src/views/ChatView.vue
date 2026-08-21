@@ -475,9 +475,26 @@ const translatedMessages = ref<Record<string, boolean>>({});
 const route = useRoute();
 const router = useRouter();
 
+/**
+ * Abre el editor de identificadores si se llega con `?editar=identidades`.
+ *
+ * Lo usa el botón «Editar» del teléfono en el cajón de la reserva: sin esto aterrizabas en el
+ * chat y tenías que encontrar el lapicero y bajar hasta la sección, tres pasos para lo que se
+ * pidió en uno.
+ */
+const abrirEditorSiTocaba = async () => {
+  if (route.query.editar !== 'identidades') return;
+
+  // Tras `selectChat` la conversación ya está en el store; el modal la necesita para pintar.
+  await nextTick();
+  if (store.currentConversation) isEditConversationModalOpen.value = true;
+};
+
 watch(() => route.query.id, async (newId) => {
   if (newId) {
+    const abrirEditor = route.query.editar === 'identidades';
     await selectChat(newId as string);
+    if (abrirEditor) await abrirEditorSiTocaba();
     router.replace({ path: '/chat', query: {} });
   }
 });
@@ -541,7 +558,9 @@ onMounted(async () => {
 
   if (route.query.id) {
     const targetId = route.query.id as string;
+    const abrirEditor = route.query.editar === 'identidades';
     await selectChat(targetId);
+    if (abrirEditor) await abrirEditorSiTocaba();
     router.replace({ path: '/chat', query: {} });
   }
 
