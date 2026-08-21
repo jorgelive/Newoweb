@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Message\Repository;
 
-use App\Exchange\Entity\ExchangeEndpoint;
-use App\Exchange\Enum\ConnectivityProvider;
 use App\Exchange\Repository\AbstractExchangeRepository;
 use Doctrine\DBAL\ArrayParameterType;
 use App\Message\Entity\EmailSendQueue;
@@ -36,9 +34,9 @@ final class EmailSendQueueRepository extends AbstractExchangeRepository
     /**
      * Rehidrata los elementos reclamados, con el mensaje y la configuración en el mismo viaje.
      *
-     * ⚠️ **Sin `innerJoin` al endpoint**, al contrario que los demás canales: el correo no tiene
-     * endpoint propio —su destino es un buzón— y un `innerJoin` habría devuelto cero filas
-     * silenciosamente, dejando la cola llena y el worker sin nada que hacer.
+     * `leftJoin` al endpoint y no `innerJoin`: es un marcador y podría faltar en una fila vieja;
+     * un `innerJoin` la habría escondido en silencio, dejando la cola llena y el worker sin nada
+     * que hacer.
      *
      * @param list<string> $ids
      * @return list<EmailSendQueue>
@@ -51,9 +49,10 @@ final class EmailSendQueueRepository extends AbstractExchangeRepository
 
         /** @var list<EmailSendQueue> $items */
         $items = $this->createQueryBuilder('q')
-            ->addSelect('msg', 'cfg')
+            ->addSelect('msg', 'cfg', 'ep')
             ->innerJoin('q.message', 'msg')
             ->innerJoin('q.config', 'cfg')
+            ->leftJoin('q.endpoint', 'ep')
             ->andWhere('q.id IN (:ids)')
             ->setParameter('ids', $ids, ArrayParameterType::BINARY)
             ->getQuery()
@@ -62,16 +61,4 @@ final class EmailSendQueueRepository extends AbstractExchangeRepository
         return $items;
     }
 
-    /**
-     * El endpoint marcador del correo.
-     *
-     * `HomogeneousBatch` exige un endpoint porque los demás canales hablan con una API. El
-     * destino de un correo es un buzón, así que éste no apunta a ninguna ruta: existe para que
-     * el lote se pueda armar, y el cliente lo ignora.
-     */
-    public function endpointDeCorreo(): ?ExchangeEndpoint
-    {
-        return $this->getEntityManager()->getRepository(ExchangeEndpoint::class)
-            ->findOneBy(['provider' => ConnectivityProvider::EMAIL, 'accion' => 'email_send']);
-    }
 }

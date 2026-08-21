@@ -8849,11 +8849,13 @@ Ahora cada cola declara su tarea (`MessageQueueItemInterface::getSendTaskName()`
 recorre por interfaz. **Un canal nuevo ya no toca ese archivo**, que es la misma regla que
 `Message::addQueue()` lleva documentando desde antes.
 
-⚠️ **El endpoint `email_send` es un marcador.** `HomogeneousBatch` exige uno porque los demás
-canales hablan con una API; el destino de un correo es un buzón. Se prefirió una fila inerte a
-hacer opcional el endpoint en el motor, que obligaría a revisar los canales que ya funcionan. Su
-repositorio **no hace `innerJoin` al endpoint** por lo mismo: habría devuelto cero filas en
-silencio, dejando la cola llena y el worker sin nada que hacer.
+⚠️ **El endpoint `email_send` es un marcador, pero la COLUMNA es real.** `HomogeneousBatch`
+exige un endpoint porque los demás canales hablan con una API; el destino de un correo es un
+buzón. La primera versión no guardaba la columna y el envío murió con «Unknown column
+'endpoint_id'»: `AbstractExchangeRepository::claimRunnable()` arma los lotes en **SQL nativo**
+agrupando por `(config_id, endpoint_id)`. Se le da al correo la MISMA forma que a los demás en
+vez de sembrar excepciones en el motor — cambiarlo para un caso obliga a revisar los cinco que ya
+funcionan.
 
 ⚠️ **El mailer no devuelve códigos HTTP.** O entrega al transporte o lanza. El cliente responde
 `200` al salir y `502` al fallar, para que el motor decida el reintento con el mismo criterio que

@@ -7,6 +7,7 @@ namespace App\Message\Entity;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Entity\EmailConfig;
+use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Exchange\Service\Contract\MemoryCleanableInterface;
@@ -53,6 +54,22 @@ class EmailSendQueue implements MessageQueueItemInterface, MemoryCleanableInterf
     #[ORM\ManyToOne(targetEntity: EmailConfig::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?EmailConfig $config = null;
+
+    /**
+     * El endpoint marcador.
+     *
+     * ⚠️ **No apunta a ninguna ruta** —el destino de un correo es un buzón— pero la columna es
+     * real y se rellena, porque el motor arma los lotes agrupando por `(config_id, endpoint_id)`
+     * en SQL nativo. Sin la columna, `claimRunnable()` falla con «Unknown column 'endpoint_id'»
+     * y la cola se queda llena.
+     *
+     * Se prefiere darle al correo la MISMA forma que a los demás canales antes que sembrar
+     * excepciones en el motor: cambiar el núcleo para un caso obliga a revisar los cinco que ya
+     * funcionan.
+     */
+    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class)]
+    #[ORM\JoinColumn(name: 'endpoint_id', nullable: true, onDelete: 'SET NULL')]
+    private ?ExchangeEndpoint $endpoint = null;
 
     /** El buzón al que se decidió mandarlo. Congelado: ver la nota de la clase. */
     #[ORM\Column(length: 180, nullable: true)]
@@ -169,9 +186,18 @@ class EmailSendQueue implements MessageQueueItemInterface, MemoryCleanableInterf
         return $this;
     }
 
-    /** El correo no tiene endpoints: el destino es un buzón, no una ruta de API. */
-    public function getEndpoint(): ?EndpointInterface { return null; }
-    public function setEndpoint(?EndpointInterface $endpoint): self { return $this; }
+    public function getEndpoint(): ?EndpointInterface { return $this->endpoint; }
+
+    public function setEndpoint(?EndpointInterface $endpoint): self
+    {
+        if ($endpoint !== null && !$endpoint instanceof ExchangeEndpoint) {
+            throw new InvalidArgumentException('La cola de correo sólo admite ExchangeEndpoint.');
+        }
+
+        $this->endpoint = $endpoint;
+
+        return $this;
+    }
 
     public function getStatus(): string { return $this->status; }
     public function setStatus(string $status): self { $this->status = $status; return $this; }

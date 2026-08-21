@@ -45,7 +45,7 @@ final readonly class EmailSendQueueProvider implements ExchangeQueueProviderInte
 
         $primero = $items[0];
         $config = $primero->getConfig();
-        $endpoint = $this->repository->endpointDeCorreo();
+        $endpoint = $primero->getEndpoint();
 
         if ($config === null) {
             throw new RuntimeException(sprintf('Cola de correo #%s sin configuración.', $primero->getId()));

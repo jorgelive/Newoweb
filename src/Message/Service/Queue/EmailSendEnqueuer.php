@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Message\Service\Queue;
 
 use App\Exchange\Entity\EmailConfig;
+use App\Exchange\Entity\ExchangeEndpoint;
+use App\Exchange\Enum\ConnectivityProvider;
 use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\EmailSendQueue;
@@ -82,9 +84,18 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
             throw new RuntimeException('No hay ninguna configuración de correo activa: falta el buzón remitente.');
         }
 
+        // El marcador. Ver `EmailSendQueue::$endpoint`: el motor agrupa por él en SQL nativo.
+        $endpoint = $this->em->getRepository(ExchangeEndpoint::class)
+            ->findOneBy(['provider' => ConnectivityProvider::EMAIL, 'accion' => 'email_send']);
+
+        if ($endpoint === null) {
+            throw new RuntimeException('Falta el endpoint `email_send`: el motor no puede armar el lote sin él.');
+        }
+
         $cola = new EmailSendQueue();
         $cola->setMessage($message);
         $cola->setConfig($config);
+        $cola->setEndpoint($endpoint);
         $cola->setDestinationEmail($destino);
         $cola->setSubject($this->asunto($message, $conversation));
         $cola->setRunAt($runAt);
