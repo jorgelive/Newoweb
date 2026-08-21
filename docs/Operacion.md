@@ -1248,14 +1248,94 @@ polimórfico— está en `docs/Cotizaciones.md` §6.c.
 
 | | |
 |---|---|
-| Campos | monto, moneda, fecha, notas, y quién lo registró (nombre, sellado en `prePersist`) |
+| Campos | monto, moneda, fecha, **medio de pago**, observaciones (`notas`), y quién lo registró (nombre, sellado en `prePersist`) |
 | Saldo | **NO se guarda**: se calcula `negociado − Σ pagos` por moneda en `getTotalesPorMoneda()` |
-| Moneda | la del pago; no se convierte, así que cada pago resta del saldo de SU moneda. La UI limita el selector a las monedas que la orden tiene |
+| Moneda | la del pago; no se convierte, así que cada pago resta del saldo de SU moneda |
 | API | GetCollection (filtrable por orden) + Post + Delete. **Sin PUT/PATCH**: un pago mal metido se borra y se rehace; editar el monto invita a cuadrar caja cambiando la historia |
+
+### El medio de pago (21/08/2026)
+
+`OperacionMedioPago`: efectivo, transferencia bancaria, depósito en cuenta, Plin/Yape, tarjeta,
+otro. La etiqueta y el icono viven **sólo en PHP** y el panel los pide a
+`OperacionEnumAjaxController` (`GET /tipo/user/enum/operacion/medios-pago`), en vez de duplicar
+el diccionario en TypeScript — donde se desincroniza en silencio y el selector se queda corto sin
+que nadie eche de menos la opción que no sabía que existía.
+
+⚠️ **No se reutiliza `PmsMedioPago`.** Aquél contesta la pregunta contraria —cómo nos pagó el
+huésped a NOSOTROS— y arrastra cosas que aquí no significan nada: el recargo del 5,5 % de la
+tarjeta existe porque se lo cobramos al cliente, y `seCobraEnMano()` decide si preguntar por el
+cobrador, que pagando a un proveedor no aplica. Al revés, aquí hace falta `deposito`, que como
+forma de cobrar no existe. Importarlo habría metido conocimiento del PMS en Operación por
+ahorrarse seis líneas, y el día que el alojamiento añadiera un medio aparecería en este selector
+sin que nadie lo pidiera.
+
+⚠️ **La columna es `NOT NULL`, y eso hubo que comprobarlo.** Un campo así se añade normalmente
+nullable para no reprobar a las filas viejas; aquí no hizo falta porque `operacion_pago` estaba
+**vacía** (3 órdenes, 0 pagos, medido en producción antes de escribir la migración). Sin filas
+que respetar, un `NULL` sólo habría arrastrado por toda la aplicación una rama de «medio no
+consta» que nunca se daría.
+
+### ⚠️ La moneda se comprueba en el BACKEND, no sólo en el selector
+
+`OperacionPago::validarMonedaDeLaOrden()`. La regla estaba **sólo en el panel** —el `<select>` se
+armaba con las monedas de la orden— y una regla que sólo vive en el front no es una regla:
+cualquier POST directo metía un abono en una divisa ajena, y como el saldo se agrupa por moneda,
+ese pago aparecía como una fila nueva con `pagado` y sin `real`. O sea **dinero declarado como
+salido contra una deuda que no existe**, sin un solo error.
+
+Las monedas admitidas salen de `OperacionOrdenServicio::monedasDeLosServicios()` —lo cotizado, lo
+negociado y `monedaOs` si está puesta—, **no de `getTotalesPorMoneda()`**. Aquél incluye las
+monedas de los pagos ya hechos, para que ninguno se esconda; validar contra él haría que el
+primer abono equivocado legitimara al segundo.
+
+Si la orden todavía no tiene ninguna moneda —costos sin cargar— se deja pasar: negarlo bloquearía
+el adelanto de una orden recién emitida, que es justo cuando más se adelanta.
+
+Auditado antes de instalarla: de los pagos que había en producción, **ninguno** habría sido
+rechazado.
+
+### `saldada`: un hecho sobre el dinero, no un estado de la orden
+
+`OperacionOrdenServicio::isSaldada()` — derivado, no persistido: `true` cuando no queda saldo en
+**ninguna** moneda.
+
+⚠️ **No es un caso de `EstadoOrdenServicioEnum`, y no por pereza.** Ese enum contesta *en qué
+punto está el papeleo de la orden de compra* —borrador, emitida, confirmada, completada,
+cancelada—. Meter «pagada» ahí obligaría a que una orden CONFIRMADA dejara de estarlo al
+pagarla: se perdería información real para ganar un dato que ya se puede calcular. Son dos ejes
+independientes —una orden puede estar completada y sin pagar, o pagada por adelantado y aún sin
+confirmar—, y este módulo ya documenta que sus tres estados contestan preguntas distintas (ver
+`EstadoReservaProveedorEnum`).
+
+Se pinta como una insignia junto al destinatario. Con varias monedas es lo único que contesta de
+un vistazo: las líneas de importes dicen «pagado» por moneda, no si la orden entera está saldada.
+
+⚠️ Una orden **sin importes** no está saldada: está sin cargar. Con todo a cero el saldo también
+da cero, y decir «saldada» ahí afirma algo sobre un dinero que nadie ha escrito.
+
+### `addPago()`: el lado inverso no se poblaba
+
+No existía, así que un abono recién registrado no aparecía en `$orden->getPagos()` hasta releer de
+la base — y con el saldo calculado al vuelo sobre esa colección, cualquier cosa que mirara la
+orden **dentro de la misma petición** lo veía sin él. El panel lo tapaba recargando la orden
+después de guardar: una vuelta de red para arreglar algo que pasaba en memoria.
 
 El saldo aparece en la cabecera de la orden («saldo X» o «pagado») y, con el detalle, en el
 modal de pagos: hoja inferior en móvil, tarjeta centrada en ancho. El modal recarga sólo su
 orden al añadir o borrar (`refrescarOrden`), no la lista entera.
+
+El medio **no se preselecciona**: cómo se pagó es un hecho, y un valor por defecto lo convierte
+en «lo que estaba puesto al abrir». Sí se conservan moneda y medio entre altas seguidas, porque
+quien registra tres abonos los hace casi siempre igual.
+
+⚠️ Y el error del servidor **se pinta tal cual**. `crearPago()` devolvía un booleano y el panel
+decía «No se pudo registrar el pago»; el backend sabe qué falló —«esta orden se maneja en USD: no
+se le puede registrar un pago en PEN»— y taparlo obligaba a adivinar delante de un formulario que
+no dice qué campo está mal. Ahora devuelve el motivo (`mensajeDeErrorApi`).
+
+Verificación con datos reales: `var/probar-pago-orden-servicio.php`, en transacción con
+`rollback`. ⚠️ **En local no hay ni una orden de servicio**, así que esa sonda sólo dice algo
+ejecutada contra producción (`APP_ENV=prod`).
 
 ⚠️ Nota de rendimiento que salió aquí: `actualizarServicio` ya **no** enciende el `isLoading`
 global. Lo hacía, y editar un número disparaba el spinner de pantalla completa —parecía que
@@ -1576,6 +1656,9 @@ cotizado, no contra la venta real.
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
+| **Añadir un medio de pago a proveedor** | `src/Operacion/Enum/OperacionMedioPago.php` | un `case` + su `label()` e `icono()`; el panel lo recoge solo |
+| Cambiar en qué monedas se puede pagar una orden | `src/Operacion/Entity/OperacionOrdenServicio.php` | `monedasDeLosServicios()` — lo comprueba `OperacionPago::validarMonedaDeLaOrden()` |
+| Cambiar cuándo una orden cuenta como saldada | `src/Operacion/Entity/OperacionOrdenServicio.php` | `isSaldada()` — derivado, **no** es un estado de `estadoOs` |
 | Cambiar cómo se filtra por centro turístico | `src/Operacion/Filter/OperacionServicioLugarExtension.php` | `applyToCollection()` |
 | Cambiar qué recoge el chip «Sin etiqueta» | `src/Operacion/Filter/OperacionServicioLugarExtension.php` | `SIN_LUGAR` |
 | Cambiar qué dispara la generación | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `onFlush()` (el `match` de estados) |

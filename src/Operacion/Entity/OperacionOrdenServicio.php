@@ -349,6 +349,111 @@ class OperacionOrdenServicio
         return $salida;
     }
 
+    /** @return Collection<int, OperacionPago> */
+    public function getPagos(): Collection { return $this->pagos; }
+
+    /**
+     * Añade un pago manteniendo los DOS lados de la relación.
+     *
+     * ⚠️ No existía, y el lado inverso se quedaba sin poblar hasta releer de la base. Con el
+     * saldo calculado al vuelo sobre `$this->pagos` —{@see self::getTotalesPorMoneda()}— eso
+     * significa que cualquier cosa que mire la orden **dentro de la misma petición** en que se
+     * registró un abono lo ve sin él: la validación de moneda, el marcador de saldada y
+     * cualquier regla futura. El panel lo tapaba recargando la orden después de guardar, que es
+     * una vuelta de red para arreglar algo que pasaba en memoria.
+     *
+     * Mismo patrón que {@see self::addItem()}.
+     */
+    public function addPago(OperacionPago $pago): self
+    {
+        if (!$this->pagos->contains($pago)) {
+            $this->pagos->add($pago);
+            $pago->setOrdenServicio($this);
+        }
+
+        return $this;
+    }
+
+    public function removePago(OperacionPago $pago): self
+    {
+        $this->pagos->removeElement($pago);
+
+        return $this;
+    }
+
+    /**
+     * Las monedas en que esta orden está denominada, según sus SERVICIOS.
+     *
+     * Es la lista contra la que se valida un pago: {@see OperacionPago::validarMonedaDeLaOrden()}.
+     *
+     * ⚠️ **No sale de `getTotalesPorMoneda()`**, aunque parezca lo mismo. Aquél incluye las
+     * monedas de los pagos ya registrados —para que un abono no se esconda—, así que validar
+     * contra él haría que el primer pago en una moneda equivocada legitimara al segundo. Esto
+     * mira sólo lo cotizado y lo negociado, que es lo que de verdad dice en qué se debe.
+     *
+     * Se añade `monedaOs` si está puesta: es el apunte manual de conciliación de la cabecera y,
+     * cuando existe, también dice en qué se maneja la orden.
+     *
+     * @return list<string> Códigos ISO-3, ordenados y sin repetir.
+     */
+    public function monedasDeLosServicios(): array
+    {
+        $monedas = [];
+
+        foreach ($this->operacionServicios as $servicio) {
+            foreach ([$servicio->getMonedaCotizada(), $servicio->getMonedaNegociada()] as $moneda) {
+                if ($moneda !== null) {
+                    $monedas[$moneda->getId()] = true;
+                }
+            }
+        }
+
+        if ($this->monedaOs !== null) {
+            $monedas[$this->monedaOs->getId()] = true;
+        }
+
+        $lista = array_keys($monedas);
+        sort($lista);
+
+        return $lista;
+    }
+
+    /**
+     * ¿Está saldada? Es decir: ¿no le debemos nada al proveedor en ninguna moneda?
+     *
+     * ── Por qué es DERIVADO y no un estado de `estadoOs` ────────────────────
+     * Porque `EstadoOrdenServicioEnum` responde a otra pregunta: **en qué punto está el papeleo
+     * de la orden de compra** —borrador, emitida, confirmada, completada, cancelada—. Meter
+     * «pagada» ahí obligaría a que una orden CONFIRMADA dejara de estarlo al pagarla, y perder
+     * esa información para ganar un dato que ya se puede calcular es un mal cambio: son dos
+     * ejes independientes, y una orden puede estar completada y sin pagar, o pagada por
+     * adelantado y aún sin confirmar.
+     *
+     * Ver el aviso de `EstadoReservaProveedorEnum`, que ya documenta que en este módulo los
+     * estados son tres y contestan cosas distintas.
+     *
+     * ⚠️ Una orden **sin importes** no está pagada: está sin cargar. Con todo a cero el saldo
+     * también da cero, y decir «pagada» ahí es afirmar algo sobre un dinero que nadie ha
+     * escrito todavía.
+     */
+    #[Groups(['operacion:read'])]
+    public function isSaldada(): bool
+    {
+        $hayImporte = false;
+
+        foreach ($this->getTotalesPorMoneda() as $total) {
+            if ((float) $total['real'] > 0.0) {
+                $hayImporte = true;
+            }
+
+            if ((float) $total['saldo'] > 0.0) {
+                return false;
+            }
+        }
+
+        return $hayImporte;
+    }
+
     public function getOperacionServicios(): Collection { return $this->operacionServicios; }
 
     /** @return Collection<int, OperacionOrdenServicioItem> */

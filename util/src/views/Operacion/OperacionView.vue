@@ -906,7 +906,7 @@ const pagos = ref<PagoProveedor[]>([]);
 const cargandoPagos = ref(false);
 const guardandoPago = ref(false);
 const errorPago = ref<string | null>(null);
-const formPago = ref({ monto: '', moneda: '', fecha: hoyIso(), notas: '' });
+const formPago = ref({ monto: '', moneda: '', fecha: hoyIso(), medioPago: '', notas: '' });
 
 /** Las monedas que la orden tiene, para no dejar pagar en una divisa que no le corresponde. */
 const monedasDeOrden = computed<string[]>(() =>
@@ -914,12 +914,25 @@ const monedasDeOrden = computed<string[]>(() =>
         .map(t => t.moneda ?? '')
         .filter((m): m is string => m !== '' && m !== '—'));
 
+/**
+ * El icono del medio, del catálogo del backend.
+ *
+ * El respaldo cubre la carrera real: el historial puede pintarse antes de que responda
+ * `cargarMediosPago()`. No cubre «pago sin medio», que no existe — la columna es NOT NULL.
+ */
+const iconoMedioPago = (id: string): string =>
+    operacionStore.mediosPago.find(m => m.id === id)?.icono ?? 'fa-money-check-dollar';
+
 const abrirPagos = async (orden: OperacionOrdenServicio): Promise<void> => {
     pagosOrden.value = orden;
     pagos.value = [];
     errorPago.value = null;
     const primera = (orden.totalesPorMoneda ?? []).map(t => t.moneda ?? '').filter(m => m && m !== '—')[0] ?? '';
-    formPago.value = { monto: '', moneda: primera, fecha: hoyIso(), notas: '' };
+    // El medio NO se preselecciona: cómo se pagó es un hecho, y un valor por defecto lo
+    // convierte en lo que había puesto al abrir el formulario. Mismo criterio que el cobro
+    // rápido del panel financiero de la reserva.
+    formPago.value = { monto: '', moneda: primera, fecha: hoyIso(), medioPago: '', notas: '' };
+    void operacionStore.cargarMediosPago();
 
     if (!orden.id) return;
     cargandoPagos.value = true;
@@ -943,24 +956,39 @@ const registrarPago = async (): Promise<void> => {
         errorPago.value = 'Elige la moneda del pago.';
         return;
     }
+    if (!formPago.value.medioPago) {
+        errorPago.value = 'Elige por qué medio se pagó.';
+        return;
+    }
 
     guardandoPago.value = true;
     errorPago.value = null;
     try {
-        const ok = await operacionStore.crearPago({
+        const motivo = await operacionStore.crearPago({
             ordenServicio: `/platform/ops/operacion_orden_servicios/${orden.id}`,
             monto: Number(monto).toFixed(2),
             moneda: `/platform/maestro/monedas/${formPago.value.moneda}`,
             fecha: formPago.value.fecha,
+            medioPago: formPago.value.medioPago,
             notas: formPago.value.notas.trim() || null,
         });
-        if (!ok) { errorPago.value = 'No se pudo registrar el pago.'; return; }
+
+        // El motivo lo redacta el backend —«esta orden se maneja en USD…»— y se pinta tal cual.
+        if (motivo !== null) { errorPago.value = motivo; return; }
 
         // Recargar los pagos y la orden (su saldo lo recalcula el servidor).
         pagos.value = await operacionStore.fetchPagos(orden.id);
         await operacionStore.refrescarOrden(orden.id);
         pagosOrden.value = operacionStore.ordenesServicio.find(o => o.id === orden.id) ?? pagosOrden.value;
-        formPago.value = { monto: '', moneda: formPago.value.moneda, fecha: hoyIso(), notas: '' };
+        // Se conservan moneda y medio: quien registra tres abonos seguidos los hace casi
+        // siempre igual, y volver a elegirlos cada vez es fricción sin ganancia.
+        formPago.value = {
+            monto: '',
+            moneda: formPago.value.moneda,
+            fecha: hoyIso(),
+            medioPago: formPago.value.medioPago,
+            notas: '',
+        };
     } finally {
         guardandoPago.value = false;
     }
@@ -2111,6 +2139,22 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                 <p class="text-sm font-bold text-slate-800 leading-snug">
                                     {{ orden.compradorNombre || 'No definido' }}
                                 </p>
+
+                                <!-- ⚠️ SALDADA no es un estado de la orden: es un hecho sobre el
+                                     dinero, y por eso va aquí y no en el chip de `estadoOs`.
+                                     Aquél dice en qué punto está el PAPELEO —emitida,
+                                     confirmada, completada— y son dos ejes que no se mueven
+                                     juntos: una orden puede estar completada y sin pagar, o
+                                     pagada por adelantado y todavía sin confirmar. Ver
+                                     `OperacionOrdenServicio::isSaldada()`.
+
+                                     Con varias monedas es lo único que contesta de un vistazo:
+                                     las líneas de la derecha dicen «pagado» por moneda, no si
+                                     la orden entera está saldada. -->
+                                <p v-if="orden.saldada"
+                                   class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-widest">
+                                    <i class="fas fa-circle-check text-[9px]"></i> Saldada
+                                </p>
                             </div>
 
                             <!-- Una línea por moneda, sin convertir. Ver §5.4. -->
@@ -2394,8 +2438,12 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                     <p class="text-sm font-black text-slate-800 tabular-nums">
                                         <span class="text-[10px] font-bold text-slate-400 mr-1">{{ pago.moneda?.id }}</span>{{ importe(pago.monto) }}
                                     </p>
-                                    <p class="text-[10px] text-slate-400">
-                                        {{ (pago.fecha ?? '').slice(0, 10) }}<span v-if="pago.usuarioNombre"> · {{ pago.usuarioNombre }}</span>
+                                    <p class="text-[10px] text-slate-400 flex items-center gap-1 flex-wrap">
+                                        <span class="font-bold text-slate-500 flex items-center gap-1">
+                                            <i class="fas text-[9px]" :class="iconoMedioPago(pago.medioPago)"></i>
+                                            {{ pago.medioPagoLabel }}
+                                        </span>
+                                        · {{ (pago.fecha ?? '').slice(0, 10) }}<span v-if="pago.usuarioNombre"> · {{ pago.usuarioNombre }}</span>
                                     </p>
                                     <p v-if="pago.notas" class="text-[10px] text-slate-500 leading-snug mt-0.5">{{ pago.notas }}</p>
                                 </div>
@@ -2422,7 +2470,14 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                         <input v-model="formPago.fecha" type="date"
                                class="text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-emerald-500" />
                     </div>
-                    <input v-model="formPago.notas" placeholder="Notas (opcional): nº operación, banco…"
+                    <!-- Sin opción preseleccionada: cómo se pagó es un hecho, y un valor por
+                         defecto lo convierte en «lo que estaba puesto al abrir». -->
+                    <select v-model="formPago.medioPago"
+                            class="text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-emerald-500">
+                        <option value="" disabled>¿Por qué medio se pagó?</option>
+                        <option v-for="m in operacionStore.mediosPago" :key="m.id" :value="m.id">{{ m.label }}</option>
+                    </select>
+                    <input v-model="formPago.notas" placeholder="Observaciones (opcional): nº operación, banco…"
                            class="text-sm text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500" />
                     <p v-if="errorPago" class="text-[11px] font-bold text-rose-600">
                         <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorPago }}

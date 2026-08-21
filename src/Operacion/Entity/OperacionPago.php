@@ -17,7 +17,9 @@ use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use App\Operacion\Enum\OperacionMedioPago;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Un pago a cuenta hecho al proveedor por una Orden de Servicio.
@@ -28,10 +30,11 @@ use Symfony\Component\Validator\Constraints as Assert;
  * moneda. Guardar un saldo sería un dato que hay que mantener a mano y que se desincroniza en
  * cuanto se añade o borra un pago.
  *
- * ── Una moneda, la de la negociación ────────────────────────────────────────
+ * ── Una moneda, y tiene que ser la de la orden ──────────────────────────────
  * El pago va en la moneda en que se cerró el servicio. No se convierte —criterio de la casa—
- * así que cada pago se resta del saldo de SU moneda. La UI limita el selector a las monedas
- * que la orden realmente tiene; aquí sólo se exige que haya moneda.
+ * así que cada pago se resta del saldo de SU moneda.
+ *
+ * ⚠️ Y **se comprueba aquí**, no sólo en el panel: ver `validarMonedaDeLaOrden()`.
  *
  * ── Se puede borrar, no editar ──────────────────────────────────────────────
  * Un pago mal metido se borra y se rehace: es un hecho puntual, no un documento que se
@@ -91,6 +94,22 @@ class OperacionPago
     #[ORM\Column(type: 'date_immutable')]
     private ?\DateTimeImmutable $fecha = null;
 
+    /**
+     * Por qué medio se le pagó.
+     *
+     * Obligatorio en la base y no sólo en la validación: la tabla estaba **vacía** al añadir el
+     * campo —comprobado, 0 filas—, así que no había ningún pago viejo al que respetarle un «no
+     * consta». Permitir `NULL` sin filas que lo necesiten sólo habría metido una rama de dato
+     * ausente en la entidad, en el panel y en el desglose, para un caso que no existe.
+     *
+     * La propiedad sí es `?`: hasta que alguien la elige, no hay valor. Es lo mismo que hacen
+     * `$moneda` y `$fecha` aquí al lado.
+     */
+    #[Assert\NotNull(message: 'Elige por qué medio se pagó.')]
+    #[Groups(['operacion:pago:read', 'operacion:pago:write'])]
+    #[ORM\Column(name: 'medio_pago', type: 'string', length: 30, enumType: OperacionMedioPago::class)]
+    private ?OperacionMedioPago $medioPago = null;
+
     #[Groups(['operacion:pago:read', 'operacion:pago:write'])]
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notas = null;
@@ -115,6 +134,47 @@ class OperacionPago
     public function getNotas(): ?string { return $this->notas; }
     public function setNotas(?string $notas): self { $this->notas = $notas; return $this; }
 
+    public function getMedioPago(): ?OperacionMedioPago { return $this->medioPago; }
+    public function setMedioPago(?OperacionMedioPago $m): self { $this->medioPago = $m; return $this; }
+
+    /** La etiqueta legible, para no duplicar el diccionario en el panel. */
+    #[Groups(['operacion:pago:read'])]
+    public function getMedioPagoLabel(): ?string { return $this->medioPago?->label(); }
+
     public function getUsuarioNombre(): ?string { return $this->usuarioNombre; }
     public function setUsuarioNombre(?string $n): self { $this->usuarioNombre = $n; return $this; }
+
+    /**
+     * ⚠️ **Sólo se paga en una moneda que la orden tenga.**
+     *
+     * La regla estaba **sólo en el panel** —el `<select>` se armaba con las monedas de la
+     * orden— y una regla que sólo vive en el front no es una regla: cualquier POST directo
+     * metía un abono en yenes, y como el saldo se agrupa por moneda, ese pago aparecía como una
+     * fila nueva con `pagado` y sin `real`. O sea: dinero declarado como salido contra una deuda
+     * que no existe, sin un solo error.
+     *
+     * Las monedas admitidas salen de los SERVICIOS —lo cotizado y lo negociado—, no de
+     * `getTotalesPorMoneda()`, que incluye las monedas de los pagos ya hechos: validarse contra
+     * eso haría que el primer pago equivocado legitimara al segundo.
+     *
+     * Si la orden todavía no tiene ninguna moneda —costos sin cargar— no hay regla que cumplir
+     * y se deja pasar. Negarlo bloquearía el adelanto de una orden recién emitida, que es
+     * justo cuando más se adelanta.
+     */
+    #[Assert\Callback]
+    public function validarMonedaDeLaOrden(ExecutionContextInterface $contexto): void
+    {
+        $moneda = $this->moneda?->getId();
+        $admitidas = $this->ordenServicio?->monedasDeLosServicios() ?? [];
+
+        if ($moneda === null || $admitidas === [] || in_array($moneda, $admitidas, true)) {
+            return;
+        }
+
+        $contexto->buildViolation(sprintf(
+            'Esta orden se maneja en %s: no se le puede registrar un pago en %s.',
+            implode(' y ', $admitidas),
+            $moneda
+        ))->atPath('moneda')->addViolation();
+    }
 }

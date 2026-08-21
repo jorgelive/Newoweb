@@ -96,6 +96,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/message/conversations/abrir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abre el hilo de un asunto
+         * @description Crea la conversación de una reserva, un expediente o una organización si no existe, y devuelve la que ya hubiera. 201 si nace, 200 si ya estaba, 409 con el motivo si el asunto no existe o no tiene ningún dato de contacto.
+         */
+        post: operations["api_messageconversationsabrir_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/message/conversations/por-asunto": {
         parameters: {
             query?: never;
@@ -2601,6 +2621,7 @@ export interface components {
             readonly relatedEntitiesToDetach?: (string | null)[];
             /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
             readonly channelId?: string;
+            readonly sendTaskName?: string;
         };
         "Beds24SendQueue-message.read": {
             /** @default pending */
@@ -2645,6 +2666,7 @@ export interface components {
             readonly relatedEntitiesToDetach?: (string | null)[];
             /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
             readonly channelId?: string;
+            readonly sendTaskName?: string;
         };
         "Beds24SendQueue.html-message.read": {
             /** @default pending */
@@ -2689,6 +2711,7 @@ export interface components {
             readonly relatedEntitiesToDetach?: (string | null)[];
             /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
             readonly channelId?: string;
+            readonly sendTaskName?: string;
         };
         "Beds24SendQueue.jsonld-message.read": {
             /** @default pending */
@@ -2733,6 +2756,7 @@ export interface components {
             readonly relatedEntitiesToDetach?: (string | null)[];
             /** @description Espejo del id que declara Beds24SendEnqueuer::supports(). */
             readonly channelId?: string;
+            readonly sendTaskName?: string;
         };
         "Beds24SendQueue.multipart-message.read": {
             /** @default pending */
@@ -3849,6 +3873,7 @@ export interface components {
             readonly contextFinancialTotal?: number | null;
             readonly contextFinancialIsCleared?: boolean;
             contextFinancials?: number | null;
+            readonly correoPrincipal?: components["schemas"]["MessageIdentidad"] | null;
             readonly telefonoPrincipal?: components["schemas"]["MessageIdentidad"] | null;
         };
         "Conversation-conversation.read": {
@@ -4077,6 +4102,7 @@ export interface components {
             readonly contextFinancialTotal?: number | null;
             readonly contextFinancialIsCleared?: boolean;
             contextFinancials?: number | null;
+            readonly correoPrincipal?: components["schemas"]["MessageIdentidad"] | null;
             readonly telefonoPrincipal?: components["schemas"]["MessageIdentidad"] | null;
         };
         "Conversation.jsonld-conversation.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -11768,6 +11794,42 @@ export interface components {
                 [key: string]: string | null;
             }[];
         };
+        "EmailSendQueue-message.read": {
+            /** @description El buzón al que se decidió mandarlo. Congelado: ver la nota de la clase. */
+            destinationEmail?: string | null;
+            /** @description El título, ya resuelto y en el idioma de la persona. Congelado por lo mismo. */
+            subject?: string | null;
+            /** @default pending */
+            status: string;
+            failedReason?: string | null;
+        };
+        "EmailSendQueue.html-message.read": {
+            /** @description El buzón al que se decidió mandarlo. Congelado: ver la nota de la clase. */
+            destinationEmail?: string | null;
+            /** @description El título, ya resuelto y en el idioma de la persona. Congelado por lo mismo. */
+            subject?: string | null;
+            /** @default pending */
+            status: string;
+            failedReason?: string | null;
+        };
+        "EmailSendQueue.jsonld-message.read": {
+            /** @description El buzón al que se decidió mandarlo. Congelado: ver la nota de la clase. */
+            destinationEmail?: string | null;
+            /** @description El título, ya resuelto y en el idioma de la persona. Congelado por lo mismo. */
+            subject?: string | null;
+            /** @default pending */
+            status: string;
+            failedReason?: string | null;
+        };
+        "EmailSendQueue.multipart-message.read": {
+            /** @description El buzón al que se decidió mandarlo. Congelado: ver la nota de la clase. */
+            destinationEmail?: string | null;
+            /** @description El título, ya resuelto y en el idioma de la persona. Congelado por lo mismo. */
+            subject?: string | null;
+            /** @default pending */
+            status: string;
+            failedReason?: string | null;
+        };
         /** @description A representation of common errors. */
         Error: {
             /** @description A short, human-readable summary of the problem. */
@@ -11803,7 +11865,7 @@ export interface components {
         };
         ExchangeEndpoint: {
             /** @enum {string} */
-            provider: "beds24" | "meta";
+            provider: "beds24" | "meta" | "email";
             nombre: string;
             /** @description Slug técnico (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
             accion: string;
@@ -11833,7 +11895,7 @@ export interface components {
         };
         "ExchangeEndpoint.html": {
             /** @enum {string} */
-            provider: "beds24" | "meta";
+            provider: "beds24" | "meta" | "email";
             nombre: string;
             /** @description Slug técnico (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
             accion: string;
@@ -11863,7 +11925,7 @@ export interface components {
         };
         "ExchangeEndpoint.jsonld": {
             /** @enum {string} */
-            provider: "beds24" | "meta";
+            provider: "beds24" | "meta" | "email";
             nombre: string;
             /** @description Slug técnico (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
             accion: string;
@@ -11893,7 +11955,7 @@ export interface components {
         };
         "ExchangeEndpoint.multipart": {
             /** @enum {string} */
-            provider: "beds24" | "meta";
+            provider: "beds24" | "meta" | "email";
             nombre: string;
             /** @description Slug técnico (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
             accion: string;
@@ -13043,6 +13105,7 @@ export interface components {
             /** @description La otra mitad del par. Ver {@see self::$asuntoType}. */
             asuntoId?: string | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue-message.read"][];
+            emailSendQueues?: components["schemas"]["EmailSendQueue-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue-message.read"][];
             attachments?: components["schemas"]["MessageAttachment-message.read"][];
             contentLocal?: string | null;
@@ -13124,6 +13187,7 @@ export interface components {
             /** @description La otra mitad del par. Ver {@see self::$asuntoType}. */
             asuntoId?: string | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.html-message.read"][];
+            emailSendQueues?: components["schemas"]["EmailSendQueue.html-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.html-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.html-message.read"][];
             contentLocal?: string | null;
@@ -13174,6 +13238,7 @@ export interface components {
             /** @description La otra mitad del par. Ver {@see self::$asuntoType}. */
             asuntoId?: string | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.jsonld-message.read"][];
+            emailSendQueues?: components["schemas"]["EmailSendQueue.jsonld-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.jsonld-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.jsonld-message.read"][];
             contentLocal?: string | null;
@@ -13224,6 +13289,7 @@ export interface components {
             /** @description La otra mitad del par. Ver {@see self::$asuntoType}. */
             asuntoId?: string | null;
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.multipart-message.read"][];
+            emailSendQueues?: components["schemas"]["EmailSendQueue.multipart-message.read"][];
             beds24SendQueues?: components["schemas"]["Beds24SendQueue.multipart-message.read"][];
             attachments?: components["schemas"]["MessageAttachment.multipart-message.read"][];
             contentLocal?: string | null;
@@ -14579,6 +14645,8 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
+            /** @description ¿Está saldada? Es decir: ¿no le debemos nada al proveedor en ninguna moneda? */
+            readonly saldada?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -14703,6 +14771,8 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
+            /** @description ¿Está saldada? Es decir: ¿no le debemos nada al proveedor en ninguna moneda? */
+            readonly saldada?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -14753,6 +14823,8 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
+            /** @description ¿Está saldada? Es decir: ¿no le debemos nada al proveedor en ninguna moneda? */
+            readonly saldada?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -14831,6 +14903,8 @@ export interface components {
                 pagado?: string;
                 saldo?: string;
             }[];
+            /** @description ¿Está saldada? Es decir: ¿no le debemos nada al proveedor en ninguna moneda? */
+            readonly saldada?: boolean;
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -15054,6 +15128,11 @@ export interface components {
             moneda: components["schemas"]["Moneda-operacion.pago.read_timestamp.read"];
             /** Format: date-time */
             fecha: string;
+            /**
+             * @description Por qué medio se le pagó.
+             * @enum {string|null}
+             */
+            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro" | null;
             notas?: string | null;
             /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
             usuarioNombre?: string | null;
@@ -15061,6 +15140,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La etiqueta legible, para no duplicar el diccionario en el panel. */
+            readonly medioPagoLabel?: string | null;
         };
         /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
         "OperacionPago-operacion.pago.write": {
@@ -15078,6 +15159,11 @@ export interface components {
             moneda: string;
             /** Format: date-time */
             fecha: string;
+            /**
+             * @description Por qué medio se le pagó.
+             * @enum {string|null}
+             */
+            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro" | null;
             notas?: string | null;
         };
         /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
@@ -15088,6 +15174,11 @@ export interface components {
             moneda: components["schemas"]["Moneda.html-operacion.pago.read_timestamp.read"];
             /** Format: date-time */
             fecha: string;
+            /**
+             * @description Por qué medio se le pagó.
+             * @enum {string|null}
+             */
+            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro" | null;
             notas?: string | null;
             /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
             usuarioNombre?: string | null;
@@ -15095,6 +15186,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La etiqueta legible, para no duplicar el diccionario en el panel. */
+            readonly medioPagoLabel?: string | null;
         };
         /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
         "OperacionPago.jsonld-operacion.pago.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -15104,6 +15197,11 @@ export interface components {
             moneda: components["schemas"]["Moneda.jsonld-operacion.pago.read_timestamp.read"];
             /** Format: date-time */
             fecha: string;
+            /**
+             * @description Por qué medio se le pagó.
+             * @enum {string|null}
+             */
+            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro" | null;
             notas?: string | null;
             /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
             usuarioNombre?: string | null;
@@ -15111,6 +15209,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La etiqueta legible, para no duplicar el diccionario en el panel. */
+            readonly medioPagoLabel?: string | null;
         };
         /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
         "OperacionPago.multipart-operacion.pago.read_timestamp.read": {
@@ -15120,6 +15220,11 @@ export interface components {
             moneda: components["schemas"]["Moneda.multipart-operacion.pago.read_timestamp.read"];
             /** Format: date-time */
             fecha: string;
+            /**
+             * @description Por qué medio se le pagó.
+             * @enum {string|null}
+             */
+            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro" | null;
             notas?: string | null;
             /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
             usuarioNombre?: string | null;
@@ -15127,6 +15232,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description La etiqueta legible, para no duplicar el diccionario en el panel. */
+            readonly medioPagoLabel?: string | null;
         };
         "OperacionServicio-operacion.item.read_timestamp.read": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.item.read_timestamp.read"] | null;
@@ -29054,6 +29161,7 @@ export interface components {
             readonly relatedEntitiesToDetach?: (string | null)[];
             /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
             readonly channelId?: string;
+            readonly sendTaskName?: string;
         };
         "WhatsappMetaSendQueue-message.read": {
             /** @default unknown */
@@ -29110,6 +29218,7 @@ export interface components {
             readonly relatedEntitiesToDetach?: (string | null)[];
             /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
             readonly channelId?: string;
+            readonly sendTaskName?: string;
         };
         "WhatsappMetaSendQueue.html-message.read": {
             /** @default unknown */
@@ -29166,6 +29275,7 @@ export interface components {
             readonly relatedEntitiesToDetach?: (string | null)[];
             /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
             readonly channelId?: string;
+            readonly sendTaskName?: string;
         };
         "WhatsappMetaSendQueue.jsonld-message.read": {
             /** @default unknown */
@@ -29222,6 +29332,7 @@ export interface components {
             readonly relatedEntitiesToDetach?: (string | null)[];
             /** @description Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
             readonly channelId?: string;
+            readonly sendTaskName?: string;
         };
         "WhatsappMetaSendQueue.multipart-message.read": {
             /** @default unknown */
@@ -29581,6 +29692,65 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_messageconversationsabrir_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new Conversation resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Conversation"];
+                "application/json": components["schemas"]["Conversation"];
+                "text/html": components["schemas"]["Conversation"];
+                "multipart/form-data": components["schemas"]["Conversation"];
+            };
+        };
+        responses: {
+            /** @description Conversation resource created */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };

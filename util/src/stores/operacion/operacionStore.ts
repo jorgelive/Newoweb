@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { apiClient } from '@/services/apiClient';
+import { mensajeDeErrorApi } from '@/utils/errorApi';
 import type {
     OperacionOrdenServicio,
     OperacionServicio,
@@ -41,8 +42,19 @@ export interface PagoProveedor {
     monto: string;
     moneda?: { id?: string } | null;
     fecha: string;
+    /** Por qué medio se pagó. Obligatorio: ver `OperacionPago::$medioPago`. */
+    medioPago: string;
+    /** La etiqueta legible, que la redacta PHP. Aquí NO se duplica el diccionario. */
+    medioPagoLabel?: string | null;
     notas: string | null;
     usuarioNombre: string | null;
+}
+
+/** Un medio de pago del selector, tal como lo publica `OperacionEnumAjaxController`. */
+export interface MedioPagoOpcion {
+    id: string;
+    label: string;
+    icono: string;
 }
 
 /** Una línea de la bitácora de estados de un servicio. */
@@ -738,20 +750,48 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         }
     };
 
-    /** Registra un pago a cuenta. Devuelve true si se guardó. */
+    /**
+     * Registra un pago a cuenta. Devuelve `null` si se guardó, o el MOTIVO si no.
+     *
+     * ⚠️ Devolvía un booleano y el panel pintaba «No se pudo registrar el pago». El servidor
+     * sabe qué falló —«esta orden se maneja en USD: no se le puede registrar un pago en PEN»,
+     * «elige por qué medio se pagó»— y taparlo obligaba a adivinar delante de un formulario
+     * que no dice qué campo está mal.
+     */
     const crearPago = async (payload: {
         ordenServicio: string;
         monto: string;
         moneda: string;
         fecha: string;
+        medioPago: string;
         notas: string | null;
-    }): Promise<boolean> => {
+    }): Promise<string | null> => {
         try {
             await apiClient.post('/platform/ops/operacion_pagos', payload);
-            return true;
+
+            return null;
         } catch (error) {
-            console.error('No se pudo registrar el pago:', error);
-            return false;
+            return mensajeDeErrorApi(error, 'No se pudo registrar el pago.');
+        }
+    };
+
+    /**
+     * Los medios de pago, del backend.
+     *
+     * Se cachea en memoria: es un diccionario que sólo cambia con un despliegue, y el endpoint
+     * ya manda `s-maxage`. Duplicarlo en TypeScript se desincroniza en silencio — el selector
+     * se queda corto y nadie echa de menos la opción que no sabía que existía.
+     */
+    const mediosPago = ref<MedioPagoOpcion[]>([]);
+
+    const cargarMediosPago = async (): Promise<void> => {
+        if (mediosPago.value.length) return;
+
+        try {
+            const { data } = await apiClient.get('/tipo/user/enum/operacion/medios-pago');
+            mediosPago.value = data as MedioPagoOpcion[];
+        } catch (error) {
+            console.error('No se pudieron cargar los medios de pago:', error);
         }
     };
 
@@ -842,6 +882,8 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         fetchPagos,
         crearPago,
         eliminarPago,
+        mediosPago,
+        cargarMediosPago,
         refrescarOrden,
         monedas,
         fetchMonedas,
