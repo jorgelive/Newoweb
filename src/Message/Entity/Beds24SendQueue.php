@@ -155,7 +155,17 @@ class Beds24SendQueue implements MessageQueueItemInterface, MemoryCleanableInter
         }
         $this->config = $config; return $this;
     }
-    public function getEndpoint(): ?EndpointInterface { return $this->endpoint; }
+    /**
+     * Obligatorio: el motor agrupa los lotes por `(config_id, endpoint_id)`. Ver el contrato.
+     */
+    public function getEndpoint(): EndpointInterface
+    {
+        if ($this->endpoint === null) {
+            throw new InvalidArgumentException('Cola de Beds24 sin endpoint: no se puede armar el lote.');
+        }
+
+        return $this->endpoint;
+    }
     public function setEndpoint(?EndpointInterface $endpoint): self {
         if ($endpoint !== null && !$endpoint instanceof ExchangeEndpoint) {
             throw new InvalidArgumentException(sprintf('Endpoint inválido. Se esperaba %s', ExchangeEndpoint::class));

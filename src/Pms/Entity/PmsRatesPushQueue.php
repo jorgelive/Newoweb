@@ -18,6 +18,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
+use InvalidArgumentException;
 
 /**
  * Entidad PmsRatesPushQueue.
@@ -165,7 +166,17 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface, MemoryCleanableIn
      * ====================================================== */
 
     public function getConfig(): ?Beds24Config { return $this->config; }
-    public function getEndpoint(): ?ExchangeEndpoint { return $this->endpoint; }
+    /**
+     * Obligatorio: el motor agrupa los lotes por `(config_id, endpoint_id)`. Ver el contrato.
+     */
+    public function getEndpoint(): ExchangeEndpoint
+    {
+        if ($this->endpoint === null) {
+            throw new InvalidArgumentException('Cola de tarifas sin endpoint: no se puede armar el lote.');
+        }
+
+        return $this->endpoint;
+    }
     public function setConfig(?ChannelConfigInterface $config): self { $this->config = $config; return $this; }
     public function setEndpoint(?EndpointInterface $endpoint): self { $this->endpoint = $endpoint; return $this; }
     public function getRunAt(): ?DateTimeInterface { return $this->runAt; }

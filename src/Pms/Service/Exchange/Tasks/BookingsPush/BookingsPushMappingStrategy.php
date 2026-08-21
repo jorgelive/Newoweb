@@ -222,7 +222,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
 
         // Un DELETE manda `cancelled` por definición y no es una transición de estado que
         // discutir: es la baja del registro. Se deja pasar aparte para no atarlo a la regla.
-        $esBorrado = $queue->getEndpoint()?->getMetodo() === 'DELETE';
+        $esBorrado = $queue->getEndpoint()->getMetodo() === 'DELETE';
 
         if (!$isOta || $isMirror || $esBorrado || $evento->isEstadoPushSolicitado()) {
             $payload['status'] = $estadoBeds24;
@@ -321,7 +321,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     private function resolveBeds24Status(PmsBookingsPushQueue $queue): string
     {
         // Si el endpoint es explícitamente DELETE, forzamos status cancelled
-        if ($queue->getEndpoint()?->getMetodo() === 'DELETE') {
+        if ($queue->getEndpoint()->getMetodo() === 'DELETE') {
             return self::BEDS24_CANCELLED;
         }
 

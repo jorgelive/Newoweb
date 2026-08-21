@@ -38,7 +38,7 @@ final readonly class Beds24SendQueueProvider implements ExchangeQueueProviderInt
         $config = $rep->getConfig();
         $endpoint = $rep->getEndpoint();
 
-        if (!$config || !$endpoint) {
+        if (!$config) {
             throw new RuntimeException("Integridad violada: Cola Beds24Send #{$rep->getId()} incompleta.");
         }
 

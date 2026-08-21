@@ -18,6 +18,7 @@ use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
+use InvalidArgumentException;
 
 #[ORM\Entity(repositoryClass: Beds24ReceiveQueueRepository::class)]
 #[ORM\Table(name: 'msg_beds24_receive_queue')]
@@ -120,7 +121,17 @@ class Beds24ReceiveQueue implements ExchangeQueueItemInterface, MemoryCleanableI
     public function getId(): ?Uuid { return $this->id; }
     public function getConfig(): ?ChannelConfigInterface { return $this->config; }
     public function setConfig(?ChannelConfigInterface $config): self { $this->config = $config; return $this; }
-    public function getEndpoint(): ?EndpointInterface { return $this->endpoint; }
+    /**
+     * Obligatorio: el motor agrupa los lotes por `(config_id, endpoint_id)`. Ver el contrato.
+     */
+    public function getEndpoint(): EndpointInterface
+    {
+        if ($this->endpoint === null) {
+            throw new InvalidArgumentException('Cola de recepción de Beds24 sin endpoint: no se puede armar el lote.');
+        }
+
+        return $this->endpoint;
+    }
     public function setEndpoint(?EndpointInterface $endpoint): self { $this->endpoint = $endpoint; return $this; }
     public function getRunAt(): ?DateTimeInterface { return $this->runAt; }
     public function setRunAt(?DateTimeInterface $at): self { $this->runAt = $at; return $this; }

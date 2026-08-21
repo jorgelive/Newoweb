@@ -287,7 +287,7 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
             $ep = $queue->getEndpoint();
 
             // Solo cancelamos POSTs que pertenezcan explícitamente a BEDS24
-            if ($ep === null || $ep->getProvider() !== ConnectivityProvider::BEDS24 || $ep->getAccion() !== self::ENDPOINT_POST_BOOKINGS) {
+            if ($ep->getProvider() !== ConnectivityProvider::BEDS24 || $ep->getAccion() !== self::ENDPOINT_POST_BOOKINGS) {
                 continue;
             }
 

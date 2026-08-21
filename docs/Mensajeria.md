@@ -8849,6 +8849,13 @@ Ahora cada cola declara su tarea (`MessageQueueItemInterface::getSendTaskName()`
 recorre por interfaz. **Un canal nuevo ya no toca ese archivo**, que es la misma regla que
 `Message::addQueue()` lleva documentando desde antes.
 
+⚠️ **Y el contrato mentía: `getEndpoint()` era `?EndpointInterface`.** Ese `?` no lo ejercía
+nadie —las **seis** colas que ya existían tenían `endpoint_id` con `nullable: false`— pero dejó
+pasar una cola sin endpoint: PHPStan limpio, contenedor limpio, tests en verde, y el primer envío
+real muerto con «Unknown column». Ahora la firma es **no nula**, y al cerrarla PHPStan destapó
+**siete comprobaciones de nulo muertas** repartidas por los proveedores: la prueba de que ese `?`
+nunca fue real.
+
 ⚠️ **El endpoint `email_send` es un marcador, pero la COLUMNA es real.** `HomogeneousBatch`
 exige un endpoint porque los demás canales hablan con una API; el destino de un correo es un
 buzón. La primera versión no guardaba la columna y el envío murió con «Unknown column

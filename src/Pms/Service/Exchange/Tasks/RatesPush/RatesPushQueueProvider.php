@@ -61,7 +61,7 @@ final readonly class RatesPushQueueProvider implements ExchangeQueueProviderInte
         $config = $representative->getConfig();
         $endpoint = $representative->getEndpoint();
 
-        if (!$config || !$endpoint) {
+        if (!$config) {
             throw new RuntimeException("Integridad violada: Ítem #{$representative->getId()} sin config/endpoint.");
         }
 

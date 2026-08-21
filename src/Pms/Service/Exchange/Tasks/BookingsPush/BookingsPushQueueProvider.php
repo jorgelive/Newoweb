@@ -51,7 +51,7 @@ final readonly class BookingsPushQueueProvider implements ExchangeQueueProviderI
         $config = $representative->getConfig();
         $endpoint = $representative->getEndpoint();
 
-        if (!$config || !$endpoint) {
+        if (!$config) {
             throw new RuntimeException("Integridad violada: Ítem PUSH #{$representative->getId()} incompleto.");
         }
 

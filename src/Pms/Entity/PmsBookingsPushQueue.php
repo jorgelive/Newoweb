@@ -17,6 +17,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
+use InvalidArgumentException;
 
 /**
  * Entidad PmsBookingsPushQueue.
@@ -194,7 +195,17 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface, MemoryCleanabl
         return $this;
     }
 
-    public function getEndpoint(): ?ExchangeEndpoint { return $this->endpoint; }
+    /**
+     * Obligatorio: el motor agrupa los lotes por `(config_id, endpoint_id)`. Ver el contrato.
+     */
+    public function getEndpoint(): ExchangeEndpoint
+    {
+        if ($this->endpoint === null) {
+            throw new InvalidArgumentException('Cola de push de reservas sin endpoint: no se puede armar el lote.');
+        }
+
+        return $this->endpoint;
+    }
     public function setEndpoint(?EndpointInterface $endpoint): self { $this->endpoint = $endpoint; return $this; }
 
     /**

@@ -68,7 +68,7 @@ class EmailSendQueue implements MessageQueueItemInterface, MemoryCleanableInterf
      * funcionan.
      */
     #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class)]
-    #[ORM\JoinColumn(name: 'endpoint_id', nullable: true, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(name: 'endpoint_id', nullable: false)]
     private ?ExchangeEndpoint $endpoint = null;
 
     /** El buzón al que se decidió mandarlo. Congelado: ver la nota de la clase. */
@@ -186,7 +186,14 @@ class EmailSendQueue implements MessageQueueItemInterface, MemoryCleanableInterf
         return $this;
     }
 
-    public function getEndpoint(): ?EndpointInterface { return $this->endpoint; }
+    public function getEndpoint(): EndpointInterface
+    {
+        if ($this->endpoint === null) {
+            throw new InvalidArgumentException('Cola de correo sin endpoint: no se puede armar el lote.');
+        }
+
+        return $this->endpoint;
+    }
 
     public function setEndpoint(?EndpointInterface $endpoint): self
     {

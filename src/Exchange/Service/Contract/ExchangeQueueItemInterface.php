@@ -33,7 +33,22 @@ interface ExchangeQueueItemInterface
     public function setConfig(?ChannelConfigInterface $config): self;
 
     /** Definición técnica del destino (path, método) */
-    public function getEndpoint(): ?EndpointInterface;
+    /**
+     * ⚠️ **OBLIGATORIO, aunque el canal no tenga rutas.**
+     *
+     * Esta firma decía `?EndpointInterface`, y era mentira: `HomogeneousBatch` lo exige no nulo
+     * y `AbstractExchangeRepository::claimRunnable()` agrupa los lotes por `(config_id,
+     * endpoint_id)` en SQL nativo. Las **seis** colas que ya existían lo tenían `nullable: false`
+     * en la base; el `?` no lo ejercía nadie.
+     *
+     * Hasta que llegó el correo, que no tiene rutas —su destino es un buzón—. El `?` dejó pasar
+     * una cola sin endpoint: PHPStan limpio, contenedor limpio, tests en verde… y el primer
+     * envío real murió con «Unknown column 'endpoint_id'», con el mensaje ya encolado.
+     *
+     * Un canal sin rutas usa un endpoint **marcador** —ver el `email_send`—: una fila inerte es
+     * más barata que una excepción en el motor, y ahora el contrato obliga a ponerla.
+     */
+    public function getEndpoint(): EndpointInterface;
 
     /** Asigna el endpoint técnico al ítem de la cola */
     public function setEndpoint(?EndpointInterface $endpoint): self;

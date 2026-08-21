@@ -51,10 +51,6 @@ final readonly class EmailSendQueueProvider implements ExchangeQueueProviderInte
             throw new RuntimeException(sprintf('Cola de correo #%s sin configuración.', $primero->getId()));
         }
 
-        if ($endpoint === null) {
-            throw new RuntimeException('Falta el endpoint `email_send`: el motor no puede armar el lote sin él.');
-        }
-
         return new HomogeneousBatch($config, $endpoint, $items);
     }
 

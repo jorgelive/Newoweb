@@ -38,7 +38,7 @@ final readonly class WhatsappMetaSendQueueProvider implements ExchangeQueueProvi
         $config = $rep->getConfig();
         $endpoint = $rep->getEndpoint();
 
-        if (!$config || !$endpoint) {
+        if (!$config) {
             throw new RuntimeException("Integridad violada: Cola Whatsapp Meta #{$rep->getId()} sin config.");
         }
 
