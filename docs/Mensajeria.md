@@ -8799,6 +8799,49 @@ con un aviso en el log; si de verdad es la misma persona, lo decide alguien con
 dominio re-registra los identificadores en CADA recálculo, así que sin la lápida el siguiente
 pull de Beds24 resucitaría el que acabas de retirar.
 
+### Turismo entra en la mensajería
+
+La tabla `cotizacion_conversacion_enlace` y su proveedor llevaban días en pie y **nadie los
+rellenaba**: no había contexto ni sincronizador, así que ningún expediente llamaba jamás a
+`upsertFromContext()`.
+
+La consecuencia era literal: el teléfono y el correo de un expediente eran **dos columnas y nada
+más**. Sin hilo, sin identidad y sin asunto. Si esa persona escribía por WhatsApp no había con
+qué reconocerla —nacía un walk-in— y no se le podía escribir desde el panel, porque su
+conversación no existía.
+
+| Pieza | Qué hace |
+|---|---|
+| `CotizacionFileMessageContext` | Cuenta el expediente en los términos del núcleo |
+| `CotizacionSincronizadorDeEnlace` | Cuelga el expediente como asunto y lo mantiene al día |
+| `CotizacionFileConversacionListener` | Lo dispara al guardar, en `onFlush` + `postFlush` |
+
+**Declara sólo lo que es cierto hoy.** Un expediente no tiene hitos —sus fechas viven en los
+servicios de la cotización vigente, y derivarlas en un adaptador sería escribir una regla de
+negocio donde nadie la busca—, así que `getMilestones()` devuelve vacío y `MessageRuleEngine` no
+programa nada. Es lo correcto mientras Turismo no tenga reglas propias.
+
+⚠️ **`isCancelled()` devuelve `false` siempre, aunque el expediente esté archivado.** Cerrar la
+conversación es del HILO, y ese hilo puede llevar además las reservas de esa persona: archivar
+un viaje no puede silenciar su estancia.
+
+⚠️ **`getContextPhone()` va NORMALIZADO, no formateado.** `CotizacionFile::getTelefono()` devuelve
+`+51 921 166 466` —bonito para pintar— y eso acaba en `guestPhone`, que es el destino real de los
+envíos. Guardarlo así rompía dos cosas: dejaba `guestPhone` en desacuerdo con la identidad
+(`51921166466`), el descuadre que el panel marca en ámbar; y como `setGuestPhone()` detecta el
+cambio, **levantaba el veto de WhatsApp** de un número quizá vetado con razón.
+
+**Probado contra datos reales, en transacción con rollback**, y salió mejor de lo previsto: el
+teléfono del expediente ya pertenecía a un hilo `manual` —un walk-in— y la promoción escrita para
+el PMS funcionó igual aquí. El hilo pasó de `manual` a `cotizacion_file`, conservó su historial y
+el expediente quedó colgado como asunto. Un segundo guardado no duplica nada.
+
+⚠️ **Consecuencia conocida:** `upsertFromContext()` escribe siempre `guestName` desde el contexto,
+y en Turismo eso es el **nombre del grupo**, no el de la persona. En un hilo que tenga además una
+reserva, el nombre alternará entre los dos según qué se recalcule por último. Es cosmético —el
+asunto se identifica por su etiqueta, que sí es del dominio— pero queda escrito para que no se
+descubra como sorpresa.
+
 ### El editor de identificadores
 
 Hasta ahora los identificadores sólo **entraban** —`upsertFromContext()` los registra en cada
@@ -9183,9 +9226,7 @@ en la resolución reaparece en quien lee la cabecera.** Mientras el agente enrut
 ### Lo que queda
 
 - El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.
-- Que algo **cree** enlaces de Travel: la tabla existe y el núcleo ya sabe recogerlos, pero
-  nadie los cuelga todavía. El sitio natural es al abrir un expediente o al emitir una
-  cotización, como hace `PmsSincronizadorDeEnlace` con las reservas.
+- ~~Que algo **cree** enlaces de Travel~~ — hecho el 20/08/2026, ver «Turismo entra en la mensajería».
 - **Que el agente lea los enlaces en vez de la cabecera.** Es el paso que vuelve la promoción
   innecesaria y el que hace de verdad multi-asunto al agente: hoy, de las varias reservas de un
   hilo, sólo ve la de la cabecera.
