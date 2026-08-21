@@ -137,10 +137,40 @@ final readonly class ResolutorDeHilo
      */
     public function vincular(MessageConversation $conversacion, IdentidadTipo $tipo, string $valor, ?string $origen = null): void
     {
-        if ($tipo->normalizar($valor) === '') {
+        $normalizado = $tipo->normalizar($valor);
+
+        if ($normalizado === '') {
             return;
         }
 
+        // ── No se le roba un identificador a otro hilo ──────────────────────
+        //
+        // ⚠️ Sin esta comprobación, `(tipo, valor)` es único y el `INSERT` revienta al hacer
+        // flush. El caso llega solo al crear una reserva: si el teléfono que se teclea ya es de
+        // una persona y el correo es de otra, `porIdentificadores()` no elige ninguno de los dos
+        // hilos —hace bien, unir historiales es decisión de persona— nace un tercero, y aquí se
+        // intentaba fichar los dos identificadores ajenos. Resultado: **la reserva no se podía
+        // guardar**, con un error de clave duplicada que no dice nada de lo que pasó.
+        //
+        // Se salta y se deja rastro. El hilo nuevo se queda con lo que sí sea suyo, y si de
+        // verdad son la misma persona hay una herramienta que lo decide:
+        // `app:message:fusionar-hilos`.
+        $existente = $this->em->getRepository(MessageIdentidad::class)
+            ->findOneBy(['tipo' => $tipo, 'valor' => $normalizado]);
+
+        if ($existente !== null && $existente->getConversacion() !== $conversacion) {
+            $this->logger->warning('Identificador que ya es de otro hilo: no se mueve.', [
+                'tipo' => $tipo->value,
+                'valor' => $normalizado,
+                'lo_pedia' => (string) $conversacion->getId(),
+                'es_de' => (string) $existente->getConversacion()?->getId(),
+            ]);
+
+            return;
+        }
+
+        // Ya es de este hilo: `addIdentidad()` deduplica por `(tipo, valor)` y no lo añade dos
+        // veces. Y si estaba RETIRADO no lo revive — la lápida frena al dominio a propósito.
         $conversacion->addIdentidad(new MessageIdentidad($tipo, $valor, $origen));
     }
 }

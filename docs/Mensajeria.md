@@ -8749,6 +8749,27 @@ identidad resuelve el HILO, no el asunto — igual que pasaba con el `bookId`. E
 canal de correo, un alias entrante tiene que resolver su reserva por `pms_reserva.email_cliente`
 y **estampar el asunto**, exactamente como acaba de hacer el receptor de Beds24.
 
+### Al CREAR una reserva: dónde acaban el teléfono y el correo
+
+Van a la identidad, pero no directamente: los recoge `getIdentificadores()` en el primer
+recálculo, y ahí `upsertFromContext()` decide de quién es la reserva.
+
+| Lo tecleado | Qué pasa |
+|---|---|
+| Teléfono nuevo, correo nuevo | Nace un hilo y se registran los dos |
+| **Teléfono de alguien que ya existe** | La reserva **se cuelga de ese hilo**: es la misma persona volviendo, y es justo el caso que la tabla vino a resolver. No se duplica nada |
+| Teléfono de un hilo **y** correo de otro | No se elige ninguno —unir historiales es decisión de persona—, nace un tercero, y los ajenos **se quedan donde están** |
+
+⚠️ **Ese tercer caso reventaba.** `vincular()` insertaba a ciegas, y `(tipo, valor)` es único: el
+`INSERT` moría al hacer flush. Y lo que fallaba no era el hilo — era **la reserva, que no se
+podía guardar**, con un error de clave duplicada que no dice nada de lo que pasó. Ahora se salta
+con un aviso en el log; si de verdad es la misma persona, lo decide alguien con
+`app:message:fusionar-hilos`.
+
+⚠️ **`vincular()` tampoco revive lo retirado.** Es lo que hace posible retirar un número: el
+dominio re-registra los identificadores en CADA recálculo, así que sin la lápida el siguiente
+pull de Beds24 resucitaría el que acabas de retirar.
+
 ### El editor de identificadores
 
 Hasta ahora los identificadores sólo **entraban** —`upsertFromContext()` los registra en cada
