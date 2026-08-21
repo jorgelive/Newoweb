@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Conversacion;
 
+use App\Contract\VinculoComercial;
+use App\Message\Contract\ConversacionEnlaceInterface;
 use App\Message\Entity\Message;
 use Psr\Log\LoggerInterface;
 
@@ -87,12 +89,31 @@ final readonly class AsuntoDelMensaje
             return;
         }
 
-        // Deducible sólo cuando no hay con qué equivocarse.
-        if (count($llaves) !== 1) {
+        // ── Deducible sólo cuando no hay con qué equivocarse ────────────────
+        //
+        // ⚠️ Los asuntos CANCELADOS o terminados no cuentan para la ambigüedad. Contaban, y eso
+        // dejaba `null` a hilos que no tenían nada de ambiguo: medido en producción, **12 hilos
+        // con un solo asunto vivo y alguno cancelado al lado** —de 332 enlaces, 115 están
+        // terminados—. «Cliente que vuelve y tiene una cancelada en su historial» es el caso
+        // común, no el raro.
+        //
+        // Y la consecuencia no era quedarse corto: sin asunto, `Beds24SendEnqueuer` cae a la
+        // cabecera del hilo, que puede ser justo la reserva cancelada. El mensaje aterrizaba en
+        // el hilo OTA de una reserva muerta.
+        $vivos = array_filter(
+            $llaves,
+            static fn (ConversacionEnlaceInterface $e): bool => $e->getVinculo() !== VinculoComercial::Terminado
+        );
+
+        // Si no queda ninguno vivo, se juzga con todos: un hilo cuyas reservas terminaron todas
+        // sigue teniendo un asunto del que se habla.
+        $candidatos = $vivos !== [] ? $vivos : $llaves;
+
+        if (count($candidatos) !== 1) {
             return;
         }
 
-        $unico = reset($llaves);
+        $unico = reset($candidatos);
         $mensaje->setAsunto($unico->getContextType(), $unico->getContextId());
     }
 }

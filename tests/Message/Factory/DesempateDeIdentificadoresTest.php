@@ -11,6 +11,7 @@ use App\Message\Factory\MessageConversationFactory;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Service\Conversacion\ResolutorDeHilo;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\UnitOfWork;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -118,6 +119,11 @@ final class DesempateDeIdentificadoresTest extends TestCase
         );
 
         $em = $this->createStub(EntityManagerInterface::class);
+        // `ResolutorDeHilo` mira lo pendiente de insertar antes que la base: sin este doble,
+        // `getUnitOfWork()` devuelve null y revienta. Vacío = «nada a medio guardar».
+        $uow = $this->createStub(UnitOfWork::class);
+        $uow->method('getScheduledEntityInsertions')->willReturn([]);
+        $em->method('getUnitOfWork')->willReturn($uow);
         $em->method('getRepository')->willReturn($repo);
 
         $factory = new MessageConversationFactory(

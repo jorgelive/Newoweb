@@ -24,6 +24,7 @@ use App\Pms\Entity\PmsReserva;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\UnitOfWork;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -74,6 +75,11 @@ final class MessageRuleEngineTest extends TestCase
         );
 
         $em = $this->createStub(EntityManagerInterface::class);
+        // `ResolutorDeHilo` mira lo pendiente de insertar antes que la base: sin este doble,
+        // `getUnitOfWork()` devuelve null y revienta. Vacío = «nada a medio guardar».
+        $uow = $this->createStub(UnitOfWork::class);
+        $uow->method('getScheduledEntityInsertions')->willReturn([]);
+        $em->method('getUnitOfWork')->willReturn($uow);
         $em->method('getRepository')->willReturn($repositorio);
         $em->method('persist')->willReturnCallback(function (object $entidad): void {
             $this->persistidos[] = $entidad;

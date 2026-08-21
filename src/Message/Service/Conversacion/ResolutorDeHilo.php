@@ -59,8 +59,7 @@ final readonly class ResolutorDeHilo
             return null;
         }
 
-        $identidad = $this->em->getRepository(MessageIdentidad::class)
-            ->findOneBy(['tipo' => $tipo, 'valor' => $normalizado]);
+        $identidad = $this->buscar($tipo, $normalizado);
 
         $conversacion = $identidad?->getConversacion();
 
@@ -155,8 +154,7 @@ final readonly class ResolutorDeHilo
         // Se salta y se deja rastro. El hilo nuevo se queda con lo que sí sea suyo, y si de
         // verdad son la misma persona hay una herramienta que lo decide:
         // `app:message:fusionar-hilos`.
-        $existente = $this->em->getRepository(MessageIdentidad::class)
-            ->findOneBy(['tipo' => $tipo, 'valor' => $normalizado]);
+        $existente = $this->buscar($tipo, $normalizado);
 
         if ($existente !== null && $existente->getConversacion() !== $conversacion) {
             $this->logger->warning('Identificador que ya es de otro hilo: no se mueve.', [
@@ -172,5 +170,34 @@ final readonly class ResolutorDeHilo
         // Ya es de este hilo: `addIdentidad()` deduplica por `(tipo, valor)` y no lo añade dos
         // veces. Y si estaba RETIRADO no lo revive — la lápida frena al dominio a propósito.
         $conversacion->addIdentidad(new MessageIdentidad($tipo, $valor, $origen));
+    }
+
+    /**
+     * Busca un identificador **incluyendo lo que aún no se ha flusheado**.
+     *
+     * ── Por qué no basta `findOneBy()` ──────────────────────────────────────
+     * `PmsReservaRecalculoService` procesa las reservas por lotes y flushea al final: durante el
+     * lote, las identidades creadas por las reservas anteriores existen sólo en el `UnitOfWork`.
+     *
+     * Y el caso que lo rompía es el más común del módulo — **un titular que reserva 7 casitas de
+     * golpe**, que es el que originó toda esta cirugía. Con la consulta a secas, la reserva 2 no
+     * veía la identidad de la 1: nacía un hilo nuevo para la misma persona (justo la duplicación
+     * que vinimos a deshacer) y el flush del lote reventaba con clave duplicada, tumbando el
+     * chunk entero con un error que no dice nada de lo que pasó.
+     *
+     * Es el mismo patrón que ya usan los proveedores de enlaces para el alta.
+     */
+    private function buscar(IdentidadTipo $tipo, string $normalizado): ?MessageIdentidad
+    {
+        foreach ($this->em->getUnitOfWork()->getScheduledEntityInsertions() as $entidad) {
+            if ($entidad instanceof MessageIdentidad
+                && $entidad->getTipo() === $tipo
+                && $entidad->getValor() === $normalizado) {
+                return $entidad;
+            }
+        }
+
+        return $this->em->getRepository(MessageIdentidad::class)
+            ->findOneBy(['tipo' => $tipo, 'valor' => $normalizado]);
     }
 }

@@ -655,6 +655,11 @@ export const useChatStore = defineStore('chatStore', () => {
 
             canalesDelChat.value = (response.data?.canales ?? []) as CanalDisponible[];
         } catch {
+            // ⚠️ El mismo guard que arriba, y no es de adorno: sin él, una petición del chat
+            // ANTERIOR que falla tarde —un timeout después de cambiar de hilo— borraba los
+            // canales del chat nuevo. La barra se apagaba entera y no se podía enviar nada.
+            if (uuidOf(currentConversation.value) !== id) return;
+
             canalesDelChat.value = [];
         }
     };

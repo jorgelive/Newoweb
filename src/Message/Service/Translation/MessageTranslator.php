@@ -147,7 +147,9 @@ class MessageTranslator
                     $idiomaEntity = $this->entityManager->getRepository(MaestroIdioma::class)->find($iso2LangCode)
                         ?? $this->entityManager->getRepository(MaestroIdioma::class)->find('en');
 
-                    if ($idiomaEntity instanceof MaestroIdioma) {
+                    // Ver el mismo aviso en `WhatsappMetaReceivePersister`: el checkbox «Fijado»
+                    // es una decisión de persona y la detección automática no la pisa.
+                    if ($idiomaEntity instanceof MaestroIdioma && !$message->getConversation()->isIdiomaFijado()) {
                         $detectedLang = $idiomaEntity->getId();
                         $message->getConversation()->setIdioma($idiomaEntity);
                         $this->logger->info("Language mismatch: Conversation updated to {$detectedLang}");

@@ -120,7 +120,24 @@ readonly class MessageConversationFactory
 
         // 3. Snapshot de contacto
         $conversation->setGuestName($context->getContextName());
-        $conversation->setGuestPhone($context->getContextPhone());
+
+        // ⚠️ **El teléfono sólo se SIEMBRA; después mandan las identidades.**
+        //
+        // Esto escribía la semilla del dominio en CADA recálculo, y deshacía en silencio lo que
+        // el editor de identidades acababa de decidir: se retiraba un número equivocado, se
+        // añadía el bueno, y el siguiente mensaje entrante de Beds24 —que llama aquí— devolvía
+        // `guestPhone` al retirado. Todos los WhatsApp volvían a salir al número de un extraño,
+        // sin error y con el panel diciendo lo contrario. Y de propina, como el valor «cambiaba»,
+        // `setGuestPhone()` levantaba el veto de Meta de un número quizá vetado con razón.
+        //
+        // Con varios asuntos era peor: el snapshot es del asunto que se recalculó ÚLTIMO, así
+        // que un hilo de agencia con cinco reservas iba cambiando de teléfono según cuál tocara.
+        //
+        // Ahora: si la persona ya tiene teléfonos propios, la copia se recalcula desde ELLOS;
+        // la semilla sólo entra cuando no hay ninguno, que es el alta.
+        if ($conversation->getTelefonoPrincipal() === null && !$conversation->tieneTelefonoVivo()) {
+            $conversation->setGuestPhone($context->getContextPhone());
+        }
 
         // 4. Llenado estricto del JSON (Agnóstico)
         $conversation->setContextOrigin($context->getOrigin());
@@ -168,6 +185,10 @@ readonly class MessageConversationFactory
                 break;
             }
         }
+
+        // La copia denormalizada, al día con las identidades. Va DESPUÉS de `vincular()` para
+        // que una identidad recién sembrada ya cuente.
+        $conversation->recalcularTelefonoPrincipal();
 
         if ($flush) {
             $this->entityManager->flush();

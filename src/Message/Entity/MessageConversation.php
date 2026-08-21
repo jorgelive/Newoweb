@@ -789,22 +789,46 @@ class MessageConversation
      * `guestPhone` es la copia denormalizada que leen 30 sitios; la verdad son las identidades,
      * y esto es lo que las mantiene de acuerdo.
      *
-     * Sin principal resoluble no se toca: preferimos el último valor conocido a dejar el hilo
-     * sin teléfono, que apagaría WhatsApp por completo. La ausencia de principal ya la vigila
-     * {@see self::getTelefonoPrincipal()}, que en la duda devuelve `null` en vez de elegir por
-     * orden de llegada.
+     * ⚠️ **Sin ningún teléfono vivo, la copia se VACÍA.** Decía «preferimos el último valor
+     * conocido a dejar el hilo sin teléfono», y ese último valor podía ser justo el que se
+     * acababa de retirar: se seguía escribiendo al número del que el operador quiso deshacerse,
+     * con el editor mostrándolo tachado. Sin teléfono, el encolador lanza «no se pudo resolver
+     * el número» — un fallo VISIBLE, que es lo que se quiere aquí.
+     *
+     * Con varios vivos y ninguno principal no se toca —no hay respuesta correcta— pero se deja
+     * el valor anterior a sabiendas: quien lo mire verá el aviso ámbar del panel.
      */
     public function recalcularTelefonoPrincipal(): self
     {
         $principal = $this->getTelefonoPrincipal();
 
-        if ($principal !== null && $principal->getValor() !== $this->guestPhone) {
-            // Por el setter a propósito: cambiar de número LEVANTA el veto de WhatsApp, que es
-            // justo lo que se quiere al corregir un teléfono equivocado.
-            $this->setGuestPhone($principal->getValor());
+        if ($principal !== null) {
+            if ($principal->getValor() !== $this->guestPhone) {
+                // Por el setter a propósito: cambiar de número LEVANTA el veto de WhatsApp, que
+                // es justo lo que se quiere al corregir un teléfono equivocado.
+                $this->setGuestPhone($principal->getValor());
+            }
+
+            return $this;
+        }
+
+        if (!$this->tieneTelefonoVivo()) {
+            $this->guestPhone = null;
         }
 
         return $this;
+    }
+
+    /** ¿Le queda a esta persona algún teléfono sin retirar? */
+    public function tieneTelefonoVivo(): bool
+    {
+        foreach ($this->identidades as $identidad) {
+            if ($identidad->getTipo() === IdentidadTipo::TELEFONO && $identidad->estaViva()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

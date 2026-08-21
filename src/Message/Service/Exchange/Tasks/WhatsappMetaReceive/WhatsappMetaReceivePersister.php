@@ -147,8 +147,15 @@ readonly class WhatsappMetaReceivePersister
                 if ($newIdiomaEntity instanceof MaestroIdioma) {
                     $detectedLangCode = $newIdiomaEntity->getId();
 
-                    // Solo actualizamos la conversación si el idioma es válido y diferente
-                    if ($detectedLangCode !== $currentConversationLang) {
+                    // ⚠️ **El cerrojo manda.** `idiomaFijado` es el checkbox «Fijado» del panel:
+                    // alguien miró y decidió en qué idioma se le escribe a esta persona. La
+                    // detección automática NO puede llevarle la contraria — el huésped peruano
+                    // que escribe «Thanks! See you tomorrow» pasaba el hilo a inglés y el
+                    // recordatorio de saldo salía en inglés, sin un solo error.
+                    //
+                    // Sólo lo respetaba `upsertFromContext()`, o sea que protegía del contexto y
+                    // no de los dos únicos sitios que cambian el idioma solos.
+                    if ($detectedLangCode !== $currentConversationLang && !$conversation->isIdiomaFijado()) {
                         $conversation->setIdioma($newIdiomaEntity);
                     }
                 }

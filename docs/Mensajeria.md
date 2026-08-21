@@ -8938,6 +8938,29 @@ reserva, el nombre alternará entre los dos según qué se recalcule por último
 asunto se identifica por su etiqueta, que sí es del dominio— pero queda escrito para que no se
 descubra como sorpresa.
 
+### Lo que encontró la revisión (21/08/2026)
+
+Tres revisiones independientes sobre el módulo. Lo confirmado y corregido, por gravedad:
+
+| Fallo | Por qué no daba error |
+|---|---|
+| **`upsertFromContext()` reescribía `guestPhone` desde la semilla en CADA recálculo** | Deshacía en silencio lo que el editor de identidades acababa de decidir: se retiraba un número equivocado, y el siguiente mensaje entrante de Beds24 lo devolvía. Los envíos volvían al número de un extraño, con el panel diciendo lo contrario. Y de propina levantaba el veto de Meta |
+| **La resolución no veía el `UnitOfWork`** | Un titular que reserva 7 casitas de golpe —el caso que originó esta cirugía— creaba 7 hilos y reventaba el flush con clave duplicada |
+| **`recalcularTelefonoPrincipal()` conservaba el número retirado** | Sin teléfonos vivos dejaba el último conocido, que podía ser el que se acababa de retirar. Se le seguía escribiendo |
+| **Los asuntos cancelados contaban para la ambigüedad** | 12 hilos con UN asunto vivo se declaraban ambiguos por tener uno cancelado al lado. Sin asunto, el envío cae a la cabecera — que podía ser la reserva muerta |
+| **`idiomaFijado` no se respetaba en las dos detecciones automáticas** | El checkbox «Fijado» del panel era una promesa rota: un «Thanks!» pasaba el hilo a inglés y el recordatorio salía en inglés |
+| **El correo no hidrataba variables** | Y el comentario de su estrategia afirmaba que sí. `Hola {{guest_name}}` habría salido con las llaves puestas |
+| **La idempotencia del correo contaba colas canceladas** | Un canal podado y vuelto a marcar no se recrearía nunca |
+
+⚠️ **Se auditó el daño real de la fusión de hilos: cero.** Ningún mensaje del sistema quedó
+pendiente sin asunto, ni hay duplicados por regla+asunto. El agujero teórico —mover mensajes sin
+adoptarlos antes— existía, pero cuando se fusionó ya estaban todos estampados.
+
+**La moraleja, que vale para lo que venga:** el modelo dice «la verdad vive en las identidades y
+los enlaces», y aun así quedaban **escritores que actualizaban espejos sin consultar la verdad**.
+Un espejo que se escribe desde otra fuente no es una copia: es un segundo original que discrepa
+en silencio.
+
 ### El editor de identificadores
 
 Hasta ahora los identificadores sólo **entraban** —`upsertFromContext()` los registra en cada

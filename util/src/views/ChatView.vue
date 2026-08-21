@@ -859,7 +859,10 @@ const selectTemplate = (tpl: ApiTemplate) => {
     newChannels = newChannels.filter((c: string) => c !== 'whatsapp_meta');
   }
 
-  selectedChannels.value = newChannels;
+  // ⚠️ Y se cruza con lo que el backend da por usable. Antes sólo se filtraba WhatsApp, así que
+  // una plantilla con Beds24 activo marcaba esa casilla aunque el asunto elegido fuera un viaje:
+  // el operador enviaba, el backend la podaba con un `info`, y en pantalla no pasaba nada.
+  selectedChannels.value = newChannels.filter((c: string) => canalHabilitado(c));
 };
 
 const clearTemplate = () => {

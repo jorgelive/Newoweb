@@ -10,6 +10,7 @@ use App\Message\Enum\IdentidadTipo;
 use App\Message\Service\Conversacion\ResolutorDeHilo;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\UnitOfWork;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -105,6 +106,11 @@ final class ResolutorDeHiloVincularTest extends TestCase
         $repo->method('findOneBy')->willReturn($yaExistente);
 
         $em = $this->createStub(EntityManagerInterface::class);
+        // `ResolutorDeHilo` mira lo pendiente de insertar antes que la base: sin este doble,
+        // `getUnitOfWork()` devuelve null y revienta. Vacío = «nada a medio guardar».
+        $uow = $this->createStub(UnitOfWork::class);
+        $uow->method('getScheduledEntityInsertions')->willReturn([]);
+        $em->method('getUnitOfWork')->willReturn($uow);
         $em->method('getRepository')->willReturn($repo);
 
         return new ResolutorDeHilo($em, new NullLogger());

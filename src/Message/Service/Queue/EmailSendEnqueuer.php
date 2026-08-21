@@ -117,7 +117,16 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
             }
         }
 
-        return $message->getEmailSendQueues()->count() > 0;
+        // ⚠️ Las CANCELADAS no cuentan, igual que en Beds24 y WhatsApp. Contándolas, un canal
+        // que se podó y se vuelve a marcar no se recrearía nunca: la barrera diría «ya existe»
+        // sobre una cola muerta, y el correo no saldría sin que nada lo dijera.
+        foreach ($message->getEmailSendQueues() as $cola) {
+            if ($cola->getStatus() !== EmailSendQueue::STATUS_CANCELLED) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function isValid(Message $message): bool
@@ -194,9 +203,13 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
             }
         }
 
-        // Del asunto del mensaje si lo lleva; si no, del primero del hilo. `EnlacesDeConversacion`
-        // los devuelve ordenados por relevancia, así que «el primero» es la estancia en curso o
-        // la más próxima — la misma que propone el selector del panel.
+        // Del asunto del mensaje si lo lleva; si no, del primero del hilo.
+        //
+        // ⚠️ Aquí decía que `EnlacesDeConversacion::de()` los devuelve «ordenados por
+        // relevancia». **Es falso**: devuelve el orden de los proveedores (`createdAt ASC`). La
+        // relevancia sólo la calcula `AsuntosDeConversacionController::comoLista()`. Así que este
+        // respaldo toma la etiqueta del enlace MÁS ANTIGUO — aceptable como último recurso, pero
+        // que nadie construya encima creyendo la garantía que el comentario prometía.
         foreach ($this->enlaces->de($conversacion) as $enlace) {
             if ($message->getAsuntoId() !== null && $enlace->getContextId() !== $message->getAsuntoId()) {
                 continue;
