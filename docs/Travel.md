@@ -841,10 +841,27 @@ significa «quiero hablar con ella». Se abre con `POST /message/conversations/a
 ⚠️ **Sin teléfono ni correo no se abre**, con el motivo escrito. Un hilo que no resuelve a nadie
 no recibe, no sale y deja en la bandeja una fila que nadie puede cerrar.
 
+### Dónde se pulsa
+
+Catálogo → **Proveedores** (`util/src/views/Catalogo/OrganizacionesView.vue`), botón **Escribir**
+en el pie del panel de edición.
+
+⚠️ **En el pie del panel y no en la tarjeta de la lista**, por dos motivos: la tarjeta entera ya
+es un `<button>` y anidar otro es HTML inválido; y en el panel están a la vista el teléfono y el
+correo, que es justo lo que decide si el botón se puede pulsar.
+
+Se desactiva —con el motivo en el `title`— cuando no hay ni teléfono ni correo, y sólo aparece en
+edición: un proveedor sin guardar no tiene id al que colgarle un hilo. 🪞 La comprobación es un
+espejo de `AperturaDeHilo::abrir()`, que es quien de verdad lo impide; aquí sólo evita ofrecer un
+botón que va a responder 409. Mira el **formulario** y no el proveedor guardado, para que el
+aviso desaparezca en cuanto se teclea el teléfono.
+
+Al abrir, navega a `/chat` con el hilo ya seleccionado. El chat degrada bien un `contextType`
+desconocido: `getExternalContextUrl` y `getReservaContextId` devuelven `null`, y de plantillas
+sólo se ofrecen las genéricas —las que no declaran `contextType`—.
+
 ### Lo que NO tiene todavía
 
-- **Ningún punto de entrada en el panel.** El mecanismo y el endpoint están; falta el botón. Hoy
-  se abre llamando a la API.
 - **Ni enlace de conversación ni `ConversacionEnlaceInterface`.** Deliberado: un proveedor no
   tiene asuntos que colgar. El día que los tenga —una orden de servicio concreta, un reclamo—
   ése será el momento de crear la entidad de enlace, no antes.

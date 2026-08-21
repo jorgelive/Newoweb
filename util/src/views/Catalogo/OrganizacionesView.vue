@@ -9,7 +9,10 @@
 // ============================================================================
 
 import { ref, onMounted, computed, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useOrganizacionStore } from '@/stores/travel/organizacionStore';
+import { useChatStore } from '@/stores/chat/chatStore.ts';
+import { uuidDe } from '@/services/hydra';
 import {
     portadaDe,
     proveedorVacio,
@@ -23,6 +26,8 @@ import { usePermisosStore } from '@/stores/permisosStore';
 import OrganizacionFormulario from '@/components/common/OrganizacionFormulario.vue';
 
 const store = useOrganizacionStore();
+const chatStore = useChatStore();
+const router = useRouter();
 // Sólo para pintar el botón: quien decide es el #[IsGranted] del endpoint. Ver el store.
 const permisos = usePermisosStore();
 
@@ -41,6 +46,54 @@ const inputArchivo = ref<HTMLInputElement | null>(null);
 const esNuevo = computed(() => editandoId.value === null);
 const activo = computed(() => store.proveedorActivo);
 
+// ══ ESCRIBIRLE AL PROVEEDOR ════════════════════════════════════════════════
+//
+// El hilo de una organización **no nace al guardarla**, y es deliberado: se guarda muchas veces
+// —se le corrige la dirección, se le sube una foto— y ninguna significa «quiero hablar con
+// ella». Nace aquí, cuando alguien lo decide.
+//
+// Es idempotente: si ya tenía hilo, devuelve ése. Ver `docs/Travel.md` §11 bis.
+const abriendoChat = ref(false);
+const errorChat = ref<string | null>(null);
+
+/**
+ * Sin teléfono ni correo el hilo no resolvería a nadie, y el backend se negaría igual.
+ *
+ * 🪞 Se comprueba aquí sólo para **desactivar el botón y decir por qué**: quien de verdad lo
+ * impide es `AperturaDeHilo::abrir()`. Se mira el formulario y no `activo`, para que el aviso
+ * desaparezca en cuanto se teclea el teléfono, sin tener que guardar primero.
+ */
+const puedeEscribirse = computed(() =>
+    !esNuevo.value && (!!formulario.value.telefono?.trim() || !!formulario.value.email?.trim())
+);
+
+async function escribirle(): Promise<void> {
+    if (!editandoId.value) return;
+
+    abriendoChat.value = true;
+    errorChat.value = null;
+
+    try {
+        const resultado = await chatStore.abrirConversacion('travel_organizacion', editandoId.value);
+
+        if ('error' in resultado) {
+            // El motivo lo redacta el backend —«ese asunto ya no existe», «no hay ni teléfono ni
+            // correo»— y se pinta tal cual: sabe mejor que nosotros qué falta.
+            errorChat.value = resultado.error;
+
+            return;
+        }
+
+        const id = uuidDe(resultado.conversacion);
+
+        if (id) await router.push({ path: '/chat', query: { id } });
+    } catch {
+        errorChat.value = 'No se pudo abrir la conversación.';
+    } finally {
+        abriendoChat.value = false;
+    }
+}
+
 // Debounce manual, sin dependencias — mismo criterio que el buscador de expedientes.
 let temporizador: ReturnType<typeof setTimeout> | null = null;
 watch(termino, (t) => {
@@ -49,6 +102,7 @@ watch(termino, (t) => {
 });
 
 const abrirNuevo = () => {
+    errorChat.value = null;
     editandoId.value = null;
     formulario.value = proveedorVacio();
     lugaresSel.value = [];
@@ -57,6 +111,9 @@ const abrirNuevo = () => {
 };
 
 const abrirEdicion = async (p: Organizacion) => {
+    // El aviso de chat es de UN proveedor: arrastrarlo a la ficha siguiente diría algo falso
+    // sobre alguien que quizá sí tiene teléfono.
+    errorChat.value = null;
     editandoId.value = p.id;
     panelAbierto.value = true;
     await store.fetchProveedor(p.id);
@@ -76,6 +133,7 @@ const abrirEdicion = async (p: Organizacion) => {
 };
 
 const cerrarPanel = () => {
+    errorChat.value = null;
     panelAbierto.value = false;
     editandoId.value = null;
     store.proveedorActivo = null;
@@ -334,6 +392,12 @@ onMounted(async () => {
                     </template>
                 </div>
 
+                <!-- El aviso va ENCIMA del pie y no dentro: el pie es una fila y un texto
+                     largo la rompía; además así queda pegado al botón que lo produjo. -->
+                <p v-if="errorChat" class="px-4 pt-3 text-[11px] font-bold text-red-600 shrink-0">
+                    <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorChat }}
+                </p>
+
                 <div class="px-4 py-3 border-t border-slate-200 flex items-center gap-2 shrink-0">
                     <button v-if="!esNuevo" @click="borrar(editandoId as string)"
                             class="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors"
@@ -342,6 +406,19 @@ onMounted(async () => {
                                 : 'text-red-500 hover:bg-red-50'">
                         <i class="fas fa-trash mr-1"></i>
                         {{ confirmandoBorrado === editandoId ? '¿Seguro?' : 'Eliminar' }}
+                    </button>
+
+                    <!-- Sólo en edición: un proveedor sin guardar todavía no tiene id al que
+                         colgarle un hilo. Y desactivado sin datos de contacto, con el motivo en
+                         el `title`, en vez de dejar que el backend responda 409. -->
+                    <button v-if="!esNuevo" @click="escribirle"
+                            :disabled="abriendoChat || !puedeEscribirse"
+                            :title="puedeEscribirse
+                                ? 'Abre el chat con este proveedor'
+                                : 'Necesita un teléfono o un correo para poder escribirle'"
+                            class="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-[#376875] hover:bg-[#376875]/10 disabled:opacity-40 disabled:hover:bg-transparent transition-colors">
+                        <i :class="abriendoChat ? 'fas fa-circle-notch fa-spin' : 'fas fa-comment-dots'" class="mr-1"></i>
+                        Escribir
                     </button>
 
                     <button @click="guardar" :disabled="store.isGuardando || !formulario.nombreComercial.trim()"
