@@ -1,7 +1,8 @@
 // ============================================================================
 // CATÁLOGO DE PROVEEDORES
 //
-// Espejo de `App\Travel\Entity\Organizacion` y sus dos satélites. Vive aparte de
+// Espejo de `App\Travel\Entity\TravelOrganizacion` y sus dos satélites
+// (`TravelOrganizacionImagen`, `TravelOrganizacionServicio`). Vive aparte de
 // `cotizacionEditorModel.ts` a propósito: aquí se ADMINISTRA el maestro, mientras que
 // allí sólo se lee para congelar snapshots en la cotización.
 //
@@ -49,6 +50,21 @@ export interface OrganizacionServicio {
  *
  * Es la misma clase de trampa que avisa CLAUDE.md: un tipo generado que se acerca a la
  * verdad engaña más que uno que se equivoca del todo, porque invita a retirar el arreglo.
+ */
+/**
+ * ⚠️ El esquema se llama `Organizacion` y la clase `TravelOrganizacion`: **no es un despiste**.
+ *
+ * Sale del `shortName: 'Organizacion'` del `#[ApiResource]`, que es lo que nombra el esquema en
+ * OpenAPI y, de ahí, la clave de `api.d.ts`. La clase se renombró el 19/08/2026 y el `shortName`
+ * se quedó, para que el nombre público no cambiara con un renombrado interno.
+ *
+ * La RUTA no depende de esto: la fija el `uriTemplate` de cada operación
+ * (`/organizaciones` + `routePrefix: '/travel'`), y por eso es `/platform/travel/organizaciones`
+ * y no la pluralización inglesa que saldría del `shortName`.
+ *
+ * Así que «corregir» esta clave para que case con el nombre de la clase **no compila**: no
+ * existe en `api.d.ts`. Si algún día se cambia el `shortName`, hay que regenerar (`npm run
+ * gen:api`) y arreglar aquí — la ruta seguiría igual.
  */
 type OrganizacionBase = components['schemas']['Organizacion-organizacion.read'];
 
