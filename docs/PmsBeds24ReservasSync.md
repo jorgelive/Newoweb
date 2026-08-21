@@ -4218,6 +4218,55 @@ creó. Las descripciones literales («Alojamiento», «Suplemento de limpieza»)
 operador —un «Descuento tipo de cambio» de −0.20 en una reserva de Booking, por ejemplo— y sí
 deben verse.
 
+## Borrar una reserva: qué lo impide y por qué se dice (21/08/2026)
+
+`PmsReservaDeleteListener::preRemove()`.
+
+### El fallo mudo
+
+El 20/08/2026 a las 23:49 un `DELETE /platform/pms/pms_reservas/{id}` murió en MySQL con:
+
+```
+Cannot delete or update a parent row: a foreign key constraint fails
+(`pms_conversacion_enlace`, CONSTRAINT `FK_D58944CED67139E8` FOREIGN KEY (`reserva_id`) …)
+```
+
+Una reserva cascadea casi todo lo suyo —eventos, huéspedes, cabecera financiera— **salvo el
+enlace de conversación**: `PmsConversacionEnlace.reserva` no lleva `onDelete`, y la reserva ni
+siquiera conoce sus enlaces (la relación es unidireccional). Como la excepción sale del
+`commit()` de Doctrine, llegaba al panel como un 500 sin nada legible.
+
+**El coste real:** el operador lo vio como «no borra y no dice nada», desmontó la reserva a mano
+—primero el evento, luego la conversación— y se quedó una **reserva vacía sin eventos** que nadie
+volvió a mirar. La encontró una auditoría al día siguiente.
+
+### Avisa, no cascadea
+
+La tentación es `onDelete: CASCADE` y que el enlace se vaya solo. Pero un enlace es la
+pertenencia de un ASUNTO a la conversación de una persona, y llevárselo por delante sin decirlo
+borra parte de lo que le pasó a ese cliente — lo contrario de «no se borra: se marca». Así que se
+niega con el motivo y con el nombre de quién tiene el hilo:
+
+> No se puede borrar la reserva UDKAY9: su conversación de chat con Natalia Rosso todavía la
+> tiene como asunto — retírala primero desde el chat.
+
+El nombre no es adorno: con 333 hilos de alojamiento, «tiene una conversación» obliga a ir a
+buscar cuál.
+
+### ⚠️ Doctrine llama a los HIJOS antes que al padre
+
+`UnitOfWork::doRemove()` invoca `cascadeRemove()` **antes** que los listeners de `preRemove` del
+padre —para no tener que inicializar proxies después—. Consecuencia práctica: si alguna estancia
+está bloqueada, quien contesta es `PmsEventoCalendarioSecurityListener` y esta guarda **ni se
+ejecuta**.
+
+Medido contra producción: borrar una reserva de OTA devuelve el mensaje de aquél; borrar un
+bloqueo con hilo devuelve el de éste. O sea que el motivo que esta guarda aporta de verdad es el
+de la conversación — que es el único que no vigila nadie más.
+
+Verificación: `var/probar-borrado-reserva.php`, en transacción con `rollback`. ⚠️ Busca una
+reserva con estancias borrables **y** conversación; con otra mide el listener equivocado.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
