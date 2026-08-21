@@ -64,12 +64,40 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[ApiFilter(SearchFilter::class, properties: ['ordenServicio' => 'exact'])]
 #[ApiFilter(OrderFilter::class, properties: ['fecha'])]
 #[ORM\Entity]
+// ⚠️ Sin `HasLifecycleCallbacks` el `#[PrePersist]` de `TimestampTrait` NO corre, y el INSERT
+// muere con «Column 'created_at' cannot be null». Es el segundo tropiezo de la misma omisión
+// —ver el constructor—: usar los traits no basta, hay que darles el gancho.
+#[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: 'operacion_pago')]
 #[ORM\Index(columns: ['orden_servicio_id'], name: 'idx_pago_orden')]
 class OperacionPago
 {
     use IdTrait;
     use TimestampTrait;
+
+    /**
+     * ⚠️ **Sin esto, un pago NO SE PUEDE GUARDAR.**
+     *
+     * `IdTrait` declara la clave con `GeneratedValue(strategy: 'NONE')`: el UUID lo pone la
+     * aplicación, no la base. Quien no llama a `initializeId()` revienta en el `persist()` con
+     * `EntityMissingAssignedId`, que no menciona ni al constructor ni al trait.
+     *
+     * Esta entidad nació sin constructor el 17/08/2026, así que **registrar un pago falló desde
+     * el primer día**. No se notó porque el panel se comía el error —`crearPago()` devolvía un
+     * booleano y pintaba «No se pudo registrar el pago»— y porque nadie llegó a insistir: la
+     * tabla estaba vacía el 21/08. Lo cazó la sonda contra datos reales, que es lo único que
+     * ejecuta el `persist()` de verdad; ni PHPStan, ni el contenedor, ni los tests unitarios lo
+     * ven.
+     *
+     * El resto de entidades del módulo sí lo hacen ({@see OperacionOrdenServicio::__construct()}),
+     * y también llevan `#[ORM\HasLifecycleCallbacks]`, que es la otra mitad de la misma omisión:
+     * sin él, el `#[PrePersist]` de `TimestampTrait` tampoco corre y el INSERT muere por
+     * `created_at`. Los dos fallos estaban encadenados y sólo se ven ejecutando un `flush()`.
+     */
+    public function __construct()
+    {
+        $this->initializeId();
+    }
 
     #[Assert\NotNull(message: 'El pago tiene que pertenecer a una orden.')]
     #[Groups(['operacion:pago:read', 'operacion:pago:write'])]

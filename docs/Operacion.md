@@ -1275,6 +1275,32 @@ nullable para no reprobar a las filas viejas; aquí no hizo falta porque `operac
 que respetar, un `NULL` sólo habría arrastrado por toda la aplicación una rama de «medio no
 consta» que nunca se daría.
 
+### ⚠️⚠️ Registrar un pago NUNCA funcionó, y no se notó (21/08/2026)
+
+`OperacionPago` nació el 17/08 **sin constructor y sin `#[ORM\HasLifecycleCallbacks]`**. Los dos
+traits que usa necesitan ese gancho:
+
+| Falta | Qué pasa |
+|---|---|
+| `__construct()` con `initializeId()` | `IdTrait` declara la clave con `GeneratedValue(strategy: 'NONE')` — el UUID lo pone la aplicación. Sin él, `persist()` lanza `EntityMissingAssignedId` |
+| `#[ORM\HasLifecycleCallbacks]` | El `#[PrePersist]` de `TimestampTrait` no corre y el INSERT muere con «Column 'created_at' cannot be null» |
+
+Encadenados: al arreglar el primero salió el segundo.
+
+**Por qué pasó desapercibido cuatro días.** Porque nada lo dice: PHPStan está limpio,
+`lint:container` está limpio, `schema:validate` está limpio y los tests unitarios no llaman a
+`persist()`. En el panel el error se lo comía `crearPago()`, que devolvía un booleano y pintaba
+«No se pudo registrar el pago» — un mensaje que suena a problema de red, no a que la entidad no
+se pueda guardar. Y la tabla vacía no llamaba la atención: una función nueva sin uso todavía.
+
+**Qué lo cazó:** ejecutar un `flush()` de verdad contra datos reales
+(`var/probar-pago-orden-servicio.php`). Es exactamente lo que avisa `CLAUDE.md` — lo que no
+cubren los tests unitarios se verifica con datos reales, en transacción con `rollback`.
+
+⚠️ **Al añadir una entidad que use `IdTrait` o `TimestampTrait`, comprueba las dos cosas.** Un
+barrido del 21/08 encontró otras tres sin constructor: `DomoticaSuscripcion`, `DomoticaLectura` y
+`DomoticaDispositivo` (ver `docs/Domotica.md`).
+
 ### ⚠️ La moneda se comprueba en el BACKEND, no sólo en el selector
 
 `OperacionPago::validarMonedaDeLaOrden()`. La regla estaba **sólo en el panel** —el `<select>` se
