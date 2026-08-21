@@ -8839,6 +8839,16 @@ al hacerlo el botón de correo se enciende.
 02/03–09/03»—, que la redacta el dominio y está pensada justo para eso. Un título genérico en la
 bandeja de alguien con tres reservas no dice de cuál va.
 
+⚠️ **Y el canal nuevo destapó que el disparo NO era agnóstico.** El correo se encoló bien
+—destino y asunto correctos— y **se quedó ahí**: `MessagerDispatcherSendQueueEventListener`
+nombraba los canales a mano en **cuatro sitios** (dos `instanceof` al recoger, dos `if` al
+despachar) y olvidar uno no rompía nada — la cola nacía, el panel decía «encolado», y el mensaje
+no salía nunca.
+
+Ahora cada cola declara su tarea (`MessageQueueItemInterface::getSendTaskName()`) y el listener
+recorre por interfaz. **Un canal nuevo ya no toca ese archivo**, que es la misma regla que
+`Message::addQueue()` lleva documentando desde antes.
+
 ⚠️ **El endpoint `email_send` es un marcador.** `HomogeneousBatch` exige uno porque los demás
 canales hablan con una API; el destino de un correo es un buzón. Se prefirió una fila inerte a
 hacer opcional el endpoint en el motor, que obligaría a revisar los canales que ya funcionan. Su

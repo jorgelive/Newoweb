@@ -210,6 +210,8 @@ class WhatsappMetaSendQueue implements MessageQueueItemInterface, MemoryCleanabl
     /** Espejo del id que declara WhatsappMetaSendEnqueuer::supports(). */
     public function getChannelId(): string { return 'whatsapp_meta'; }
 
+    public function getSendTaskName(): string { return 'whatsapp_meta_message_send'; }
+
     public function getStatus(): string { return $this->status; }
     public function setStatus(string $status): self { $this->status = $status; return $this; }
     public function getRunAt(): ?DateTimeImmutable { return $this->runAt; }

@@ -148,6 +148,8 @@ class EmailSendQueue implements MessageQueueItemInterface, MemoryCleanableInterf
 
     public function getChannelId(): string { return 'email'; }
 
+    public function getSendTaskName(): string { return 'email_message_send'; }
+
     public function getDestinationEmail(): ?string { return $this->destinationEmail; }
     public function setDestinationEmail(?string $v): self { $this->destinationEmail = $v; return $this; }
 
