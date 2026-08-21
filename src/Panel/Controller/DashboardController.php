@@ -21,6 +21,7 @@ use App\Agent\Controller\Crud\AutoResponderRuleCrudController;
 use App\Exchange\Controller\Crud\Beds24ConfigCrudController;
 use App\Exchange\Controller\Crud\CronCursorCrudController;
 use App\Exchange\Controller\Crud\ExchangeEndpointCrudController;
+use App\Exchange\Controller\Crud\EmailConfigCrudController;
 use App\Exchange\Controller\Crud\MetaConfigCrudController;
 use App\Message\Controller\Crud\Beds24ReceiveQueueCrudController;
 use App\Message\Controller\Crud\Beds24SendQueueCrudController;
@@ -281,6 +282,7 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkTo(ExchangeEndpointCrudController::class, 'Endpoints (Hub)', 'fa fa-link'),
                 MenuItem::linkTo(Beds24ConfigCrudController::class, 'Credenciales Beds24', 'fa fa-key'),
                 MenuItem::linkTo(MetaConfigCrudController::class, 'Credenciales Meta', 'fab fa-whatsapp'),
+                MenuItem::linkTo(EmailConfigCrudController::class, 'Correo saliente', 'fa fa-envelope'),
             ])
             ->setPermission(Roles::ADMIN);
 

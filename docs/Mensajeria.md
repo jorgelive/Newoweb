@@ -8841,9 +8841,20 @@ que llegara: los rebotes vienen después y por otro camino. Se marca `sent`, nun
 #### Antes de encenderlo
 
 La migración deja **el buzón sin dirección y el canal apagado**, a propósito: activarlo con un
-remitente vacío deja los correos fallando de uno en uno. Hay que poner un **buzón real** del
-tenant —Graph rechaza enviar «como» un alias, y el fallo llega tarde; ver `docs/CorreoSaliente.md`
-§6.1— y luego activar `EmailConfig` y la fila `email` de `msg_channel`.
+remitente vacío deja los correos fallando de uno en uno.
+
+**Dónde se pone:** panel → *Credenciales y Endpoints* → **Correo saliente**
+(`EmailConfigCrudController`). Ahí van el buzón remitente, el nombre visible y el «responder a».
+
+⚠️ El remitente tiene que ser un **buzón real** del tenant. Graph rechaza enviar «como» un alias
+y el fallo **no aparece al guardar**: aparece al intentar mandar el primer correo. Está en
+`docs/CorreoSaliente.md` §6.1, donde costó una tarde.
+
+⚠️ **Ahí no hay credenciales**, y es deliberado: el DSN de Graph vive en `MAILER_DSN`. Un secreto
+en una fila acaba en un volcado, en una copia de seguridad y en la pantalla de alguien.
+
+Con el remitente puesto, quedan dos interruptores: `activo` en esa misma pantalla y la fila
+`email` de `msg_channel`.
 
 ⚠️ **A dónde se escribe hoy.** Los **25** correos-identidad de la base son alias
 `@guest.booking.com`: funcionan como destino porque Booking los reenvía, pero son direcciones de
