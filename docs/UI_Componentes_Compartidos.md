@@ -661,6 +661,18 @@ identificadores; si el asunto no tiene hilo, lo abre antes.
 Props: `contextType` (`pms_reserva`, `cotizacion_file`, `travel_organizacion`… opaco, aquí no se
 interpreta), `contextId`, y `conCorreo` para ocultar el correo donde el dominio no lo use.
 
+### ⚠️ Bloquea con la IDENTIDAD, no con la pantalla
+
+`v-model:telefono` y `v-model:correo` son la **semilla**. Mientras un dato no tenga identidad, el
+componente lo pinta como `<input>` y lo emite al padre, que lo guarda con su propio «Guardar».
+
+La primera versión bloqueaba en cuanto la pantalla era de edición, y dejaba atrapados a los
+asuntos antiguos: sin dato de contacto no hay hilo, y sin hilo no hay editor de identificadores
+—abrirlo exige justamente un dato de contacto—. Ni aquí ni allí: sólo quedaba EasyAdmin.
+
+Sin los `v-model`, el componente es de sólo lectura (así se usa en la ficha del proveedor, que es
+para mirar).
+
 ### Por qué el `<input>` tenía que desaparecer, no deshabilitarse
 
 El campo del asunto es la semilla con la que nació la identidad; el envío lee la identidad. Con

@@ -31,6 +31,28 @@ const props = defineProps<{
     contextId: string | null | undefined;
     /** Ocultar el correo donde el dominio no lo use. Por defecto se enseñan los dos. */
     conCorreo?: boolean;
+    /**
+     * La SEMILLA que guarda el asunto, en dos direcciones.
+     *
+     * ⚠️ **Mientras no haya identidad, el campo se sigue pudiendo escribir**, y esto no es una
+     * concesión: es lo que la semilla ES. Un expediente antiguo sin correo —o sin ningún dato de
+     * contacto— no tiene hilo, y sin hilo no hay editor de identificadores al que mandar a
+     * nadie. Bloquearlo dejaba un callejón sin salida: ni se podía teclear aquí, ni abrir el
+     * hilo allí, porque abrirlo exige justamente un dato de contacto.
+     *
+     * En cuanto el dato pasa a ser una identidad, el `<input>` desaparece: a partir de ahí
+     * escribir aquí se guardaría y no cambiaría a dónde sale el mensaje.
+     *
+     * Quien persiste es el PADRE, con su propio «Guardar»: este componente no sabe qué es un
+     * expediente ni una organización.
+     */
+    telefono?: string | null;
+    correo?: string | null;
+}>();
+
+const emit = defineEmits<{
+    'update:telefono': [string];
+    'update:correo': [string];
 }>();
 
 interface ContactoResuelto {
@@ -50,6 +72,18 @@ const chatStore = useChatStore();
 const router = useRouter();
 
 const muestraCorreo = computed(() => props.conCorreo !== false);
+
+/**
+ * ¿Este dato ya lo manda una identidad?
+ *
+ * Sólo entonces se deja de editar. `semilla` y «no hay nada» son el mismo estado a estos
+ * efectos: el asunto todavía es el dueño del dato.
+ */
+const telefonoEsIdentidad = computed(() => contacto.value?.telefonoOrigen === 'identidad');
+const correoEsIdentidad = computed(() => contacto.value?.correoOrigen === 'identidad');
+
+/** ¿El padre nos pasó los modelos? Sin ellos no se puede ofrecer edición de la semilla. */
+const editable = computed(() => props.telefono !== undefined || props.correo !== undefined);
 
 const cargar = async (): Promise<void> => {
     contacto.value = null;
@@ -124,10 +158,16 @@ defineExpose({ recargar: cargar });
                       title="Es el número con el que se creó el asunto; la persona todavía no tiene identificador propio."
                       class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded normal-case tracking-normal">sin verificar</span>
             </p>
-            <p class="text-sm font-bold mt-0.5" :class="contacto?.telefono ? 'text-slate-800' : 'text-slate-300'">
+            <!-- Con identidad: se enseña. Sin ella el asunto sigue siendo el dueño del dato,
+                 así que se escribe aquí — es la semilla, y es de donde nacerá la identidad. -->
+            <p v-if="telefonoEsIdentidad || !editable"
+               class="text-sm font-bold mt-0.5" :class="contacto?.telefono ? 'text-slate-800' : 'text-slate-300'">
                 <i v-if="contacto?.telefono" class="fas fa-phone text-[#376875]/40 text-xs mr-1.5"></i>
                 {{ contacto?.telefono ? formatearTelefono(contacto.telefono) : (cargando ? '…' : '—') }}
             </p>
+            <input v-else :value="telefono ?? ''" @input="emit('update:telefono', ($event.target as HTMLInputElement).value)"
+                   type="tel" placeholder="+51 987 654 321"
+                   class="mt-1 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875]" />
         </div>
 
         <div v-if="muestraCorreo" class="px-3 py-2.5">
@@ -137,10 +177,14 @@ defineExpose({ recargar: cargar });
                       title="Es el correo con el que se creó el asunto; la persona todavía no tiene identificador propio."
                       class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded normal-case tracking-normal">sin verificar</span>
             </p>
-            <p class="text-sm font-bold mt-0.5 break-all" :class="contacto?.correo ? 'text-slate-800' : 'text-slate-300'">
+            <p v-if="correoEsIdentidad || !editable"
+               class="text-sm font-bold mt-0.5 break-all" :class="contacto?.correo ? 'text-slate-800' : 'text-slate-300'">
                 <i v-if="contacto?.correo" class="fas fa-envelope text-[#376875]/40 text-xs mr-1.5"></i>
                 {{ contacto?.correo ?? (cargando ? '…' : '—') }}
             </p>
+            <input v-else :value="correo ?? ''" @input="emit('update:correo', ($event.target as HTMLInputElement).value)"
+                   type="email" placeholder="cliente@ejemplo.com"
+                   class="mt-1 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875]" />
         </div>
 
         <div class="px-3 py-2 flex items-center gap-2 flex-wrap">
@@ -150,7 +194,13 @@ defineExpose({ recargar: cargar });
                 <i class="fas" :class="abriendo ? 'fa-circle-notch fa-spin' : 'fa-pen'"></i> Editar
             </button>
             <p class="text-[10px] text-slate-400 leading-snug">
-                Se edita en los identificadores de la persona, no aquí.
+                <template v-if="telefonoEsIdentidad && (correoEsIdentidad || !muestraCorreo)">
+                    Se edita en los identificadores de la persona, no aquí.
+                </template>
+                <template v-else>
+                    Lo que escribas aquí se guarda con el asunto y creará el identificador; a
+                    partir de ahí se edita en los identificadores.
+                </template>
             </p>
         </div>
 

@@ -596,9 +596,16 @@ const eliminarDocumento = async (iri?: string) => {
                    identidad. Ver `ContactoDeIdentidad` y docs/Mensajeria.md §24. -->
               <div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Contacto</label>
+                <!-- Los `v-model` son la SEMILLA: mientras no haya identidad el campo se
+                     sigue escribiendo aquí y se guarda con el expediente. Sin ellos, un
+                     expediente antiguo sin correo se quedaba sin sitio donde ponerlo — y sin
+                     dato de contacto tampoco se puede abrir el hilo, que es donde se editan
+                     los identificadores. Callejón sin salida. -->
                 <ContactoDeIdentidad
                     context-type="cotizacion_file"
                     :context-id="fileId"
+                    v-model:telefono="file.telefono"
+                    v-model:correo="file.email"
                 />
               </div>
               <div>

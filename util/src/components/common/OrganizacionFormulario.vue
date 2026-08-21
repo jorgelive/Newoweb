@@ -136,7 +136,16 @@ const alternarLugar = (iri: string): void => {
          `organizacionId` y `ContactoDeIdentidad`. -->
     <div v-if="organizacionId">
       <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">Contacto</label>
-      <ContactoDeIdentidad context-type="travel_organizacion" :context-id="organizacionId" />
+      <!-- Los modelos escriben en el mismo `ProveedorWrite` que ya guarda esta pantalla: la
+           semilla se sigue tecleando mientras no haya identidad. -->
+      <ContactoDeIdentidad
+          context-type="travel_organizacion"
+          :context-id="organizacionId"
+          :telefono="modelValue.telefono ?? ''"
+          :correo="modelValue.email ?? ''"
+          @update:telefono="set('telefono', $event)"
+          @update:correo="set('email', $event)"
+      />
     </div>
 
     <!-- Alta: aquí sí se teclean, porque son la semilla de la identidad que va a nacer. -->

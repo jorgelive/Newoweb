@@ -9527,6 +9527,48 @@ el envío lee la identidad: el operador cambiaba el número, veía su cambio gua
 mensajes seguían saliendo al viejo. **Un dato que se puede editar y no sirve es peor que uno que
 no se puede editar.**
 
+#### ⚠️ Se bloquea con la IDENTIDAD, no antes — y eso evita un callejón sin salida
+
+La primera versión quitaba el campo en cuanto la pantalla era de edición, y eso dejaba
+**atrapados a los asuntos antiguos**: un expediente sin correo —o sin ningún dato de contacto—
+no tiene hilo, y sin hilo no hay editor de identificadores al que mandar a nadie. Ni se podía
+teclear en la ficha, ni abrir el hilo desde ella, porque abrirlo exige justamente un dato de
+contacto. La salida era ir a EasyAdmin.
+
+La regla buena es por dato y por estado:
+
+```
+origen = identidad  →  se ENSEÑA. Escribir aquí no cambiaría a dónde sale el mensaje.
+origen = semilla    →  se ESCRIBE: el asunto sigue siendo el dueño del dato.
+origen = null       →  se ESCRIBE: es la única forma de darle uno.
+```
+
+Cada dato decide por su cuenta: un expediente con teléfono-identidad y correo vacío enseña el
+primero y ofrece escribir el segundo.
+
+Quien **persiste** la semilla es la pantalla, con su propio «Guardar»: el componente no sabe qué
+es un expediente ni una organización. Por eso los valores le llegan como `v-model`.
+
+#### Qué pasa con los asuntos que ya existían
+
+Nada se rompe y nada hay que migrar. El dato sigue viéndose —marcado **sin verificar**— y se
+promueve solo en cuanto ocurre cualquiera de las dos cosas:
+
+| Cuándo | Qué lo dispara |
+|---|---|
+| Al **guardar** el expediente | `CotizacionFileConversacionListener` crea el hilo y siembra las identidades |
+| Al pulsar **Editar** | `AperturaDeHilo` hace lo mismo, a petición |
+
+Medido en producción el 21/08/2026: **2** expedientes con contacto y sin hilo, y **2** sin ningún
+dato de contacto (que ahora sí se puede teclear). De las 100 organizaciones, 48 tienen contacto y
+ninguna tiene hilo — y eso es lo correcto: el hilo de un proveedor nace cuando alguien decide
+escribirle, no al darlo de alta. **No hace falta comando de backfill**: con estos números sería
+más código que datos.
+
+Verificado sobre el expediente real `2KVBMX`, en transacción con `rollback`: partía de
+`+51 921 166 466` como semilla, al abrir el hilo nació la identidad `51921166466` —ya
+normalizada— y el mismo resolutor pasó a contestar `identidad`.
+
 ⚠️ **En el alta de un proveedor los campos SÍ se teclean**, y no es una excepción caprichosa: ahí
 son la semilla con la que nacerá la identidad. Sin ellos no hay a quién escribir y el hilo ni se
 abriría. Lo parte el prop `organizacionId`: sin id, se teclea; con id, se enseña.
