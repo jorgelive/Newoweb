@@ -143,9 +143,18 @@ export const proveedorVacio = (): ProveedorWrite => ({
 // emitidas. Quien decide en cada propuesta es la bandera del snapshot.
 // ============================================================================
 
-/** ¿Hay bandera puesta Y texto que enseñar? Espejo de `puedeMostrarseAlCliente()`. */
-export const puedeMostrarseAlCliente = (p: Pick<Organizacion, 'visibleParaCliente' | 'titulo'>): boolean =>
-    Boolean(p.visibleParaCliente) && (p.titulo ?? []).length > 0;
+/**
+ * ¿Hay bandera puesta Y texto que enseñar? Espejo de `puedeMostrarseAlCliente()`.
+ *
+ * La firma es ESTRUCTURAL y admite los dos campos opcionales, no `Pick<Organizacion, …>`: la
+ * misma pregunta se hace sobre el proveedor guardado y sobre el `ProveedorWrite` que hay en el
+ * formulario —para que la ficha diga la verdad antes de guardar—, y ahí los dos campos son
+ * opcionales. El cuerpo ya los trataba así (`Boolean(...)`, `?? []`); era la firma la que
+ * pedía de más.
+ */
+export const puedeMostrarseAlCliente = (
+    p: { visibleParaCliente?: boolean | null; titulo?: I18nTexto[] }
+): boolean => Boolean(p.visibleParaCliente) && (p.titulo ?? []).length > 0;
 
 export const AYUDA_VISIBLE_PARA_CLIENTE =
     'Permite nombrar a este proveedor en las propuestas. Es el valor por defecto al '

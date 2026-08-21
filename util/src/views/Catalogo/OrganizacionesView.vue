@@ -9,7 +9,7 @@
 // ============================================================================
 
 import { ref, onMounted, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useOrganizacionStore } from '@/stores/travel/organizacionStore';
 import { useChatStore } from '@/stores/chat/chatStore.ts';
 import { uuidDe } from '@/services/hydra';
@@ -45,6 +45,33 @@ const inputArchivo = ref<HTMLInputElement | null>(null);
 
 const esNuevo = computed(() => editandoId.value === null);
 const activo = computed(() => store.proveedorActivo);
+
+// ══ VER / EDITAR ═══════════════════════════════════════════════════════════
+//
+// Mismo interruptor que `ReservaEditDrawer`, y por el mismo motivo: **abrir una ficha es casi
+// siempre para mirarla**, no para cambiarla. Con el formulario delante, consultar un teléfono
+// obliga a leer dentro de un `<input>` —donde el texto se corta y no se puede pulsar— y deja el
+// panel a un despiste de guardar algo sin querer.
+//
+// Y hay un motivo concreto de este panel: las acciones que no son «guardar» —escribir por chat,
+// llamar, abrir la web— no tienen sitio natural en un formulario. En la ficha sí.
+const soloLectura = ref(false);
+
+/**
+ * La ficha de lectura, con lo que hay AHORA en el formulario.
+ *
+ * Es una vista previa, no una recarga: si se cambió el teléfono y no se guardó, la ficha enseña
+ * el nuevo. Igual que `ReservaEditDrawer::verSoloLectura()`.
+ */
+const verFicha = () => { soloLectura.value = true; };
+const editar = () => { soloLectura.value = false; };
+
+/** Los nombres de los lugares que cubre, resueltos contra el vocabulario ya cargado. */
+const lugaresDelProveedor = computed<string[]>(() =>
+    lugaresSel.value
+        .map(iri => store.lugares.find(l => l['@id'] === iri || l.id === iri)?.nombre)
+        .filter((n): n is string => !!n)
+);
 
 // ══ ESCRIBIRLE AL PROVEEDOR ════════════════════════════════════════════════
 //
@@ -86,7 +113,12 @@ async function escribirle(): Promise<void> {
 
         const id = uuidDe(resultado.conversacion);
 
-        if (id) await router.push({ path: '/chat', query: { id } });
+        if (!id) return;
+
+        // ⚠️ Cerrar ANTES de navegar: `onBeforeRouteLeave` cancela la salida mientras el panel
+        // esté abierto, así que el push se lo tragaría y el botón parecería no hacer nada.
+        cerrarPanel();
+        await router.push({ path: '/chat', query: { id } });
     } catch {
         errorChat.value = 'No se pudo abrir la conversación.';
     } finally {
@@ -103,6 +135,8 @@ watch(termino, (t) => {
 
 const abrirNuevo = () => {
     errorChat.value = null;
+    // Un alta empieza en el formulario: no hay ficha que mirar todavía.
+    soloLectura.value = false;
     editandoId.value = null;
     formulario.value = proveedorVacio();
     lugaresSel.value = [];
@@ -114,6 +148,8 @@ const abrirEdicion = async (p: Organizacion) => {
     // El aviso de chat es de UN proveedor: arrastrarlo a la ficha siguiente diría algo falso
     // sobre alguien que quizá sí tiene teléfono.
     errorChat.value = null;
+    // Pulsar un proveedor de la lista es para VERLO. Se edita desde el botón de la cabecera.
+    soloLectura.value = true;
     editandoId.value = p.id;
     panelAbierto.value = true;
     await store.fetchProveedor(p.id);
@@ -147,9 +183,18 @@ const guardar = async () => {
 
     if (esNuevo.value) {
         const creado = await store.crearProveedor(formulario.value);
-        // Se queda abierto sobre el recién creado: lo normal tras darlo de alta es
-        // seguir con sus servicios o su galería, no volver al listado.
-        if (creado) await abrirEdicion(creado);
+
+        // Se queda abierto sobre el recién creado: lo normal tras darlo de alta es seguir con
+        // sus servicios o su galería, no volver al listado.
+        //
+        // ⚠️ Y en modo EDICIÓN, no en la ficha: servicios y galería sólo existen en el
+        // formulario —necesitan el IRI del proveedor ya creado—, así que dejarlo en la ficha
+        // mandaría a dar un rodeo justo cuando se acaba de crear.
+        if (creado) {
+            await abrirEdicion(creado);
+            soloLectura.value = false;
+        }
+
         return;
     }
 
@@ -209,6 +254,29 @@ const quitarImagen = async (id: string) => {
 const ponerPortada = async (id: string) => {
     if (await store.marcarPortada(id)) await store.fetchProveedor(editandoId.value as string);
 };
+
+/**
+ * El «atrás» cierra el panel; sólo sale de la vista si ya estaba cerrado.
+ *
+ * ── El fallo ────────────────────────────────────────────────────────────────
+ * El panel es una capa, no una ruta, así que el navegador no sabía que estaba abierto: darle
+ * atrás para «volver al listado» **se salía hasta el home**, porque la entrada anterior del
+ * historial era la de antes de entrar a Proveedores. En móvil, donde el atrás del sistema es el
+ * gesto natural, se perdía el trabajo del formulario sin un aviso.
+ *
+ * Mismo patrón que `ReservasView`: cada capa abierta consume un «atrás».
+ *
+ * ⚠️ **Cancela CUALQUIER salida de ruta, no sólo el back.** Por eso `escribirle()` cierra el
+ * panel antes de su `router.push`, igual que `ReservaEditDrawer::abrirChatInterno()`: un push
+ * con el panel abierto se lo tragaría este guard y el botón parecería no hacer nada.
+ */
+onBeforeRouteLeave(() => {
+    if (panelAbierto.value) {
+        cerrarPanel();
+
+        return false;
+    }
+});
 
 onMounted(async () => {
     void permisos.cargar();
@@ -302,15 +370,125 @@ onMounted(async () => {
             <!-- Panel de edición -->
             <aside v-if="panelAbierto" class="w-full max-w-md bg-white flex flex-col min-h-0 shadow-xl">
                 <div class="px-4 py-3 border-b border-slate-200 flex items-center gap-2 shrink-0">
-                    <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">
-                        {{ esNuevo ? 'Nuevo proveedor' : 'Editar proveedor' }}
+                    <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest truncate">
+                        {{ esNuevo ? 'Nuevo proveedor' : soloLectura ? 'Proveedor' : 'Editar proveedor' }}
                     </h2>
-                    <button @click="cerrarPanel" class="ml-auto text-slate-400 hover:text-slate-700">
+
+                    <!-- El interruptor, igual que en el cajón de reservas. No aparece al crear:
+                         todavía no hay nada que ver. -->
+                    <button v-if="!esNuevo && soloLectura" @click="editar"
+                            class="ml-auto px-3 py-1.5 flex items-center gap-1.5 bg-[#376875] hover:bg-[#2d5660] text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-colors">
+                        <i class="fas fa-pen text-[10px]"></i> Editar
+                    </button>
+                    <button v-else-if="!esNuevo" @click="verFicha"
+                            class="ml-auto px-3 py-1.5 flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-colors">
+                        <i class="fas fa-eye text-[10px]"></i> Ver
+                    </button>
+
+                    <button @click="cerrarPanel"
+                            :class="esNuevo ? 'ml-auto' : ''"
+                            class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-700 shrink-0">
                         <i class="fas fa-xmark"></i>
                     </button>
                 </div>
 
                 <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- ═══ FICHA (modo «Ver») ═══════════════════════════════════════════
+                         No es el formulario deshabilitado: es una ficha, con los datos
+                         legibles y pulsables. Un teléfono dentro de un `<input>` se corta y no
+                         se puede marcar; aquí es un enlace `tel:`. -->
+                    <template v-if="soloLectura && !esNuevo">
+                        <div class="flex items-start gap-3">
+                            <img v-if="activo && portadaDe(activo)" :src="portadaDe(activo) as string" alt=""
+                                 class="w-16 h-16 rounded-xl object-cover shrink-0 bg-slate-100" />
+                            <div v-else class="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                                <i class="fas fa-truck-field text-slate-300 text-xl"></i>
+                            </div>
+                            <div class="min-w-0 pt-0.5">
+                                <p class="text-base font-black text-slate-800 leading-tight">{{ formulario.nombreComercial }}</p>
+                                <p v-if="formulario.razonSocial" class="text-[11px] font-bold text-slate-400 mt-0.5">
+                                    {{ formulario.razonSocial }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- ⚠️ La visibilidad NO es la casilla a secas: hace falta bandera Y
+                             título público. Se pinta con `puedeMostrarseAlCliente()`, el espejo
+                             de la regla de PHP, para no contar aquí una versión más simple. -->
+                        <div class="flex items-center gap-2 rounded-xl border px-3 py-2"
+                             :class="puedeMostrarseAlCliente(formulario)
+                                 ? 'border-emerald-200 bg-emerald-50'
+                                 : 'border-slate-200 bg-slate-50'">
+                            <i class="fas text-[11px]"
+                               :class="puedeMostrarseAlCliente(formulario) ? 'fa-eye text-emerald-600' : 'fa-eye-slash text-slate-400'"></i>
+                            <p class="text-[11px] font-bold"
+                               :class="puedeMostrarseAlCliente(formulario) ? 'text-emerald-700' : 'text-slate-500'">
+                                {{ puedeMostrarseAlCliente(formulario)
+                                    ? 'Se puede nombrar ante el cliente'
+                                    : formulario.visibleParaCliente
+                                        ? 'Marcado como nombrable, pero sin título público: no se muestra'
+                                        : 'No se nombra ante el cliente' }}
+                            </p>
+                        </div>
+
+                        <!-- Contacto. Todo pulsable: es lo que se viene a buscar aquí. -->
+                        <div class="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+                            <div class="px-3 py-2.5">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Teléfono</p>
+                                <a v-if="formulario.telefono" :href="`tel:${formulario.telefono}`"
+                                   class="text-sm font-bold text-[#376875] hover:underline">{{ formulario.telefono }}</a>
+                                <p v-else class="text-sm font-bold text-slate-300">—</p>
+                            </div>
+                            <div class="px-3 py-2.5">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Correo</p>
+                                <a v-if="formulario.email" :href="`mailto:${formulario.email}`"
+                                   class="text-sm font-bold text-[#376875] hover:underline break-all">{{ formulario.email }}</a>
+                                <p v-else class="text-sm font-bold text-slate-300">—</p>
+                            </div>
+                            <div v-if="formulario.direccion" class="px-3 py-2.5">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Dirección</p>
+                                <p class="text-sm font-bold text-slate-700">{{ formulario.direccion }}</p>
+                            </div>
+                            <div v-if="formulario.url" class="px-3 py-2.5">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Web</p>
+                                <!-- `noopener`: la pestaña que se abre no debe poder tocar ésta. -->
+                                <a :href="formulario.url" target="_blank" rel="noopener noreferrer"
+                                   class="text-sm font-bold text-[#376875] hover:underline break-all">{{ formulario.url }}</a>
+                            </div>
+                        </div>
+
+                        <!-- Cobertura: hasta dónde opera, no dónde está. -->
+                        <div v-if="lugaresDelProveedor.length">
+                            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Cobertura</h3>
+                            <div class="flex flex-wrap gap-1">
+                                <span v-for="nombre in lugaresDelProveedor" :key="nombre"
+                                      class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold">{{ nombre }}</span>
+                            </div>
+                        </div>
+
+                        <div v-if="(activo?.proveedorServicios ?? []).length">
+                            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Servicios que presta</h3>
+                            <ul class="space-y-1">
+                                <li v-for="s in activo?.proveedorServicios" :key="s.id"
+                                    class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+                                    <i class="fas fa-cube text-slate-300 text-[10px]"></i>
+                                    <span class="text-xs font-bold text-slate-700 truncate">{{ s.nombre }}</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div v-if="(activo?.proveedorImagenes ?? []).length">
+                            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Galería</h3>
+                            <div class="grid grid-cols-3 gap-1.5">
+                                <img v-for="img in activo?.proveedorImagenes" :key="img.id"
+                                     :src="img.imageUrl as string" alt=""
+                                     class="w-full aspect-square rounded-lg object-cover bg-slate-100" />
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- ═══ FORMULARIO (modo «Editar» y alta) ═══════════════════════════ -->
+                    <template v-else>
                     <!-- Mismo formulario que el alta inline del editor de cotizaciones: uno
                          solo, para que no diverjan. Servicios y galería se quedan fuera
                          porque necesitan el IRI del proveedor ya creado. -->
@@ -390,6 +568,7 @@ onMounted(async () => {
                             <p class="text-[10px] text-slate-400 mt-1">Se convierten a WebP automáticamente.</p>
                         </div>
                     </template>
+                    </template>
                 </div>
 
                 <!-- El aviso va ENCIMA del pie y no dentro: el pie es una fila y un texto
@@ -399,7 +578,9 @@ onMounted(async () => {
                 </p>
 
                 <div class="px-4 py-3 border-t border-slate-200 flex items-center gap-2 shrink-0">
-                    <button v-if="!esNuevo" @click="borrar(editandoId as string)"
+                    <!-- Sólo en edición: en una ficha que se abre para consultar, un botón de
+                         borrar es un resbalón esperando. -->
+                    <button v-if="!esNuevo && !soloLectura" @click="borrar(editandoId as string)"
                             class="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors"
                             :class="confirmandoBorrado === editandoId
                                 ? 'bg-red-600 text-white'
@@ -408,20 +589,25 @@ onMounted(async () => {
                         {{ confirmandoBorrado === editandoId ? '¿Seguro?' : 'Eliminar' }}
                     </button>
 
-                    <!-- Sólo en edición: un proveedor sin guardar todavía no tiene id al que
-                         colgarle un hilo. Y desactivado sin datos de contacto, con el motivo en
-                         el `title`, en vez de dejar que el backend responda 409. -->
-                    <button v-if="!esNuevo" @click="escribirle"
+                    <!-- ⚠️ «Escribir» es la acción de la FICHA, no del formulario, y ése era
+                         el problema: enterrada entre Eliminar y Guardar, en un pie pensado para
+                         cerrar una edición, no se encontraba. Aquí es lo que se ve al abrir un
+                         proveedor.
+
+                         Desactivada sin datos de contacto, con el motivo en el `title`, en vez
+                         de dejar que el backend responda 409. -->
+                    <button v-if="soloLectura && !esNuevo" @click="escribirle"
                             :disabled="abriendoChat || !puedeEscribirse"
                             :title="puedeEscribirse
                                 ? 'Abre el chat con este proveedor'
                                 : 'Necesita un teléfono o un correo para poder escribirle'"
-                            class="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-[#376875] hover:bg-[#376875]/10 disabled:opacity-40 disabled:hover:bg-transparent transition-colors">
-                        <i :class="abriendoChat ? 'fas fa-circle-notch fa-spin' : 'fas fa-comment-dots'" class="mr-1"></i>
+                            class="ml-auto px-5 py-2 flex items-center gap-1.5 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-40 disabled:hover:bg-[#376875] text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors">
+                        <i :class="abriendoChat ? 'fas fa-circle-notch fa-spin' : 'fas fa-comment-dots'"></i>
                         Escribir
                     </button>
 
-                    <button @click="guardar" :disabled="store.isGuardando || !formulario.nombreComercial.trim()"
+                    <button v-if="!soloLectura" @click="guardar"
+                            :disabled="store.isGuardando || !formulario.nombreComercial.trim()"
                             class="ml-auto px-5 py-2 bg-[#E07845] hover:bg-[#c96837] disabled:opacity-40 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors">
                         <i :class="store.isGuardando ? 'fas fa-circle-notch fa-spin' : 'fas fa-floppy-disk'" class="mr-1"></i>
                         Guardar

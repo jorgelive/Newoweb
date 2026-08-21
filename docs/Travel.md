@@ -841,20 +841,48 @@ significa «quiero hablar con ella». Se abre con `POST /message/conversations/a
 ⚠️ **Sin teléfono ni correo no se abre**, con el motivo escrito. Un hilo que no resuelve a nadie
 no recibe, no sale y deja en la bandeja una fila que nadie puede cerrar.
 
-### Dónde se pulsa
+### Dónde se pulsa: la FICHA del proveedor
 
-Catálogo → **Proveedores** (`util/src/views/Catalogo/OrganizacionesView.vue`), botón **Escribir**
-en el pie del panel de edición.
+Catálogo → **Proveedores** (`util/src/views/Catalogo/OrganizacionesView.vue`). El panel tiene
+ahora dos modos, con el mismo interruptor que `ReservaEditDrawer`:
 
-⚠️ **En el pie del panel y no en la tarjeta de la lista**, por dos motivos: la tarjeta entera ya
-es un `<button>` y anidar otro es HTML inválido; y en el panel están a la vista el teléfono y el
-correo, que es justo lo que decide si el botón se puede pulsar.
+```
+lista → clic en un proveedor  →  FICHA (sólo lectura)   ← «Escribir» vive aquí
+                                   ↕ botones Editar / Ver
+                                 FORMULARIO              ← «Guardar» y «Eliminar» viven aquí
+«Nuevo proveedor»             →  FORMULARIO directo, que no hay ficha que mirar
+```
 
-Se desactiva —con el motivo en el `title`— cuando no hay ni teléfono ni correo, y sólo aparece en
-edición: un proveedor sin guardar no tiene id al que colgarle un hilo. 🪞 La comprobación es un
+⚠️ **La acción de escribir NO cabía en el formulario, y ése fue el fallo.** Enterrada en un pie
+pensado para cerrar una edición —entre «Eliminar» y «Guardar»— no se encontraba. Abrir una ficha
+es casi siempre para **mirarla**: consultar un teléfono dentro de un `<input>` obliga a leer texto
+cortado que no se puede pulsar, y deja el panel a un despiste de guardar algo sin querer.
+
+En la ficha el teléfono es un `tel:`, el correo un `mailto:` y la web un enlace: es lo que se
+viene a buscar.
+
+⚠️ **Tras dar de alta se queda en FORMULARIO, no en la ficha.** Servicios y galería sólo existen
+allí —necesitan el IRI del proveedor ya creado—, así que devolver a la ficha justo después de
+crear mandaría a dar un rodeo.
+
+El botón se desactiva —con el motivo en el `title`— cuando no hay ni teléfono ni correo. 🪞 Es un
 espejo de `AperturaDeHilo::abrir()`, que es quien de verdad lo impide; aquí sólo evita ofrecer un
-botón que va a responder 409. Mira el **formulario** y no el proveedor guardado, para que el
-aviso desaparezca en cuanto se teclea el teléfono.
+botón que va a responder 409. Mira el **formulario** y no el proveedor guardado, para que el aviso
+desaparezca en cuanto se teclea el teléfono, sin tener que guardar primero.
+
+### ⚠️ El «atrás» se salía hasta el home
+
+El panel es una capa, no una ruta, así que el navegador no sabía que estaba abierto: darle atrás
+para «volver al listado» salía de la vista entera, porque la entrada anterior del historial era la
+de antes de entrar a Proveedores. En móvil, donde el atrás del sistema es el gesto natural, se
+perdía el trabajo del formulario sin un aviso.
+
+`onBeforeRouteLeave` lo arregla con el mismo patrón que `ReservasView`: cada capa abierta consume
+un «atrás».
+
+⚠️ Ese guard **cancela cualquier salida de ruta, no sólo el back**. Por eso `escribirle()` cierra
+el panel ANTES de su `router.push` — si no, el guard se tragaría la navegación y el botón parecería
+no hacer nada. Es el mismo requisito que documenta `ReservaEditDrawer::abrirChatInterno()`.
 
 Al abrir, navega a `/chat` con el hilo ya seleccionado. El chat degrada bien un `contextType`
 desconocido: `getExternalContextUrl` y `getReservaContextId` devuelven `null`, y de plantillas
