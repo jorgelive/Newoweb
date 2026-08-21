@@ -99,8 +99,45 @@ const editable = computed(() => props.telefono !== undefined || props.correo !==
 //
 // Así que se pregunta ANTES de guardar, que es cuando se puede corregir. Mismo recurso que usa
 // el alta de reservas (`ReservaEditDrawer`).
-const duenioTelefono = ref<{ nombre: string | null } | null>(null);
-const duenioCorreo = ref<{ nombre: string | null } | null>(null);
+interface Duenio {
+    conversacionId: string;
+    nombre: string | null;
+    retirada: boolean;
+    /** Lo que ese hilo ya atiende. La etiqueta la redacta el dominio. */
+    asuntos?: Array<{ negocio: string; etiqueta: string }>;
+}
+
+const duenioTelefono = ref<Duenio | null>(null);
+const duenioCorreo = ref<Duenio | null>(null);
+
+/**
+ * Qué va a pasar EXACTAMENTE al guardar. No las dos opciones: la que toca.
+ *
+ * Lo decide una sola cosa —si este asunto ya tiene hilo propio— y eso ya se sabe, así que
+ * enunciar los dos finales era pedirle al operador que dedujera lo que el sistema ya tiene
+ * resuelto.
+ */
+const yaTieneHilo = computed(() => !!contacto.value?.conversacionId);
+
+const queVaAPasar = (duenio: Duenio | null): string | null => {
+    if (!duenio) return null;
+
+    const quien = duenio.nombre || 'otra persona';
+    const suyos = (duenio.asuntos ?? []).map(a => a.etiqueta).join(' · ');
+    const conQue = suyos ? ` — que ya atiende: ${suyos}` : '';
+
+    return yaTieneHilo.value
+        // Con hilo propio no hay fusión posible: el identificador es único y no se le quita a
+        // su dueño. Se dice que NO se va a guardar, y cuál es la salida de verdad.
+        ? `No se guardará: ya es de ${quien}${conQue}. Un identificador no se le puede quitar a su dueño. `
+          + 'Si son la misma persona, hay que fusionar las dos conversaciones.'
+        // Sin hilo propio, la unión es el resultado, y hay que decirlo con nombre y asunto.
+        : `Al guardar, este asunto se unirá a la conversación de ${quien}${conQue}. `
+          + 'Si no son la misma persona, corrige el dato antes de guardar.';
+};
+
+const avisoTelefono = computed(() => queVaAPasar(duenioTelefono.value));
+const avisoCorreo = computed(() => queVaAPasar(duenioCorreo.value));
 
 let temporizador: ReturnType<typeof setTimeout> | null = null;
 
@@ -205,11 +242,9 @@ defineExpose({ recargar: cargar });
                 <input :value="telefono ?? ''" @input="emit('update:telefono', ($event.target as HTMLInputElement).value)"
                        type="tel" placeholder="+51 987 654 321"
                        class="mt-1 w-full bg-white border rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875]"
-                       :class="duenioTelefono ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200 bg-white'" />
-                <p v-if="duenioTelefono" class="mt-1 text-[10px] font-bold text-amber-700 leading-snug">
-                    <i class="fas fa-triangle-exclamation mr-1"></i>
-                    Este número ya es de <strong>{{ duenioTelefono.nombre || 'otra persona' }}</strong>.
-                    Si es la misma, este asunto pasará a su conversación; si no, no se guardará como identificador.
+                       :class="avisoTelefono ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200 bg-white'" />
+                <p v-if="avisoTelefono" class="mt-1 text-[10px] font-bold text-amber-700 leading-snug">
+                    <i class="fas fa-triangle-exclamation mr-1"></i>{{ avisoTelefono }}
                 </p>
             </template>
         </div>
@@ -230,11 +265,9 @@ defineExpose({ recargar: cargar });
                 <input :value="correo ?? ''" @input="emit('update:correo', ($event.target as HTMLInputElement).value)"
                        type="email" placeholder="cliente@ejemplo.com"
                        class="mt-1 w-full border rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#376875]"
-                       :class="duenioCorreo ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200 bg-white'" />
-                <p v-if="duenioCorreo" class="mt-1 text-[10px] font-bold text-amber-700 leading-snug">
-                    <i class="fas fa-triangle-exclamation mr-1"></i>
-                    Este correo ya es de <strong>{{ duenioCorreo.nombre || 'otra persona' }}</strong>.
-                    Si es la misma, este asunto pasará a su conversación; si no, no se guardará como identificador.
+                       :class="avisoCorreo ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200 bg-white'" />
+                <p v-if="avisoCorreo" class="mt-1 text-[10px] font-bold text-amber-700 leading-snug">
+                    <i class="fas fa-triangle-exclamation mr-1"></i>{{ avisoCorreo }}
                 </p>
             </template>
         </div>

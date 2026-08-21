@@ -9568,13 +9568,27 @@ dedazo no puede mudar la conversación de alguien.
 
 **Lo que sí:** preguntar antes de guardar, que es cuando se puede corregir.
 `ContactoDeIdentidad` consulta `GET /platform/message/identidades/duenio` con retardo mientras se
-teclea y avisa con el nombre del dueño —el mismo recurso y el mismo criterio que ya usaba el alta
-de reservas—:
+teclea — el mismo recurso y el mismo criterio que ya usaba el alta de reservas.
 
-> ⚠️ Este número ya es de **Giovanna Sardenberg**. Si es la misma persona, este asunto pasará a
-> su conversación; si no, no se guardará como identificador.
+⚠️ **Y dice el desenlace CONCRETO, no los dos.** Cuál va a ocurrir lo decide una sola cosa —si
+este asunto ya tiene hilo propio— y el sistema ya lo sabe; enunciar las dos ramas era pedirle al
+operador que dedujera algo que estaba resuelto:
 
-Los dos finales en una frase, porque el operador es el único que sabe cuál de los dos quiere.
+> **Sin hilo propio** — Al guardar, este asunto se unirá a la conversación de **Susan Acuña** —
+> que ya atiende: Tu reserva Casita 3, 02/02–04/02 · Tu reserva Casita 4 + Casita 2, 08/03–10/03.
+> Si no son la misma persona, corrige el dato antes de guardar.
+
+> **Con hilo propio** — No se guardará: ya es de **Carmen Sayans** — que ya atiende: Tu reserva
+> Casita 3, 30/12–02/01. Un identificador no se le puede quitar a su dueño. Si son la misma
+> persona, hay que fusionar las dos conversaciones.
+
+⚠️ **Y dice CON QUÉ se va a unir.** Un nombre solo obliga a ir al chat a averiguar quién es; los
+asuntos del otro hilo se leen sin salir del formulario, que es donde todavía se puede corregir.
+Por eso `DuenioDeIdentificadorController` devuelve también sus etiquetas — que las redacta el
+dominio y están pensadas justo para enseñarse.
+
+Los textos de arriba son literales, generados contra datos de producción antes de darlo por
+bueno.
 
 #### Qué pasa con los asuntos que ya existían
 

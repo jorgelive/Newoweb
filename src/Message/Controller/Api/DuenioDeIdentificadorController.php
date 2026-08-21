@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Api;
 
+use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageIdentidad;
 use App\Message\Enum\IdentidadTipo;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -36,8 +38,10 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/platform/message/identidades', name: 'app_message_identidad_')]
 final class DuenioDeIdentificadorController extends AbstractController
 {
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly EnlacesDeConversacion $enlaces,
+    ) {
     }
 
     #[Route('/duenio', name: 'duenio', methods: ['GET'])]
@@ -74,7 +78,35 @@ final class DuenioDeIdentificadorController extends AbstractController
                 // Una identidad retirada sigue resolviendo el historial pero ya no es salida: el
                 // panel lo dice con otras palabras, porque la consecuencia es distinta.
                 'retirada' => !$identidad->estaViva(),
+                // ── Con QUÉ se va a unir ────────────────────────────────────
+                // Un nombre solo no basta para decidir. «Ya es de Giovanna Sardenberg» obliga a
+                // ir al chat a ver quién es; «...que ya tiene su reserva Casita 3, 12/03–15/03»
+                // se resuelve sin salir del formulario, que es donde todavía se puede corregir.
+                //
+                // La ETIQUETA la redacta el dominio y está pensada justo para enseñarse: es lo
+                // único del enlace que puede acabar leyendo un cliente.
+                'asuntos' => $this->asuntosDe($conversacion),
             ],
         ]);
+    }
+
+    /**
+     * Los asuntos del hilo dueño, en una línea cada uno.
+     *
+     * @return list<array{negocio: string, etiqueta: string}>
+     */
+    private function asuntosDe(MessageConversation $conversacion): array
+    {
+        $salida = [];
+
+        foreach ($this->enlaces->de($conversacion) as $enlace) {
+            $etiqueta = trim($enlace->getEtiqueta());
+
+            if ($etiqueta !== '') {
+                $salida[] = ['negocio' => $enlace->getNegocio(), 'etiqueta' => $etiqueta];
+            }
+        }
+
+        return $salida;
     }
 }
