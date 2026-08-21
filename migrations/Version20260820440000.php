@@ -34,7 +34,23 @@ final class Version20260820440000 extends AbstractMigration
              WHERE endpoint_id IS NULL
         SQL);
 
-        $this->addSql('ALTER TABLE msg_email_send_queue DROP FOREIGN KEY FK_91FF846521AF7E36');
+        // ⚠️ El nombre de la clave foránea se BUSCA, no se escribe.
+        //
+        // La migración anterior la creó como `FK_MSG_EMAIL_ENDPOINT` y en desarrollo se rehízo a
+        // mano con el nombre que Doctrine genera (`FK_91FF846521AF7E36`). Escribir uno de los dos
+        // rompe en el otro entorno — y una migración que falla a mitad deja la tabla a medias,
+        // porque el DDL de MySQL no es transaccional.
+        $nombreFk = $this->connection->fetchOne(
+            'SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = \'msg_email_send_queue\'
+                AND COLUMN_NAME = \'endpoint_id\' AND REFERENCED_TABLE_NAME IS NOT NULL
+              LIMIT 1'
+        );
+
+        if (is_string($nombreFk) && $nombreFk !== '') {
+            $this->addSql(sprintf('ALTER TABLE msg_email_send_queue DROP FOREIGN KEY %s', $nombreFk));
+        }
+
         $this->addSql('ALTER TABLE msg_email_send_queue MODIFY endpoint_id BINARY(16) NOT NULL COMMENT \'(DC2Type:uuid)\'');
         $this->addSql('ALTER TABLE msg_email_send_queue ADD CONSTRAINT FK_91FF846521AF7E36
             FOREIGN KEY (endpoint_id) REFERENCES exchange_exchange_endpoint (id)');
