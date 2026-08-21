@@ -12,6 +12,7 @@ use App\Message\Contract\ProveedorDeEnlacesInterface;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageIdentidad;
 use App\Message\Enum\IdentidadTipo;
+use App\Message\Service\Conversacion\AliasDePlataforma;
 use App\Message\Service\Conversacion\EditorDeIdentidades;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use DateTimeImmutable;
@@ -217,7 +218,7 @@ final class EditorDeIdentidadesTest extends TestCase
         $em->method('getUnitOfWork')->willReturn($uow);
         $em->method('getRepository')->willReturn($repo);
 
-        return new EditorDeIdentidades($em, new NullLogger(), $this->enlaces($asuntos));
+        return new EditorDeIdentidades($em, new NullLogger(), new AliasDePlataforma($this->enlaces($asuntos)));
     }
 
     /**

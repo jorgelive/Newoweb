@@ -480,16 +480,6 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
     }
 
     /**
-     * Sin acotar: una reserva puede alcanzarse por los tres canales.
-     *
-     * Cuál sirve para UNA reserva concreta es otra pregunta —depende de que tenga
-     * `beds24_book_id` y de que no sea directa— y la contesta `Beds24SendEnqueuer` con los
-     * metadatos delante. Repetir aquí esa comprobación sería tener el mismo corte en dos
-     * sitios y que uno de los dos se quedara atrás.
-     *
-     * @return list<string>
-     */
-    /**
      * El correo de la reserva. En una de OTA es el alias que emite la plataforma, y es el único
      * por el que se le puede escribir sin salirse de ella.
      */
@@ -505,12 +495,36 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
      *
      * Una reserva directa —o cargada a mano— trae el correo de verdad del huésped, y ahí manda
      * lo que una persona haya marcado como principal.
+     *
+     * ⚠️ **Manda el flag del canal, no la lista de códigos.** «¿Es venta directa?» ya se
+     * responde en la base —`pms_channel.es_directo`, editable desde el panel— y contestarlo con
+     * una lista de identificadores escrita en el código es un segundo autor: un canal nuevo dado
+     * de alta mañana como directo entraría igual en la lista de plataformas y su correo dejaría
+     * de aceptar el principal, sin un solo error. Hoy los dos coinciden en las tres filas que
+     * hay (`airbnb`/`booking` externos, `directo` directo), que es el momento de ordenarlos.
+     *
+     * La lista estática queda de respaldo para cuando no hay fila que mirar: un enlace cuyo
+     * `origen` se copió del contexto y cuya reserva ya no está cargada.
      */
     public function correoEsExclusivo(): bool
     {
-        return PmsChannel::esDePlataforma($this->origen);
+        $canal = $this->reserva?->getChannel();
+
+        return $canal !== null
+            ? !$canal->getEsDirecto()
+            : PmsChannel::esDePlataforma($this->origen);
     }
 
+    /**
+     * Sin acotar: una reserva puede alcanzarse por los tres canales.
+     *
+     * Cuál sirve para UNA reserva concreta es otra pregunta —depende de que tenga
+     * `beds24_book_id` y de que no sea directa— y la contesta `Beds24SendEnqueuer` con los
+     * metadatos delante. Repetir aquí esa comprobación sería tener el mismo corte en dos
+     * sitios y que uno de los dos se quedara atrás.
+     *
+     * @return list<string>
+     */
     public function canalesPosibles(): array
     {
         return [];

@@ -5425,7 +5425,8 @@ arreglar** — ver el aviso al final de esta sección.
 | **Cambiar a qué correo se le escribe** | `src/Message/Service/Queue/EmailSendEnqueuer.php` | `destino()` + `asuntoElegido()` — dos regímenes, §24 |
 | Cambiar qué reservas usan alias de plataforma en vez del correo personal | `src/Pms/Entity/PmsConversacionEnlace.php` | `correoEsExclusivo()` (→ `PmsChannel::esDePlataforma()`) |
 | Cambiar qué orígenes se consideran «reserva nuestra» | `src/Pms/Entity/PmsChannel.php` | `ORIGENES_PROPIOS` / `esDePlataforma()` — **única fuente**: la usan Beds24, `MessageFactory` y el correo |
-| Cambiar qué identificadores pueden marcarse como principales | `src/Message/Service/Conversacion/EditorDeIdentidades.php` | `marcarPrincipal()` + `esDeUnaPlataforma()` — 🪞 espejo en `EditConversationModal.vue` |
+| Cambiar qué identificadores pueden marcarse como principales | `src/Message/Service/Conversacion/EditorDeIdentidades.php` | `marcarPrincipal()` — la regla vive en `AliasDePlataforma` |
+| **Cambiar qué direcciones se consideran «de la plataforma»** | `src/Message/Service/Conversacion/AliasDePlataforma.php` | `esAlias()` / `de()` / `elHiloTieneAsuntosExclusivos()` — 🪞 espejo en `EditConversationModal.vue` |
 | Cambiar el texto que se COPIA para WhatsApp desde el panel | `util/src/utils/formatoDeTexto.ts` + `src/Message/Service/Formato/FormatoDeTexto.php` | `paraWhatsapp()` — **espejo: los dos** |
 | Cambiar QUÉ copia el botón del asistente | `util/src/utils/formatoDeTexto.ts` | `bloqueCopiable()` — el bloque ``` si hay uno, si no todo |
 | Cambiar cómo se pinta un bloque de código en el panel | `util/src/utils/formatoDeTexto.ts` | `formatoAHtml()`, marcadores `\x02`/`\x03` |
@@ -8867,8 +8868,15 @@ de la PERSONA      → 1. el identificador PRINCIPAL     ← lo marcó alguien m
   (todo lo demás)    2. el correo que sembró el asunto ← lo tecleó alguien al crearla
 ```
 
-En el PMS lo resuelve `PmsChannel::esDePlataforma($origen)`; en Turismo es `false` siempre, que
-vende directo.
+En el PMS lo resuelve el **flag del canal** (`pms_channel.es_directo`, editable en el panel) y,
+sólo si no hay fila que mirar, la lista estática `PmsChannel::ORIGENES_PROPIOS`. En Turismo es
+`false` siempre, que vende directo.
+
+⚠️ **El flag manda sobre la lista.** «¿Es venta directa?» ya se respondía en la base, y
+contestarlo con identificadores escritos en el código es un segundo autor: un canal nuevo dado de
+alta mañana como directo entraría igual en la lista de plataformas y su correo dejaría de aceptar
+el principal, sin un solo error. Hoy los dos coinciden en las tres filas que hay —`airbnb` y
+`booking` externos, `directo` directo—, que es justo el momento de ordenarlos.
 
 ⚠️ **El principal manda ahora, y antes no.** Esto ponía el asunto primero **siempre**, con el
 principal de respaldo: era la regla de la OTA aplicada a todo el mundo. Para una reserva directa
@@ -8886,6 +8894,28 @@ Con dos asuntos y ninguno elegido **no se elige ninguno**: mandarlo al alias equ
 conversación del hilo bueno de la plataforma. Por eso el panel propone asunto solo —ver abajo— y
 al hacerlo el botón de correo se enciende.
 
+⚠️ **Y ahí, si el hilo tiene algún asunto exclusivo, el canal se apaga en vez de caer al correo
+personal.** Era la puerta de atrás de toda la regla, y por un caso corriente: un repetidor de
+Booking con dos estancias. `AsuntoDelMensaje::estampar()` deja el asunto en `NULL` justo cuando
+hay dos, así que un mensaje del agente esquivaba la exclusividad **por no saber de qué estancia
+se hablaba** y salía fuera de la plataforma.
+
+⚠️ **El principal tampoco vale si resulta ser un alias.** `getCorreoPrincipal()` devuelve también
+el **único correo vivo aunque nadie lo haya marcado**, así que en un hilo donde el personal se
+retiró por rebotar —el flujo para el que existe el editor— el que quedaba era el alias de
+Booking, y se llevaba los envíos de todos los asuntos, incluidos los directos. Sin que nadie lo
+marcara: justo lo que `marcarPrincipal()` impide hacer a mano.
+
+⚠️ **Los asuntos CANCELADOS no cuentan** para decidir si hay uno solo, con el mismo criterio que
+`AsuntoDelMensaje::estampar()`. Sin eso, «cliente que vuelve y tiene una cancelada en su
+historial» parecía ambiguo y apagaba el botón en un hilo con una sola reserva viva.
+
+Las tres las decide un solo sitio, {@see AliasDePlataforma}: qué direcciones del hilo son de una
+plataforma, deducido de los asuntos y **no guardado** —una copia en la identidad mentiría el día
+que una reserva se reclasifique—. La comparación va por
+`IdentidadTipo::EMAIL->normalizar()` y no por `strcasecmp`, que sólo baja ASCII: con una
+mayúscula acentuada, el lado que MANDA dejaría pasar lo que el panel esconde.
+
 ⚠️ **`isValid()` pregunta CON el asunto del mensaje delante.** Preguntándolo a secas, un hilo con
 dos estancias de OTA y ningún correo personal no tiene destino, y el canal se declaraba inválido
 aunque el mensaje sí dijera de cuál habla: el motor lo podaba y el correo no salía sin nada que
@@ -8894,8 +8924,8 @@ lo explicara.
 #### El alias no puede ser «el correo principal»
 
 `EditorDeIdentidades::marcarPrincipal()` **rechaza** una identidad cuyo valor sea el alias de un
-asunto exclusivo, con un 409 y el motivo escrito. Marcarlo mandaría la estancia de Airbnb del mes
-que viene al buzón de la de Booking del mes pasado.
+asunto exclusivo —se lo pregunta a `AliasDePlataforma`—, con un 409 y el motivo escrito. Marcarlo
+mandaría la estancia de Airbnb del mes que viene al buzón de la de Booking del mes pasado.
 
 Que el alias esté **registrado como identidad es correcto y hace falta**: es lo que hace que el
 correo entrante de Booking caiga en el hilo de esa persona. Lo que no puede es ser la salida por
@@ -8904,6 +8934,10 @@ defecto de todo.
 Se **deduce**, no se guarda: el alias ya ES el `correoDeContacto()` de un asunto que se declara
 exclusivo, y una copia en la identidad crearía un segundo autor sobre el mismo hecho —el día que
 una reserva se reclasifique, mentiría—.
+
+**En el panel, la fila del alias va sin acciones**, como la de Beds24 — y es más estricto que el
+backend a propósito: éste sólo impide marcarla principal, pero retirarla dejaría de resolver el
+hilo el día que Booking escriba, y vetarla no significa nada fuera de WhatsApp.
 
 🪞 El panel esconde la estrella con la misma regla, comparando contra `correoExclusivo` de la
 lista de asuntos (`AsuntosDeConversacionController::comoLista()` →

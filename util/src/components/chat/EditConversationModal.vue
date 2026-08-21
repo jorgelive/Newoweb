@@ -40,8 +40,12 @@ interface IdentidadDelPanel {
 /**
  * Los alias de plataforma del hilo, en minúsculas para comparar.
  *
- * 🪞 Espejo de `EditorDeIdentidades::esDeUnaPlataforma()`, que es quien de verdad lo impide. Si
- * la regla cambia allí, cambia aquí — esto sólo evita ofrecer un botón que va a responder 409.
+ * 🪞 Espejo de `AliasDePlataforma`, que es quien de verdad lo impide —y quien además los aparta
+ * del destino de los envíos—. Si la regla cambia allí, cambia aquí: esto sólo evita ofrecer un
+ * botón que va a responder 409.
+ *
+ * Mientras `fetchAsuntos` no haya respondido esto está vacío y la estrella se ofrece; el 409 la
+ * frena. Es una degradación aceptable y no un caso que valga la pena bloquear con un spinner.
  */
 const aliasDePlataforma = computed<Set<string>>(() => new Set(
   store.asuntosDelChat
@@ -304,8 +308,10 @@ const formatDateTime = (iso?: string | null) => {
 
                 <!-- El alias de una OTA tampoco es un contacto de la persona: Booking emite
                      uno POR RESERVA y sólo vale para ésa. Se enseña —hace falta para que su
-                     correo entrante caiga en este hilo— pero sin estrella: marcarlo como
-                     salida por defecto mandaría la reserva de mañana al buzón de la de ayer. -->
+                     correo entrante caiga en este hilo— y **sin acciones**, como Beds24:
+                     marcarlo como salida por defecto mandaría la reserva de mañana al buzón de
+                     la de ayer, y retirarlo dejaría de resolver el hilo cuando Booking escriba.
+                     El backend sólo impide lo primero; esto es más estricto a propósito. -->
                 <span v-else-if="ident.deLaPlataforma" class="text-[8px] font-black text-slate-300 uppercase tracking-wide pr-1"
                       title="Alias que emite la plataforma para una reserva concreta. Sólo se usa para ese asunto.">plataforma</span>
 

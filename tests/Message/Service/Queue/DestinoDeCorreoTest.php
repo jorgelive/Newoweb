@@ -12,6 +12,7 @@ use App\Message\Contract\ProveedorDeEnlacesInterface;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageIdentidad;
 use App\Message\Enum\IdentidadTipo;
+use App\Message\Service\Conversacion\AliasDePlataforma;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Message\Service\Queue\EmailSendEnqueuer;
 use DateTimeImmutable;
@@ -126,7 +127,27 @@ final class DestinoDeCorreoTest extends TestCase
     public function el_principal_marcado_a_mano_manda_sobre_la_deduccion(): void
     {
         // Una decisión de persona pesa más que una deducción: si alguien marcó cuál es el bueno,
-        // no se le lleva la contraria por tener varias reservas.
+        // no se le lleva la contraria por tener dos expedientes directos.
+        $hilo = $this->hilo();
+        $principal = new MessageIdentidad(IdentidadTipo::EMAIL, 'nune@ejemplo.com');
+        $principal->setPrincipal(true);
+        $hilo->addIdentidad($principal);
+
+        $enq = $this->encolador($hilo, [
+            ['r-1', 'el.que.tecleamos@ejemplo.com', false],
+            ['r-2', 'otro.mas@ejemplo.com', false],
+        ]);
+
+        self::assertSame('nune@ejemplo.com', $this->destino($enq, $hilo, null, null));
+    }
+
+    #[Test]
+    public function con_asuntos_de_ota_y_ninguno_elegido_NO_se_cae_al_correo_personal(): void
+    {
+        // ⚠️ La puerta de atrás de la exclusividad, y el caso es corriente: un repetidor de
+        // Booking con dos estancias. `AsuntoDelMensaje::estampar()` deja el asunto en NULL justo
+        // cuando hay dos, así que un mensaje del agente esquivaba la regla por no saber de cuál
+        // se hablaba, y salía al correo personal — fuera de la plataforma.
         $hilo = $this->hilo();
         $principal = new MessageIdentidad(IdentidadTipo::EMAIL, 'nune@ejemplo.com');
         $principal->setPrincipal(true);
@@ -137,7 +158,26 @@ final class DestinoDeCorreoTest extends TestCase
             ['r-2', 'sacuna.672272@guest.booking.com', true],
         ]);
 
-        self::assertSame('nune@ejemplo.com', $this->destino($enq, $hilo, null, null));
+        self::assertNull($this->destino($enq, $hilo, null, null));
+    }
+
+    #[Test]
+    public function un_alias_no_se_cuela_como_principal_por_ser_el_unico_vivo(): void
+    {
+        // `getCorreoPrincipal()` devuelve también el ÚNICO correo vivo aunque nadie lo marcara.
+        // Si el personal se retiró por rebotar, el que queda es el alias de Booking: sin esta
+        // guarda se llevaba los envíos de todos los asuntos, incluido el directo — y nadie lo
+        // había marcado, que es justo lo que `marcarPrincipal()` impide hacer a mano.
+        $hilo = $this->hilo();
+        $alias = new MessageIdentidad(IdentidadTipo::EMAIL, 'sacuna.311134@guest.booking.com');
+        $hilo->addIdentidad($alias);
+
+        $enq = $this->encolador($hilo, [
+            ['r-1', 'sacuna.311134@guest.booking.com', true],
+            ['r-2', 'el.suyo@ejemplo.com', false],
+        ]);
+
+        self::assertSame('el.suyo@ejemplo.com', $this->destino($enq, $hilo, 'pms_reserva', 'r-2'));
     }
 
     #[Test]
@@ -191,9 +231,12 @@ final class DestinoDeCorreoTest extends TestCase
             public function enlaceDeAsunto(MessageConversation $c, string $t, string $i): ?ConversacionEnlaceInterface { return null; }
         };
 
+        $enlacesDe = new EnlacesDeConversacion([$proveedor]);
+
         return new EmailSendEnqueuer(
             $this->createStub(EntityManagerInterface::class),
-            new EnlacesDeConversacion([$proveedor]),
+            $enlacesDe,
+            new AliasDePlataforma($enlacesDe),
         );
     }
 

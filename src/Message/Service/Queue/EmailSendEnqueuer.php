@@ -8,6 +8,7 @@ use App\Exchange\Entity\EmailConfig;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
 use App\Message\Contract\ChannelEnqueuerInterface;
+use App\Contract\VinculoComercial;
 use App\Message\Contract\ConversacionEnlaceInterface;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\EmailSendQueue;
@@ -15,6 +16,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
+use App\Message\Service\Conversacion\AliasDePlataforma;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -50,6 +52,7 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
     public function __construct(
         private EntityManagerInterface $em,
         private EnlacesDeConversacion $enlaces,
+        private AliasDePlataforma $alias,
     ) {
     }
 
@@ -192,7 +195,31 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
             return $elegido->correoDeContacto();
         }
 
-        return $conversacion->getCorreoPrincipal()?->getValor() ?? $elegido?->correoDeContacto();
+        // ⚠️ **Sin asunto resuelto y con alguno exclusivo en el hilo, no se envía.**
+        //
+        // Ésta era la puerta de atrás: `asuntoElegido()` devuelve `null` con dos asuntos y
+        // ninguno elegido, y `AsuntoDelMensaje::estampar()` deja el asunto en `NULL` justo en ese
+        // caso — así que un mensaje del agente en el hilo de un huésped repetidor de Booking
+        // caía al correo personal y sacaba la conversación de la plataforma. Exactamente lo que
+        // la rama de arriba viene a impedir, esquivado por no saber de qué estancia se hablaba.
+        //
+        // Apagado, el panel lo enseña apagado y basta con elegir el asunto para encenderlo.
+        if ($elegido === null && $this->alias->elHiloTieneAsuntosExclusivos($conversacion)) {
+            return null;
+        }
+
+        // ⚠️ Y el principal **no vale si es un alias**. `getCorreoPrincipal()` devuelve también
+        // el único correo vivo aunque nadie lo haya marcado, así que en un hilo donde el correo
+        // personal se retiró por rebotar, el alias de Booking quedaba de «principal» de hecho
+        // —sin que nadie lo marcara, que es justo lo que `marcarPrincipal()` impide a mano— y se
+        // llevaba los envíos de TODOS los asuntos, incluidos los directos.
+        $principal = $conversacion->getCorreoPrincipal();
+
+        if ($principal !== null && !$this->alias->esAlias($conversacion, $principal)) {
+            return $principal->getValor();
+        }
+
+        return $elegido?->correoDeContacto();
     }
 
     /**
@@ -219,7 +246,21 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
             return null;
         }
 
-        return count($asuntos) === 1 ? $asuntos[0] : null;
+        // ⚠️ Los CANCELADOS no cuentan, con el mismo criterio que `AsuntoDelMensaje::estampar()`.
+        // Sin esto, «cliente que vuelve y tiene una cancelada en su historial» —el caso común, no
+        // el raro— parece ambiguo: dos asuntos, ninguno elegible, y el botón de correo apagado en
+        // un hilo que sólo tiene una reserva viva. Los dos sitios responden a la misma pregunta y
+        // tienen que responderla igual.
+        $vivos = array_values(array_filter(
+            $asuntos,
+            static fn (ConversacionEnlaceInterface $e): bool => $e->getVinculo() !== VinculoComercial::Terminado
+        ));
+
+        // Si no queda ninguno vivo se juzga con todos: a un hilo cuyas reservas terminaron todas
+        // se le sigue pudiendo escribir del asunto que hubo.
+        $candidatos = $vivos !== [] ? $vivos : $asuntos;
+
+        return count($candidatos) === 1 ? $candidatos[0] : null;
     }
 
     /**
