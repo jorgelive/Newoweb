@@ -34,6 +34,35 @@ defineProps<{
   cotizacionId?: string;
 }>();
 
+/**
+ * ¿Está desplegado el bloque «Catálogo Maestro» de la ficha de servicio?
+ *
+ * Arranca abierto —es lo que se ve al entrar por primera vez— y **se recuerda**: quien lo
+ * cierra es porque está en una tanda de prestadores y compradores, que viven al final de la
+ * ficha, y cerrarlo de nuevo en cada uno de los 17 servicios sería peor que el scroll que
+ * venía a evitar.
+ *
+ * `localStorage` y no el store: es una preferencia de quien mira, no un dato de la cotización.
+ * Un `try` alrededor porque en modo privado de algunos navegadores escribir lanza, y perder la
+ * preferencia no puede tumbar el editor.
+ */
+const CLAVE_CATALOGO = 'cotizacion.editor.catalogoAbierto';
+const catalogoAbierto = ref(leerPreferencia());
+
+function leerPreferencia(): boolean {
+    try {
+        return localStorage.getItem(CLAVE_CATALOGO) !== '0';
+    } catch {
+        return true;
+    }
+}
+
+watch(catalogoAbierto, (abierto) => {
+    try {
+        localStorage.setItem(CLAVE_CATALOGO, abierto ? '1' : '0');
+    } catch { /* sin persistencia: el editor sigue funcionando igual */ }
+});
+
 const isReporteOpen = ref(false);
 const verEnSoles = ref(false);
 
@@ -1646,9 +1675,31 @@ store.$onAction(({ name, args }) => {
           </div>
           <div class="p-5 flex-1 overflow-y-auto space-y-6 pb-28">
             <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-4">
-              <div>
-                <label class="block text-[10px] font-black text-[#E07845] uppercase tracking-widest mb-2"><i class="fas fa-book mr-1"></i> Catálogo Maestro</label>
+              <!-- ⚠️ Colapsable, y arranca ABIERTO.
+                   Editar prestadores y compradores es lo que más se repite en una jornada, y
+                   viven al final de la ficha: con este bloque desplegado había que pasar por
+                   encima del catálogo, los dos nombres y la fecha cada vez que se cambiaba de
+                   servicio — 17 veces en la cotización de la captura.
+                   La preferencia se recuerda (`localStorage`) porque quien lo cierra lo cierra
+                   para toda la sesión de trabajo, no para un servicio. -->
+              <button type="button" @click="catalogoAbierto = !catalogoAbierto"
+                      class="w-full flex items-center gap-2 text-left">
+                <label class="block text-[10px] font-black text-[#E07845] uppercase tracking-widest cursor-pointer">
+                  <i class="fas fa-book mr-1"></i> Catálogo Maestro
+                </label>
+                <!-- Cerrado, la cabecera tiene que decir QUÉ hay dentro: si no, hay que abrirlo
+                     para saber de qué servicio se trata, y el atajo deja de serlo. -->
+                <span v-if="!catalogoAbierto && store.servicioActivo"
+                      class="text-[10px] font-bold text-slate-400 truncate min-w-0 flex-1">
+                  {{ store.getI18nText(store.servicioActivo.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es') }}
+                  <span v-if="store.servicioActivo.fechaInicioAbsoluta" class="text-slate-300">· {{ store.servicioActivo.fechaInicioAbsoluta }}</span>
+                </span>
+                <i class="fas ml-auto text-slate-400 text-xs shrink-0"
+                   :class="catalogoAbierto ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+              </button>
 
+              <template v-if="catalogoAbierto">
+              <div>
                 <SearchableSelect
                     v-model="store.servicioActivo.servicioMaestroId"
                     :options="opcionesServicios"
@@ -1728,6 +1779,7 @@ store.$onAction(({ name, args }) => {
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1"><i class="far fa-calendar-alt mr-1"></i> Fecha Ejecución (Milestone)</label>
                 <input v-model="store.servicioActivo.fechaInicioAbsoluta" @change="store.onServicioFechaChange" type="date" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
               </div>
+              </template>
 
             </div>
 
@@ -1810,6 +1862,24 @@ store.$onAction(({ name, args }) => {
                       <i class="fas fa-truck-field text-emerald-500 shrink-0"></i>
                       <span class="text-emerald-500 shrink-0">PRESTADOR</span>
                       <span class="truncate">{{ comp.prestadorNombreSnapshot }}</span>
+                    </span>
+
+                    <!--
+                      Comprador: a quién se le ENCARGA la compra, que casi nunca es quien
+                      presta. Sólo aparece cuando existe, y por eso mismo importa verlo: el
+                      campo está vacío en la mayoría de componentes —se le compra directo al
+                      prestador— así que una pastilla aquí significa que hay un intermediario.
+
+                      Y es el dato del que sale la ORDEN DE SERVICIO: se emite a nombre del
+                      comprador, no del prestador. Sin esto había que abrir el componente para
+                      saber a quién se le va a pedir.
+                    -->
+                    <span v-if="comp.compradorNombreSnapshot"
+                          class="bg-violet-50 border border-violet-100 text-violet-800 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max max-w-full"
+                          title="COMPRADOR: a quién se le encarga la compra. La Orden de Servicio sale a su nombre.">
+                      <i class="fas fa-cart-shopping text-violet-500 shrink-0"></i>
+                      <span class="text-violet-500 shrink-0">COMPRADOR</span>
+                      <span class="truncate">{{ comp.compradorNombreSnapshot }}</span>
                     </span>
 
                     <div v-if="comp.cantidad && comp.cantidad !== 1"
