@@ -8821,6 +8821,20 @@ sale a donde se decidió que saliera — es lo mismo que hace WhatsApp con `dest
 **El cuerpo, en cambio, se resuelve al enviar**, como en todos los canales: las variables llevan
 los datos del día en que sale, no los de cuando se programó.
 
+⚠️ **El DESTINO sale del asunto, no de la persona.** Booking emite **un alias por reserva**
+—`sacuna.311134@` y `sacuna.672272@` son la misma señora y dos estancias—, así que en un hilo con
+las dos «el correo de esa persona» no existe. El orden es:
+
+```
+1. el correo del ASUNTO elegido      ← lo dice quien escribe: manda
+2. el identificador PRINCIPAL        ← lo marcó una persona a mano
+3. el correo del único asunto        ← no hay con qué equivocarse
+```
+
+Con dos alias y ningún asunto elegido **no se elige ninguno**: mandarlo al equivocado saca la
+conversación del hilo bueno de la plataforma. Por eso el panel propone asunto solo — ver abajo— y
+al hacerlo el botón de correo se enciende.
+
 ⚠️ **El asunto cuando no hay plantilla sale de la ETIQUETA del asunto** —«Tu reserva Casita 3,
 02/03–09/03»—, que la redacta el dominio y está pensada justo para eso. Un título genérico en la
 bandeja de alguien con tres reservas no dice de cuál va.
@@ -9128,8 +9142,16 @@ panel la pinta tal cual.
 
 - **Aparece sólo con dos o más asuntos.** Con uno, el backend lo estampa y no hay nada que
   elegir; poner el selector siempre sería pedirle al operador que confirme lo obvio.
-- Se propone el **titular**, y los no titulares llevan su marca: a un acompañante se le
-  contesta, pero no se le programa nada.
+- **Se propone el del ÚLTIMO MENSAJE ENTRANTE**, por lo mismo que el canal se preselecciona solo
+  al contestar un WhatsApp: si alguien acaba de escribir, de lo que se habla es de su último
+  mensaje, no de lo que diga el calendario. Si ese mensaje no lleva asunto —los entrantes de
+  WhatsApp no lo llevan cuando el hilo tiene varios: es ambiguo y no se adivina— se cae al
+  primero, que el backend devuelve ordenado por relevancia.
+- ⚠️ Y **se piden los asuntos DESPUÉS de cargar los mensajes**. Lanzarlo antes leía los del chat
+  anterior: el asunto propuesto salía del hilo que acababas de cerrar.
+- Al proponerlo se **vuelven a pedir los canales**, porque dependen de él. Sin eso, el botón de
+  correo se quedaba apagado teniendo destino.
+- Los no titulares llevan su marca: a un acompañante se le contesta, pero no se le programa nada.
 - **Cambiar de asunto vuelve a pedir los canales**, porque no son los mismos: un expediente de
   viaje no sale por Beds24 y una reserva de OTA sí. Con eso, el corte de
   `MessageDispatcher::acotarAlAsunto()` por fin se aplica de verdad.

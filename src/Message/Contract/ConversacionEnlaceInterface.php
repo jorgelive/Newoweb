@@ -181,6 +181,24 @@ interface ConversacionEnlaceInterface
     public function marcarTitular(bool $esTitular): self;
 
     /**
+     * El correo por el que se alcanza ESTE asunto, o `null`.
+     *
+     * ── Por qué es del asunto y no de la persona ────────────────────────────
+     * Porque en la práctica **lo es**. Los 25 correos-identidad de esta base son alias
+     * `@guest.booking.com`, y Booking emite **uno por reserva**: `sacuna.311134@` y
+     * `sacuna.672272@` son la misma señora y dos estancias distintas.
+     *
+     * Con el correo colgado de la persona, un hilo con dos reservas de Booking no tiene «el
+     * correo de esa persona» — tiene dos, y elegir por orden de llegada es mandarle el mensaje
+     * al hilo equivocado de la plataforma. Por eso el destino lo dice el asunto, igual que el
+     * `bookId` dice por qué hilo de Beds24 sale un mensaje.
+     *
+     * `null` cuando el asunto no trae correo: entonces se cae al identificador principal de la
+     * persona, que es lo correcto para un cliente directo con su correo de siempre.
+     */
+    public function correoDeContacto(): ?string;
+
+    /**
      * Por qué canales se puede alcanzar ESTE asunto. **Lista vacía = sin acotar.**
      *
      * ── Por qué cuelga del asunto y no de la conversación ───────────────────

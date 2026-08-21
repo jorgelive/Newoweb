@@ -20,9 +20,11 @@ use RuntimeException;
 /**
  * Pone un mensaje en la cola de correo.
  *
- * ── El destino sale de las IDENTIDADES ──────────────────────────────────────
- * No hay un `guestEmail` en la conversación, y es mejor así: el correo de una persona vive
- * donde viven sus identificadores, que es donde se puede corregir, retirar y marcar cuál usar.
+ * ── El destino sale del ASUNTO, y si no, de las identidades ─────────────────
+ * No hay un `guestEmail` en la conversación, y es mejor así: hay casos en que «el correo de esa
+ * persona» sencillamente no existe. Booking emite **un alias por reserva**, así que alguien con
+ * dos estancias tiene dos, y elegir por orden de llegada es escribirle al hilo equivocado de la
+ * plataforma. Manda el asunto; el identificador principal es el respaldo. Ver `destino()`.
  *
  * ⚠️ Se **congela** en la cola. Entre encolar y enviar pueden pasar días —un recordatorio se
  * programa con antelación— y en ese rato el correo puede cambiar o retirarse. Un mensaje sale a
@@ -65,7 +67,7 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
             throw new RuntimeException('El mensaje no tiene una conversación asociada.');
         }
 
-        $destino = $this->destino($conversation);
+        $destino = $this->destino($conversation, $message->getAsuntoType(), $message->getAsuntoId());
 
         if ($destino === null) {
             throw new RuntimeException(sprintf(
@@ -120,15 +122,45 @@ final readonly class EmailSendEnqueuer implements ChannelEnqueuerInterface
         ?string $asuntoType = null,
         ?string $asuntoId = null
     ): bool {
-        return $this->destino($conversacion) !== null;
+        return $this->destino($conversacion, $asuntoType, $asuntoId) !== null;
     }
 
-    /** El correo principal vivo y no vetado de la persona. */
-    private function destino(MessageConversation $conversacion): ?string
+    /**
+     * A qué correo se le escribe.
+     *
+     * ── El orden, y por qué ─────────────────────────────────────────────────
+     * ```
+     * 1. el correo del ASUNTO elegido      ← lo dice quien escribe: manda
+     * 2. el identificador PRINCIPAL        ← lo marcó una persona a mano
+     * 3. el correo del único asunto        ← no hay con qué equivocarse
+     * ```
+     *
+     * El asunto va primero porque en una reserva de OTA el correo **es del asunto**: Booking
+     * emite un alias por reserva, así que «el correo de esa persona» no existe cuando tiene dos
+     * estancias. Elegir por orden de llegada sería mandarle el mensaje al hilo equivocado de la
+     * plataforma.
+     *
+     * Y si no se dijo el asunto, manda el principal: eso lo marcó alguien mirando, y una
+     * decisión de persona pesa más que una deducción.
+     */
+    private function destino(MessageConversation $conversacion, ?string $asuntoType, ?string $asuntoId): ?string
     {
-        $identidad = $conversacion->getCorreoPrincipal();
+        $asuntos = $this->enlaces->de($conversacion);
 
-        return $identidad?->getValor();
+        if ($asuntoType !== null && $asuntoId !== null) {
+            foreach ($asuntos as $asunto) {
+                if ($asunto->getContextType() === $asuntoType && $asunto->getContextId() === $asuntoId) {
+                    return $asunto->correoDeContacto() ?? $conversacion->getCorreoPrincipal()?->getValor();
+                }
+            }
+        }
+
+        if (($principal = $conversacion->getCorreoPrincipal()?->getValor()) !== null) {
+            return $principal;
+        }
+
+        // Un solo asunto: su correo ES el de la conversación, sin ambigüedad que resolver.
+        return count($asuntos) === 1 ? $asuntos[0]->correoDeContacto() : null;
     }
 
     /**

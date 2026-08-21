@@ -175,6 +175,14 @@ class CotizacionConversacionEnlace implements ConversacionEnlaceInterface
      *
      * @return list<string>
      */
+    /** El correo del expediente. */
+    public function correoDeContacto(): ?string
+    {
+        $correo = trim((string) $this->file?->getEmail());
+
+        return $correo !== '' ? $correo : null;
+    }
+
     public function canalesPosibles(): array
     {
         return ['whatsapp_meta', 'email'];

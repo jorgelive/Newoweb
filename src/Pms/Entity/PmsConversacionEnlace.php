@@ -489,6 +489,17 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
      *
      * @return list<string>
      */
+    /**
+     * El correo de la reserva. En una de OTA es el alias que emite la plataforma, y es el único
+     * por el que se le puede escribir sin salirse de ella.
+     */
+    public function correoDeContacto(): ?string
+    {
+        $correo = trim((string) $this->reserva?->getEmailCliente());
+
+        return $correo !== '' ? $correo : null;
+    }
+
     public function canalesPosibles(): array
     {
         return [];

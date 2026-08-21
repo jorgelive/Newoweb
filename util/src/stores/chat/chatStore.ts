@@ -602,8 +602,10 @@ export const useChatStore = defineStore('chatStore', () => {
 
         // Una petición por chat abierto. No son campos de la colección a propósito:
         // serializarlos metería un N+1 en un listado de 300 y pico hilos para ahorrar esto.
+        //
+        // ⚠️ Los ASUNTOS se piden más abajo, DESPUÉS de cargar los mensajes: el que se propone
+        // sale del último entrante, y lanzado aquí leería los del chat anterior.
         void fetchCanales(id);
-        void fetchAsuntos(id);
 
         try {
             if (found && (found.unreadCount ?? 0) > 0) {
@@ -622,6 +624,10 @@ export const useChatStore = defineStore('chatStore', () => {
 
             messages.value = extractData<ApiMessage>(response).reverse();
             hasMoreMessages.value = hasNextPage(response);
+
+            // Ahora sí: con los mensajes delante se puede proponer el asunto del último
+            // entrante, igual que el canal se preselecciona por el último mensaje recibido.
+            void fetchAsuntos(id);
 
             connectToMercure(id);
         } catch {
@@ -667,14 +673,28 @@ export const useChatStore = defineStore('chatStore', () => {
             const asuntos = (response.data?.asuntos ?? []) as AsuntoDelHilo[];
             asuntosDelChat.value = asuntos;
 
-            // Con uno solo no se elige: lo estampa el backend. Con varios se propone el
-            // PRIMERO, que el backend ya devuelve ordenado por relevancia — el que está en
-            // curso, si no el más próximo a llegar.
+            // ── QUÉ ASUNTO SE PROPONE ──────────────────────────────────────────────
             //
-            // ⚠️ Antes se buscaba `esTitular`, y eso estaba mal: significa «este hilo atiende
-            // este asunto», no «éste es el principal». En un hilo fusionado los tres asuntos son
-            // titulares del suyo, así que caía en el orden de creación del enlace.
-            asuntoElegido.value = asuntos.length > 1 ? asuntos[0] : null;
+            // Primero el del ÚLTIMO MENSAJE ENTRANTE, por lo mismo que el canal se preselecciona
+            // solo cuando contestas a un WhatsApp: si alguien acaba de escribir, de lo que se
+            // está hablando es de su último mensaje, no de lo que diga el calendario.
+            //
+            // Si ese mensaje no lleva asunto —los entrantes de WhatsApp no lo llevan cuando el
+            // hilo tiene varios: es ambiguo y `AsuntoDelMensaje` no adivina— se cae al primero,
+            // que el backend devuelve ordenado por relevancia: el que está en curso, si no el
+            // más próximo a llegar.
+            //
+            // ⚠️ NO se ordena por `esTitular`: significa «este hilo atiende este asunto», no
+            // «éste es el principal». En un hilo fusionado todos lo son.
+            asuntoElegido.value = asuntos.length > 1
+                ? (asuntoDelUltimoEntrante(asuntos) ?? asuntos[0])
+                : null;
+
+            // Los canales dependen del asunto —el correo de una reserva de OTA es su alias de
+            // Booking, y con dos estancias no hay «el correo de esa persona»—, así que en cuanto
+            // hay uno propuesto se vuelven a pedir. Sin esto el botón se quedaba apagado
+            // teniendo destino.
+            if (asuntoElegido.value) await fetchCanales(id, asuntoElegido.value);
         } catch {
             asuntosDelChat.value = [];
             asuntoElegido.value = null;
@@ -816,6 +836,23 @@ export const useChatStore = defineStore('chatStore', () => {
         } catch (e: unknown) {
             return mensajeDeError(e) ?? 'No se pudo cambiar el titular.';
         }
+    };
+
+    /**
+     * El asunto del último mensaje entrante del hilo, si lo lleva estampado.
+     *
+     * Es la misma idea que preseleccionar WhatsApp al contestar un WhatsApp: se responde a lo
+     * último que dijeron, no a lo que toque por fecha.
+     *
+     * @param {AsuntoDelHilo[]} asuntos Los del hilo; se devuelve uno de ÉSTOS y no el par crudo,
+     *                                  para que el selector reciba siempre un asunto que existe.
+     */
+    const asuntoDelUltimoEntrante = (asuntos: AsuntoDelHilo[]): AsuntoDelHilo | null => {
+        const entrante = [...messages.value].reverse().find(m => m.direction === 'incoming' && m.asuntoId);
+
+        if (!entrante) return null;
+
+        return asuntos.find(a => a.contextType === entrante.asuntoType && a.contextId === entrante.asuntoId) ?? null;
     };
 
     /**
