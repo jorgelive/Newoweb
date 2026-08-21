@@ -582,10 +582,83 @@ volver a donde estabas no tiene sentido si eso ya no existe.
 de history con `pushState` y cierran en `popstate`. Ver docs/Operacion.md §3.17 — mismo
 objetivo (el «atrás» hace lo esperado), mecánica distinta.
 
+## 3.g `GestoDeRecarga` — tirar para recargar, que sólo funcionaba en el Home (2026-08-21)
+
+### Por qué había que escribirlo
+
+El gesto nativo **sólo existía en el Home**, y no por casualidad: es la única vista cuya raíz
+scrollea (`h-screen overflow-y-auto`), así que el navegador la promociona a *root scroller* y le
+da el tirón-para-recargar gratis.
+
+Las otras **nueve** son `h-screen … overflow-hidden` con scrollers internos —la forma normal de
+una app con cabecera fija— y ahí no hay root scroller que promocionar: el gesto sencillamente no
+existe. No estaba desactivado; nunca llegó a haberlo.
+
+### Vive en el shell, no en las vistas
+
+Se monta una vez en `App.vue` y se engancha a `document`, buscando el scroller **bajo el dedo**.
+La alternativa era cablearlo al scroller «principal» de cada vista, y ahí `CotizacionEditorView`
+tiene **doce**: elegir a mano doce veces es olvidarse en la trece.
+
+```
+touchstart  →  sube por los padres hasta el primer scroller vertical
+               ¿está arriba del todo (o no hay scroller)? → armado
+touchmove   →  decide la dirección UNA vez y no la revisa
+               vertical y hacia abajo → crece el indicador, con roce 2.4
+touchend    →  ¿pasó de 88 px? → recarga. Si no, vuelve solo.
+```
+
+### Recarga la página; NO refresca datos
+
+A propósito, y es la decisión que más se podría discutir. Un `refetch` por vista sería más
+elegante y más peligroso: si a alguna se le olvida una fuente, **el gesto miente** —dice que
+refrescó y algo se quedó viejo— y eso no se descubre hasta que alguien decide sobre un dato
+caducado. Recargar no puede mentir, y de paso trae versión nueva si la hay.
+
+El día que se prefiera lo otro, el único punto que cambia es la llamada de `alSoltar()`.
+
+### Las tres trampas
+
+⚠️ **La dirección se decide una vez y no se revisa.** Hay diez scrollers horizontales en el
+front —el calendario, las tablas anchas—; sin esto, un arrastre lateral empezaba a armar el gesto
+en cuanto temblaba el pulgar.
+
+⚠️ **`touchmove` no puede ser pasivo**, porque necesita `preventDefault()` para que el scroller
+no se mueva mientras se tira. Y sólo se llama cuando ya se está tirando de verdad (> 4 px), para
+no robarle el primer píxel de scroll a quien sólo quería subir la lista. Los tres listeners van
+en **captura y sin detener la propagación**, así que los `@touchstart` de las vistas —el pulsado
+largo del chat— siguen funcionando.
+
+⚠️ **`VETADO` es un `Symbol`, no `null`.** `scrollerDe()` devuelve `null` para «no hay scroller»,
+que es razón para **armar** —una pantalla corta también se tira—; si el veto devolviera `null`
+activaría justo lo que venía a impedir.
+
+### `data-sin-recarga`: dónde NO se tira
+
+El gesto es una recarga de página, y a media edición se lleva por delante lo que no esté
+guardado — justo arriba del formulario, que es donde se arma, «arrastrar hacia abajo» es el
+movimiento más natural del mundo. Llevan el atributo `ReservaEditDrawer` y
+`CotizacionEditorView`. Se hereda: basta ponerlo en la raíz del overlay.
+
+### ⚠️ El Home apaga el nativo
+
+`HomeView` lleva `overscroll-y-contain`. Sin eso tendría **dos** gestos a la vez —el del
+navegador y éste—, y el tirón significaría una cosa allí y otra en el resto de la app.
+
+### Verificación
+
+⚠️ **Sólo se puede comprobar en un móvil de verdad.** Chrome de escritorio no despacha eventos
+táctiles sin el modo dispositivo de las DevTools, así que ni ESLint ni `vue-tsc` —que sí pasan—
+dicen nada sobre si el gesto se siente bien. El umbral (88 px con roce 2.4, o sea ~211 px de
+dedo) es el número a ajustar si resulta duro o si salta solo.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
+| **Cambiar cuánto hay que tirar para que recargue** | `GestoDeRecarga.vue` | `UMBRAL` (88 px) y `ROCE` (2.4) — sólo se juzga en un móvil real (§3.g) |
+| Que el gesto refresque datos en vez de recargar la página | `GestoDeRecarga.vue` | `alSoltar()` — es el único punto que cambia (§3.g) |
+| Impedir el gesto en una pantalla concreta | la raíz de ese overlay | atributo `data-sin-recarga`, que se hereda (§3.g) |
 | Que el asistente recuerde más (o menos) turnos | `PanelAssistant` | `MAX_TURNOS` — el hilo se recorta en el backend, no en el componente (§3.c) |
 | Persistir la conversación del asistente entre recargas | `AsistenteBar.vue` | `hilo` — hoy es estado local a propósito (§3.c) |
 |---|---|---|

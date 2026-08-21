@@ -300,7 +300,11 @@ const cerrarVistaPrevia = () => { vistaPreviaConv.value = null; };
 </script>
 
 <template>
-  <div class="h-screen overflow-y-auto bg-slate-50 relative font-sans">
+  <!-- ⚠️ `overscroll-y-contain` apaga el tirón-para-recargar NATIVO, y es a propósito.
+       Ésta es la única vista cuya raíz scrollea, así que el navegador la promociona a root
+       scroller y le daba el gesto gratis — con `GestoDeRecarga` puesto habría DOS a la vez,
+       y el gesto significaría una cosa aquí y otra en el resto de la app. -->
+  <div class="h-screen overflow-y-auto overscroll-y-contain bg-slate-50 relative font-sans">
 
     <Transition name="toast-slide">
       <div v-if="showSuccessTooltip" class="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold">

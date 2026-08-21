@@ -1055,7 +1055,11 @@ store.$onAction(({ name, args }) => {
 </script>
 
 <template>
-  <div class="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden relative">
+  <!-- ⚠️ `data-sin-recarga`: aquí NO se tira para recargar. El gesto es una recarga de
+             página, y a media edición eso se lleva por delante lo que no esté guardado — y
+             justo arriba del formulario, que es donde el gesto se arma, «arrastrar hacia
+             abajo» es el movimiento más natural del mundo. Ver `GestoDeRecarga`. -->
+  <div class="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden relative" data-sin-recarga>
 
     <!-- ⚠️ `min-w-0` en el bloque del título y `shrink-0` en el de acciones, y no es cosmético:
          sin `min-w-0` flexbox se niega a encoger un hijo por debajo del ancho de su contenido, así

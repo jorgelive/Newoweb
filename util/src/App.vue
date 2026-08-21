@@ -5,6 +5,7 @@ import NotificationToast from '@/components/NotificationToast.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
 import GlobalLoginModal from "@/components/GlobalLoginModal.vue";
+import GestoDeRecarga from '@/components/common/GestoDeRecarga.vue';
 
 const notificationStore = useNotificationStore();
 const noLeidosStore = useNoLeidosStore();
@@ -87,6 +88,11 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <!-- Tirar para recargar. Va en el shell porque el gesto nativo sólo existía en el Home —la
+       única vista cuya raíz scrollea— y cablearlo vista por vista, con doce scrollers en el
+       editor de cotizaciones, sería olvidarse en alguna. Ver el componente. -->
+  <GestoDeRecarga />
+
   <NotificationToast />
 
   <Transition name="fade-slide">

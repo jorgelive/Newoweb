@@ -1630,7 +1630,11 @@ async function ejecutarBorrado(): Promise<void> {
 </script>
 
 <template>
-    <div class="fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true">
+    <!-- ⚠️ `data-sin-recarga`: aquí NO se tira para recargar. El gesto es una recarga de
+             página, y a media edición eso se lleva por delante lo que no esté guardado — y
+             justo arriba del formulario, que es donde el gesto se arma, «arrastrar hacia
+             abajo» es el movimiento más natural del mundo. Ver `GestoDeRecarga`. -->
+    <div class="fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true" data-sin-recarga>
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-slate-900/40" @click="emit('close')"></div>
 
