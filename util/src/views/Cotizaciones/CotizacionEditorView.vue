@@ -1184,7 +1184,13 @@ store.$onAction(({ name, args }) => {
           </button>
           <span class="font-black text-sm text-slate-800">Servicios del Itinerario</span>
         </div>
-        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+        <!-- ⚠️ SIN padding arriba, y es lo que hace que la cabecera de día funcione.
+             Con `p-4 md:p-8`, el sticky `top-0` descansaba por DEBAJO de ese padding y en esa
+             franja —entre la barra oscura y la cabecera— el contenido pasaba por delante: se veía
+             el título del servicio colándose por encima del día. Ponerle fondo opaco no lo
+             arreglaba, porque el hueco está por encima de la banda, no detrás.
+             El aire de arriba lo pone el propio `py-4` del sticky. -->
+        <div class="flex-1 overflow-y-auto px-4 md:px-8 pb-4 md:pb-8">
         <div class="max-w-4xl mx-auto pb-32">
 
           <div v-for="dia in store.itinerarioDinamico" :key="dia.fechaAbsoluta" class="mb-10">

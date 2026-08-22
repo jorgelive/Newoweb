@@ -1356,6 +1356,11 @@ DÓNDE y el componente dice QUÉ.
 Y **quitarlo del itinerario significa algo concreto y querido**: el pasajero sube por su cuenta y
 el guía lo espera arriba.
 
+⚠️ **En la estación se dice EXPRESAMENTE que el encuentro es fuera.** Al andén no se entra y no se
+permite el ingreso de acompañantes, pero mucha gente espera dentro convencida de que ahí la
+recogen. Es una frase en el texto del cliente que ahorra una llamada por grupo y una espera con
+maletas — y darla por supuesta es lo que hace que pase.
+
 ⚠️ **La tarifa de 0 no es decorativa: sin ella el contacto nunca llega al proveedor.** Un
 componente sin tarifa es «sólo referencia» —`OperacionServicio::isSoloReferencia()`— y **no puede
 entrar en una Orden de Servicio**. Se quedaría visible en La Biblia e invisible para quien tiene
@@ -1549,4 +1554,5 @@ contenedor»—; lo que cambia es que un lado tiene contenedor a ese nivel y el 
 | Dar servicio principal a una plantilla | `src/Travel/Command/TravelPromoverServicioPrincipalCommand.php` | `PROMOCIONES` — **añade fila, no modifica la global** |
 | Montar la plantilla privada del Valle que faltaba | `src/Travel/Command/TravelCrearValleSagradoPrivadoCommand.php` | clona la privada existente y cambia el recojo; **desambigua por componente, no por nombre** |
 | Renombrar una plantilla con título traducido | `src/Travel/Command/TravelRenombrarValleVipPrivadaCommand.php` | **`setSobreescribirTraduccion(true)` antes de tocar el título**, y verificar después |
+| Afinar los textos del contacto (7 idiomas) | `src/Travel/Command/TravelAjustarTextosContactoCommand.php` | activa `sobreescribirTraduccion` y **compara contra lo anterior**, no contra una palabra testigo |
 | Añadir el contacto con el pasajero a una plantilla | `src/Travel/Command/TravelCrearContactoMachupicchuCommand.php` | `PLANTILLAS` — **la tarifa de 0 es lo que lo hace pedible** |

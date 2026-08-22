@@ -185,12 +185,15 @@ final class TravelCrearContactoMachupicchuCommand extends Command
         $enEstacion = $nombre === self::SEG_ESTACION;
         $segmento = new TravelSegmento();
         $segmento->setNombreInterno($nombre);
+        // ⚠️ En la estación se dice EXPRESAMENTE que el encuentro es fuera. Al andén no se
+        // entra, y mucha gente espera dentro convencida de que ahí la recogen: es una frase que
+        // ahorra una llamada por grupo y una espera con maletas. Ver TravelAjustarTextosContactoCommand.
         $segmento->setTitulo([['language' => 'es', 'content' => $enEstacion
-            ? 'Recepción en la estación de Machu Picchu'
-            : 'Recepción en tu hotel']]);
+            ? 'Recepción a la salida de la estación de Machu Picchu'
+            : 'Encuentro con nuestro personal en tu hotel']]);
         $segmento->setContenido([['language' => 'es', 'content' => $enEstacion
-            ? 'A la salida de la estación de Machu Picchu, nuestro personal te estará esperando con un cartel a tu nombre para acompañarte al bus de subida al santuario.'
-            : 'Nuestro personal pasará por la recepción de tu hotel a la hora indicada para acompañarte al inicio de la visita.']]);
+            ? 'Nuestro personal te estará esperando con un cartel a tu nombre en el área de recepción, a la salida de la estación. El andén es de acceso restringido y no se permite el ingreso de acompañantes, así que el encuentro es siempre en el exterior: al bajar del tren, sigue hacia la salida y búscanos allí.'
+            : 'Nuestro personal pasará por la recepción de tu hotel a la hora indicada para acompañarte al inicio de la visita. Te recomendamos estar listo unos minutos antes.']]);
 
         if ($enEstacion) {
             $punto = $this->em->getRepository(TravelPunto::class)->findOneBy(['nombre' => self::PUNTO_ESTACION]);
