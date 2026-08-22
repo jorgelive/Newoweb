@@ -450,3 +450,90 @@ Encaja en `src/Travel/`, con las organizaciones y sus componentes ya modelados: 
 servicio es `TravelComponente::getPrestador()`, y a quién se le manda el encargo, `getComprador()`
 cuando existe. Falta decidir qué es «confirmado» —¿un correo de vuelta, un estado, una fecha
 límite?— antes de tocar código.
+
+## Origen y fin de servicio: lo que queda — 22/08/2026
+
+El mecanismo está montado y desplegado (ver `docs/Travel.md` §11 quater y `docs/Cotizaciones.md`
+§6.e). Esto es lo que **no** está.
+
+### 1. Los puntos todavía no salen en la orden de servicio
+
+Es el destinatario original de todo esto. `TravelPuntosDelServicio` y `CotizacionPuntosDelServicio`
+ya los calculan, y el editor de cotizaciones ya los pinta, pero **`OperacionOrdenDocumento` no los
+escribe**, así que al proveedor le sigue llegando la orden sin «dónde recojo / dónde dejo».
+
+Y falta la mitad que convierte el modo en un sitio: **resolver `ALOJAMIENTO` contra la cadena de
+alojamiento del expediente**. Está verificado que la cadena funciona —15 noches sin huecos en el
+itinerario de Nune, 8/8 traslados correctos— pero no está enchufada.
+
+⚠️ **Una noche sin alojamiento tiene que fallar en voz alta.** En un trek de varios días el
+pasajero duerme en campamento, no en hotel: ahí la cadena tiene un hueco legítimo. Un resolvedor
+descuidado coge el hotel de la noche anterior y manda al proveedor a Cusco — plausible y falso,
+que es la familia de fallo más cara de este código. Para los campamentos, la respuesta correcta es
+declararlos como `TravelPunto` (Wayllabamba, Pacaymayo, Wiñay Wayna) y usar modo `FIJO`, no
+`ALOJAMIENTO`.
+
+### 2. Plantillas sin servicio principal
+
+`app:travel:proponer-puntos` las lista en su sección «para revisar» cada vez que se ejecuta.
+
+| Plantilla | ¿Es un olvido? |
+|---|---|
+| **Full Day Valle Vip** (la pool) | **Sí.** Le toca `Pool Super Valle`, igual que a la Tradicional `Pool Valle Sagrado`. Es la única de las cuatro del Valle sin marca. Una línea en `TravelPromoverServicioPrincipalCommand::PROMOCIONES`. |
+| Full Day MAPI: CUZ OLLA MAPI OLLA CUZ (bimodal) | **No.** Tren + bus + ingreso + guía: ningún servicio abarca el día, y cada componente saca sus puntos de su propio segmento. |
+| Skylodge · Starlodge · Two Day Camino inca · Two Day MAPI bimodal · Two Day Vertical Sky | **Pendiente de montar**, no de decidir. Ver abajo. |
+
+### 3. El componente por día de los paquetes de varios días
+
+Las cinco plantillas de varios días no tienen principal **por día**, y el mecanismo ya lo admite:
+la unicidad es `(plantilla, día)`, así que un Camino Inca de 4 días acepta cuatro marcados.
+
+El patrón acordado: crear un componente por día —«Segundo día Camino Inca»—, **aunque sea de costo
+0**, sólo para que aporte hora de inicio y de fin, y promoverlo.
+
+⚠️ **La Categoría Operativa de ese componente decide si sirve para algo.** Con `extras` o `ticket`,
+`ComponenteTipoEnum::puntosDeServicio()` devuelve `NINGUNO` y la promoción **no aporta ningún punto
+de recojo, sin dar error**.
+
+### 4. Plantilla de Meta con botón de URL para la orden fuera de ventana
+
+Aplazado explícitamente. La página pública y el PDF ya existen
+(`/orden/{token}` y `/orden/{token}.pdf`); falta la plantilla aprobada para mandar el enlace
+cuando la ventana de 24 h está cerrada.
+
+---
+
+## Las traducciones manuales cuestan más de lo que resuelven — 22/08/2026
+
+Dicho por el operador: *«pensé que iba a usar traducciones manuales, pero ahora me da más problemas
+de los que soluciona»*.
+
+### El problema
+
+`AutoTranslationService` sólo pisa una traducción existente si `sobreescribirTraduccion` está
+activo:
+
+```php
+if (!$overwrite && !$isContentEmpty) continue;
+```
+
+Protege lo escrito a mano, sí — **al precio de que cualquier cambio del original deje los otros
+seis idiomas mintiendo, en silencio y para siempre**. No lo detecta nadie, porque quien revisa lee
+español. Casi ocurre al renombrar «Valle sagrado tradicional privado» → «Valle Vip privada»: el
+español habría dicho *Valle Vip* y los demás habrían seguido diciendo *Sacred Valley*, *Vale
+Sagrado*, *Heilige Tal*, en un producto que cuesta un 40 % más.
+
+Hoy la única defensa es acordarse de activar el flag **antes** de tocar el campo, y verificar
+después que la regeneración de verdad ocurrió — una llamada de red que falla no lanza nada y deja
+el campo sólo en español.
+
+### Las dos salidas, y ninguna es un rato
+
+- **Invertir el defecto:** regenerar siempre, salvo que el campo esté marcado como manual. El
+  riesgo se da la vuelta: se pierde una redacción cuidada en vez de publicar una mentira.
+- **Marcar la manualidad POR IDIOMA** en vez de por entidad. Es probablemente lo que se quería al
+  poner el flag: «el inglés lo escribí yo, el resto que se traduzca». Hoy es todo o nada.
+
+**Antes de elegir, medir:** cuántos campos tienen de verdad traducción manual y cuántos la tienen
+sólo porque nadie regeneró nunca. Sin ese número la decisión es una corazonada, y las dos opciones
+tocan todos los campos con `#[AutoTranslate]`.
