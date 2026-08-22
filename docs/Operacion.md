@@ -1416,9 +1416,32 @@ que dice la consecuencia («los servicios vuelven al pool») en vez de un «¿se
 motivo del rechazo se pinta **pegado a su orden**: con varias en pantalla, un aviso global no
 diría de cuál habla.
 
-⚠️ Lo que **sigue sin estar** en el panel: emitir y anular sólo se alcanzan por el `<select>` de
-estado dentro del modal de edición, y «reemitir» sólo aparece cuando hay divergencias con La
-Biblia. Funcionan, pero están escondidos.
+### El estado se VE en el formulario y se MUEVE con botones
+
+Se movía con un `<select>` dentro del modal de edición, y ese control **no distingue entre
+corregir un número de OS y mandarle un documento a un proveedor**: las dos cosas salían del
+mismo gesto, sin confirmación y a un desliz de distancia. Además ofrecía los cinco destinos
+aunque el backend fuera a rechazar la mitad.
+
+Ahora el formulario **sólo enseña** el estado, y cada transición es un botón en la tarjeta con
+confirmación en dos toques que dice su consecuencia:
+
+| Estado | Botones |
+|---|---|
+| `borrador` | **Emitir** («se congela el contenido y ya no vuelve a borrador») · **Eliminar** |
+| `emitida` | **Confirmar** · **Reemitir** · **Anular** («no vuelve atrás, y sus servicios regresan al pool») |
+| `confirmada` | **Completar** · **Reemitir** · **Anular** |
+| `completada` | **Anular** |
+| `cancelada` | ninguno — es terminal |
+
+**Reemitir sale del rincón.** Vivía sólo dentro del aviso de divergencias con La Biblia, así que
+no se podía reemitir por ningún otro motivo —un precio repactado, un error en el documento— sin
+pasar por el desplegable.
+
+⚠️ `accionesDe()` es un **espejo de `OperacionOrdenEmision::validarTransicion()`**, que es quien
+manda. Lo fija `tests/Operacion/Service/TransicionesDeOrdenTest.php`: si el panel ofreciera una
+transición que el backend rechaza, el operador confirmaría y se comería un 422; si el backend
+admitiera una nueva y el panel no la añadiera, el botón sencillamente no existiría.
 
 ## 6. API: endpoints, grupos y filtros
 

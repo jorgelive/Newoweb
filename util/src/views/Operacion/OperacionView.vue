@@ -28,7 +28,6 @@ import {
     getTipoComponenteConfig,
     getModoComponenteConfig,
     getEstadoComponenteConfig,
-    ESTADO_OS_CONFIG,
     ESTADO_RESERVA_PROVEEDOR_CONFIG,
     ESTADO_OPERACION_CONFIG,
     TIPOS_COMPONENTE,
@@ -703,6 +702,83 @@ const confirmarOs = async () => {
 // Confirmación en dos toques y no `window.confirm`: el mismo patrón que el catálogo de
 // proveedores, y así el aviso puede decir la consecuencia («los servicios vuelven al pool») en
 // vez de un «¿seguro?» pelado.
+/**
+ * Qué se puede hacer con una orden según dónde esté.
+ *
+ * ── Por qué botones y no el `<select>` que había ────────────────────────────
+ * El estado se movía con un desplegable dentro del formulario de edición, y ese control no
+ * distingue entre corregir un número de OS y **mandarle un documento a un proveedor**: las dos
+ * cosas salían del mismo gesto, sin confirmación y a un desliz de distancia. Un `<select>`
+ * además ofrece todos los destinos aunque el backend vaya a rechazar la mitad.
+ *
+ * Aquí sólo aparece lo que cabe desde el estado actual, y cada acción confirma antes.
+ *
+ * ⚠️ Es un ESPEJO de `OperacionOrdenEmision::validarTransicion()`, que es quien manda: una
+ * anulada no vuelve atrás y una emitida no regresa a borrador. Esto sólo evita ofrecer botones
+ * que iban a dar 422.
+ */
+const accionesDe = (estado?: string | null): Array<{ id: string; destino: string; etiqueta: string; icono: string; tono: 'normal' | 'grave' }> => {
+    switch (estado) {
+        case 'borrador':
+            return [{ id: 'emitir', destino: 'emitida', etiqueta: 'Emitir', icono: 'fa-paper-plane', tono: 'normal' }];
+        case 'emitida':
+            return [
+                { id: 'confirmar', destino: 'confirmada', etiqueta: 'Confirmar', icono: 'fa-circle-check', tono: 'normal' },
+                { id: 'anular', destino: 'cancelada', etiqueta: 'Anular', icono: 'fa-ban', tono: 'grave' },
+            ];
+        case 'confirmada':
+            return [
+                { id: 'completar', destino: 'completada', etiqueta: 'Completar', icono: 'fa-flag-checkered', tono: 'normal' },
+                { id: 'anular', destino: 'cancelada', etiqueta: 'Anular', icono: 'fa-ban', tono: 'grave' },
+            ];
+        case 'completada':
+            return [{ id: 'anular', destino: 'cancelada', etiqueta: 'Anular', icono: 'fa-ban', tono: 'grave' }];
+        // Cancelada es terminal: no vuelve. Se emite otra que la reemplace.
+        default:
+            return [];
+    }
+};
+
+/** Lo que se le dice al operador ANTES de hacerlo. Cada una tiene su consecuencia propia. */
+const consecuenciaDe = (accion: string): string => ({
+    emitir: '¿Emitir? Se congela el contenido y ya no vuelve a borrador',
+    confirmar: '¿Confirmar?',
+    completar: '¿Completar?',
+    anular: '¿Anular? No vuelve atrás, y sus servicios regresan al pool',
+}[accion] ?? '¿Seguro?');
+
+/** `orden.id + ':' + accion`, para que confirmar una no arme las demás. */
+const confirmandoAccion = ref<string | null>(null);
+const ejecutandoAccion = ref<string | null>(null);
+
+const ejecutarAccion = async (
+    orden: OperacionOrdenServicio,
+    accion: { id: string; destino: string },
+): Promise<void> => {
+    if (!orden.id) return;
+
+    const clave = `${orden.id}:${accion.id}`;
+    errorOrden.value = null;
+
+    if (confirmandoAccion.value !== clave) {
+        confirmandoAccion.value = clave;
+
+        return;
+    }
+
+    ejecutandoAccion.value = clave;
+
+    try {
+        await operacionStore.cambiarEstadoOrden(orden.id, accion.destino);
+        await cargarBiblia();
+    } catch (e) {
+        errorOrden.value = { id: orden.id, motivo: mensajeDeErrorApi(e, 'No se pudo cambiar el estado de la orden.') };
+    } finally {
+        ejecutandoAccion.value = null;
+        confirmandoAccion.value = null;
+    }
+};
+
 const confirmandoOrden = ref<string | null>(null);
 const borrandoOrden = ref<string | null>(null);
 /**
@@ -1222,11 +1298,10 @@ const guardarEdicion = async () => {
             compradorNombre: formEdicion.value.compradorNombre || null,
         });
 
-        // El estado va por su propia acción y DESPUÉS de la cabecera: emitir congela el
-        // contenido, así que lo congelado tiene que ser ya el número y el destinatario buenos.
-        if (formEdicion.value.estadoOs !== orden.estadoOs) {
-            await operacionStore.cambiarEstadoOrden(orden.id, formEdicion.value.estadoOs);
-        }
+        // El estado ya no se toca aquí: este formulario corrige la cabecera —número y
+        // destinatario— y nada más. Mover el estado es emitir o anular, y eso tiene sus
+        // botones con confirmación. Emitir sigue congelando el contenido, así que el orden
+        // sigue importando: primero se corrige la cabecera, después se emite.
 
         ordenEditando.value = null;
         await cargarBiblia();
@@ -2308,6 +2383,38 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                 {{ confirmandoOrden === orden.id ? '¿Seguro? Los servicios vuelven al pool' : 'Eliminar' }}
                             </button>
 
+                            <!-- Las acciones de ESTADO: sólo las que caben desde donde está, y
+                                 cada una confirma antes. Ver `accionesDe()`. -->
+                            <button
+                                v-for="accion in accionesDe(orden.estadoOs)"
+                                :key="accion.id"
+                                @click="ejecutarAccion(orden, accion)"
+                                :disabled="ejecutandoAccion === `${orden.id}:${accion.id}`"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg border transition-all shadow-sm disabled:opacity-40"
+                                :class="confirmandoAccion === `${orden.id}:${accion.id}`
+                                    ? (accion.tono === 'grave' ? 'bg-rose-600 text-white border-rose-600' : 'bg-[#376875] text-white border-[#376875]')
+                                    : (accion.tono === 'grave'
+                                        ? 'bg-white hover:bg-rose-50 text-rose-500 border-slate-200 hover:border-rose-200'
+                                        : 'bg-white hover:bg-[#376875] hover:text-white hover:border-[#376875] text-slate-600 border-slate-200')"
+                            >
+                                <i class="fas text-[9px]"
+                                   :class="ejecutandoAccion === `${orden.id}:${accion.id}` ? 'fa-circle-notch fa-spin' : accion.icono"></i>
+                                {{ confirmandoAccion === `${orden.id}:${accion.id}` ? consecuenciaDe(accion.id) : accion.etiqueta }}
+                            </button>
+
+                            <!-- Reemitir: anula y deja la sucesora ya creada, en borrador. Vivía
+                                 sólo dentro del aviso de divergencias con La Biblia, así que no
+                                 se podía reemitir por cualquier otro motivo —un cambio de precio
+                                 pactado, un error en el documento— sin pasar por el desplegable. -->
+                            <button
+                                v-if="orden.estadoOs === 'emitida' || orden.estadoOs === 'confirmada'"
+                                @click="anularParaReemitir(orden)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-amber-500 hover:text-white hover:border-amber-500 text-amber-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
+                                title="Anula ésta y crea la sucesora en borrador con los datos de hoy. Nada se pierde."
+                            >
+                                <i class="fas fa-rotate text-[9px]"></i> Reemitir
+                            </button>
+
                             <button
                                 @click="abrirEdicion(orden)"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#376875] hover:text-white hover:border-[#376875] text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
@@ -2653,15 +2760,19 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                         </span>
                     </label>
 
-                    <label class="flex flex-col gap-1">
+                    <!-- ⚠️ El estado se VE aquí y se MUEVE desde los botones de la tarjeta.
+                         Era un `<select>` y ese control no distingue entre corregir un dato y
+                         mandarle un documento a un proveedor: emitir y anular salían del mismo
+                         gesto con el que se arregla un número de OS, sin confirmación y a un
+                         desliz de distancia. Cada acción tiene ahora su botón y su confirmación,
+                         y el listado ofrece sólo las que caben desde el estado actual. -->
+                    <div class="flex flex-col gap-1">
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Estado</span>
-                        <select
-                            v-model="formEdicion.estadoOs"
-                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#376875]"
-                        >
-                            <option v-for="(cfg, k) in ESTADO_OS_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
-                        </select>
-                    </label>
+                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            <span class="text-sm font-bold text-slate-700">{{ getEstadoOsConfig(formEdicion.estadoOs).label }}</span>
+                            <span class="ml-auto text-[10px] text-slate-400">se cambia desde los botones de la orden</span>
+                        </div>
+                    </div>
 
                     <!-- El importe no se toca aquí a propósito: vive en cada servicio, con su
                          moneda. Decirlo evita que alguien lo busque y lo eche de menos. -->
