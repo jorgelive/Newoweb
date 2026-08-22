@@ -807,6 +807,95 @@ const confirmarOs = async (emitir: boolean) => {
     }
 };
 
+// ══ FICHA DEL SERVICIO (móvil) ═════════════════════════════════════════════
+//
+// En el teléfono la tabla se queda en tres columnas —selector, hora y servicio— y todo lo demás
+// se edita aquí. La alternativa era comprimir nueve columnas en 360 px, que es como se llega a
+// una fila que no se puede leer ni tocar sin equivocarse.
+//
+// ⚠️ **Aquí se edita sobre un BORRADOR y se guarda al confirmar**, al revés que en la tabla, donde
+// cada campo se manda al perder el foco. En un teléfono no hay sitio para poner el aviso de
+// guardado al lado del campo, así que el operador no sabía si su cambio había entrado. Con el
+// borrador, «Guardar» es la respuesta a esa pregunta.
+
+const servicioFicha = ref<OperacionServicio | null>(null);
+const guardandoFicha = ref(false);
+const errorFicha = ref<string | null>(null);
+
+interface BorradorFicha {
+    horaRecojo: string;
+    puntoRecojo: string;
+    puntoEntrega: string;
+    estadoReservaProveedor: string;
+    estadoOperacion: string;
+}
+
+const borradorFicha = ref<BorradorFicha>({
+    horaRecojo: '', puntoRecojo: '', puntoEntrega: '',
+    estadoReservaProveedor: '', estadoOperacion: '',
+});
+
+/** Se abre SÓLO en móvil: en escritorio la tabla ya es editable y abrir una ficha estorbaría. */
+const abrirFicha = (servicio: OperacionServicio) => {
+    if (!esMovil()) return;
+
+    servicioFicha.value = servicio;
+    errorFicha.value = null;
+    borradorFicha.value = {
+        horaRecojo: servicio.horaRecojo ?? '',
+        puntoRecojo: servicio.puntoRecojo ?? '',
+        puntoEntrega: servicio.puntoEntrega ?? '',
+        estadoReservaProveedor: servicio.estadoReservaProveedor ?? 'sin-solicitar',
+        estadoOperacion: servicio.estadoOperacion ?? 'pendiente',
+    };
+};
+
+/** Sólo lo que CAMBIÓ. Mandar el resto reescribiría campos que nadie tocó. */
+const cambiosDeFicha = (): Record<string, unknown> => {
+    const s = servicioFicha.value;
+    if (!s) return {};
+
+    const cambios: Record<string, unknown> = {};
+    const b = borradorFicha.value;
+
+    const texto = (v: string): string | null => (v.trim() === '' ? null : v.trim());
+
+    if (texto(b.horaRecojo) !== (s.horaRecojo ?? null)) cambios.horaRecojo = texto(b.horaRecojo);
+    if (texto(b.puntoRecojo) !== (s.puntoRecojo ?? null)) cambios.puntoRecojo = texto(b.puntoRecojo);
+    if (texto(b.puntoEntrega) !== (s.puntoEntrega ?? null)) cambios.puntoEntrega = texto(b.puntoEntrega);
+    if (b.estadoReservaProveedor !== s.estadoReservaProveedor) cambios.estadoReservaProveedor = b.estadoReservaProveedor;
+    if (b.estadoOperacion !== s.estadoOperacion) cambios.estadoOperacion = b.estadoOperacion;
+
+    return cambios;
+};
+
+const hayCambiosEnFicha = computed(() => Object.keys(cambiosDeFicha()).length > 0);
+
+const guardarFicha = async () => {
+    const s = servicioFicha.value;
+    const cambios = cambiosDeFicha();
+    if (!s?.id || Object.keys(cambios).length === 0) { servicioFicha.value = null; return; }
+
+    // La hora, si se escribe, tiene que ser una hora. En la tabla esto revierte el input en
+    // silencio; aquí se dice, porque hay sitio para decirlo.
+    if (typeof cambios.horaRecojo === 'string' && !PATRON_HORA.test(cambios.horaRecojo)) {
+        errorFicha.value = 'La hora de recojo va en formato 24 h, por ejemplo 06:15.';
+        return;
+    }
+
+    guardandoFicha.value = true;
+    errorFicha.value = null;
+    try {
+        await operacionStore.actualizarServicio(s.id, cambios);
+        servicioFicha.value = null;
+        await cargarBiblia();
+    } catch (e) {
+        errorFicha.value = mensajeDeErrorApi(e, 'No se pudo guardar.');
+    } finally {
+        guardandoFicha.value = false;
+    }
+};
+
 // ══ ENVIAR LA ORDEN AL PROVEEDOR ═══════════════════════════════════════════
 //
 // ── Por qué se previsualiza ────────────────────────────────────────────────
@@ -1987,12 +2076,12 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             <th class="px-3 py-3 w-8"></th>
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Hora</th>
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Servicio</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Expediente</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Pax</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest" title="Quién opera el servicio y dónde se recoge. Debajo, a quién se le compra cuando no es el mismo.">Prestador</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right" title="Cotizado (de la cotización) frente a real (lo que se pagó). El delta es el margen operativo.">Costo</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Reserva</th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Operación</th>
+                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Expediente</th>
+                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Pax</th>
+                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest" title="Quién opera el servicio y dónde se recoge. Debajo, a quién se le compra cuando no es el mismo.">Prestador</th>
+                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right" title="Cotizado (de la cotización) frente a real (lo que se pagó). El delta es el margen operativo.">Costo</th>
+                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Reserva</th>
+                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Operación</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
@@ -2002,7 +2091,8 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             :class="[ seleccionados.includes(servicio.id ?? '') ? 'bg-[#376875]/5' : '',
                                                 servicio.estadoComponente === 'cancelado' || servicio.modoComponente === 'reemplazado' ? 'opacity-55' : '',
                                             ]"
-                                            class="hover:bg-slate-50/80 transition-colors"
+                                            class="hover:bg-slate-50/80 transition-colors md:cursor-default cursor-pointer"
+                                            @click="abrirFicha(servicio)"
                                         >
                                             <!-- Selección: las filas de referencia no se
                                                  marcan porque no pueden ir a una OS. -->
@@ -2012,6 +2102,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                     type="checkbox"
                                                     :checked="seleccionados.includes(servicio.id ?? '')"
                                                     @change="alternarSeleccion(servicio.id)"
+                                                    @click.stop
                                                     class="mt-1 w-4 h-4 accent-[#376875] cursor-pointer"
                                                 />
                                                 <i
@@ -2032,6 +2123,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                 <input
                                                     :value="servicio.horaRecojo ?? ''"
                                                     @change="editarHora(servicio, $event)"
+                                                    @click.stop
                                                     :placeholder="servicio.horaComponente || '--:--'"
                                                     maxlength="5"
                                                     class="w-[3.8rem] text-xs font-black text-slate-900 bg-slate-100 px-1.5 py-1 rounded-lg border border-slate-200 tabular-nums text-center outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
@@ -2043,6 +2135,25 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                    title="Hora con la que se vendió al cliente">
                                                     vend. {{ servicio.horaComponente }}
                                                 </p>
+
+                                                <!-- ── SÓLO MÓVIL: los estados, debajo de la hora ──
+                                                     Sus columnas se ocultan a partir de `md`, y sin
+                                                     esto el operador no vería en el teléfono si algo
+                                                     está pendiente. Debajo del reloj hay hueco muerto
+                                                     y es donde la vista ya está mirando. -->
+                                                <div class="md:hidden mt-1.5 flex flex-col items-center gap-1">
+                                                    <span class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border whitespace-nowrap"
+                                                          :class="[getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).bg,
+                                                                   getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).text,
+                                                                   getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).border]">
+                                                        {{ getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).label }}
+                                                    </span>
+                                                    <span v-if="servicio.ordenServicio"
+                                                          class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#376875] text-white"
+                                                          title="Ya está en una Orden de Servicio">
+                                                        <i class="fas fa-file-invoice"></i>
+                                                    </span>
+                                                </div>
                                             </td>
 
                                             <!-- Servicio -->
@@ -2100,6 +2211,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                                 <input
                                                                     :value="servicio.puntoRecojo ?? ''"
                                                                     @change="editarPunto(servicio, 'recojo', $event)"
+                                                                    @click.stop
                                                                     :placeholder="puntosDe(servicio)?.recojo || 'sin declarar en el catálogo'"
                                                                     maxlength="255"
                                                                     class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
@@ -2113,6 +2225,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                                 <input
                                                                     :value="servicio.puntoEntrega ?? ''"
                                                                     @change="editarPunto(servicio, 'entrega', $event)"
+                                                                    @click.stop
                                                                     :placeholder="puntosDe(servicio)?.entrega || 'sin declarar en el catálogo'"
                                                                     maxlength="255"
                                                                     class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
@@ -2226,7 +2339,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
 
                                             <!-- Expediente: clic → modal con namelist, documentos y
                                                  salto a la cotización. Ver §3.17. -->
-                                            <td class="px-3 py-3 align-top">
+                                            <td class="hidden md:table-cell px-3 py-3 align-top">
                                                 <button v-if="servicio.file?.id" @click="abrirExpediente(servicio)"
                                                         class="text-left max-w-[12rem] group/exp">
                                                     <p class="text-sm font-bold text-[#376875] truncate group-hover/exp:underline decoration-dotted">
@@ -2240,7 +2353,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             </td>
 
                                             <!-- Pax -->
-                                            <td class="px-3 py-3 whitespace-nowrap align-top">
+                                            <td class="hidden md:table-cell px-3 py-3 whitespace-nowrap align-top">
                                                 <span class="text-xs font-black text-slate-600 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
                                                     <i class="fas fa-users text-slate-400 mr-1"></i>{{ servicio.cantidadPax }}
                                                 </span>
@@ -2248,7 +2361,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
 
                                             <!-- Prestador (quién opera / dónde se recoge) y, debajo, el
                                                  proveedor comercial sólo si difiere. Ver docs/Operacion.md §3.3.b -->
-                                            <td class="px-3 py-3 align-top">
+                                            <td class="hidden md:table-cell px-3 py-3 align-top">
                                                 <input
                                                     :value="servicio.prestadorEfectivoNombre ?? ''"
                                                     @change="editarPrestador(servicio, $event)"
@@ -2321,7 +2434,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             </td>
 
                                             <!-- Costo: cotizado (solo lectura) vs real (editable) -->
-                                            <td class="px-3 py-3 align-top text-right whitespace-nowrap">
+                                            <td class="hidden md:table-cell px-3 py-3 align-top text-right whitespace-nowrap">
                                                 <p class="text-[10px] font-bold text-slate-400 tabular-nums">
                                                     <span class="text-slate-300 mr-1">{{ servicio.monedaCotizada?.id || '' }}</span>{{ importe(servicio.costoCotizado) }}
                                                 </p>
@@ -2358,7 +2471,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             </td>
 
                                             <!-- Estado reserva editable -->
-                                            <td class="px-3 py-3 whitespace-nowrap align-top">
+                                            <td class="hidden md:table-cell px-3 py-3 whitespace-nowrap align-top">
                                                 <select
                                                     :value="servicio.estadoReservaProveedor"
                                                     @change="guardarCampo(servicio, { estadoReservaProveedor: ($event.target as HTMLSelectElement).value })"
@@ -2383,7 +2496,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             </td>
 
                                             <!-- Estado operación editable -->
-                                            <td class="px-3 py-3 whitespace-nowrap align-top">
+                                            <td class="hidden md:table-cell px-3 py-3 whitespace-nowrap align-top">
                                                 <select
                                                     :value="servicio.estadoOperacion"
                                                     @change="guardarCampo(servicio, { estadoOperacion: ($event.target as HTMLSelectElement).value })"
@@ -3435,6 +3548,130 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
             <button @click="mostrarModalAgregar = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
           </div>
         </div>
+      </div>
+    </Transition>
+
+    <!-- ══ FICHA DEL SERVICIO — sólo móvil ═════════════════════════════════════
+         A pantalla completa: en 360 px un modal centrado deja media pantalla de
+         fondo inútil y el teclado tapa el resto. Guardar y cancelar van ABAJO y
+         fijos, que es donde llega el pulgar y donde no los tapa el teclado. -->
+    <Transition name="fade-scale">
+      <div v-if="servicioFicha" class="fixed inset-0 z-1400 bg-white flex flex-col md:hidden">
+        <header class="bg-[#376875] text-white px-4 py-3 flex items-center gap-3 shrink-0">
+          <button @click="servicioFicha = null" class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
+            <i class="fas fa-times text-sm"></i>
+          </button>
+          <div class="min-w-0">
+            <p class="font-black text-sm truncate">{{ nombreComponenteDe(servicioFicha) || servicioFicha.contextoServicio }}</p>
+            <p class="text-[10px] font-bold text-white/70 truncate">{{ servicioFicha.descripcionServicio }}</p>
+          </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-5">
+          <!-- Contexto de sólo lectura: lo que identifica la fila y no se edita aquí. -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5">
+            <p class="text-[11px] font-bold text-slate-500">
+              <i class="far fa-calendar w-4 text-slate-400"></i>
+              {{ servicioFicha.fechaServicio ? etiquetaDia(servicioFicha.fechaServicio.slice(0, 10)) : 'Sin fecha' }}
+              <span v-if="servicioFicha.horaComponente" class="ml-1 tabular-nums">· vendida {{ servicioFicha.horaComponente }}</span>
+            </p>
+            <p class="text-[11px] font-bold text-slate-500 truncate">
+              <i class="fas fa-folder w-4 text-slate-400"></i>{{ servicioFicha.file?.nombreGrupo || '—' }}
+            </p>
+            <p class="text-[11px] font-bold text-slate-500 truncate">
+              <i class="fas fa-truck w-4 text-slate-400"></i>{{ servicioFicha.prestadorEfectivoNombre || '—' }}
+              <span class="ml-1 text-slate-400">· {{ servicioFicha.cantidadPax }} pax</span>
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Hora de recojo</label>
+            <input
+              v-model="borradorFicha.horaRecojo"
+              :placeholder="servicioFicha.horaComponente || '--:--'"
+              maxlength="5" inputmode="numeric"
+              class="w-full text-sm font-black bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 tabular-nums outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-400 placeholder:font-bold"
+            />
+            <p class="text-[10px] font-bold text-slate-400 mt-1">Vacío = se usa la hora con la que se vendió.</p>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Dónde se recoge</label>
+            <input
+              v-model="borradorFicha.puntoRecojo"
+              :placeholder="puntosDe(servicioFicha)?.recojo || 'sin declarar en el catálogo'"
+              maxlength="255"
+              class="w-full text-xs font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
+            />
+          </div>
+
+          <div v-if="puntosDe(servicioFicha)?.tieneEntrega || servicioFicha.puntoEntrega">
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Dónde se deja</label>
+            <input
+              v-model="borradorFicha.puntoEntrega"
+              :placeholder="puntosDe(servicioFicha)?.entrega || 'sin declarar en el catálogo'"
+              maxlength="255"
+              class="w-full text-xs font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
+            />
+          </div>
+
+          <p class="text-[10px] font-bold text-slate-400 -mt-3">Vacío = lo que diga el catálogo.</p>
+
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Reserva con el proveedor</label>
+            <select v-model="borradorFicha.estadoReservaProveedor"
+                    class="w-full text-xs font-black px-3 py-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-[#376875]"
+                    :class="[getEstadoReservaProveedorConfig(borradorFicha.estadoReservaProveedor).bg,
+                             getEstadoReservaProveedorConfig(borradorFicha.estadoReservaProveedor).text,
+                             getEstadoReservaProveedorConfig(borradorFicha.estadoReservaProveedor).border]">
+              <option v-for="(cfg, k) in ESTADO_RESERVA_PROVEEDOR_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Operación</label>
+            <select v-model="borradorFicha.estadoOperacion"
+                    class="w-full text-xs font-black px-3 py-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-[#376875]"
+                    :class="[getEstadoOperacionConfig(borradorFicha.estadoOperacion).bg,
+                             getEstadoOperacionConfig(borradorFicha.estadoOperacion).text,
+                             getEstadoOperacionConfig(borradorFicha.estadoOperacion).border]">
+              <option v-for="(cfg, k) in ESTADO_OPERACION_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+            </select>
+          </div>
+
+          <!-- El costo negociado trae su propio commit, así que se empotra tal cual en vez de
+               duplicarlo en el borrador: dos formas de guardar el mismo importe acabarían
+               discrepando. Una fila de referencia no se compra y no lo enseña. -->
+          <div v-if="!servicioFicha.soloReferencia">
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Costo negociado</label>
+            <EditorCostoNegociado
+              :costo-cotizado="servicioFicha.costoCotizado"
+              :desglose="servicioFicha.desgloseCotizado"
+              :moneda-cotizada="servicioFicha.monedaCotizada?.id ?? ''"
+              :costo-negociado="servicioFicha.costoNegociado"
+              :moneda-negociada="servicioFicha.monedaNegociada?.id ?? null"
+              :monedas="operacionStore.monedas"
+              @guardar="(pl) => onGuardarCosto(servicioFicha!, pl)"
+            />
+          </div>
+
+          <p v-if="errorFicha" class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+            <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorFicha }}
+          </p>
+        </div>
+
+        <!-- Abajo y fijos: es donde llega el pulgar y donde no los tapa el teclado. -->
+        <footer class="shrink-0 border-t border-slate-200 bg-white px-4 py-3 flex items-center gap-3">
+          <button @click="servicioFicha = null" :disabled="guardandoFicha"
+                  class="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 disabled:opacity-40">
+            Cancelar
+          </button>
+          <button @click="guardarFicha" :disabled="guardandoFicha || !hayCambiosEnFicha"
+                  class="flex-1 px-4 py-3 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-40 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
+            <i v-if="guardandoFicha" class="fas fa-spinner fa-spin mr-1"></i>
+            {{ hayCambiosEnFicha ? 'Guardar cambios' : 'Sin cambios' }}
+          </button>
+        </footer>
       </div>
     </Transition>
 </template>

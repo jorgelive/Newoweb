@@ -2152,6 +2152,39 @@ cambia es que deja de afirmar algo que no ocurrió.
 ⚠️ Si alguien pactó una hora que casualmente coincidía con la vendida, esto se la lleva. Es la
 única pérdida posible y se asume a sabiendas: ese dato ya era indistinguible de la copia.
 
+### El cuadro de tráfico en móvil (22/08/2026)
+
+Nueve columnas no caben en 360 px. En vez de comprimirlas —que es como se llega a una fila que no
+se puede leer ni tocar sin equivocarse— por debajo de `md` se reducen a **tres**:
+
+```
+☑   06:00        Transporte Cusco - Ollanta
+    [Pendiente]  Van (paquete externo)
+    [OS]         Futurismo · 2 pax
+     ↑ estados    ← toca en cualquier sitio → ficha a pantalla completa
+```
+
+- **Expediente, pax, prestador, costo, reserva y operación** llevan `hidden md:table-cell`.
+- **La celda de la hora se parte**: el reloj arriba y los estados debajo, como pastillas. Es hueco
+  muerto y es donde la vista ya está mirando.
+- **Tocar la fila abre la ficha.** El selector y los inputs en línea llevan `@click.stop`: marcar
+  una casilla no puede abrir un formulario.
+- **En escritorio no cambia nada.** La tabla ancha funciona y la ficha ni se monta (`md:hidden`).
+
+#### ⚠️ En la ficha se edita sobre un BORRADOR, al revés que en la tabla
+
+En la tabla cada campo se manda al perder el foco. En un teléfono **no hay sitio para poner el
+aviso de guardado al lado del campo**, así que el operador no sabía si su cambio había entrado —
+`guardando` se calculaba y no se pintaba en ningún sitio.
+
+Con el borrador, «Guardar cambios» **es** la respuesta a esa pregunta. Y sólo se manda lo que
+cambió: enviar el resto reescribiría campos que nadie tocó.
+
+Los botones van **abajo y fijos**: es donde llega el pulgar y donde no los tapa el teclado.
+
+⚠️ **El costo negociado se empotra tal cual**, con su propio commit, en vez de meterlo en el
+borrador: dos formas de guardar el mismo importe acabarían discrepando.
+
 ### Agregar servicios a una orden que se está componiendo (22/08/2026)
 
 `POST /platform/ops/orden-servicios/{id}/agregar` → `AgregarAOrdenProcessor`.
