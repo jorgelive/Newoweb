@@ -15,7 +15,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRouter, onBeforeRouteLeave } from 'vue-router';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import EditorCostoNegociado from '@/components/operacion/EditorCostoNegociado.vue';
-import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado, type PagoProveedor, type ExpedienteDetalle, type ProveedorOpcion } from '@/stores/operacion/operacionStore';
+import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado, type PagoProveedor, type ExpedienteDetalle, type ProveedorOpcion , type DocumentoDeOrden } from '@/stores/operacion/operacionStore';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import { getUrls } from '@/services/apiClient';
@@ -702,6 +702,72 @@ const confirmarOs = async (emitir: boolean) => {
     } finally {
         guardandoOs.value = false;
     }
+};
+
+// ══ ENVIAR LA ORDEN AL PROVEEDOR ═══════════════════════════════════════════
+//
+// ── Por qué se previsualiza ────────────────────────────────────────────────
+// Porque es IRREVERSIBLE: un correo mandado no se retira. El documento sale de los ítems
+// congelados y va a donde diga la identidad del proveedor, así que hay dos cosas que sólo se
+// ven mirando —que las líneas son las pactadas y que va a la dirección correcta— y las dos se
+// comprueban en dos segundos.
+//
+// ── Y por qué está separado de emitir ──────────────────────────────────────
+// Emitir congela el contenido; enviar se lo pone delante a alguien de fuera. Separados,
+// **reenviar no necesita nada nuevo**: es este mismo botón otra vez, que es lo normal cuando el
+// proveedor perdió el correo o cambió de contacto.
+const ordenAEnviar = ref<OperacionOrdenServicio | null>(null);
+const documento = ref<DocumentoDeOrden | null>(null);
+const canalElegido = ref<string>('');
+const cargandoDocumento = ref(false);
+const enviandoOrden = ref(false);
+const errorEnvio = ref<string | null>(null);
+
+const abrirEnvio = async (orden: OperacionOrdenServicio): Promise<void> => {
+    if (!orden.id) return;
+
+    ordenAEnviar.value = orden;
+    documento.value = null;
+    canalElegido.value = '';
+    errorEnvio.value = null;
+    cargandoDocumento.value = true;
+
+    const r = await operacionStore.documentoDeOrden(orden.id);
+
+    cargandoDocumento.value = false;
+
+    if ('error' in r) {
+        errorEnvio.value = r.error;
+
+        return;
+    }
+
+    documento.value = r;
+    // Se preselecciona el primero disponible: con un solo canal, elegirlo es fricción sin
+    // ganancia. Con varios, el operador lo cambia.
+    canalElegido.value = r.canales.find(c => c.disponible)?.id ?? '';
+};
+
+const confirmarEnvio = async (): Promise<void> => {
+    const orden = ordenAEnviar.value;
+    if (!orden?.id || !canalElegido.value) return;
+
+    enviandoOrden.value = true;
+    errorEnvio.value = null;
+
+    const motivo = await operacionStore.enviarOrdenAlProveedor(orden.id, canalElegido.value);
+
+    enviandoOrden.value = false;
+
+    if (motivo !== null) {
+        errorEnvio.value = motivo;
+
+        return;
+    }
+
+    ordenAEnviar.value = null;
+    // La bitácora de esa orden cambió: si está abierta, que lo refleje.
+    if (ordenActiva.value?.id === orden.id) await operacionStore.fetchMensajesPorOrden(orden.id);
 };
 
 // ══ ELIMINAR UN BORRADOR ═══════════════════════════════════════════════════
@@ -2417,6 +2483,19 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                 {{ confirmandoAccion === `${orden.id}:${accion.id}` ? consecuenciaDe(accion.id) : accion.etiqueta }}
                             </button>
 
+                            <!-- ENVIAR: separado de emitir a propósito. Emitir congela el
+                                 contenido; esto se lo pone delante al proveedor, y no se
+                                 retira. Por eso es el mismo botón para enviar y para
+                                 REENVIAR — que es lo normal cuando se perdió el correo. -->
+                            <button
+                                v-if="orden.estadoOs === 'emitida' || orden.estadoOs === 'confirmada' || orden.estadoOs === 'completada'"
+                                @click="abrirEnvio(orden)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-600 hover:text-white hover:border-emerald-600 text-emerald-700 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
+                                title="Previsualiza y manda la orden al proveedor. Se puede reenviar las veces que haga falta."
+                            >
+                                <i class="fas fa-paper-plane text-[9px]"></i> Enviar
+                            </button>
+
                             <!-- Reemitir: anula y deja la sucesora ya creada, en borrador. Vivía
                                  sólo dentro del aviso de divergencias con La Biblia, así que no
                                  se podía reemitir por cualquier otro motivo —un cambio de precio
@@ -2580,6 +2659,90 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                         Cotización
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- ================================================================
+             MODAL: ENVIAR LA ORDEN AL PROVEEDOR
+
+             Se previsualiza porque es IRREVERSIBLE. El cuerpo se pinta en `<pre>` para que se
+             vea EXACTAMENTE como va a salir: un `<div>` colapsaría los saltos de línea y el
+             operador aprobaría un texto distinto del que se manda.
+             ================================================================ -->
+        <div v-if="ordenAEnviar" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50" @click.self="ordenAEnviar = null">
+            <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+                <header class="bg-slate-900 text-white px-5 py-3 flex items-center gap-2 shrink-0">
+                    <i class="fas fa-paper-plane text-emerald-400"></i>
+                    <div class="min-w-0">
+                        <h3 class="font-black text-sm tracking-tight leading-tight">Enviar al proveedor</h3>
+                        <p class="text-[10px] text-slate-400 truncate">{{ documento?.destinatario || ordenAEnviar.compradorNombre || ordenAEnviar.numeroOs }}</p>
+                    </div>
+                    <button @click="ordenAEnviar = null" class="ml-auto text-slate-400 hover:text-white shrink-0">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </header>
+
+                <div class="overflow-y-auto px-5 py-4 space-y-4">
+                    <p v-if="cargandoDocumento" class="text-xs text-slate-400 text-center py-6">
+                        <i class="fas fa-spinner fa-spin mr-1"></i> Preparando el documento…
+                    </p>
+
+                    <template v-else-if="documento">
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Asunto</p>
+                            <p class="text-sm font-bold text-slate-800">{{ documento.asunto }}</p>
+                        </div>
+
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                Lo que se le manda · {{ documento.lineas }} línea(s)
+                            </p>
+                            <pre class="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-3 whitespace-pre-wrap font-sans leading-relaxed">{{ documento.cuerpo }}</pre>
+                            <p class="text-[10px] text-slate-400 mt-1 leading-snug">
+                                Sale de las líneas congeladas al emitir, y no lleva importes: lo que se paga
+                                se lleva aparte.
+                            </p>
+                        </div>
+
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Por dónde</p>
+                            <div class="flex flex-wrap gap-2">
+                                <!-- Los no disponibles se enseñan con su motivo en vez de esconderse:
+                                     «no aparece WhatsApp» obliga a adivinar; «sin datos o vetado» no. -->
+                                <button v-for="c in documento.canales" :key="c.id"
+                                        @click="c.disponible && (canalElegido = c.id)"
+                                        :disabled="!c.disponible"
+                                        :title="c.motivo ?? ''"
+                                        class="px-3 py-2 rounded-lg border text-[11px] font-black uppercase tracking-widest transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                        :class="canalElegido === c.id
+                                            ? 'bg-[#376875] text-white border-[#376875]'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:border-[#376875]'">
+                                    {{ c.nombre }}
+                                    <span v-if="!c.disponible" class="block text-[9px] font-bold normal-case tracking-normal opacity-70">
+                                        {{ c.motivo === 'sin_datos_o_vetado' ? 'sin datos' : 'no aplica' }}
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <p v-if="errorEnvio" class="text-[11px] font-bold text-rose-600 leading-snug">
+                        <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorEnvio }}
+                    </p>
+                </div>
+
+                <footer class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
+                    <button @click="ordenAEnviar = null"
+                            class="px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-800">
+                        Cancelar
+                    </button>
+                    <button @click="confirmarEnvio"
+                            :disabled="enviandoOrden || !canalElegido || !documento || documento.lineas === 0"
+                            class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-black uppercase tracking-widest rounded-lg shadow-sm">
+                        <i :class="enviandoOrden ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'" class="mr-1"></i>
+                        Enviar
+                    </button>
+                </footer>
             </div>
         </div>
 

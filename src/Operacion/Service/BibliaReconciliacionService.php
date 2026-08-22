@@ -14,7 +14,10 @@ use App\Operacion\ApiPlatform\Dto\ResultadoAplicacion;
 use App\Operacion\Entity\OperacionServicio;
 use App\Operacion\Enum\EstadoReservaProveedorEnum;
 use DomainException;
+use App\Travel\Entity\TravelOrganizacion;
+use App\Travel\Entity\TravelOrganizacionServicio;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Reconcilia La Biblia con la cotización SIN borrarla.
@@ -80,6 +83,10 @@ class BibliaReconciliacionService
     private const CAMPOS_TECNICOS = [
         'compradorMaestroId',
         'prestadorMaestroId',
+        // ⚠️ Faltaba, y por eso el plan enseñaba el UUID pelado —
+        // «019f68bd-4f13-7750-bb37-2cafacd3489b»— en la línea «Servicio del prestador
+        // (catálogo)». `describirTecnico()` ya sabía tratarlo; nunca se le llamaba.
+        'prestadorServicioMaestroId',
         'cotizacionTarifaId',
     ];
 
@@ -87,8 +94,19 @@ class BibliaReconciliacionService
     private const TECNICO_ACOMPANA_A = [
         'compradorMaestroId'  => 'compradorNombre',
         'prestadorMaestroId'  => 'prestadorNombre',
+        'prestadorServicioMaestroId' => 'prestadorServicioNombre',
         'cotizacionTarifaId'  => 'costoCotizado',
     ];
+
+    /**
+     * Nombres del catálogo ya resueltos, por id.
+     *
+     * Se cachea por petición: un plan de 40 filas repite el mismo proveedor decenas de veces y
+     * sin esto serían decenas de consultas para escribir la misma palabra.
+     *
+     * @var array<string, string|null>
+     */
+    private array $nombresDelCatalogo = [];
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -407,6 +425,19 @@ class BibliaReconciliacionService
             return 'sin asignar';
         }
 
+        // ── El NOMBRE, no el identificador ──────────────────────────────────
+        // Esto devolvía «prestador 019f68bd» — ocho caracteres de un UUID, que no dicen más que
+        // el UUID entero. Quien aprueba un cambio del catálogo necesita saber **de qué empresa a
+        // qué empresa**, y eso es lo único que le permite decidir.
+        //
+        // El id se conserva detrás como respaldo: si la ficha se borró del maestro, el nombre ya
+        // no existe y enseñar el identificador sigue siendo mejor que un hueco.
+        $nombre = $this->nombreDelCatalogo($campo, $valor);
+
+        if ($nombre !== null) {
+            return $nombre;
+        }
+
         return match ($campo) {
             'cotizacionTarifaId' => 'tarifa ' . substr($valor, 0, 8),
             'compradorMaestroId' => 'comprador ' . substr($valor, 0, 8),
@@ -414,6 +445,39 @@ class BibliaReconciliacionService
             'prestadorMaestroId' => 'prestador ' . substr($valor, 0, 8),
             default              => $valor,
         };
+    }
+
+    /**
+     * El nombre que el catálogo le da a este identificador, o `null` si no se puede resolver.
+     *
+     * `cotizacionTarifaId` se queda fuera: una tarifa no tiene un nombre corto que valga como
+     * etiqueta —la explica su importe, que ya sale en la línea de al lado (`costoCotizado`)—.
+     */
+    private function nombreDelCatalogo(string $campo, string $id): ?string
+    {
+        $clave = $campo . ':' . $id;
+
+        if (array_key_exists($clave, $this->nombresDelCatalogo)) {
+            return $this->nombresDelCatalogo[$clave];
+        }
+
+        $nombre = null;
+
+        if (Uuid::isValid($id)) {
+            $uuid = Uuid::fromString($id);
+
+            $nombre = match ($campo) {
+                'compradorMaestroId', 'prestadorMaestroId' =>
+                    $this->em->getRepository(TravelOrganizacion::class)->find($uuid)?->getNombreComercial(),
+                'prestadorServicioMaestroId' =>
+                    $this->em->getRepository(TravelOrganizacionServicio::class)->find($uuid)?->getNombre(),
+                default => null,
+            };
+        }
+
+        $nombre = $nombre !== null && trim($nombre) !== '' ? trim($nombre) : null;
+
+        return $this->nombresDelCatalogo[$clave] = $nombre;
     }
 
     /** Estado actual de la fila en el mismo formato escalar que calcularValores(). */

@@ -50,6 +50,20 @@ export interface PagoProveedor {
     usuarioNombre: string | null;
 }
 
+/**
+ * Lo que se le mandaría al proveedor.
+ *
+ * 🪞 Espejo de `OperacionOrdenEnvio::previsualizar()`. Se declara a mano porque el endpoint
+ * devuelve una `JsonResponse` montada y no entra en `api.d.ts`.
+ */
+export interface DocumentoDeOrden {
+    asunto: string;
+    cuerpo: string;
+    lineas: number;
+    destinatario: string;
+    canales: Array<{ id: string; nombre: string; disponible: boolean; motivo: string | null }>;
+}
+
 /** Un medio de pago del selector, tal como lo publica `OperacionEnumAjaxController`. */
 export interface MedioPagoOpcion {
     id: string;
@@ -806,6 +820,32 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * deja constancia de que existió; lo impide `OperacionOrdenBorradoListener` y el motivo se
      * devuelve tal cual.
      */
+    /** Qué se le mandaría al proveedor y por qué canales, sin mandar nada. */
+    const documentoDeOrden = async (id: string): Promise<DocumentoDeOrden | { error: string }> => {
+        try {
+            const { data } = await apiClient.get(`/platform/ops/orden-servicios/${id}/documento`);
+
+            return data as DocumentoDeOrden;
+        } catch (error) {
+            return { error: mensajeDeErrorApi(error, 'No se pudo preparar el documento.') };
+        }
+    };
+
+    /**
+     * Lo manda. Devuelve `null` si salió, o el MOTIVO si no.
+     *
+     * ⚠️ Es irreversible: un correo mandado no se retira. Por eso el panel previsualiza antes.
+     */
+    const enviarOrdenAlProveedor = async (id: string, canal: string): Promise<string | null> => {
+        try {
+            await apiClient.post(`/platform/ops/orden-servicios/${id}/enviar`, { canal });
+
+            return null;
+        } catch (error) {
+            return mensajeDeErrorApi(error, 'No se pudo enviar la orden.');
+        }
+    };
+
     const eliminarOrdenServicio = async (id: string): Promise<string | null> => {
         try {
             await apiClient.delete(`/platform/ops/operacion_orden_servicios/${id}`);
@@ -936,6 +976,8 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         emitirOrdenServicio,
         cambiarEstadoOrden,
         eliminarOrdenServicio,
+        documentoDeOrden,
+        enviarOrdenAlProveedor,
         aplicarCambiosMenores,
         actualizarOrdenServicio,
         fetchMensajesPorOrden,

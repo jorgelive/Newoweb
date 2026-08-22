@@ -79,6 +79,19 @@ finanzas_api_controllers:
     type: attribute
     host: '%app.host.api%'
 
+# OPERACIÓN — previsualizar y enviar la Orden de Servicio al proveedor.
+#
+# ⚠️ Un controlador aquí NO tiene rutas hasta que su directorio se declara en este archivo:
+# cada módulo trae el suyo. Se descubre con un 404 en una ruta que `debug:router` no lista, y
+# no con un error — que es peor, porque parece un fallo del front.
+#
+# Mismo aviso que los de arriba: el host de api cae en PUBLIC_ACCESS, así que la protección es
+# el #[IsGranted] del propio controlador. No lo quites.
+operacion_api_controllers:
+    resource: ../src/Operacion/Controller/Api/
+    type: attribute
+    host: '%app.host.api%'
+
 finanzas_publico_controllers:
     resource: ../src/Finanzas/Controller/Publico/
     type: attribute

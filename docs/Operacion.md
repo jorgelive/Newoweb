@@ -1478,6 +1478,95 @@ manda. Lo fija `tests/Operacion/Service/TransicionesDeOrdenTest.php`: si el pane
 transición que el backend rechaza, el operador confirmaría y se comería un 422; si el backend
 admitiera una nueva y el panel no la añadiera, el botón sencillamente no existiría.
 
+## 5.6 bis El plan de sincronización enseñaba UUIDs (21/08/2026)
+
+La línea «Servicio del prestador (catálogo)» salía como
+`019f68bd-4f13-7750-bb37-2cafacd3489b`. Dos fallos encadenados:
+
+1. **`prestadorServicioMaestroId` no estaba en `CAMPOS_TECNICOS`**, así que nunca pasaba por
+   `describirTecnico()` — que ya sabía tratarlo.
+2. Y `describirTecnico()` devolvía **ocho caracteres del UUID** («prestador 019f68bd»), que no
+   dicen más que el UUID entero.
+
+Ahora los identificadores del catálogo se resuelven a **nombre** contra `TravelOrganizacion` y
+`TravelOrganizacionServicio`, con caché por petición —un plan de 40 filas repite el mismo
+proveedor decenas de veces—. El id queda de respaldo: si la ficha se borró del maestro, el
+nombre ya no existe y enseñar el identificador sigue siendo mejor que un hueco.
+
+`cotizacionTarifaId` se queda sin nombre a propósito: una tarifa no tiene una etiqueta corta que
+valga: la explica su importe, que ya sale en la línea de al lado.
+
+⚠️ Quien aprueba un cambio del catálogo necesita saber **de qué empresa a qué empresa**. Con un
+UUID no puede decidir, así que aprueba a ciegas o no aprueba nada.
+
+## 5.7 Enviarle la orden al proveedor (21/08/2026)
+
+`OperacionOrdenDocumento` + `OperacionOrdenEnvio` + `EnviarOrdenController`.
+
+```
+GET  /platform/ops/orden-servicios/{id}/documento   → qué se mandaría y por qué canales
+POST /platform/ops/orden-servicios/{id}/enviar      → {"canal": "email"}
+```
+
+### ⚠️ Enviar NO es parte de emitir
+
+Son dos decisiones y **fallan distinto**: emitir congela el contenido —un hecho interno—;
+enviar se lo pone delante a alguien de fuera y eso no se retira. En el mismo botón, un fallo de
+red dejaría la orden emitida y al proveedor sin enterarse, o al revés.
+
+Separados, **«reenviar» no necesita código propio**: es el mismo botón otra vez. Y eso importa
+porque reenviar es lo normal — el proveedor perdió el correo, cambió de contacto, o hubo un
+cambio menor que no justifica reemitir.
+
+Disponible en `emitida`, `confirmada` y `completada`. En borrador no: no hay ítems congelados y
+el documento saldría vacío.
+
+### El documento no lleva importes
+
+Es la regla que ya estaba escrita en `$totalOs` —«al proveedor no se le manda un total»—,
+extendida a las líneas. Este documento es una **solicitud de servicio**: a quién recoger, dónde,
+a qué hora y cuántos son. El dinero está pactado por otro canal, y meterlo abre una negociación
+justo cuando lo que hace falta es que la plaza exista. Lo que se paga va aparte, en
+`OperacionPago`.
+
+Sale de los **ítems congelados**, no de los servicios vivos: componerlo de éstos haría que
+reenviarlo un mes después mandara algo distinto de lo que el proveedor tiene en la mano — y ése
+es justo el escenario en que se reenvía.
+
+Ejemplo real:
+
+```
+Orden de Servicio OS-20260817-938
+
+· 31/08/2026  ·  22:00  ·  Auto a Miraflores Noche  ·  2 pax
+· 02/09/2026  ·  04:00  ·  Tacama (Base 2 Pax)  ·  2 pax
+· 04/09/2026  ·  08:30  ·  Auto  ·  2 pax
+
+Por favor confirmar recepción y disponibilidad.
+```
+
+⚠️ La **hora de recojo sólo se dice cuando difiere** de la del servicio. En los datos reales
+coinciden casi siempre, y repetir el mismo dato dos veces por línea enseña a no leerlo — que es
+lo contrario de lo que hace falta el día que sí sean distintas.
+
+### Va por el hilo del proveedor, no por un mailer suelto
+
+El destinatario es una `TravelOrganizacion`, que desde el 21/08/2026 tiene conversación como
+cualquier asunto. Así el envío hereda lo que ya está resuelto: cola con reintentos, destino
+resuelto **por identidad** —no por el campo del catálogo, que es sólo la semilla—, veto de
+números muertos e historial en el chat. Un mailer suelto habría duplicado esas cuatro cosas, y
+se habría notado la primera vez que un proveedor cambiara de correo.
+
+El canal **se elige en la previsualización**, entre los que ese proveedor tenga disponibles. Los
+no disponibles se enseñan con su motivo en vez de esconderse: «no aparece WhatsApp» obliga a
+adivinar; «sin datos» no.
+
+### ⚠️ Un controlador nuevo no tiene rutas hasta declarar su directorio
+
+`config/routes.yaml` lista el directorio de cada módulo, y `src/Operacion/Controller/Api/` no
+estaba. Se descubre con un 404 en una ruta que `debug:router` no lista — no con un error, que es
+peor: parece un fallo del front.
+
 ## 6. API: endpoints, grupos y filtros
 
 `routePrefix: '/ops'`, todo bajo `/platform/ops/`:
