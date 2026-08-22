@@ -1310,6 +1310,27 @@ es un segmento muerto**: puede estar en el pool de un servicio, listo para una c
 medida. Antes de retirar uno hay que mirar sus tres usos —plantillas, pool de servicios y
 `cotizacion_segmento.segmento_maestro_id`—, no sólo el primero.
 
+**Se le montó su plantilla** con `app:travel:crear-valle-sagrado-privado`:
+«Full Day Valle Sagrado privado», clonando la estructura de la privada existente y cambiando sólo
+el segmento de recojo. Así los o2..o7 son **las mismas filas de segmento**, no copias — que es lo
+que hace que corregir un punto se refleje en las tres plantillas del Valle a la vez.
+
+⚠️ **Hay DOS segmentos llamados «Recojo en el Hotel (Servicio Privado)»** y sólo se distinguen por
+lo que llevan colgado —uno el de Chinchero/Maras, otro el del Valle—. Buscarlos por nombre a secas
+devuelve cualquiera de los dos según el orden de la base y monta la plantilla con la logística
+equivocada **sin dar ningún error**. Por eso el comando los desambigua por su componente
+(`Transporte Valle Sagrado`), no por el nombre del segmento.
+
+⚠️ **«VIP» en este catálogo es etiqueta comercial, no nivel de servicio.** Lo que se llama VIP es
+el pool **más barato**; el nombre viene de cómo lo vende el mercado. No sirve para deducir qué
+variante es más privada, ni cuál debería ser la principal, ni para ordenar nada por calidad. Es de
+la familia de «campos que parecen un error y no lo son» del `CLAUDE.md`: lo que induce a error es
+el nombre, y el dato está bien.
+
+El título público se copió tal cual con sus siete idiomas: comercialmente las dos **son**
+«excursión privada al Valle Sagrado». Lo que las distingue —qué transporte y qué guía— es
+operativo y vive en `nombreInterno`, que es lo que ve quien cotiza.
+
 ### Los dos resolvedores difieren a propósito
 
 | | ¿Exige plantilla para que un componente abarque el día? |
@@ -1370,3 +1391,4 @@ contenedor»—; lo que cambia es que un lado tiene contenedor a ese nivel y el 
 | Marcar el servicio principal de un día (paquetes, multi-día) | `src/Travel/Controller/Crud/TravelSegmentoComponenteCrudController.php` | «Servicio principal del día» — uno por (plantilla, día); **ojo con la Categoría Operativa** |
 | Limpiar promociones sin plantilla | `src/Travel/Command/TravelLimpiarPromocionesHuerfanasCommand.php` | `--dry-run`; **no toca `itinerarioContexto` ni las cotizaciones** |
 | Dar servicio principal a una plantilla | `src/Travel/Command/TravelPromoverServicioPrincipalCommand.php` | `PROMOCIONES` — **añade fila, no modifica la global** |
+| Montar la plantilla privada del Valle que faltaba | `src/Travel/Command/TravelCrearValleSagradoPrivadoCommand.php` | clona la privada existente y cambia el recojo; **desambigua por componente, no por nombre** |

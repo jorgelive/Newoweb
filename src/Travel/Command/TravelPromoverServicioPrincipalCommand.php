@@ -55,6 +55,8 @@ final class TravelPromoverServicioPrincipalCommand extends Command
         'Full Day Vinicunca Estandar' => 'Pool Vinicunca',
         'Half Day Chinchero, Maras y Moray' => 'Pool Maras Moray',
         'Half Day Chinchero, Maras y Moray privado' => 'Transporte Maras',
+        // La plantilla que montó TravelCrearValleSagradoPrivadoCommand.
+        'Full Day Valle Sagrado privado' => 'Transporte Valle Sagrado',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
