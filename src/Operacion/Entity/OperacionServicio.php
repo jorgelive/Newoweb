@@ -902,6 +902,38 @@ class OperacionServicio
     public function getEstadoComponente(): ?string { return $this->estadoComponente; }
     public function setEstadoComponente(?string $estadoComponente): self { $this->estadoComponente = $estadoComponente; return $this; }
 
+
+    /**
+     * La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural.
+     *
+     * `día × 1000 + orden del segmento`. Los componentes que cuelgan del mismo segmento comparten
+     * número y se desempatan por hora, que es exactamente como se leen: «el ascenso en bus y su
+     * ingreso van juntos, y dentro de eso manda el reloj».
+     *
+     * ⚠️ **Es la vista que pide el operador, y no coincide con la del reloj.** Un cuadro ordenado
+     * sólo por hora parte el relato: el alojamiento y la comida, que no tienen hora, caen al final
+     * del día lejos del servicio al que pertenecen. El itinerario los deja donde el cliente los va
+     * a vivir. La ordenación por hora sigue estando, como interruptor.
+     *
+     * ⚠️ **Se calcula, no se guarda.** Duplicarlo en una columna abriría la puerta a que el cuadro
+     * y la cotización se contradigan al reordenar un segmento — el mismo motivo por el que
+     * `isSoloReferencia()` tampoco es columna.
+     *
+     * 🚧 Coste: serializar una página carga el cotcomponente y su cotsegmento de cada fila. Con
+     * 200 por página son 400 lecturas perezosas. Se acepta de momento; si pesa, se resuelve con un
+     * `fetch join` en la extensión de la colección, no guardando una copia.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getOrdenItinerario(): ?int
+    {
+        $segmento = $this->cotizacionComponente?->getCotsegmento();
+
+        if ($segmento === null) {
+            return null;
+        }
+
+        return $segmento->getDia() * 1000 + $segmento->getOrden();
+    }
     /**
      * Prioridad de despacho heredada de ComponenteTipoEnum::prioridad().
      *

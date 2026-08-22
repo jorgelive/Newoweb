@@ -1264,6 +1264,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/ops/orden-servicios/{id}/agregar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a OperacionOrdenServicio resource.
+         * @description Creates a OperacionOrdenServicio resource.
+         */
+        post: operations["api_opsorden-servicios_idagregar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/ops/orden-servicios/{id}/aplicar-menores": {
         parameters: {
             query?: never;
@@ -14691,6 +14711,9 @@ export interface components {
             monedaOs?: string | null;
             totalOs?: string | null;
             id?: string;
+        };
+        "OperacionOrdenServicio.AgregarAOrdenInput-operacion.orden.write": {
+            servicioIds?: string[];
         };
         "OperacionOrdenServicio.CambiarEstadoOrdenInput-operacion.orden.write": {
             /**
@@ -34605,6 +34628,73 @@ export interface operations {
                 "application/json": components["schemas"]["OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write"];
                 "text/html": components["schemas"]["OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write"];
                 "multipart/form-data": components["schemas"]["OperacionOrdenServicio.EmitirOrdenInput-operacion.orden.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionOrdenServicio resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_opsorden-servicios_idagregar_post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionOrdenServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new OperacionOrdenServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionOrdenServicio.AgregarAOrdenInput-operacion.orden.write"];
+                "application/json": components["schemas"]["OperacionOrdenServicio.AgregarAOrdenInput-operacion.orden.write"];
+                "text/html": components["schemas"]["OperacionOrdenServicio.AgregarAOrdenInput-operacion.orden.write"];
+                "multipart/form-data": components["schemas"]["OperacionOrdenServicio.AgregarAOrdenInput-operacion.orden.write"];
             };
         };
         responses: {

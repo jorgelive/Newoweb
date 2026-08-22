@@ -686,6 +686,34 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     /**
+     * Suma servicios a una orden que se está componiendo.
+     *
+     * Componer no siempre ocurre de una sentada: se marcan los del martes y al revisar el
+     * miércoles aparecen dos más del mismo proveedor. Sin esto había que anular y rehacer, que
+     * además cambia el número de la orden.
+     *
+     * ⚠️ Sólo funciona sobre BORRADORES, y lo impone el servidor: una emitida es un documento
+     * que el proveedor ya tiene, y añadirle una línea por detrás la cambiaría sin que él se
+     * entere. El error viene explicado; no hay que adivinarlo aquí.
+     */
+    const agregarAOrden = async (ordenId: string, servicioIds: string[]): Promise<OperacionOrdenServicio> => {
+        isLoading.value = true;
+        try {
+            const { data } = await apiClient.post(
+                `/platform/ops/orden-servicios/${ordenId}/agregar`,
+                { servicioIds }
+            );
+
+            const i = ordenesServicio.value.findIndex((o: OperacionOrdenServicio) => o.id === ordenId);
+            if (i !== -1) ordenesServicio.value[i] = data;
+
+            return data;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
+    /**
      * Aplica lo que NO obliga a reemitir: hoy, la hora que el proveedor acaba de confirmar.
      *
      * Actualiza el documento y la orden **sigue emitida**. El aviso que sale de aquí es una
@@ -1015,7 +1043,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         fetchCotizacionesDeExpediente,
         actualizarServicio,
         fetchOrdenesServicio,
-        emitirOrdenServicio,
+        emitirOrdenServicio, agregarAOrden,
         cambiarEstadoOrden,
         eliminarOrdenServicio,
         documentoDeOrden,

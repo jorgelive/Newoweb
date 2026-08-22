@@ -11,9 +11,11 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use App\Operacion\ApiPlatform\Dto\CambiarEstadoOrdenInput;
+use App\Operacion\ApiPlatform\Dto\AgregarAOrdenInput;
 use App\Operacion\ApiPlatform\Dto\EmitirOrdenInput;
 use App\Operacion\ApiPlatform\State\AplicarCambiosMenoresProcessor;
 use App\Operacion\ApiPlatform\State\CambiarEstadoOrdenProcessor;
+use App\Operacion\ApiPlatform\State\AgregarAOrdenProcessor;
 use App\Operacion\ApiPlatform\State\EmitirOrdenProcessor;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
@@ -71,6 +73,19 @@ use Symfony\Component\Uid\Uuid;
             read: false,
             processor: EmitirOrdenProcessor::class
         ),
+        // Sumar filas a una orden que se está componiendo. SÓLO sobre borradores: una emitida
+        // es un documento que el proveedor ya tiene, y añadirle una línea por detrás la
+        // cambiaría sin que él se entere. Ver AgregarAOrdenProcessor.
+        new Post(
+            uriTemplate: '/orden-servicios/{id}/agregar',
+            denormalizationContext: ['groups' => ['operacion:orden:write']],
+            input: AgregarAOrdenInput::class,
+            security: "is_granted('" . Roles::OPERACIONES_WRITE . "')",
+            securityMessage: 'No tienes permiso para modificar órdenes de servicio.',
+            read: false,
+            processor: AgregarAOrdenProcessor::class
+        ),
+
         // Lo que NO obliga a reemitir: el proveedor confirmó la hora. Se actualiza el
         // documento y se avisa —confirmación, no modificación—, y la orden sigue válida.
         new Post(

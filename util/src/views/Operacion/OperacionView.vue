@@ -719,6 +719,52 @@ const abrirModalOs = () => {
  * componer una orden obligaba a mandársela al proveedor en el acto, sin poder repasar el
  * destinatario, el número ni los importes negociados.
  */
+/**
+ * Las órdenes a las que se puede sumar lo que está marcado.
+ *
+ * Sólo BORRADORES —una emitida es un documento que el proveedor ya tiene— y sólo del mismo
+ * expediente y el mismo comprador que la selección. Se filtra aquí para no ofrecer una opción que
+ * el servidor va a rechazar: un desplegable con órdenes imposibles es un desplegable que se elige
+ * mal. El servidor lo vuelve a comprobar de todos modos; esto es cortesía, no la guarda.
+ */
+const ordenesParaAgregar = computed(() => {
+    const sel = serviciosSeleccionados.value;
+    if (sel.length === 0 || conflictoSeleccion.value) return [];
+
+    const fileId = sel[0].file;
+    const comprador = sel[0].compradorEfectivoMaestroId ?? sel[0].compradorMaestroId ?? null;
+
+    return operacionStore.ordenesServicio.filter((o) =>
+        o.estadoOs === 'borrador'
+        && o.file === fileId
+        && (o.compradorMaestroId ?? null) === comprador
+    );
+});
+
+const mostrarModalAgregar = ref(false);
+const errorAgregar = ref<string | null>(null);
+const agregandoA = ref<string | null>(null);
+
+const agregarAOrden = async (ordenId?: string | null) => {
+    if (!ordenId) return;
+    const ids = serviciosSeleccionados.value.map(s => s.id!).filter(Boolean);
+    if (ids.length === 0) return;
+
+    agregandoA.value = ordenId;
+    errorAgregar.value = null;
+    try {
+        await operacionStore.agregarAOrden(ordenId, ids);
+        mostrarModalAgregar.value = false;
+        seleccionados.value = [];
+        await cargarBiblia();
+    } catch (e) {
+        // El servidor explica QUÉ falló —ya emitida, otro comprador, ya en otra orden—.
+        errorAgregar.value = mensajeDeErrorApi(e, 'No se pudo agregar a la orden.');
+    } finally {
+        agregandoA.value = null;
+    }
+};
+
 const confirmarOs = async (emitir: boolean) => {
     const sel = serviciosSeleccionados.value;
     if (sel.length === 0) return;
@@ -1831,6 +1877,17 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                             >
                                 <i class="fas fa-file-invoice"></i>
                                 Generar OS
+                            </button>
+                            <!-- Componer una orden no siempre ocurre de una sentada: se marcan
+                                 los del martes y al revisar el miércoles aparecen dos más del
+                                 mismo proveedor. Sólo sale si hay borradores compatibles. -->
+                            <button
+                                v-if="ordenesParaAgregar.length"
+                                @click="mostrarModalAgregar = true; errorAgregar = null"
+                                class="flex items-center gap-2 px-4 py-1.5 bg-white border-2 border-[#376875] text-[#376875] hover:bg-[#376875] hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
+                            >
+                                <i class="fas fa-plus"></i>
+                                Agregar a OS ({{ ordenesParaAgregar.length }})
                             </button>
                             <button
                                 @click="seleccionados = []"
@@ -3293,4 +3350,59 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
             </div>
         </div>
     </div>
+
+    <!-- ══ AGREGAR A UNA ORDEN EXISTENTE ═══════════════════════════════════════
+         Lista sólo borradores compatibles. Cada fila enseña el NÚMERO y el
+         COMPRADOR: sin el comprador delante, elegir entre «OS-014» y «OS-015» es
+         adivinar, y equivocarse manda el encargo al proveedor que no era. -->
+    <Transition name="fade-scale">
+      <div v-if="mostrarModalAgregar" class="fixed inset-0 z-1400 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+           @click.self="mostrarModalAgregar = false">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
+          <div class="bg-[#376875] text-white px-5 py-4 flex justify-between items-center">
+            <h3 class="font-black text-sm uppercase tracking-widest">
+              <i class="fas fa-plus mr-2"></i>Agregar a una orden
+            </h3>
+            <button @click="mostrarModalAgregar = false" class="hover:opacity-70"><i class="fas fa-times"></i></button>
+          </div>
+
+          <div class="p-5 space-y-3">
+            <p class="text-xs font-bold text-slate-500">
+              Se agregarán <span class="text-[#376875]">{{ seleccionados.length }} servicio{{ seleccionados.length !== 1 ? 's' : '' }}</span>.
+              Sólo aparecen las órdenes en borrador del mismo expediente y comprador.
+            </p>
+
+            <p v-if="errorAgregar" class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+              <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorAgregar }}
+            </p>
+
+            <div class="space-y-2 max-h-72 overflow-y-auto">
+              <button
+                v-for="o in ordenesParaAgregar" :key="o.id"
+                @click="agregarAOrden(o.id)"
+                :disabled="!!agregandoA"
+                class="w-full text-left px-4 py-3 rounded-xl border-2 border-slate-200 hover:border-[#376875] hover:bg-[#376875]/5 disabled:opacity-40 transition-colors"
+              >
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="font-black text-sm text-slate-900">{{ o.numeroOs }}</p>
+                    <p class="text-[11px] font-bold text-slate-500 truncate">
+                      <i class="fas fa-handshake text-[9px] mr-1 text-slate-300"></i>{{ o.compradorNombre || 'Sin comprador' }}
+                    </p>
+                  </div>
+                  <span class="shrink-0 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <i v-if="agregandoA === o.id" class="fas fa-spinner fa-spin mr-1"></i>
+                    {{ (o.operacionServicios?.length ?? 0) }} línea{{ (o.operacionServicios?.length ?? 0) !== 1 ? 's' : '' }}
+                  </span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end">
+            <button @click="mostrarModalAgregar = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 </template>

@@ -2130,6 +2130,30 @@ es una orden que no se emite.
 ⚠️ **Sólo para `tipos`.** Es un enum del código y cambia una vez al año. Los lugares salen de la
 base y se crean a menudo: reiniciar su filtro en cada alta sería peor que el problema.
 
+### Agregar servicios a una orden que se está componiendo (22/08/2026)
+
+`POST /platform/ops/orden-servicios/{id}/agregar` → `AgregarAOrdenProcessor`.
+
+Componer una orden no siempre ocurre de una sentada: se marcan los servicios del martes y al
+revisar el miércoles aparecen dos más del mismo proveedor. Sin esto había que **anular y rehacer**,
+que además cambia el número de la orden.
+
+Con el filtro «sin orden» del cuadro es un barrido: se seleccionan los que quedan sueltos, se
+suman a la orden que corresponda, y desaparecen de la lista.
+
+⚠️ **SÓLO sobre borradores.** Una orden emitida es un documento que el proveedor ya tiene:
+añadirle una línea por detrás la cambiaría sin que él se entere. Para eso está reemitir —anular y
+crear la sucesora—, que deja el rastro.
+
+**Reusa `OperacionOrdenEmision::validar()`** en vez de reescribir las comprobaciones (comprable, no
+atado a otra orden, un expediente, un comprador), y encima añade lo que sólo aplica aquí: que el
+expediente y el comprador de lo que entra **coincidan con los de la orden**, que ya están
+decididos. Sin eso, una orden dirigida a PeruRail acabaría con una línea de Consettur dentro.
+
+En el cuadro, el botón sale sólo si hay borradores compatibles, y el modal enseña **número y
+comprador** de cada uno: sin el comprador delante, elegir entre «OS-014» y «OS-015» es adivinar, y
+equivocarse manda el encargo al proveedor que no era.
+
 ### El recojo se dice UNA VEZ AL DÍA
 
 `OperacionOrdenServicio::rutasVisibles()` decide qué líneas enseñan el «recoge en… → deja en…».
