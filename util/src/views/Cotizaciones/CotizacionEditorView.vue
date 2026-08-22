@@ -1189,7 +1189,13 @@ store.$onAction(({ name, args }) => {
 
           <div v-for="dia in store.itinerarioDinamico" :key="dia.fechaAbsoluta" class="mb-10">
 
-            <div class="flex items-center gap-3 sticky top-0 bg-[#F8FAFC]/95 backdrop-blur-sm py-4 z-10 mb-6 border-b border-slate-200/50">
+            <!-- ⚠️ Fondo OPACO y sangrado a los lados, no translúcido.
+                 Con `/95` + blur, la tarjeta que pasaba por debajo se transparentaba y su título
+                 asomaba medio cortado justo bajo la cabecera. Y la banda tiene que cubrir también
+                 el padding del contenedor (`p-4 md:p-8`): si se queda dentro, el contenido se ve
+                 pasar por los costados. El `z-20` la deja por encima de las tarjetas, que llevan
+                 `z-10` en sus adornos. -->
+            <div class="flex items-center gap-3 sticky top-0 bg-[#F8FAFC] py-4 -mx-4 px-4 md:-mx-8 md:px-8 z-20 mb-6 border-b border-slate-200/50">
               <div class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg border border-slate-700">
                 Día {{ dia.diaNumero }}
               </div>
