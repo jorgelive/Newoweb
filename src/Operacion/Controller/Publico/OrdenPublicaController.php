@@ -48,8 +48,12 @@ final class OrdenPublicaController extends AbstractController
     #[Route('/orden/{token}', name: 'operacion_orden_publica', methods: ['GET'], requirements: ['token' => '[0-9a-f]{32}'])]
     public function pagina(string $token): Response
     {
+        $orden = $this->orden($token);
+
         return $this->render('operacion/orden_publica.html.twig', [
-            'orden' => $this->orden($token),
+            'orden' => $orden,
+            // Mismo criterio que el mensaje al proveedor: el recojo, una vez al día.
+            'rutas' => $orden->rutasVisibles(),
             'paraPdf' => false,
         ]);
     }
@@ -67,6 +71,7 @@ final class OrdenPublicaController extends AbstractController
 
         $dompdf = new Dompdf($opciones);
         $dompdf->loadHtml($this->renderView('operacion/orden_publica.html.twig', [
+            'rutas' => $orden->rutasVisibles(),
             'orden' => $orden,
             'paraPdf' => true,
         ]));

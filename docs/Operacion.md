@@ -2111,6 +2111,26 @@ que en cotizaciones: es una lectura derivada que se refresca sola al corregir un
 Los **avisos** se pintan en ámbar bajo los campos y dicen por qué falta algo y dónde se arregla.
 Sin ellos, un campo gris y vacío no distingue «no aplica» de «nadie lo declaró».
 
+### El recojo se dice UNA VEZ AL DÍA
+
+`OperacionOrdenServicio::rutasVisibles()` decide qué líneas enseñan el «recoge en… → deja en…».
+
+⚠️ **Repetirlo en cada línea no informa: enseña a no leer ese renglón**, y entonces no se lee el
+día que sí cambia. Una orden va a un solo proveedor, así que las seis líneas del martes con el
+mismo hotel son seis veces el mismo dato. Es la misma razón por la que la hora de recojo sólo sale
+cuando difiere de la del servicio.
+
+```
+mismo sitio, mismo día      →  se dice una vez, en la primera línea
+al día siguiente            →  vuelve a decirse, aunque sea el mismo sitio
+cambia en mitad del día     →  se dice, que es justo cuando hace falta
+vuelve al sitio anterior    →  se dice: sólo se calla lo que repite a la línea ANTERIOR
+```
+
+Vive en la orden y no en cada superficie porque lo pintan **dos** —el mensaje al proveedor y la
+página pública con su PDF— y una regla de «cuándo callarse» escrita dos veces se convierte en dos
+documentos distintos para el mismo servicio. Cubierto por `OperacionOrdenRutasTest`.
+
 ### Verificado con datos reales
 
 Sobre un expediente de 42 servicios en La Biblia:

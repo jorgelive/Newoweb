@@ -1992,8 +1992,8 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                                     @change="editarPunto(servicio, 'recojo', $event)"
                                                                     :placeholder="puntosDe(servicio)?.recojo || 'sin declarar en el catálogo'"
                                                                     maxlength="255"
-                                                                    class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
-                                                                    :class="servicio.puntoRecojo ? 'text-slate-900' : 'text-slate-400'"
+                                                                    class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
+                                                                    :class="servicio.puntoRecojo ? 'text-slate-900' : 'text-slate-500'"
                                                                     title="Dónde se recoge. Vacío = lo que diga el catálogo."
                                                                 />
                                                             </div>
@@ -2005,8 +2005,8 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                                     @change="editarPunto(servicio, 'entrega', $event)"
                                                                     :placeholder="puntosDe(servicio)?.entrega || 'sin declarar en el catálogo'"
                                                                     maxlength="255"
-                                                                    class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
-                                                                    :class="servicio.puntoEntrega ? 'text-slate-900' : 'text-slate-400'"
+                                                                    class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
+                                                                    :class="servicio.puntoEntrega ? 'text-slate-900' : 'text-slate-500'"
                                                                     title="Dónde se deja. Vacío = lo que diga el catálogo."
                                                                 />
                                                             </div>

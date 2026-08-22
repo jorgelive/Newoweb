@@ -71,8 +71,8 @@
                         {# La redacción la compone la entidad, que es la misma que usa el mensaje
                            al proveedor: si se escribiera aquí también, el día que cambie sólo
                            cambiaría en uno de los dos y nadie compararía. #}
-                        {% if item.rutaParaLaOrden %}
-                            <br><span class="sub">{{ item.rutaParaLaOrden }}</span>
+                        {% if rutas[item.id] is defined %}
+                            <br><span class="sub">{{ rutas[item.id] }}</span>
                         {% endif %}
                     </td>
                     <td class="pax">{{ item.cantidadPax ?: '—' }}</td>

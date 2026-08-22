@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelSegmento;
+use App\Travel\Entity\TravelTarifa;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -118,6 +120,7 @@ final class TravelAjustarTextosContactoCommand extends Command
             return Command::SUCCESS;
         }
 
+        $this->renombrarTarifa($io);
         $this->em->flush();
 
         // ── La comprobación que justifica todo lo anterior ──────────────────
@@ -150,6 +153,35 @@ final class TravelAjustarTextosContactoCommand extends Command
         $io->success('Textos ajustados.');
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * La tarifa del contacto se llamaba «Base», y en el cuadro de tráfico eso no dice nada.
+     *
+     * `descripcionServicio` de La Biblia sale del **nombre interno de la tarifa** —debajo del
+     * nombre del componente—, así que la fila del contacto se leía «Contacto con el cliente /
+     * Base» y no se distinguía de nada. En los demás componentes ese campo dice qué es
+     * exactamente lo que se compra («Van (Incluido en paquete externo)»).
+     *
+     * ⚠️ Sólo se renombra si sigue diciendo «Base»: si alguien ya la afinó a mano, manda lo suyo.
+     */
+    private function renombrarTarifa(SymfonyStyle $io): void
+    {
+        $componente = $this->em->getRepository(TravelComponente::class)
+            ->findOneBy(['nombre' => 'Contacto con el cliente']);
+
+        if ($componente === null) {
+            return;
+        }
+
+        foreach ($this->em->getRepository(TravelTarifa::class)->findBy(['componente' => $componente]) as $tarifa) {
+            if ($tarifa->getNombreInterno() !== 'Base') {
+                continue;
+            }
+
+            $tarifa->setNombreInterno('Recepción y contacto con el pasajero');
+            $io->writeln('  <info>·</info> tarifa «Base» → «Recepción y contacto con el pasajero»');
+        }
     }
 
     /** @param list<array{language?: string, content?: string|null}> $campo */

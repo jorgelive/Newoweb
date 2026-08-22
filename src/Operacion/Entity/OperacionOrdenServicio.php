@@ -704,6 +704,60 @@ class OperacionOrdenServicio
     }
 
     /** Un borrador es una vista viva; una anulada ya no se persigue. */
+    /**
+     * Qué ítems enseñan el «recoge en… → deja en…», y cuáles se lo callan.
+     *
+     * ⚠️ **El sitio de recojo se dice UNA VEZ AL DÍA, no en cada línea.** Una orden va a un solo
+     * proveedor, así que repetirle en las seis líneas del martes que recoge en el Hotel Terra no
+     * le informa: le enseña a no leer ese renglón, y entonces no lo lee el día que sí cambia. Es
+     * la misma razón por la que la hora de recojo sólo sale cuando difiere de la del servicio.
+     *
+     * **Al día siguiente vuelve a salir**, aunque sea el mismo sitio: es información que se
+     * consulta por jornada, y el que opera el miércoles puede no haber leído el martes.
+     *
+     * Y **sale igualmente en mitad del día si el sitio CAMBIA**: ahí es justo cuando hace falta.
+     *
+     * Se decide aquí y no en cada superficie porque lo pintan dos —el mensaje al proveedor y la
+     * página pública con su PDF— y una regla de «cuándo callarse» escrita dos veces se convierte
+     * en dos documentos distintos para el mismo servicio.
+     *
+     * @return array<string, string> id de ítem → la línea a pintar. Los ausentes no la pintan.
+     */
+    public function rutasVisibles(): array
+    {
+        /** @var list<OperacionOrdenServicioItem> $items */
+        $items = $this->items->toArray();
+
+        usort($items, static function (OperacionOrdenServicioItem $a, OperacionOrdenServicioItem $b): int {
+            return [$a->getFechaServicio()?->format('Y-m-d') ?? '', (string) $a->getHora()]
+                <=> [$b->getFechaServicio()?->format('Y-m-d') ?? '', (string) $b->getHora()];
+        });
+
+        $visibles = [];
+        $ultimaPorDia = [];
+
+        foreach ($items as $item) {
+            $ruta = $item->rutaParaLaOrden();
+            $id = $item->getId()?->toRfc4122();
+
+            if ($ruta === null || $id === null) {
+                continue;
+            }
+
+            // Sin fecha no hay día en el que agrupar: se enseña siempre, que es lo prudente.
+            $dia = $item->getFechaServicio()?->format('Y-m-d') ?? $id;
+
+            if (($ultimaPorDia[$dia] ?? null) === $ruta) {
+                continue;
+            }
+
+            $ultimaPorDia[$dia] = $ruta;
+            $visibles[$id] = $ruta;
+        }
+
+        return $visibles;
+    }
+
     private function vigilable(): bool
     {
         return $this->estaEmitida() && $this->estadoOs !== EstadoOrdenServicioEnum::CANCELADA;

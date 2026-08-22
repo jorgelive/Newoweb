@@ -156,7 +156,8 @@ final class TravelCrearContactoMachupicchuCommand extends Command
 
         $tarifa = new TravelTarifa();
         $tarifa->setComponente($componente);
-        $tarifa->setNombreInterno('Base');
+        // El nombre interno es lo que La Biblia enseña bajo el componente: «Base» no dice nada.
+        $tarifa->setNombreInterno('Recepción y contacto con el pasajero');
         $tarifa->setTitulo([['language' => 'es', 'content' => 'Recepción y contacto']]);
         $tarifa->setMoneda($moneda);
         $tarifa->setMonto('0.00');

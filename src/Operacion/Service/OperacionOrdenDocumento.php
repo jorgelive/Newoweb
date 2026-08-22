@@ -36,8 +36,12 @@ final readonly class OperacionOrdenDocumento
     {
         $lineas = [];
 
+        // Qué ítems enseñan el recojo: uno al día, salvo que cambie — lo decide la orden, que es
+        // quien ve todas sus líneas. Ver `OperacionOrdenServicio::rutasVisibles()`.
+        $rutas = $orden->rutasVisibles();
+
         foreach ($orden->getItems() as $item) {
-            $lineas[] = $this->linea($item);
+            $lineas[] = $this->linea($item, $rutas);
         }
 
         $cuerpo = sprintf(
@@ -63,7 +67,8 @@ final readonly class OperacionOrdenDocumento
      * que necesita para presentarse —hora de recojo y cuántos son—. La descripción va después
      * de la fecha a propósito: el proveedor busca por día, no por nombre de servicio.
      */
-    private function linea(OperacionOrdenServicioItem $item): string
+    /** @param array<string, string> $rutas id de ítem → línea de recojo, si le toca enseñarla */
+    private function linea(OperacionOrdenServicioItem $item, array $rutas): string
     {
         $partes = [];
 
@@ -98,7 +103,7 @@ final readonly class OperacionOrdenDocumento
         // Va en su propio renglón: metida en la ristra de la línea, entre la hora y los pax, una
         // dirección de cuarenta caracteres sepulta todo lo demás. La redacción la compone el
         // ítem, que es también quien la pinta en la página pública — ver `rutaParaLaOrden()`.
-        $ruta = $item->rutaParaLaOrden();
+        $ruta = $rutas[$item->getId()?->toRfc4122() ?? ''] ?? null;
 
         // El prestador va sólo cuando NO es el destinatario: si coinciden, decírselo es ruido.
         $prestador = trim((string) $item->getPrestadorNombre());
