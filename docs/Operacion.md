@@ -1416,6 +1416,20 @@ que dice la consecuencia («los servicios vuelven al pool») en vez de un «¿se
 motivo del rechazo se pinta **pegado a su orden**: con varias en pantalla, un aviso global no
 diría de cuál habla.
 
+⚠️ **Al borrar hay que tocar DOS colecciones, y son distintas.** La tarjeta se quedaba en
+pantalla después de borrar porque la vista refrescaba La Biblia (`fetchServicios`) creyendo que
+eso bastaba — pero las órdenes viven en `ordenesServicio` y los servicios en `servicios`:
+
+| Qué cambió | Quién lo refleja |
+|---|---|
+| La orden ya no existe | `eliminarOrdenServicio()` la saca de `ordenesServicio` **en el store** |
+| Sus servicios volvieron al pool | la vista relee La Biblia con `cargarBiblia()` |
+
+La primera va en el **store** por lo mismo que `aplicarCambiosMenores()` y `cambiarEstadoOrden()`
+ya sincronizan ahí: si cada vista tuviera que acordarse, la segunda no se acuerda. Y se hace en
+memoria en vez de refetchear porque la respuesta ya se sabe — la orden que se acaba de borrar no
+está.
+
 ### El estado se VE en el formulario y se MUEVE con botones
 
 Se movía con un `<select>` dentro del modal de edición, y ese control **no distingue entre

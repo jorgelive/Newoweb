@@ -810,6 +810,18 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         try {
             await apiClient.delete(`/platform/ops/operacion_orden_servicios/${id}`);
 
+            // ⚠️ **Fuera de la colección aquí**, no en la vista.
+            //
+            // La tarjeta se quedaba en pantalla después de borrar: quien la llamaba refrescaba
+            // La Biblia (`fetchServicios`) creyendo que eso bastaba, y son DOS colecciones
+            // distintas — los servicios y las órdenes. Había que recargar a mano para verlo.
+            //
+            // Va en el store por lo mismo que `aplicarCambiosMenores` y `cambiarEstadoOrden` ya
+            // sincronizan ahí: cada vista que llame a esto tendría que acordarse, y la segunda
+            // no se acuerda. Y se hace en memoria en vez de refetchear porque la respuesta ya se
+            // sabe: la orden que se acaba de borrar no está.
+            ordenesServicio.value = ordenesServicio.value.filter(o => o.id !== id);
+
             return null;
         } catch (error) {
             return mensajeDeErrorApi(error, 'No se pudo eliminar la orden.');

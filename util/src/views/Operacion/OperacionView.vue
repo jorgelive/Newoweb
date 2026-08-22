@@ -814,6 +814,9 @@ const eliminarOrden = async (orden: OperacionOrdenServicio): Promise<void> => {
         return;
     }
 
+    // La orden ya salió de la colección dentro del store. Esto es lo OTRO que cambió: sus
+    // servicios volvieron al pool, así que La Biblia tiene que releerse o seguiría
+    // enseñándolos comprometidos con una orden que ya no existe.
     await cargarBiblia();
 };
 
