@@ -57,6 +57,8 @@ final class TravelPromoverServicioPrincipalCommand extends Command
         'Half Day Chinchero, Maras y Moray privado' => 'Transporte Maras',
         // La plantilla que montó TravelCrearValleSagradoPrivadoCommand.
         'Full Day Valle Sagrado privado' => 'Transporte Valle Sagrado',
+        // Antes «…tradicional privado»: su logística es Super Valle, no la del Valle a secas.
+        'Full Day Valle Vip privada' => 'Transporte Super Valle',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

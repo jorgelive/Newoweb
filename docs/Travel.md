@@ -1257,6 +1257,14 @@ servicio «Valle Vip»       1D VALLE VIP POOL  Full Day Valle Vip
 ⚠️ La VIP privada **se queda en el servicio «Valle Sagrado»**, no se movió a «Valle Vip»: mover
 de servicio cambia qué segmentos ofrece su pool, y eso no es un rename.
 
+Su servicio principal es `Transporte Super Valle` —igual que la privada del Valle a secas lleva
+`Transporte Valle Sagrado`—, y resuelve **hotel → hotel**, como corresponde a un privado.
+
+⚠️ **«Full Day Valle Vip» (la pool) sigue sin principal.** Es la única de las cuatro del Valle a
+la que le falta, y su caso es idéntico al de la Tradicional: le tocaría `Pool Super Valle`, igual
+que a aquélla `Pool Valle Sagrado`. Sin la marca no sale la línea de «recoge → deja» en el editor
+de cotizaciones.
+
 ### 🐛 Cambiar un texto traducido sin activar la sobrescritura
 
 Es la trampa que casi se cuela en el rename, y vale para **cualquier campo con
