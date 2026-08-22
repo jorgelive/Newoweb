@@ -1,0 +1,93 @@
+{# ============================================================================
+   LA ORDEN QUE VE EL PROVEEDOR
+
+   Sirve para dos cosas con el mismo HTML: la página web y el PDF (`paraPdf`).
+   Por eso el CSS va EN LÍNEA y es deliberadamente pobre —sin flex, sin grid, sin
+   variables—: dompdf entiende CSS 2.1 y poco más, y una hoja moderna se ve bien en
+   el navegador y descuadrada en el PDF, que es el peor de los dos resultados porque
+   sólo se nota cuando ya lo mandaste.
+
+   ⚠️ NO lleva importes. Ni el expediente, ni el cliente. Es público: quien tenga el
+   enlace lo lee. Ver `OrdenPublicaController`.
+============================================================================ #}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    {% if not paraPdf %}<meta name="viewport" content="width=device-width, initial-scale=1">{% endif %}
+    <title>Orden de Servicio {{ orden.numeroOs }}</title>
+    <style>
+        body { font-family: DejaVu Sans, Arial, sans-serif; color: #1e293b; font-size: 12px;
+               margin: 0; padding: 24px; background: #f8fafc; }
+        .hoja { max-width: 720px; margin: 0 auto; background: #fff; padding: 24px;
+                border: 1px solid #e2e8f0; border-radius: 8px; }
+        h1 { font-size: 18px; margin: 0 0 2px 0; }
+        .sub { color: #64748b; font-size: 11px; margin: 0 0 18px 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+        th { text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: .08em;
+             color: #94a3b8; border-bottom: 1px solid #e2e8f0; padding: 6px 8px; }
+        td { padding: 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+        .fecha { white-space: nowrap; font-weight: bold; }
+        .pax { white-space: nowrap; text-align: right; color: #475569; }
+        .pie { color: #64748b; font-size: 11px; margin-top: 18px; }
+        .boton { display: inline-block; padding: 10px 18px; background: #376875; color: #fff;
+                 text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px; }
+        .vacio { color: #94a3b8; font-style: italic; }
+    </style>
+</head>
+<body>
+<div class="hoja">
+    <h1>Orden de Servicio {{ orden.numeroOs }}</h1>
+    <p class="sub">
+        {{ orden.compradorNombre|default('') }}
+        {% if orden.items|length %} · {{ orden.items|length }} servicio(s){% endif %}
+    </p>
+
+    {% if orden.items|length %}
+        <table>
+            <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Servicio</th>
+                <th style="text-align:right">Pax</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for item in orden.items %}
+                <tr>
+                    <td class="fecha">{{ item.fechaServicio ? item.fechaServicio|date('d/m/Y') : '—' }}</td>
+                    <td class="fecha">{{ item.hora|default('—') }}</td>
+                    <td>
+                        {{ item.descripcion }}
+                        {# El recojo sólo si DIFIERE de la hora: en los datos reales coinciden casi
+                           siempre, y repetirlo enseña a no leerlo. #}
+                        {% if item.horaRecojoConfirmada and item.horaRecojoConfirmada != item.hora %}
+                            <br><span class="sub">recojo {{ item.horaRecojoConfirmada }}</span>
+                        {% endif %}
+                        {% if item.prestadorNombre and item.prestadorNombre != orden.compradorNombre %}
+                            <br><span class="sub">opera {{ item.prestadorNombre }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="pax">{{ item.cantidadPax ?: '—' }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="vacio">Esta orden todavía no tiene servicios.</p>
+    {% endif %}
+
+    <p class="pie">Por favor confirmar recepción y disponibilidad.</p>
+
+    {# El botón sólo en la web: dentro del PDF sería un enlace al propio PDF. #}
+    {% if not paraPdf and orden.items|length %}
+        <p style="margin-top:18px">
+            <a class="boton" href="{{ path('operacion_orden_publica_pdf', {token: orden.tokenPublico}) }}">
+                Descargar PDF
+            </a>
+        </p>
+    {% endif %}
+</div>
+</body>
+</html>

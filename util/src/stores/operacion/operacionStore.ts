@@ -62,6 +62,13 @@ export interface DocumentoDeOrden {
     lineas: number;
     destinatario: string;
     canales: Array<{ id: string; nombre: string; disponible: boolean; motivo: string | null }>;
+    /** El enlace público que ve el proveedor. `null` mientras la orden no se haya emitido. */
+    enlace: string | null;
+    /**
+     * ⚠️ Cerrada, Meta sólo admite plantillas aprobadas — y una orden con varias líneas no cabe
+     * en una. Se avisa ANTES de elegir WhatsApp, no después de leer todo el documento.
+     */
+    ventanaWhatsappAbierta: boolean;
 }
 
 /** Un medio de pago del selector, tal como lo publica `OperacionEnumAjaxController`. */

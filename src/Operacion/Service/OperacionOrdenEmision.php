@@ -75,6 +75,10 @@ final readonly class OperacionOrdenEmision
             }
         }
 
+        // La llave del enlace público, aquí y no al crear: hasta ahora no había documento que
+        // enseñar. Es idempotente, así que reemitir no invalida un enlace ya repartido.
+        $orden->asegurarTokenPublico();
+
         $orden->setEstadoOs(EstadoOrdenServicioEnum::EMITIDA);
     }
 

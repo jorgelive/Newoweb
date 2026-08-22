@@ -92,6 +92,18 @@ operacion_api_controllers:
     type: attribute
     host: '%app.host.api%'
 
+# OPERACIÓN — la orden que ve el PROVEEDOR, por enlace y sin sesión.
+#
+# Va al host de PAX porque es el público: el proveedor no tiene cuenta ni entra al panel, y ese
+# host es el que ya sirve páginas a gente de fuera (la vista cliente de una cotización).
+#
+# ⚠️ Aquí NO hay `IsGranted` a propósito — la llave es el token de 32 caracteres. Por eso el
+# documento no lleva importes ni datos del cliente: un enlace se reenvía.
+operacion_publico_controllers:
+    resource: ../src/Operacion/Controller/Publico/
+    type: attribute
+    host: '%app.host.pax%'
+
 finanzas_publico_controllers:
     resource: ../src/Finanzas/Controller/Publico/
     type: attribute

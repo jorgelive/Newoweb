@@ -1561,6 +1561,47 @@ El canal **se elige en la previsualización**, entre los que ese proveedor tenga
 no disponibles se enseñan con su motivo en vez de esconderse: «no aparece WhatsApp» obliga a
 adivinar; «sin datos» no.
 
+### El enlace público, y por qué existe (21/08/2026)
+
+```
+GET /orden/{token}       → la página que ve el proveedor (host de PAX)
+GET /orden/{token}.pdf   → el mismo documento, descargable
+```
+
+⚠️ **Nace de una restricción de Meta, no de un capricho.** Fuera de la ventana de 24 h WhatsApp
+sólo admite **plantillas aprobadas**, y una orden de servicio **no cabe en una**: las plantillas
+tienen variables sueltas, no filas — y una orden tiene tantas líneas como servicios. La salida
+estándar es que la plantilla lleve un **botón con URL** y el detalle viva al otro lado. El
+mecanismo de botón-URL con `{{1}}` ya existía en `WhatsappMetaTemplatePushService`.
+
+| Pieza | Decisión |
+|---|---|
+| Llave | `token_publico`, 32 caracteres de azar. Ni `numeroOs` —`OS-20260817-938`, adivinable— ni el `id`, que es un **UUID v7** con la marca de tiempo delante |
+| Cuándo se sella | Al **emitir**. Un borrador no tiene documento, y una llave sin documento invita a repartir un enlace vacío. Idempotente: reemitir no invalida el enlace ya repartido |
+| Dónde vive | Host de **PAX**, el público. El proveedor no tiene cuenta |
+| PDF | **Al vuelo** con dompdf, sin fichero guardado |
+| Anulada | **404**. El proveedor no debe quedarse abierta la versión retirada |
+
+⚠️ **Es público: quien tenga el enlace lo lee.** Por eso el documento no lleva importes, ni
+expediente, ni cliente — sólo qué operar. Un enlace se reenvía, y hay que asumir que acaba fuera.
+
+⚠️ **Generado al vuelo tiene una contrapartida y hay que saberla:** si después se aplican
+«cambios menores», quien reabra el enlace verá la versión NUEVA, no la que recibió. Es lo
+aceptado a cambio de no mantener un almacén de documentos.
+
+⚠️ **El CSS de la plantilla es pobre a propósito** —sin flex, sin grid, sin variables—: dompdf
+entiende CSS 2.1 y poco más, y una hoja moderna se ve bien en el navegador y descuadrada en el
+PDF. Que es el peor de los dos resultados, porque sólo se nota cuando ya lo mandaste.
+
+### Fuera de la ventana de 24 h no se manda por WhatsApp
+
+`OperacionOrdenEnvio::exigirVentanaAbierta()` se niega con el motivo en vez de intentarlo: un
+envío que Meta rechaza deja al proveedor sin enterarse y al operador creyendo que salió. El panel
+además lo avisa **antes** de elegir canal, no después de leer todo el documento.
+
+**Pendiente:** dar de alta la plantilla con botón-URL y que Meta la apruebe. Hasta entonces,
+fuera de ventana la salida es el correo.
+
 ### ⚠️ Un controlador nuevo no tiene rutas hasta declarar su directorio
 
 `config/routes.yaml` lista el directorio de cada módulo, y `src/Operacion/Controller/Api/` no

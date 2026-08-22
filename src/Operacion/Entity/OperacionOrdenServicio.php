@@ -102,6 +102,10 @@ use Symfony\Component\Uid\Uuid;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'operacion_orden_servicio')]
+// ⚠️ El índice se nombra AQUÍ y no con `unique: true` en la columna: aquello hace que Doctrine
+// invente un nombre (`UNIQ_76415CAF823D5230`) que la migración no puede predecir, y
+// `schema:validate` se queda en rojo pidiendo renombrarlo.
+#[ORM\UniqueConstraint(name: 'UNIQ_OS_TOKEN_PUBLICO', columns: ['token_publico'])]
 #[ORM\HasLifecycleCallbacks]
 class OperacionOrdenServicio
 {
@@ -347,6 +351,36 @@ class OperacionOrdenServicio
         }
 
         return $salida;
+    }
+
+    /**
+     * La llave del enlace público que se le manda al proveedor.
+     *
+     * ── Por qué no vale el UUID ni el número de OS ──────────────────────────
+     * El `numeroOs` es adivinable de cabo a rabo —`OS-20260817-938`, tres dígitos— y el UUID es
+     * un **v7**: lleva la marca de tiempo delante, así que dos órdenes creadas el mismo día
+     * comparten prefijo. Ninguno de los dos sirve como llave de algo que se abre **sin sesión**.
+     *
+     * Esto son 32 caracteres de azar. No es un secreto fuerte —quien tenga el enlace ve la
+     * orden, igual que con el enlace público de una cotización— pero no se acierta probando.
+     *
+     * ⚠️ Se genera al EMITIR y no al crear: un borrador no tiene nada que enseñar, y una llave
+     * que existe antes de que haya documento invita a compartir un enlace vacío.
+     */
+    #[ORM\Column(name: 'token_publico', type: 'string', length: 32, nullable: true)]
+    #[Groups(['operacion:read'])]
+    private ?string $tokenPublico = null;
+
+    public function getTokenPublico(): ?string { return $this->tokenPublico; }
+
+    /** Idempotente: si ya tiene llave, se queda con la suya — el enlace ya está en manos de alguien. */
+    public function asegurarTokenPublico(): self
+    {
+        if ($this->tokenPublico === null) {
+            $this->tokenPublico = bin2hex(random_bytes(16));
+        }
+
+        return $this;
     }
 
     /** @return Collection<int, OperacionPago> */

@@ -8,6 +8,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use App\Message\Service\Conversacion\AperturaDeHilo;
 use App\Message\Service\Conversacion\CanalesDisponibles;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use App\Operacion\Entity\OperacionMensaje;
 use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Enum\EstadoOrdenServicioEnum;
@@ -44,7 +45,47 @@ final readonly class OperacionOrdenEnvio
         private OperacionOrdenDocumento $documento,
         private AperturaDeHilo $apertura,
         private CanalesDisponibles $canales,
+        private UrlGeneratorInterface $urls,
     ) {
+    }
+
+    /**
+     * El enlace público de la orden, o `null` si todavía no tiene llave.
+     *
+     * Se sella al emitir, así que un borrador no lo tiene — y tampoco tiene documento.
+     */
+    private function enlace(OperacionOrdenServicio $orden): ?string
+    {
+        $token = $orden->getTokenPublico();
+
+        return $token === null
+            ? null
+            : $this->urls->generate('operacion_orden_publica', ['token' => $token], UrlGeneratorInterface::ABSOLUTE_URL);
+    }
+
+    /**
+     * ⚠️ **Fuera de la ventana de 24 h, WhatsApp NO admite texto libre.**
+     *
+     * Meta sólo deja mandar plantillas aprobadas, y una orden de servicio no cabe en una: las
+     * plantillas tienen variables sueltas, no filas — y una orden tiene tantas líneas como
+     * servicios. Ésa es la razón de que exista el enlace público: la plantilla lleva un botón
+     * con la URL y el detalle vive al otro lado.
+     *
+     * Mientras esa plantilla no esté dada de alta y aprobada por Meta, esto se **niega con el
+     * motivo** en vez de intentarlo: un envío que Meta rechaza deja al proveedor sin enterarse y
+     * al operador creyendo que salió.
+     */
+    private function exigirVentanaAbierta(MessageConversation $hilo, string $canal): void
+    {
+        if ($canal !== 'whatsapp_meta' || $hilo->isWhatsappSessionActive()) {
+            return;
+        }
+
+        throw new DomainException(
+            'La ventana de 24 h de WhatsApp con este proveedor está cerrada, así que Meta sólo '
+            . 'admite plantillas aprobadas — y una orden con varias líneas no cabe en una. '
+            . 'Mándala por correo, o espera a que el proveedor escriba para reabrir la ventana.'
+        );
     }
 
     /**
@@ -63,6 +104,10 @@ final readonly class OperacionOrdenEnvio
         return $doc + [
             'destinatario' => (string) $orden->getCompradorNombre(),
             'canales' => $this->canales->para($hilo),
+            'enlace' => $this->enlace($orden),
+            // Para que el panel avise ANTES de que el operador elija WhatsApp y se lleve el
+            // rechazo después de haber leído todo el documento.
+            'ventanaWhatsappAbierta' => $hilo->isWhatsappSessionActive(),
         ];
     }
 
@@ -90,6 +135,7 @@ final readonly class OperacionOrdenEnvio
         }
 
         $hilo = $this->hiloDelProveedor($orden);
+        $this->exigirVentanaAbierta($hilo, $canal);
 
         $disponible = false;
         foreach ($this->canales->para($hilo) as $fila) {
@@ -115,7 +161,12 @@ final readonly class OperacionOrdenEnvio
         $mensaje->setSenderType(Message::SENDER_HOST);
         $mensaje->setStatus(Message::STATUS_PENDING);
         $mensaje->setTransientChannels([$canal]);
-        $mensaje->setContentExternal($doc['cuerpo']);
+        // El enlace va SIEMPRE que exista, no sólo en WhatsApp: en correo también sirve —el
+        // proveedor archiva el PDF— y evita que el cuerpo tenga dos formas según el canal.
+        $enlace = $this->enlace($orden);
+        $cuerpo = $enlace === null ? $doc['cuerpo'] : $doc['cuerpo'] . "\n\n" . $enlace;
+
+        $mensaje->setContentExternal($cuerpo);
         $mensaje->setLanguageCode('es');
         $mensaje->addMetadata('orden_servicio', (string) $orden->getNumeroOs());
 
@@ -129,7 +180,7 @@ final readonly class OperacionOrdenEnvio
         $anotacion = new OperacionMensaje();
         $anotacion->setOrdenServicio($orden);
         $anotacion->setTipo($canal);
-        $anotacion->setCuerpoHtml(nl2br(htmlspecialchars($doc['cuerpo'], ENT_QUOTES | ENT_SUBSTITUTE)));
+        $anotacion->setCuerpoHtml(nl2br(htmlspecialchars($cuerpo, ENT_QUOTES | ENT_SUBSTITUTE)));
 
         $this->em->persist($anotacion);
         $this->em->flush();

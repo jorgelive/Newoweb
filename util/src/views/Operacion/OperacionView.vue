@@ -2704,6 +2704,25 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                             </p>
                         </div>
 
+                        <div v-if="documento.enlace">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Enlace que recibe</p>
+                            <a :href="documento.enlace" target="_blank" rel="noopener noreferrer"
+                               class="text-xs font-bold text-[#376875] hover:underline break-all">{{ documento.enlace }}</a>
+                            <p class="text-[10px] text-slate-400 mt-1 leading-snug">
+                                Abre la orden sin necesidad de cuenta, con botón para descargar el PDF.
+                            </p>
+                        </div>
+
+                        <!-- ⚠️ Fuera de la ventana de 24 h, Meta sólo admite plantillas aprobadas
+                             y una orden con varias líneas no cabe en una. Se dice ANTES de elegir
+                             canal, no después de leer todo el documento. -->
+                        <p v-if="!documento.ventanaWhatsappAbierta"
+                           class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-snug">
+                            <i class="fas fa-triangle-exclamation mr-1"></i>
+                            La ventana de 24 h de WhatsApp está cerrada: Meta sólo deja mandar plantillas
+                            aprobadas. Usa el correo, o espera a que el proveedor escriba.
+                        </p>
+
                         <div>
                             <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Por dónde</p>
                             <div class="flex flex-wrap gap-2">
