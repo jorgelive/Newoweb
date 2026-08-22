@@ -1268,10 +1268,47 @@ las 121 de inyección global, intactas.
 emitido y en ese caso además acierta —ese pool **es** su día—. Limpiado el origen, no se hereda
 ninguna más.
 
-**Lo que queda pendiente y es una decisión, no limpieza:** «Full Day Vinicunca Estandar» y las dos
-de Chinchero/Maras y Moray siguen **sin servicio principal**. Dárselo se hace plantilla por
-plantilla, mirando qué componente debe abarcar el día — con las implicaciones de inyección de
-arriba.
+### Darles servicio principal: se AÑADE fila, no se modifica la global (22/08/2026)
+
+Las tres plantillas que la marca huérfana intentaba cubrir se resolvieron con
+`app:travel:promover-servicio-principal`:
+
+| Plantilla | Componente que ES su día |
+|---|---|
+| Full Day Vinicunca Estandar | Pool Vinicunca |
+| Half Day Chinchero, Maras y Moray | Pool Maras Moray |
+| Half Day Chinchero, Maras y Moray privado | Transporte Maras |
+
+⚠️ **No se tocó la fila global: se creó una segunda fila ligada a la plantilla.** Es el patrón que
+ya estaba vivo en producción con `Pool Valle Sagrado`, que tiene exactamente eso — una fila global
+sin marca, que sigue inyectando, y otra con `itinerarioContexto` y la marca. La alternativa
+—poner plantilla a la fila global— habría **restringido la inyección** (§4) y el componente
+dejaría de entrar en un servicio armado a medida que reutilice el segmento, sin aviso.
+
+Resultado: 192 → 195 filas, las **121 globales intactas**, 12 → 15 marcas válidas. Y los tres
+salen con sus extremos por la regla del catálogo: los dos pool devuelven al centro de Cusco y el
+privado al hotel.
+
+⚠️ **La tabla de promociones es explícita, no deducida.** «Cuál de estos componentes abarca el
+día» es decisión de producto: una regla automática acertaría casi siempre, que es la peor
+frecuencia — nadie revisa lo que casi siempre funciona.
+
+### 🚫 Lo que NO era basura: «Recojo en el Hotel (Servicio Privado)» del Valle
+
+Hay **dos segmentos con ese nombre**, y el que no aparece en ninguna plantilla parecía sobrar. No
+sobra: es la **variante privada del Valle Sagrado**, con su logística completa —Guiado Valle
+Sagrado + Transporte Valle Sagrado + BTPV— y ofrecida en el pool del servicio «Valle Sagrado». Lo
+que falta es la plantilla que la use; el segmento está bien.
+
+| Segmento homónimo | En plantillas | Ofrecido en | Componentes |
+|---|---|---|---|
+| (usado) | 1 | Chinchero, Maras y Moray | Guiado Maras · Transporte Maras · BTPV |
+| (sin plantilla) | **0** | Valle Sagrado | Guiado Valle Sagrado · Transporte Valle Sagrado · BTPV |
+
+Borrarlo habría destruido una variante privada configurada entera. **Un segmento sin plantilla no
+es un segmento muerto**: puede estar en el pool de un servicio, listo para una cotización a
+medida. Antes de retirar uno hay que mirar sus tres usos —plantillas, pool de servicios y
+`cotizacion_segmento.segmento_maestro_id`—, no sólo el primero.
 
 ### Los dos resolvedores difieren a propósito
 
@@ -1332,3 +1369,4 @@ contenedor»—; lo que cambia es que un lado tiene contenedor a ese nivel y el 
 | Cambiar qué se considera «falta el punto» | `src/Travel/Service/PuntosResueltos.php` | `estaCompleto()`, `faltantes()` |
 | Marcar el servicio principal de un día (paquetes, multi-día) | `src/Travel/Controller/Crud/TravelSegmentoComponenteCrudController.php` | «Servicio principal del día» — uno por (plantilla, día); **ojo con la Categoría Operativa** |
 | Limpiar promociones sin plantilla | `src/Travel/Command/TravelLimpiarPromocionesHuerfanasCommand.php` | `--dry-run`; **no toca `itinerarioContexto` ni las cotizaciones** |
+| Dar servicio principal a una plantilla | `src/Travel/Command/TravelPromoverServicioPrincipalCommand.php` | `PROMOCIONES` — **añade fila, no modifica la global** |
