@@ -693,6 +693,54 @@ const confirmarOs = async () => {
     }
 };
 
+// ══ ELIMINAR UN BORRADOR ═══════════════════════════════════════════════════
+//
+// Devuelve los servicios al pool, y eso NO lo hace este código:
+// `operacion_servicio.orden_servicio_id` es `ON DELETE SET NULL`, así que se sueltan solos y
+// quedan libres para entrar en otra orden. Los pagos y la bitácora sí caen en cascada — son de
+// la orden, no del servicio.
+//
+// Confirmación en dos toques y no `window.confirm`: el mismo patrón que el catálogo de
+// proveedores, y así el aviso puede decir la consecuencia («los servicios vuelven al pool») en
+// vez de un «¿seguro?» pelado.
+const confirmandoOrden = ref<string | null>(null);
+const borrandoOrden = ref<string | null>(null);
+/**
+ * El motivo del rechazo, PEGADO a su orden.
+ *
+ * No vale `errorOs`: ése vive dentro del modal de alta y en la lista no se ve. Y no vale un
+ * aviso global arriba, porque con varias órdenes en pantalla no se sabría de cuál habla.
+ */
+const errorOrden = ref<{ id: string; motivo: string } | null>(null);
+
+const eliminarOrden = async (orden: OperacionOrdenServicio): Promise<void> => {
+    if (!orden.id) return;
+
+    errorOrden.value = null;
+
+    if (confirmandoOrden.value !== orden.id) {
+        confirmandoOrden.value = orden.id;
+
+        return;
+    }
+
+    borrandoOrden.value = orden.id;
+
+    const motivo = await operacionStore.eliminarOrdenServicio(orden.id);
+
+    borrandoOrden.value = null;
+    confirmandoOrden.value = null;
+
+    if (motivo !== null) {
+        // El backend redacta el porqué —«está emitida: no se borra, anúlala»— y se pinta tal cual.
+        errorOrden.value = { id: orden.id, motivo };
+
+        return;
+    }
+
+    await cargarBiblia();
+};
+
 // ============================================================================
 // BITÁCORA DE MENSAJES DE UNA OS
 // ============================================================================
@@ -2238,7 +2286,28 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                 </p>
                         </div>
 
-                        <div class="px-3 py-2 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                        <div class="px-3 py-2 bg-slate-50 border-t border-slate-100 flex justify-end gap-2 flex-wrap">
+                            <!-- ⚠️ ELIMINAR sólo en BORRADOR. Una orden que ya salió al
+                                 proveedor se ANULA —eso también devuelve sus servicios al pool—
+                                 pero deja constancia de que existió. Lo impide igualmente
+                                 `OperacionOrdenBorradoListener`; esto sólo evita ofrecer un
+                                 botón que va a responder 403. -->
+                            <button
+                                v-if="orden.estadoOs === 'borrador'"
+                                @click="eliminarOrden(orden)"
+                                :disabled="borrandoOrden === orden.id"
+                                :title="confirmandoOrden === orden.id
+                                    ? 'Pulsa otra vez para confirmar'
+                                    : 'Elimina el borrador y devuelve sus servicios al pool'"
+                                class="mr-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg border transition-all shadow-sm disabled:opacity-40"
+                                :class="confirmandoOrden === orden.id
+                                    ? 'bg-rose-600 text-white border-rose-600'
+                                    : 'bg-white hover:bg-rose-50 text-rose-500 border-slate-200 hover:border-rose-200'"
+                            >
+                                <i class="fas text-[9px]" :class="borrandoOrden === orden.id ? 'fa-circle-notch fa-spin' : 'fa-trash-alt'"></i>
+                                {{ confirmandoOrden === orden.id ? '¿Seguro? Los servicios vuelven al pool' : 'Eliminar' }}
+                            </button>
+
                             <button
                                 @click="abrirEdicion(orden)"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#376875] hover:text-white hover:border-[#376875] text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200 transition-all shadow-sm"
@@ -2257,6 +2326,11 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                             >
                                 <i class="fas fa-message text-[9px]"></i> Bitácora
                             </button>
+
+                            <p v-if="errorOrden?.id === orden.id"
+                               class="w-full text-[11px] font-bold text-rose-600 leading-snug text-left">
+                                <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorOrden?.motivo }}
+                            </p>
                         </div>
                     </div>
                 </div>

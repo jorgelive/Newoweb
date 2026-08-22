@@ -1368,6 +1368,58 @@ global. Lo hacía, y editar un número disparaba el spinner de pantalla completa
 todo se recargaba por cambiar un importe—. La fila se reemplaza en su sitio y el editor da su
 propio ✓; ningún PATCH de un campo justifica un spinner global.
 
+## 5.6 El ciclo de una orden: emitir, anular, reemitir, borrar (21/08/2026)
+
+```
+                    ┌── emitir ──► EMITIDA ──► CONFIRMADA ──► COMPLETADA
+   BORRADOR ────────┤                │             │              │
+      │             └── (se puede borrar)          │              │
+      │                              └─────────────┴──────────────┴──► CANCELADA
+      └── ELIMINAR: se va la orden, los servicios VUELVEN AL POOL
+```
+
+| Acción | Cómo se ejecuta | Qué hace con los servicios |
+|---|---|---|
+| **Emitir** | `POST /ops/orden-servicios/emitir` (`EmitirOrdenProcessor`), o salir de borrador por `POST /{id}/estado` | Los congela en `items`: copias, no referencias |
+| **Avanzar** | `POST /{id}/estado` | Nada |
+| **Anular** | `POST /{id}/estado` con `cancelada` → `OperacionOrdenEmision::anular()` | **Los devuelve al pool** (`setOrdenServicio(null)`) |
+| **Reemitir** | `anularParaReemitir()` en el panel: anula y emite la sucesora con `reemplazaA` | Del pool a la nueva orden |
+| **Eliminar** | `DELETE /ops/operacion_orden_servicios/{id}` | **Los devuelve al pool** — lo hace la FK, no el código |
+
+### ⚠️ Sólo se borra un BORRADOR
+
+`OperacionOrdenBorradoListener`. El `Delete` de la API **no tenía ninguna comprobación**: bastaba
+el permiso para borrar una orden ya emitida, la que el proveedor tiene en la mano.
+
+Y contradecía de frente a `OperacionOrdenEmision::validarTransicion()`, que se niega a devolver
+una emitida a borrador con estas palabras: «el proveedor ya la tiene. Anúlala y emite otra». Si ni
+siquiera se puede retroceder de estado, borrarla entera —número de OS, líneas congeladas,
+bitácora, pagos— no podía estar permitido. Era la puerta grande al lado de la puerta cerrada.
+
+> La orden OS-20260815-335 está emitida: no se borra. Una orden que ya salió al proveedor deja
+> rastro. Anúlala —eso también devuelve sus servicios al pool— y, si hace falta, emite otra.
+
+**Anular consigue lo mismo sin perder el rastro**, y por eso el mensaje manda ahí: quien quería
+soltar los servicios los suelta igual.
+
+### Los servicios vuelven al pool solos
+
+`operacion_servicio.orden_servicio_id` es **`ON DELETE SET NULL`**: al borrar el borrador se
+sueltan sin que ningún código los toque, y quedan libres para entrar en otra orden. Los pagos y
+la bitácora sí caen en **cascada** — son de la orden, no del servicio. Es la distinción que
+importa: un servicio **preexiste** a la orden y le sobrevive; un pago, no.
+
+### En el panel
+
+Botón **Eliminar** en la tarjeta, **sólo con estado borrador**, con confirmación en dos toques
+que dice la consecuencia («los servicios vuelven al pool») en vez de un «¿seguro?» pelado. El
+motivo del rechazo se pinta **pegado a su orden**: con varias en pantalla, un aviso global no
+diría de cuál habla.
+
+⚠️ Lo que **sigue sin estar** en el panel: emitir y anular sólo se alcanzan por el `<select>` de
+estado dentro del modal de edición, y «reemitir» sólo aparece cuando hay divergencias con La
+Biblia. Funcionan, pero están escondidos.
+
 ## 6. API: endpoints, grupos y filtros
 
 `routePrefix: '/ops'`, todo bajo `/platform/ops/`:

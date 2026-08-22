@@ -795,6 +795,27 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         }
     };
 
+    /**
+     * Borra una orden en BORRADOR y devuelve sus servicios al pool.
+     *
+     * Lo segundo no lo hace este código: `operacion_servicio.orden_servicio_id` es
+     * `ON DELETE SET NULL`, así que los servicios se sueltan solos y quedan libres para entrar
+     * en otra orden. Los pagos y la bitácora sí caen en cascada — son de la orden.
+     *
+     * ⚠️ Sólo borradores. Una orden ya emitida se ANULA, que también libera los servicios pero
+     * deja constancia de que existió; lo impide `OperacionOrdenBorradoListener` y el motivo se
+     * devuelve tal cual.
+     */
+    const eliminarOrdenServicio = async (id: string): Promise<string | null> => {
+        try {
+            await apiClient.delete(`/platform/ops/operacion_orden_servicios/${id}`);
+
+            return null;
+        } catch (error) {
+            return mensajeDeErrorApi(error, 'No se pudo eliminar la orden.');
+        }
+    };
+
     const eliminarPago = async (pagoId: string): Promise<boolean> => {
         try {
             await apiClient.delete(`/platform/ops/operacion_pagos/${pagoId}`);
@@ -902,6 +923,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         fetchOrdenesServicio,
         emitirOrdenServicio,
         cambiarEstadoOrden,
+        eliminarOrdenServicio,
         aplicarCambiosMenores,
         actualizarOrdenServicio,
         fetchMensajesPorOrden,
