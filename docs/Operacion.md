@@ -1430,6 +1430,27 @@ ya sincronizan ahí: si cada vista tuviera que acordarse, la segunda no se acuer
 memoria en vez de refetchear porque la respuesta ya se sabe — la orden que se acaba de borrar no
 está.
 
+### ⚠️ Crear y emitir dejaron de ser el mismo gesto (21/08/2026)
+
+El alta mandaba `soloBorrador: false` **fijo**, con el motivo escrito al lado: «el borrador
+existe para componer, y aquí ya está compuesta». Era cierto **mientras no hubiera forma de
+emitir después** —el estado vivía en un desplegable enterrado en el modal de edición—, así que
+crear y emitir tenían que ser el mismo gesto.
+
+Con el botón «Emitir» en la tarjeta esa razón desapareció, y lo que quedaba era sólo lo malo:
+componer una orden obligaba a **mandársela al proveedor en el acto**, sin poder repasar el
+destinatario, el número ni los importes negociados. El síntoma se notaba al revés — «creo una
+orden y ya nace emitida, así que el botón Emitir no me sale nunca».
+
+El modal ofrece ahora dos caminos, y **el que sale al proveedor no es el destacado**:
+
+| Botón | Qué hace |
+|---|---|
+| **Crear borrador** | La deja compuesta y sin salir. Se repasa y se emite después desde su tarjeta |
+| **Crear y emitir** | Lo de antes: crea y congela el contenido de una vez |
+
+La API ya lo soportaba (`EmitirOrdenInput::$soloBorrador`); lo que no lo ofrecía era el panel.
+
 ### El estado se VE en el formulario y se MUEVE con botones
 
 Se movía con un `<select>` dentro del modal de edición, y ese control **no distingue entre

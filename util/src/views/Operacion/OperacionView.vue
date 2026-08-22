@@ -665,7 +665,20 @@ const abrirModalOs = () => {
     void operacionStore.fetchProveedores();   // idempotente: sólo pega la primera vez
 };
 
-const confirmarOs = async () => {
+/**
+ * Crea la orden. `emitir` decide si además **sale al proveedor**.
+ *
+ * ── Por qué ahora se puede elegir ───────────────────────────────────────────
+ * Esto mandaba `soloBorrador: false` fijo, con el motivo escrito al lado: «el borrador existe
+ * para componer, y aquí ya está compuesta». Era cierto **mientras no hubiera forma de emitir
+ * después** —el estado vivía en un desplegable enterrado en el modal de edición—, así que crear
+ * y emitir tenían que ser el mismo gesto.
+ *
+ * Con el botón «Emitir» en la tarjeta esa razón desapareció, y lo que quedaba era lo malo:
+ * componer una orden obligaba a mandársela al proveedor en el acto, sin poder repasar el
+ * destinatario, el número ni los importes negociados.
+ */
+const confirmarOs = async (emitir: boolean) => {
     const sel = serviciosSeleccionados.value;
     if (sel.length === 0) return;
 
@@ -677,8 +690,7 @@ const confirmarOs = async () => {
             numeroOs: formOs.value.numeroOs,
             compradorMaestroId: formOs.value.compradorMaestroId || null,
             compradorNombre: formOs.value.compradorNombre || null,
-            // Se emite ya: el borrador existe para componer, y aquí ya está compuesta.
-            soloBorrador: false,
+            soloBorrador: !emitir,
         });
         mostrarModalOs.value = false;
         seleccionados.value = [];
@@ -2920,13 +2932,27 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                     >
                         Cancelar
                     </button>
+                    <!-- Dos caminos, y el que sale al proveedor NO es el destacado.
+                         Componer y mandar son decisiones distintas: se puede querer repasar el
+                         destinatario o los importes antes de que el documento exista para
+                         alguien de fuera. El borrador se puede emitir después desde su tarjeta. -->
                     <button
-                        @click="confirmarOs"
+                        @click="confirmarOs(false)"
                         :disabled="guardandoOs"
+                        title="La crea en borrador: se puede repasar y emitir después desde su tarjeta"
+                        class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 disabled:opacity-50 text-slate-600 text-xs font-black uppercase tracking-widest rounded-lg shadow-sm"
+                    >
+                        <i v-if="guardandoOs" class="fas fa-spinner fa-spin mr-1"></i>
+                        Crear borrador
+                    </button>
+                    <button
+                        @click="confirmarOs(true)"
+                        :disabled="guardandoOs"
+                        title="La crea y la emite: congela el contenido y ya no vuelve a borrador"
                         class="px-5 py-2 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-lg shadow-sm"
                     >
                         <i v-if="guardandoOs" class="fas fa-spinner fa-spin mr-1"></i>
-                        Crear
+                        Crear y emitir
                     </button>
                 </footer>
             </div>
