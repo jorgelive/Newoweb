@@ -3685,7 +3685,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         });
     };
 
-    const procesarInsercionSegmento = async (segmentoMaestroRaw: SegmentoMaestro, itinerarioId: string | null, accion: 'append' | 'replace' | 'insert', targetId?: string) => {
+    const procesarInsercionSegmento = async (segmentoMaestroRaw: SegmentoMaestro, itinerarioId: string | null, accion: 'append' | 'replace' | 'insert' | 'insertBefore', targetId?: string) => {
         const servicio = servicioActivo.value;
         if (!servicio) return;
         if (!servicio.cotsegmentos) servicio.cotsegmentos = [];
@@ -3729,7 +3729,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             await inyectarComponentesDeSegmento(segmentoMaestro, segAfectado.dia || 1, segAfectado.id, itinerarioId);
 
-        } else if (accion === 'insert') {
+        } else if (accion === 'insert' || accion === 'insertBefore') {
             const nuevoIdSeg = crypto.randomUUID();
             const diaDelSegmento = servicio.cotsegmentos[index].dia || 1;
 
@@ -3752,7 +3752,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 sobreescribirTraduccion: false
             };
 
-            servicio.cotsegmentos.splice(index + 1, 0, nuevoSeg);
+            // ⚠️ ANTES o DESPUÉS del destino, y no es un capricho de la interfaz: el segmento
+            // nuevo hereda el DÍA del destino, así que «después» es la única forma de llegar al
+            // primer sitio de un día... y no existía. Para meter el contacto al principio del día
+            // 2 había que colgarlo detrás del alojamiento, que es del día 1 — y de un día a otro
+            // no se puede arrastrar. Con «antes», el primer puesto de cualquier día es alcanzable.
+            servicio.cotsegmentos.splice(accion === 'insertBefore' ? index : index + 1, 0, nuevoSeg);
             servicio.cotsegmentos.forEach((s: CotSegmento, i: number) => s.orden = i + 1);
 
             await inyectarComponentesDeSegmento(segmentoMaestro, diaDelSegmento, nuevoIdSeg, itinerarioId);

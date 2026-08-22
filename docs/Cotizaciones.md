@@ -887,6 +887,24 @@ Y sólo si no hay ninguno, el primer componente con extremos. Al revés —el pr
 la línea la marcaría un ticket de bus de dos paradas en vez de la excursión entera, que es la que
 el operador está mirando.
 
+## 6.f Insertar un segmento ANTES de otro (22/08/2026)
+
+El modal «¿Dónde ubicar el segmento?» tenía tres opciones —al final, después de, reemplazar— y le
+faltaba la cuarta.
+
+⚠️ **Sin «antes de», el primer puesto de un día era inalcanzable.** El segmento nuevo hereda el
+**día del destino**, así que para poner algo al principio del día 2 había que colgarlo detrás del
+último del día 1… y entonces se quedaba en el día 1. Y de un día a otro **no se puede arrastrar**.
+
+Salió al montar el contacto con el pasajero en «Two Day Camino inca», que va justo al abrir el
+día 2: no había forma de meterlo desde el editor.
+
+La acción `insertBefore` es idéntica a `insert` salvo por el índice del `splice`
+(`index` en vez de `index + 1`). El selector de destino muestra ahora **`[Día N]`** delante de cada
+párrafo: sin eso no se ve a qué día va a parar el segmento nuevo, que es justo lo que se estaba
+decidiendo a ciegas.
+
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |

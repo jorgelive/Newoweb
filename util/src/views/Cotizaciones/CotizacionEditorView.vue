@@ -979,7 +979,7 @@ const onItemPointerUp = () => {
 
 const modalInsercion = ref<{ isOpen: boolean; segmentoMaestro: Segmento | null }>({ isOpen: false, segmentoMaestro: null });
 const modalNota = ref<{ isOpen: boolean; nota: NotaSnapshot | null }>({ isOpen: false, nota: null });
-const opcionInsercion = ref<'append'|'insert'|'replace'>('append');
+const opcionInsercion = ref<'append'|'insert'|'insertBefore'|'replace'>('append');
 const targetSegmentoId = ref<string>('');
 const isTotalsDrawerOpen = ref(false);
 
@@ -3348,6 +3348,14 @@ store.$onAction(({ name, args }) => {
                 <input type="radio" value="insert" v-model="opcionInsercion" class="accent-teal-600">
                 <span class="text-xs font-bold text-slate-700">Insertar después de un párrafo existente</span>
               </label>
+              <!-- ANTES de un párrafo. Sin esta opción, el primer puesto de un día era
+                   inalcanzable: el segmento nuevo hereda el día del destino, así que para
+                   ponerlo al principio del día 2 había que colgarlo detrás del último del
+                   día 1 — y entonces se quedaba en el día 1. Arrastrar entre días no se puede. -->
+              <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'insertBefore' ? 'border-teal-400 bg-teal-50' : 'border-slate-200'">
+                <input type="radio" value="insertBefore" v-model="opcionInsercion" class="accent-teal-600">
+                <span class="text-xs font-bold text-slate-700">Insertar antes de un párrafo existente</span>
+              </label>
               <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer" :class="opcionInsercion === 'replace' ? 'border-teal-400 bg-teal-50' : 'border-slate-200'">
                 <input type="radio" value="replace" v-model="opcionInsercion" class="accent-teal-600">
                 <span class="text-xs font-bold text-slate-700">Reemplazar un párrafo existente</span>
@@ -3356,11 +3364,11 @@ store.$onAction(({ name, args }) => {
 
             <div v-if="opcionInsercion !== 'append'">
               <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
-                {{ opcionInsercion === 'insert' ? 'Insertar después de:' : 'Párrafo a reemplazar:' }}
+                {{ opcionInsercion === 'insert' ? 'Insertar después de:' : (opcionInsercion === 'insertBefore' ? 'Insertar antes de:' : 'Párrafo a reemplazar:') }}
               </label>
               <select v-model="targetSegmentoId" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500">
                 <option v-for="(cotSeg, idx) in store.servicioActivo?.cotsegmentos || []" :key="cotSeg.id" :value="cotSeg.id">
-                  {{ (idx as number) + 1 }}. {{ store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
+                  {{ (idx as number) + 1 }}. [Día {{ cotSeg.dia || 1 }}] {{ store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
                 </option>
               </select>
             </div>
