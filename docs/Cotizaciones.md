@@ -863,6 +863,24 @@ cotización haría que el aviso dejara de significar algo.
 `ApiResource`, así que no entra en `api.d.ts`. Si cambia el array de `paraServicio()`, hay que
 cambiarlo aquí: no hay nada que lo cace.
 
+### La cabecera es el SERVICIO ENTERO, no uno de sus componentes
+
+El primer segmento del servicio que declare un inicio y el **último** que declare un fin,
+recorriendo todos sus días en orden.
+
+⚠️ **Antes salía del primer componente con extremos, y en un paquete de varios días eso mentía.**
+«Skylodge con actividades» sale del hotel de Cusco y **vuelve al hotel de Cusco dos días después**,
+pero la cabecera la marcaba el traslado de ida —cuyo segmento no declara fin— y la tarjeta decía
+«sin declarar». El retorno estaba escrito, en el último segmento del día 2, y no se miraba nunca
+porque pertenecía a otro componente.
+
+⚠️ **Y no vale «el primero y el último a secas»**: en Skylodge el segmento intermedio de la vía
+ferrata no declara nada, y quedarse con él dejaría la tarjeta muda teniendo el hotel escrito dos
+líneas más abajo. Hay que buscar el primero que DECLARE.
+
+Para un servicio de un día es lo mismo que antes. El **detalle por componente y los avisos siguen
+siendo por componente**: ahí sí interesa cuál concreto se quedó sin punto.
+
 ### La cabecera es el servicio que abarca el día
 
 Y sólo si no hay ninguno, el primer componente con extremos. Al revés —el primero que aparezca—

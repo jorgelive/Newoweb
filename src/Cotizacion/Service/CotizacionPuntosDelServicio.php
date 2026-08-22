@@ -96,8 +96,9 @@ final readonly class CotizacionPuntosDelServicio
     {
         $porDia = $this->segmentosPorDia($servicio);
         $detalle = [];
-        $cabecera = null;
         $faltantes = [];
+        $entregaAlguno = false;
+        $hayComponentes = false;
 
         foreach ($servicio->getCotcomponentes() as $comp) {
             $tipo = ComponenteTipoEnum::tryFrom((string) $comp->getTipo());
@@ -125,20 +126,34 @@ final readonly class CotizacionPuntosDelServicio
                     : null,
             ];
 
-            // ⚠️ La CABECERA es el servicio que abarca el día si lo hay, y sólo si no, el primero
-            // que tenga extremos. Al revés —el primero que aparezca— la línea del día la marcaría
-            // un ticket de bus de dos paradas en vez de la excursión entera, que es la que el
-            // operador está mirando.
-            if ($cabecera === null || ($comp->isHoraServicioCompleto() && !$cabecera['abarca'])) {
-                $cabecera = $resuelto + ['abarca' => $comp->isHoraServicioCompleto()];
+            // `tieneFin` de la cabecera: basta con que UN componente entregue en algún sitio.
+            if ($resuelto['tieneFin']) {
+                $entregaAlguno = true;
             }
+
+            $hayComponentes = true;
 
             foreach ($this->huecosDe($resuelto) as $hueco) {
                 $faltantes[] = $this->nombreDe($comp) . ': ' . $hueco;
             }
         }
 
-        if ($cabecera === null) {
+        // ── La cabecera es el SERVICIO ENTERO, no uno de sus componentes ────────
+        //
+        // ⚠️ Antes salía del primer componente con extremos, y en un paquete de varios días eso
+        // mentía: «Skylodge con actividades» empieza en el hotel de Cusco y **termina en el hotel
+        // de Cusco dos días después**, pero la cabecera la marcaba el traslado de ida —cuyo
+        // segmento no declara fin— y la tarjeta decía «sin declarar». El retorno estaba escrito,
+        // en el último segmento del día 2, y nunca se miraba porque pertenecía a otro componente.
+        //
+        // Lo que el operador mira en la tarjeta es DÓNDE EMPIEZA Y ACABA ESTE SERVICIO. Para uno
+        // de un día es lo mismo que antes; para un paquete, es lo único cierto.
+        //
+        // El detalle por componente y los avisos siguen siendo por componente: ahí sí interesa
+        // cuál concreto se quedó sin punto.
+        [$segInicio, $segFin] = $this->extremosDelServicio($porDia, $maestros);
+
+        if (!$hayComponentes) {
             return [
                 // ⚠️ `aplica: false` no es «falta el dato»: es que este servicio no recoge ni
                 // deja a nadie —un alojamiento, un ticket, una comida—. La vista tiene que poder
@@ -156,19 +171,20 @@ final readonly class CotizacionPuntosDelServicio
             ];
         }
 
+        $inicioModo = $this->modo($segInicio, $maestros, lado: 'inicio');
+        $finModo = $this->modo($segFin, $maestros, lado: 'fin');
+
         return [
             'aplica' => true,
             'inicio' => [
-                'modo' => $cabecera['inicioModo']->value,
-                'texto' => $this->texto($cabecera['inicioModo'], $cabecera['inicioSeg'], $maestros, lado: 'inicio'),
+                'modo' => $inicioModo->value,
+                'texto' => $this->texto($inicioModo, $segInicio, $maestros, lado: 'inicio'),
             ],
             'fin' => [
-                'modo' => $cabecera['tieneFin'] ? $cabecera['finModo']->value : PuntoModoEnum::SIN_DEFINIR->value,
-                'texto' => $cabecera['tieneFin']
-                    ? $this->texto($cabecera['finModo'], $cabecera['finSeg'], $maestros, lado: 'fin')
-                    : null,
+                'modo' => $entregaAlguno ? $finModo->value : PuntoModoEnum::SIN_DEFINIR->value,
+                'texto' => $entregaAlguno ? $this->texto($finModo, $segFin, $maestros, lado: 'fin') : null,
             ],
-            'tieneFin' => $cabecera['tieneFin'],
+            'tieneFin' => $entregaAlguno,
             'completo' => $faltantes === [],
             'faltantes' => $faltantes,
             'detalle' => $detalle,
@@ -234,6 +250,46 @@ final readonly class CotizacionPuntosDelServicio
     public function maestrosDeServicios(array $servicios): array
     {
         return $this->maestrosDe($servicios);
+    }
+
+
+    /**
+     * Dónde empieza y dónde acaba el servicio ENTERO.
+     *
+     * El **primer** segmento que declare un inicio y el **último** que declare un fin, recorriendo
+     * todos sus días en orden. No el primero y el último a secas: en «Skylodge» el segmento
+     * intermedio de la vía ferrata no declara nada, y quedarse con él dejaría la tarjeta muda
+     * teniendo el hotel escrito dos líneas más abajo.
+     *
+     * @param array<int, list<CotizacionSegmento>> $porDia
+     * @param array<string, TravelSegmento>        $maestros
+     *
+     * @return array{0: ?CotizacionSegmento, 1: ?CotizacionSegmento}
+     */
+    private function extremosDelServicio(array $porDia, array $maestros): array
+    {
+        $enOrden = [];
+
+        foreach ($porDia as $delDia) {
+            foreach ($delDia as $seg) {
+                $enOrden[] = $seg;
+            }
+        }
+
+        $inicio = null;
+        $fin = null;
+
+        foreach ($enOrden as $seg) {
+            if ($inicio === null && $this->modo($seg, $maestros, lado: 'inicio')->esDeclarado()) {
+                $inicio = $seg;
+            }
+
+            if ($this->modo($seg, $maestros, lado: 'fin')->esDeclarado()) {
+                $fin = $seg;
+            }
+        }
+
+        return [$inicio, $fin];
     }
 
     /**

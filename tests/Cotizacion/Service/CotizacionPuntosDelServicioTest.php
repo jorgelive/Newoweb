@@ -146,6 +146,10 @@ final class CotizacionPuntosDelServicioTest extends TestCase
     public function un_componente_que_NO_abarca_usa_solo_su_propio_segmento(): void
     {
         // Un tren de media mañana no hereda los extremos del día: los suyos son los de su tramo.
+        //
+        // ⚠️ Se comprueba en `detalle`, no en la cabecera. La cabecera es del SERVICIO entero —lo
+        // que el operador mira en la tarjeta— y la resolución por componente vive aquí. Cuando
+        // eran lo mismo, un paquete de dos días enseñaba los extremos de su primer componente.
         $servicio = new CotizacionCotservicio();
         $this->segmento($servicio, 1, $this->maestro('m1', PuntoModoEnum::ALOJAMIENTO, PuntoModoEnum::SIN_DEFINIR));
         $suyo = $this->segmento($servicio, 2, $this->maestro('m2', PuntoModoEnum::FIJO, PuntoModoEnum::FIJO, 'Estación de Ollantaytambo'));
@@ -153,8 +157,31 @@ final class CotizacionPuntosDelServicioTest extends TestCase
 
         $r = $this->servicio()->paraServicio($servicio, $this->maestros);
 
-        self::assertSame('Estación de Ollantaytambo', $r['inicio']['texto']);
-        self::assertSame('Estación de Ollantaytambo', $r['fin']['texto']);
+        self::assertCount(1, $r['detalle']);
+        self::assertSame('Estación de Ollantaytambo', $r['detalle'][0]['inicio']);
+        self::assertSame('Estación de Ollantaytambo', $r['detalle'][0]['fin']);
+    }
+
+    #[Test]
+    public function un_paquete_de_VARIOS_DIAS_empieza_y_acaba_donde_el_paquete(): void
+    {
+        // ⚠️ El caso que rompía: «Skylodge con actividades» sale del hotel de Cusco y **vuelve al
+        // hotel de Cusco dos días después**. La cabecera la marcaba el traslado de ida —cuyo
+        // segmento no declara fin— y la tarjeta decía «sin declarar», teniendo el retorno escrito
+        // en el último segmento del día 2. Ahora los extremos son los del SERVICIO.
+        $servicio = new CotizacionCotservicio();
+        $ida = $this->segmento($servicio, 1, $this->maestro('m1', PuntoModoEnum::ALOJAMIENTO, PuntoModoEnum::SIN_DEFINIR));
+        $this->segmento($servicio, 2, $this->maestro('m2', PuntoModoEnum::SIN_DEFINIR, PuntoModoEnum::SIN_DEFINIR));
+        $vuelta = $this->segmento($servicio, 3, $this->maestro('m3', PuntoModoEnum::SIN_DEFINIR, PuntoModoEnum::ALOJAMIENTO));
+
+        $this->componente($servicio, $ida, 'transporte', abarca: false);
+        $this->componente($servicio, $vuelta, 'transporte', abarca: false);
+
+        $r = $this->servicio()->paraServicio($servicio, $this->maestros);
+
+        self::assertSame('el alojamiento del pasajero', $r['inicio']['texto']);
+        self::assertSame('el alojamiento del pasajero', $r['fin']['texto']);
+        self::assertTrue($r['tieneFin']);
     }
 
     #[Test]
