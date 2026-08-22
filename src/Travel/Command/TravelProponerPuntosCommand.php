@@ -416,11 +416,21 @@ final class TravelProponerPuntosCommand extends Command
             ->findBy(['horaServicioCompleto' => true]);
 
         $pendientes = [];
+        $sinPlantilla = [];
 
         foreach ($abarcadores as $sc) {
             $itinerario = $sc->getItinerarioContexto();
 
+            // ⚠️ Se saltan, pero NO en silencio. Sin plantilla no hay día que abarcar, así que
+            // la marca no significa nada y el servicio cae a los extremos de su propio segmento.
+            // Callarlos haría que el informe dijera «12 revisados» cuando hay 17, que es la forma
+            // más fácil de dar por cubierto lo que no lo está.
             if ($itinerario === null) {
+                $sinPlantilla[] = sprintf(
+                    '%s — en «%s»',
+                    $sc->getComponente()?->getNombre() ?? '?',
+                    $sc->getSegmento()?->getNombreInterno() ?? '?'
+                );
                 continue;
             }
 
@@ -466,6 +476,15 @@ final class TravelProponerPuntosCommand extends Command
             }
         }
 
+        if ($sinPlantilla !== []) {
+            $io->section('Marcados como «abarcan el día» pero SIN plantilla');
+            $io->listing($sinPlantilla);
+            $io->writeln(
+                '  <comment>La marca ahí no significa nada: sin plantilla no hay día que abarcar. '
+                . 'Se arregla asignándoles su itinerario de contexto.</comment>'
+            );
+        }
+
         $io->section(sprintf(
             'Servicios que abarcan el día y aún no saben dónde empiezan o terminan%s',
             // ⚠️ En seco las entidades YA están modificadas en memoria, así que esto no dice
@@ -482,10 +501,12 @@ final class TravelProponerPuntosCommand extends Command
 
         $io->listing($pendientes);
         $io->note(sprintf(
-            '%d de %d abarcadores incompletos. Se rellenan editando el SEGMENTO que se indica, '
-            . 'no el componente.',
+            '%d incompletos de los %d que tienen plantilla (%d en total, %d sin plantilla). '
+            . 'Se rellenan editando el SEGMENTO que se indica, no el componente.',
             count($pendientes),
-            count($abarcadores)
+            count($abarcadores) - count($sinPlantilla),
+            count($abarcadores),
+            count($sinPlantilla)
         ));
     }
 }
