@@ -132,8 +132,19 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
          * admite uno promovido por cada día de la plantilla (itinerarioContexto,
          * día); la unicidad la garantiza al guardar el listener de Doctrine.
          * ==================================================================== */
-        yield BooleanField::new('horaServicioCompleto', 'Hora de Servicio Completo')
-            ->setHelp('Su hora representa el horario de toda la excursión de ese día. Requiere elegir una plantilla en "Condicionado a Plantilla" (no aplica a Global). Se admite uno por cada día de la plantilla; al activarlo se desactiva cualquier otro del mismo día.')
+        yield BooleanField::new('horaServicioCompleto', 'Servicio principal del día')
+            ->setHelp(
+                'Marca cuál es el SERVICIO PRINCIPAL de ese día. Hace dos cosas: su hora representa '
+                . 'el horario de toda la excursión, y de él salen el punto de recojo y el de entrega '
+                . 'que se le mandan al proveedor (los toma del primer y del último segmento del día). '
+                . '<br><br><b>Para paquetes de varios días</b> —un Camino Inca de 4— se crea un componente '
+                . 'por día («Segundo día Camino Inca»), aunque sea de <b>costo 0</b>, sólo para que aporte '
+                . 'la hora de inicio y fin y se promueva aquí. <b>Ojo con la Categoría Operativa</b>: si la '
+                . 'pones «extras» o «ticket», el componente NO tiene puntos de recojo y esto no hará nada. '
+                . 'Usa la que refleje la realidad (pool, privada, transporte).'
+                . '<br><br>Requiere elegir una plantilla en "Condicionado a Plantilla" (no aplica a Global). '
+                . 'Se admite uno por cada día; al activarlo se desactiva cualquier otro del mismo día.'
+            )
             ->setColumns('col-12')
             ->renderAsSwitch(true);
     }

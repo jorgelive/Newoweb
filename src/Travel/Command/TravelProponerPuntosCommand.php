@@ -234,6 +234,7 @@ final class TravelProponerPuntosCommand extends Command
         ));
 
         $this->informeDeCobertura($io, $seco);
+        $this->informeDeDiasSinPrincipal($io);
 
         return Command::SUCCESS;
     }
@@ -551,6 +552,99 @@ final class TravelProponerPuntosCommand extends Command
         }
 
         return [$rels[0]->getSegmento(), $rels[count($rels) - 1]->getSegmento()];
+    }
+
+
+    /**
+     * Días de una plantilla de VARIOS DÍAS que no tienen servicio principal declarado.
+     *
+     * No es una lista de errores: un día compuesto por tren + bus + ingreso + guía no tiene un
+     * servicio que lo abarque, y está bien que no lo tenga. Es una lista **para revisar**, y sale
+     * porque el caso contrario —un paquete de proveedor externo que SÍ es el día entero— hoy no
+     * está declarado en ninguna de las cinco plantillas de varios días del catálogo.
+     *
+     * ## El patrón que cubre
+     *
+     * Un Camino Inca de 4 días: se crea un componente por día —«Segundo día Camino Inca»—, aunque
+     * sea de **costo 0**, sólo para que aporte hora de inicio y de fin, y se promueve aquí. La
+     * unicidad es por `(plantilla, día)`, así que los cuatro conviven sin pisarse.
+     *
+     * ⚠️ **La Categoría Operativa de ese componente decide si sirve para algo.** Con `extras` o
+     * `ticket`, {@see \App\Travel\Enum\ComponenteTipoEnum::puntosDeServicio()} devuelve `NINGUNO`
+     * y la promoción no aporta ningún punto de recojo — sin dar error. Tiene que llevar el tipo
+     * que refleje la realidad.
+     */
+    private function informeDeDiasSinPrincipal(SymfonyStyle $io): void
+    {
+        /** @var list<TravelItinerarioSegmentoRel> $rels */
+        $rels = $this->em->getRepository(TravelItinerarioSegmentoRel::class)->findAll();
+
+        /** @var array<string, array{nombre: string, dias: array<int, true>}> $porItinerario */
+        $porItinerario = [];
+
+        foreach ($rels as $rel) {
+            $itinerario = $rel->getItinerario();
+            $id = $itinerario->getId()?->toRfc4122();
+
+            if ($id === null) {
+                continue;
+            }
+
+            $porItinerario[$id]['nombre'] = (string) $itinerario->getNombreInterno();
+            $porItinerario[$id]['dias'][$rel->getDia()] = true;
+        }
+
+        /** @var array<string, true> $cubiertos */
+        $cubiertos = [];
+
+        foreach ($this->em->getRepository(TravelSegmentoComponente::class)->findBy(['horaServicioCompleto' => true]) as $sc) {
+            $id = $sc->getItinerarioContexto()?->getId()?->toRfc4122();
+
+            if ($id === null) {
+                continue;
+            }
+
+            // Día `null` significa «todos los días» — así lo trata el listener de unicidad—, así
+            // que cubre la plantilla entera. Es la lectura conservadora: evita sacar en la lista
+            // una plantilla que alguien ya resolvió de esa forma.
+            $cubiertos[$id . '|' . ($sc->getDia() ?? '*')] = true;
+        }
+
+        $pendientes = [];
+
+        foreach ($porItinerario as $id => $datos) {
+            $dias = array_keys($datos['dias']);
+
+            if (count($dias) < 2 || isset($cubiertos[$id . '|*'])) {
+                continue;
+            }
+
+            sort($dias);
+            $sinPrincipal = array_values(array_filter($dias, static fn (int $d): bool => !isset($cubiertos[$id . '|' . $d])));
+
+            if ($sinPrincipal !== []) {
+                $pendientes[] = sprintf(
+                    '%s — días %s de %d sin servicio principal',
+                    $datos['nombre'],
+                    implode(', ', $sinPrincipal),
+                    count($dias)
+                );
+            }
+        }
+
+        if ($pendientes === []) {
+            return;
+        }
+
+        $io->section('Plantillas de varios días: días sin servicio principal (para revisar)');
+        $io->listing($pendientes);
+        $io->writeln(
+            "  <comment>No es un error: un día de tren + bus + ingreso + guía no tiene un servicio que lo\n"
+            . "  abarque. Sí lo es si ese día es un paquete de proveedor externo — un Camino Inca, un\n"
+            . "  trekking—: ahí se crea un componente por día (aunque sea de costo 0) con su hora de\n"
+            . "  inicio y fin, y se marca «Servicio principal del día».\n"
+            . "  Ojo con la Categoría Operativa: con «extras» o «ticket» no aporta puntos de recojo.</comment>"
+        );
     }
 
     /**

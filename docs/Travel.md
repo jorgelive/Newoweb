@@ -1174,6 +1174,54 @@ Es una pasada **aparte** de la lectura de nombres y se anuncia como tal, porque 
 informe tiene que poder distinguir lo deducido de un nombre explícito de lo dado por supuesto.
 Sigue siendo aditiva: sólo escribe sobre `SIN_DEFINIR`.
 
+### Paquetes de proveedor externo y plantillas de varios días
+
+`horaServicioCompleto` —«Servicio principal del día» en el panel— **no es sólo una hora**. Es la
+marca de qué componente ES el día, y de él salen tres cosas: el horario que se enseña, el punto
+de recojo y el de entrega que van al proveedor, y el titular de la tarjeta en el editor de
+cotizaciones.
+
+**Cuándo se usa:** servicios empaquetados de un proveedor externo, o los que incluyen varios
+puntos. Un día compuesto por tren + bus + ingreso + guía **no lleva marca y está bien así**: cada
+componente cuelga de su segmento y saca de ahí sus puntos. De ahí que el Full Day MAPI no la
+tenga.
+
+**En una plantilla de varios días va uno POR DÍA.** La unicidad es `(plantilla, día)`, así que un
+Camino Inca de 4 días admite cuatro marcados sin pisarse. El patrón es crear un componente por
+día —«Segundo día Camino Inca»—, **aunque sea de costo 0**, sólo para que aporte hora de inicio y
+de fin y se pueda promover.
+
+⚠️ **La Categoría Operativa de ese componente decide si la marca sirve para algo.** Con `extras`
+o `ticket`, `ComponenteTipoEnum::puntosDeServicio()` devuelve `NINGUNO` y la promoción **no aporta
+ningún punto de recojo, sin dar error**. Es la familia de fallo que este repo tiene documentada:
+un dato mal puesto que no falla, simplemente deja de hacer su trabajo. Tiene que llevar el tipo
+que refleje la realidad (`pool`, `privada`, `transporte`).
+
+**Estado al 22/08/2026:** las cinco plantillas de varios días del catálogo —Two Day Camino Inca,
+Two Day MAPI bimodal, Two Day Vertical Sky, Skylodge y Starlodge— **no tienen ninguna marca por
+día**. `app:travel:proponer-puntos` las saca en una sección propia, «para revisar», cada vez que
+se ejecuta: es un recordatorio, no una lista de errores.
+
+#### Por qué NO se añadió una bandera «principal» aparte
+
+Se evaluó y se descartó. `horaServicioCompleto` ya es de hecho esa marca, y **dos banderas que
+quieren decir casi lo mismo acaban divergiendo**: el 99 % de las filas tendrían las dos o
+ninguna, y el día que alguien ponga una sin la otra, algo usa la equivocada sin un solo error.
+Además obligaría a un tercer dominio de unicidad —hoy `(plantilla, día)`; suelto haría falta
+`(segmento, día)`; en la cotización `(cotservicio, día)`—, que es donde viven los fallos
+silenciosos.
+
+El anticipo de ese problema ya existe: las **5 filas con la marca puesta y sin plantilla de
+contexto**, donde hoy no significa nada.
+
+⚠️ **Lo que sí queda pendiente y sería la mejora correcta:** relajar
+`TravelSegmentoComponentePromocionUnicaListener` para que la marca valga también **sin plantilla**
+—con la unicidad por `(segmento, día)`—, y así cubrir el servicio armado a medida. Una sola
+bandera, un solo significado, y de paso las 5 huérfanas dejarían de ser ruido.
+
+**Lo que haría replantear la decisión:** encontrar días donde el componente que marca la hora y el
+que se considera principal sean **distintos**. Hoy no hay ninguno.
+
 ### 🐛 La trampa que casi lo deja mudo: `setParameter()` con un UUID
 
 ```php
@@ -1238,3 +1286,4 @@ su plantilla.
 | Marcar cuál es el servicio dueño del día | `src/Travel/Entity/TravelSegmentoComponente.php` | `$horaServicioCompleto` — único por (plantilla, día) |
 | Añadir reglas de carga de puntos por nombre | `src/Travel/Command/TravelProponerPuntosCommand.php` | `REGLAS` — **gana la primera**; `PUNTOS` para los maestros |
 | Cambiar qué se considera «falta el punto» | `src/Travel/Service/PuntosResueltos.php` | `estaCompleto()`, `faltantes()` |
+| Marcar el servicio principal de un día (paquetes, multi-día) | `src/Travel/Controller/Crud/TravelSegmentoComponenteCrudController.php` | «Servicio principal del día» — uno por (plantilla, día); **ojo con la Categoría Operativa** |
