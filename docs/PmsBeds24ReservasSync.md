@@ -4267,6 +4267,27 @@ de la conversación — que es el único que no vigila nadie más.
 Verificación: `var/probar-borrado-reserva.php`, en transacción con `rollback`. ⚠️ Busca una
 reserva con estancias borrables **y** conversación; con otra mide el listener equivocado.
 
+### ⚠️ Un respaldo con `json_encode()` de filas del PMS sale VACÍO
+
+Al borrar la reserva fantasma `6PN5SH` (21/08/2026) el script guardó primero una «copia de
+seguridad» de las filas. **Pesaba 0 bytes.**
+
+`json_encode()` devuelve `false` sobre las columnas `BINARY(16)` de los UUID —no son UTF-8
+válido— y `file_put_contents($ruta, false)` escribe la cadena vacía **sin quejarse**. El fichero
+existe, tiene nombre de respaldo, y no contiene nada. Se descubrió después de borrar.
+
+Si vas a respaldar filas de este esquema antes de tocarlas:
+
+- **`mysqldump --where` de las tablas implicadas**, que es lo único que conserva los binarios; o
+- si de verdad hace falta JSON, envolver los binarios (`LOWER(HEX(id))` en el `SELECT`) y
+  **comprobar que `json_encode()` no devolvió `false`** antes de escribir.
+
+Y en cualquier caso, **verificar el tamaño del fichero** antes de dar el borrado por seguro. Un
+respaldo que no se comprueba no es un respaldo: es un nombre de fichero.
+
+Aquí no costó nada —la fila estaba vacía, verificado antes de borrarla— pero el mismo script
+sobre una reserva con contenido habría dado la misma falsa tranquilidad.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
