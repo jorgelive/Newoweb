@@ -11,6 +11,7 @@ use App\Cotizacion\Service\CotizacionPuntosDelServicio;
 use App\Operacion\Entity\OperacionServicio;
 use App\Travel\Enum\PuntoModoEnum;
 use DateTimeImmutable;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * El último tramo: de «el alojamiento del pasajero» a «Hotel Terra — Calle Unión 184, Cusco».
@@ -32,7 +33,7 @@ use DateTimeImmutable;
  * plausible que manda al conductor a cuatro horas de donde está la gente. Los campamentos se
  * declaran como `TravelPunto` con modo fijo — ver `docs/Travel.md` §11 quater.
  */
-final class OperacionPuntosDelServicio
+final class OperacionPuntosDelServicio implements ResetInterface
 {
     /** @var array<string, CadenaDeAlojamiento> Una cadena por cotización, dentro de la petición. */
     private array $cadenas = [];
@@ -49,6 +50,19 @@ final class OperacionPuntosDelServicio
      *                          forma de que se entienda que vacío no es «sin punto» sino
      *                          «el del catálogo».
      */
+    /**
+     * Vacía el caché entre peticiones o mensajes.
+     *
+     * ⚠️ Sin esto, el día que algo de aquí corra en un worker de Messenger —y la mensajería de
+     * este proyecto ya corre así— la cadena de alojamiento del primer expediente sobreviviría a
+     * ediciones posteriores y a todos los demás expedientes del mismo proceso. El fallo sería
+     * intermitente, dependería del orden de la cola y daría hoteles reales pero equivocados.
+     */
+    public function reset(): void
+    {
+        $this->cadenas = [];
+    }
+
     public function para(OperacionServicio $servicio, bool $conOverride = true): PuntosOperativos
     {
         $override = $conOverride
@@ -88,26 +102,19 @@ final class OperacionPuntosDelServicio
         $cadena = $this->cadenaDe($cotservicio?->getCotizacion());
         $avisos = [];
 
-        $recojo = $override['recojo'] ?? $this->resolver(
-            $derivado['inicioModo'],
-            $derivado['inicioTexto'],
-            $cadena,
-            $fecha,
-            lado: 'recojo',
-            avisos: $avisos,
-        );
+        // ⚠️ Si el TIPO no tiene extremos —un ticket, una comida— no se deriva nada aunque haya
+        // override: mandar «el catálogo no lo declara: ponlo en el SEGMENTO» para un ticket es
+        // mandar a arreglar un hueco que no existe, y un aviso así enseña a ignorar los demás.
+        $recojo = $override['recojo'] ?? ($derivado['aplica']
+            ? $this->resolver($derivado['inicioModo'], $derivado['inicioTexto'], $cadena, $fecha, lado: 'recojo', avisos: $avisos)
+            : null);
 
         $entrega = null;
 
         if ($derivado['tieneFin'] || $override['entrega'] !== null) {
-            $entrega = $override['entrega'] ?? $this->resolver(
-                $derivado['finModo'],
-                $derivado['finTexto'],
-                $cadena,
-                $fecha,
-                lado: 'entrega',
-                avisos: $avisos,
-            );
+            $entrega = $override['entrega'] ?? ($derivado['aplica']
+                ? $this->resolver($derivado['finModo'], $derivado['finTexto'], $cadena, $fecha, lado: 'entrega', avisos: $avisos)
+                : null);
         }
 
         return new PuntosOperativos(
@@ -156,7 +163,25 @@ final class OperacionPuntosDelServicio
 
         // Recoger es salir de donde DURMIÓ; dejar es llegar a donde DORMIRÁ. El día que cambia
         // de hotel, las dos respuestas son distintas y las dos son correctas.
-        $estancia = $lado === 'recojo' ? $cadena->dondeDurmio($fecha) : $cadena->dondeDormira($fecha);
+        $candidatas = $lado === 'recojo'
+            ? $cadena->cubrenLaNocheQueTermina($fecha)
+            : $cadena->cubrenLaNocheQueEmpieza($fecha);
+
+        $estancia = $candidatas[0] ?? null;
+
+        // ⚠️ Dos hoteles distintos esa noche —un grupo repartido— no se puede resolver aquí: no
+        // consta a cuál va cada pasajero. Se coge uno para no dejar el renglón en blanco, pero se
+        // DICE. Callarlo daría una orden impecable que manda a media gente al sitio equivocado.
+        $hoteles = array_unique(array_map(static fn ($e): string => $e->hotel, $candidatas));
+
+        if (count($hoteles) > 1) {
+            $avisos[] = sprintf(
+                '%s: esa noche hay %d alojamientos distintos (%s). Se usó el primero — confírmalo.',
+                $lado,
+                count($hoteles),
+                implode(' / ', $hoteles)
+            );
+        }
 
         if ($estancia === null) {
             $avisos[] = sprintf(

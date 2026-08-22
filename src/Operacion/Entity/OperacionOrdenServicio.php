@@ -590,6 +590,34 @@ class OperacionOrdenServicio
                 $avisos[] = sprintf('«%s»: el recojo era a las %s y ahora es a las %s',
                     $que, $confirmada, $servicio->getHoraRecojo() ?? '—');
             }
+
+            // ── El SITIO de recojo y entrega ────────────────────────────────
+            //
+            // ⚠️ Sólo se compara con el override del operador, no con el catálogo. Volver a
+            // derivar el punto necesita el expediente, la cadena de alojamiento y varias
+            // consultas, y esto es un método de entidad que se pinta por fila. Así que caza el
+            // caso real —«lo corregí después de emitir y el proveedor sigue con el sitio viejo»—
+            // y NO caza que alguien cambie el segmento en el maestro.
+            //
+            // Ese hueco está anotado en docs/Operacion.md §12; taparlo a medias sería peor, porque
+            // una vigilancia que a veces mira y a veces no se lee como que siempre mira.
+            foreach ([
+                ['recojo', $item->getPuntoRecojoConfirmado(), $servicio->getPuntoRecojo()],
+                ['entrega', $item->getPuntoEntregaConfirmado(), $servicio->getPuntoEntrega()],
+            ] as [$lado, $congelado, $override]) {
+                $override = trim((string) $override);
+                $congelado = trim((string) $congelado);
+
+                if ($override !== '' && $override !== $congelado) {
+                    $avisos[] = sprintf(
+                        '«%s»: el %s era %s y ahora es %s',
+                        $que,
+                        $lado,
+                        $congelado !== '' ? $congelado : '—',
+                        $override
+                    );
+                }
+            }
         }
 
         return $avisos;

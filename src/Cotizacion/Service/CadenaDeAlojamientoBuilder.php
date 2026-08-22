@@ -85,6 +85,19 @@ final readonly class CadenaDeAlojamientoBuilder
             return null;
         }
 
+        // ⚠️ Los alojamientos CANCELADOS o REEMPLAZADOS no cuentan, y es lo primero que hay que
+        // preguntar aquí. Aquí no se borra nada: cambiar el hotel A por el B para las mismas
+        // noches deja la fila de A viva y marcada, así que sin este filtro la cadena tendría LAS
+        // DOS estancias sobre la misma noche y el desempate lo decidiría el orden de inserción.
+        // La orden emitida saldría con el hotel viejo —nombre y dirección reales, fechas que
+        // cuadran— y no habría forma de verlo leyéndola.
+        //
+        // ⚠️ `no_incluido` SÍ entra: es el hotel que el pasajero reservó por su cuenta. No se le
+        // compra a nadie, pero es donde hay que recogerlo. Ver `CotizacionCotcomponente::estaVivo()`.
+        if (!$comp->estaVivo()) {
+            return null;
+        }
+
         $desde = $comp->getFechaHoraInicio();
         $hasta = $comp->getFechaHoraFin();
         $hotel = trim((string) $comp->getPrestadorNombreSnapshot());

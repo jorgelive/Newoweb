@@ -49,8 +49,13 @@ enum ComponenteTipoEnum: string
      * que es una pregunta distinta y merecía su propio método en vez de un `=== 'alojamiento'`
      * repartido por ahí.
      *
-     * ⚠️ **`VUELO` y `TREN` los tienen, y además PARTEN EL DÍA.** Lo que ocurre antes termina en
-     * su punto de salida y lo posterior empieza en el de llegada — {@see self::esSalto()}.
+     * ⚠️ **`VUELO` y `TREN` los tienen, y además parten el día** — {@see self::esSalto()}.
+     *
+     * 🚧 **Eso último todavía NO lo implementa ningún resolvedor**, y conviene saberlo antes de
+     * confiar en ello: un abarcador en un día con tren toma el primer y el último segmento del
+     * día tal cual, sin partirlo por el vuelo. Hoy no muerde porque los abarcadores son full-days
+     * dentro de una misma ciudad. El día que se monte uno multi-ciudad, hará falta escribirlo.
+     * Anotado en `docs/Pendientes.md`.
      */
     public function puntosDeServicio(): PuntosDeServicio
     {

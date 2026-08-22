@@ -109,4 +109,30 @@ final class CadenaDeAlojamientoTest extends TestCase
         self::assertSame('Natura Vive', $estancia->paraLaOrden());
         self::assertFalse($estancia->estaCompleta());
     }
+
+    #[Test]
+    public function dos_hoteles_la_misma_noche_se_pueden_DENUNCIAR(): void
+    {
+        // Un grupo repartido en dos hoteles es legítimo, y aquí no consta a cuál va cada
+        // pasajero. `dondeDormira()` elige uno para no dejar el renglón en blanco, pero quien
+        // llame tiene que poder ver que hay dos: elegir en silencio da una orden impecable que
+        // manda a la mitad de la gente al sitio equivocado.
+        $cadena = new CadenaDeAlojamiento([
+            new Estancia(new DateTimeImmutable('2026-09-04'), new DateTimeImmutable('2026-09-06'), 'Hotel Terra - Cusco', 'Calle Unión 184'),
+            new Estancia(new DateTimeImmutable('2026-09-04'), new DateTimeImmutable('2026-09-06'), 'Casa Andina - Cusco', 'Av. El Sol 500'),
+        ]);
+
+        $dia5 = new DateTimeImmutable('2026-09-05');
+
+        self::assertCount(2, $cadena->cubrenLaNocheQueEmpieza($dia5));
+        self::assertCount(2, $cadena->cubrenLaNocheQueTermina($dia5));
+        self::assertNotNull($cadena->dondeDormira($dia5));
+    }
+
+    #[Test]
+    public function una_noche_normal_tiene_exactamente_una_estancia(): void
+    {
+        self::assertCount(1, $this->cadena()->cubrenLaNocheQueEmpieza(new DateTimeImmutable('2026-09-05')));
+        self::assertCount(0, $this->cadena()->cubrenLaNocheQueTermina(new DateTimeImmutable('2026-08-31')));
+    }
 }

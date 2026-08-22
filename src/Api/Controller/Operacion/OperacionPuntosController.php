@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Lo que el CATÁLOGO dice sobre dónde recoge y deja cada servicio de un expediente.
@@ -46,7 +47,9 @@ class OperacionPuntosController extends AbstractController
         /** @var list<string> $ids */
         $ids = array_values(array_filter(
             (array) $request->query->all('id'),
-            static fn (mixed $v): bool => is_string($v) && $v !== ''
+            // `Uuid::isValid` y no sólo «no vacío»: un id malformado revienta en la conversión
+            // de DBAL con un 500 en vez de ignorarse.
+            static fn (mixed $v): bool => is_string($v) && Uuid::isValid($v)
         ));
 
         if ($ids === []) {

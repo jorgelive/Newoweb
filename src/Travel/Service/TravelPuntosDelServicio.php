@@ -75,23 +75,23 @@ final readonly class TravelPuntosDelServicio
         if ($abarca) {
             /** @var TravelItinerario $itinerario */
             $itinerario = $sc->getItinerarioContexto();
-            $extremos = $this->extremosDelDia($itinerario, $sc->getDia());
+            $extremos = $this->extremosDelDia($itinerario, $this->diaDe($sc, $itinerario));
 
-            // Sin relaciones cargadas —una plantilla a medio montar— se cae al segmento propio.
-            // Es peor información, pero es información: devolver nada dejaría la orden en blanco
-            // justo en el servicio más visible del día.
-        // ⚠️ **Es un OVERRIDE, no un aplastamiento.** El extremo del día manda **si declara
-        // algo**; si no, se cae al segmento del que cuelga el componente.
-        //
-        // La primera versión cogía el primero y el último del día sin mirar, y eso borraba
-        // información: un pool colgado de un segmento que SÍ dice dónde recoge, dentro de un día
-        // cuyo primer segmento no dice nada, se quedaba sin punto de recojo. Hoy no se nota
-        // porque todos los abarcadores cuelgan del primer segmento de su día —y entonces los dos
-        // caminos coinciden—, pero deja de ser cierto en cuanto se cuelgue uno de un segmento
-        // intermedio, que es justo lo que permite el modelo.
-        //
-        // En este orden y no al revés: si el día declara un extremo, ése es el bueno — es lo que
-        // hace que «Retorno al centro de Cusco» mande sobre el segmento de recojo.
+            // ⚠️ **Es un OVERRIDE, no un aplastamiento.** El extremo del día manda **si declara
+            // algo**; si no, se cae al segmento del que cuelga el componente.
+            //
+            // La primera versión cogía el primero y el último del día sin mirar, y eso borraba
+            // información: un pool colgado de un segmento que SÍ dice dónde recoge, dentro de un
+            // día cuyo primer segmento no dice nada, se quedaba sin punto de recojo. No se nota
+            // mientras todos los abarcadores cuelguen del primer segmento de su día —los dos
+            // caminos coinciden—, y deja de ser cierto en cuanto se cuelgue uno de un segmento
+            // intermedio, que es lo que el modelo permite.
+            //
+            // Y en este orden y no al revés: si el día declara un extremo, ése es el bueno. Es lo
+            // que hace que «Retorno al centro de Cusco» mande sobre el segmento de recojo.
+            //
+            // Sin relaciones cargadas —una plantilla a medio montar— `$extremos` viene a nulos y
+            // se cae también al propio: peor información, pero información.
             $segmentoInicio = $extremos[0]?->getInicioModo()->esDeclarado() === true ? $extremos[0] : $propio;
             $segmentoFin = $extremos[1]?->getFinModo()->esDeclarado() === true ? $extremos[1] : $propio;
         }
@@ -106,13 +106,49 @@ final readonly class TravelPuntosDelServicio
         );
     }
 
+
+    /**
+     * Qué día del itinerario abarca este componente.
+     *
+     * `$sc->getDia()` es lo que dice el pivote, y `null` ahí significa «todos los días». Para un
+     * full-day da igual, pero en una plantilla de varios días **no hay un día que abarcar**: se
+     * usa entonces el del segmento del que cuelga, que es la respuesta que da la copia de
+     * Cotización — allí no existe el pivote y el día sale siempre del segmento.
+     *
+     * ⚠️ Antes esta rama tomaba los extremos de la PLANTILLA ENTERA —primer segmento del día 1,
+     * último del día N—, y la hermana tomaba los del día del segmento. Dos respuestas distintas
+     * para la misma pregunta, cada una defendible por su lado y ninguna comparable con la otra.
+     * Es la clase de divergencia que justifica el precio de tener la regla escrita dos veces sólo
+     * si alguien las compara; ésta no la comparaba nadie.
+     */
+    private function diaDe(TravelSegmentoComponente $sc, TravelItinerario $itinerario): ?int
+    {
+        if ($sc->getDia() !== null) {
+            return $sc->getDia();
+        }
+
+        $propio = $sc->getSegmento();
+
+        if ($propio === null) {
+            return null;
+        }
+
+        $rel = $this->em->getRepository(TravelItinerarioSegmentoRel::class)
+            ->createQueryBuilder('r')
+            ->andWhere('r.itinerario = :i')->setParameter('i', $itinerario->getId(), UuidType::NAME)
+            ->andWhere('r.segmento = :s')->setParameter('s', $propio->getId(), UuidType::NAME)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $rel?->getDia();
+    }
+
     /**
      * El primer y el último segmento de una plantilla en un día.
      *
-     * `$dia === null` significa «aplica a todos los días» —así lo trata el listener de
-     * unicidad—, y en la práctica son plantillas de un solo día. Se toman entonces los extremos
-     * de la plantilla entera, que para un Full Day es lo mismo y para una de varios días es lo
-     * único defendible sin inventarse a cuál se refería.
+     * `$dia` ya viene resuelto por {@see self::diaDe()}: `null` sólo si no se pudo averiguar, y
+     * entonces se toman los extremos de la plantilla entera como último recurso.
      *
      * @return array{0: ?TravelSegmento, 1: ?TravelSegmento}
      */

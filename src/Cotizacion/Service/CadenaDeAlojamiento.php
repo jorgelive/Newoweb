@@ -44,29 +44,46 @@ final readonly class CadenaDeAlojamiento
     /** Dónde durmió la noche que termina el día `$fecha`. */
     public function dondeDurmio(DateTimeImmutable $fecha): ?Estancia
     {
-        $dia = $fecha->setTime(0, 0);
-
-        foreach ($this->estancias as $estancia) {
-            if ($estancia->desde < $dia && $dia <= $estancia->hasta) {
-                return $estancia;
-            }
-        }
-
-        return null;
+        return $this->cubrenLaNocheQueTermina($fecha)[0] ?? null;
     }
 
     /** Dónde dormirá la noche que empieza el día `$fecha`. */
     public function dondeDormira(DateTimeImmutable $fecha): ?Estancia
     {
+        return $this->cubrenLaNocheQueEmpieza($fecha)[0] ?? null;
+    }
+
+    /**
+     * TODAS las estancias que cubren esa noche. Más de un hotel distinto es un conflicto.
+     *
+     * ⚠️ Existe para que el conflicto se pueda DENUNCIAR, no sólo resolver. Un grupo repartido en
+     * dos hoteles la misma noche es legítimo y aquí no se puede saber a cuál va cada pasajero:
+     * elegir una en silencio da una orden que se lee perfectamente correcta y manda a la mitad de
+     * la gente al sitio equivocado. Quien llame decide qué hacer, pero con el dato delante.
+     *
+     * (Un mismo hotel repetido no es conflicto: el builder ya deduplica por hotel y fechas.)
+     *
+     * @return list<Estancia>
+     */
+    public function cubrenLaNocheQueTermina(DateTimeImmutable $fecha): array
+    {
         $dia = $fecha->setTime(0, 0);
 
-        foreach ($this->estancias as $estancia) {
-            if ($estancia->desde <= $dia && $dia < $estancia->hasta) {
-                return $estancia;
-            }
-        }
+        return array_values(array_filter(
+            $this->estancias,
+            static fn (Estancia $e): bool => $e->desde < $dia && $dia <= $e->hasta
+        ));
+    }
 
-        return null;
+    /** @return list<Estancia> */
+    public function cubrenLaNocheQueEmpieza(DateTimeImmutable $fecha): array
+    {
+        $dia = $fecha->setTime(0, 0);
+
+        return array_values(array_filter(
+            $this->estancias,
+            static fn (Estancia $e): bool => $e->desde <= $dia && $dia < $e->hasta
+        ));
     }
 
     /** @return list<Estancia> */

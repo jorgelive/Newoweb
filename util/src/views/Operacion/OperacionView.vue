@@ -1977,8 +1977,13 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                              marcador de posición enseña qué saldría entonces. Sólo se
                                                              pintan cuando el servicio recoge a alguien — un ticket o una
                                                              comida no, y ponerles el campo invitaría a rellenarlo.
-                                                             Ver docs/Operacion.md. -->
-                                                        <div v-if="puntosDe(servicio)?.aplica" class="mt-1.5 space-y-1">
+
+                                                             ⚠️ Pero si YA hay override escrito, el campo sale igual —
+                                                             aunque el endpoint del derivado esté caído o el tipo no
+                                                             aplique—. Si no, ese dato seguiría mandando en la emisión
+                                                             y el operador no lo vería ni podría vaciarlo.
+                                                             Ver docs/Operacion.md §12. -->
+                                                        <div v-if="puntosDe(servicio)?.aplica || servicio.puntoRecojo || servicio.puntoEntrega" class="mt-1.5 space-y-1">
                                                             <div class="flex items-center gap-1">
                                                                 <i class="fas fa-location-dot text-[9px] text-slate-300 w-3 text-center"
                                                                    title="Dónde se recoge"></i>
@@ -1992,7 +1997,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                                     title="Dónde se recoge. Vacío = lo que diga el catálogo."
                                                                 />
                                                             </div>
-                                                            <div v-if="puntosDe(servicio)?.tieneEntrega" class="flex items-center gap-1">
+                                                            <div v-if="puntosDe(servicio)?.tieneEntrega || servicio.puntoEntrega" class="flex items-center gap-1">
                                                                 <i class="fas fa-flag-checkered text-[9px] text-slate-300 w-3 text-center"
                                                                    title="Dónde se deja"></i>
                                                                 <input

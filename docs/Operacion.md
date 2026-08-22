@@ -2126,3 +2126,48 @@ Sobre un expediente de 42 servicios en La Biblia:
 
 Lo que queda sin resolver son segmentos del catálogo sin puntos declarados, y **cada uno sale con
 su aviso**, no en blanco.
+
+### Lo que salió de la revisión externa (22/08/2026)
+
+Se pasó el módulo entero por una revisión crítica. Lo corregido y lo que queda:
+
+#### Corregido
+
+| Hallazgo | Por qué era grave |
+|---|---|
+| La cadena de alojamiento incluía componentes **cancelados o reemplazados** | Aquí no se borra: cambiar el hotel A por el B deja la fila de A viva y marcada, así que la cadena tenía **las dos estancias sobre la misma noche** y el desempate lo decidía el orden de inserción. La orden podía salir con el hotel viejo — nombre y dirección reales, fechas que cuadran, imposible de ver leyéndola. |
+| El resolvedor de cotización contaba los cancelados | Un componente muerto podía quedarse la **cabecera** del servicio y meter su hueco en los avisos. |
+| Dos hoteles la misma noche se resolvían **en silencio** | Un grupo repartido es legítimo y aquí no consta a quién va cada uno. Ahora se coge el primero **y se avisa**. |
+| `getDivergencias()` no miraba los puntos | El docblock prometía «si cambia, se reemite y se avisa» y no había nada. |
+| El `v-if` del cuadro escondía un override existente | Con el endpoint del derivado caído, el dato del operador seguía mandando en la emisión y él no lo veía ni podía vaciarlo. |
+| Aviso engañoso en tipos sin extremos | Un ticket con override recibía «ponlo en el SEGMENTO del maestro»: mandaba a arreglar un hueco inexistente, y un aviso así enseña a ignorar los demás. |
+| Caché de cadenas sin `ResetInterface` | Bajo un worker de Messenger, la cadena del primer expediente sobreviviría a los demás. Fallo intermitente, dependiente del orden de la cola, con hoteles reales pero equivocados. |
+| Ids malformados → 500 | Ensucian el log y esconden los fallos de verdad. |
+| **Los dos resolvedores divergían** con `dia = null` en plantilla multi-día | Travel tomaba los extremos de la plantilla entera y Cotización los del día del segmento. Dos respuestas distintas a la misma pregunta. Alineados en la segunda, que es la que está bien definida siempre. |
+
+⚠️ **La corrección de los cancelados tiene una trampa que casi se cuela:** `no_incluido` **SÍ está
+vivo**. Es el hotel que el pasajero reservó por su cuenta — no se le compra a nadie, pero es donde
+hay que recogerlo. Filtrar «por modo» a secas lo habría borrado y dejado al transportista sin
+dirección. Por eso el predicado vive en `CotizacionCotcomponente::estaVivo()`, con los **mismos dos
+casos** que `OperacionServicio::esComprable()`, y tiene test propio.
+
+#### Pendiente, anotado y no tapado
+
+- **La divergencia sólo vigila el override del operador**, no el catálogo. Volver a derivar el
+  punto necesita el expediente y varias consultas, y `getDivergencias()` se pinta por fila. Caza el
+  caso real —«lo corregí después de emitir»— y no caza que alguien cambie el segmento del maestro.
+- **N+1 en `OperacionPuntosController`**: hasta 500 servicios × (una consulta de maestros + los
+  perezosos de la cotización + la cadena). El resto del código presume «en UNA consulta»; este
+  camino la pierde multiplicada. Con una página del cuadro no se nota; con el tope de 500, sí.
+- **`ComponenteTipoEnum::esSalto()` no tiene consumidor.** Su docblock decía que vuelos y trenes
+  parten el día; ningún resolvedor lo hace. Corregido el texto para que no describa código que no
+  existe.
+- **`TravelPuntosDelServicio` no tiene consumidor en producción ni test propio.** La regla está
+  escrita dos veces a propósito —contenedores distintos— pero eso sólo se sostiene si algo denuncia
+  la divergencia, y la divergencia del `dia = null` es la prueba de que nadie la denunciaba. O se le
+  da su consumidor (el informe del comando podría usarlo en vez de reimplementar `extremosDe()`) o
+  tests espejo de los de Cotización.
+- **`cerrarAbarcadores` escribe sobre segmentos COMPARTIDOS.** El `finModo` del último segmento del
+  día se fija según compartido/privado del abarcador, y hay 33 segmentos compartidos: si dos
+  plantillas de tipo distinto comparten el final, la primera procesada decide por ambas. Ya se
+  ejecutó; es auditoría pendiente, no un fix.

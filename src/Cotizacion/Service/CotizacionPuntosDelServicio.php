@@ -106,6 +106,14 @@ final readonly class CotizacionPuntosDelServicio
                 continue;
             }
 
+            // Un componente cancelado o sustituido conserva su fila —aquí no se borra— pero ya no
+            // se opera. Contarlo metía su hueco en `faltantes` y, si era el abarcador, le dejaba
+            // la CABECERA del servicio: el operador veía en la tarjeta el recojo de algo que ya
+            // no ocurre, y en ámbar por un dato que nadie tiene que rellenar.
+            if (!$comp->estaVivo()) {
+                continue;
+            }
+
             $resuelto = $this->resolverComponente($comp, $tipo, $porDia, $maestros);
 
             $detalle[] = [

@@ -7,6 +7,7 @@ namespace App\Tests\Cotizacion\Service;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionCotservicio;
 use App\Cotizacion\Entity\CotizacionSegmento;
+use App\Cotizacion\Enum\ComponenteEstadoEnum;
 use App\Cotizacion\Service\CotizacionPuntosDelServicio;
 use App\Travel\Entity\TravelPunto;
 use App\Travel\Entity\TravelSegmento;
@@ -69,9 +70,14 @@ final class CotizacionPuntosDelServicioTest extends TestCase
         return $seg;
     }
 
-    private function componente(CotizacionCotservicio $servicio, CotizacionSegmento $seg, string $tipo, bool $abarca): void
+    private function componente(CotizacionCotservicio $servicio, CotizacionSegmento $seg, string $tipo, bool $abarca, bool $vivo = true): void
     {
         $comp = new CotizacionCotcomponente();
+
+        if (!$vivo) {
+            $comp->setEstado(ComponenteEstadoEnum::CANCELADO);
+        }
+
         $comp->setTipo($tipo);
         $comp->setNombreSnapshot([['language' => 'es', 'content' => 'Servicio de prueba']]);
         $comp->setCotsegmento($seg);
@@ -177,6 +183,24 @@ final class CotizacionPuntosDelServicioTest extends TestCase
         $r = $this->servicio()->paraServicio($servicio, $this->maestros);
 
         self::assertFalse($r['tieneFin']);
+        self::assertTrue($r['completo']);
+    }
+
+    #[Test]
+    public function un_componente_CANCELADO_no_se_queda_la_cabecera(): void
+    {
+        // Aquí no se borra nada: un servicio que el cliente canceló conserva su fila. Contarlo
+        // dejaba al operador viendo en la tarjeta el recojo de algo que ya no ocurre — y en ámbar
+        // por un hueco que nadie tiene que rellenar.
+        $servicio = new CotizacionCotservicio();
+        $recojo = $this->segmento($servicio, 1, $this->maestro('m1', PuntoModoEnum::ALOJAMIENTO, PuntoModoEnum::SIN_DEFINIR));
+        $this->segmento($servicio, 2, $this->maestro('m2', PuntoModoEnum::SIN_DEFINIR, PuntoModoEnum::FIJO, 'Plaza de Armas de Cusco'));
+        $this->componente($servicio, $recojo, 'pool', abarca: true, vivo: false);
+
+        $r = $this->servicio()->paraServicio($servicio, $this->maestros);
+
+        self::assertFalse($r['aplica']);
+        self::assertSame([], $r['detalle']);
         self::assertTrue($r['completo']);
     }
 }

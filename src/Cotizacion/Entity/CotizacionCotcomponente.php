@@ -364,6 +364,30 @@ class CotizacionCotcomponente
      *
      * @return ComponenteEstadoEnum
      */
+
+    /**
+     * ¿Este componente sigue vivo en el viaje, o es historia?
+     *
+     * Aquí no se borra nada: un servicio que el cliente canceló o que se sustituyó por otro
+     * **conserva su fila** —y sus fechas, y su prestador— para que se pueda reconstruir lo que
+     * pasó. La consecuencia es que cualquier cosa que recorra los componentes tiene que
+     * preguntarse esto, o se lleva por delante los muertos junto con los vivos.
+     *
+     * ⚠️ **`no_incluido` SÍ está vivo**, y es la distinción que se puede perder al filtrar de
+     * memoria. Es lo que el pasajero paga por su cuenta —el hotel que reservó él—: no se le compra
+     * a nadie, pero existe, y el transportista necesita ese hotel para recogerlo. Confundirlo con
+     * «muerto» deja al conductor sin dirección. Ver {@see \App\Operacion\Entity\OperacionServicio::isSoloReferencia()}.
+     *
+     * Los mismos dos casos que usa `OperacionServicio::esComprable()`, y a propósito: son la
+     * definición de «ya no se opera» de este dominio, y tenerla escrita dos veces con criterios
+     * distintos es cómo se acaba comprando lo cancelado o recogiendo en el hotel viejo.
+     */
+    public function estaVivo(): bool
+    {
+        return $this->estado !== ComponenteEstadoEnum::CANCELADO
+            && $this->modo !== ComponenteModoEnum::REEMPLAZADO;
+    }
+
     public function getEstado(): ComponenteEstadoEnum { return $this->estado; }
 
     /**

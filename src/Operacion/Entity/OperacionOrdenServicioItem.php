@@ -100,8 +100,12 @@ class OperacionOrdenServicioItem
      * No se leen en vivo del catálogo, y es la razón por la que existen estas dos columnas: el
      * documento se construye desde los datos congelados del ítem, así que un punto vivo haría que
      * el proveedor abriera el enlace público la semana siguiente y viera un sitio **distinto del
-     * que se le mandó**. Un documento emitido dice lo que decía cuando se emitió; si el catálogo
-     * cambia, se reemite y se avisa — que es exactamente lo que ya hace el importe.
+     * que se le mandó**. Un documento emitido dice lo que decía cuando se emitió.
+     *
+     * ⚠️ **La vigilancia es PARCIAL, y hay que saberlo.** `OperacionOrdenServicio::getDivergencias()`
+     * avisa si el operador corrige el punto después de emitir, pero **no** si cambia el segmento
+     * en el catálogo o el hotel en el expediente: volver a derivarlo necesita consultas y eso se
+     * pinta por fila. El hueco está en docs/Operacion.md §12.
      *
      * Nulos cuando el servicio no recoge a nadie (un ticket, una comida) o cuando al emitir aún
      * no se sabía. Nulo no es «en el hotel»: es que no consta, y así sale en el documento.

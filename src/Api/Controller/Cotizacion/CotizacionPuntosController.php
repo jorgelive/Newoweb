@@ -12,6 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * De dónde a dónde va cada servicio de una cotización.
@@ -36,7 +37,12 @@ class CotizacionPuntosController extends AbstractController
     #[Route('/{cotizacionId}', name: '_get', methods: ['GET'])]
     public function puntos(string $cotizacionId): JsonResponse
     {
-        $cotizacion = $this->em->find(Cotizacion::class, $cotizacionId);
+        // Un id que no es UUID revienta en la conversión de DBAL —500, no 404—, así que se
+        // comprueba antes. Un 500 por una URL mal escrita ensucia el log de errores y esconde
+        // los fallos de verdad.
+        $cotizacion = Uuid::isValid($cotizacionId)
+            ? $this->em->find(Cotizacion::class, $cotizacionId)
+            : null;
 
         if ($cotizacion === null) {
             return $this->json(['error' => 'Cotización no encontrada'], 404);
