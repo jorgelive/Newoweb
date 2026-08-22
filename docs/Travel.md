@@ -1287,6 +1287,33 @@ Las dos reglas que salen de ahí:
    alguno no cambió, en vez de dar por hecho que la traducción corrió. Una llamada de red que
    falla deja el campo sólo en español y no lanza nada.
 
+### 🐛 El «override» que en realidad aplastaba
+
+La regla del abarcador —inicio del primer segmento del día, fin del último— estaba escrita **sin
+mirar si esos segmentos declaran algo**:
+
+```php
+// ✗ borra información
+$segmentoInicio = $extremos[0] ?? $propio;
+
+// ✓ el día MANDA si declara; si no, cae al segmento del componente
+$segmentoInicio = $extremos[0]?->getInicioModo()->esDeclarado() === true ? $extremos[0] : $propio;
+```
+
+Con la versión vieja, un pool colgado de un segmento que **sí** dice dónde recoge, dentro de un día
+cuyo primer segmento no dice nada, se quedaba **sin punto de recojo** — borrando un dato que estaba
+escrito, y sin ningún error.
+
+⚠️ **No se notaba, y ése es el problema.** Hoy los 17 abarcadores cuelgan del primer segmento de su
+día, así que los dos caminos coinciden y la salida es idéntica. Deja de serlo en cuanto se cuelgue
+un abarcador de un segmento intermedio — que es algo que el modelo permite y que se preguntó
+explícitamente.
+
+Corregido en los **dos** resolvedores, `TravelPuntosDelServicio` y `CotizacionPuntosDelServicio`, y
+cubierto por `CotizacionPuntosDelServicioTest`, que prueba `paraServicio()` con el mapa de maestros
+inyectado a mano: **sin base de datos y en centésimas**, porque ese método es público justamente
+para eso.
+
 ### 🐛 La trampa que casi lo deja mudo: `setParameter()` con un UUID
 
 ```php

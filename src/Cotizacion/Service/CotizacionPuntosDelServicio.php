@@ -191,8 +191,23 @@ final readonly class CotizacionPuntosDelServicio
             $delDia = $porDia[$propio->getDia()] ?? [];
 
             if ($delDia !== []) {
-                $inicioSeg = $delDia[0];
-                $finSeg = $delDia[count($delDia) - 1];
+                        // ⚠️ **Es un OVERRIDE, no un aplastamiento.** El extremo del día manda **si declara
+                // algo**; si no, se cae al segmento del que cuelga el componente.
+                //
+                // La primera versión cogía el primero y el último del día sin mirar, y eso borraba
+                // información: un pool colgado de un segmento que SÍ dice dónde recoge, dentro de un día
+                // cuyo primer segmento no dice nada, se quedaba sin punto de recojo. Hoy no se nota
+                // porque todos los abarcadores cuelgan del primer segmento de su día —y entonces los dos
+                // caminos coinciden—, pero deja de ser cierto en cuanto se cuelgue uno de un segmento
+                // intermedio, que es justo lo que permite el modelo.
+                //
+                // En este orden y no al revés: si el día declara un extremo, ése es el bueno — es lo que
+                // hace que «Retorno al centro de Cusco» mande sobre el segmento de recojo.
+                $primero = $delDia[0];
+                $ultimo = $delDia[count($delDia) - 1];
+
+                $inicioSeg = $this->modo($primero, $maestros, lado: 'inicio')->esDeclarado() ? $primero : $propio;
+                $finSeg = $this->modo($ultimo, $maestros, lado: 'fin')->esDeclarado() ? $ultimo : $propio;
             }
         }
 
