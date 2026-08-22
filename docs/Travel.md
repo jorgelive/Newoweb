@@ -896,10 +896,85 @@ sólo se ofrecen las genéricas —las que no declaran `contextType`—.
 - **Ni resolver de datos**, así que no hay variables de plantilla propias. Se le escribe texto
   libre.
 
+## 11 ter. El etiquetado de lugares (21/08/2026)
+
+`app:travel:etiquetar-lugares`.
+
+### El vocabulario existía y no se usaba
+
+7 lugares dados de alta y **224 de 225 componentes sin una sola etiqueta**. Un filtro que nadie
+llenó no filtra: el cuadro de tráfico lo ofrecía y devolvía todo.
+
+### ⚠️ Las etiquetas SE ACUMULAN hacia arriba
+
+Es la decisión de producto, y es lo que hace útil el filtro:
+
+```
+Valle Sagrado  ─┐
+Machu Picchu   ─┼─► también CUSCO      (se despachan desde Cusco)
+Valle Sur      ─┤
+Vinicunca, Humantay, Palcoyo… ─┘
+
+Ica (y PARACAS) ─┬─► también LIMA      (se venden y salen desde Lima)
+Nasca           ─┘
+```
+
+Filtrar por «Cusco» trae también el Valle y Machu Picchu —lo que espera quien opera desde
+Cusco— **sin inventar una jerarquía en el modelo**. El vocabulario sigue plano y multivaluado,
+como lo describe `TravelLugar`: quien acumula es la tabla de reglas del comando, no una relación
+padre-hijo. Es coherente con el rechazo a la jerarquía que ya estaba documentado («Valle Sagrado
+dentro de Cusco» sería falso).
+
+⚠️ **Paracas NO tiene etiqueta propia**: sus 16 componentes van a Ica, y de ahí a Lima. Se opera
+dentro de ese circuito. Lo mismo Quillabamba y Corredor Sur, que caen en Cusco y Puno.
+
+### Lugares nuevos
+
+`Riviera Maya` (9), `Valle Sur` (7) y `Nasca` (6). El primero tapa un hueco de categoría: **no
+había ningún lugar fuera de Perú** y hay producto de Cancún, Playa del Carmen, Chichén y Xcaret.
+
+### Resultado
+
+| Lugar | Componentes |
+|---|---|
+| Cusco | 129 |
+| Lima | 41 |
+| Valle Sagrado | 40 |
+| Ica | 28 |
+| Machu Picchu | 23 |
+| Puno | 18 |
+| Arequipa | 10 |
+| Riviera Maya | 9 |
+| Valle Sur | 7 |
+| Nasca | 6 |
+
+De 224 sin etiqueta a **24**, y esos 24 en su mayoría **no deben llevarla**: «Box Lunch»,
+«Walking Sticks», «Impuestos aeroportuarios», «Ticket aereo», «Movilidad a disposición» son
+insumos transversales que se usan en cualquier destino.
+
+### El comando: idempotente y aditivo
+
+- Sólo **añade** lo que falte. Un componente etiquetado a mano conserva lo suyo y gana lo que le
+  toque; correrlo dos veces no cambia nada la segunda. Por eso se puede relanzar cuando entren
+  componentes nuevos, que es justo cuando hace falta.
+- ⚠️ **No quita etiquetas.** Si una regla cambia y deja de aplicar, la vieja se queda: quitarla
+  sola borraría el trabajo manual de alguien sin preguntar.
+- `--dry-run` enseña qué haría; `--crear-lugares` da de alta los que falten. Sin ese segundo
+  flag **se niega** si falta alguno: un comando de etiquetado que además crea vocabulario a la
+  primera es el que acaba llenando el maestro de etiquetas con faltas de ortografía, y el
+  `unique` del nombre las convertiría en filas distintas para siempre.
+
+### ⚠️ Lo que el etiquetado por nombre NO puede arreglar
+
+**«Bus Bimodal a Ollantatyambo» tiene un typo** —le sobra una `t`— y por eso ninguna regla lo
+alcanza. Es el tipo de fila que se queda fuera para siempre sin que nadie lo note. Corregir el
+nombre y relanzar el comando lo resuelve.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
+| **Cambiar qué lugar le toca a un componente** | `src/Travel/Command/TravelEtiquetarLugaresCommand.php` | `REGLAS` — patrón y a qué otros lugares arrastra (§11 ter) |
 | **Escribirle a una organización proveedora** | `src/Travel/Service/Message/TravelProveedorDeContexto.php` | `para()` — el hilo lo abre `POST /message/conversations/abrir` |
 | Cambiar qué datos de contacto siembra el hilo de un proveedor | `src/Travel/Service/Message/TravelOrganizacionMessageContext.php` | `getIdentificadores()` |
 | Que un componente aparezca sólo en cierta plantilla o día | `src/Travel/Entity/TravelSegmentoComponente.php` | `$itinerarioContexto`, `$dia` |
