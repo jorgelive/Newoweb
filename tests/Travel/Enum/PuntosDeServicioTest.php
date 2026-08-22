@@ -1,0 +1,113 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Travel\Enum;
+
+use App\Travel\Enum\ComponenteTipoEnum as T;
+use App\Travel\Enum\PuntosDeServicio as P;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Dónde empieza y dónde termina cada tipo de servicio.
+ *
+ * De esta clasificación sale lo que se le dice al proveedor en la Orden de Servicio —«dónde
+ * recojo, dónde dejo»—, así que un tipo mal puesto no da error: manda una orden con un punto de
+ * recojo que nadie va a atender, o deja sin él a quien lo necesita.
+ */
+final class PuntosDeServicioTest extends TestCase
+{
+    #[Test]
+    public function las_excursiones_LLEVAN_punto_de_recojo(): void
+    {
+        // ⚠️ Es de lo primero que se coordina con el proveedor: el pool pasa por el hotel. Meter
+        // las excursiones en «no aplica» dejaría sin dato justo a las que más lo necesitan.
+        foreach ([T::EXCURSION_POOL, T::EXCURSION_PRIVADA] as $tipo) {
+            self::assertSame(P::INICIO_Y_FIN, $tipo->puntosDeServicio(), $tipo->value);
+            self::assertTrue($tipo->puntosDeServicio()->programaInicio());
+            self::assertTrue($tipo->puntosDeServicio()->programaFin());
+        }
+    }
+
+    #[Test]
+    public function lo_que_traslada_tiene_los_dos_puntos(): void
+    {
+        foreach ([T::TRANSPORTE, T::TREN, T::VUELO] as $tipo) {
+            self::assertSame(P::INICIO_Y_FIN, $tipo->puntosDeServicio(), $tipo->value);
+        }
+    }
+
+    #[Test]
+    public function el_guiado_tiene_donde_presentarse_pero_no_destino(): void
+    {
+        // El guía queda con el pasajero y ahí acaba su parte; devolverlo es del transporte.
+        // Ponerle destino sería inventarle una obligación que nadie pactó.
+        $puntos = T::GUIADO->puntosDeServicio();
+
+        self::assertSame(P::SOLO_INICIO, $puntos);
+        self::assertTrue($puntos->programaInicio());
+        self::assertFalse($puntos->programaFin());
+    }
+
+    #[Test]
+    public function un_ticket_o_una_comida_no_recogen_a_nadie(): void
+    {
+        // No es «todavía no se sabe»: es que NO APLICA. Dejarlo pendiente invita a rellenarlo.
+        foreach ([T::TICKET_HORARIO_FIJO, T::TICKET_HORARIO_VAR,
+                  T::ALIMENTACION_HORARIO_FIJO, T::ALIMENTACION_HORARIO_VAR,
+                  T::EXTRAS, T::PERSONAL_EXTRA] as $tipo) {
+            self::assertSame(P::NINGUNO, $tipo->puntosDeServicio(), $tipo->value);
+            self::assertFalse($tipo->puntosDeServicio()->programaInicio(), $tipo->value);
+        }
+    }
+
+    #[Test]
+    public function el_alojamiento_no_traslada_pero_es_el_ANCLA(): void
+    {
+        // Las dos caras: no recoge a nadie, y a la vez es lo que dice dónde está el pasajero
+        // cada noche — de donde sale el punto de recojo de todo lo demás.
+        self::assertSame(P::NINGUNO, T::ALOJAMIENTO->puntosDeServicio());
+        self::assertTrue(T::ALOJAMIENTO->esAnclaDeUbicacion());
+    }
+
+    #[Test]
+    public function solo_el_alojamiento_es_ancla(): void
+    {
+        foreach (T::cases() as $tipo) {
+            if ($tipo !== T::ALOJAMIENTO) {
+                self::assertFalse($tipo->esAnclaDeUbicacion(), $tipo->value);
+            }
+        }
+    }
+
+    #[Test]
+    public function saltan_de_ciudad_el_vuelo_y_el_tren_y_nadie_mas(): void
+    {
+        foreach (T::cases() as $tipo) {
+            self::assertSame(
+                $tipo === T::VUELO || $tipo === T::TREN,
+                $tipo->esSalto(),
+                $tipo->value
+            );
+        }
+    }
+
+    #[Test]
+    public function todo_tipo_tiene_respuesta(): void
+    {
+        // Un `default` en el `match` significa que un caso NUEVO cae en «ninguno» sin avisar.
+        // Esto no lo impide —no puede— pero deja constancia de cuántos hay hoy en cada grupo,
+        // así que añadir uno y no clasificarlo cambia este número y salta.
+        $cuenta = [P::INICIO_Y_FIN->value => 0, P::SOLO_INICIO->value => 0, P::NINGUNO->value => 0];
+
+        foreach (T::cases() as $tipo) {
+            $cuenta[$tipo->puntosDeServicio()->value]++;
+        }
+
+        self::assertSame(
+            [P::INICIO_Y_FIN->value => 5, P::SOLO_INICIO->value => 1, P::NINGUNO->value => 7],
+            $cuenta
+        );
+    }
+}

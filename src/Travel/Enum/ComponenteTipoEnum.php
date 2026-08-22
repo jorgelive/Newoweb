@@ -26,6 +26,69 @@ enum ComponenteTipoEnum: string
     case TREN = 'tren';
 
     /**
+     * ¿Dónde empieza y dónde termina este servicio? — {@see PuntosDeServicio}
+     *
+     * Es lo primero que pregunta el proveedor al recibir la orden: **dónde recojo y dónde
+     * dejo**. La respuesta no depende del servicio concreto sino de su NATURALEZA, y por eso
+     * vive aquí y no en cada componente: un ticket nunca recogerá a nadie, por mucho que se le
+     * rellene el campo.
+     *
+     * ```
+     * INICIO_Y_FIN   transporte · tren · vuelo · pool · privada
+     * SOLO_INICIO    guiado — se presenta en un punto y ahí acaba su parte
+     * NINGUNO        tickets · comidas · extras · personal · alojamiento
+     * ```
+     *
+     * ⚠️ **Las excursiones llevan punto de recojo, y no es un detalle.** Un `pool` recoge al
+     * pasajero en su hotel y lo devuelve: es de lo primero que se coordina, y meterlas en el
+     * saco de «no aplica» dejaría sin dato justo a las que más lo necesitan.
+     *
+     * ⚠️ **`ALOJAMIENTO` devuelve `NINGUNO` y aun así es la pieza clave.** No recoge a nadie
+     * —es un sitio, no un traslado— pero es lo que dice DÓNDE ESTÁ el pasajero cada noche, y de
+     * ahí se deducen los puntos de todo lo demás. Para eso está {@see self::esAnclaDeUbicacion()},
+     * que es una pregunta distinta y merecía su propio método en vez de un `=== 'alojamiento'`
+     * repartido por ahí.
+     *
+     * ⚠️ **`VUELO` y `TREN` los tienen, y además PARTEN EL DÍA.** Lo que ocurre antes termina en
+     * su punto de salida y lo posterior empieza en el de llegada — {@see self::esSalto()}.
+     */
+    public function puntosDeServicio(): PuntosDeServicio
+    {
+        return match ($this) {
+            self::TRANSPORTE, self::TREN, self::VUELO,
+            self::EXCURSION_POOL, self::EXCURSION_PRIVADA => PuntosDeServicio::INICIO_Y_FIN,
+
+            self::GUIADO => PuntosDeServicio::SOLO_INICIO,
+
+            default => PuntosDeServicio::NINGUNO,
+        };
+    }
+
+    /**
+     * ¿Este servicio dice dónde ESTÁ el pasajero, en vez de moverlo?
+     *
+     * Sólo el alojamiento. Encadenando sus noches se sabe dónde duerme cada día, y de ahí sale
+     * el punto de recojo de todo lo demás: se recoge donde durmió y se deja donde dormirá.
+     */
+    public function esAnclaDeUbicacion(): bool
+    {
+        return $this === self::ALOJAMIENTO;
+    }
+
+    /**
+     * ¿Cambia de ciudad, partiendo el día en dos?
+     *
+     * Un vuelo o un tren dividen la jornada: lo que ocurre antes termina en su punto de salida
+     * —el aeropuerto, la estación— y lo posterior empieza en el de llegada. Sin esto, un
+     * traslado de la mañana se leería como si terminara en el hotel de destino, que está en otra
+     * ciudad.
+     */
+    public function esSalto(): bool
+    {
+        return $this === self::VUELO || $this === self::TREN;
+    }
+
+    /**
      * Define si la UI (Vue) debe exigir y mostrar un selector de hora específica (H:i).
      * Si retorna false, el backend debe forzar la hora a '00:00:00' al persistir.
      *

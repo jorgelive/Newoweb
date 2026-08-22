@@ -989,10 +989,57 @@ pendiente: ponerles una sería afirmar que sólo valen ahí.
 alcanza. Es el tipo de fila que se queda fuera para siempre sin que nadie lo note. Corregir el
 nombre y relanzar el comando lo resuelve.
 
+## 11 quater. Dónde empieza y dónde termina un servicio (22/08/2026)
+
+`ComponenteTipoEnum::puntosDeServicio()` → {@see PuntosDeServicio}.
+
+**Es lo primero que pregunta un proveedor al recibir la Orden de Servicio: dónde recojo y dónde
+dejo.** Y la respuesta no depende del servicio concreto sino de su **naturaleza**, así que vive
+en el tipo y no en cada componente: un ticket no recogerá a nadie por mucho que se le rellene el
+campo.
+
+| | Tipos | Nune | catálogo |
+|---|---|---|---|
+| `INICIO_Y_FIN` | transporte · tren · vuelo · **pool · privada** | 17 | 147 |
+| `SOLO_INICIO` | guiado | 2 | 9 |
+| `NINGUNO` | tickets · comidas · extras · personal · alojamiento | 23 | 69 |
+
+⚠️ **Las excursiones llevan punto de recojo, y no es un detalle.** Un `pool` pasa por el hotel a
+buscar al pasajero: es de lo primero que se coordina. En el catálogo son **47 componentes**, el
+segundo tipo más numeroso — meterlas en «no aplica» dejaría sin dato justo a las que más lo
+necesitan.
+
+⚠️ **`GUIADO` tiene dónde presentarse pero no destino.** El guía queda con el pasajero y ahí acaba
+su parte; devolverlo es del transporte. Ponerle destino sería inventarle una obligación que nadie
+pactó.
+
+⚠️ **`NINGUNO` no significa «todavía no se sabe»: significa que NO APLICA.** Dejarlo como
+pendiente invita a rellenarlo, y a que el proveedor lea un punto de recojo que nadie va a
+atender.
+
+### Un enum de tres casos, no dos booleanos
+
+Porque «tiene fin pero no inicio» **no existe**, y con dos `bool` sí se puede escribir. Los
+estados posibles son tres y el enum los cierra: quien reciba el valor no puede construir uno
+imposible. Los ayudantes `programaInicio()` / `programaFin()` son la lectura cómoda.
+
+### Las otras dos preguntas del tipo
+
+Son distintas y tienen su método, en vez de un `=== 'alojamiento'` repartido por ahí:
+
+- **`esAnclaDeUbicacion()`** — sólo `ALOJAMIENTO`. No traslada a nadie, pero es lo que dice
+  **dónde está** el pasajero cada noche. Encadenando sus noches (`fecha` + `cantidad`) sale el
+  punto de recojo de todo lo demás: *se recoge donde durmió y se deja donde dormirá*. En el
+  itinerario de Nune la cadena cubre las 15 noches **sin un hueco**.
+- **`esSalto()`** — `VUELO` y `TREN`. Parten el día en dos: lo anterior termina en su punto de
+  salida y lo posterior empieza en el de llegada. Sin esto, un traslado de la mañana se leería
+  como si terminara en el hotel de destino, que está en otra ciudad.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
+| **Cambiar si un tipo lleva punto de recojo/entrega** | `src/Travel/Enum/ComponenteTipoEnum.php` | `puntosDeServicio()` (§11 quater) |
 | **Cambiar qué lugar le toca a un componente** | `src/Travel/Command/TravelEtiquetarLugaresCommand.php` | `REGLAS` — patrón y a qué otros lugares arrastra (§11 ter) |
 | **Escribirle a una organización proveedora** | `src/Travel/Service/Message/TravelProveedorDeContexto.php` | `para()` — el hilo lo abre `POST /message/conversations/abrir` |
 | Cambiar qué datos de contacto siembra el hilo de un proveedor | `src/Travel/Service/Message/TravelOrganizacionMessageContext.php` | `getIdentificadores()` |
