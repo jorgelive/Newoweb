@@ -2130,6 +2130,28 @@ es una orden que no se emite.
 ⚠️ **Sólo para `tipos`.** Es un enum del código y cambia una vez al año. Los lugares salen de la
 base y se crean a menudo: reiniciar su filtro en cada alta sería peor que el problema.
 
+### 🐛 Las horas de recojo que copió una migración (limpiado 22/08/2026)
+
+`Version20260817220000` partió `hora_recojo_real` en dos: copió su valor a `hora_componente`
+—correcto, de ahí salía— y **dejó el original intacto** en lo que después pasó a llamarse
+`hora_recojo`.
+
+Quedaron 17 filas con las dos horas idénticas y **ninguna con horas distintas**. Cero en diecisiete
+no es casualidad: nadie había pactado nunca una hora de recojo diferente.
+
+Y el campo significa «el operador fijó esta hora», así que mentía en dos sitios:
+
+- la fila muestra «vend. HH:MM» sólo cuando difieren — con la copia puesta, nunca;
+- **al emitir, `horaRecojoConfirmada` se rellena con ésta**, y nula significa «el proveedor aún no
+  confirmó». Esas filas salían a la orden como si hubiera confirmado una hora que nadie le preguntó.
+
+Se limpia con `app:operacion:limpiar-hora-recojo-copiada`, que sólo toca lo **idéntico**. La fila
+no cambia de aspecto: sigue enseñando la misma hora porque ya cae al `fallback`. Lo único que
+cambia es que deja de afirmar algo que no ocurrió.
+
+⚠️ Si alguien pactó una hora que casualmente coincidía con la vendida, esto se la lleva. Es la
+única pérdida posible y se asume a sabiendas: ese dato ya era indistinguible de la copia.
+
 ### Agregar servicios a una orden que se está componiendo (22/08/2026)
 
 `POST /platform/ops/orden-servicios/{id}/agregar` → `AgregarAOrdenProcessor`.

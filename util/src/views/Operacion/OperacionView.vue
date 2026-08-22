@@ -68,9 +68,25 @@ const desde = ref<string>(`${hoyIso()}T00:00`);
 const hasta = ref<string>(`${sumarDias(hoyIso(), 6)}T00:00`);
 const tiposSeleccionados = ref<string[]>([]);
 const lugaresSeleccionados = ref<string[]>([]);
+
+/** Ancho de teléfono. Se lee una vez al arrancar: no se reacciona al giro, no hace falta. */
+const esMovil = (): boolean => typeof window !== 'undefined' && window.innerWidth < 768;
 const filtroEstadoReservaProveedor = ref<string>('');
 const filtroEstadoOperacion = ref<string>('');
 const mostrarFiltrosAvanzados = ref<boolean>(false);
+
+/**
+ * Los chips de lugar, plegables — **cerrados por defecto en móvil**.
+ *
+ * Son trece y ocupan cuatro líneas: en una pantalla de teléfono se comen media vista antes de
+ * llegar al primer servicio, que es lo que se viene a mirar. En escritorio caben en una línea y no
+ * estorban, así que ahí siguen abiertos.
+ *
+ * ⚠️ Si HAY lugares filtrados se abre igual, esté como esté el interruptor. Un filtro activo
+ * escondido es la forma de leer un cuadro recortado creyéndolo entero — el mismo fallo que ya
+ * costó las filas de tipo `contacto`.
+ */
+const mostrarLugares = ref<boolean>(!esMovil());
 
 /**
  * Si la fila ya está en una Orden de Servicio. `''` = todas.
@@ -1684,10 +1700,25 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                         este filtro existe para eliminar.
                     -->
                     <div v-if="operacionStore.lugares.length" class="mt-2 flex flex-wrap items-center gap-1.5">
-                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 mr-1">
-                            <i class="fas fa-map-marker-alt mr-1"></i>Lugar
-                        </span>
+                        <!-- El rótulo ES el interruptor: un botón aparte para plegar cuatro
+                             líneas de chips sería un control más que explicar. El contador dice
+                             cuántos hay activos cuando está cerrado, que es lo único que no se
+                             puede ver de un vistazo. -->
+                        <button
+                            @click="mostrarLugares = !mostrarLugares"
+                            class="text-[9px] font-black uppercase tracking-widest mr-1 flex items-center gap-1 transition-colors"
+                            :class="lugaresSeleccionados.length ? 'text-[#376875]' : 'text-slate-400 hover:text-slate-600'"
+                            :title="mostrarLugares ? 'Ocultar lugares' : 'Mostrar lugares'"
+                        >
+                            <i class="fas fa-map-marker-alt"></i>
+                            Lugar
+                            <span v-if="lugaresSeleccionados.length" class="bg-[#376875] text-white rounded-full px-1.5">
+                                {{ lugaresSeleccionados.length }}
+                            </span>
+                            <i class="fas text-[8px]" :class="mostrarLugares ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                        </button>
 
+                        <template v-if="mostrarLugares || lugaresSeleccionados.length">
                         <button
                             v-for="l in operacionStore.lugares"
                             :key="l.id"
@@ -1714,6 +1745,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                         >
                             <i class="fas fa-circle-question mr-1"></i>Sin etiqueta
                         </button>
+                        </template>
                     </div>
 
                     <!-- Fila 2: filtros avanzados -->
