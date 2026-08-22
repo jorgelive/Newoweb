@@ -26,6 +26,24 @@ enum ComponenteTipoEnum: string
     case TREN = 'tren';
 
     /**
+     * El encuentro con el pasajero: alguien lo espera, a una hora, en un sitio.
+     *
+     * ⚠️ **No es el guiado, y confundirlos cuesta caro.** El guiado de Machu Picchu ocurre ARRIBA,
+     * en el santuario; el contacto ocurre en la estación o en el hotel, horas antes y a cuatro
+     * horas de distancia. Metidos en el mismo componente, el «dónde recojo» de la orden diría uno
+     * de los dos y el proveedor iría al otro — con una orden que se lee perfectamente bien.
+     *
+     * Existe como componente y no como campo del guiado porque **es un servicio que se pide**:
+     * alguien tiene que estar ahí con el cartel. Y por eso va con tarifa, aunque sea de 0: un
+     * componente sin tarifa es «sólo referencia» y NO entra en una Orden de Servicio, así que se
+     * quedaría visible para operaciones e invisible para quien tiene que ir.
+     *
+     * Que se quite del itinerario significa algo concreto y querido: el pasajero sube por su
+     * cuenta y el guía lo espera arriba.
+     */
+    case CONTACTO = 'contacto';
+
+    /**
      * ¿Dónde empieza y dónde termina este servicio? — {@see PuntosDeServicio}
      *
      * Es lo primero que pregunta el proveedor al recibir la orden: **dónde recojo y dónde
@@ -35,7 +53,7 @@ enum ComponenteTipoEnum: string
      *
      * ```
      * INICIO_Y_FIN   transporte · tren · vuelo · pool · privada
-     * SOLO_INICIO    guiado — se presenta en un punto y ahí acaba su parte
+     * SOLO_INICIO    guiado · contacto — se presentan en un punto y ahí acaba su parte
      * NINGUNO        tickets · comidas · extras · personal · alojamiento
      * ```
      *
@@ -63,7 +81,7 @@ enum ComponenteTipoEnum: string
             self::TRANSPORTE, self::TREN, self::VUELO,
             self::EXCURSION_POOL, self::EXCURSION_PRIVADA => PuntosDeServicio::INICIO_Y_FIN,
 
-            self::GUIADO => PuntosDeServicio::SOLO_INICIO,
+            self::GUIADO, self::CONTACTO => PuntosDeServicio::SOLO_INICIO,
 
             default => PuntosDeServicio::NINGUNO,
         };
@@ -127,7 +145,8 @@ enum ComponenteTipoEnum: string
             self::ALIMENTACION_HORARIO_FIJO,
             self::EXCURSION_POOL,
             self::EXCURSION_PRIVADA,
-            self::GUIADO => false,
+            self::GUIADO,
+            self::CONTACTO => false,
 
             self::ALOJAMIENTO,
             self::TICKET_HORARIO_VAR,
@@ -146,6 +165,9 @@ enum ComponenteTipoEnum: string
     public function prioridad(): int
     {
         return match($this) {
+            // El contacto va PRIMERO: es lo que ocurre antes que nada ese día, y en el manifiesto
+            // del proveedor tiene que leerse antes que el servicio al que da paso.
+            self::CONTACTO => 0,
             self::GUIADO, self::TRANSPORTE, self::EXCURSION_POOL, self::EXCURSION_PRIVADA, self::TREN => 1,
             self::ALOJAMIENTO, self::VUELO => 2,
             self::ALIMENTACION_HORARIO_FIJO,  self::ALIMENTACION_HORARIO_VAR=> 3,

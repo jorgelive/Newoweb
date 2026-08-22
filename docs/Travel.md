@@ -1326,6 +1326,58 @@ cubierto por `CotizacionPuntosDelServicioTest`, que prueba `paraServicio()` con 
 inyectado a mano: **sin base de datos y en centésimas**, porque ese método es público justamente
 para eso.
 
+### El contacto con el pasajero es un COMPONENTE, no un campo del guiado (22/08/2026)
+
+El guiado de Machu Picchu ocurre **arriba**, en el santuario. El encuentro con el pasajero ocurre
+en la estación o en su hotel, **horas antes y a cuatro horas de distancia**. Mientras fueron la
+misma cosa, el «dónde recojo» de la orden decía uno de los dos y el proveedor iba al otro — con
+una orden que se lee perfectamente bien.
+
+⚠️ **Se descartó estirar el `inicio` del guiado** para que significara «dónde se hace contacto».
+Un campo que quiere decir dos cosas según quién lo lea se rompe la primera vez que alguien lee la
+que no era. Y de paso mató una heurística que estaba a punto de aplicarse: encadenar el inicio de
+un segmento con el fin del anterior habría rellenado esos guiados con «Santuario de Machu Picchu»,
+que es donde se guía y **no** donde se contacta.
+
+#### Cómo queda modelado
+
+```
+ComponenteTipoEnum::CONTACTO        SOLO_INICIO · prioridad 0 (encabeza el manifiesto)
+
+componente  «Contacto con el cliente»            tipo contacto · tarifa Base 0.00 USD
+segmento    «Contacto en la estación de Machu Picchu»   inicio = fijo → Estación de Machu Picchu
+segmento    «Contacto en el hotel»                      inicio = alojamiento
+```
+
+**Dos segmentos, no un campo con opciones**, y la plantilla elige cuál inyecta — el mismo
+mecanismo con el que la variante VIP del Valle Sagrado cambia su segmento final. El segmento dice
+DÓNDE y el componente dice QUÉ.
+
+Y **quitarlo del itinerario significa algo concreto y querido**: el pasajero sube por su cuenta y
+el guía lo espera arriba.
+
+⚠️ **La tarifa de 0 no es decorativa: sin ella el contacto nunca llega al proveedor.** Un
+componente sin tarifa es «sólo referencia» —`OperacionServicio::isSoloReferencia()`— y **no puede
+entrar en una Orden de Servicio**. Se quedaría visible en La Biblia e invisible para quien tiene
+que ir a la estación con el cartel. Hay 217 tarifas de 0 en el catálogo; no es un caso forzado.
+
+#### El reparto, y de dónde sale
+
+Lo dictan los datos: donde el grupo **llega en tren esa mañana**, el contacto es en la estación;
+donde **durmió en Machu Picchu Pueblo**, en su hotel.
+
+| Plantilla | Día · orden | Segmento |
+|---|---|---|
+| Full Day MAPI: CUZ OLLA MAPI OLLA CUZ (bimodal) | 1 · 3 | Contacto en la estación |
+| Two Day MAPI: OLLA MAPI OLLA CUZ (bimodal) | 2 · 1 | Contacto en el hotel |
+| Two Day Camino inca | 2 · 1 | Contacto en el hotel |
+
+Lo monta `app:travel:crear-contacto-machupicchu`, idempotente y con `--dry-run`.
+
+⚠️ **Al insertar, los segmentos de detrás se corren ANTES de meter el nuevo.** Al revés, dos filas
+compartirían `orden` durante el mismo flush y el orden de la plantilla quedaría a merced de cómo
+desempate la base.
+
 ### 🐛 La trampa que casi lo deja mudo: `setParameter()` con un UUID
 
 ```php
@@ -1497,3 +1549,4 @@ contenedor»—; lo que cambia es que un lado tiene contenedor a ese nivel y el 
 | Dar servicio principal a una plantilla | `src/Travel/Command/TravelPromoverServicioPrincipalCommand.php` | `PROMOCIONES` — **añade fila, no modifica la global** |
 | Montar la plantilla privada del Valle que faltaba | `src/Travel/Command/TravelCrearValleSagradoPrivadoCommand.php` | clona la privada existente y cambia el recojo; **desambigua por componente, no por nombre** |
 | Renombrar una plantilla con título traducido | `src/Travel/Command/TravelRenombrarValleVipPrivadaCommand.php` | **`setSobreescribirTraduccion(true)` antes de tocar el título**, y verificar después |
+| Añadir el contacto con el pasajero a una plantilla | `src/Travel/Command/TravelCrearContactoMachupicchuCommand.php` | `PLANTILLAS` — **la tarifa de 0 es lo que lo hace pedible** |

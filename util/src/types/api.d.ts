@@ -2924,7 +2924,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -2970,7 +2970,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -2994,7 +2994,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3016,7 +3016,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3038,7 +3038,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3058,7 +3058,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3104,7 +3104,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3128,7 +3128,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3150,7 +3150,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3170,7 +3170,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3216,7 +3216,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3240,7 +3240,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3262,7 +3262,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3282,7 +3282,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3328,7 +3328,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3352,7 +3352,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3374,7 +3374,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */

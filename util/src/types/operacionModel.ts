@@ -121,6 +121,10 @@ export interface TipoComponenteConfig {
 }
 
 export const TIPO_COMPONENTE_CONFIG: Record<string, TipoComponenteConfig> = {
+    // El contacto va primero, como en `ComponenteTipoEnum::prioridad()`: es lo que ocurre antes
+    // que nada ese día. ⚠️ No es el guiado — el guiado de Machu Picchu ocurre arriba y el contacto
+    // en la estación o el hotel, a cuatro horas. Icono distinto a propósito.
+    contacto:               { label: 'Contacto',     icon: 'fas fa-handshake-angle',   text: 'text-emerald-600' },
     transporte:             { label: 'Transporte',   icon: 'fas fa-van-shuttle',       text: 'text-sky-600' },
     guiado:                 { label: 'Guiado',       icon: 'fas fa-person-chalkboard', text: 'text-indigo-600' },
     pool:                   { label: 'Pool',         icon: 'fas fa-people-group',      text: 'text-teal-600' },

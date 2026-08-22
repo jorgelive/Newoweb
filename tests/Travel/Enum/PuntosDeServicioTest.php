@@ -106,7 +106,10 @@ final class PuntosDeServicioTest extends TestCase
         }
 
         self::assertSame(
-            [P::INICIO_Y_FIN->value => 5, P::SOLO_INICIO->value => 1, P::NINGUNO->value => 7],
+            // 22/08/2026: SOLO_INICIO pasa de 1 a 2 al entrar CONTACTO. El número se sube
+            // reconociendo el caso, no para que el test calle: si vuelve a saltar es porque hay
+            // otro tipo nuevo sin clasificar, y ése es justo el aviso que se quiere.
+            [P::INICIO_Y_FIN->value => 5, P::SOLO_INICIO->value => 2, P::NINGUNO->value => 7],
             $cuenta
         );
     }
@@ -126,5 +129,25 @@ final class PuntosDeServicioTest extends TestCase
         self::assertFalse(T::TRANSPORTE->esCompartido());
         self::assertFalse(T::EXCURSION_PRIVADA->esCompartido());
         self::assertFalse(T::GUIADO->esCompartido());
+    }
+
+    #[Test]
+    public function el_CONTACTO_tiene_punto_de_encuentro_pero_no_de_entrega(): void
+    {
+        // ⚠️ No es el guiado. El guiado de Machu Picchu ocurre ARRIBA; el contacto, en la estación
+        // o en el hotel, horas antes y a cuatro horas de distancia. Si el contacto no tuviera
+        // punto propio, el «dónde recojo» de la orden diría dónde se guía — y el proveedor iría
+        // al sitio equivocado con una orden que se lee perfectamente bien.
+        self::assertSame(P::SOLO_INICIO, T::CONTACTO->puntosDeServicio());
+        self::assertTrue(T::CONTACTO->puntosDeServicio()->programaInicio());
+        self::assertFalse(T::CONTACTO->puntosDeServicio()->programaFin());
+    }
+
+    #[Test]
+    public function el_contacto_encabeza_el_manifiesto(): void
+    {
+        // Es lo que ocurre antes que nada ese día: tiene que leerse antes que el servicio al que
+        // da paso, o el proveedor lo encuentra debajo del guiado que viene después.
+        self::assertLessThan(T::GUIADO->prioridad(), T::CONTACTO->prioridad());
     }
 }
