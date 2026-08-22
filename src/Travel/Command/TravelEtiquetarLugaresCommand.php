@@ -71,8 +71,9 @@ final class TravelEtiquetarLugaresCommand extends Command
             // Los últimos son productos de la casa cuyo nombre no dice dónde ocurren —«Super
             // Valle», «Combinada», «Escénico», «By Car», «ruta del misterio»—. Se despachan
             // desde Cusco, y sin ellos se quedaban fuera del filtro para siempre.
-            'patron' => '/(cusco|sacsayhuaman|koricancha|catedral|san pedro|poroy|wanchaq|paradero|inti raymi|action valley|humedal de huasao|cochawasi|parque de los ents|valle de los duendes|morada'
+            'patron' => '/(cusco|sacsayhuaman|koricancha|catedral|san pedro|poroy|wanchaq|paradero|inti raymi|action valley|humedal de huasao|cochawasi|\bparque\b|valle de los duendes|morada'
                 . '|super valle|combinada|esc[eé]nico|by car|ruta del misterio'
+                . '|bungee|slingshot|cuatrimoto'
                 . '|\bbtc\b|\bbtps\b)/iu',
             'arrastra' => [],
         ],
