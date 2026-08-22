@@ -930,14 +930,28 @@ dentro de ese circuito. Lo mismo Quillabamba y Corredor Sur, que caen en Cusco y
 
 ### Lugares nuevos
 
-`Riviera Maya` (9), `Valle Sur` (7) y `Nasca` (6). El primero tapa un hueco de categoría: **no
-había ningún lugar fuera de Perú** y hay producto de Cancún, Playa del Carmen, Chichén y Xcaret.
+`Riviera Maya` (9), `Valle Sur` (7), `Nasca` (6), `Quillabamba` (5) y `Aruba` (1). El primero
+tapa un hueco de categoría: **no había ningún lugar fuera de Perú** y hay producto de Cancún,
+Playa del Carmen, Chichén y Xcaret.
+
+⚠️ **Quillabamba arrastra Cusco** —de ahí se despacha, 6 h por Amparaes—, así que sus cinco
+componentes llevan las dos. `Aruba` no arrastra nada: no hay hub desde el que se opere.
+
+### ⚠️ Los productos cuyo nombre no dice dónde ocurren
+
+«Super Valle», «Combinada», «Escénico», «By Car», «ruta del misterio 4 en 1» son productos de la
+casa: el nombre es comercial y no menciona ningún sitio, así que el etiquetado por nombre los
+dejaba fuera **para siempre**. Van a Cusco, que es desde donde se despachan, y están listados uno
+a uno en el patrón — no hay forma de deducirlos.
+
+Es el límite del método: **un catálogo con nombres comerciales necesita una lista de excepciones
+mantenida a mano**, y conviene revisarla cada vez que entren productos nuevos.
 
 ### Resultado
 
 | Lugar | Componentes |
 |---|---|
-| Cusco | 129 |
+| Cusco | 136 |
 | Lima | 41 |
 | Valle Sagrado | 40 |
 | Ica | 28 |
@@ -947,10 +961,13 @@ había ningún lugar fuera de Perú** y hay producto de Cancún, Playa del Carme
 | Riviera Maya | 9 |
 | Valle Sur | 7 |
 | Nasca | 6 |
+| Quillabamba | 5 |
+| Aruba | 1 |
 
-De 224 sin etiqueta a **24**, y esos 24 en su mayoría **no deben llevarla**: «Box Lunch»,
-«Walking Sticks», «Impuestos aeroportuarios», «Ticket aereo», «Movilidad a disposición» son
-insumos transversales que se usan en cualquier destino.
+De 224 sin etiqueta a **14**, y esos 14 **no deben llevarla**: «Box Lunch», «Walking Sticks»,
+«Impuestos aeroportuarios», «Ticket aereo», «Movilidad a disposición», «Alquiler de caballos» son
+insumos transversales que se usan en cualquier destino. Los de bungee y cuatrimoto se quedaron
+fuera a la espera de saber dónde se operan.
 
 ### El comando: idempotente y aditivo
 

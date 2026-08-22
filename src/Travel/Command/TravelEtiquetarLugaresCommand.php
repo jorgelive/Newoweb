@@ -68,7 +68,12 @@ final class TravelEtiquetarLugaresCommand extends Command
     private const array REGLAS = [
         // ── Eje Cusco ───────────────────────────────────────────────────────
         'Cusco' => [
-            'patron' => '/(cusco|sacsayhuaman|koricancha|catedral|san pedro|poroy|wanchaq|paradero|inti raymi|action valley|humedal de huasao|cochawasi|parque de los ents|valle de los duendes|morada|quillabamba|\bbtc\b|\bbtps\b)/iu',
+            // Los últimos son productos de la casa cuyo nombre no dice dónde ocurren —«Super
+            // Valle», «Combinada», «Escénico», «By Car», «ruta del misterio»—. Se despachan
+            // desde Cusco, y sin ellos se quedaban fuera del filtro para siempre.
+            'patron' => '/(cusco|sacsayhuaman|koricancha|catedral|san pedro|poroy|wanchaq|paradero|inti raymi|action valley|humedal de huasao|cochawasi|parque de los ents|valle de los duendes|morada'
+                . '|super valle|combinada|esc[eé]nico|by car|ruta del misterio'
+                . '|\bbtc\b|\bbtps\b)/iu',
             'arrastra' => [],
         ],
         'Valle Sagrado' => [
@@ -114,9 +119,26 @@ final class TravelEtiquetarLugaresCommand extends Command
             'arrastra' => [],
         ],
 
+        /**
+         * La Convención, a 6 h de Cusco por la ruta de Amparaes.
+         *
+         * ⚠️ Arrastra Cusco porque **desde ahí se despacha**, que es el eje que decide en este
+         * vocabulario. Si algún día se opera con base propia, se le quita el arrastre… pero los
+         * componentes ya etiquetados conservarían Cusco: el comando no quita nada.
+         */
+        'Quillabamba' => [
+            'patron' => '/quillabamba/iu',
+            'arrastra' => ['Cusco'],
+        ],
+
         // ── Fuera de Perú ───────────────────────────────────────────────────
         'Riviera Maya' => [
             'patron' => '/(canc[uú]n|playa del carmen|chichen|xcaret|zona hotelera)/iu',
+            'arrastra' => [],
+        ],
+        // Sin arrastre: no hay hub desde el que se opere. Hoy es un alojamiento suelto.
+        'Aruba' => [
+            'patron' => '/aruba/iu',
             'arrastra' => [],
         ],
     ];
