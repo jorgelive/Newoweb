@@ -8,6 +8,7 @@ use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Entity\OperacionOrdenServicioItem;
 use App\Operacion\Entity\OperacionServicio;
 use App\Operacion\Enum\EstadoOrdenServicioEnum;
+use App\Operacion\Service\OperacionPuntosDelServicio;
 use DomainException;
 
 /**
@@ -36,6 +37,8 @@ use DomainException;
  */
 final readonly class OperacionOrdenEmision
 {
+    public function __construct(private OperacionPuntosDelServicio $puntos) {}
+
     /**
      * Congela el contenido y marca la Orden como emitida.
      *
@@ -70,6 +73,21 @@ final readonly class OperacionOrdenEmision
                     // existiendo, y lo que se pidió es lo que operaciones decidió.
                     ->setPrestadorNombre($servicio->getPrestadorEfectivoNombre())
                     ->setPrestadorServicioNombre($servicio->getPrestadorServicioEfectivoNombre());
+
+                // ── Dónde recoge y dónde deja, CONGELADOS ────────────────────
+                //
+                // Se resuelven del todo aquí —override del operador, punto del catálogo y, si
+                // toca, el hotel concreto de esa noche— y se guardan como texto. Leerlos en vivo
+                // al pintar el documento haría que el proveedor abriera el enlace público la
+                // semana siguiente y viera un sitio DISTINTO del que se le mandó. Un documento
+                // emitido dice lo que decía al emitirse; si el catálogo cambia, se reemite.
+                $puntos = $this->puntos->para($servicio);
+
+                if ($puntos->aplica) {
+                    $item
+                        ->setPuntoRecojoConfirmado($puntos->recojo)
+                        ->setPuntoEntregaConfirmado($puntos->entrega);
+                }
 
                 $orden->addItem($item);
             }

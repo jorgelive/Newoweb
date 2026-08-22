@@ -2017,3 +2017,112 @@ eso es `estadoReservaProveedor` (§4.1), nunca el de la orden de compra.
 La derivación está hecha y probada (8 tests con objetos en memoria) y **no la consume nadie**.
 Para que salgan mensajes hace falta el enlace de conversación del lado de cotizaciones, que a su
 vez espera a que `CotizacionFile` tenga búsqueda por teléfono. Ver `docs/Mensajeria.md` §20.5.
+
+## 12. Dónde recojo y dónde dejo — de punta a punta (22/08/2026)
+
+Es la primera pregunta de todo proveedor al recibir una Orden, y hasta ahora se contestaba a mano.
+El origen del dato es el catálogo (`docs/Travel.md` §11 quater); esto es el último tramo.
+
+### Las tres capas, y por qué son tres
+
+```
+1. override del operador   OperacionServicio::$puntoRecojo / $puntoEntrega   ← si lo hay, MANDA
+2. lo que dice el catálogo CotizacionPuntosDelServicio::paraComponente()     ← punto fijo o «su alojamiento»
+3. cuál alojamiento        CadenaDeAlojamiento                               ← con las fechas del expediente
+```
+
+Cada capa sabe algo que la de abajo no puede saber: el catálogo no sabe en qué hotel duerme este
+grupo, y el expediente no sabe que a **este** cliente lo recogemos en la puerta de atrás porque
+llega en bus. Lo junta `OperacionPuntosDelServicio::para()`.
+
+### La cadena de alojamiento
+
+Convierte «el alojamiento del pasajero» en «Hotel Terra — Calle Unión 184, Cusco». Las estancias
+son los componentes de tipo `alojamiento` del expediente, con su rango de fechas; el hotel es su
+**prestador** y la dirección, la de la ficha de esa organización.
+
+```
+dondeDurmio(D)    la noche que TERMINA el día D    →  desde <  D <= hasta
+dondeDormira(D)   la noche que EMPIEZA el día D    →  desde <= D <  hasta
+```
+
+⚠️ **Son dos preguntas y no una.** Con una estancia 04→06 y un servicio el día 6: durmió ahí pero
+ya no dormirá. Un traslado de ese día sale del hotel viejo y llega al nuevo — que es exactamente
+lo que hay que decirle al conductor. Con una sola pregunta —«en qué hotel está el día 6»— la
+respuesta sería correcta la mitad de las veces y la otra mitad mandaría al conductor al sitio
+equivocado, sin que nada lo delatara.
+
+⚠️ **Una noche SIN alojamiento devuelve `null`, nunca el hotel anterior.** En un trek se duerme en
+campamento. El último hotel conocido es la respuesta plausible que manda al proveedor a cuatro
+horas de donde está la gente. Los campamentos se declaran como `TravelPunto` con modo fijo.
+
+⚠️ **Las estancias se DEDUPLICAN.** Un mismo alojamiento aparece varias veces en la cotización
+—una fila por habitación o categoría de pasajero— y todas dicen lo mismo.
+
+`CadenaDeAlojamiento` es un objeto **puro** y su constructor vive aparte
+(`CadenaDeAlojamientoBuilder`): así la regla de qué noche cubre qué estancia se prueba sin base de
+datos, y es justo la que no puede fallar.
+
+### El override del operador: un campo APARTE
+
+`OperacionServicio::$puntoRecojo` guarda **sólo** lo que el operador escribe. Vacío significa «usa
+el catálogo».
+
+⚠️ **No se guarda copia del derivado**, por lo mismo que `isSoloReferencia()` es un cálculo y no
+una columna: la copia muerta gana siempre porque es la que se lee, y corregir un segmento del
+maestro tiene que arreglar todos los viajes a la vez.
+
+⚠️ **Es un campo distinto del derivado, igual que `horaRecojo` lo es de `horaComponente`.** Esa
+separación está pagada: cuando las dos horas eran el mismo campo, fijar el recojo pisaba la hora
+vendida y se perdía la referencia. Aquí escribir «puerta de atrás» borraría que el catálogo decía
+«el hotel del pasajero».
+
+Una cadena en blanco vuelve a `null` en el setter: guardada como `''` seguiría contando como
+override y taparía el derivado con un valor que no dice nada.
+
+### En la orden, CONGELADO
+
+`OperacionOrdenServicioItem::$puntoRecojoConfirmado` / `$puntoEntregaConfirmado`, resueltos del
+todo al emitir (`OperacionOrdenEmision::emitir()`).
+
+⚠️ **No se leen en vivo, y ésa es la razón de que existan las dos columnas.** El documento se
+construye desde los datos congelados del ítem; con un punto vivo, el proveedor abriría el enlace
+público la semana siguiente y vería **un sitio distinto del que se le mandó**. Un documento
+emitido dice lo que decía al emitirse; si el catálogo cambia, se reemite y se avisa — que es lo
+que ya hace el importe.
+
+La redacción («Recoge en X → deja en Y») vive en `OperacionOrdenServicioItem::rutaParaLaOrden()`
+porque la pintan **dos** superficies —el mensaje al proveedor y la página pública con su PDF— y
+son el mismo documento visto de dos formas. Si los dos extremos coinciden se dice una vez; un
+punto ausente no se rellena con un guion, porque un guion invita a suponer que es el hotel.
+
+### En el cuadro de tráfico
+
+Dos campos bajo la descripción del servicio, sólo cuando el servicio recoge a alguien. Vacíos
+muestran el derivado como **marcador de posición** —igual que la hora de recojo muestra la
+vendida—, así que de un vistazo se ve qué filas se tocaron a mano (texto negro) y cuáles siguen el
+maestro (gris). Vaciar el campo devuelve el control al catálogo.
+
+El derivado llega por `GET /operacion/user/puntos?id[]=…`
+(`OperacionPuntosController`), **por lista de ids y no por expediente**: el cuadro filtra por
+fecha, lugar o tipo y mezcla expedientes. Endpoint aparte y no un campo de la fila por lo mismo
+que en cotizaciones: es una lectura derivada que se refresca sola al corregir un segmento.
+
+Los **avisos** se pintan en ámbar bajo los campos y dicen por qué falta algo y dónde se arregla.
+Sin ellos, un campo gris y vacío no distingue «no aplica» de «nadie lo declaró».
+
+### Verificado con datos reales
+
+Sobre un expediente de 42 servicios en La Biblia:
+
+```
+31/08  Auto a Miraflores Noche   Aeropuerto de Lima          → Sonesta Miraflores — Calle Alcanfores…
+04/09  Auto                      Aeropuerto de Cusco         → Hotel Terra - Cusco — Calle Unión 184
+06/09  Van                       Hotel Terra - Cusco — …     → Estación de Ollantaytambo
+08/09  PR Observatory Adulto     Estación de Machu Picchu    → Estación de Ollantaytambo
+09/09  Americana Royal Class     Hotel Terra - Cusco — …     → Plaza de Armas de Cusco
+10/09  Americana Royal Class     Hotel Terra - Cusco — …     → Tambo del Inka - Urubamba — Av. Ferrocarril
+```
+
+Lo que queda sin resolver son segmentos del catálogo sin puntos declarados, y **cada uno sale con
+su aviso**, no en blanco.

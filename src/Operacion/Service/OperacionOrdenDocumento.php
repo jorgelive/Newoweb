@@ -93,6 +93,13 @@ final readonly class OperacionOrdenDocumento
             $partes[] = sprintf('%d pax', $pax);
         }
 
+        // ── Dónde recoge y dónde deja ───────────────────────────────────────
+        //
+        // Va en su propio renglón: metida en la ristra de la línea, entre la hora y los pax, una
+        // dirección de cuarenta caracteres sepulta todo lo demás. La redacción la compone el
+        // ítem, que es también quien la pinta en la página pública — ver `rutaParaLaOrden()`.
+        $ruta = $item->rutaParaLaOrden();
+
         // El prestador va sólo cuando NO es el destinatario: si coinciden, decírselo es ruido.
         $prestador = trim((string) $item->getPrestadorNombre());
         $comprador = trim((string) $item->getOrden()?->getCompradorNombre());
@@ -101,6 +108,8 @@ final readonly class OperacionOrdenDocumento
             $partes[] = sprintf('opera %s', $prestador);
         }
 
-        return '· ' . implode('  ·  ', $partes);
+        $linea = '· ' . implode('  ·  ', $partes);
+
+        return $ruta === null ? $linea : $linea . "\n    " . $ruta;
     }
 }

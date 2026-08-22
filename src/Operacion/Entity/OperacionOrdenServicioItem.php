@@ -94,6 +94,26 @@ class OperacionOrdenServicioItem
     #[ORM\Column(type: 'string', length: 10, nullable: true)]
     private ?string $horaRecojoConfirmada = null;
 
+    /**
+     * Dónde se recoge y dónde se deja, **congelados al emitir**.
+     *
+     * No se leen en vivo del catálogo, y es la razón por la que existen estas dos columnas: el
+     * documento se construye desde los datos congelados del ítem, así que un punto vivo haría que
+     * el proveedor abriera el enlace público la semana siguiente y viera un sitio **distinto del
+     * que se le mandó**. Un documento emitido dice lo que decía cuando se emitió; si el catálogo
+     * cambia, se reemite y se avisa — que es exactamente lo que ya hace el importe.
+     *
+     * Nulos cuando el servicio no recoge a nadie (un ticket, una comida) o cuando al emitir aún
+     * no se sabía. Nulo no es «en el hotel»: es que no consta, y así sale en el documento.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $puntoRecojoConfirmado = null;
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $puntoEntregaConfirmado = null;
+
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $cantidadPax = null;
@@ -145,6 +165,43 @@ class OperacionOrdenServicioItem
 
     public function getHoraRecojoConfirmada(): ?string { return $this->horaRecojoConfirmada; }
     public function setHoraRecojoConfirmada(?string $v): self { $this->horaRecojoConfirmada = $v; return $this; }
+
+
+    /**
+     * «Recoge en X → deja en Y», o `null` si no consta ninguno de los dos.
+     *
+     * Vive aquí y no en {@see \App\Operacion\Service\OperacionOrdenDocumento} porque lo pintan
+     * **dos** superficies —el mensaje al proveedor y la página pública con su PDF— y son el mismo
+     * documento visto de dos formas. Escrito dos veces, el día que cambie la redacción cambiará en
+     * una sola y nadie lo notará hasta que un proveedor compare lo que le llegó con lo que ve al
+     * abrir el enlace.
+     *
+     * ⚠️ **Si los dos son el mismo sitio se dice UNA vez.** Repetirlo enseña a no leerlo, que es
+     * exactamente lo contrario de lo que hace falta el día que sean distintos — la misma razón por
+     * la que la hora de recojo sólo sale cuando difiere de la del servicio.
+     *
+     * ⚠️ **Un punto ausente no se rellena.** Nada de «Recoge en —»: un guion invita a suponer que
+     * es el hotel. Callarlo deja claro que hay que preguntarlo, que es la verdad.
+     */
+    public function rutaParaLaOrden(): ?string
+    {
+        $recojo = trim((string) $this->puntoRecojoConfirmado);
+        $entrega = trim((string) $this->puntoEntregaConfirmado);
+
+        return match (true) {
+            $recojo !== '' && $entrega !== '' && $recojo !== $entrega => sprintf('Recoge en %s → deja en %s', $recojo, $entrega),
+            $recojo !== '' && $entrega !== '' => sprintf('Recoge y deja en %s', $recojo),
+            $recojo !== '' => sprintf('Recoge en %s', $recojo),
+            $entrega !== '' => sprintf('Deja en %s', $entrega),
+            default => null,
+        };
+    }
+
+    public function getPuntoRecojoConfirmado(): ?string { return $this->puntoRecojoConfirmado; }
+    public function setPuntoRecojoConfirmado(?string $v): self { $this->puntoRecojoConfirmado = $v; return $this; }
+
+    public function getPuntoEntregaConfirmado(): ?string { return $this->puntoEntregaConfirmado; }
+    public function setPuntoEntregaConfirmado(?string $v): self { $this->puntoEntregaConfirmado = $v; return $this; }
 
     public function getCantidadPax(): ?int { return $this->cantidadPax; }
     public function setCantidadPax(?int $v): self { $this->cantidadPax = $v; return $this; }

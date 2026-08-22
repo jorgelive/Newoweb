@@ -308,3 +308,28 @@ export const getEstadoReservaProveedorConfig = (v?: string | null): EstadoUIConf
 
 export const getEstadoOperacionConfig = (v?: string | null): EstadoUIConfig =>
     ESTADO_OPERACION_CONFIG[(v as EstadoOperacionValue) || 'pendiente'] ?? ESTADO_OPERACION_CONFIG.pendiente;
+
+// ── Dónde recoge y dónde deja un servicio operado ───────────────────────────
+//
+// Espejo de `GET /operacion/user/puntos?id[]=…`, servido por `OperacionPuntosController`.
+// Es lo que dice el CATÁLOGO: el override del operador viaja en la propia fila
+// (`OperacionServicio.puntoRecojo` / `puntoEntrega`), así que aquí no se aplica.
+//
+// ⚠️ No es `ApiResource`, así que no entra en `api.d.ts` y se declara a mano — como
+// `PmsLimpiadorOption` y compañía. Si cambia el array del controlador, cambia también esto.
+//
+// Se usa como MARCADOR DE POSICIÓN del campo editable: enseña qué saldría si el operador lo
+// vaciara, que es la única forma de que se entienda que vacío no significa «sin punto» sino
+// «lo que diga el catálogo».
+export interface PuntosDerivadosServicio {
+    /** `false` = este servicio no recoge ni deja a nadie (ticket, comida, alojamiento). */
+    aplica: boolean;
+    /** `false` en un guiado: se presenta en un punto y ahí acaba su parte. */
+    tieneEntrega: boolean;
+    recojo: string | null;
+    entrega: string | null;
+    /** Por qué falta algo, y dónde se arregla. Vacío si está todo resuelto. */
+    avisos: string[];
+}
+
+export type PuntosDerivadosPorServicio = Record<string, PuntosDerivadosServicio>;

@@ -68,6 +68,12 @@
                         {% if item.prestadorNombre and item.prestadorNombre != orden.compradorNombre %}
                             <br><span class="sub">opera {{ item.prestadorNombre }}</span>
                         {% endif %}
+                        {# La redacción la compone la entidad, que es la misma que usa el mensaje
+                           al proveedor: si se escribiera aquí también, el día que cambie sólo
+                           cambiaría en uno de los dos y nadie compararía. #}
+                        {% if item.rutaParaLaOrden %}
+                            <br><span class="sub">{{ item.rutaParaLaOrden }}</span>
+                        {% endif %}
                     </td>
                     <td class="pax">{{ item.cantidadPax ?: '—' }}</td>
                 </tr>

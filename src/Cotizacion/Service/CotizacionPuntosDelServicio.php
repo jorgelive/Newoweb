@@ -167,6 +167,67 @@ final readonly class CotizacionPuntosDelServicio
         ];
     }
 
+
+    /**
+     * Los extremos de UN componente concreto, con el modo además del texto.
+     *
+     * Lo necesita La Biblia, que opera servicio a servicio y tiene que distinguir «el alojamiento
+     * del pasajero» de un punto fijo: el primero todavía le falta resolver **cuál** hotel, y eso
+     * sólo lo sabe con las fechas del expediente delante.
+     *
+     * `aplica: false` = este tipo no recoge ni deja a nadie.
+     *
+     * @param array<string, TravelSegmento> $maestros
+     *
+     * @return array{
+     *     aplica: bool,
+     *     inicioModo: PuntoModoEnum, inicioTexto: ?string,
+     *     finModo: PuntoModoEnum, finTexto: ?string,
+     *     tieneFin: bool
+     * }
+     */
+    public function paraComponente(CotizacionCotcomponente $comp, array $maestros): array
+    {
+        $tipo = ComponenteTipoEnum::tryFrom((string) $comp->getTipo());
+
+        if ($tipo === null || $tipo->puntosDeServicio() === PuntosDeServicio::NINGUNO) {
+            return [
+                'aplica' => false,
+                'inicioModo' => PuntoModoEnum::SIN_DEFINIR, 'inicioTexto' => null,
+                'finModo' => PuntoModoEnum::SIN_DEFINIR, 'finTexto' => null,
+                'tieneFin' => false,
+            ];
+        }
+
+        $servicio = $comp->getCotservicio();
+        $porDia = $servicio === null ? [] : $this->segmentosPorDia($servicio);
+        $r = $this->resolverComponente($comp, $tipo, $porDia, $maestros);
+
+        return [
+            'aplica' => true,
+            'inicioModo' => $r['inicioModo'],
+            'inicioTexto' => $this->texto($r['inicioModo'], $r['inicioSeg'], $maestros, lado: 'inicio'),
+            'finModo' => $r['finModo'],
+            'finTexto' => $r['tieneFin'] ? $this->texto($r['finModo'], $r['finSeg'], $maestros, lado: 'fin') : null,
+            'tieneFin' => $r['tieneFin'],
+        ];
+    }
+
+    /**
+     * Los `TravelSegmento` de los servicios que se le pasen, en UNA consulta.
+     *
+     * Público porque La Biblia y la orden resuelven servicio a servicio y necesitan el mapa sin
+     * pasar por una cotización entera.
+     *
+     * @param list<CotizacionCotservicio> $servicios
+     *
+     * @return array<string, TravelSegmento>
+     */
+    public function maestrosDeServicios(array $servicios): array
+    {
+        return $this->maestrosDe($servicios);
+    }
+
     /**
      * De qué segmento salen los extremos de un componente.
      *

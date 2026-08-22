@@ -456,7 +456,14 @@ límite?— antes de tocar código.
 El mecanismo está montado y desplegado (ver `docs/Travel.md` §11 quater y `docs/Cotizaciones.md`
 §6.e). Esto es lo que **no** está.
 
-### 1. Los puntos todavía no salen en la orden de servicio
+### 1. ~~Los puntos todavía no salen en la orden de servicio~~ — HECHO 22/08/2026
+
+**Resuelto de punta a punta.** Ver `docs/Operacion.md` §12: las tres capas (override del operador,
+catálogo, cadena de alojamiento), congelado al emitir, y los campos editables en el cuadro de
+tráfico. Lo de abajo queda como registro de lo que faltaba.
+
+<details><summary>Lo que decía</summary>
+
 
 Es el destinatario original de todo esto. `TravelPuntosDelServicio` y `CotizacionPuntosDelServicio`
 ya los calculan, y el editor de cotizaciones ya los pinta, pero **`OperacionOrdenDocumento` no los
@@ -472,6 +479,8 @@ descuidado coge el hotel de la noche anterior y manda al proveedor a Cusco — p
 que es la familia de fallo más cara de este código. Para los campamentos, la respuesta correcta es
 declararlos como `TravelPunto` (Wayllabamba, Pacaymayo, Wiñay Wayna) y usar modo `FIJO`, no
 `ALOJAMIENTO`.
+
+</details>
 
 ### 2. Plantillas sin servicio principal
 

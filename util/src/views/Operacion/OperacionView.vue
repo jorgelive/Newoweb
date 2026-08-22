@@ -375,6 +375,26 @@ const guardarCampo = async (servicio: OperacionServicio, payload: Record<string,
  */
 const PATRON_HORA = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
+/**
+ * Dónde recoge y dónde deja: el override del operador sobre lo que dice el catálogo.
+ *
+ * El campo va VACÍO cuando manda el catálogo, y su marcador de posición es el valor derivado —el
+ * mismo patrón que la hora de recojo frente a la vendida. Así se ve de un vistazo qué filas se
+ * tocaron a mano (texto negro) y cuáles siguen el maestro (texto gris), y vaciarlo devuelve el
+ * control al catálogo en vez de dejar un hueco.
+ */
+const puntosDe = (servicio: OperacionServicio) => operacionStore.puntosDerivados[servicio.id ?? ''] ?? null;
+
+const editarPunto = async (servicio: OperacionServicio, lado: 'recojo' | 'entrega', evento: Event) => {
+    const input = evento.target as HTMLInputElement;
+    const valor = input.value.trim();
+    const campo = lado === 'recojo' ? 'puntoRecojo' : 'puntoEntrega';
+
+    // Vacío = null y no cadena vacía: `''` seguiría contando como override y taparía el derivado
+    // para siempre con un valor que no dice nada. La entidad lo limpia también, por si acaso.
+    await guardarCampo(servicio, { [campo]: valor === '' ? null : valor });
+};
+
 const editarHora = async (servicio: OperacionServicio, evento: Event) => {
     const input = evento.target as HTMLInputElement;
     const valor = input.value.trim();
@@ -1951,6 +1971,48 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                            title="Nombre interno de la tarifa">
                                                             <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ servicio.tarifaNombre }}
                                                         </p>
+
+                                                        <!-- DÓNDE RECOJO / DÓNDE DEJO.
+                                                             Editable, y vacío significa «lo que diga el catálogo»: el
+                                                             marcador de posición enseña qué saldría entonces. Sólo se
+                                                             pintan cuando el servicio recoge a alguien — un ticket o una
+                                                             comida no, y ponerles el campo invitaría a rellenarlo.
+                                                             Ver docs/Operacion.md. -->
+                                                        <div v-if="puntosDe(servicio)?.aplica" class="mt-1.5 space-y-1">
+                                                            <div class="flex items-center gap-1">
+                                                                <i class="fas fa-location-dot text-[9px] text-slate-300 w-3 text-center"
+                                                                   title="Dónde se recoge"></i>
+                                                                <input
+                                                                    :value="servicio.puntoRecojo ?? ''"
+                                                                    @change="editarPunto(servicio, 'recojo', $event)"
+                                                                    :placeholder="puntosDe(servicio)?.recojo || 'sin declarar en el catálogo'"
+                                                                    maxlength="255"
+                                                                    class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
+                                                                    :class="servicio.puntoRecojo ? 'text-slate-900' : 'text-slate-400'"
+                                                                    title="Dónde se recoge. Vacío = lo que diga el catálogo."
+                                                                />
+                                                            </div>
+                                                            <div v-if="puntosDe(servicio)?.tieneEntrega" class="flex items-center gap-1">
+                                                                <i class="fas fa-flag-checkered text-[9px] text-slate-300 w-3 text-center"
+                                                                   title="Dónde se deja"></i>
+                                                                <input
+                                                                    :value="servicio.puntoEntrega ?? ''"
+                                                                    @change="editarPunto(servicio, 'entrega', $event)"
+                                                                    :placeholder="puntosDe(servicio)?.entrega || 'sin declarar en el catálogo'"
+                                                                    maxlength="255"
+                                                                    class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
+                                                                    :class="servicio.puntoEntrega ? 'text-slate-900' : 'text-slate-400'"
+                                                                    title="Dónde se deja. Vacío = lo que diga el catálogo."
+                                                                />
+                                                            </div>
+                                                            <!-- Los avisos dicen POR QUÉ falta y dónde se arregla. Sin
+                                                                 ellos, un campo gris y vacío no distingue «no aplica» de
+                                                                 «nadie lo declaró». -->
+                                                            <p v-for="aviso in (puntosDe(servicio)?.avisos || [])" :key="aviso"
+                                                               class="text-[9px] font-bold text-amber-700 leading-tight pl-4">
+                                                                <i class="fas fa-triangle-exclamation mr-1"></i>{{ aviso }}
+                                                            </p>
+                                                        </div>
 
                                                         <!-- Badges de clasificación: sólo cuando dicen algo -->
                                                         <div class="flex flex-wrap gap-1 mt-1">

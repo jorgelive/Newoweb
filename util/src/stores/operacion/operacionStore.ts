@@ -11,7 +11,8 @@ import type {
     OperacionServicioWrite,
     OperacionMensajeWrite,
     FiltrosBiblia,
-    LugarOpcion
+    LugarOpcion,
+    PuntosDerivadosPorServicio
 } from '@/types/operacionModel';
 import { construirParamsBiblia } from '@/types/operacionModel';
 
@@ -193,6 +194,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
                 resolverLugaresDeServicios(),
                 resolverContactoDeProveedores(),
                 resolverNombresDeSegmento(),
+                resolverPuntosDeServicios(),
             ]);
         } catch (error) {
             console.error('Error al cargar la Biblia de operaciones:', error);
@@ -427,6 +429,38 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * contactos de proveedor: batch por id contra el maestro, sin snapshot. El nombre interno
      * homogeneizado (= nombre real del segmento) reemplaza al genérico del servicio en la fila.
      */
+    /**
+     * Lo que dice el CATÁLOGO sobre dónde recoge y deja cada servicio.
+     *
+     * Vive aparte de la fila porque es derivado, no del documento: corregir un segmento del
+     * maestro lo arregla en todos los viajes a la vez, sin re-guardar nada. El override que
+     * escribe el operador sí viaja en la fila (`puntoRecojo` / `puntoEntrega`).
+     *
+     * Se usa como MARCADOR DE POSICIÓN del campo editable: enseña qué saldría si lo vaciara.
+     */
+    const puntosDerivados = ref<PuntosDerivadosPorServicio>({});
+
+    const resolverPuntosDeServicios = async (): Promise<void> => {
+        const ids = Array.from(new Set(
+            servicios.value
+                .map((s: OperacionServicio) => s.id)
+                .filter((id): id is string => typeof id === 'string' && id !== '')
+        ));
+
+        if (ids.length === 0) { puntosDerivados.value = {}; return; }
+
+        try {
+            const query = ids.map((id) => `id[]=${id}`).join('&');
+            const res = await apiClient.get(`/operacion/user/puntos?${query}`);
+            puntosDerivados.value = (res.data?.servicios ?? {}) as PuntosDerivadosPorServicio;
+        } catch (error) {
+            // Es información de apoyo: sin ella el campo se queda sin marcador de posición y el
+            // cuadro sigue entero. Lo que no puede pasar es que tumbe la tabla.
+            console.error('No se pudieron resolver los puntos de recojo:', error);
+            puntosDerivados.value = {};
+        }
+    };
+
     const resolverNombresDeSegmento = async (): Promise<void> => {
         const ids = new Set<string>();
         servicios.value.forEach((s) => {
@@ -947,6 +981,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     return {
+        puntosDerivados, resolverPuntosDeServicios,
         isLoading,
         servicios,
         totalServicios,

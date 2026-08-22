@@ -167,6 +167,30 @@ class OperacionServicio
     #[ORM\Column(type: 'string', length: 10, nullable: true)]
     private ?string $horaComponente = null;
 
+    /**
+     * Dónde se recoge y dónde se deja, **si el operador lo fija a mano**.
+     *
+     * Vacío es lo normal y significa «usa lo que dice el catálogo»: el punto derivado se calcula
+     * en caliente desde `cotizacionComponente` con {@see \App\Operacion\Service\OperacionPuntosDelServicio}.
+     *
+     * ⚠️ **No se guarda aquí una copia del derivado**, por la misma razón que
+     * {@see self::isSoloReferencia()} es un cálculo y no una columna: duplicarlo abre la puerta a
+     * que las dos se contradigan, y la copia muerta gana siempre porque es la que se lee. Corregir
+     * el segmento en el catálogo tiene que arreglar todos los viajes a la vez.
+     *
+     * ⚠️ **Es un campo APARTE del derivado, igual que `horaRecojo` lo es de `horaComponente`.**
+     * Esa separación está pagada: cuando las dos horas eran el mismo campo, fijar el recojo pisaba
+     * la hora vendida y se perdía la referencia. Aquí pasaría lo mismo — escribir «puerta de
+     * atrás» borraría para siempre que el catálogo decía «el hotel del pasajero».
+     */
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $puntoRecojo = null;
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $puntoEntrega = null;
+
     // ─────────────────────────────────────────────────────────────────────────
     // PRESTADOR — quién opera, frente a comprador* = a quién se le manda el encargo
     //
@@ -631,6 +655,26 @@ class OperacionServicio
     public function setEstadoReservaProveedorDesde(?\DateTimeImmutable $d): self { $this->estadoReservaProveedorDesde = $d; return $this; }
 
     public function getHoraRecojo(): ?string { return $this->horaRecojo; }
+
+    public function getPuntoRecojo(): ?string { return $this->puntoRecojo; }
+    public function setPuntoRecojo(?string $v): self { $this->puntoRecojo = $this->limpiar($v); return $this; }
+
+    public function getPuntoEntrega(): ?string { return $this->puntoEntrega; }
+    public function setPuntoEntrega(?string $v): self { $this->puntoEntrega = $this->limpiar($v); return $this; }
+
+    /**
+     * Una cadena en blanco vuelve a ser `null`, y no es cosmética.
+     *
+     * Vacío significa «usa el catálogo», así que un campo que el operador limpió en el formulario
+     * tiene que volver a delegar. Guardado como `''` seguiría contando como override y taparía el
+     * derivado para siempre, con un valor que no dice nada.
+     */
+    private function limpiar(?string $v): ?string
+    {
+        $v = trim((string) $v);
+
+        return $v !== '' ? $v : null;
+    }
     public function setHoraRecojo(?string $horaRecojo): self { $this->horaRecojo = $horaRecojo; return $this; }
 
     public function getHoraComponente(): ?string { return $this->horaComponente; }

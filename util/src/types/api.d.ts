@@ -14632,6 +14632,8 @@ export interface components {
             items?: components["schemas"]["OperacionOrdenServicioItem-operacion.read_timestamp.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"] | null;
             mensajes?: components["schemas"]["OperacionMensaje-operacion.read_timestamp.read"][];
+            /** @description La llave del enlace público que se le manda al proveedor. */
+            readonly tokenPublico?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -14758,6 +14760,8 @@ export interface components {
             items?: components["schemas"]["OperacionOrdenServicioItem.html-operacion.read_timestamp.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"] | null;
             mensajes?: components["schemas"]["OperacionMensaje.html-operacion.read_timestamp.read"][];
+            /** @description La llave del enlace público que se le manda al proveedor. */
+            readonly tokenPublico?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -14810,6 +14814,8 @@ export interface components {
         "OperacionOrdenServicio.jsonld-operacion.read_timestamp.read": {
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"] | null;
             mensajes?: components["schemas"]["OperacionMensaje.jsonld-operacion.read_timestamp.read"][];
+            /** @description La llave del enlace público que se le manda al proveedor. */
+            readonly tokenPublico?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -14890,6 +14896,8 @@ export interface components {
             items?: components["schemas"]["OperacionOrdenServicioItem.multipart-operacion.read_timestamp.read"][];
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"] | null;
             mensajes?: components["schemas"]["OperacionMensaje.multipart-operacion.read_timestamp.read"][];
+            /** @description La llave del enlace público que se le manda al proveedor. */
+            readonly tokenPublico?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -14923,6 +14931,9 @@ export interface components {
             hora?: string | null;
             /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
             horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14949,6 +14960,9 @@ export interface components {
             hora?: string | null;
             /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
             horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14975,6 +14989,9 @@ export interface components {
             hora?: string | null;
             /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
             horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15001,6 +15018,9 @@ export interface components {
             hora?: string | null;
             /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
             horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15027,6 +15047,9 @@ export interface components {
             hora?: string | null;
             /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
             horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15053,6 +15076,9 @@ export interface components {
             hora?: string | null;
             /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
             horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15079,6 +15105,9 @@ export interface components {
             hora?: string | null;
             /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
             horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15105,6 +15134,9 @@ export interface components {
             hora?: string | null;
             /** @description La hora de recojo **ya confirmada por el proveedor** cuando se emitió, o nula. */
             horaRecojoConfirmada?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
+            puntoRecojoConfirmado?: string | null;
+            puntoEntregaConfirmado?: string | null;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15130,9 +15162,9 @@ export interface components {
             fecha: string;
             /**
              * @description Por qué medio se le pagó.
-             * @enum {string|null}
+             * @enum {string}
              */
-            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro" | null;
+            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro";
             notas?: string | null;
             /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
             usuarioNombre?: string | null;
@@ -15161,9 +15193,9 @@ export interface components {
             fecha: string;
             /**
              * @description Por qué medio se le pagó.
-             * @enum {string|null}
+             * @enum {string}
              */
-            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro" | null;
+            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro";
             notas?: string | null;
         };
         /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
@@ -15176,9 +15208,9 @@ export interface components {
             fecha: string;
             /**
              * @description Por qué medio se le pagó.
-             * @enum {string|null}
+             * @enum {string}
              */
-            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro" | null;
+            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro";
             notas?: string | null;
             /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
             usuarioNombre?: string | null;
@@ -15199,9 +15231,9 @@ export interface components {
             fecha: string;
             /**
              * @description Por qué medio se le pagó.
-             * @enum {string|null}
+             * @enum {string}
              */
-            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro" | null;
+            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro";
             notas?: string | null;
             /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
             usuarioNombre?: string | null;
@@ -15222,9 +15254,9 @@ export interface components {
             fecha: string;
             /**
              * @description Por qué medio se le pagó.
-             * @enum {string|null}
+             * @enum {string}
              */
-            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro" | null;
+            medioPago: "efectivo" | "transferencia_bancaria" | "deposito" | "plin_yape" | "tarjeta" | "otro";
             notas?: string | null;
             /** @description Quién lo registró, resuelto a nombre al guardar. Ver `OperacionPagoListener`. */
             usuarioNombre?: string | null;
@@ -15246,6 +15278,9 @@ export interface components {
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
+            puntoRecojo?: string | null;
+            puntoEntrega?: string | null;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -15435,6 +15470,9 @@ export interface components {
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
+            puntoRecojo?: string | null;
+            puntoEntrega?: string | null;
             prestadorOverrideMaestroId?: string | null;
             prestadorOverrideNombre?: string | null;
             prestadorServicioOverrideMaestroId?: string | null;
@@ -15510,6 +15548,9 @@ export interface components {
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
+            puntoRecojo?: string | null;
+            puntoEntrega?: string | null;
             prestadorOverrideMaestroId?: string | null;
             prestadorOverrideNombre?: string | null;
             prestadorServicioOverrideMaestroId?: string | null;
@@ -15577,6 +15618,9 @@ export interface components {
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
+            puntoRecojo?: string | null;
+            puntoEntrega?: string | null;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -15758,6 +15802,9 @@ export interface components {
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
+            puntoRecojo?: string | null;
+            puntoEntrega?: string | null;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -15939,6 +15986,9 @@ export interface components {
             horaRecojo?: string | null;
             /** @description La hora del componente TAL COMO SE VENDIÓ al cliente. No editable. */
             horaComponente?: string | null;
+            /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
+            puntoRecojo?: string | null;
+            puntoEntrega?: string | null;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -25297,6 +25347,18 @@ export interface components {
             contenido?: {
                 [key: string]: string | null;
             }[];
+            /**
+             * @default sin_definir
+             * @enum {string}
+             */
+            inicioModo: "sin_definir" | "alojamiento" | "fijo";
+            inicioPunto?: components["schemas"]["TravelPunto"] | null;
+            /**
+             * @default sin_definir
+             * @enum {string}
+             */
+            finModo: "sin_definir" | "alojamiento" | "fijo";
+            finPunto?: components["schemas"]["TravelPunto"] | null;
             notas?: string[];
             imagenes?: components["schemas"]["TravelSegmentoImagen"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente"][];
@@ -25323,6 +25385,8 @@ export interface components {
             readonly virtualNotas?: string;
             readonly virtualItinerarios?: string;
             readonly virtualGaleria?: string;
+            /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
+            readonly virtualPuntos?: string;
         };
         "Segmento-segmento.item.read": {
             nombreInterno?: string;
@@ -25387,6 +25451,18 @@ export interface components {
             contenido?: {
                 [key: string]: string | null;
             }[];
+            /**
+             * @default sin_definir
+             * @enum {string}
+             */
+            inicioModo: "sin_definir" | "alojamiento" | "fijo";
+            inicioPunto?: components["schemas"]["TravelPunto.html"] | null;
+            /**
+             * @default sin_definir
+             * @enum {string}
+             */
+            finModo: "sin_definir" | "alojamiento" | "fijo";
+            finPunto?: components["schemas"]["TravelPunto.html"] | null;
             notas?: string[];
             imagenes?: components["schemas"]["TravelSegmentoImagen.html"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.html"][];
@@ -25413,6 +25489,8 @@ export interface components {
             readonly virtualNotas?: string;
             readonly virtualItinerarios?: string;
             readonly virtualGaleria?: string;
+            /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
+            readonly virtualPuntos?: string;
         };
         "Segmento.html-segmento.item.read": {
             nombreInterno?: string;
@@ -25465,6 +25543,18 @@ export interface components {
             contenido?: {
                 [key: string]: string | null;
             }[];
+            /**
+             * @default sin_definir
+             * @enum {string}
+             */
+            inicioModo: "sin_definir" | "alojamiento" | "fijo";
+            inicioPunto?: components["schemas"]["TravelPunto.jsonld"] | null;
+            /**
+             * @default sin_definir
+             * @enum {string}
+             */
+            finModo: "sin_definir" | "alojamiento" | "fijo";
+            finPunto?: components["schemas"]["TravelPunto.jsonld"] | null;
             notas?: string[];
             imagenes?: components["schemas"]["TravelSegmentoImagen.jsonld"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.jsonld"][];
@@ -25491,6 +25581,8 @@ export interface components {
             readonly virtualNotas?: string;
             readonly virtualItinerarios?: string;
             readonly virtualGaleria?: string;
+            /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
+            readonly virtualPuntos?: string;
         };
         "Segmento.jsonld-segmento.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
@@ -25543,6 +25635,18 @@ export interface components {
             contenido?: {
                 [key: string]: string | null;
             }[];
+            /**
+             * @default sin_definir
+             * @enum {string}
+             */
+            inicioModo: "sin_definir" | "alojamiento" | "fijo";
+            inicioPunto?: components["schemas"]["TravelPunto.multipart"] | null;
+            /**
+             * @default sin_definir
+             * @enum {string}
+             */
+            finModo: "sin_definir" | "alojamiento" | "fijo";
+            finPunto?: components["schemas"]["TravelPunto.multipart"] | null;
             notas?: string[];
             imagenes?: components["schemas"]["TravelSegmentoImagen.multipart"][];
             segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.multipart"][];
@@ -25569,6 +25673,8 @@ export interface components {
             readonly virtualNotas?: string;
             readonly virtualItinerarios?: string;
             readonly virtualGaleria?: string;
+            /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
+            readonly virtualPuntos?: string;
         };
         "Segmento.multipart-segmento.item.read": {
             nombreInterno?: string;
@@ -27551,6 +27657,190 @@ export interface components {
             dia: number;
             /** @default 1 */
             orden: number;
+        };
+        TravelPunto: {
+            /**
+             * @description El `unique` es la misma defensa que en `TravelLugar`: sin él acaban conviviendo
+             *     «Estación Ollantaytambo» y «Estacion de Ollantaytambo» como dos sitios distintos, y el
+             *     desplegable deja de ser fiable justo cuando más filas tiene.
+             */
+            nombre: string;
+            /**
+             * @default otro
+             * @enum {string}
+             */
+            tipo: "hotel" | "estacion_tren" | "aeropuerto" | "terminal_bus" | "plaza" | "oficina" | "muelle" | "otro";
+            /**
+             * Format: iri-reference
+             * @description En qué centro de operación cae. Sirve para agrupar y filtrar, no para decidir nada.
+             * @example https://example.com/
+             */
+            lugar?: string | null;
+            /**
+             * @description Lo que se le manda al proveedor. Puede quedar vacío si el punto es un hotel del catálogo:
+             *     en ese caso manda la dirección de su ficha — ver {@see self::direccionEfectiva()}.
+             */
+            direccion?: string | null;
+            /**
+             * @description La coletilla que evita la llamada de teléfono: «puerta lateral», «frente al banco», «el
+             *     bus no puede entrar, se camina 50 m». Es texto libre a propósito.
+             */
+            referencia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Cuando el punto ES un proveedor del catálogo (un hotel).
+             * @example https://example.com/
+             */
+            organizacion?: string | null;
+            /**
+             * @description Retirar del desplegable sin romper los segmentos que ya lo referencian.
+             * @default true
+             */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "TravelPunto.html": {
+            /**
+             * @description El `unique` es la misma defensa que en `TravelLugar`: sin él acaban conviviendo
+             *     «Estación Ollantaytambo» y «Estacion de Ollantaytambo» como dos sitios distintos, y el
+             *     desplegable deja de ser fiable justo cuando más filas tiene.
+             */
+            nombre: string;
+            /**
+             * @default otro
+             * @enum {string}
+             */
+            tipo: "hotel" | "estacion_tren" | "aeropuerto" | "terminal_bus" | "plaza" | "oficina" | "muelle" | "otro";
+            /**
+             * Format: iri-reference
+             * @description En qué centro de operación cae. Sirve para agrupar y filtrar, no para decidir nada.
+             * @example https://example.com/
+             */
+            lugar?: string | null;
+            /**
+             * @description Lo que se le manda al proveedor. Puede quedar vacío si el punto es un hotel del catálogo:
+             *     en ese caso manda la dirección de su ficha — ver {@see self::direccionEfectiva()}.
+             */
+            direccion?: string | null;
+            /**
+             * @description La coletilla que evita la llamada de teléfono: «puerta lateral», «frente al banco», «el
+             *     bus no puede entrar, se camina 50 m». Es texto libre a propósito.
+             */
+            referencia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Cuando el punto ES un proveedor del catálogo (un hotel).
+             * @example https://example.com/
+             */
+            organizacion?: string | null;
+            /**
+             * @description Retirar del desplegable sin romper los segmentos que ya lo referencian.
+             * @default true
+             */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "TravelPunto.jsonld": {
+            /**
+             * @description El `unique` es la misma defensa que en `TravelLugar`: sin él acaban conviviendo
+             *     «Estación Ollantaytambo» y «Estacion de Ollantaytambo» como dos sitios distintos, y el
+             *     desplegable deja de ser fiable justo cuando más filas tiene.
+             */
+            nombre: string;
+            /**
+             * @default otro
+             * @enum {string}
+             */
+            tipo: "hotel" | "estacion_tren" | "aeropuerto" | "terminal_bus" | "plaza" | "oficina" | "muelle" | "otro";
+            /**
+             * Format: iri-reference
+             * @description En qué centro de operación cae. Sirve para agrupar y filtrar, no para decidir nada.
+             * @example https://example.com/
+             */
+            lugar?: string | null;
+            /**
+             * @description Lo que se le manda al proveedor. Puede quedar vacío si el punto es un hotel del catálogo:
+             *     en ese caso manda la dirección de su ficha — ver {@see self::direccionEfectiva()}.
+             */
+            direccion?: string | null;
+            /**
+             * @description La coletilla que evita la llamada de teléfono: «puerta lateral», «frente al banco», «el
+             *     bus no puede entrar, se camina 50 m». Es texto libre a propósito.
+             */
+            referencia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Cuando el punto ES un proveedor del catálogo (un hotel).
+             * @example https://example.com/
+             */
+            organizacion?: string | null;
+            /**
+             * @description Retirar del desplegable sin romper los segmentos que ya lo referencian.
+             * @default true
+             */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "TravelPunto.multipart": {
+            /**
+             * @description El `unique` es la misma defensa que en `TravelLugar`: sin él acaban conviviendo
+             *     «Estación Ollantaytambo» y «Estacion de Ollantaytambo» como dos sitios distintos, y el
+             *     desplegable deja de ser fiable justo cuando más filas tiene.
+             */
+            nombre: string;
+            /**
+             * @default otro
+             * @enum {string}
+             */
+            tipo: "hotel" | "estacion_tren" | "aeropuerto" | "terminal_bus" | "plaza" | "oficina" | "muelle" | "otro";
+            /**
+             * Format: iri-reference
+             * @description En qué centro de operación cae. Sirve para agrupar y filtrar, no para decidir nada.
+             * @example https://example.com/
+             */
+            lugar?: string | null;
+            /**
+             * @description Lo que se le manda al proveedor. Puede quedar vacío si el punto es un hotel del catálogo:
+             *     en ese caso manda la dirección de su ficha — ver {@see self::direccionEfectiva()}.
+             */
+            direccion?: string | null;
+            /**
+             * @description La coletilla que evita la llamada de teléfono: «puerta lateral», «frente al banco», «el
+             *     bus no puede entrar, se camina 50 m». Es texto libre a propósito.
+             */
+            referencia?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Cuando el punto ES un proveedor del catálogo (un hotel).
+             * @example https://example.com/
+             */
+            organizacion?: string | null;
+            /**
+             * @description Retirar del desplegable sin romper los segmentos que ya lo referencian.
+             * @default true
+             */
+            activo: boolean;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         TravelSegmentoComponente: {
             /**

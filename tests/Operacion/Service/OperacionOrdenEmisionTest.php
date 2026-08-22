@@ -10,7 +10,11 @@ use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Entity\OperacionServicio;
 use App\Cotizacion\Enum\ComponenteEstadoEnum;
 use App\Operacion\Enum\EstadoOrdenServicioEnum;
+use App\Cotizacion\Service\CadenaDeAlojamientoBuilder;
+use App\Cotizacion\Service\CotizacionPuntosDelServicio;
 use App\Operacion\Service\OperacionOrdenEmision;
+use App\Operacion\Service\OperacionPuntosDelServicio;
+use Doctrine\ORM\EntityManagerInterface;
 use DomainException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -25,11 +29,22 @@ use PHPUnit\Framework\TestCase;
  */
 final class OperacionOrdenEmisionTest extends TestCase
 {
+
+    /** La emisión con su resolvedor de puntos real, sin base de datos. Ver el test de divergencia. */
+    private function emision(): OperacionOrdenEmision
+    {
+        $em = $this->createStub(EntityManagerInterface::class);
+
+        return new OperacionOrdenEmision(new OperacionPuntosDelServicio(
+            new CotizacionPuntosDelServicio($em),
+            new CadenaDeAlojamientoBuilder($em),
+        ));
+    }
     private OperacionOrdenEmision $emision;
 
     protected function setUp(): void
     {
-        $this->emision = new OperacionOrdenEmision();
+        $this->emision = $this->emision();
     }
 
     // ─────────────────────────────────────────────────────────────────────────

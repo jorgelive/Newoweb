@@ -9,7 +9,11 @@ use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Entity\OperacionOrdenServicioItem;
 use App\Operacion\Entity\OperacionServicio;
 use App\Operacion\Enum\EstadoOrdenServicioEnum;
+use App\Cotizacion\Service\CadenaDeAlojamientoBuilder;
+use App\Cotizacion\Service\CotizacionPuntosDelServicio;
 use App\Operacion\Service\OperacionOrdenEmision;
+use App\Operacion\Service\OperacionPuntosDelServicio;
+use Doctrine\ORM\EntityManagerInterface;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -21,6 +25,23 @@ use PHPUnit\Framework\TestCase;
  */
 final class OperacionOrdenDivergenciaTest extends TestCase
 {
+
+    /**
+     * La emisión, con su resolvedor de puntos real pero sin base de datos.
+     *
+     * Los servicios de estos casos no tienen componente cotizado, así que el resolvedor devuelve
+     * «no aplica» y no llega a consultar nada — se construye de verdad, en vez de simularlo, para
+     * que si algún día SÍ lo consultara el test lo denunciara en vez de taparlo.
+     */
+    private function emision(): OperacionOrdenEmision
+    {
+        $em = $this->createStub(EntityManagerInterface::class);
+
+        return new OperacionOrdenEmision(new OperacionPuntosDelServicio(
+            new CotizacionPuntosDelServicio($em),
+            new CadenaDeAlojamientoBuilder($em),
+        ));
+    }
     #[Test]
     public function unBorradorNuncaEstaSucio(): void
     {
@@ -36,7 +57,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     {
         $orden = $this->ordenCon($this->servicio('Traslado', '2026-09-01', 3, '120.00'));
 
-        (new OperacionOrdenEmision())->emitir($orden);
+        $this->emision()->emitir($orden);
 
         self::assertSame(EstadoOrdenServicioEnum::EMITIDA, $orden->getEstadoOs());
         self::assertCount(1, $orden->getItems());
@@ -53,7 +74,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     public function reciénEmitidaNoEstaSucia(): void
     {
         $orden = $this->ordenCon($this->servicio('Traslado', '2026-09-01', 3, '120.00'));
-        (new OperacionOrdenEmision())->emitir($orden);
+        $this->emision()->emitir($orden);
 
         self::assertSame([], $orden->getDivergencias());
         self::assertFalse($orden->isSucia());
@@ -68,7 +89,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     {
         $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
         $orden = $this->ordenCon($servicio);
-        (new OperacionOrdenEmision())->emitir($orden);
+        $this->emision()->emitir($orden);
 
         $servicio->setFechaServicio(new DateTimeImmutable('2026-09-04'));
 
@@ -82,7 +103,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     {
         $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
         $orden = $this->ordenCon($servicio);
-        (new OperacionOrdenEmision())->emitir($orden);
+        $this->emision()->emitir($orden);
 
         $servicio->setCantidadPax(4);
 
@@ -99,7 +120,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     {
         $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
         $orden = $this->ordenCon($servicio);
-        (new OperacionOrdenEmision())->emitir($orden);
+        $this->emision()->emitir($orden);
 
         self::assertSame('0.00', $servicio->getCostoNegociado());
         self::assertSame([], $orden->getDivergencias());
@@ -110,7 +131,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     {
         $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
         $orden = $this->ordenCon($servicio);
-        (new OperacionOrdenEmision())->emitir($orden);
+        $this->emision()->emitir($orden);
 
         $servicio->setCostoNegociado('95.00');
 
@@ -132,7 +153,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     {
         $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
         $orden = $this->ordenCon($servicio);
-        (new OperacionOrdenEmision())->emitir($orden);
+        $this->emision()->emitir($orden);
 
         $servicio->setHoraRecojo('07:45');
 
@@ -147,7 +168,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     {
         $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00')->setHoraRecojo('08:00');
         $orden = $this->ordenCon($servicio);
-        (new OperacionOrdenEmision())->emitir($orden);
+        $this->emision()->emitir($orden);
 
         $servicio->setHoraRecojo('06:00');
 
@@ -162,7 +183,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     {
         $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
         $orden = $this->ordenCon($servicio);
-        (new OperacionOrdenEmision())->emitir($orden);
+        $this->emision()->emitir($orden);
         $servicio->setHoraRecojo('07:45');
 
         $aplicados = $orden->aplicarCambiosMenores();
@@ -187,7 +208,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
             ->setCompradorNombre('OpenPeru Tickets');
         $orden = $this->ordenCon($servicio);
         $orden->setCompradorMaestroId('openperu-tickets')->setCompradorNombre('OpenPeru Tickets');
-        (new OperacionOrdenEmision())->emitir($orden);
+        $this->emision()->emitir($orden);
 
         // Operaciones decide que el encargo va a otra empresa.
         $servicio->setCompradorOverrideMaestroId('futurismo')->setCompradorOverrideNombre('Futurismo Jonathan');
@@ -203,7 +224,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     {
         $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
         $orden = $this->ordenCon($servicio);
-        $emision = new OperacionOrdenEmision();
+        $emision = $this->emision();
         $emision->emitir($orden);
 
         $emision->anular($orden);
@@ -226,7 +247,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
     {
         $servicio = $this->servicio('Traslado', '2026-09-01', 3, '120.00');
         $vieja = $this->ordenCon($servicio);
-        $emision = new OperacionOrdenEmision();
+        $emision = $this->emision();
         $emision->emitir($vieja);
 
         // Lo que hace el endpoint: anular primero —así la fila queda libre y `validar()` la
@@ -258,7 +279,7 @@ final class OperacionOrdenDivergenciaTest extends TestCase
         $vieja = $this->ordenCon($this->servicio('Traslado', '2026-09-01', 3, '120.00'));
         $nueva = new OperacionOrdenServicio();
 
-        (new OperacionOrdenEmision())->anular($vieja, $nueva);
+        $this->emision()->anular($vieja, $nueva);
 
         self::assertSame($vieja, $nueva->getReemplazaA());
     }
