@@ -1222,6 +1222,63 @@ bandera, un solo significado, y de paso las 5 huérfanas dejarían de ser ruido.
 **Lo que haría replantear la decisión:** encontrar días donde el componente que marca la hora y el
 que se considera principal sean **distintos**. Hoy no hay ninguno.
 
+### Las dos privadas del Valle, y el nombre que mentía (22/08/2026)
+
+«Full Day Valle sagrado tradicional privado» **no llevaba logística del Valle tradicional**:
+llevaba `Guiado Super Valle` + `Transporte Super Valle`, que es la familia que alimenta
+«Full Day Valle Vip». Era la privada del VIP con el nombre de la otra. Se renombró a
+**«Full Day Valle Vip privada»** con `app:travel:renombrar-valle-vip-privada`.
+
+Estructuralmente las dos privadas son **idénticas salvo el primer segmento** —o2..o7 son las
+mismas filas—. Toda la diferencia es qué se compra:
+
+| | Valle Sagrado privado | Valle Vip privada |
+|---|---|---|
+| Guía, base | 65 USD | **90 USD** |
+| Van | 89 (1–8 pax) | **115 (1–6 pax)** |
+| Master | 99 | **150** |
+| Sprinter | 120 | **190** |
+| Bus | 180 | **250** |
+| «con Ruinas» | sí (75) | — |
+
+Super Valle sale entre un **30 % y un 50 % más caro** en todos los tramos y su Van lleva dos
+pasajeros menos. Son dos productos con el mismo itinerario, no dos nombres del mismo. El caso de
+uso de la VIP privada: cliente con pocos días que quiere esa maratón en privado.
+
+El juego queda simétrico:
+
+```
+servicio «Valle Sagrado»   1D VALLE POOL      Full Day Valle Sagrado Tradicional
+                           1D VALLE PRIV      Full Day Valle Sagrado privado
+                           1D VALLE VIP PRIV  Full Day Valle Vip privada
+servicio «Valle Vip»       1D VALLE VIP POOL  Full Day Valle Vip
+```
+
+⚠️ La VIP privada **se queda en el servicio «Valle Sagrado»**, no se movió a «Valle Vip»: mover
+de servicio cambia qué segmentos ofrece su pool, y eso no es un rename.
+
+### 🐛 Cambiar un texto traducido sin activar la sobrescritura
+
+Es la trampa que casi se cuela en el rename, y vale para **cualquier campo con
+`#[AutoTranslate]`**. `AutoTranslationService` sólo pisa una traducción existente si
+`sobreescribirTraduccion` está activo:
+
+```php
+if (!$overwrite && !$isContentEmpty) continue;
+```
+
+Sin activarlo, el español habría pasado a decir «Valle Vip» y los otros seis habrían seguido
+diciendo «Sacred Valley» / «Vale Sagrado» / «Heilige Tal». **Un producto VIP anunciado como el
+tradicional en todos los idiomas menos uno** — y no lo ve nadie, porque quien revisa lee español.
+
+Las dos reglas que salen de ahí:
+
+1. **`setSobreescribirTraduccion(true)` va ANTES de tocar el campo**, en el mismo flush: el
+   listener lo lee en `preUpdate`.
+2. **Verificar después.** El comando comprueba que los seis idiomas mencionen «VIP» y avisa si
+   alguno no cambió, en vez de dar por hecho que la traducción corrió. Una llamada de red que
+   falla deja el campo sólo en español y no lanza nada.
+
 ### 🐛 La trampa que casi lo deja mudo: `setParameter()` con un UUID
 
 ```php
@@ -1392,3 +1449,4 @@ contenedor»—; lo que cambia es que un lado tiene contenedor a ese nivel y el 
 | Limpiar promociones sin plantilla | `src/Travel/Command/TravelLimpiarPromocionesHuerfanasCommand.php` | `--dry-run`; **no toca `itinerarioContexto` ni las cotizaciones** |
 | Dar servicio principal a una plantilla | `src/Travel/Command/TravelPromoverServicioPrincipalCommand.php` | `PROMOCIONES` — **añade fila, no modifica la global** |
 | Montar la plantilla privada del Valle que faltaba | `src/Travel/Command/TravelCrearValleSagradoPrivadoCommand.php` | clona la privada existente y cambia el recojo; **desambigua por componente, no por nombre** |
+| Renombrar una plantilla con título traducido | `src/Travel/Command/TravelRenombrarValleVipPrivadaCommand.php` | **`setSobreescribirTraduccion(true)` antes de tocar el título**, y verificar después |

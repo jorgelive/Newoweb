@@ -53,7 +53,8 @@ final class TravelCrearValleSagradoPrivadoCommand extends Command
 {
     private const string NOMBRE_NUEVA = 'Full Day Valle Sagrado privado';
     private const string SLUG_NUEVA = '1D VALLE PRIV VS';
-    private const string MODELO = 'Full Day Valle sagrado tradicional privado';
+    // Renombrada por TravelRenombrarValleVipPrivadaCommand: era «…tradicional privado».
+    private const string MODELO = 'Full Day Valle Vip privada';
     private const string SEGMENTO_RECOJO = 'Recojo en el Hotel (Servicio Privado)';
     /** Lo que distingue al segmento de recojo correcto de su homónimo. */
     private const string COMPONENTE_CLAVE = 'Transporte Valle Sagrado';
