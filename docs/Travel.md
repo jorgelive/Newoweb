@@ -1241,12 +1241,56 @@ dos, no la lectura del código.
 Es la convención del repo: `getId()` + `'uuid'` / `UuidType::NAME`. Ver `FinEnlacePagoRepository`,
 `InboundMenuResolver`, `PushSubscriptionRepository`.
 
-### Deuda de datos detectada
+### Deuda de datos: las 5 promociones huérfanas (limpiada el 22/08/2026)
 
-**5 filas tienen `horaServicioCompleto = true` con `itinerarioContexto` NULL**, de cuando el
-listener aún no lo impedía. Ahí la marca no significa nada —sin plantilla no hay día que abarcar—
-y esos servicios caen a los extremos de su propio segmento. No rompe nada; se arregla asignándoles
-su plantilla.
+Había **5 filas con `horaServicioCompleto = true` y `itinerarioContexto` NULL**, anteriores a las
+dos defensas que hoy lo impiden —`validarPromocionRequierePlantilla()` en la validación y el
+listener de unicidad en el flush—. Se retiró la marca con
+`app:travel:limpiar-promociones-huerfanas`.
+
+| Componente | Colgaba de | Ese segmento se usa en |
+|---|---|---|
+| Pool Maras Moray | «Recojo e inicio de excursión (Grupal)» | Half Day Chinchero, Maras y Moray |
+| Pool Valle Sagrado | «Recojo e inicio de excursión (Grupal)» | Full Day Valle Sagrado Tradicional |
+| Pool Vinicunca | «Montaña de 7 Colores (Caminata Clásica)» | Full Day Vinicunca Estandar |
+| Transporte Maras | «Recojo en el Hotel (Privado)» | Half Day Chinchero, Maras y Moray privado |
+| Transporte Valle Sagrado | «Recojo en el Hotel (Privado)» | **(ninguna)** |
+
+⚠️ **Se quitó la marca y NO se les asignó plantilla, aunque cada segmento se use en una sola.**
+Porque no es lo mismo: `itinerarioContexto = null` significa «este componente se inyecta siempre
+que se use el segmento» —la logística global del pool, ver §4—. Ponerle una plantilla
+**restringiría la inyección**, y eso no es limpieza: es cambiar cuándo entra el componente, y
+saltaría el día que alguien monte un servicio a medida con ese segmento. Se comprobó: 192 filas y
+las 121 de inyección global, intactas.
+
+⚠️ **No se tocaron las cotizaciones ya guardadas.** Dos componentes habían heredado la marca
+(`Pool Vinicunca` ×2). El flag copiado en un `CotizacionCotcomponente` es parte de un documento
+emitido y en ese caso además acierta —ese pool **es** su día—. Limpiado el origen, no se hereda
+ninguna más.
+
+**Lo que queda pendiente y es una decisión, no limpieza:** «Full Day Vinicunca Estandar» y las dos
+de Chinchero/Maras y Moray siguen **sin servicio principal**. Dárselo se hace plantilla por
+plantilla, mirando qué componente debe abarcar el día — con las implicaciones de inyección de
+arriba.
+
+### Los dos resolvedores difieren a propósito
+
+| | ¿Exige plantilla para que un componente abarque el día? |
+|---|---|
+| `TravelPuntosDelServicio` (catálogo) | **sí** |
+| `CotizacionPuntosDelServicio` (cotización) | **no** |
+
+No es un descuido. **El «servicio» sólo existe como contenedor ORDENADO en la cotización.** En el
+catálogo, `TravelServicio` agrupa segmentos en un pool sin orden ni días; los contenedores
+ordenados son la plantilla y el segmento. Así que:
+
+- en la cotización, «este componente abarca su día dentro de su `CotizacionCotservicio`» está bien
+  definido — y es lo que hace falta para el servicio armado a medida, sin plantilla;
+- en el catálogo sin plantilla **no hay nada que abarcar**: no existe una lista ordenada de
+  segmentos a ese nivel. Por eso el listener desmarca, y hace bien.
+
+La marca significa lo mismo en los dos sitios —«este componente es el dueño de su día dentro de su
+contenedor»—; lo que cambia es que un lado tiene contenedor a ese nivel y el otro no.
 
 ## 12. Dónde tocar para cambiar X
 
@@ -1287,3 +1331,4 @@ su plantilla.
 | Añadir reglas de carga de puntos por nombre | `src/Travel/Command/TravelProponerPuntosCommand.php` | `REGLAS` — **gana la primera**; `PUNTOS` para los maestros |
 | Cambiar qué se considera «falta el punto» | `src/Travel/Service/PuntosResueltos.php` | `estaCompleto()`, `faltantes()` |
 | Marcar el servicio principal de un día (paquetes, multi-día) | `src/Travel/Controller/Crud/TravelSegmentoComponenteCrudController.php` | «Servicio principal del día» — uno por (plantilla, día); **ojo con la Categoría Operativa** |
+| Limpiar promociones sin plantilla | `src/Travel/Command/TravelLimpiarPromocionesHuerfanasCommand.php` | `--dry-run`; **no toca `itinerarioContexto` ni las cotizaciones** |
