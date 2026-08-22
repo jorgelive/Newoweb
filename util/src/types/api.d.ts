@@ -15401,6 +15401,8 @@ export interface components {
                 subtotal: string;
                 moneda?: string | null;
             }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -15473,6 +15475,8 @@ export interface components {
                 subtotal: string;
                 moneda?: string | null;
             }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
         };
         "OperacionServicio-operacion.write": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.write"] | null;
@@ -15741,6 +15745,8 @@ export interface components {
                 subtotal: string;
                 moneda?: string | null;
             }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -15813,6 +15819,8 @@ export interface components {
                 subtotal: string;
                 moneda?: string | null;
             }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
         };
         "OperacionServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read"] | null;
@@ -15925,6 +15933,8 @@ export interface components {
                 subtotal: string;
                 moneda?: string | null;
             }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -15997,6 +16007,8 @@ export interface components {
                 subtotal: string;
                 moneda?: string | null;
             }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
         };
         "OperacionServicio.multipart-operacion.item.read_timestamp.read": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read"] | null;
@@ -16109,6 +16121,8 @@ export interface components {
                 subtotal: string;
                 moneda?: string | null;
             }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
         };
@@ -16181,6 +16195,8 @@ export interface components {
                 subtotal: string;
                 moneda?: string | null;
             }[];
+            /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
+            readonly ordenItinerario?: number | null;
         };
         /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         Organizacion: {

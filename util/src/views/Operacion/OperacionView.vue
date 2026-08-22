@@ -89,6 +89,15 @@ const mostrarFiltrosAvanzados = ref<boolean>(false);
 const mostrarLugares = ref<boolean>(!esMovil());
 
 /**
+ * Cómo se ordena el día: por ITINERARIO o por reloj.
+ *
+ * Por itinerario es el defecto porque es como se lee un viaje: el alojamiento y la comida —que no
+ * tienen hora— quedan junto al servicio al que pertenecen, en vez de caer al final del día lejos
+ * de su contexto. El reloj sigue estando, para cuando lo que importa es a qué hora sale cada cosa.
+ */
+const ordenPorHora = ref<boolean>(false);
+
+/**
  * Si la fila ya está en una Orden de Servicio. `''` = todas.
  *
  * Se filtra EN LOCAL sobre lo ya cargado y no en el servidor: es un interruptor de lectura
@@ -141,6 +150,7 @@ const restaurarFiltros = (): void => {
         if (Array.isArray(f.lugares)) lugaresSeleccionados.value = f.lugares as string[];
         if (typeof f.estadoReserva === 'string') filtroEstadoReservaProveedor.value = f.estadoReserva;
         if (typeof f.estadoOperacion === 'string') filtroEstadoOperacion.value = f.estadoOperacion;
+        if (typeof f.ordenPorHora === 'boolean') ordenPorHora.value = f.ordenPorHora;
         if (f.filtroOs === '' || f.filtroOs === 'sin' || f.filtroOs === 'con') filtroOs.value = f.filtroOs;
         if (f.expediente && typeof f.expediente === 'object') expedienteSeleccionado.value = f.expediente as ExpedienteOpcion;
         if (typeof f.cotizacion === 'string') cotizacionSeleccionada.value = f.cotizacion;
@@ -151,7 +161,7 @@ restaurarFiltros();
 
 watch(
     [desde, hasta, tiposSeleccionados, lugaresSeleccionados, filtroEstadoReservaProveedor,
-     filtroEstadoOperacion, filtroOs, expedienteSeleccionado, cotizacionSeleccionada],
+     filtroEstadoOperacion, filtroOs, expedienteSeleccionado, cotizacionSeleccionada, ordenPorHora],
     () => {
         try {
             localStorage.setItem(FILTROS_STORAGE_KEY, JSON.stringify({
@@ -162,6 +172,7 @@ watch(
                 tiposCatalogo: TIPOS_COMPONENTE.map((t) => t.value),
                 estadoReserva: filtroEstadoReservaProveedor.value,
                 estadoOperacion: filtroEstadoOperacion.value,
+                ordenPorHora: ordenPorHora.value,
                 filtroOs: filtroOs.value,
                 expediente: expedienteSeleccionado.value,
                 cotizacion: cotizacionSeleccionada.value,
@@ -343,6 +354,9 @@ const quitarExpediente = async () => {
 // operativa (guiado/transporte antes que tickets): un cuadro de tráfico se lee
 // de arriba abajo por hora, y lo que no tiene hora estorba en medio.
 // ============================================================================
+/** La hora con la que se ordena: la misma que pinta la fila. Vacío = no tiene hora ninguna. */
+const horaDeOrden = (s: OperacionServicio): string => s.horaRecojo || s.horaComponente || '';
+
 interface GrupoDia {
     fecha: string;
     servicios: OperacionServicio[];
@@ -366,8 +380,23 @@ const serviciosPorDia = computed<GrupoDia[]>(() => {
         .map(([fecha, servicios]) => ({
             fecha,
             servicios: [...servicios].sort((a, b) => {
-                const ha = a.horaRecojo || '';
-                const hb = b.horaRecojo || '';
+                // ── Por ITINERARIO (defecto) ────────────────────────────────
+                // Es como se lee un viaje. Un cuadro ordenado sólo por reloj parte el relato: el
+                // alojamiento y la comida, que no tienen hora, caen al final del día lejos del
+                // servicio al que pertenecen.
+                if (!ordenPorHora.value) {
+                    const oa = a.ordenItinerario ?? Number.MAX_SAFE_INTEGER;
+                    const ob = b.ordenItinerario ?? Number.MAX_SAFE_INTEGER;
+                    if (oa !== ob) return oa - ob;
+                }
+
+                // ── Por RELOJ ───────────────────────────────────────────────
+                // ⚠️ La MISMA hora que se pinta en la fila: la de recojo si la hay, y si no la
+                // vendida. Ordenar sólo por `horaRecojo` mandaba al fondo del día a todo el que
+                // no tuviera un recojo pactado —la mayoría— aunque su hora estuviera ahí
+                // delante: el cuadro enseñaba «10:00» y lo colocaba después de las 08:30.
+                const ha = horaDeOrden(a);
+                const hb = horaDeOrden(b);
                 if (ha && hb) return ha.localeCompare(hb);
                 if (ha) return -1;
                 if (hb) return 1;
@@ -1789,6 +1818,21 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                         este filtro existe para eliminar.
                     -->
                     <div v-if="operacionStore.lugares.length" class="mt-2 flex flex-wrap items-center gap-1.5">
+                        <!-- Cómo se ordena el día. Por itinerario es el defecto: es como se lee
+                             un viaje, y deja el alojamiento y la comida —que no tienen hora—
+                             junto al servicio al que pertenecen en vez de al final del día. -->
+                        <button
+                            @click="ordenPorHora = !ordenPorHora"
+                            class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 mr-2"
+                            :class="ordenPorHora ? 'bg-[#376875] text-white border-[#376875]'
+                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
+                            :title="ordenPorHora ? 'Ordenado por hora. Toca para volver al orden del itinerario.'
+                                : 'Ordenado como el itinerario. Toca para ordenar por hora.'"
+                        >
+                            <i class="fas" :class="ordenPorHora ? 'fa-clock' : 'fa-list-ol'"></i>
+                            {{ ordenPorHora ? 'Por hora' : 'Itinerario' }}
+                        </button>
+
                         <!-- El rótulo ES el interruptor: un botón aparte para plegar cuatro
                              líneas de chips sería un control más que explicar. El contador dice
                              cuántos hay activos cuando está cerrado, que es lo único que no se

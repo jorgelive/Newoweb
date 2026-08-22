@@ -2152,6 +2152,41 @@ cambia es que deja de afirmar algo que no ocurrió.
 ⚠️ Si alguien pactó una hora que casualmente coincidía con la vendida, esto se la lleva. Es la
 única pérdida posible y se asume a sabiendas: ese dato ya era indistinguible de la copia.
 
+### El orden del día: itinerario o reloj (22/08/2026)
+
+Un interruptor en la barra, junto a los chips de lugar. **Por itinerario es el defecto.**
+
+```
+Itinerario   OperacionServicio::getOrdenItinerario()  = día × 1000 + orden del segmento
+Por hora     horaRecojo ?? horaComponente             = la MISMA que pinta la fila
+```
+
+⚠️ **Ordenar sólo por reloj parte el relato.** El alojamiento y la comida no tienen hora, así que
+caían al final del día lejos del servicio al que pertenecen. Por itinerario quedan donde el cliente
+los va a vivir, que es como se lee un viaje.
+
+⚠️ **Y el modo reloj estaba mal.** Ordenaba por `horaRecojo` a secas, así que todo el que no
+tuviera un recojo pactado —la mayoría— se iba al fondo del día **aunque su hora estuviera ahí
+delante**: el cuadro enseñaba «10:00» y lo colocaba después de las 08:30. Ahora ordena por la misma
+hora que pinta.
+
+`getOrdenItinerario()` **se calcula, no se guarda**: duplicarlo en una columna abriría la puerta a
+que el cuadro y la cotización se contradigan al reordenar un segmento.
+
+🚧 Coste: serializar una página carga el cotcomponente y su cotsegmento de cada fila — con 200 por
+página, 400 lecturas perezosas. Si pesa, se resuelve con un `fetch join` en la extensión de la
+colección, **no guardando una copia**.
+
+### 🐛 `gen:api` no limpiaba la caché
+
+Una propiedad serializada nueva **no aparecía en `api.d.ts`**, y sin ningún aviso: `api:openapi:export`
+lee los metadatos cacheados. Pasó con `ordenItinerario` — el getter estaba, el grupo estaba, y el
+tipo generado seguía sin conocerlo.
+
+Es de la peor familia: un paso de generación que se salta lo nuevo en silencio, y el front acaba
+declarando a mano lo que debía venir generado. El script ahora hace `cache:clear --quiet` antes de
+exportar.
+
 ### El cuadro de tráfico en móvil (22/08/2026)
 
 Nueve columnas no caben en 360 px. En vez de comprimirlas —que es como se llega a una fila que no
