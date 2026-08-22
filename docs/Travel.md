@@ -1287,6 +1287,18 @@ Las dos reglas que salen de ahí:
    alguno no cambió, en vez de dar por hecho que la traducción corrió. Una llamada de red que
    falla deja el campo sólo en español y no lanza nada.
 
+### El alojamiento cierra el día (22/08/2026)
+
+Un segmento «Alojamiento en …» no traslada a nadie, pero **sí dice dónde acaba el día**. Y eso
+importa por la regla del abarcador: cuando es el último segmento del día, es de él de quien el
+servicio que abarca ese día toma su punto de entrega.
+
+Sin declararlo, un Camino Inca de dos días decía «sin declarar» **teniendo el hotel escrito dos
+líneas más arriba, en su propia plantilla**. Eran 18 segmentos, todos sin tocar.
+
+La regla del comando pone **sólo el fin**: al alojamiento se llega desde donde sea, y eso lo dice
+el servicio anterior, no éste.
+
 ### 🐛 El «override» que en realidad aplastaba
 
 La regla del abarcador —inicio del primer segmento del día, fin del último— estaba escrita **sin

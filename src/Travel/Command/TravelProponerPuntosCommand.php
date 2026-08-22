@@ -179,6 +179,16 @@ final class TravelProponerPuntosCommand extends Command
         ['patron' => '/^(?:Recojo e inicio de excursión|Recojo en el Hotel|Inicio de Excursión: Recojo)/iu', 'inicio' => self::HOTEL],
         ['patron' => '/^El inicio de la ruta:/iu', 'inicio' => self::HOTEL],
 
+        // ── El alojamiento: el día termina donde se duerme ──────────────────
+        // Un segmento de alojamiento no traslada a nadie, pero SÍ dice dónde acaba el día — y por
+        // eso importa: cuando es el último del día, es de él de quien el servicio que abarca ese
+        // día toma su punto de entrega. Sin esto, un Camino Inca de dos días decía «sin declarar»
+        // teniendo el hotel escrito dos líneas más arriba, en su propia plantilla.
+        //
+        // Sólo el FIN. El inicio se deja sin declarar a propósito: al alojamiento se llega desde
+        // donde sea, y eso lo dice el servicio anterior, no éste.
+        ['patron' => '/^Alojamiento\b/iu', 'fin' => self::HOTEL],
+
         // ── Retornos ────────────────────────────────────────────────────────
         // «al centro de Cusco» es literal y va a la Plaza; los demás retornos devuelven al hotel.
         ['patron' => '/^Retorno al centro de Cusco/iu', 'fin' => 'Plaza de Armas de Cusco'],
