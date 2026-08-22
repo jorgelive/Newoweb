@@ -809,6 +809,66 @@ nombre.
 así que esto se verifica a mano: colgar una tarifa con prestador de una línea vacía y ver que la
 toma; colgar después una de otra empresa y ver que la línea **no** cambia y sale el aviso.
 
+## 6.e Dónde recoge y dónde deja cada servicio (22/08/2026)
+
+En la tarjeta de cada servicio del editor sale una línea con `fa-route`:
+
+```
+Full Day Valle Sagrado Tradicional
+  🛣 el alojamiento del pasajero → Plaza de Armas de Cusco
+```
+
+Y en ámbar, con un `!`, cuando algún componente no tiene declarado su punto. El `title` dice
+cuál y qué le falta.
+
+**Para qué está aquí y no sólo en la orden de servicio.** Porque quien cotiza es quien mejor ve
+que algo no cuadra: la orden se emite semanas después y para entonces el error ya viajó. Y el
+caso que lo justificó apareció en la primera prueba con datos reales — una cotización cuyo Full
+Day Valle Sagrado **termina en «Descanso en el Valle Sagrado»** en vez de «Retorno al centro de
+Cusco», porque se le cambió el segmento final (y de paso le falta Chinchero). El catálogo dice
+que ese tour deja en la Plaza de Armas; esa cotización deja en el hotel. Las dos cosas son
+legítimas — lo que no lo es, es no verlo.
+
+### De dónde sale
+
+`GET /cotizacion/user/puntos/{cotizacionId}` → `CotizacionPuntosController` →
+`CotizacionPuntosDelServicio::paraCotizacion()`.
+
+Es el hermano de `TravelPuntosDelServicio` (ver `docs/Travel.md` §11 quater) con **la misma regla
+y distinta fuente**: allí los segmentos vienen de la plantilla del catálogo; aquí, de los
+`CotizacionSegmento` de esta cotización.
+
+```
+servicio que abarca el día        inicio = 1.er cotsegmento de ese día
+(horaServicioCompleto)            fin    = último cotsegmento de ese día
+cualquier otro                    inicio y fin = su propio cotsegmento
+```
+
+Los puntos en sí se leen del `TravelSegmento` maestro (`segmentoMaestroId`), en **una sola
+consulta** para toda la cotización.
+
+⚠️ **Endpoint aparte, no un campo de la cotización.** No es parte del documento: es una lectura
+derivada del catálogo que se refresca sola cuando alguien corrige un segmento. Meterlo en
+`cotizacion:read` lo habría metido también en el `PUT` de vuelta y en la vista del cliente.
+
+⚠️ **Refleja lo GUARDADO.** Reordenar segmentos sin guardar no se ve hasta guardar. Se aceptó a
+cambio de **no reescribir la regla en TypeScript**: el store sólo pinta lo que llega. Por eso se
+recarga tras guardar además de al abrir (`fetchPuntosDeServicios`).
+
+⚠️ **`aplica: false` no es un hueco.** Significa que ese servicio no recoge ni deja a nadie —un
+alojamiento, un ticket, una comida— y entonces **no se pinta nada**. Un aviso en la mitad de la
+cotización haría que el aviso dejara de significar algo.
+
+⚠️ **`PuntosDeServicioCot` en `cotizacionEditorModel.ts` se declara A MANO.** El endpoint no es
+`ApiResource`, así que no entra en `api.d.ts`. Si cambia el array de `paraServicio()`, hay que
+cambiarlo aquí: no hay nada que lo cace.
+
+### La cabecera es el servicio que abarca el día
+
+Y sólo si no hay ninguno, el primer componente con extremos. Al revés —el primero que aparezca—
+la línea la marcaría un ticket de bus de dos paradas en vez de la excursión entera, que es la que
+el operador está mirando.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -928,6 +988,8 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 5. **Re-guardar** una cotización de prueba en el editor y recargar pax (limpiar localStorage del pax si hace falta).
 
 ---
+
+- **Dónde recoge y dónde deja un servicio (la línea `fa-route` del editor)** → `src/Cotizacion/Service/CotizacionPuntosDelServicio.php` (la regla) + `puntosDeServicio()` en `CotizacionEditorView.vue` (la redacción). Los PUNTOS se editan en el maestro: `TravelSegmento` → «Dónde empieza y dónde termina». Ver §6.e y `docs/Travel.md` §11 quater.
 
 ## 7. Gotcha de framework: los normalizers públicos y Symfony 7
 

@@ -67,6 +67,7 @@ import {
     addDurationToDate,
 } from '@/utils/naiveDate';
 
+import type {PuntosDeServicioCot, PuntosPorServicio} from '@/types/cotizacionEditorModel';
 import {ApiIdioma} from '@/types/maestroModel';
 import type {ProveedorWrite} from '@/types/organizacionModel';
 import {components} from "@/types/api";
@@ -115,6 +116,36 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         tiposComponente: [],
         monedas: []
     });
+
+    // ── Dónde recoge y dónde deja cada servicio ─────────────────────────────
+    //
+    // Lo calcula el backend (`CotizacionPuntosDelServicio`) leyendo los segmentos maestros de
+    // ESTA cotización, no los de la plantilla: es justo la diferencia entre las dos lo que el
+    // operador viene a cazar. Ver `PuntosDeServicioCot` en `cotizacionEditorModel.ts`.
+    //
+    // ⚠️ Refleja lo GUARDADO. Reordenar segmentos sin guardar no se ve hasta guardar, y se
+    // prefirió eso a reescribir en TypeScript la regla de «cuál es el último segmento del día».
+    // Por eso se recarga tras guardar además de al abrir.
+    const puntosPorServicio = ref<PuntosPorServicio>({});
+
+    const fetchPuntosDeServicios = async (cotizacionId: string | null | undefined): Promise<void> => {
+        const id = extractIdStr(cotizacionId);
+        if (!id) { puntosPorServicio.value = {}; return; }
+
+        try {
+            const { data } = await apiClient.get(`/cotizacion/user/puntos/${id}`);
+            puntosPorServicio.value = (data?.servicios ?? {}) as PuntosPorServicio;
+        } catch {
+            // Es información de apoyo: si falla, el editor sigue entero y sólo deja de pintar la
+            // línea de recojo. Lo que no puede pasar es que un maestro caído tumbe la cotización.
+            puntosPorServicio.value = {};
+        }
+    };
+
+    const puntosDeServicio = (servicioId: string | null | undefined): PuntosDeServicioCot | null => {
+        const id = extractIdStr(servicioId);
+        return id ? (puntosPorServicio.value[id] ?? null) : null;
+    };
 
     const todasLasTarifasMaestras = ref<Tarifa[]>([]);
     const cotizacion = ref<Cotizacion | null>(null);
@@ -1948,6 +1979,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             cotizacion.value = data;
             estadoPersistido.value = String(data?.estado ?? '');
 
+            void fetchPuntosDeServicios(data?.id ?? id);
+
         } catch {
             throw new Error("No se encontró la cotización o falló la hidratación.");
         }
@@ -2399,6 +2432,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             // Asignación final con el árbol relacional completo y blindado
             cotizacion.value = savedData;
+
+            // Guardar puede haber movido segmentos: los extremos se recalculan en el backend.
+            void fetchPuntosDeServicios(savedData?.id);
 
             // Restauración del foco de inspección si es necesario
             if (inspectorActivo.value !== 'resumen' && dataActiva.value) {
@@ -4347,6 +4383,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     return {
         catalogos, cotizacion, fileActual, modoCatalogo, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
         esMonoSegmentoSinPlantilla, segmentoUnicoMaestro,
+        puntosPorServicio, puntosDeServicio, fetchPuntosDeServicios,
         // Vistas tipadas del nodo abierto: es por donde deben leerlo las vistas.
         servicioActivo, componenteActivo, tarifaActiva,
         isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,

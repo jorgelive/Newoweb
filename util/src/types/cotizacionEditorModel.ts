@@ -1035,3 +1035,45 @@ export const clasificacionBadges = (
     if (edad) badges.push({ icon: '🎂', label: edad, type: 'edad' });
     return badges;
 };
+// ── Dónde recoge y dónde deja cada servicio ─────────────────────────────────
+//
+// Espejo de la salida de `App\Cotizacion\Service\CotizacionPuntosDelServicio::paraServicio()`,
+// que sirve `GET /cotizacion/user/puntos/{cotizacionId}`.
+//
+// ⚠️ Este endpoint NO es `ApiResource`, así que no entra en `api.d.ts` (que se genera del
+// OpenAPI de API Platform) y hay que declararlo a mano — igual que `PmsLimpiadorOption` y
+// compañía. Si cambias el array del servicio PHP, cambia también esto: no hay nada que lo cace.
+//
+// ⚠️ La REGLA de dónde empieza y termina un servicio vive SÓLO en PHP, a propósito. Aquí no se
+// recalcula nada: se pinta lo que llega. El precio es que refleja lo guardado, y se prefirió a
+// tener dos versiones de «cuál es el último segmento del día».
+
+/** `sin_definir` | `alojamiento` | `fijo` — espejo de `App\Travel\Enum\PuntoModoEnum`. */
+export type PuntoModoValue = 'sin_definir' | 'alojamiento' | 'fijo';
+
+export interface PuntoExtremo {
+    modo: PuntoModoValue;
+    /** Ya redactado por el backend («el alojamiento del pasajero», «Plaza de Armas de Cusco»). */
+    texto: string | null;
+}
+
+export interface PuntosDetalleComponente {
+    componente: string;
+    tipo: string;
+    inicio: string | null;
+    fin: string | null;
+}
+
+export interface PuntosDeServicioCot {
+    /** `false` = este servicio no recoge ni deja a nadie (alojamiento, ticket, comida). NO es un hueco. */
+    aplica: boolean;
+    inicio: PuntoExtremo;
+    fin: PuntoExtremo;
+    /** `false` en un guiado: se presenta en un punto y ahí acaba su parte. */
+    tieneFin: boolean;
+    completo: boolean;
+    faltantes: string[];
+    detalle: PuntosDetalleComponente[];
+}
+
+export type PuntosPorServicio = Record<string, PuntosDeServicioCot>;

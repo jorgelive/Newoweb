@@ -649,6 +649,22 @@ const formatMonedaPanel = (monto?: number | string, moneda?: string) => {
   return formatMoneda(num, monedaBase);
 };
 
+// Dónde recoge y dónde deja el servicio, listo para pintar.
+//
+// El dato lo calcula el backend (`CotizacionPuntosDelServicio`); aquí sólo se redacta la línea.
+// `aplica: false` significa que el servicio no recoge ni deja a nadie —un alojamiento, un ticket,
+// una comida— y entonces NO se pinta nada: un aviso en la mitad de la cotización haría que el
+// aviso dejara de significar algo.
+const puntosDeServicio = (servicio: CotServicio): { texto: string; completo: boolean } | null => {
+  const p = store.puntosDeServicio(servicio.id);
+  if (!p || !p.aplica) return null;
+
+  const desde = p.inicio.texto ?? 'sin punto de recojo';
+  const hasta = p.tieneFin ? (p.fin.texto ?? 'sin punto de entrega') : 'sólo presentación';
+
+  return { texto: `${desde} → ${hasta}`, completo: p.completo };
+};
+
 const formatRangoServicio = (servicio: CotServicio) => {
   if (!servicio.cotcomponentes || servicio.cotcomponentes.length === 0) return 'Sin logística programada';
 
@@ -1237,6 +1253,20 @@ store.$onAction(({ name, args }) => {
                     </p>
                     <p class="text-[11px] font-bold text-slate-500 mt-1" v-else>
                       <i class="fas fa-pen-nib mr-1 text-slate-300"></i> Sin Storytelling
+                    </p>
+
+                    <!-- Dónde recoge y dónde deja: lo primero que pregunta el proveedor al
+                         recibir la orden, y lo que delata que esta cotización se ha desviado de
+                         su plantilla (un segmento final cambiado, uno que falta). Sale de los
+                         segmentos maestros de ESTA cotización, no los del catálogo. -->
+                    <p v-if="puntosDeServicio(servicio)"
+                       class="text-[11px] font-bold mt-1 leading-snug"
+                       :class="puntosDeServicio(servicio)!.completo ? 'text-slate-500' : 'text-amber-700'"
+                       :title="puntosDeServicio(servicio)!.completo ? 'Recojo y entrega declarados' : (store.puntosDeServicio(servicio.id)?.faltantes || []).join(' · ')">
+                      <i class="fas fa-route mr-1"
+                         :class="puntosDeServicio(servicio)!.completo ? 'text-slate-300' : 'text-amber-500'"></i>
+                      {{ puntosDeServicio(servicio)!.texto }}
+                      <i v-if="!puntosDeServicio(servicio)!.completo" class="fas fa-exclamation-circle ml-1 text-amber-500"></i>
                     </p>
 
                     <div class="flex flex-wrap items-center gap-2 mt-4">
