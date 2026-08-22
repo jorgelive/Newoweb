@@ -79,6 +79,7 @@ use App\Travel\Controller\Crud\TravelItinerarioCrudController;
 use App\Travel\Controller\Crud\TravelSegmentoCrudController;
 use App\Travel\Controller\Crud\TravelComponenteCrudController;
 use App\Travel\Controller\Crud\TravelLugarCrudController;
+use App\Travel\Controller\Crud\TravelPuntoCrudController;
 use App\Travel\Controller\Crud\TravelTarifaCrudController;
 use App\Travel\Controller\Crud\TravelItemDiccionarioCrudController;
 use App\Travel\Controller\Crud\TravelNotaCrudController;
@@ -197,6 +198,7 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkTo(TravelOrganizacionServicioImagenCrudController::class, 'Imágenes de Servicios de TravelOrganizacion', 'fa fa-images'), // <-- AÑADIDO
                 MenuItem::linkTo(TravelComponenteCrudController::class, 'Componentes Base', 'fa fa-cubes'),
                 MenuItem::linkTo(TravelLugarCrudController::class, 'Lugares / Centros', 'fa fa-map-marker-alt'),
+                MenuItem::linkTo(TravelPuntoCrudController::class, 'Puntos de recojo', 'fa fa-map-pin'),
                 MenuItem::linkTo(TravelTarifaCrudController::class, 'Tarifario Maestro', 'fa fa-hand-holding-usd'),
                 MenuItem::linkTo(TravelItemDiccionarioCrudController::class, 'Diccionario Multiidioma', 'fa fa-language'),
             ])

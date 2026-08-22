@@ -1035,6 +1035,146 @@ Son distintas y tienen su método, en vez de un `=== 'alojamiento'` repartido po
   salida y lo posterior empieza en el de llegada. Sin esto, un traslado de la mañana se leería
   como si terminara en el hotel de destino, que está en otra ciudad.
 
+### El modelo: el punto vive en el SEGMENTO (22/08/2026)
+
+El enum dice *qué servicios* tienen extremos. Lo que dice *cuáles son* es esto:
+
+```
+TravelPunto                     un sitio concreto, con dirección
+  nombre · tipo · lugar · direccion · referencia · organizacion?
+
+TravelSegmento
+  inicioModo  PuntoModoEnum     sin_definir | alojamiento | fijo
+  inicioPunto ?TravelPunto      obligatorio si el modo es «fijo»
+  finModo     PuntoModoEnum
+  finPunto    ?TravelPunto
+```
+
+**`PuntoModoEnum::ALOJAMIENTO` es direccional según el lado**: en el inicio significa *dónde
+durmió* y en el fin *dónde va a dormir*. Es lo que hace que un traslado Cusco → Ollantaytambo
+salga bien con un solo caso en vez de `ALOJAMIENTO_ANTERIOR` / `ALOJAMIENTO_SIGUIENTE`, que se
+podrían poner al revés.
+
+⚠️ **`SIN_DEFINIR` es el valor por defecto y tiene que serlo.** Un extremo que naciera diciendo
+«alojamiento» por comodidad es una mentira que nadie revisa: el proveedor recibiría un hotel
+donde toca una estación de tren y la orden saldría *plausible*.
+
+#### Por qué en el segmento y no en el componente
+
+Lo decidieron los datos: hay **33 segmentos compartidos entre itinerarios**, y lo son
+*precisamente porque significan el mismo sitio* — «Retorno al centro de Cusco» aparece en cuatro
+plantillas y en las cuatro deja al pasajero donde mismo. En el componente habría que repetirlo
+por plantilla y mantenerlo sincronizado a mano.
+
+Y trae gratis los **overrides**, que era lo que parecía más difícil:
+
+```
+Full Day Valle Sagrado Tradicional      Full Day Valle Sagrado VIP
+ 1 Recojo e inicio de excursión          1 Recojo en el Hotel (Privado VIP)
+ …                                       …
+ 7 Retorno al centro de Cusco            7 Descanso en el Valle Sagrado
+   → Plaza de Armas de Cusco               → el hotel del pasajero
+```
+
+⚠️ **La variante de una plantilla no es una excepción: es otro segmento final.** No hizo falta
+modelar overrides porque el itinerario ya elige qué segmentos inyecta.
+
+### La regla del servicio que abarca el día
+
+El problema real era otro: por comodidad de edición, un pool cuelga del **primer** segmento, así
+que su segmento dice dónde empieza pero no dónde acaba.
+
+Lo resuelve un dato que **ya existía**: `TravelSegmentoComponente::$horaServicioCompleto`, con
+unicidad por `(plantilla, día)` garantizada por `TravelSegmentoComponentePromocionUnicaListener`
+pase por donde pase la escritura. Es el marcador de «este servicio es el dueño del día».
+
+```
+servicio que ABARCA el día        inicio = 1.er segmento de (plantilla, día)
+(horaServicioCompleto = true)     fin    = último segmento de (plantilla, día)
+
+cualquier otro                    inicio y fin = su propio segmento
+```
+
+Lo implementa `TravelPuntosDelServicio::para()`, y devuelve un `PuntosResueltos` — un objeto y no
+un array porque hay **tres** estados por extremo (resuelto · «es el hotel del pasajero» · sin
+declarar) y un array los aplasta a dos.
+
+⚠️ **`ALOJAMIENTO` cuenta como COMPLETO en el informe de pendientes.** El catálogo ya dijo todo lo
+que podía decir; cuál hotel lo pone la reserva. Contarlo como hueco pondría todos los pool en la
+lista para siempre, y una lista así se deja de mirar.
+
+⚠️ **Este servicio NO resuelve el hotel.** Devuelve el modo y nada más: cuál hotel depende del
+pasajero y de la noche. Mezclarlo obligaría al catálogo a conocer el expediente.
+
+### Por qué NO se creó `travel_itinerario_componente`
+
+La propuesta —colgar los servicios abarcadores de la plantilla entera como contenedor, en vez de
+del segmento— **describe mejor la realidad**, y se descartó igualmente por lo que cuesta:
+
+| | Tabla nueva | Puntos en el segmento |
+|---|---|---|
+| Entidad nueva | sí, con 9 de 10 campos duplicados | no |
+| CRUD nuevo | sí | no |
+| Listener de promoción única | duplicar | ya sirve |
+| Lectores del pivote (12 archivos) | dos caminos, para siempre | sin cambios |
+
+Y sobre todo: **la mitad del contenedor ya estaba construida**. `horaServicioCompleto` con clave
+`(itinerarioContexto, día)` ya declaraba cuál es el servicio dueño del día; lo único que le
+faltaba era el eje geográfico, que es lo que se añadió. Se descartó también un campo `abarcaHasta`
+en el pivote, por redundante con esa marca.
+
+**El contraejemplo que lo justificaría** existe y es uno: «Starlodge con actividades» día 1 tiene
+**tres** servicios abarcadores (Ascenso, Vía Ferrata, Descenso) en 5 segmentos. De 28 días de
+plantilla, es el único con más de uno. Ahí sólo uno lleva la marca y los otros dos toman origen y
+fin de su propio segmento, que es correcto.
+
+### El comando de carga
+
+`app:travel:proponer-puntos [--dry-run] [--crear-puntos]` — idempotente y **aditivo**: sólo
+escribe sobre extremos en `SIN_DEFINIR`, así que lo puesto a mano nunca se pisa.
+
+Funciona por nombre porque los nombres de este catálogo son excepcionalmente explícitos
+(«Traslado a la estación de Poroy», «Viaje en tren de retorno a Ollantaytambo»). No es heurística
+sobre texto libre: es leer un dato que ya estaba escrito, en la columna equivocada para
+consultarlo.
+
+⚠️ **Gana la PRIMERA regla que case**, al revés que `app:travel:etiquetar-lugares`, donde las
+etiquetas se acumulan. Un segmento tiene un único origen y un único destino, así que acumular
+sería sobrescribir y el orden de la tabla decidiría en silencio.
+
+Resultado sobre el catálogo real: **11 puntos maestros creados, 90 extremos escritos, 68
+segmentos sin regla** —visitas, comidas, alojamientos: correctamente sin puntos—. Deja **12 de
+los 17** servicios abarcadores con sus dos extremos resueltos. Los 5 restantes son plantillas de
+**un solo segmento** (Quelccaya, Palcoyo, Humantay, Vinicunca ×2), donde ese segmento es a la vez
+el primero y el último y su nombre no dice nada del sitio: se rellenan a mano, y el comando los
+lista por nombre al final.
+
+### 🐛 La trampa que casi lo deja mudo: `setParameter()` con un UUID
+
+```php
+// ✗ devuelve CERO filas, sin error. findBy() sobre lo mismo devolvía siete.
+->setParameter('itinerario', $itinerario)
+
+// ✓
+->setParameter('itinerario', $itinerario->getId(), UuidType::NAME)
+```
+
+Sin el tipo explícito, Doctrine liga el valor como cadena contra una columna `BINARY(16)`. Y el
+fallo era **plausible**: el resolvedor se caía a su rama de reserva —el segmento propio— y decía
+que el pool del Valle terminaba en el punto de recojo. El informe de cobertura del comando, que
+usaba `findBy()`, decía a la vez que estaba todo completo. Lo delató la contradicción entre los
+dos, no la lectura del código.
+
+Es la convención del repo: `getId()` + `'uuid'` / `UuidType::NAME`. Ver `FinEnlacePagoRepository`,
+`InboundMenuResolver`, `PushSubscriptionRepository`.
+
+### Deuda de datos detectada
+
+**5 filas tienen `horaServicioCompleto = true` con `itinerarioContexto` NULL**, de cuando el
+listener aún no lo impedía. Ahí la marca no significa nada —sin plantilla no hay día que abarcar—
+y esos servicios caen a los extremos de su propio segmento. No rompe nada; se arregla asignándoles
+su plantilla.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
@@ -1067,3 +1207,9 @@ Son distintas y tienen su método, en vez de un `=== 'alojamiento'` repartido po
 | Cambiar la cobertura de un proveedor | `src/Travel/Entity/TravelOrganizacion.php` | `$lugares` (lado dueño) |
 | Etiquetar muchos componentes de golpe | `src/Travel/Controller/Crud/TravelLugarCrudController.php` | `componentes` + `by_reference: false` |
 | Filtrar tarifas por componente o por lote | `src/Travel/Filter/TarifaComponenteExtension.php`, `TarifaBatchIdExtension.php` | — |
+| Añadir un punto de recojo o entrega | `src/Travel/Entity/TravelPunto.php` | CRUD «Puntos de recojo» — **con dirección**, o no sirve |
+| Decir dónde empieza y termina un segmento | `src/Travel/Entity/TravelSegmento.php` | `$inicioModo`/`$inicioPunto`, `$finModo`/`$finPunto` |
+| Cambiar cómo se resuelve el origen/destino de un servicio | `src/Travel/Service/TravelPuntosDelServicio.php` | `para()`, `extremosDelDia()` |
+| Marcar cuál es el servicio dueño del día | `src/Travel/Entity/TravelSegmentoComponente.php` | `$horaServicioCompleto` — único por (plantilla, día) |
+| Añadir reglas de carga de puntos por nombre | `src/Travel/Command/TravelProponerPuntosCommand.php` | `REGLAS` — **gana la primera**; `PUNTOS` para los maestros |
+| Cambiar qué se considera «falta el punto» | `src/Travel/Service/PuntosResueltos.php` | `estaCompleto()`, `faltantes()` |

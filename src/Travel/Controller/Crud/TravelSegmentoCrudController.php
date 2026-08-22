@@ -23,6 +23,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
+use App\Travel\Enum\PuntoModoEnum;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -215,6 +217,41 @@ class TravelSegmentoCrudController extends BaseCrudController
                 return $html;
             })
             ->renderAsHtml();
+
+        // ── Dónde empieza y dónde termina ──────────────────────────────────────
+        // Va ANTES del relato y no al final a propósito: es lo que el proveedor pregunta primero
+        // y lo que decidía a mano quien montaba la orden.
+        yield FormField::addPanel('Dónde empieza y dónde termina')->setIcon('fa fa-map-pin')
+            ->setHelp(
+                'De aquí sale el «dónde recojo / dónde dejo» de la orden de servicio. El servicio '
+                . 'que abarca el día toma su origen del PRIMER segmento de la plantilla y su '
+                . 'destino del ÚLTIMO. Si el extremo es el hotel del pasajero, elige «El '
+                . 'alojamiento del pasajero» y no hace falta punto: se resuelve al emitir.'
+            );
+
+        yield TextField::new('virtualPuntos', 'Recojo → Entrega')
+            ->onlyOnIndex()
+            ->renderAsHtml();
+
+        yield ChoiceField::new('inicioModo', 'Empieza en')
+            ->setChoices(array_reduce(PuntoModoEnum::cases(), static fn ($c, $e) => $c + [$e->etiqueta() => $e], []))
+            ->formatValue(static fn ($value) => $value instanceof PuntoModoEnum ? $value->etiqueta() : $value)
+            ->setColumns(3);
+
+        yield AssociationField::new('inicioPunto', 'Punto de inicio')
+            ->autocomplete()
+            ->setColumns(3)
+            ->setHelp('Sólo si arriba has elegido «Un punto fijo».');
+
+        yield ChoiceField::new('finModo', 'Termina en')
+            ->setChoices(array_reduce(PuntoModoEnum::cases(), static fn ($c, $e) => $c + [$e->etiqueta() => $e], []))
+            ->formatValue(static fn ($value) => $value instanceof PuntoModoEnum ? $value->etiqueta() : $value)
+            ->setColumns(3);
+
+        yield AssociationField::new('finPunto', 'Punto de fin')
+            ->autocomplete()
+            ->setColumns(3)
+            ->setHelp('Sólo si arriba has elegido «Un punto fijo».');
 
         yield FormField::addPanel('Contenido Narrativo')->setIcon('fa fa-pen-fancy');
 

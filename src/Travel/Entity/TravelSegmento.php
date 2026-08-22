@@ -15,6 +15,7 @@ use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
+use App\Travel\Enum\PuntoModoEnum;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -68,6 +69,42 @@ class TravelSegmento
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
     private array $contenido = [];
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DÓNDE EMPIEZA Y DÓNDE TERMINA — lo que el proveedor pregunta primero
+    // ═══════════════════════════════════════════════════════════════════════════
+    //
+    // Vive en el SEGMENTO y no en el componente por una razón que dieron los datos: hay 33
+    // segmentos compartidos entre itinerarios, y lo son **precisamente porque significan el
+    // mismo sitio** — «Retorno al centro de Cusco» aparece en cuatro plantillas y en las cuatro
+    // deja al pasajero donde mismo. Guardarlo en el componente obligaría a repetirlo por cada
+    // plantilla y a mantenerlo sincronizado a mano.
+    //
+    // De aquí sale el origen y el destino del servicio que ABARCA el día — el que lleva
+    // `TravelSegmentoComponente::$horaServicioCompleto`, único por (plantilla, día): empieza en
+    // el `inicioPunto` del primer segmento de esa plantilla+día y termina en el `finPunto` del
+    // último. Es la misma clave que ya usa
+    // {@see \App\Travel\EventListener\TravelSegmentoComponentePromocionUnicaListener}, y por eso
+    // no hizo falta ni una tabla nueva ni una segunda forma de colgar componentes.
+    //
+    // ⚠️ Los OVERRIDES de una plantilla concreta —el itinerario que en vez de devolver al hotel
+    // deja en la estación de Ollantaytambo— no necesitan nada de esto: son **otro segmento
+    // final**, y el itinerario ya elige cuáles inyecta. Modelarlos como excepción sobre el
+    // segmento compartido habría sido resolver dos veces algo que la relación ya resuelve.
+
+    #[ORM\Column(name: 'inicio_modo', type: 'string', length: 20, enumType: PuntoModoEnum::class, options: ['default' => 'sin_definir'])]
+    private PuntoModoEnum $inicioModo = PuntoModoEnum::SIN_DEFINIR;
+
+    #[ORM\ManyToOne(targetEntity: TravelPunto::class)]
+    #[ORM\JoinColumn(name: 'inicio_punto_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?TravelPunto $inicioPunto = null;
+
+    #[ORM\Column(name: 'fin_modo', type: 'string', length: 20, enumType: PuntoModoEnum::class, options: ['default' => 'sin_definir'])]
+    private PuntoModoEnum $finModo = PuntoModoEnum::SIN_DEFINIR;
+
+    #[ORM\ManyToOne(targetEntity: TravelPunto::class)]
+    #[ORM\JoinColumn(name: 'fin_punto_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?TravelPunto $finPunto = null;
 
     /** @var Collection<int, TravelNota> */
     #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
@@ -334,5 +371,94 @@ class TravelSegmento
         if (!$hasValidSpanish) {
             $context->buildViolation('El título público en Español es obligatorio.')->atPath('titulo')->addViolation();
         }
+    }
+
+    // ── Dónde empieza y dónde termina ──────────────────────────────────────────
+
+    public function getInicioModo(): PuntoModoEnum { return $this->inicioModo; }
+    public function setInicioModo(PuntoModoEnum $v): self { $this->inicioModo = $v; return $this; }
+
+    public function getInicioPunto(): ?TravelPunto { return $this->inicioPunto; }
+    public function setInicioPunto(?TravelPunto $v): self { $this->inicioPunto = $v; return $this; }
+
+    public function getFinModo(): PuntoModoEnum { return $this->finModo; }
+    public function setFinModo(PuntoModoEnum $v): self { $this->finModo = $v; return $this; }
+
+    public function getFinPunto(): ?TravelPunto { return $this->finPunto; }
+    public function setFinPunto(?TravelPunto $v): self { $this->finPunto = $v; return $this; }
+
+    /**
+     * Un modo `FIJO` sin punto es peor que no haber declarado nada.
+     *
+     * Sin declarar, la orden dice «falta el dato» y alguien lo mira. Declarado a medias, dice
+     * que hay un punto fijo y no sabe cuál: se cuela como si estuviera resuelto y sale una
+     * orden sin sitio de recojo, que es exactamente el fallo que esto viene a quitar.
+     */
+    #[Assert\Callback]
+    public function validarPuntos(ExecutionContextInterface $context, mixed $payload): void
+    {
+        if ($this->inicioModo->exigePunto() && $this->inicioPunto === null) {
+            $context->buildViolation('Has marcado un punto fijo de inicio pero no has elegido cuál.')
+                ->atPath('inicioPunto')
+                ->addViolation();
+        }
+
+        if ($this->finModo->exigePunto() && $this->finPunto === null) {
+            $context->buildViolation('Has marcado un punto fijo de fin pero no has elegido cuál.')
+                ->atPath('finPunto')
+                ->addViolation();
+        }
+    }
+
+    /**
+     * Lo que se le dice al proveedor sobre un extremo, o `null` si todavía no se sabe.
+     *
+     * `null` es una respuesta legítima y hay que dejarla salir: quien componga la orden tiene
+     * que poder escribir «pendiente de confirmar» en vez de inventarse un hotel. El modo
+     * `ALOJAMIENTO` también devuelve `null` aquí a propósito — el segmento sabe que es el hotel,
+     * pero *cuál* hotel sólo se sabe con un pasajero delante, y eso se resuelve al emitir.
+     */
+    public function textoDelInicio(): ?string
+    {
+        return $this->inicioModo === PuntoModoEnum::FIJO ? $this->inicioPunto?->paraLaOrden() : null;
+    }
+
+    public function textoDelFin(): ?string
+    {
+        return $this->finModo === PuntoModoEnum::FIJO ? $this->finPunto?->paraLaOrden() : null;
+    }
+
+    /** ¿Están declarados los dos extremos? Es lo que mide cuánto queda por rellenar. */
+    public function tienePuntosDeclarados(): bool
+    {
+        return $this->inicioModo->esDeclarado() && $this->finModo->esDeclarado();
+    }
+
+    /**
+     * 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo.
+     *
+     * El índice es donde de verdad se ve cuánto queda por declarar: con 100+ segmentos, ir
+     * abriendo fichas para descubrir cuáles están sin punto es lo que hace que el campo se
+     * quede a medias para siempre.
+     */
+    public function getVirtualPuntos(): string
+    {
+        $pinta = static function (PuntoModoEnum $modo, ?TravelPunto $punto): string {
+            return match ($modo) {
+                PuntoModoEnum::SIN_DEFINIR => '<span style="color:#b00;">?</span>',
+                PuntoModoEnum::ALOJAMIENTO => '<span style="color:#2b5cad;">hotel</span>',
+                PuntoModoEnum::FIJO => htmlspecialchars(
+                    $punto?->getNombre() ?? '⚠ sin punto',
+                    ENT_QUOTES,
+                    'UTF-8'
+                ),
+            };
+        };
+
+        return sprintf(
+            '<span style="white-space:nowrap;font-size:12px;">%s → %s</span>',
+            $pinta($this->inicioModo, $this->inicioPunto),
+            $pinta($this->finModo, $this->finPunto)
+        );
     }
 }
