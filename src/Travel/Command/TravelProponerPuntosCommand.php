@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Travel\Entity\TravelItinerario;
 use App\Travel\Entity\TravelItinerarioSegmentoRel;
 use App\Travel\Entity\TravelLugar;
 use App\Travel\Entity\TravelPunto;
@@ -120,6 +121,17 @@ final class TravelProponerPuntosCommand extends Command
         ],
     ];
 
+    /**
+     * Dónde se deja a un servicio COMPARTIDO al terminar, por ciudad.
+     *
+     * Sólo Cusco por ahora, y a propósito: el día que se decida el punto de Lima se añade una
+     * fila. Rellenarlo «por completar» pondría a un Lima City Tour dejando a la gente en la
+     * Plaza de Armas de Cusco, que compila, pasa los tests y es una orden falsa.
+     *
+     * @var array<string, string>
+     */
+    private const array CENTRO_POR_LUGAR = ['Cusco' => 'Plaza de Armas de Cusco'];
+
     /** La marca de «el hotel del pasajero»: no es un punto, es un modo que resuelve la reserva. */
     private const string HOTEL = '@alojamiento';
 
@@ -204,14 +216,18 @@ final class TravelProponerPuntosCommand extends Command
         $io->section('Segmentos');
         $resultado = $this->proponerEnSegmentos($io, $puntos, $seco);
 
+        $io->section('Cierre por regla de negocio (privado → hotel · compartido → centro)');
+        $porRegla = $this->cerrarAbarcadores($io, $puntos, $seco);
+
         if (!$seco) {
             $this->em->flush();
         }
 
         $io->newLine();
         $io->success(sprintf(
-            '%d extremos %s · %d ya declarados (intactos) · %d segmentos sin regla',
+            '%d extremos por el nombre + %d por regla de negocio %s · %d ya declarados (intactos) · %d segmentos sin regla',
             $resultado['escritos'],
+            $porRegla,
             $seco ? 'se escribirían' : 'escritos',
             $resultado['respetados'],
             $resultado['sinRegla'],
@@ -400,6 +416,141 @@ final class TravelProponerPuntosCommand extends Command
             static fn (array $c): string => mb_convert_case(mb_strtolower($m[(int) $c[1]] ?? ''), MB_CASE_TITLE, 'UTF-8'),
             $destino
         );
+    }
+
+
+    /**
+     * Segunda pasada: cierra los extremos que el nombre no supo decir, por REGLA DE NEGOCIO.
+     *
+     * La primera pasada lee el nombre del segmento, y hay plantillas donde eso no dice nada del
+     * sitio: «Full Day Humantay Estandar» tiene un único segmento —«Laguna de Humantay»— que es
+     * a la vez el primero y el último del día. El nombre habla de la actividad, no de dónde
+     * empieza ni dónde acaba.
+     *
+     * Ahí decide la regla que da el operador, y sale del tipo del servicio:
+     *
+     * ```
+     * privado (transporte · privada)   recoge en el hotel  →  devuelve al hotel
+     * compartido (pool)                recoge en el hotel  →  deja en el centro de la ciudad
+     * ```
+     *
+     * ⚠️ **Es una regla, no una lectura**, y por eso va aparte y se anuncia como tal en la
+     * salida. Sigue siendo aditiva —sólo escribe sobre `SIN_DEFINIR`— pero quien lea el informe
+     * tiene que poder distinguir lo que se dedujo de un nombre explícito de lo que se dio por
+     * supuesto.
+     *
+     * ⚠️ **Sin centro definido para esa ciudad, se devuelve al hotel y se dice.** Hoy sólo Cusco
+     * lo tiene. Un Lima City Tour cayendo en «Plaza de Armas de Cusco» por completar la simetría
+     * sería exactamente el tipo de dato plausible y falso que esto viene a evitar.
+     *
+     * @param array<string, TravelPunto> $puntos
+     */
+    private function cerrarAbarcadores(SymfonyStyle $io, array $puntos, bool $seco): int
+    {
+        $escritos = 0;
+
+        /** @var list<TravelSegmentoComponente> $abarcadores */
+        $abarcadores = $this->em->getRepository(TravelSegmentoComponente::class)
+            ->findBy(['horaServicioCompleto' => true]);
+
+        foreach ($abarcadores as $sc) {
+            $itinerario = $sc->getItinerarioContexto();
+            $tipo = $sc->getComponente()?->getTipo();
+
+            if ($itinerario === null || $tipo === null) {
+                continue;
+            }
+
+            $extremos = $this->extremosDe($itinerario, $sc->getDia());
+            [$primero, $ultimo] = $extremos;
+
+            if ($primero === null || $ultimo === null) {
+                continue;
+            }
+
+            $etiqueta = sprintf(
+                '%s [%s]',
+                mb_substr((string) $itinerario->getNombreInterno(), 0, 40),
+                $tipo->esCompartido() ? 'compartido' : 'privado'
+            );
+
+            // Los dos empiezan igual: pasando por el hotel de cada pasajero.
+            if (!$primero->getInicioModo()->esDeclarado()) {
+                $primero->setInicioModo(PuntoModoEnum::ALOJAMIENTO);
+                ++$escritos;
+                $io->writeln(sprintf('  <info>·</info> %-54s inicio: hotel del pasajero', $etiqueta));
+            }
+
+            if ($ultimo->getFinModo()->esDeclarado()) {
+                continue;
+            }
+
+            $centro = $tipo->esCompartido() ? $this->centroDe($sc, $puntos) : null;
+
+            if ($centro !== null) {
+                $ultimo->setFinModo(PuntoModoEnum::FIJO);
+                $ultimo->setFinPunto($centro);
+                $io->writeln(sprintf('  <info>·</info> %-54s fin: %s', $etiqueta, $centro->getNombre()));
+            } else {
+                $ultimo->setFinModo(PuntoModoEnum::ALOJAMIENTO);
+                $io->writeln(sprintf(
+                    '  <info>·</info> %-54s fin: hotel del pasajero%s',
+                    $etiqueta,
+                    $tipo->esCompartido() ? ' <comment>(compartido, pero su ciudad no tiene centro definido)</comment>' : ''
+                ));
+            }
+
+            ++$escritos;
+        }
+
+        return $escritos;
+    }
+
+    /**
+     * El punto «centro de la ciudad» que le toca a un servicio, por sus lugares.
+     *
+     * @param array<string, TravelPunto> $puntos
+     */
+    private function centroDe(TravelSegmentoComponente $sc, array $puntos): ?TravelPunto
+    {
+        foreach ($sc->getComponente()?->getLugares() ?? [] as $lugar) {
+            $centro = self::CENTRO_POR_LUGAR[(string) $lugar->getNombre()] ?? null;
+
+            if ($centro !== null && isset($puntos[$centro])) {
+                return $puntos[$centro];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * El primer y el último segmento de una (plantilla, día).
+     *
+     * @return array{0: ?TravelSegmento, 1: ?TravelSegmento}
+     */
+    private function extremosDe(TravelItinerario $itinerario, ?int $dia): array
+    {
+        $qb = $this->em->getRepository(TravelItinerarioSegmentoRel::class)
+            ->createQueryBuilder('r')
+            ->andWhere('r.itinerario = :i')
+            // Con el tipo explícito — ver TravelPuntosDelServicio::extremosDelDia().
+            ->setParameter('i', $itinerario->getId(), UuidType::NAME)
+            ->addOrderBy('r.dia', 'ASC')
+            ->addOrderBy('r.orden', 'ASC');
+
+        if ($dia !== null) {
+            $qb->andWhere('r.dia = :d')->setParameter('d', $dia);
+        }
+
+        /** @var list<TravelItinerarioSegmentoRel> $rels */
+        $rels = $qb->getQuery()->getResult();
+
+        if ($rels === []) {
+            return [null, null];
+        }
+
+        return [$rels[0]->getSegmento(), $rels[count($rels) - 1]->getSegmento()];
     }
 
     /**

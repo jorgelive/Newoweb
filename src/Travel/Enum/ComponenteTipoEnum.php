@@ -83,6 +83,24 @@ enum ComponenteTipoEnum: string
      * traslado de la mañana se leería como si terminara en el hotel de destino, que está en otra
      * ciudad.
      */
+    /**
+     * ¿El servicio se comparte con otros pasajeros, o va sólo para este grupo?
+     *
+     * Decide **dónde se les deja al terminar**, y la regla es del negocio, no del código: lo
+     * privado devuelve al hotel de cada uno; lo compartido deja a todos en el centro de la
+     * ciudad, porque un bus con doce pasajeros de nueve hoteles no puede hacer nueve paradas.
+     *
+     * ⚠️ **`TRANSPORTE` cuenta como privado y no es un descuido.** En este catálogo las
+     * versiones privadas de una excursión se montan con un componente de transporte propio
+     * —«Transporte Vinicunca», «Transporte Combinada»— y no con `EXCURSION_PRIVADA`, del que
+     * sólo hay dos en todo el maestro. Clasificar por el nombre del caso en vez de por cómo se
+     * usa habría dejado a los privados devolviendo al centro.
+     */
+    public function esCompartido(): bool
+    {
+        return $this === self::EXCURSION_POOL;
+    }
+
     public function esSalto(): bool
     {
         return $this === self::VUELO || $this === self::TREN;

@@ -110,4 +110,21 @@ final class PuntosDeServicioTest extends TestCase
             $cuenta
         );
     }
+
+    #[Test]
+    public function solo_el_pool_es_un_servicio_compartido(): void
+    {
+        // Decide dónde se deja al pasajero al terminar: lo privado devuelve al hotel de cada
+        // uno, lo compartido deja a todos en el centro — un bus con doce pasajeros de nueve
+        // hoteles no puede hacer nueve paradas.
+        self::assertTrue(T::EXCURSION_POOL->esCompartido());
+
+        // ⚠️ TRANSPORTE cuenta como privado a propósito: en este catálogo las versiones privadas
+        // se montan con un transporte propio («Transporte Vinicunca»), no con EXCURSION_PRIVADA,
+        // del que sólo hay dos en todo el maestro. Clasificar por el nombre del caso habría
+        // dejado a los privados devolviendo al centro de la ciudad.
+        self::assertFalse(T::TRANSPORTE->esCompartido());
+        self::assertFalse(T::EXCURSION_PRIVADA->esCompartido());
+        self::assertFalse(T::GUIADO->esCompartido());
+    }
 }

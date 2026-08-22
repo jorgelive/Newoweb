@@ -1143,11 +1143,36 @@ etiquetas se acumulan. Un segmento tiene un único origen y un único destino, a
 sería sobrescribir y el orden de la tabla decidiría en silencio.
 
 Resultado sobre el catálogo real: **11 puntos maestros creados, 90 extremos escritos, 68
-segmentos sin regla** —visitas, comidas, alojamientos: correctamente sin puntos—. Deja **12 de
-los 17** servicios abarcadores con sus dos extremos resueltos. Los 5 restantes son plantillas de
-**un solo segmento** (Quelccaya, Palcoyo, Humantay, Vinicunca ×2), donde ese segmento es a la vez
-el primero y el último y su nombre no dice nada del sitio: se rellenan a mano, y el comando los
-lista por nombre al final.
+segmentos sin regla** —visitas, comidas, alojamientos: correctamente sin puntos—. Con la segunda pasada, los **12** servicios abarcadores que tienen plantilla quedan resueltos.
+Quedan fuera 5 que llevan la marca **sin plantilla de contexto** — ver «Deuda de datos».
+
+#### El cierre por regla de negocio: privado → hotel, compartido → centro
+
+Hay plantillas donde el nombre no dice nada del sitio: «Full Day Humantay Estandar» tiene **un
+único segmento** —«Laguna de Humantay»— que es a la vez el primero y el último del día, y su
+nombre habla de la actividad. Ahí no hay nada que leer, y decide la regla del operador:
+
+```
+privado    (transporte · privada)   recoge en el hotel  →  DEVUELVE al hotel
+compartido (pool)                   recoge en el hotel  →  DEJA en el centro de la ciudad
+```
+
+El porqué es operativo: un bus compartido con doce pasajeros de nueve hoteles no puede hacer
+nueve paradas. Vive en `ComponenteTipoEnum::esCompartido()`, no en un `=== 'pool'` suelto.
+
+⚠️ **`TRANSPORTE` cuenta como privado.** En este catálogo las versiones privadas de una excursión
+se montan con un transporte propio —«Transporte Vinicunca», «Transporte Combinada»— y no con
+`EXCURSION_PRIVADA`, del que sólo hay **dos** componentes en todo el maestro. Clasificar por el
+nombre del caso en vez de por cómo se usa habría dejado a los privados devolviendo al centro.
+
+⚠️ **El centro se busca por los LUGARES del componente**, con `CENTRO_POR_LUGAR`, y hoy sólo Cusco
+lo tiene. Un componente sin etiquetar cae al hotel **y lo dice en la salida**. Rellenar la tabla
+«por simetría» pondría a un Lima City Tour dejando a la gente en la Plaza de Armas de Cusco: algo
+que compila, pasa los tests y es una orden falsa.
+
+Es una pasada **aparte** de la lectura de nombres y se anuncia como tal, porque quien lea el
+informe tiene que poder distinguir lo deducido de un nombre explícito de lo dado por supuesto.
+Sigue siendo aditiva: sólo escribe sobre `SIN_DEFINIR`.
 
 ### 🐛 La trampa que casi lo deja mudo: `setParameter()` con un UUID
 
