@@ -2111,6 +2111,25 @@ que en cotizaciones: es una lectura derivada que se refresca sola al corregir un
 Los **avisos** se pintan en ámbar bajo los campos y dicen por qué falta algo y dónde se arregla.
 Sin ellos, un campo gris y vacío no distingue «no aplica» de «nadie lo declaró».
 
+### 🐛 Un filtro guardado esconde los tipos que aún no existían
+
+Los filtros del cuadro de tráfico se persisten en `localStorage['biblia:filtros']`. Al añadir
+`ComponenteTipoEnum::CONTACTO`, los servicios de ese tipo **desaparecieron del cuadro**: el filtro
+guardado llevaba los 13 tipos de entonces y el nuevo no estaba en la lista.
+
+Sin error, sin hueco y sin nada que lo delatara — **nueve filas en la base, ocho en pantalla**. Se
+tarda en notar porque un filtro que oculta de más se parece mucho a «no hay nada ese día».
+
+El arreglo no es borrar el storage, que volvería a pasar con el siguiente tipo: se guarda junto al
+filtro **la foto del catálogo** (`tiposCatalogo`), y al restaurar, si no coincide con el actual, el
+filtro de tipos **se descarta**.
+
+⚠️ **Se falla ABIERTO**, y es deliberado: perder el filtro una vez es una molestia; perder una fila
+es una orden que no se emite.
+
+⚠️ **Sólo para `tipos`.** Es un enum del código y cambia una vez al año. Los lugares salen de la
+base y se crean a menudo: reiniciar su filtro en cada alta sería peor que el problema.
+
 ### El recojo se dice UNA VEZ AL DÍA
 
 `OperacionOrdenServicio::rutasVisibles()` decide qué líneas enseñan el «recoge en… → deja en…».

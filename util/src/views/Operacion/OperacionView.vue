@@ -103,7 +103,25 @@ const restaurarFiltros = (): void => {
         const f = JSON.parse(raw) as Record<string, unknown>;
         if (typeof f.desde === 'string') desde.value = f.desde;
         if (typeof f.hasta === 'string') hasta.value = f.hasta;
-        if (Array.isArray(f.tipos)) tiposSeleccionados.value = f.tipos as string[];
+        // ⚠️ Si el CATÁLOGO de tipos cambió desde que se guardó, el filtro de tipos se descarta.
+        //
+        // Un filtro guardado no puede saber de un tipo que aún no existía, así que al añadir
+        // `contacto` los servicios de ese tipo desaparecieron del cuadro — sin error, sin hueco y
+        // sin nada que lo delatara: nueve filas en la base, ocho en pantalla. Se tarda en notar
+        // porque un filtro que oculta de más se parece mucho a «no hay nada ese día».
+        //
+        // Se falla ABIERTO —se enseña de más, no de menos—: perder el filtro una vez es una
+        // molestia; perder una fila es una orden que no se emite.
+        //
+        // Sólo para `tipos`, que es un enum del código y cambia una vez al año. Los lugares salen
+        // de la base y se crean a menudo: reiniciar su filtro cada vez sería peor que el problema.
+        const catalogoGuardado = Array.isArray(f.tiposCatalogo) ? (f.tiposCatalogo as string[]) : null;
+        const catalogoActual = TIPOS_COMPONENTE.map((t) => t.value);
+        const catalogoIgual = catalogoGuardado !== null
+            && catalogoGuardado.length === catalogoActual.length
+            && catalogoActual.every((t) => catalogoGuardado.includes(t));
+
+        if (Array.isArray(f.tipos) && catalogoIgual) tiposSeleccionados.value = f.tipos as string[];
         if (Array.isArray(f.lugares)) lugaresSeleccionados.value = f.lugares as string[];
         if (typeof f.estadoReserva === 'string') filtroEstadoReservaProveedor.value = f.estadoReserva;
         if (typeof f.estadoOperacion === 'string') filtroEstadoOperacion.value = f.estadoOperacion;
@@ -123,6 +141,9 @@ watch(
             localStorage.setItem(FILTROS_STORAGE_KEY, JSON.stringify({
                 desde: desde.value, hasta: hasta.value,
                 tipos: tiposSeleccionados.value, lugares: lugaresSeleccionados.value,
+                // La foto del catálogo con la que se guardó: si cambia, el filtro de tipos
+                // se descarta al restaurar. Ver `restaurarFiltros()`.
+                tiposCatalogo: TIPOS_COMPONENTE.map((t) => t.value),
                 estadoReserva: filtroEstadoReservaProveedor.value,
                 estadoOperacion: filtroEstadoOperacion.value,
                 filtroOs: filtroOs.value,
