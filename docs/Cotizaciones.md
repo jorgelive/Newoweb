@@ -1273,8 +1273,26 @@ es lo que pasa con un campo que no pertenece a donde está.
 | mapping Vich `cotizacion_file_documentos` | `cotizacion_file_archivos` |
 | `/carga/cotizacion/documentos` | `/carga/cotizacion/archivos` |
 
-⚠️ **No se tocó `cot_filedocumento`**, la tabla legada que mapea `src/Oweb/Entity/`. Son tablas
-distintas y ese módulo se retira entero.
+### ⚠️ `src/Oweb/` NO se renombra, y no es por pereza
+
+Existe `App\Oweb\Entity\CotizacionFiledocumento` con **el mismo nombre de clase**, y colgando de
+él un `CotizacionFiledocumentoAdmin` de Sonata registrado en
+`config/services/services_oweb_cotizacion.yaml` con `model_class` apuntando a esa entidad. Tocar el
+nombre allí rompe el panel legado sin que nada lo denuncie hasta que alguien lo abra.
+
+Y no hace falta: **son tablas distintas**.
+
+| | tabla | filas en producción |
+|---|---|---|
+| `App\Cotizacion\Entity\CotizacionFilearchivo` | `cotizacion_file_archivo` | 7 |
+| `App\Oweb\Entity\CotizacionFiledocumento` | `cot_filedocumento` | 563 |
+
+El renombre se hizo excluyendo `src/Oweb/` explícitamente del barrido, y se verificó después que el
+admin sigue resolviendo en el contenedor. Su etiqueta en Sonata, por cierto, ya decía «Archivos
+adjuntos»: el nombre correcto llevaba tiempo en la interfaz y sólo faltaba en el código.
+
+Mientras `src/Oweb/` siga vivo, **cualquier renombre en `src/Cotizacion/` tiene que comprobar si
+hay un gemelo allí**. Los hay: `CotizacionFile`, `CotizacionCotizacion`, `CotizacionTipofiledocumento`…
 
 ⚠️ **`tipodocumento` de `CotizacionFilepasajero` NO se tocó**: ése sí es identidad
 (`DocumentoTipoEnum`: DNI, CE, RUC, PASAPORTE, CI) y se queda. El renombre tuvo que ser quirúrgico
