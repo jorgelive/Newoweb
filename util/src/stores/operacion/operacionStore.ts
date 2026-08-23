@@ -34,7 +34,7 @@ export interface ExpedienteDetalle {
     nombreGrupo?: string | null;
     pasajeroPrincipal?: string | null;
     filepasajeros?: Array<Record<string, unknown>>;
-    filedocumentos?: Array<Record<string, unknown>>;
+    filearchivos?: Array<Record<string, unknown>>;
 }
 
 /** Un pago a cuenta hecho al proveedor. */
@@ -841,17 +841,17 @@ export const useOperacionStore = defineStore('operacionStore', () => {
 
     /**
      * Sube un documento al expediente desde La Biblia. Mismo endpoint multipart que usa
-     * FileDetalle (`/cotizacion_filedocumentos`): estos documentos —vouchers, confirmaciones de
+     * FileDetalle (`/cotizacion_filearchivos`): estos documentos —vouchers, confirmaciones de
      * reserva— se generan justo al operar, así que tiene sentido subirlos sin salir del cuadro.
-     * `tipodocumento` sale del nombre del archivo; se puede renombrar luego en el expediente.
+     * `tipoArchivo` sale del nombre del archivo; se puede renombrar luego en el expediente.
      */
     const subirDocumentoExpediente = async (fileId: string, archivo: File): Promise<boolean> => {
         try {
             const fd = new FormData();
             fd.append('documento', archivo);
-            fd.append('tipodocumento', archivo.name.replace(/\.[^.]+$/, '') || 'Documento');
+            fd.append('tipoArchivo', archivo.name.replace(/\.[^.]+$/, '') || 'Documento');
             fd.append('file', `/platform/sales/cotizacion_files/${fileId}`);
-            await apiClient.post('/platform/sales/cotizacion_filedocumentos', fd, {
+            await apiClient.post('/platform/sales/cotizacion_filearchivos', fd, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             return true;

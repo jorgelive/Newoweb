@@ -181,12 +181,12 @@ class CotizacionFile
     private Collection $filepasajeros;
 
     /**
-     * @var Collection<int, CotizacionFiledocumento>
+     * @var Collection<int, CotizacionFilearchivo>
      */
     #[ApiProperty(fetchEager: false)]
     #[Groups(['file:item:read'])]
-    #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFiledocumento::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private Collection $filedocumentos;
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFilearchivo::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $filearchivos;
 
     // ══════════════════════════════════════════════════════════════════════
     // PROPIEDADES VIRTUALES DE LA VISTA PÚBLICA (no persistidas)
@@ -210,7 +210,7 @@ class CotizacionFile
         $this->initializeLocator();
         $this->cotizaciones = new ArrayCollection();
         $this->filepasajeros = new ArrayCollection();
-        $this->filedocumentos = new ArrayCollection();
+        $this->filearchivos = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -301,13 +301,13 @@ class CotizacionFile
      * Filtra por ArchivoTipoEnum::esPublico() en vez de una lista de
      * strings hardcodeada, para mantener la regla en un solo sitio.
      *
-     * @return list<CotizacionFiledocumento>
+     * @return list<CotizacionFilearchivo>
      */
     #[Groups(['pax_file:read'])]
     public function getDocumentosParaCliente(): array
     {
-        return $this->filedocumentos->filter(
-            fn(CotizacionFiledocumento $doc) => $doc->getTipodocumento()?->esPublico() === true
+        return $this->filearchivos->filter(
+            fn(CotizacionFilearchivo $archivo) => $archivo->getTipoArchivo()?->esPublico() === true
         )->getValues();
     }
 
@@ -422,21 +422,21 @@ class CotizacionFile
     }
 
     /**
-     * @return Collection<int, CotizacionFiledocumento>
+     * @return Collection<int, CotizacionFilearchivo>
      */
-    public function getFiledocumentos(): Collection { return $this->filedocumentos; }
-    public function addFiledocumento(CotizacionFiledocumento $filedocumento): self
+    public function getFilearchivos(): Collection { return $this->filearchivos; }
+    public function addFilearchivo(CotizacionFilearchivo $filearchivo): self
     {
-        if (!$this->filedocumentos->contains($filedocumento)) {
-            $this->filedocumentos->add($filedocumento);
-            $filedocumento->setFile($this);
+        if (!$this->filearchivos->contains($filearchivo)) {
+            $this->filearchivos->add($filearchivo);
+            $filearchivo->setFile($this);
         }
         return $this;
     }
-    public function removeFiledocumento(CotizacionFiledocumento $filedocumento): self
+    public function removeFilearchivo(CotizacionFilearchivo $filearchivo): self
     {
-        if ($this->filedocumentos->removeElement($filedocumento)) {
-            if ($filedocumento->getFile() === $this) { $filedocumento->setFile(null); }
+        if ($this->filearchivos->removeElement($filearchivo)) {
+            if ($filearchivo->getFile() === $this) { $filearchivo->setFile(null); }
         }
         return $this;
     }

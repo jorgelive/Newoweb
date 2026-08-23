@@ -20,7 +20,7 @@ import {
   getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS,
   type ApiCotizacionFile,
   type ApiCotizacionFilepasajero,
-  type ApiCotizacionFiledocumento,
+  type ApiCotizacionFilearchivo,
   type ApiCotizacionVersion
 } from '@/types/fileDetalleModel';
 
@@ -122,7 +122,7 @@ const copiarLink = async () => {
 // ============================================================================
 // HELPER NOMBRE DOCUMENTO  (formato AutoTranslate: [{content, language}])
 // ============================================================================
-const getDocNombre = (doc: ApiCotizacionFiledocumento | null | undefined, lang = idiomaActivo.value): string => {
+const getDocNombre = (doc: ApiCotizacionFilearchivo | null | undefined, lang = idiomaActivo.value): string => {
   if (!doc?.nombre) return '';
   if (Array.isArray(doc.nombre)) {
     return doc.nombre.find((n) => n.language === lang)?.content
@@ -330,7 +330,7 @@ const paxForm = ref({
 });
 
 const docForm = ref({
-  nombre: '', tipodocumento: '', vencimiento: '', sobreescribirTraduccion: false, fileObject: null as File | null
+  nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null as File | null
 });
 
 const extractIdStr = (val: unknown): string => val ? String(val).split('/').pop() ?? '' : '';
@@ -487,16 +487,15 @@ const docEditandoIri = ref<string | null>(null);
 
 const abrirDocModal = () => {
   docEditandoIri.value = null; // modo creación
-  docForm.value = { nombre: '', tipodocumento: '', vencimiento: '', sobreescribirTraduccion: false, fileObject: null };
+  docForm.value = { nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null };
   showDocModal.value = true;
 };
 
-const abrirEdicionDoc = (doc: ApiCotizacionFiledocumento) => {
-  docEditandoIri.value = doc['@id'] || `/platform/sales/cotizacion_filedocumentos/${extractIdStr(doc.id)}`;
+const abrirEdicionDoc = (doc: ApiCotizacionFilearchivo) => {
+  docEditandoIri.value = doc['@id'] || `/platform/sales/cotizacion_filearchivos/${extractIdStr(doc.id)}`;
   docForm.value = {
     nombre: getDocNombre(doc, 'es'),   // siempre editamos la fuente en español
-    tipodocumento: doc.tipodocumento || '',
-    vencimiento: doc.vencimiento ? doc.vencimiento.split('T')[0] : '',
+    tipoArchivo: doc.tipoArchivo || '',
     sobreescribirTraduccion: false,
     fileObject: null
   };
@@ -518,13 +517,12 @@ const guardarDocumento = async () => {
       nombre: docForm.value.nombre
           ? [{ content: docForm.value.nombre.trim(), language: 'es' }]
           : null,
-      tipodocumento: docForm.value.tipodocumento,
-      vencimiento: docForm.value.vencimiento || null,
+      tipoArchivo: docForm.value.tipoArchivo,
       sobreescribirTraduccion: docForm.value.sobreescribirTraduccion
     });
   } else {
     // Modo creación: exige archivo (POST multipart)
-    if (!docForm.value.fileObject || !docForm.value.tipodocumento) {
+    if (!docForm.value.fileObject || !docForm.value.tipoArchivo) {
       alert("Faltan datos o el archivo");
       return;
     }
@@ -537,10 +535,9 @@ const guardarDocumento = async () => {
       formData.append('nombre[0][content]', docForm.value.nombre.trim());
       formData.append('nombre[0][language]', 'es');
     }
-    formData.append('tipodocumento', docForm.value.tipodocumento);
+    formData.append('tipoArchivo', docForm.value.tipoArchivo);
     formData.append('sobreescribirTraduccion', docForm.value.sobreescribirTraduccion ? 'true' : 'false');
     formData.append('file', `/platform/sales/cotizacion_files/${extractIdStr(file.value.id || file.value['@id'])}`);
-    if (docForm.value.vencimiento) formData.append('vencimiento', docForm.value.vencimiento);
     success = await fileStore.uploadDocument(formData);
   }
 
@@ -716,22 +713,18 @@ const eliminarDocumento = async (iri?: string) => {
               <button @click="abrirDocModal" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-sky-200 shrink-0">+ Subir Doc</button>
             </div>
 
-            <div v-if="!file.filedocumentos?.length" class="bg-sky-50 border-2 border-dashed border-sky-200 rounded-2xl p-6 text-center text-sky-400">
+            <div v-if="!file.filearchivos?.length" class="bg-sky-50 border-2 border-dashed border-sky-200 rounded-2xl p-6 text-center text-sky-400">
               <i class="fas fa-cloud-upload-alt text-2xl mb-2 opacity-60"></i>
               <p class="text-[10px] font-bold uppercase tracking-widest">Bóveda vacía</p>
             </div>
 
             <div v-else class="space-y-2">
-              <div v-for="doc in file.filedocumentos" :key="doc.id" class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 group relative">
+              <div v-for="doc in file.filearchivos" :key="doc.id" class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 group relative">
                 <a :href="doc.imageUrl || undefined" target="_blank" class="flex-1 flex items-center gap-3 min-w-0">
                   <div class="w-8 h-8 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm shrink-0"><i class="far fa-file-pdf"></i></div>
                   <div class="min-w-0">
-                    <p class="text-[11px] font-black text-slate-800 truncate">{{ getDocNombre(doc) || getArchivoLabel(doc.tipodocumento) }}</p>
-                    <p class="text-[9px] font-bold text-slate-400 uppercase truncate">{{ getArchivoLabel(doc.tipodocumento) }}</p>
-                    <p class="text-[8px] font-bold text-slate-500 uppercase mt-0.5" :class="doc.vencimiento && new Date(doc.vencimiento) < new Date() ? 'text-red-500' : ''">
-                      <span v-if="doc.vencimiento">Vence: {{ new Date(doc.vencimiento).toLocaleDateString() }}</span>
-                      <span v-else>Permanente</span>
-                    </p>
+                    <p class="text-[11px] font-black text-slate-800 truncate">{{ getDocNombre(doc) || getArchivoLabel(doc.tipoArchivo) }}</p>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase truncate">{{ getArchivoLabel(doc.tipoArchivo) }}</p>
                   </div>
                 </a>
                 <button @click="abrirEdicionDoc(doc)" class="w-6 h-6 shrink-0 rounded-full bg-white border border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200 flex items-center justify-center transition-colors">
@@ -1065,15 +1058,14 @@ const eliminarDocumento = async (iri?: string) => {
           </div>
 
           <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoría del Doc *</label>
-            <select v-model="docForm.tipodocumento" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tipo de archivo *</label>
+            <select v-model="docForm.tipoArchivo" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-500">
               <option v-for="(label, valor) in ARCHIVO_TIPO_LABELS" :key="valor" :value="valor">{{ label }}</option>
             </select>
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Vencimiento (Opcional)</label>
-            <MaskedDateInput v-model="docForm.vencimiento" placeholder="DD/MM/AAAA" />
-            <p class="text-[9px] text-slate-400 mt-1">Útil para alertar sobre Pasaportes o Visas vencidas.</p>
+            <!-- Aquí hubo un «Vencimiento (Opcional)» que decía «útil para alertar sobre Pasaportes
+                 o Visas vencidas»: un campo de IDENTIDAD en una entidad de ARCHIVOS. Nadie lo llenó
+                 nunca —0 de 7 filas en producción— y el vencimiento de un documento de identidad va
+                 en el pasajero, no en un adjunto del expediente. -->
           </div>
           <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
             <button type="button" @click="showDocModal = false; docEditandoIri = null" class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg">Cancelar</button>

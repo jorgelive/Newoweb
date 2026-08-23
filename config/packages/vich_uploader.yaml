@@ -77,10 +77,10 @@ vich_uploader:
             delete_on_update: true
             delete_on_remove: true
 
-        cotizacion_file_documentos:
+        cotizacion_file_archivos:
             # Puedes usar un parámetro en services.yaml o escribir la ruta directamente
-            uri_prefix: '%cotizacion.path.file_documentos%'
-            upload_destination: '%app.public_dir%%cotizacion.path.file_documentos%'
+            uri_prefix: '%cotizacion.path.file_archivos%'
+            upload_destination: '%app.public_dir%%cotizacion.path.file_archivos%'
 
             # Universal: Usa el token del MediaTrait (TOKEN_nombre.ext)
             namer: App\Panel\Naming\MediaTokenNamer

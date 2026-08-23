@@ -1251,6 +1251,47 @@ Comprobado con datos reales (transacción con `rollback`) sobre una v1 confirmad
 operación: la foto sale `v1 / historico / derivadaDe = la viva`, no pública; la viva conserva sus
 42 componentes y sus 42 filas, y el enlace `/v/1` sigue resolviendo a la viva.
 
+## 6.k `Filedocumento` → `Filearchivo`: el nombre que hacía leerla al revés (23/08/2026)
+
+`CotizacionFiledocumento` **nunca guardó documentos de identidad**. Es `Vich\Uploadable` con
+`MediaTrait` y un POST multipart, y su enum es `ArchivoTipoEnum` —boleto, factura, confirmación de
+reserva—. Son **adjuntos del expediente**.
+
+El nombre engañaba lo bastante como para que se equivocara quien la diseñó: dentro había un campo
+`vencimiento` cuyo formulario decía literalmente *«útil para alertar sobre Pasaportes o Visas
+vencidas»*. Un campo de identidad en una entidad de archivos. **0 de 7 filas lo usaron nunca**, que
+es lo que pasa con un campo que no pertenece a donde está.
+
+| Antes | Ahora |
+|---|---|
+| `CotizacionFiledocumento` | `CotizacionFilearchivo` |
+| tabla `cotizacion_file_documento` | `cotizacion_file_archivo` |
+| campo `tipodocumento` (¡con `ArchivoTipoEnum`!) | `tipoArchivo` / columna `tipo_archivo` |
+| campo `vencimiento` | **eliminado** |
+| `CotizacionFile::$filedocumentos` | `$filearchivos` |
+| API `/sales/cotizacion_filedocumentos` | `/sales/cotizacion_filearchivos` |
+| mapping Vich `cotizacion_file_documentos` | `cotizacion_file_archivos` |
+| `/carga/cotizacion/documentos` | `/carga/cotizacion/archivos` |
+
+⚠️ **No se tocó `cot_filedocumento`**, la tabla legada que mapea `src/Oweb/Entity/`. Son tablas
+distintas y ese módulo se retira entero.
+
+⚠️ **`tipodocumento` de `CotizacionFilepasajero` NO se tocó**: ése sí es identidad
+(`DocumentoTipoEnum`: DNI, CE, RUC, PASAPORTE, CI) y se queda. El renombre tuvo que ser quirúrgico
+en el front, porque los dos campos se llamaban igual y viven en la misma pantalla.
+
+### Al desplegar esto, tres pasos que no son el `pull`
+
+1. **`composer dump-autoload --no-dev --optimize`** encadenado al `pull`. `CLAUDE.md` lo documenta:
+   con `optimize-autoloader` puesto, el classmap apunta a los archivos viejos hasta que se
+   regenera, y una petición que caiga en ese minuto lanza `include(): Failed opening`.
+2. **Mover la carpeta en el servidor**, porque el parámetro cambió:
+   `mv public/carga/cotizacion/documentos public/carga/cotizacion/archivos`
+   `imageUrl` es virtual —lo inyecta `CotizacionFilearchivoAssetListener`— así que **no hay URLs
+   guardadas que reescribir**: los archivos se sirven desde el prefijo nuevo en cuanto se muevan.
+3. **Front y back van juntos.** El `shortName` cambió, así que la ruta de la API cambió: un build
+   viejo posteando a `/cotizacion_filedocumentos` recibe 404.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -1363,6 +1404,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
 - **Guardar el estado de una cotización antes de tocarla** → botón de cámara en `FileDetalle` → `GuardarHistoricoProcessor`. ⚠️ **No es clonar**: clonar crea la versión siguiente y hace perder las órdenes. Ver §6.j.
+- **Adjuntar un archivo a un expediente** → `CotizacionFilearchivo` (antes `…Filedocumento`, ver §6.k). ⚠️ No confundir con `CotizacionFilepasajero::$tipodocumento`, que sí es identidad.
 - **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `nombreSnapshot` (público). Ver §6.h.
 - **Que un componente sin maestro se pueda nombrar y tipar** → `isComponenteSoloItems()` y `getNombreMaestroRef()` en `CotizacionEditorView.vue`, y `onTipoManualChange()` en el store. Ver §6.h — y ojo con lo que la cadena sigue exigiendo (tarifa, prestador, nombre).
 - **Saber qué se lleva la papelera de un párrafo** → el pie de la tarjeta en el Constructor de Storytelling, alimentado por `store.idSegmentoDeComponente()`. Ver §6.i.

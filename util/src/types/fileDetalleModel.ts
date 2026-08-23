@@ -21,8 +21,8 @@ export type ApiCotizacionFilepasajero = Omit<components['schemas']['CotizacionFi
 // `nombre` va en el Omit a propósito: el schema lo declara `string[]` y sin
 // quitarlo la intersección da `string[] & I18nContent[]`, un tipo inservible
 // (ver el aviso de §2 en docs/Cotizaciones.md).
-export type ApiCotizacionFiledocumento = Omit<
-    components['schemas']['CotizacionFiledocumento-file.read_file.item.read_timestamp.read'],
+export type ApiCotizacionFilearchivo = Omit<
+    components['schemas']['CotizacionFilearchivo-file.read_file.item.read_timestamp.read'],
     'nombre'
 > & {
     '@id'?: string;
@@ -35,12 +35,12 @@ export type ApiCotizacionFiledocumento = Omit<
 // FILE (expediente) — depende de los dos tipos anteriores
 // ============================================================================
 // Base correcta: el schema del Get INDIVIDUAL (item), que sí incluye
-// filepasajeros/filedocumentos — a diferencia del schema de colección
+// filepasajeros/filearchivos — a diferencia del schema de colección
 // (CotizacionFile.jsonld-file.read_timestamp.read), que no los trae porque
 // esos campos solo llevan #[Groups(['file:item:read'])] en el entity.
 type BaseApiCotizacionFile = components['schemas']['CotizacionFile.jsonld-file.read_file.item.read_timestamp.read'];
 
-export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 'filepasajeros' | 'filedocumentos' | 'cotizaciones' | 'versionesFechas'> & {
+export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 'filepasajeros' | 'filearchivos' | 'cotizaciones' | 'versionesFechas'> & {
     '@id'?: string;
     '@type'?: string;
     id?: string;
@@ -50,7 +50,7 @@ export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 
     idioma?: ApiIdioma | null;
     cotizaciones?: ApiCotizacionVersion[];
     filepasajeros?: ApiCotizacionFilepasajero[];
-    filedocumentos?: ApiCotizacionFiledocumento[];
+    filearchivos?: ApiCotizacionFilearchivo[];
     /** Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión. Viene del listado admin (GetCollection). */
     versionesFechas?: { version: number; fechaInicio: string | null }[];
 };
@@ -82,7 +82,7 @@ export interface I18nContent {
 // ============================================================================
 
 // Espejo de App\Cotizacion\Enum\ArchivoTipoEnum
-export type ArchivoTipoValue = NonNullable<components['schemas']['CotizacionFiledocumento']['tipodocumento']>;
+export type ArchivoTipoValue = NonNullable<components['schemas']['CotizacionFilearchivo']['tipoArchivo']>;
 
 export const ARCHIVO_TIPO_LABELS: Record<ArchivoTipoValue, string> = {
     boleto: 'Boleto / Ticket',

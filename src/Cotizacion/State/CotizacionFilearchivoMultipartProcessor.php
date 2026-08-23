@@ -6,15 +6,15 @@ namespace App\Cotizacion\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Cotizacion\Entity\CotizacionFiledocumento;
+use App\Cotizacion\Entity\CotizacionFilearchivo;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
 
-/** @implements ProcessorInterface<CotizacionFiledocumento, CotizacionFiledocumento|null> */
-final readonly class CotizacionFiledocumentoMultipartProcessor implements ProcessorInterface
+/** @implements ProcessorInterface<CotizacionFilearchivo, CotizacionFilearchivo|null> */
+final readonly class CotizacionFilearchivoMultipartProcessor implements ProcessorInterface
 {
-    /** @param ProcessorInterface<CotizacionFiledocumento, CotizacionFiledocumento|null> $persistProcessor */
+    /** @param ProcessorInterface<CotizacionFilearchivo, CotizacionFilearchivo|null> $persistProcessor */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private ProcessorInterface $persistProcessor,
@@ -31,7 +31,7 @@ final readonly class CotizacionFiledocumentoMultipartProcessor implements Proces
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        if (!$data instanceof CotizacionFiledocumento) {
+        if (!$data instanceof CotizacionFilearchivo) {
             return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
         }
 

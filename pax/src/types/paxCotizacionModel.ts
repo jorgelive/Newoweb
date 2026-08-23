@@ -316,7 +316,7 @@ export interface PaxFilepasajero {
     numerodocumento?: string | null;
 }
 
-export interface PaxFiledocumento {
+export interface PaxFilearchivo {
     '@id'?: string;
     id?: string;
     nombre?: I18n;
@@ -358,7 +358,7 @@ export interface PaxCotizacionFile {
     versionesParaCliente: PaxVersionResumen[];
     /** Cotización completa; solo viene cuando la URL incluye /{version} */
     cotizacionParaCliente?: PaxCotizacion | null;
-    documentosParaCliente: PaxFiledocumento[];
+    documentosParaCliente: PaxFilearchivo[];
     filepasajeros: PaxFilepasajero[];
 }
 

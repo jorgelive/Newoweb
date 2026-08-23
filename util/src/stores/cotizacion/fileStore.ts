@@ -310,7 +310,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     const uploadDocument = async (formData: FormData): Promise<boolean> => {
         error.value = null;
         try {
-            await apiClient.post('/platform/sales/cotizacion_filedocumentos', formData, {
+            await apiClient.post('/platform/sales/cotizacion_filearchivos', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             return true;
@@ -322,7 +322,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
 
     const updateDocument = async (
         iri: string,
-        payload: { nombre?: I18nContent[] | null; tipodocumento: string; vencimiento: string | null; sobreescribirTraduccion?: boolean }
+        payload: { nombre?: I18nContent[] | null; tipoArchivo: string; sobreescribirTraduccion?: boolean }
     ): Promise<boolean> => {
         error.value = null;
         try {

@@ -3326,7 +3326,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                     class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
                                 <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">
                                     <i class="fas fa-paperclip mr-1 text-slate-300"></i>
-                                    Documentos ({{ (expedienteDetalle?.filedocumentos ?? []).length }})
+                                    Documentos ({{ (expedienteDetalle?.filearchivos ?? []).length }})
                                 </span>
                                 <i class="fas text-[10px] text-slate-300" :class="panelDocumentos ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                             </button>
@@ -3341,11 +3341,11 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                 </button>
                                 <input ref="docInputRef" type="file" class="hidden" @change="onSubirDocumento" />
 
-                                <p v-if="!(expedienteDetalle?.filedocumentos ?? []).length" class="text-[11px] text-slate-400 py-2">
+                                <p v-if="!(expedienteDetalle?.filearchivos ?? []).length" class="text-[11px] text-slate-400 py-2">
                                     Sin archivos cargados.
                                 </p>
                                 <div v-else class="grid grid-cols-1 gap-2">
-                                    <a v-for="(doc, i) in (expedienteDetalle?.filedocumentos ?? [])" :key="i"
+                                    <a v-for="(doc, i) in (expedienteDetalle?.filearchivos ?? [])" :key="i"
                                        :href="(doc.imageUrl as string) || '#'" target="_blank" rel="noopener"
                                        class="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 rounded-lg px-3 py-2 transition-colors">
                                         <i class="fas fa-file-lines text-[#376875]"></i>

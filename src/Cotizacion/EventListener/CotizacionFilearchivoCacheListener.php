@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\EventListener;
 
-use App\Cotizacion\Entity\CotizacionFiledocumento;
+use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Panel\EventListener\Media\AbstractCacheListener;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\Events;
@@ -15,9 +15,9 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * Se encarga de notificar a LiipImagine que elimine los archivos en caché (miniaturas)
  * si un documento adjunto a una cotización es modificado o eliminado.
  */
-#[AsEntityListener(event: Events::preUpdate, method: 'preUpdate', entity: CotizacionFiledocumento::class)]
-#[AsEntityListener(event: Events::preRemove, method: 'preRemove', entity: CotizacionFiledocumento::class)]
-class CotizacionFiledocumentoCacheListener extends AbstractCacheListener
+#[AsEntityListener(event: Events::preUpdate, method: 'preUpdate', entity: CotizacionFilearchivo::class)]
+#[AsEntityListener(event: Events::preRemove, method: 'preRemove', entity: CotizacionFilearchivo::class)]
+class CotizacionFilearchivoCacheListener extends AbstractCacheListener
 {
     /**
      * Constructor para inyectar las dependencias y el parámetro de la ruta.
@@ -27,7 +27,7 @@ class CotizacionFiledocumentoCacheListener extends AbstractCacheListener
      */
     public function __construct(
         CacheManager $cacheManager,
-        #[Autowire('%cotizacion.path.file_documentos%')]
+        #[Autowire('%cotizacion.path.file_archivos%')]
         private readonly string $uploadPath
     ) {
         parent::__construct($cacheManager);

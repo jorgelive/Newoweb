@@ -567,10 +567,10 @@ parameters:
 			path: src/Cotizacion/Serializer/CotizacionDenormalizer.php
 
 		-
-			message: '#^Instanceof between App\\Cotizacion\\Entity\\CotizacionFiledocumento and App\\Cotizacion\\Entity\\CotizacionFiledocumento will always evaluate to true\.$#'
+			message: '#^Instanceof between App\\Cotizacion\\Entity\\CotizacionFilearchivo and App\\Cotizacion\\Entity\\CotizacionFilearchivo will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
 			count: 1
-			path: src/Cotizacion/State/CotizacionFiledocumentoMultipartProcessor.php
+			path: src/Cotizacion/State/CotizacionFilearchivoMultipartProcessor.php
 
 		-
 			message: '#^Property App\\Entity\\MessengerMessage\:\:\$availableAt \(DateTimeImmutable\|null\) is never assigned DateTimeImmutable so it can be removed from the property type\.$#'

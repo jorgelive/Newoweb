@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Recibe la subida de una imagen de galería de organización por `multipart/form-data`.
  *
- * Mismo patrón que {@see \App\Cotizacion\State\CotizacionFiledocumentoMultipartProcessor}:
+ * Mismo patrón que {@see \App\Cotizacion\State\CotizacionFilearchivoMultipartProcessor}:
  * API Platform denormaliza los campos escalares del formulario, y el binario hay que
  * recogerlo a mano de la request y entregárselo a Vich.
  *

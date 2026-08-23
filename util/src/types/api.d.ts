@@ -676,7 +676,7 @@ export interface paths {
         patch: operations["api_salescotizacion_files_id_patch"];
         trace?: never;
     };
-    "/platform/sales/cotizacion_filedocumentos": {
+    "/platform/sales/cotizacion_filearchivos": {
         parameters: {
             query?: never;
             header?: never;
@@ -686,17 +686,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Creates a CotizacionFiledocumento resource.
-         * @description Creates a CotizacionFiledocumento resource.
+         * Creates a CotizacionFilearchivo resource.
+         * @description Creates a CotizacionFilearchivo resource.
          */
-        post: operations["api_salescotizacion_filedocumentos_post"];
+        post: operations["api_salescotizacion_filearchivos_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/sales/cotizacion_filedocumentos/{id}": {
+    "/platform/sales/cotizacion_filearchivos/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -707,17 +707,17 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Removes the CotizacionFiledocumento resource.
-         * @description Removes the CotizacionFiledocumento resource.
+         * Removes the CotizacionFilearchivo resource.
+         * @description Removes the CotizacionFilearchivo resource.
          */
-        delete: operations["api_salescotizacion_filedocumentos_id_delete"];
+        delete: operations["api_salescotizacion_filearchivos_id_delete"];
         options?: never;
         head?: never;
         /**
-         * Updates the CotizacionFiledocumento resource.
-         * @description Updates the CotizacionFiledocumento resource.
+         * Updates the CotizacionFilearchivo resource.
+         * @description Updates the CotizacionFilearchivo resource.
          */
-        patch: operations["api_salescotizacion_filedocumentos_id_patch"];
+        patch: operations["api_salescotizacion_filearchivos_id_patch"];
         trace?: never;
     };
     "/platform/sales/cotizacion_filepasajeros": {
@@ -9576,7 +9576,7 @@ export interface components {
              */
             cotizaciones?: string[];
             filepasajeros?: string[];
-            filedocumentos?: string[];
+            filearchivos?: string[];
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -9629,7 +9629,7 @@ export interface components {
             estado: "abierto" | "cerrado" | "archivado";
             cotizaciones?: components["schemas"]["Cotizacion-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"][];
-            filedocumentos?: components["schemas"]["CotizacionFiledocumento-file.read_file.item.read_timestamp.read"][];
+            filearchivos?: components["schemas"]["CotizacionFilearchivo-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
@@ -9744,7 +9744,7 @@ export interface components {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
-            readonly documentosParaCliente?: components["schemas"]["CotizacionFiledocumento-pax_file.read"][];
+            readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read"][];
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-pax_file.read_pax_cotizacion.read": {
@@ -9759,7 +9759,7 @@ export interface components {
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion-pax_file.read_pax_cotizacion.read"] | null;
             readonly localizador?: string | null;
-            readonly documentosParaCliente?: components["schemas"]["CotizacionFiledocumento-pax_file.read_pax_cotizacion.read"][];
+            readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read_pax_cotizacion.read"][];
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.html": {
@@ -9791,7 +9791,7 @@ export interface components {
              */
             cotizaciones?: string[];
             filepasajeros?: string[];
-            filedocumentos?: string[];
+            filearchivos?: string[];
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -9844,7 +9844,7 @@ export interface components {
             estado: "abierto" | "cerrado" | "archivado";
             cotizaciones?: components["schemas"]["Cotizacion.html-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"][];
-            filedocumentos?: components["schemas"]["CotizacionFiledocumento.html-file.read_file.item.read_timestamp.read"][];
+            filearchivos?: components["schemas"]["CotizacionFilearchivo.html-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
@@ -9919,7 +9919,7 @@ export interface components {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
-            readonly documentosParaCliente?: components["schemas"]["CotizacionFiledocumento.html-pax_file.read"][];
+            readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read"][];
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.html-pax_file.read_pax_cotizacion.read": {
@@ -9934,7 +9934,7 @@ export interface components {
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.html-pax_file.read_pax_cotizacion.read"] | null;
             readonly localizador?: string | null;
-            readonly documentosParaCliente?: components["schemas"]["CotizacionFiledocumento.html-pax_file.read_pax_cotizacion.read"][];
+            readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read_pax_cotizacion.read"][];
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -9966,7 +9966,7 @@ export interface components {
              */
             cotizaciones?: string[];
             filepasajeros?: string[];
-            filedocumentos?: string[];
+            filearchivos?: string[];
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -10006,7 +10006,7 @@ export interface components {
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": {
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"][];
-            filedocumentos?: components["schemas"]["CotizacionFiledocumento.jsonld-file.read_file.item.read_timestamp.read"][];
+            filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
@@ -10098,7 +10098,7 @@ export interface components {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
-            readonly documentosParaCliente?: components["schemas"]["CotizacionFiledocumento.jsonld-pax_file.read"][];
+            readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read"][];
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -10113,7 +10113,7 @@ export interface components {
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.jsonld-pax_file.read_pax_cotizacion.read"] | null;
             readonly localizador?: string | null;
-            readonly documentosParaCliente?: components["schemas"]["CotizacionFiledocumento.jsonld-pax_file.read_pax_cotizacion.read"][];
+            readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read_pax_cotizacion.read"][];
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.multipart": {
@@ -10145,7 +10145,7 @@ export interface components {
              */
             cotizaciones?: string[];
             filepasajeros?: string[];
-            filedocumentos?: string[];
+            filearchivos?: string[];
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -10198,7 +10198,7 @@ export interface components {
             estado: "abierto" | "cerrado" | "archivado";
             cotizaciones?: components["schemas"]["Cotizacion.multipart-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"][];
-            filedocumentos?: components["schemas"]["CotizacionFiledocumento.multipart-file.read_file.item.read_timestamp.read"][];
+            filearchivos?: components["schemas"]["CotizacionFilearchivo.multipart-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
@@ -10273,7 +10273,7 @@ export interface components {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
-            readonly documentosParaCliente?: components["schemas"]["CotizacionFiledocumento.multipart-pax_file.read"][];
+            readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read"][];
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.multipart-pax_file.read_pax_cotizacion.read": {
@@ -10288,13 +10288,14 @@ export interface components {
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.multipart-pax_file.read_pax_cotizacion.read"] | null;
             readonly localizador?: string | null;
-            readonly documentosParaCliente?: components["schemas"]["CotizacionFiledocumento.multipart-pax_file.read_pax_cotizacion.read"][];
+            readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read_pax_cotizacion.read"][];
         };
-        CotizacionFiledocumento: {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        CotizacionFilearchivo: {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -10329,11 +10330,12 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
-        "CotizacionFiledocumento-file.read_file.item.read_timestamp.read": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo-file.read_file.item.read_timestamp.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
             imageName?: string | null;
             imageSize?: number | null;
@@ -10347,11 +10349,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionFiledocumento-file.write": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo-file.write": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
             imageName?: string | null;
             imageSize?: number | null;
@@ -10366,11 +10369,12 @@ export interface components {
              */
             sobreescribirTraduccion: boolean;
         };
-        "CotizacionFiledocumento-file.write.jsonMergePatch": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo-file.write.jsonMergePatch": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
             imageName?: string | null;
             imageSize?: number | null;
@@ -10385,33 +10389,36 @@ export interface components {
              */
             sobreescribirTraduccion: boolean;
         };
-        "CotizacionFiledocumento-pax_file.read": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo-pax_file.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
         };
-        "CotizacionFiledocumento-pax_file.read_pax_cotizacion.read": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo-pax_file.read_pax_cotizacion.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
         };
-        "CotizacionFiledocumento.html": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.html": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -10446,11 +10453,12 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
-        "CotizacionFiledocumento.html-file.read_file.item.read_timestamp.read": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.html-file.read_file.item.read_timestamp.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
             imageName?: string | null;
             imageSize?: number | null;
@@ -10464,33 +10472,36 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionFiledocumento.html-pax_file.read": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.html-pax_file.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
         };
-        "CotizacionFiledocumento.html-pax_file.read_pax_cotizacion.read": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.html-pax_file.read_pax_cotizacion.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
         };
-        "CotizacionFiledocumento.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -10525,11 +10536,12 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
-        "CotizacionFiledocumento.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
             imageName?: string | null;
             imageSize?: number | null;
@@ -10543,33 +10555,36 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionFiledocumento.jsonld-pax_file.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.jsonld-pax_file.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
         };
-        "CotizacionFiledocumento.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
         };
-        "CotizacionFiledocumento.multipart": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.multipart": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -10604,11 +10619,12 @@ export interface components {
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
-        "CotizacionFiledocumento.multipart-file.read_file.item.read_timestamp.read": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.multipart-file.read_file.item.read_timestamp.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
             imageName?: string | null;
             imageSize?: number | null;
@@ -10622,22 +10638,24 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionFiledocumento.multipart-pax_file.read": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.multipart-pax_file.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
             nombre?: {
                 [key: string]: string | null;
             }[] | null;
         };
-        "CotizacionFiledocumento.multipart-pax_file.read_pax_cotizacion.read": {
-            /** Format: date-time */
-            vencimiento?: string | null;
-            /** @enum {string} */
-            tipodocumento?: "boleto" | "factura" | "reserva" | "otros";
+        "CotizacionFilearchivo.multipart-pax_file.read_pax_cotizacion.read": {
+            /**
+             * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+             * @enum {string}
+             */
+            tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             /** @description Propiedad virtual para exponer la URL pública. */
             imageUrl?: string | null;
             nombre?: {
@@ -32762,31 +32780,31 @@ export interface operations {
             };
         };
     };
-    api_salescotizacion_filedocumentos_post: {
+    api_salescotizacion_filearchivos_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description The new CotizacionFiledocumento resource */
+        /** @description The new CotizacionFilearchivo resource */
         requestBody: {
             content: {
-                "application/ld+json": components["schemas"]["CotizacionFiledocumento-file.write"];
-                "multipart/form-data": components["schemas"]["CotizacionFiledocumento-file.write"];
+                "application/ld+json": components["schemas"]["CotizacionFilearchivo-file.write"];
+                "multipart/form-data": components["schemas"]["CotizacionFilearchivo-file.write"];
             };
         };
         responses: {
-            /** @description CotizacionFiledocumento resource created */
+            /** @description CotizacionFilearchivo resource created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFiledocumento.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFiledocumento"];
-                    "text/html": components["schemas"]["CotizacionFiledocumento.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFiledocumento.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFilearchivo.jsonld"];
+                    "application/json": components["schemas"]["CotizacionFilearchivo"];
+                    "text/html": components["schemas"]["CotizacionFilearchivo.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilearchivo.multipart"];
                 };
             };
             /** @description Invalid input */
@@ -32813,19 +32831,19 @@ export interface operations {
             };
         };
     };
-    api_salescotizacion_filedocumentos_id_delete: {
+    api_salescotizacion_filearchivos_id_delete: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description CotizacionFiledocumento identifier */
+                /** @description CotizacionFilearchivo identifier */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description CotizacionFiledocumento resource deleted */
+            /** @description CotizacionFilearchivo resource deleted */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -32856,33 +32874,33 @@ export interface operations {
             };
         };
     };
-    api_salescotizacion_filedocumentos_id_patch: {
+    api_salescotizacion_filearchivos_id_patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description CotizacionFiledocumento identifier */
+                /** @description CotizacionFilearchivo identifier */
                 id: string;
             };
             cookie?: never;
         };
-        /** @description The updated CotizacionFiledocumento resource */
+        /** @description The updated CotizacionFilearchivo resource */
         requestBody: {
             content: {
-                "application/merge-patch+json": components["schemas"]["CotizacionFiledocumento-file.write.jsonMergePatch"];
+                "application/merge-patch+json": components["schemas"]["CotizacionFilearchivo-file.write.jsonMergePatch"];
             };
         };
         responses: {
-            /** @description CotizacionFiledocumento resource updated */
+            /** @description CotizacionFilearchivo resource updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFiledocumento.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFiledocumento"];
-                    "text/html": components["schemas"]["CotizacionFiledocumento.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFiledocumento.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFilearchivo.jsonld"];
+                    "application/json": components["schemas"]["CotizacionFilearchivo"];
+                    "text/html": components["schemas"]["CotizacionFilearchivo.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilearchivo.multipart"];
                 };
             };
             /** @description Invalid input */

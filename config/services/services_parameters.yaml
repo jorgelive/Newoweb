@@ -56,6 +56,6 @@ parameters:
     pms.path.unidad_images: '/carga/pms/pms_unidad/images'
     message.path.message_attachments: '/carga/message/message_attachment/file'
     travel.path.segmento_imagenes: '/carga/travel/segmentos'
-    cotizacion.path.file_documentos: '/carga/cotizacion/documentos'
+    cotizacion.path.file_archivos: '/carga/cotizacion/archivos'
     travel.path.proveedor_galeria: '/carga/travel/proveedor/galeria'
     travel.path.proveedor_servicio_galeria: '/carga/travel/proveedor_servicio/galeria'

@@ -10,21 +10,20 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Attribute\AutoTranslate;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
-use App\Cotizacion\State\CotizacionFiledocumentoMultipartProcessor;
+use App\Cotizacion\State\CotizacionFilearchivoMultipartProcessor;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Panel\Entity\Trait\MediaTrait;
 use App\Security\Roles;
 use DateTimeImmutable;
-use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[ApiResource(
-    shortName: 'CotizacionFiledocumento',
+    shortName: 'CotizacionFilearchivo',
     operations: [
         new Post(
             inputFormats: [
@@ -37,7 +36,7 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
             ],
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para subir documentos.',
-            processor: CotizacionFiledocumentoMultipartProcessor::class
+            processor: CotizacionFilearchivoMultipartProcessor::class
         ),
         new Patch(
             denormalizationContext: ['groups' => ['file:write']],
@@ -52,34 +51,36 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
     routePrefix: '/sales'
 )]
 #[ORM\Entity]
-#[ORM\Table(name: 'cotizacion_file_documento')]
+#[ORM\Table(name: 'cotizacion_file_archivo')]
 #[ORM\HasLifecycleCallbacks]
 #[Vich\Uploadable]
-class CotizacionFiledocumento
+class CotizacionFilearchivo
 {
     use IdTrait;
     use TimestampTrait;
     use MediaTrait;
     use AutoTranslateControlTrait;
 
+    /**
+     * Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
+     *
+     * ⚠️ Se llamaba `tipodocumento`, y ese nombre hizo leer la entidad entera al revés: esto **no
+     * es un documento de identidad**. Aquí viven adjuntos —`Vich\Uploadable`, `MediaTrait`, POST
+     * multipart—, no el DNI ni el pasaporte de nadie.
+     */
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
-    #[ORM\Column(type: 'date', nullable: true)]
-    private ?DateTimeInterface $vencimiento = null;
-
-    // 🔥 Reemplazado por el nuevo Enum dentro del módulo Cotizacion
-    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
-    #[ORM\Column(type: 'string', length: 20, enumType: ArchivoTipoEnum::class)]
-    private ?ArchivoTipoEnum $tipodocumento = null;
+    #[ORM\Column(name: 'tipo_archivo', type: 'string', length: 20, enumType: ArchivoTipoEnum::class)]
+    private ?ArchivoTipoEnum $tipoArchivo = null;
 
     #[Groups(['file:item:read', 'file:write'])]
-    #[ORM\ManyToOne(targetEntity: CotizacionFile::class, inversedBy: 'filedocumentos')]
+    #[ORM\ManyToOne(targetEntity: CotizacionFile::class, inversedBy: 'filearchivos')]
     #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
 
     /* ======================================================
      * PROPIEDADES DE VICH UPLOADER Y MEDIA TRAIT
      * ====================================================== */
-    #[Vich\UploadableField(mapping: 'cotizacion_file_documentos', fileNameProperty: 'imageName', size: 'imageSize')]
+    #[Vich\UploadableField(mapping: 'cotizacion_file_archivos', fileNameProperty: 'imageName', size: 'imageSize')]
     private ?File $imageFile = null;
 
     #[Groups(['file:item:read', 'file:write'])]
@@ -116,10 +117,7 @@ class CotizacionFiledocumento
 
     public function __toString(): string
     {
-        $nombre = $this->getNombreTraducido('es') ?? $this->imageName ?? 'Documento sin archivo';
-        return $this->vencimiento
-            ? sprintf('%s | %s', $this->vencimiento->format('Y-m-d'), $nombre)
-            : $nombre;
+        return $this->getNombreTraducido('es') ?? $this->imageName ?? 'Archivo sin nombre';
     }
 
     public function isSobreescribirTraduccion(): bool
@@ -148,11 +146,8 @@ class CotizacionFiledocumento
      * GETTERS Y SETTERS
      * ====================================================== */
 
-    public function getVencimiento(): ?DateTimeInterface { return $this->vencimiento; }
-    public function setVencimiento(?DateTimeInterface $vencimiento): self { $this->vencimiento = $vencimiento; return $this; }
-
-    public function getTipodocumento(): ?ArchivoTipoEnum { return $this->tipodocumento; }
-    public function setTipodocumento(?ArchivoTipoEnum $tipodocumento): self { $this->tipodocumento = $tipodocumento; return $this; }
+    public function getTipoArchivo(): ?ArchivoTipoEnum { return $this->tipoArchivo; }
+    public function setTipoArchivo(?ArchivoTipoEnum $tipoArchivo): self { $this->tipoArchivo = $tipoArchivo; return $this; }
 
     public function getFile(): ?CotizacionFile { return $this->file; }
     public function setFile(?CotizacionFile $file): self { $this->file = $file; return $this; }
