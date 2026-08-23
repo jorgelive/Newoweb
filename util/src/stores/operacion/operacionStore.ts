@@ -440,6 +440,26 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      */
     const puntosDerivados = ref<PuntosDerivadosPorServicio>({});
 
+    /**
+     * Pide los puntos de una lista de servicios y los MEZCLA con lo ya cargado.
+     *
+     * Mezcla y no reemplaza porque hay dos orígenes: el cuadro de tráfico y los servicios de una
+     * orden al desplegarla, que pueden no estar en el cuadro —otro rango de fechas, otro filtro—.
+     * Reemplazando, abrir una orden borraba los puntos de la lista de detrás.
+     */
+    const cargarPuntosDe = async (ids: string[]): Promise<void> => {
+        const nuevos = ids.filter((id) => id && !(id in puntosDerivados.value));
+        if (nuevos.length === 0) return;
+
+        try {
+            const query = nuevos.map((id) => `id[]=${id}`).join('&');
+            const res = await apiClient.get(`/operacion/user/puntos?${query}`);
+            puntosDerivados.value = { ...puntosDerivados.value, ...(res.data?.servicios ?? {}) };
+        } catch (error) {
+            console.error('No se pudieron resolver los puntos de recojo:', error);
+        }
+    };
+
     const resolverPuntosDeServicios = async (): Promise<void> => {
         const ids = Array.from(new Set(
             servicios.value
@@ -1009,7 +1029,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     return {
-        puntosDerivados, resolverPuntosDeServicios,
+        puntosDerivados, resolverPuntosDeServicios, cargarPuntosDe,
         isLoading,
         servicios,
         totalServicios,

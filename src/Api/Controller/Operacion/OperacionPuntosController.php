@@ -73,12 +73,24 @@ class OperacionPuntosController extends AbstractController
 
             $derivado = $this->puntos->para($servicio, conOverride: false);
 
+            // Y el EFECTIVO: lo que de verdad se va a congelar al emitir —override del operador
+            // incluido y el hotel ya resuelto—. El derivado sirve de marcador de posición en el
+            // campo editable; el efectivo es lo que hay que poder revisar ANTES de emitir, que es
+            // el único momento en que corregirlo es gratis.
+            $efectivo = $this->puntos->para($servicio);
+
             $salida[$id] = [
-                'aplica' => $derivado->aplica,
+                'aplica' => $derivado->aplica || $efectivo->aplica,
                 'tieneEntrega' => $derivado->tieneEntrega,
                 'recojo' => $derivado->recojo,
                 'entrega' => $derivado->entrega,
                 'avisos' => $derivado->avisos,
+                'efectivo' => [
+                    'recojo' => $efectivo->recojo,
+                    'entrega' => $efectivo->entrega,
+                    'tieneEntrega' => $efectivo->tieneEntrega,
+                    'completo' => $efectivo->estaCompleto(),
+                ],
             ];
         }
 

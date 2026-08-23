@@ -334,6 +334,17 @@ export interface PuntosDerivadosServicio {
     entrega: string | null;
     /** Por qué falta algo, y dónde se arregla. Vacío si está todo resuelto. */
     avisos: string[];
+    /**
+     * Lo que de verdad se congelará al emitir: override del operador incluido y el hotel ya
+     * resuelto. Es lo que hay que poder revisar ANTES de emitir — después el documento ya está
+     * en manos del proveedor y corregirlo cuesta anular y reemitir.
+     */
+    efectivo: {
+        recojo: string | null;
+        entrega: string | null;
+        tieneEntrega: boolean;
+        completo: boolean;
+    };
 }
 
 export type PuntosDerivadosPorServicio = Record<string, PuntosDerivadosServicio>;

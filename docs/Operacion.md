@@ -2187,6 +2187,24 @@ Es de la peor familia: un paso de generación que se salta lo nuevo en silencio,
 declarando a mano lo que debía venir generado. El script ahora hace `cache:clear --quiet` antes de
 exportar.
 
+### El recojo, visible en la tarjeta de la orden ANTES de emitir
+
+Los puntos se congelan al emitir, así que una orden en **borrador no tiene ítems** y no había de
+dónde leerlos — y la tarjeta tampoco los pintaba. Resultado: el sitio de recojo sólo se podía ver
+**después** de mandar el documento, que es justo cuando corregirlo ya cuesta anular y reemitir.
+
+Ahora `GET /operacion/user/puntos` devuelve, además del derivado, el **efectivo**: override del
+operador incluido y hotel ya resuelto. Es exactamente lo que la emisión va a congelar, y es lo que
+se pinta en la tarjeta — en ámbar si falta algo.
+
+⚠️ **La redacción está escrita dos veces**, en `OperacionOrdenServicioItem::rutaParaLaOrden()` y en
+`rutaDe()` del panel. No hay forma de compartirla: aquí se pinta lo que **todavía no está
+congelado**. Ambas lo dicen en su comentario; si cambia una, cambia la otra.
+
+⚠️ Y `cargarPuntosDe()` **mezcla en vez de reemplazar**: los servicios de una orden pueden no estar
+en el cuadro —otro rango, otro filtro—, y reemplazando, abrir una orden borraba los puntos de la
+lista de detrás.
+
 ### 🐛 El botón que nunca aparecía: comparar un objeto con un IRI
 
 «Agregar a OS» se ofrecía sólo si había borradores compatibles, y **no salía nunca** — con la orden

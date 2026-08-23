@@ -449,6 +449,30 @@ const PATRON_HORA = /^([01]\d|2[0-3]):([0-5]\d)$/;
  * tocaron a mano (texto negro) y cuáles siguen el maestro (texto gris), y vaciarlo devuelve el
  * control al catálogo en vez de dejar un hueco.
  */
+/**
+ * «Recoge en X → deja en Y» para la tarjeta de la orden.
+ *
+ * ⚠️ Espejo de `OperacionOrdenServicioItem::rutaParaLaOrden()`, y a propósito: aquí se pinta lo
+ * que TODAVÍA no está congelado —la orden puede estar en borrador y no tener ítems—, así que no
+ * hay de dónde leerlo. Si cambia la redacción allí, cambia también aquí.
+ *
+ * Si los dos extremos coinciden se dice una vez: repetirlo enseña a no leerlo.
+ */
+const rutaDe = (servicio: OperacionServicio): string | null => {
+    const e = puntosDe(servicio)?.efectivo;
+    if (!e) return null;
+
+    const r = (e.recojo ?? '').trim();
+    const d = (e.entrega ?? '').trim();
+
+    if (r && d && r !== d) return `Recoge en ${r} → deja en ${d}`;
+    if (r && d) return `Recoge y deja en ${r}`;
+    if (r) return `Recoge en ${r}`;
+    if (d) return `Deja en ${d}`;
+
+    return null;
+};
+
 const puntosDe = (servicio: OperacionServicio) => operacionStore.puntosDerivados[servicio.id ?? ''] ?? null;
 
 const editarPunto = async (servicio: OperacionServicio, lado: 'recojo' | 'entrega', evento: Event) => {
@@ -1187,6 +1211,16 @@ const ordenExpandida = ref<string | null>(null);
  */
 const alternarDetalle = (orden: OperacionOrdenServicio) => {
     ordenExpandida.value = ordenExpandida.value === orden.id ? null : (orden.id ?? null);
+
+    // Sus servicios pueden no estar en el cuadro —otro rango, otro filtro—, así que sus puntos
+    // tampoco. Sin esto la tarjeta se abría sin la línea de recojo justo cuando hay que revisarla.
+    if (ordenExpandida.value) {
+        void operacionStore.cargarPuntosDe(
+            (orden.operacionServicios ?? [])
+                .map((s) => (s as unknown as OperacionServicio).id)
+                .filter((id): id is string => typeof id === 'string' && id !== '')
+        );
+    }
 };
 
 /** Los servicios de la orden abierta, tal como vinieron en el listado. */
@@ -2795,6 +2829,22 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                             </p>
                                             <p v-if="s.contextoServicio" class="text-[10px] text-slate-400 leading-snug">
                                                 {{ s.contextoServicio }}
+                                            </p>
+
+                                            <!-- ── DÓNDE RECOJO / DÓNDE DEJO ──────────────────
+                                                 Es la primera pregunta del proveedor, y aquí es
+                                                 donde hay que poder revisarlo: ANTES de emitir.
+                                                 Después el documento ya está en sus manos y
+                                                 corregirlo cuesta anular y reemitir.
+
+                                                 Se enseña el punto EFECTIVO —override incluido y
+                                                 hotel resuelto—, que es exactamente lo que se va a
+                                                 congelar. En ámbar si falta algo. -->
+                                            <p v-if="rutaDe(s)"
+                                               class="text-[10px] font-bold leading-snug mt-0.5"
+                                               :class="puntosDe(s)?.efectivo?.completo ? 'text-slate-500' : 'text-amber-700'">
+                                                <i class="fas fa-route text-[8px] mr-1"
+                                                   :class="puntosDe(s)?.efectivo?.completo ? 'text-slate-300' : 'text-amber-500'"></i>{{ rutaDe(s) }}
                                             </p>
                                             <p class="text-[10px] text-slate-400 leading-snug">
                                                 {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ nochesTexto(s.cantidadComponente, s.tipoComponente) }}{{ s.cantidadPax }} pax
