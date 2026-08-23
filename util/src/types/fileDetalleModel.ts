@@ -105,8 +105,9 @@ export const SEXO_LABELS: Record<SexoValue, string> = {
 export const getSexoLabel = (val?: string | null): string =>
     SEXO_LABELS[(val as SexoValue)] || val || '—';
 
-// Espejo del enum de tipo de documento en App\Cotizacion\Entity\CotizacionFilepasajero
-export type DocumentoIdentidadValue = NonNullable<components['schemas']['CotizacionFilepasajero']['tipodocumento']>;
+// Espejo de App\Enum\DocumentoTipoEnum. Sale del schema de la IDENTIFICACIÓN, que es donde vive
+// ahora: el pasajero tenía un `tipodocumento` suelto y admitía uno solo. Ver docs §6.l.
+export type DocumentoIdentidadValue = NonNullable<components['schemas']['CotizacionPasajeroIdentificacion']['tipo']>;
 
 export const DOCUMENTO_IDENTIDAD_LABELS: Record<DocumentoIdentidadValue, string> = {
     DNI: 'DNI',

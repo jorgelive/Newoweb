@@ -74,24 +74,9 @@ class CotizacionFilepasajero
     private ?SexoEnum $sexo = null;
 
     // 🔥 Reemplazado por Enum
-    /**
-     * @deprecated Sustituido por {@see self::$identificaciones}. Se cae en la migración siguiente.
-     *
-     * ⚠️ Fuera de todos los grupos a propósito: la API ya no lo expone ni lo acepta, así que nadie
-     * puede escribir aquí y creerse que ha guardado algo. La columna sigue un ciclo más **sólo**
-     * para que `app:cotizacion:pasajeros-a-identificaciones` tenga de dónde copiar en producción;
-     * tirarla en el mismo despliegue dejaría el comando sin fuente.
-     */
-    #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: DocumentoTipoEnum::class)]
-    private ?DocumentoTipoEnum $tipodocumento = null;
-
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'date', nullable: true)]
     private ?DateTimeInterface $fechanacimiento = null;
-
-    /** @deprecated Ver {@see self::$tipodocumento}: se cae en la migración siguiente. */
-    #[ORM\Column(type: 'string', length: 100, nullable: true)]
-    private ?string $numerodocumento = null;
 
     #[Groups(['file:item:read', 'file:write'])]
     #[ORM\ManyToOne(targetEntity: CotizacionFile::class, inversedBy: 'filepasajeros')]
@@ -229,14 +214,10 @@ class CotizacionFilepasajero
     public function getSexo(): ?SexoEnum { return $this->sexo; }
     public function setSexo(?SexoEnum $sexo): self { $this->sexo = $sexo; return $this; }
 
-    public function getTipodocumento(): ?DocumentoTipoEnum { return $this->tipodocumento; }
-    public function setTipodocumento(?DocumentoTipoEnum $tipodocumento): self { $this->tipodocumento = $tipodocumento; return $this; }
 
     public function getFechanacimiento(): ?DateTimeInterface { return $this->fechanacimiento; }
     public function setFechanacimiento(?DateTimeInterface $fechanacimiento): self { $this->fechanacimiento = $fechanacimiento; return $this; }
 
-    public function getNumerodocumento(): ?string { return $this->numerodocumento; }
-    public function setNumerodocumento(?string $numerodocumento): self { $this->numerodocumento = $numerodocumento; return $this; }
 
     public function getFile(): ?CotizacionFile { return $this->file; }
     public function setFile(?CotizacionFile $file): self { $this->file = $file; return $this; }

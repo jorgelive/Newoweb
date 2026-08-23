@@ -1372,16 +1372,27 @@ parecen copiados—, así que el arreglo va en la propia asociación.
 `app:cotizacion:pasajeros-a-identificaciones` (`--dry-run`) copia la columna vieja a una fila.
 Idempotente por la unicidad.
 
-⚠️ **Las columnas viejas no se tiran en el mismo despliegue.** El comando lee de ellas, así que
-tirarlas a la vez lo dejaría sin fuente. La secuencia es:
+⚠️ **Las columnas viejas no se tiraron en el mismo despliegue.** El comando leía de ellas, así que
+tirarlas a la vez lo habría dejado sin fuente. La secuencia fue —y sirve de patrón para la próxima
+columna que se retire—:
 
-1. **Este despliegue**: tabla nueva, columnas viejas fuera de la API y `tipodocumento` a nulable
-   —si no, un pasajero nuevo llegaría sin él y el `NOT NULL` lo rechazaría—.
-2. **Correr el comando en producción** y comprobar.
-3. **Despliegue siguiente**: `ALTER TABLE … DROP tipodocumento, DROP numerodocumento`.
+1. Tabla nueva, columnas viejas fuera de la API y `tipodocumento` a nulable —si no, un pasajero
+   nuevo llegaría sin él y el `NOT NULL` lo rechazaría—.
+2. **Correr el comando en producción** y comprobar. *(23/08/2026: 2 pasaportes, con su país
+   emisor. Segunda pasada: 0 creadas.)*
+3. Despliegue siguiente: `DROP tipodocumento, DROP numerodocumento`, y el comando **se borra** —sin
+   columnas de las que leer, ya no puede hacer nada—.
 
-Lo copiado nace **sin vencimiento**, porque la columna vieja no lo guardaba. El comando lo avisa en
-voz alta: no es un hueco que rellenar luego, es información que nunca existió.
+⚠️ La migración del paso 3 lleva un `preUp()` que **cuenta los pasajeros con documento en la
+columna vieja y sin su fila, y aborta si hay alguno**. Comprobar sale más barato que confiar, y una
+migración que aborta es infinitamente mejor que una que tira el dato.
+
+Lo copiado nació **sin vencimiento**, porque la columna vieja no lo guardaba. El comando lo avisaba
+en voz alta: no es un hueco que rellenar luego, es información que nunca existió.
+
+⚠️ Y `DOCUMENTO_IDENTIDAD_LABELS` de `fileDetalleModel.ts` ahora deriva su tipo del schema de la
+**identificación**, no del pasajero. Al desaparecer la columna, el `Record<>` dejó de compilar — y
+eso es el compilador haciendo su trabajo: el espejo apuntaba a un sitio que ya no existe.
 
 ### En el front
 

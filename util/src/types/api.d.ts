@@ -10672,11 +10672,8 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string|null} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -10793,11 +10790,8 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string|null} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -10884,11 +10878,8 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string|null} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -10975,11 +10966,8 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string|null} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
             /**
              * Format: iri-reference
              * @example https://example.com/
