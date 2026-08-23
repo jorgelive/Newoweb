@@ -16,6 +16,7 @@ y por qué dos servicios en el mismo lenguaje siguen reglas distintas.
 5. [Antes de mover lógica de dinero](#5-antes-de-mover-lógica-de-dinero)
 6. [Lo que cuesta](#6-lo-que-cuesta)
 7. [Cuándo proponerlo](#7-cuándo-proponerlo)
+8. [La forma acordada para el cálculo financiero](#8-la-forma-acordada-para-el-cálculo-financiero--23082026)
 
 ---
 
@@ -127,6 +128,61 @@ Node **no** entra cuando:
 - La lógica ya vive en PHP y sólo se trata de reusarla desde otro sitio.
 - El único motivo es rendimiento, sin duplicación ni conexión persistente de por medio.
 
+## 8. La forma acordada para el cálculo financiero — 23/08/2026
+
+El destino, decidido en conversación con datos delante. Todavía no se ha empezado; el paso previo
+sigue siendo §5.
+
+### El agente se queda en PHP, y no es una concesión
+
+Es un consumidor más. `Node calcula, PHP persiste` (§4) no dice dónde vive quien pregunta.
+
+Las skills se autolocalizan con `#[AutowireIterator]`, así que envolver la llamada HTTP al servicio
+**es una clase y nada más**: ni registro que tocar, ni `match` que ampliar.
+
+### Lo que se GANA, y no es rendimiento
+
+Hoy la validación de si una cotización puede enviarse —`construirInclusiones()` → `advertencias`
+→ `publicable`— vive **en el navegador**. PHP no la ve, así que la guarda sólo se cumple si quien
+escribe es el editor: cualquier otro camino pasa por encima sin enterarse.
+
+Al mover eso a un módulo llamable desde el servidor, **PHP puede aplicarla por primera vez**. Es
+justo lo que necesita un agente que arma cotizaciones sin pasar por el editor — que es el motivo
+de fondo de todo esto, no aligerar el JSON.
+
+### Lo que se queda en PHP pase lo que pase
+
+- **Los listeners**: `AutoTranslate`, coherencia financiera, integridad de teléfonos. Cuelgan de
+  `prePersist`/`preUpdate` y ahí no llega Node.
+- **El snapshot a La Biblia** y la reconciliación.
+- **Las transiciones de estado** y todo lo que decide si algo se escribe.
+
+La frontera se lee sola: *Node responde «cuánto cuesta y qué le falta»; PHP decide si eso se
+escribe.*
+
+### ⚠️ Sobre dinero se falla CERRADO
+
+El coste de §6 —«un proceso más que puede caerse, y caerse callado»— aquí es más real que en el
+sidecar. Si el agente está armando una cotización y el servicio no responde, **no se guarda**. No
+se guarda sin validar.
+
+### El módulo puro NO se saca de `util/`
+
+⚠️ §3 dice «mismo archivo, dos consumidores», y eso incluye seguir importándolo en el navegador.
+Si el editor pasa a pedir el cálculo por red, `resumenFinanciero` deja de ser un `computed`
+síncrono, y hay dos sitios donde eso no es cosmético: **el payload de guardado** lee
+`totalCosto`/`totalVenta` de ahí, y **`publicable`** decide si se puede guardar. Teclear rápido
+devuelve respuestas fuera de orden, y la que decide si se publica no puede ser la penúltima.
+Además hay service worker: sin conexión, el editor dejaría de saber cuánto cuesta nada.
+
+Un WebSocket abarata el viaje, pero no convierte un valor derivado síncrono en uno asíncrono — eso
+hay que programarlo. Y no hace falta: un módulo TS puro se importa desde el navegador **y** desde
+el servicio. Una implementación, dos sitios que la llaman.
+
+### El reparto del store
+
+En `docs/Pendientes.md`, con los números medidos.
+
 ---
 
 ## Dónde tocar para cambiar X
@@ -135,5 +191,6 @@ Node **no** entra cuando:
 |---|---|---|
 | Añadir un proceso Node | este doc §7 | Comprobar los criterios antes de escribir código |
 | Cambiar el cálculo financiero | el módulo puro TS | Un solo archivo; los fixtures de §5 tienen que seguir pasando |
+| Entender la forma acordada (agente, validación, frontera) | §8 | Decidido el 23/08/2026, sin empezar |
 | Entender por qué el sidecar no sabe de negocio | §3 y §4 | |
 | Despliegue de PWAs y Node en producción | memoria `newoweb-deploy-procedure` | Node vive en nvm, no está en el PATH de ssh |

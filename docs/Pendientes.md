@@ -546,3 +546,99 @@ el campo sólo en español.
 **Antes de elegir, medir:** cuántos campos tienen de verdad traducción manual y cuántos la tienen
 sólo porque nadie regeneró nunca. Sin ese número la decisión es una corazonada, y las dos opciones
 tocan todos los campos con `#[AutoTranslate]`.
+
+---
+
+## El JSON financiero pesa 10× lo que dice, y el store son 4 500 líneas — 23/08/2026
+
+Medido en producción, no estimado. Es el trabajo previo de mover el cálculo financiero a un
+servicio (`docs/NodeEnElStack.md`), y está aquí para no volver a medirlo.
+
+### Lo que pesa, y quién lo lee
+
+`cotizacion_cotizacion`, 10 filas, **1 MB** — y el 99,6 % son dos columnas:
+
+| columna | media | máx | quién la lee |
+|---|---|---|---|
+| `clasificacion_financiera` | 53 KB | 166 KB | **nadie** |
+| `clasificacion_financiera_cliente` | 49 KB | 156 KB | `CotizacionPublicNormalizer` y pax |
+| `titulo`, `resumen`, el resto | 0,2 KB | | |
+
+La interna aparece **cuatro veces** en todo el repo: tres declaraciones de tipo y
+`payload.clasificacionFinanciera = fin` al guardar. Ni PHP, ni `util/`, ni `pax/` la leen. Lo que
+la pantalla enseña —la barra de totales, el panel Resumen— sale de `resumenFinanciero`, que es un
+`computed` que **recalcula desde el árbol** en cada carga.
+
+⚠️ Aun así está en `cotizacion:read`, así que **viaja al navegador en cada apertura del editor**.
+
+### Dónde está el peso dentro de la fila (la de 166 KB)
+
+```
+clasesPasajeros[0].detalle   75 KB   42 líneas × 26 campos
+inclusiones                  78 KB   17 × 4,6 KB
+   └─ el 60 % del total (100 KB) son bloques i18n: 262 nodos × 7 idiomas
+   └─ 27,7 KB son cadenas LITERALMENTE repetidas
+        x13  «Camino Inca corto a Machupicchu de 2 dias» + sus 6 traducciones
+        x13  su UUID
+```
+
+Cada línea de `detalle` lleva `servicioNombre`, `componenteNombre` y `tarifaTitulo` **completos con
+sus siete idiomas**, y trece de esas líneas son del mismo servicio.
+
+### El síntoma que ya duele, y no es el disco
+
+```
+sort_buffer_size del servidor   256 KB
+una fila, las dos columnas      hasta 322 KB
+```
+
+**Con diez filas ya revienta.** Pasó dos veces el mismo día: contando los históricos de una
+cotización (`getTotalHistoricos()`, resuelto poniendo la colección `EXTRA_LAZY`) y en un
+`ORDER BY LENGTH()` de diagnóstico. Cualquier consulta que ordene esta tabla arrastrando estas
+columnas falla en producción con «Out of sort memory», un error que no dice nada del diseño.
+
+### Qué hacer, y en qué orden
+
+1. **Deduplicar los textos.** Una tabla de textos dentro del propio JSON y las líneas
+   referenciando por id: ~28 KB de 166 (17 %) **sin tocar ni un idioma ni el contrato con pax**.
+2. **Quitarle los idiomas a la interna.** Nadie le enseña esa clasificación a un cliente. Ahí no
+   corre el riesgo que sí tiene la del cliente —si falta el idioma es una pantalla interna, no la
+   propuesta—. Otro ~30 %.
+3. **La interna, cuando el cálculo sea un servicio: fuera.** Quien la necesite la pide.
+
+⚠️ **La del cliente NO se borra, y el motivo no es que no se pueda calcular.** El árbol está
+congelado (`*Snapshot`) y `tipoCambio` también, así que recalcular da lo mismo **mientras la
+función no cambie** — y va a cambiar. El día que se arregle un redondeo, una propuesta enviada por
+$5 899,65 se re-renderiza en $5 899,70 la próxima vez que el cliente abra su enlace. Derivable y
+seguro de derivar no son lo mismo: **el árbol está congelado, el código no.** Esa columna es el
+registro de lo que se le dijo, no una caché.
+
+### Y el store: 4 502 líneas, 100 miembros expuestos
+
+`util/src/stores/cotizacion/cotizacionEditorStore.ts`. Los cien miembros expuestos son la señal,
+no la longitud: un store que expone cien cosas no tiene frontera, así que ninguna capa es capa.
+
+**El corte no hay que inventarlo**, lo marca la extracción del cálculo. El criterio es *¿lo
+necesita el agente, que no tiene navegador?*:
+
+| A `services/` (sin Vue) | Se queda en el store (estado de pantalla) |
+|---|---|
+| el cálculo y sus reglas | `abrirNivel`, `historialNavegacion` |
+| `construirInclusiones` + advertencias | `isDirty`, borradores, foco |
+| `expurgarParaCliente` | `componenteActivo`, `tarifaActiva` |
+| `resolverPrestador` / `resolverComprador` | los `fetch*` de catálogos |
+
+La columna izquierda es toda la lógica que ya tiene espejo en PHP o va a tenerlo. No es
+casualidad: **lo que hay que abstraer es exactamente lo que estaría escrito dos veces.**
+
+⚠️ La trampa no es la carpeta —`util/src/services/` ya existe y funciona: seis archivos, cada uno
+una capacidad, ninguno sabe de Vue—. La trampa es la **superficie**: un `services/cotizacion.ts`
+con sesenta funciones es el mismo problema con otro nombre. Prueba barata: **si el archivo compila
+sin importar nada de Vue, está bien cortado.**
+
+### El orden que no cambia
+
+**Fixtures antes que nada** (`docs/NodeEnElStack.md` §5): cotizaciones reales de las difíciles
+—rangos de edad, opcionales, multimoneda—, guardar la salida de hoy y exigir que lo extraído dé
+exactamente lo mismo. Son ~527 líneas que nunca se han revisado con calculadora. Sirve para las
+dos cosas —mover el cálculo y ordenar el store—, así que se paga una vez.
