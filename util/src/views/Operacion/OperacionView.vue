@@ -1297,7 +1297,13 @@ const efectiva = (
     return Boolean(mapa?.[item.id ?? '']?.[lado]);
 };
 
-/** Las líneas del documento agrupadas por día, en orden. */
+/**
+ * Las líneas del documento agrupadas por día y **en orden cronológico**.
+ *
+ * ⚠️ Un `Record` conserva el orden de INSERCIÓN, no el de la clave: agrupar sin ordenar dejaba los
+ * días como vinieran los ítems —04/09, 02/09, 31/08— y un documento que se lee de arriba abajo con
+ * las fechas desordenadas no se puede seguir. Dentro de cada día, por hora.
+ */
 const lineasPorDia = (orden: OperacionOrdenServicio): Record<string, NonNullable<OperacionOrdenServicio['items']>> => {
     const mapa: Record<string, NonNullable<OperacionOrdenServicio['items']>> = {};
 
@@ -1306,7 +1312,13 @@ const lineasPorDia = (orden: OperacionOrdenServicio): Record<string, NonNullable
         (mapa[dia] ??= []).push(it);
     }
 
-    return mapa;
+    const ordenado: Record<string, NonNullable<OperacionOrdenServicio['items']>> = {};
+
+    for (const dia of Object.keys(mapa).sort()) {
+        ordenado[dia] = mapa[dia].sort((a, b) => (a.hora ?? '').localeCompare(b.hora ?? ''));
+    }
+
+    return ordenado;
 };
 
 /** Sólo sobre un documento vigente: en borrador se edita la fila viva; una anulada es terminal. */
