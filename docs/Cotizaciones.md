@@ -1483,6 +1483,61 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
 - `pertenencias` va **`EAGER`** por lo mismo que las identificaciones (§6.l): con `LAZY` son 140
   consultas que con dos pasajeros no se ven.
 
+## 6.n La plantilla del padrón: una definición, dos usos (24/08/2026)
+
+`PadronFormato` describe las columnas **una sola vez**, y de ahí salen tanto el .xlsx que se
+descarga como —cuando exista— el lector que lo importa. Con dos definiciones, el día que alguien
+añada una columna la plantilla saldría con ella y el importador la ignoraría: sin error, sin aviso,
+con el dato perdido.
+
+### Tres familias de columna
+
+```
+FIJAS        Nombres · Apellidos · Nacionalidad · Sexo · F. Nacimiento · Observaciones
+DOCUMENTOS   una por DocumentoTipoEnum + su «Venc. »
+             DNI · Venc. DNI · Pasaporte · Venc. Pasaporte · …
+EJES         cualquiera que empiece por «#»
+             #Salón · #Grupo · #Habitación · #Reserva aérea
+```
+
+Documentos y ejes **salen de los enums**, así que dar de alta un tipo lo añade a la plantilla y al
+lector a la vez.
+
+### Qué la hace servir para los dos casos
+
+**Sólo «Nombres» es imprescindible.** El resto es opcional y las columnas se buscan **por cabecera,
+nunca por posición**: se reordenan, y las que no se usen se borran. El mismo archivo vale para dos
+personas con un pasaporte y para 133 con dos documentos y cinco agrupaciones.
+
+La plantilla trae **dos filas de ejemplo a propósito**: una con todo y otra con lo mínimo —un
+nombre y un pasaporte—. La segunda es la que enseña que las columnas sobran, que es lo que nadie
+deduce mirando una plantilla llena.
+
+⚠️ **La marca `#` no es decorativa.** Sin ella no habría forma de distinguir un eje de una columna
+de notas que el operador añadió por su cuenta, y el lector tendría que adivinar. Con ella el
+archivo se describe a sí mismo: borras `#Salón` y ese eje deja de existir.
+
+⚠️ Y un `#Bus` **se rechaza con un mensaje que lo dice**, en vez de crear un eje fantasma:
+`GrupoTipoEnum` es lo que garantiza que el código sepa pintar y filtrar cada eje. Añadir uno de
+verdad es un `case`, no una columna.
+
+### Se genera, no se guarda
+
+`GET /cotizacion/user/padron/plantilla` la construye al vuelo con PhpSpreadsheet y `no-store`.
+Guardarla como archivo reintroduce el problema que resuelve generarla: **una plantilla
+desactualizada es peor que ninguna** — la rellenan igual y el dato se pierde al importar.
+
+Lleva una segunda hoja de **Instrucciones** con qué significa cada columna, qué valores admite y
+qué pasa si falta. Es lo que hace que sobreviva a que alguien la reenvíe por correo sin contexto.
+
+⚠️ Y dice en voz alta lo que más caro sale: *«sin fecha de vencimiento el documento queda como SIN
+COMPROBAR, que no es lo mismo que vigente»*.
+
+### Dónde está el botón
+
+En la cabecera de **Subgrupos** de `FileDetalle`, junto a donde se cargará el padrón: quien va a
+subir uno es exactamente quien no sabe qué columnas lleva.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -1595,6 +1650,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
 - **Guardar el estado de una cotización antes de tocarla** → botón de cámara en `FileDetalle` → `GuardarHistoricoProcessor`. ⚠️ **No es clonar**: clonar crea la versión siguiente y hace perder las órdenes. Ver §6.j.
+- **Cambiar las columnas del padrón (plantilla e importación)** → `PadronFormato`, una sola definición para generar y para leer. La plantilla se genera al vuelo desde los enums. Ver §6.n.
 - **Agrupar pasajeros (salón, grupo, habitación, reserva aérea)** → `CotizacionFileGrupo` + `CotizacionPasajeroGrupo` (§6.m). ⚠️ Ejes cruzados, no un árbol; y el `esJefe` va en la pertenencia.
 - **El DNI o el pasaporte de un pasajero, con su vencimiento** → `CotizacionPasajeroIdentificacion`, una fila por documento (§6.l). ⚠️ Sin fecha es «sin comprobar», nunca «vigente».
 - **Adjuntar un archivo a un expediente** → `CotizacionFilearchivo` (antes `…Filedocumento`, ver §6.k). ⚠️ No confundir con `CotizacionFilepasajero::$tipodocumento`, que sí es identidad.

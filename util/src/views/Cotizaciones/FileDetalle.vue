@@ -492,6 +492,30 @@ const alternarJefatura = (g: ApiFileGrupo): void => {
 const esJefeDe = (g: ApiFileGrupo): boolean =>
   paxForm.value.pertenencias.find(p => p.grupo === iriDeGrupo(g))?.esJefe ?? false;
 
+// ── Padrón: plantilla e importación ────────────────────────────────────────
+//
+// La plantilla se GENERA en el servidor desde los enums, no es un archivo guardado: un tipo de
+// documento o un eje nuevo aparece en ella el mismo día que en el código. Una plantilla
+// desactualizada es peor que ninguna — la rellenan igual y el dato se pierde al importar.
+const descargandoPlantilla = ref(false);
+
+const descargarPlantilla = async () => {
+  descargandoPlantilla.value = true;
+  try {
+    const { data } = await apiClient.get('/cotizacion/user/padron/plantilla', { responseType: 'blob' });
+    const url = URL.createObjectURL(data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'padron-plantilla.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    alert('No se pudo descargar la plantilla.');
+  } finally {
+    descargandoPlantilla.value = false;
+  }
+};
+
 // ── Subgrupos del expediente ───────────────────────────────────────────────
 //
 // Se agrupan por EJE para pintarlos, pero no anidan: una persona está a la vez en su salón, su
@@ -849,9 +873,20 @@ const eliminarDocumento = async (iri?: string) => {
                  de un salón, así que una persona pertenece a varios a la vez. Se definen aquí y se
                  asignan en la ficha de cada pasajero. -->
             <div class="mb-8">
-              <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
-                <i class="fas fa-layer-group mr-2 text-teal-500"></i> Subgrupos
-              </h2>
+              <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">
+                  <i class="fas fa-layer-group mr-2 text-teal-500"></i> Subgrupos
+                </h2>
+
+                <!-- La plantilla vive junto a la carga porque es donde se necesita: quien va a
+                     subir un padrón es quien no sabe qué columnas lleva. -->
+                <button @click="descargarPlantilla" :disabled="descargandoPlantilla"
+                        title="Plantilla del padrón: sirve para dos pasajeros con un pasaporte y para 133 con cinco agrupaciones"
+                        class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50">
+                  <i class="fas" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
+                  Descargar plantilla del padrón
+                </button>
+              </div>
 
               <div class="flex flex-wrap gap-2 items-end bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-4">
                 <div>
