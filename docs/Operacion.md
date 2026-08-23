@@ -2585,6 +2585,17 @@ Misma asimetría que la hora y los puntos, y por la misma razón:
 `aplicarCambiosMenores()` **sólo rellena lo vacío, nunca pisa**: cambiar un texto ya impreso es
 cambiarle el encargo, y eso tiene su propio botón.
 
+### En el documento del proveedor
+
+`templates/operacion/orden_publica.html.twig` —el mismo archivo para la web y para el PDF— imprime
+las notas del ítem bajo la descripción, junto a la ruta.
+
+⚠️ Van **sin** la clase `sub` que llevan el recojo, el «opera» y la ruta: eso son matices de la
+línea y esto es el encargo. Que se lea igual que ellos sería enseñar a saltárselo.
+
+⚠️ Y salen del **ítem congelado**, no de la fila viva: el proveedor abre su enlace la semana
+siguiente y ve lo que se le mandó, no lo que la cotización diga ahora.
+
 ### En el cuadro de tráfico
 
 `OperacionView.vue` pinta un `textarea` —una nota por línea— con el derivado de **placeholder**,

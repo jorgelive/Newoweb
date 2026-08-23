@@ -553,6 +553,18 @@ Tres detalles que no son opcionales:
 El disparador es un `<button type="button">`: se llega con el tabulador, lo anuncia el lector de
 pantalla, y el `type` evita que envíe el formulario en el que vive.
 
+### Dónde se gana de verdad: dentro de un modal
+
+El Constructor de Storytelling (`CotizacionEditorView.vue`) lo usa en el pie de cada párrafo para
+avisar de que la papelera se lleva también sus componentes. Ahí el `Teleport` a `body` no es un
+detalle de implementación sino **el motivo de usarlo**: el modal tiene varios `overflow-hidden` y
+`overflow-y-auto` anidados, y una burbuja `absolute` se recorta contra ellos. Regla práctica: si
+la «i» vive dentro de un panel con scroll propio, `InfoTooltip` y no un tooltip a mano.
+
+⚠️ **El disparador es siempre la «i» y no se puede sustituir.** Para un badge que además sea el
+disparador —«3 componentes» y al tocarlo el detalle— hoy hay que poner el badge al lado. Si eso
+se repite, el arreglo es un slot `#disparador` en el componente, no una burbuja nueva a mano.
+
 ---
 
 ## 3.f `useVolverAtras` — «atrás» vuelve a donde estabas (2026-08-17)

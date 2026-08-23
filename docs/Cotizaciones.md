@@ -991,6 +991,119 @@ audiencia no lo lee nadie y el backend lo rechaza.
 ⚠️ El tipo del bloque era `tipo: DetalleOperativoTipo | string`, y eso **no tipaba nada**: una
 unión con `string` colapsa el tipo entero. Ahora es `audiencias: AudienciaDetalle[]`, cerrado.
 
+## 6.h El componente hecho A MANO, y el bucle que lo impedía (23/08/2026)
+
+Caso que lo forzó: un Full Day Paracas–Ica en el que unos amigos invitan a los pasajeros a comer
+en «La Olla de Juanita», y hay que meter **dos transportes que no existen en los maestros y que no
+van a existir nunca**, porque es una parada irrepetible.
+
+### El bucle
+
+`agregarComponente()` crea el componente con `tipo: 'extras'`, `nombreSnapshot: []`,
+`sinHorario: true` y `componenteMaestroId: null`. De ahí no se salía:
+
+```
+nombreSnapshot: []
+  └─ isComponenteSoloItems() = true
+       └─ el input de nombre se cambiaba por uno DISABLED,
+          «Componente Contenedor (Solo ítems)»
+            └─ única salida: elegir un INSUMO MAESTRO
+                 └─ onComponenteMaestroChange() pisa el tipo con el del maestro
+                      └─ y el desplegable sólo ofrece el pool del servicio maestro
+                           └─ todo componente hecho a mano acababa siendo «pool»
+```
+
+**Para poder escribir el nombre hacía falta que ya tuviera nombre.** No había ningún default
+`pool` en el código: el «pool» era el síntoma de este bucle, no su causa.
+
+### Lo que se cambió
+
+| Qué | Dónde | Ahora |
+|---|---|---|
+| `isComponenteSoloItems()` | `CotizacionEditorView.vue` | Un contenedor lo es porque **tiene ítems**: `nombreSnapshot` vacío **Y** `snapshotItems` no vacío. Uno recién creado no es ninguna de las dos cosas |
+| `getNombreMaestroRef()` | `CotizacionEditorView.vue` | Sin maestro manda **su** `nombreSnapshot`; «Insumo sin seleccionar» sólo si tampoco hay nombre propio |
+| Categoría Operativa | ficha del componente + `onTipoManualChange()` en el store | Selector, **sólo si `componenteMaestroId` es null** |
+
+⚠️ **El selector no aparece con maestro, y es deliberado.** El tipo lo pone el maestro y ahí tiene
+que seguir mandando: un componente que dijera una cosa y su maestro otra no lo denunciaría nada
+después.
+
+⚠️ **El tipo arrastra el horario.** `sinHorario` no es una preferencia sino una consecuencia —un
+`transporte` tiene hora y un `extras` no—, así que `onTipoManualChange()` lo recalcula con
+`sinHorarioDeTipo()`. Sin eso, elegir «Transporte» dejaba el componente sin selector de hora y el
+traslado sin hora, en silencio.
+
+Y no es cosmético: de la Categoría Operativa cuelga si el componente **aporta punto de recojo y
+entrega** (`ComponenteTipoEnum::puntosDeServicio()`). `transporte` da los dos; `extras` —con el
+que nace— no da ninguno **y no da error**.
+
+### Lo que un componente manual sigue necesitando
+
+El editor ya no estorba, pero la cadena aguas abajo exige cosas que nadie recuerda:
+
+| Requisito | Si falta |
+|---|---|
+| Al menos **una tarifa** (basta manual, con moneda) | `OperacionServicio::isSoloReferencia()` → **no entra en una Orden**, 422 en tres guardas |
+| **Prestador** | La orden se crea pero **no se puede enviar**: «no hay a quién escribirle» |
+| `nombreSnapshot` o `snapshotItems` | `construirInclusiones()` no genera línea → **advertencia bloqueante** al guardar |
+| Tarifa con `rolSnapshot: 'estandar'`, si `modo: incluido` | se publica como «Opción N» dentro de *Opcional* |
+
+⚠️ **Y La Biblia no se entera sola.** `BibliaSnapshotService` es idempotente **por existencia de
+fila**, no por contenido: re-confirmar no añade ni repara. Un componente creado después de
+confirmar entra por el **Plan de Operación** (`PlanOperacionModal.vue`) o por
+`php bin/console operacion:resincronizar`.
+
+### Los puntos de un componente manual NO se declaran aquí
+
+Se descartó darle campos de inicio/fin propios. Hoy **nadie persiste puntos** salvo la orden
+emitida: `TravelSegmento` es la única fuente de verdad y las dos capas intermedias
+—`CotizacionPuntosDelServicio` y `OperacionPuntosDelServicio`— derivan en caliente. Añadirlos al
+componente no crearía un snapshot, pero sí **una segunda superficie donde declarar el mismo
+hecho**, con su regla de precedencia, y el punto sería texto libre o exigiría dar de alta el
+`TravelPunto` igual.
+
+La vía es el **override del operador en La Biblia** (`puntoRecojo` / `puntoEntrega`), y lo que el
+cliente tiene que leer no es un punto sino **narrativa** — para eso está el texto del segmento.
+Ver `docs/Operacion.md` §12 y §13.
+
+## 6.i Qué cuelga de cada párrafo, y qué se lleva su papelera (23/08/2026)
+
+La papelera del Constructor de Storytelling borraba **mucho más de lo que decía**, sin avisar:
+
+```
+removerCotSegmento()          quita el segmento Y todos sus componentes del árbol en memoria
+   ▼ al guardar (PUT del árbol completo)
+orphanRemoval: true           CotizacionCotservicio → DELETE real de las filas
+   ▼
+cottarifas                    orphanRemoval en el componente → mueren con él
+   ▼
+OperacionServicio             ManyToOne nullable:false + onDelete CASCADE
+   ▼                          → se va la fila del cuadro de tráfico
+OperacionEstadoBitacora       CASCADE → se va el historial de estados
+```
+
+⚠️ **El esquema no obliga a nada de esto**: `CotizacionCotcomponente.cotsegmento` es `SET NULL`.
+La destrucción la decide el **front**, y está bien que la decida —un componente sin párrafo no lo
+ve el cliente y sigue costando dinero, que es peor que borrarlo—, pero hasta ahora no se veía.
+
+Agravante: `isComponenteBloqueado()` devuelve `true` para todo componente con segmento, así que
+**desde la vista normal no se pueden borrar uno a uno**. La papelera del párrafo era la única vía.
+
+La **orden ya emitida sobrevive**: su ítem guarda `operacionServicioId` como texto, no como FK. El
+documento sigue diciendo lo que decía.
+
+**Lo que se añadió**, en `CotizacionEditorView.vue`:
+
+- Un **pie en cada tarjeta** con cuántos componentes cuelgan y cuáles. Visible siempre, **no en
+  hover**: esto se usa en el móvil y ahí no hay hover. El detalle largo va en `InfoTooltip`, que se
+  teletransporta a `body` — obligatorio, porque el modal tiene varios `overflow-hidden`.
+- **Segunda pulsación en la papelera**, y sólo cuando hay algo que perder: el botón se pone rojo y
+  dice «¿Borrar? se lleva 3». Con el párrafo vacío borra al primer clic — montar un itinerario es
+  borrar muchos vacíos seguidos, y cobrar dos clics por cada uno enseña a pulsar dos veces sin
+  leer.
+- Dato: `store.idSegmentoDeComponente()`, que ya existía y **ahora se exporta**. El vínculo llega
+  unas veces como IRI y otras como id plano, así que un `===` a mano falla la mitad de las veces.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -1101,6 +1214,8 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Enlazar una línea de inclusión con su componente** → `componenteId`, que emite `construirInclusiones()`. Para propuestas viejas: `app:cotizacion:backfill-componente-id`. Nunca reconstruir el vínculo con una clave natural en tiempo de render.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
+- **Que un componente sin maestro se pueda nombrar y tipar** → `isComponenteSoloItems()` y `getNombreMaestroRef()` en `CotizacionEditorView.vue`, y `onTipoManualChange()` en el store. Ver §6.h — y ojo con lo que la cadena sigue exigiendo (tarifa, prestador, nombre).
+- **Saber qué se lleva la papelera de un párrafo** → el pie de la tarjeta en el Constructor de Storytelling, alimentado por `store.idSegmentoDeComponente()`. Ver §6.i.
 - **Quién ve un detalle del componente** → banderas de `AudienciaDetalleEnum` en `detallesOperativos`; se leen con `detallesPara()` / `textosPara()` y se filtran para el cliente en `getDetallesParaCliente()`. Ver §6.g, y **toca también el espejo** `AudienciaDetalle` en `cotizacionEditorModel.ts`.
 
 ### Checklist al tocar la lógica de alternativas/inclusiones

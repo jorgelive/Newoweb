@@ -3921,6 +3921,41 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    /**
+     * La Categoría Operativa de un componente hecho A MANO.
+     *
+     * Sólo para los que no tienen maestro: en los de catálogo el tipo lo pone
+     * `onComponenteMaestroChange()` desde el maestro, y ahí es donde tiene que seguir mandando —
+     * un componente que dijera una cosa y su maestro otra no lo denunciaría nada después.
+     *
+     * ⚠️ Y **el tipo arrastra el horario**: `sinHorario` no es una preferencia sino una
+     * consecuencia —un `transporte` tiene hora y un `extras` no—, así que se recalcula aquí. Sin
+     * esto, poner «Transporte» dejaba el componente sin selector de hora y el traslado sin hora,
+     * en silencio.
+     */
+    const onTipoManualChange = (tipo: string | null): void => {
+        const componente = componenteActivo.value;
+        if (!componente || componente.componenteMaestroId) return;
+
+        componente.tipo = tipo || 'extras';
+
+        const sinHorarioAntes = componente.sinHorario;
+        componente.sinHorario = sinHorarioDeTipo(componente.tipo);
+
+        // Sólo se toca la fecha si el flag CAMBIA: normalizar siempre borraría una hora ya
+        // escrita cada vez que se roza el desplegable.
+        if (sinHorarioAntes !== componente.sinHorario) {
+            const fecha = componente.fechaHoraInicio.split('T')[0];
+
+            componente.fechaHoraInicio = componente.sinHorario
+                ? toDateTimeString(fecha)
+                : toDateTimeString(fecha, '08:00');
+            componente.fechaHoraFin = componente.fechaHoraInicio;
+        }
+
+        ordenarComponentesCronologicamente(findServicioByComponenteId(componente.id)?.cotcomponentes ?? []);
+    };
+
     const onSegmentoDiaChange = (servicioId: string, segmentoId: string, nuevoDiaStr: string | number) => {
         const nuevoDia = parseInt(String(nuevoDiaStr)) || 1;
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
@@ -4428,6 +4463,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarSegmentoIndividual, reordenarSegmentos, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange, onCambioModoComponente,
+        onTipoManualChange, idSegmentoDeComponente,
         actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo, alternarAudienciaDetalle,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,

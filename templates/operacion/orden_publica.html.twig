@@ -74,6 +74,12 @@
                         {% if rutas[item.id] is defined %}
                             <br><span class="sub">{{ rutas[item.id] }}</span>
                         {% endif %}
+                        {# Lo que hay que contarle: congelado en el ítem al emitir, así que este
+                           documento dice lo que decía el día que se mandó, aunque después cambie
+                           la cotización. Sin `sub`: no es un matiz de la línea, es el encargo. #}
+                        {% for nota in item.notasPrestador %}
+                            <br>{{ nota }}
+                        {% endfor %}
                     </td>
                     <td class="pax">{{ item.cantidadPax ?: '—' }}</td>
                 </tr>

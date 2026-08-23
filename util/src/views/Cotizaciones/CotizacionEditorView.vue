@@ -26,7 +26,13 @@ import {
   AudienciaDetalle, AUDIENCIA_DETALLE_CONFIG,
   type TarifaModalidadValue, type TarifaCategoriaValue
 } from '@/types/cotizacionEditorModel';
+// La etiqueta legible de cada Categoría Operativa vive con La Biblia, que es donde más se
+// pinta. La LISTA de las que existen no sale de ahí sino de `catalogos.tiposComponente`,
+// que es la que consulta `sinHorarioDeTipo()`: una sola fuente para qué hay, otra para
+// cómo se rotula.
+import { getTipoComponenteConfig } from '@/types/operacionModel';
 import OrganizacionFormulario from '@/components/common/OrganizacionFormulario.vue';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import { proveedorVacio, type ProveedorWrite } from '@/types/organizacionModel';
 import { usePermisosStore } from '@/stores/permisosStore';
 
@@ -745,16 +751,81 @@ const formatDateOnlyFromISO = (isoString?: string) => {
 
 const plantillaSeleccionada = ref<string | null>(null);
 
+// ── Qué cuelga de cada segmento, y qué se lleva su papelera ─────────────────
+//
+// El dato ya está en memoria: los componentes cuelgan del SERVICIO y apuntan al segmento con un
+// ManyToOne opcional, así que basta filtrar. Se usa el helper del store y no un `===` a mano
+// porque el vínculo llega unas veces como IRI y otras como id plano.
+const componentesDeSegmento = (segmentoId: string): ComponenteCompleto[] =>
+  (store.servicioActivo?.cotcomponentes ?? []).filter(
+    (c: ComponenteCompleto) => store.idSegmentoDeComponente(c) === segmentoId
+  );
+
+const segmentoConfirmandoBorrado = ref<string | null>(null);
+let tiempoConfirmarBorrado: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * La papelera del segmento se lleva MUCHO más de lo que aparenta.
+ *
+ * `removerCotSegmento()` quita también todos sus componentes, y al guardar el `orphanRemoval` los
+ * borra de verdad: con ellos se van sus tarifas y, por la FK en cascada de `OperacionServicio`,
+ * su fila del cuadro de tráfico con su historial de estados. La orden ya emitida sobrevive
+ * —guarda el id como texto, no como FK—, pero lo vivo no.
+ *
+ * Por eso pide una segunda pulsación **sólo cuando hay algo que perder**: montar un itinerario
+ * es borrar muchos segmentos vacíos seguidos, y cobrar dos clics por cada uno enseñaría a
+ * pulsar dos veces sin leer, que es justo lo contrario de lo que se busca.
+ */
+const pedirBorrarSegmento = (segmentoId: string): void => {
+  const cuantos = componentesDeSegmento(segmentoId).length;
+
+  if (cuantos === 0 || segmentoConfirmandoBorrado.value === segmentoId) {
+    clearTimeout(tiempoConfirmarBorrado);
+    segmentoConfirmandoBorrado.value = null;
+    store.removerCotSegmento(segmentoId);
+    return;
+  }
+
+  segmentoConfirmandoBorrado.value = segmentoId;
+  clearTimeout(tiempoConfirmarBorrado);
+  tiempoConfirmarBorrado = setTimeout(() => { segmentoConfirmandoBorrado.value = null; }, 4000);
+};
+
+/**
+ * Un contenedor lo es porque TIENE ítems, no porque le falte el nombre.
+ *
+ * ⚠️ Antes era sólo «no tiene nombre», y eso cerraba un bucle sin salida: el componente nace con
+ * `nombreSnapshot: []`, así que salía marcado como contenedor y su input de nombre aparecía
+ * deshabilitado — **para poder escribir el nombre hacía falta que ya tuviera nombre**. La única
+ * salida era elegir un insumo maestro, que además pisa el `tipo` con el suyo, y como el
+ * desplegable sólo ofrece el pool del servicio, todo componente hecho a mano acababa siendo
+ * «pool».
+ *
+ * Con los ítems en la condición, un componente recién creado —sin nombre y sin ítems— es
+ * simplemente un componente vacío, y se le puede escribir el nombre.
+ */
 const isComponenteSoloItems = (componente: ComponenteCompleto) => {
-  return !componente.nombreSnapshot || componente.nombreSnapshot.length === 0;
+  const sinNombre = !componente.nombreSnapshot || componente.nombreSnapshot.length === 0;
+
+  return sinNombre && (componente.snapshotItems?.length ?? 0) > 0;
 };
 
 const extractIdStrView = (val: unknown): string => val ? String(val).split('/').pop() ?? '' : '';
 
 const getNombreMaestroRef = (comp: ComponenteCompleto | null | undefined): string => {
-  if (!comp || !comp.componenteMaestroId) return 'Insumo sin seleccionar';
+  if (!comp) return 'Insumo sin seleccionar';
+
+  // ── Sin maestro manda SU nombre ──────────────────────────────────────────
+  // Un componente hecho a mano no tiene maestro y no va a tenerlo: rotularlo «Insumo sin
+  // seleccionar» decía que faltaba un paso que no existe, y dejaba la cabecera contradiciendo al
+  // nombre que el operador acababa de escribir dos líneas más abajo. Sólo cuando tampoco hay
+  // nombre propio queda el aviso, que ahí sí describe lo que pasa.
   const targetId = extractIdStrView(comp.componenteMaestroId);
-  if (!targetId) return 'Insumo sin seleccionar';
+
+  if (!targetId) {
+    return store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')
+      || 'Insumo sin seleccionar';
+  }
 
   const c = store.catalogos.allComponentes.find((cat) => store.extractIdStr(cat) === targetId);
 
@@ -2074,6 +2145,29 @@ store.$onAction(({ name, args }) => {
                   </div>
                 </div>
               </div>
+
+              <!-- ── Categoría Operativa, SÓLO sin maestro ────────────────────
+                   Con maestro el tipo lo pone él y ahí tiene que seguir mandando: un componente
+                   que dijera una cosa y su maestro otra no lo denunciaría nada después.
+
+                   ⚠️ No es cosmético. De este campo cuelga si el componente aporta punto de
+                   recojo y entrega (`ComponenteTipoEnum::puntosDeServicio()`): `transporte` da
+                   los dos, `extras` —con el que nace— no da ninguno **y no da error**. -->
+              <div v-if="!store.componenteActivo.componenteMaestroId" class="mt-4">
+                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">
+                  <i class="fas fa-tag mr-1"></i> Categoría Operativa
+                </label>
+                <select :value="store.componenteActivo.tipo || 'extras'"
+                        @change="e => store.onTipoManualChange((e.target as HTMLSelectElement).value)"
+                        class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
+                  <option v-for="t in store.catalogos.tiposComponente" :key="t.id" :value="t.id">
+                    {{ getTipoComponenteConfig(t.id).label }}
+                  </option>
+                </select>
+                <p class="text-[10px] font-bold text-slate-400 mt-1.5 ml-1">
+                  Decide si el componente lleva hora y si aporta punto de recojo y entrega.
+                </p>
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -3124,8 +3218,18 @@ store.$onAction(({ name, args }) => {
                                 <i class="fas fa-language"></i> <span class="hidden xl:inline" v-if="cotSeg.sobreescribirTraduccion">Auto-Traducir</span>
                               </button>
 
-                              <button @click="store.removerCotSegmento(cotSeg.id)" class="bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors ml-1 p-1.5 rounded shadow-sm shrink-0">
+                              <button @click="pedirBorrarSegmento(cotSeg.id)"
+                                      class="border transition-colors ml-1 p-1.5 rounded shadow-sm shrink-0 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider"
+                                      :class="segmentoConfirmandoBorrado === cotSeg.id
+                                        ? 'bg-red-500 border-red-500 text-white'
+                                        : 'bg-white border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200'"
+                                      :title="componentesDeSegmento(cotSeg.id).length
+                                        ? `Se lleva ${componentesDeSegmento(cotSeg.id).length} componente(s) y sus tarifas`
+                                        : 'Borrar el párrafo'">
                                 <i class="fas fa-trash-alt text-sm"></i>
+                                <span v-if="segmentoConfirmandoBorrado === cotSeg.id">
+                                  ¿Borrar? se lleva {{ componentesDeSegmento(cotSeg.id).length }}
+                                </span>
                               </button>
                             </div>
                           </div>
@@ -3178,6 +3282,30 @@ store.$onAction(({ name, args }) => {
                                 </div>
                               </div>
                             </div>
+                          </div>
+
+                          <!-- ── Qué cuelga de este párrafo ────────────────────────────
+                               Visible siempre, no en hover: esto se usa en el móvil y ahí no hay
+                               hover. Y va al pie de la tarjeta porque la pregunta que responde
+                               —«¿qué me llevo si lo borro?»— se hace justo antes de pulsar. -->
+                          <div class="px-3 md:px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-start gap-2 text-[10px] font-bold leading-snug">
+                            <template v-if="componentesDeSegmento(cotSeg.id).length">
+                              <span class="shrink-0 bg-white border border-slate-300 text-slate-600 rounded px-1.5 py-0.5 font-black">
+                                <i class="fas fa-cubes mr-1 text-slate-400"></i>{{ componentesDeSegmento(cotSeg.id).length }}
+                              </span>
+                              <span class="text-slate-500 min-w-0">
+                                {{ componentesDeSegmento(cotSeg.id).map(c => getNombreMaestroRef(c)).join(' · ') }}
+                              </span>
+                              <InfoTooltip lado="derecha" ancho="max-w-72" clase-icono="text-slate-400 hover:text-slate-600 shrink-0 ml-auto">
+                                Borrar este párrafo se lleva también esos
+                                <b>{{ componentesDeSegmento(cotSeg.id).length }} componente(s)</b>,
+                                sus tarifas y sus filas del cuadro de tráfico con el historial de
+                                estados.
+                                <br><br>
+                                La orden ya emitida no se toca: guarda su propia copia.
+                              </InfoTooltip>
+                            </template>
+                            <span v-else class="text-slate-400 italic">Sin componentes vinculados</span>
                           </div>
                         </div>
                       </div>
