@@ -14957,6 +14957,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
+            /**
+             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14986,6 +14991,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
+            /**
+             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15015,6 +15025,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
+            /**
+             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15044,6 +15059,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
+            /**
+             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15073,6 +15093,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
+            /**
+             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15102,6 +15127,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
+            /**
+             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15131,6 +15161,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
+            /**
+             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15160,6 +15195,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **congelados al emitir**. */
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
+            /**
+             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15304,6 +15344,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /**
+             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -15500,6 +15545,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /**
+             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             prestadorOverrideMaestroId?: string | null;
             prestadorOverrideNombre?: string | null;
             prestadorServicioOverrideMaestroId?: string | null;
@@ -15578,6 +15628,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /**
+             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             prestadorOverrideMaestroId?: string | null;
             prestadorOverrideNombre?: string | null;
             prestadorServicioOverrideMaestroId?: string | null;
@@ -15648,6 +15703,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /**
+             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -15836,6 +15896,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /**
+             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -16024,6 +16089,11 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /**
+             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
+             * @default false
+             */
+            puntosSiempreVisibles: boolean;
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**

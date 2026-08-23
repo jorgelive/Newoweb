@@ -720,17 +720,29 @@ class OperacionOrdenServicio
 
     /** Un borrador es una vista viva; una anulada ya no se persigue. */
     /**
-     * Qué ítems enseñan el «recoge en… → deja en…», y cuáles se lo callan.
+     * Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla.
      *
-     * ⚠️ **El sitio de recojo se dice UNA VEZ AL DÍA, no en cada línea.** Una orden va a un solo
-     * proveedor, así que repetirle en las seis líneas del martes que recoge en el Hotel Terra no
-     * le informa: le enseña a no leer ese renglón, y entonces no lo lee el día que sí cambia. Es
-     * la misma razón por la que la hora de recojo sólo sale cuando difiere de la del servicio.
+     * ⚠️ **Una cadena del mismo prestador se cuenta como UN servicio: dónde empieza y dónde
+     * acaba.** Lo de en medio es logística suya. Si el mismo proveedor recoge en el hotel, lleva a
+     * la estación, y de ahí a Machu Picchu, decirle «hotel → estación · estación → estación ·
+     * estación → Machu Picchu» no le informa de nada que no sepa: se lo está contando a quien lo
+     * va a conducir. Lo que necesita saber es dónde empieza —el hotel— y dónde termina.
      *
-     * **Al día siguiente vuelve a salir**, aunque sea el mismo sitio: es información que se
-     * consulta por jornada, y el que opera el miércoles puede no haber leído el martes.
+     * ```
+     * 06:00  Transporte    Futurismo   Recoge en Hotel Terra          ← principio de la cadena
+     * 06:40  Tren          Futurismo   (nada)                         ← en medio: suyo
+     * 09:00  Transporte    Futurismo   Deja en Machu Picchu Pueblo    ← final de la cadena
+     * 15:00  Guiado        Consettur   Recoge en … → deja en …        ← otra cadena, entera
+     * ```
      *
-     * Y **sale igualmente en mitad del día si el sitio CAMBIA**: ahí es justo cuando hace falta.
+     * Corta la cadena **cambiar de prestador** o **cambiar de día**. Un día nuevo empieza cadena
+     * aunque lo opere el mismo: se consulta por jornada, y quien opera el miércoles puede no haber
+     * leído el martes.
+     *
+     * ⚠️ **La versión anterior sólo se callaba lo REPETIDO**, y eso no cubría el caso: en una
+     * cadena los tres puntos son distintos, así que salían los tres. Repetir la logística interna
+     * del proveedor en cada línea es cómo se le enseña a no leer ese renglón — y entonces no lo
+     * lee el día que sí le estás diciendo algo.
      *
      * Se decide aquí y no en cada superficie porque lo pintan dos —el mensaje al proveedor y la
      * página pública con su PDF— y una regla de «cuándo callarse» escrita dos veces se convierte
@@ -749,28 +761,98 @@ class OperacionOrdenServicio
         });
 
         $visibles = [];
-        $ultimaPorDia = [];
 
-        foreach ($items as $item) {
-            $ruta = $item->rutaParaLaOrden();
-            $id = $item->getId()?->toRfc4122();
+        foreach ($this->cadenasDe($items) as $cadena) {
+            $primero = $cadena[0];
+            $ultimo = $cadena[count($cadena) - 1];
 
-            if ($ruta === null || $id === null) {
+            // Cadena de uno: es un servicio suelto y se cuenta entero.
+            if ($primero === $ultimo) {
+                $ruta = $primero->rutaParaLaOrden();
+                $id = $primero->getId()?->toRfc4122();
+
+                if ($ruta !== null && $id !== null) {
+                    $visibles[$id] = $ruta;
+                }
+
                 continue;
             }
 
-            // Sin fecha no hay día en el que agrupar: se enseña siempre, que es lo prudente.
-            $dia = $item->getFechaServicio()?->format('Y-m-d') ?? $id;
+            // ⚠️ Los marcados a mano se cuentan ENTEROS aunque estén en medio: es la salida para
+            // cuando la suposición de «lo de en medio es suyo» no vale — un tramo subcontratado, o
+            // un punto intermedio que el proveedor sí necesita por escrito. Sólo puede AÑADIR
+            // líneas; el principio y el final de la cadena salen igual.
+            foreach ($cadena as $item) {
+                $id = $item->getId()?->toRfc4122();
+                $ruta = $item->rutaParaLaOrden();
 
-            if (($ultimaPorDia[$dia] ?? null) === $ruta) {
-                continue;
+                if ($item->isPuntosSiempreVisibles() && $id !== null && $ruta !== null) {
+                    $visibles[$id] = $ruta;
+                }
             }
 
-            $ultimaPorDia[$dia] = $ruta;
-            $visibles[$id] = $ruta;
+            $recojo = trim((string) $primero->getPuntoRecojoConfirmado());
+            $entrega = trim((string) $ultimo->getPuntoEntregaConfirmado());
+            $idPrimero = $primero->getId()?->toRfc4122();
+            $idUltimo = $ultimo->getId()?->toRfc4122();
+
+            if ($recojo !== '' && $idPrimero !== null) {
+                $visibles[$idPrimero] = sprintf('Recoge en %s', $recojo);
+            }
+
+            if ($entrega !== '' && $idUltimo !== null) {
+                $visibles[$idUltimo] = sprintf('Deja en %s', $entrega);
+            }
         }
 
         return $visibles;
+    }
+
+    /**
+     * Parte los ítems en cadenas: tramos seguidos del mismo prestador dentro del mismo día.
+     *
+     * Los ítems que no tienen ningún punto **no rompen la cadena**: un ticket de ingreso en medio
+     * de tres traslados del mismo proveedor no convierte eso en dos cadenas. Pero tampoco entran
+     * en ella, porque no aportan ni principio ni final.
+     *
+     * @param list<OperacionOrdenServicioItem> $items ya ordenados por fecha y hora
+     *
+     * @return list<list<OperacionOrdenServicioItem>>
+     */
+    private function cadenasDe(array $items): array
+    {
+        $cadenas = [];
+        $actual = [];
+        $clave = null;
+
+        foreach ($items as $item) {
+            if ($item->rutaParaLaOrden() === null) {
+                continue;
+            }
+
+            // Por NOMBRE de prestador: es lo que la orden congela. Vacío cuenta como su propio
+            // grupo — sin saber quién opera, no se puede afirmar que sea el mismo de antes.
+            $suya = ($item->getFechaServicio()?->format('Y-m-d') ?? '')
+                . '|' . trim((string) $item->getPrestadorNombre());
+
+            if ($clave !== null && $suya === $clave) {
+                $actual[] = $item;
+                continue;
+            }
+
+            if ($actual !== []) {
+                $cadenas[] = $actual;
+            }
+
+            $actual = [$item];
+            $clave = $suya;
+        }
+
+        if ($actual !== []) {
+            $cadenas[] = $actual;
+        }
+
+        return $cadenas;
     }
 
     private function vigilable(): bool

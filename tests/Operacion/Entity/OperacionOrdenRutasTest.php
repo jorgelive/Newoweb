@@ -20,9 +20,10 @@ use PHPUnit\Framework\TestCase;
  */
 final class OperacionOrdenRutasTest extends TestCase
 {
-    private function item(OperacionOrdenServicio $orden, string $fecha, string $hora, ?string $recojo, ?string $entrega = null): OperacionOrdenServicioItem
+    private function item(OperacionOrdenServicio $orden, string $fecha, string $hora, ?string $recojo, ?string $entrega = null, string $prestador = 'Futurismo'): OperacionOrdenServicioItem
     {
         $item = new OperacionOrdenServicioItem();
+        $item->setPrestadorNombre($prestador);
         $item->setFechaServicio(new DateTimeImmutable($fecha));
         $item->setHora($hora);
         $item->setDescripcion('Servicio de prueba');
@@ -39,27 +40,60 @@ final class OperacionOrdenRutasTest extends TestCase
     }
 
     #[Test]
-    public function el_mismo_sitio_el_mismo_dia_se_dice_UNA_vez(): void
+    public function una_cadena_del_mismo_prestador_dice_DONDE_EMPIEZA_y_DONDE_ACABA(): void
     {
+        // ⚠️ El caso real: el mismo proveedor recoge en el hotel, lleva a la estación y de ahí a
+        // Machu Picchu. Contarle «hotel → estación · estación → estación» es contarle su propia
+        // logística a quien la va a conducir.
         $orden = new OperacionOrdenServicio();
-        $primero = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco');
-        $segundo = $this->item($orden, '2026-09-08', '09:00', 'Hotel Terra - Cusco');
-        $tercero = $this->item($orden, '2026-09-08', '14:00', 'Hotel Terra - Cusco');
+        $uno = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco', 'Estación de Ollantaytambo');
+        $dos = $this->item($orden, '2026-09-08', '06:40', 'Estación de Ollantaytambo', 'Estación de Machu Picchu');
+        $tres = $this->item($orden, '2026-09-08', '09:00', 'Estación de Machu Picchu', 'Machu Picchu Pueblo');
 
         $rutas = $orden->rutasVisibles();
 
-        self::assertArrayHasKey($this->id($primero), $rutas);
-        self::assertArrayNotHasKey($this->id($segundo), $rutas);
-        self::assertArrayNotHasKey($this->id($tercero), $rutas);
+        self::assertSame('Recoge en Hotel Terra - Cusco', $rutas[$this->id($uno)] ?? null);
+        self::assertArrayNotHasKey($this->id($dos), $rutas);
+        self::assertSame('Deja en Machu Picchu Pueblo', $rutas[$this->id($tres)] ?? null);
     }
 
     #[Test]
-    public function al_dia_siguiente_vuelve_a_salir_aunque_sea_el_mismo_sitio(): void
+    public function cambiar_de_prestador_ABRE_una_cadena_nueva(): void
+    {
+        // Lo de en medio es logística del proveedor **de esa cadena**. En cuanto opera otro, ese
+        // otro necesita su propio principio y su propio final.
+        $orden = new OperacionOrdenServicio();
+        $a1 = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco', 'Estación de Ollantaytambo', 'Futurismo');
+        $a2 = $this->item($orden, '2026-09-08', '07:00', 'Estación de Ollantaytambo', 'Estación de Machu Picchu', 'Futurismo');
+        $b1 = $this->item($orden, '2026-09-08', '12:00', 'Machu Picchu Pueblo', 'Santuario de Machu Picchu', 'Consettur');
+
+        $rutas = $orden->rutasVisibles();
+
+        self::assertSame('Recoge en Hotel Terra - Cusco', $rutas[$this->id($a1)] ?? null);
+        self::assertSame('Deja en Estación de Machu Picchu', $rutas[$this->id($a2)] ?? null);
+        // Cadena de uno: se cuenta entera, principio y final en la misma línea.
+        self::assertSame('Recoge en Machu Picchu Pueblo → deja en Santuario de Machu Picchu', $rutas[$this->id($b1)] ?? null);
+    }
+
+    #[Test]
+    public function un_servicio_suelto_se_cuenta_ENTERO(): void
+    {
+        $orden = new OperacionOrdenServicio();
+        $solo = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco', 'Aeropuerto de Cusco');
+
+        self::assertSame(
+            'Recoge en Hotel Terra - Cusco → deja en Aeropuerto de Cusco',
+            $orden->rutasVisibles()[$this->id($solo)] ?? null
+        );
+    }
+
+    #[Test]
+    public function al_dia_siguiente_empieza_cadena_nueva_aunque_sea_el_mismo_prestador(): void
     {
         // Se consulta por jornada: quien opera el miércoles puede no haber leído el martes.
         $orden = new OperacionOrdenServicio();
-        $martes = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco');
-        $miercoles = $this->item($orden, '2026-09-09', '06:00', 'Hotel Terra - Cusco');
+        $martes = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco', 'Aeropuerto de Cusco');
+        $miercoles = $this->item($orden, '2026-09-09', '06:00', 'Hotel Terra - Cusco', 'Aeropuerto de Cusco');
 
         $rutas = $orden->rutasVisibles();
 
@@ -68,49 +102,39 @@ final class OperacionOrdenRutasTest extends TestCase
     }
 
     #[Test]
-    public function si_el_sitio_CAMBIA_en_mitad_del_dia_se_dice(): void
+    public function un_item_sin_puntos_no_ROMPE_la_cadena(): void
     {
-        // Es justo cuando hace falta: callarlo aquí manda al conductor al sitio de la mañana.
+        // Un ticket de ingreso en medio de tres traslados del mismo proveedor no convierte eso en
+        // dos cadenas. Tampoco entra en ella: no aporta ni principio ni final.
         $orden = new OperacionOrdenServicio();
-        $manana = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco');
-        $tarde = $this->item($orden, '2026-09-08', '15:00', 'Estación de Ollantaytambo');
+        $uno = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco', 'Estación de Ollantaytambo');
+        $ticket = $this->item($orden, '2026-09-08', '07:00', null, null);
+        $tres = $this->item($orden, '2026-09-08', '09:00', 'Estación de Ollantaytambo', 'Machu Picchu Pueblo');
 
         $rutas = $orden->rutasVisibles();
 
-        self::assertArrayHasKey($this->id($manana), $rutas);
-        self::assertArrayHasKey($this->id($tarde), $rutas);
+        self::assertSame('Recoge en Hotel Terra - Cusco', $rutas[$this->id($uno)] ?? null);
+        self::assertArrayNotHasKey($this->id($ticket), $rutas);
+        self::assertSame('Deja en Machu Picchu Pueblo', $rutas[$this->id($tres)] ?? null);
     }
 
     #[Test]
-    public function volver_al_sitio_anterior_el_mismo_dia_TAMBIEN_se_dice(): void
+    public function un_item_MARCADO_a_mano_sale_aunque_este_en_medio(): void
     {
-        // A → B → A. La tercera línea vuelve al hotel, y no decirlo dejaría al conductor con la
-        // estación como último dato leído. Sólo se calla lo que repite a la línea ANTERIOR.
+        // La salida para cuando «lo de en medio es logística suya» no vale: un tramo
+        // subcontratado, o un punto intermedio que el proveedor sí necesita por escrito.
         $orden = new OperacionOrdenServicio();
-        $uno = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco');
-        $dos = $this->item($orden, '2026-09-08', '10:00', 'Estación de Ollantaytambo');
-        $tres = $this->item($orden, '2026-09-08', '18:00', 'Hotel Terra - Cusco');
+        $uno = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco', 'Estación de Ollantaytambo');
+        $medio = $this->item($orden, '2026-09-08', '07:00', 'Estación de Ollantaytambo', 'Estación de Machu Picchu');
+        $tres = $this->item($orden, '2026-09-08', '09:00', 'Estación de Machu Picchu', 'Machu Picchu Pueblo');
 
+        $medio->setPuntosSiempreVisibles(true);
         $rutas = $orden->rutasVisibles();
 
-        self::assertCount(3, $rutas);
-        self::assertArrayHasKey($this->id($tres), $rutas);
-        self::assertSame('Recoge en Hotel Terra - Cusco', $rutas[$this->id($uno)]);
-        self::assertSame('Recoge en Estación de Ollantaytambo', $rutas[$this->id($dos)]);
-    }
-
-    #[Test]
-    public function un_item_sin_punto_no_ocupa_sitio_ni_rompe_la_cadena(): void
-    {
-        $orden = new OperacionOrdenServicio();
-        $conPunto = $this->item($orden, '2026-09-08', '06:00', 'Hotel Terra - Cusco');
-        $sinPunto = $this->item($orden, '2026-09-08', '10:00', null);
-        $repetido = $this->item($orden, '2026-09-08', '14:00', 'Hotel Terra - Cusco');
-
-        $rutas = $orden->rutasVisibles();
-
-        self::assertArrayHasKey($this->id($conPunto), $rutas);
-        self::assertArrayNotHasKey($this->id($sinPunto), $rutas);
-        self::assertArrayNotHasKey($this->id($repetido), $rutas);
+        // ⚠️ Sólo AÑADE: el principio y el final de la cadena siguen saliendo. Un interruptor que
+        // también pudiera quitarlos dejaría al proveedor sin saber dónde recoge.
+        self::assertSame('Recoge en Hotel Terra - Cusco', $rutas[$this->id($uno)] ?? null);
+        self::assertSame('Recoge en Estación de Ollantaytambo → deja en Estación de Machu Picchu', $rutas[$this->id($medio)] ?? null);
+        self::assertSame('Deja en Machu Picchu Pueblo', $rutas[$this->id($tres)] ?? null);
     }
 }

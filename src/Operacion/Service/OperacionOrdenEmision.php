@@ -86,7 +86,8 @@ final readonly class OperacionOrdenEmision
                 if ($puntos->aplica) {
                     $item
                         ->setPuntoRecojoConfirmado($puntos->recojo)
-                        ->setPuntoEntregaConfirmado($puntos->entrega);
+                        ->setPuntoEntregaConfirmado($puntos->entrega)
+                        ->setPuntosSiempreVisibles($servicio->isPuntosSiempreVisibles());
                 }
 
                 $orden->addItem($item);

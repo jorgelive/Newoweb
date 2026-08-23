@@ -191,6 +191,22 @@ class OperacionServicio
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $puntoEntrega = null;
 
+    /**
+     * Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
+     *
+     * Por defecto, una cadena de servicios del mismo prestador dice sólo dónde empieza y dónde
+     * acaba —lo de en medio es logística suya, ver {@see OperacionOrdenServicio::rutasVisibles()}—.
+     * Esto es la salida para cuando esa suposición no vale: un tramo que lo hace un subcontratado,
+     * o un punto intermedio que el proveedor sí necesita por escrito.
+     *
+     * ⚠️ Sólo puede AÑADIR líneas, nunca quitarlas. Un interruptor que también sirviera para
+     * ocultar el principio o el final de una cadena dejaría al proveedor sin saber dónde recoge —
+     * y eso no es una preferencia de formato, es una orden que no se puede cumplir.
+     */
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(name: 'puntos_siempre_visibles', type: 'boolean', options: ['default' => false])]
+    private bool $puntosSiempreVisibles = false;
+
     // ─────────────────────────────────────────────────────────────────────────
     // PRESTADOR — quién opera, frente a comprador* = a quién se le manda el encargo
     //
@@ -661,6 +677,9 @@ class OperacionServicio
 
     public function getPuntoEntrega(): ?string { return $this->puntoEntrega; }
     public function setPuntoEntrega(?string $v): self { $this->puntoEntrega = $this->limpiar($v); return $this; }
+
+    public function isPuntosSiempreVisibles(): bool { return $this->puntosSiempreVisibles; }
+    public function setPuntosSiempreVisibles(bool $v): self { $this->puntosSiempreVisibles = $v; return $this; }
 
     /**
      * Una cadena en blanco vuelve a ser `null`, y no es cosmética.

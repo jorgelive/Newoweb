@@ -925,11 +925,12 @@ interface BorradorFicha {
     puntoEntrega: string;
     estadoReservaProveedor: string;
     estadoOperacion: string;
+    puntosSiempreVisibles: boolean;
 }
 
 const borradorFicha = ref<BorradorFicha>({
     horaRecojo: '', puntoRecojo: '', puntoEntrega: '',
-    estadoReservaProveedor: '', estadoOperacion: '',
+    estadoReservaProveedor: '', estadoOperacion: '', puntosSiempreVisibles: false,
 });
 
 /** Se abre SÓLO en móvil: en escritorio la tabla ya es editable y abrir una ficha estorbaría. */
@@ -944,6 +945,7 @@ const abrirFicha = (servicio: OperacionServicio) => {
         puntoEntrega: servicio.puntoEntrega ?? '',
         estadoReservaProveedor: servicio.estadoReservaProveedor ?? 'sin-solicitar',
         estadoOperacion: servicio.estadoOperacion ?? 'pendiente',
+        puntosSiempreVisibles: servicio.puntosSiempreVisibles ?? false,
     };
 };
 
@@ -962,6 +964,7 @@ const cambiosDeFicha = (): Record<string, unknown> => {
     if (texto(b.puntoEntrega) !== (s.puntoEntrega ?? null)) cambios.puntoEntrega = texto(b.puntoEntrega);
     if (b.estadoReservaProveedor !== s.estadoReservaProveedor) cambios.estadoReservaProveedor = b.estadoReservaProveedor;
     if (b.estadoOperacion !== s.estadoOperacion) cambios.estadoOperacion = b.estadoOperacion;
+    if (b.puntosSiempreVisibles !== (s.puntosSiempreVisibles ?? false)) cambios.puntosSiempreVisibles = b.puntosSiempreVisibles;
 
     return cambios;
 };
@@ -3767,6 +3770,19 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
           </div>
 
           <p class="text-[10px] font-bold text-slate-400 -mt-3">Vacío = lo que diga el catálogo.</p>
+
+          <!-- Por defecto, una cadena de servicios del mismo proveedor dice sólo dónde empieza y
+               dónde acaba: lo de en medio es logística suya. Esto es la salida para cuando esa
+               suposición no vale. Sólo AÑADE líneas; nunca quita el principio ni el final. -->
+          <label class="flex items-start gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer">
+            <input type="checkbox" v-model="borradorFicha.puntosSiempreVisibles" class="mt-0.5 w-4 h-4 accent-[#376875]" />
+            <span class="text-[11px] font-bold text-slate-600 leading-snug">
+              Mostrar estos puntos en la orden aunque esté en medio de una cadena
+              <span class="block text-[10px] font-bold text-slate-400 mt-0.5">
+                Normalmente, varios servicios seguidos del mismo proveedor sólo dicen dónde empieza y dónde acaba.
+              </span>
+            </span>
+          </label>
 
           <div>
             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Reserva con el proveedor</label>

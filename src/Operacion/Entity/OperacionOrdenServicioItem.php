@@ -118,6 +118,16 @@ class OperacionOrdenServicioItem
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $puntoEntregaConfirmado = null;
 
+    /**
+     * El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
+     *
+     * Se congela como todo lo demás: la decisión se tomó al emitir y el documento tiene que poder
+     * reconstruirse igual meses después, aunque para entonces la fila de La Biblia diga otra cosa.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(name: 'puntos_siempre_visibles', type: 'boolean', options: ['default' => false])]
+    private bool $puntosSiempreVisibles = false;
+
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $cantidadPax = null;
@@ -206,6 +216,9 @@ class OperacionOrdenServicioItem
 
     public function getPuntoEntregaConfirmado(): ?string { return $this->puntoEntregaConfirmado; }
     public function setPuntoEntregaConfirmado(?string $v): self { $this->puntoEntregaConfirmado = $v; return $this; }
+
+    public function isPuntosSiempreVisibles(): bool { return $this->puntosSiempreVisibles; }
+    public function setPuntosSiempreVisibles(bool $v): self { $this->puntosSiempreVisibles = $v; return $this; }
 
     public function getCantidadPax(): ?int { return $this->cantidadPax; }
     public function setCantidadPax(?int $v): self { $this->cantidadPax = $v; return $this; }

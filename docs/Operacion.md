@@ -2288,21 +2288,42 @@ En el cuadro, el botón sale sólo si hay borradores compatibles, y el modal ens
 comprador** de cada uno: sin el comprador delante, elegir entre «OS-014» y «OS-015» es adivinar, y
 equivocarse manda el encargo al proveedor que no era.
 
-### El recojo se dice UNA VEZ AL DÍA
+### Una cadena del mismo prestador dice dónde EMPIEZA y dónde ACABA
 
-`OperacionOrdenServicio::rutasVisibles()` decide qué líneas enseñan el «recoge en… → deja en…».
+`OperacionOrdenServicio::rutasVisibles()`.
 
-⚠️ **Repetirlo en cada línea no informa: enseña a no leer ese renglón**, y entonces no se lee el
-día que sí cambia. Una orden va a un solo proveedor, así que las seis líneas del martes con el
-mismo hotel son seis veces el mismo dato. Es la misma razón por la que la hora de recojo sólo sale
-cuando difiere de la del servicio.
+⚠️ **Lo de en medio es logística del proveedor.** Si el mismo opera el recojo en el hotel, el
+traslado a la estación y el de ahí a Machu Picchu, decirle «hotel → estación · estación → estación
+· estación → Machu Picchu» no le informa de nada: se lo está contando a quien lo va a conducir. Lo
+que necesita saber es dónde empieza y dónde termina.
 
 ```
-mismo sitio, mismo día      →  se dice una vez, en la primera línea
-al día siguiente            →  vuelve a decirse, aunque sea el mismo sitio
-cambia en mitad del día     →  se dice, que es justo cuando hace falta
-vuelve al sitio anterior    →  se dice: sólo se calla lo que repite a la línea ANTERIOR
+06:00  Transporte   Futurismo   Recoge en Hotel Terra          ← principio de la cadena
+06:40  Tren         Futurismo   (nada)                         ← en medio: suyo
+09:00  Transporte   Futurismo   Deja en Machu Picchu Pueblo    ← final de la cadena
+15:00  Guiado       Consettur   Recoge en … → deja en …        ← otra cadena, entera
 ```
+
+**Corta la cadena** cambiar de prestador o cambiar de día. Un día nuevo empieza cadena aunque lo
+opere el mismo: se consulta por jornada, y quien opera el miércoles puede no haber leído el martes.
+
+**No la corta** un ítem sin puntos: un ticket de ingreso entre tres traslados del mismo proveedor
+no convierte eso en dos cadenas. Tampoco entra en ella, porque no aporta ni principio ni final.
+
+⚠️ **La primera versión se callaba sólo lo REPETIDO, y no cubría el caso**: en una cadena los tres
+puntos son distintos, así que salían los tres. Repetir la logística interna del proveedor en cada
+línea es cómo se le enseña a no leer ese renglón — y entonces no lo lee el día que sí le estás
+diciendo algo.
+
+#### El escape: `puntosSiempreVisibles`
+
+Una casilla por servicio —en la ficha— para que **esa** línea enseñe sus puntos aunque esté en
+medio. Es para cuando la suposición no vale: un tramo subcontratado, o un punto intermedio que el
+proveedor sí necesita por escrito. Se congela en el ítem al emitir, como todo lo demás.
+
+⚠️ **Sólo puede AÑADIR líneas, nunca quitarlas.** Un interruptor que también sirviera para ocultar
+el principio o el final de una cadena dejaría al proveedor sin saber dónde recoge — y eso no es una
+preferencia de formato, es una orden que no se puede cumplir.
 
 Vive en la orden y no en cada superficie porque lo pintan **dos** —el mensaje al proveedor y la
 página pública con su PDF— y una regla de «cuándo callarse» escrita dos veces se convierte en dos
