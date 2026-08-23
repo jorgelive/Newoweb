@@ -2597,9 +2597,14 @@ campo es para **ajustar**, no para redactar de cero. Si algún día hace falta r
 quitar esa condición; ponerlo ahora invitaría a llenar la Biblia de texto que la cotización no
 conoce y que se perdería al reemitir.
 
-### Nadie sale a `prestador` solo
+### Quién sale a `prestador`
 
-La conversión de detalles a audiencias (`docs/Cotizaciones.md` §6.g) deja todo en `cliente` e
-`interno`. **Marcar `prestador` es una decisión por componente y se toma en el editor de la
-cotización**: es el único cambio de esta familia que no se puede deshacer, porque un texto de más
-se ve cuando el proveedor ya lo leyó.
+Por defecto, nadie: es el único cambio de esta familia que no se puede deshacer, porque un texto
+de más se ve cuando el proveedor ya lo leyó.
+
+El 22/08/2026 se corrió la conversión con `--todas` tras mirar el contenido real: de los
+diecisiete bloques, quince son número de vuelo, frecuencia de tren y dirección de hotel. **Quitar
+la marca a dos sale más barato que ponérsela a quince**, y entre marcarla y que un proveedor lo
+lea sigue estando la emisión de la orden, que la ve una persona.
+
+A partir de ahí es una decisión por componente, en el editor de la cotización.

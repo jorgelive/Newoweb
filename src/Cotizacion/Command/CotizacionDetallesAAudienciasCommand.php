@@ -28,10 +28,14 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * 2. `tipo: operativa` → `audiencias: [interno]`
  * 3. Dos bloques con **el mismo texto en español** se funden en uno con las dos audiencias.
  *
- * ⚠️ **Nadie sale a `prestador` por conversión automática.** Es el único cambio que no se puede
+ * ⚠️ **Por defecto nadie sale a `prestador`.** Es el único cambio de esta familia que no se puede
  * deshacer: que a un proveedor externo le falte una línea se ve y se añade; que le sobre, se ve
- * cuando ya la leyó. `--con-prestador` existe para quien quiera asumirlo a sabiendas sobre los
- * bloques que alguien marcó como operativos.
+ * cuando ya la leyó.
+ *
+ * `--todas` marca las tres audiencias en todos los bloques, y es lo que se usó el 22/08/2026 con
+ * la decisión tomada a sabiendas: de los 17 componentes con detalles, quince son datos de vuelo,
+ * tren y hotel que el proveedor necesita para trabajar. **Quitar la marca a dos sale más barato
+ * que ponérsela a quince**, y nada llega a un proveedor hasta que alguien emite la orden.
  *
  * Idempotente: un bloque que ya tiene audiencias y no repite texto se queda igual.
  */
@@ -50,14 +54,14 @@ final class CotizacionDetallesAAudienciasCommand extends Command
     {
         $this
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Enseña lo que haría sin guardar nada')
-            ->addOption('con-prestador', null, InputOption::VALUE_NONE, 'Marca también `prestador` en lo que era operativo');
+            ->addOption('todas', null, InputOption::VALUE_NONE, 'Marca las TRES audiencias en todos los bloques');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $seco = (bool) $input->getOption('dry-run');
-        $aPrestador = (bool) $input->getOption('con-prestador');
+        $todas = (bool) $input->getOption('todas');
 
         // Los ids por SQL y las entidades por `findBy`: `JSON_LENGTH` no es una función DQL
         // registrada, y darla de alta en `doctrine.yaml` para un comando de una sola pasada sale
@@ -84,7 +88,7 @@ final class CotizacionDetallesAAudienciasCommand extends Command
         foreach ($componentes as $componente) {
             // El getter ya normaliza `tipo` → `audiencias`; aquí sólo queda fundir repetidos.
             $antes = $componente->getDetallesOperativos();
-            [$despues, $fusiones] = $this->fundir($antes, $aPrestador);
+            [$despues, $fusiones] = $this->fundir($antes, $todas);
 
             $guardado = json_decode((string) ($crudos[(string) $componente->getId()] ?? '[]'), true);
             if ($despues === $guardado) {
@@ -137,7 +141,7 @@ final class CotizacionDetallesAAudienciasCommand extends Command
      *
      * @return array{0: list<array<string, mixed>>, 1: int}
      */
-    private function fundir(array $bloques, bool $aPrestador): array
+    private function fundir(array $bloques, bool $todas): array
     {
         /** @var array<string, array<string, mixed>> $porTexto */
         $porTexto = [];
@@ -160,8 +164,8 @@ final class CotizacionDetallesAAudienciasCommand extends Command
 
         $salida = [];
         foreach ($porTexto as $bloque) {
-            if ($aPrestador && in_array(AudienciaDetalleEnum::INTERNO->value, $bloque['audiencias'], true)) {
-                $bloque['audiencias'][] = AudienciaDetalleEnum::PRESTADOR->value;
+            if ($todas) {
+                $bloque['audiencias'] = AudienciaDetalleEnum::valores();
             }
 
             // En el orden del enum, para que dos ejecuciones den el mismo JSON.

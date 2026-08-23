@@ -961,13 +961,19 @@ interna pide español y ya está — `textosPara($audiencia, 'es')`.
 
 ### La conversión
 
-`app:cotizacion:detalles-a-audiencias` (`--dry-run`, `--con-prestador`). Convierte el `tipo` viejo
-y **funde los bloques que dicen lo mismo en español**, uniendo sus audiencias. En producción: 32
-bloques → 17, con las 7 traducciones intactas.
+`app:cotizacion:detalles-a-audiencias` (`--dry-run`, `--todas`). Convierte el `tipo` viejo y
+**funde los bloques que dicen lo mismo en español**, uniendo sus audiencias: 32 bloques → 17, con
+las 7 traducciones intactas.
 
-⚠️ **Nadie sale a `prestador` por conversión automática.** Es el único cambio irreversible: que a
-un proveedor le falte una línea se ve y se añade; que le sobre, se ve cuando ya la leyó. Por eso
-`operativa` → `interno` y punto, y `--con-prestador` existe sólo para quien lo asuma a sabiendas.
+⚠️ **Por defecto nadie sale a `prestador`**, porque es el único cambio de esta familia que no se
+puede deshacer: que a un proveedor le falte una línea se ve y se añade; que le sobre, se ve cuando
+ya la leyó.
+
+`--todas` marca las tres en todos los bloques, y es lo que se decidió el 22/08/2026 mirando el
+contenido: de los diecisiete, quince son número de vuelo, frecuencia de tren y dirección de hotel
+—justo lo que el proveedor necesita para trabajar—. **Quitarle la marca a dos sale más barato que
+ponérsela a quince**, y nada llega a nadie hasta que se emite una orden. Estado tras aplicarlo:
+17 bloques con `cliente+interno+prestador`.
 
 ⚠️ **La entidad tolera el `tipo` viejo al leer** (`normalizarBloque()`), para que entre el
 despliegue y el comando el editor no reviente. El comando compara contra el JSON **guardado**, no
