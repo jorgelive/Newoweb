@@ -2340,6 +2340,22 @@ prestador, puntos y ahora los enums—, así que es determinista y el documento 
 meses después. Materializarla sería guardar copia de un derivado, que es lo que `isSoloReferencia()`
 y `getOrdenItinerario()` se niegan a hacer.
 
+#### 🐛 El desplegable que quedaba debajo del teclado
+
+`SearchableSelect` **ya volcaba hacia arriba** cuando no cabía… pero decidía con
+`window.innerHeight`, y **eso no encoge cuando sale el teclado** (en iOS nunca; en Android depende
+del modo). La cuenta decía que había sitio de sobra abajo justo cuando el teclado acababa de
+taparlo: la lista se abría hacia abajo, quedaba detrás del teclado, y como el campo ya estaba en el
+límite tampoco había scroll con el que alcanzarla.
+
+**No es que se viera mal: es que no se podía elegir.**
+
+Ahora mide con `visualViewport` —altura y `offsetTop`— y escucha sus eventos, porque **el teclado no
+dispara `resize` de forma fiable**: sin eso la lista se colocaba bien al abrirse y se quedaba mal en
+cuanto subía el teclado.
+
+Vale para sus cuatro usos a la vez, que es la ventaja de que fuera un componente.
+
 #### La pastilla dice el RESULTADO, no el ajuste
 
 `getVisibilidadEfectiva()` devuelve, por ítem y por lado, si de verdad se imprime. La pastilla pone

@@ -108,7 +108,35 @@ const ordenPorHora = ref<boolean>(false);
 const filtroOs = ref<'' | 'sin' | 'con'>('');
 
 // Expediente / cotización
+/**
+ * ¿El desplegable tiene que abrirse HACIA ARRIBA?
+ *
+ * ⚠️ Un desplegable anclado siempre a `top-full` es inservible en la mitad baja de un teléfono: las
+ * opciones caen fuera de la pantalla, y con el teclado abierto no hay ni scroll con el que
+ * alcanzarlas — el campo está en el límite y lo que sale queda debajo del teclado. No es que se
+ * vea mal: es que **no se puede elegir**.
+ *
+ * Se mide el hueco real bajo el ancla. `visualViewport` es lo que hace falta en móvil: `innerHeight`
+ * no descuenta el teclado, así que con él la cuenta diría que hay sitio justo cuando no lo hay.
+ */
+const abreHaciaArriba = (ancla: HTMLElement | null | undefined, alto = 240): boolean => {
+    if (!ancla) return false;
+
+    const caja = ancla.getBoundingClientRect();
+    const visible = window.visualViewport?.height ?? window.innerHeight;
+
+    // Sólo se vuelca si arriba cabe MEJOR: en una pantalla diminuta puede no caber en ninguno de
+    // los dos lados, y ahí es preferible el sitio de siempre a un salto que desconcierta.
+    return (visible - caja.bottom) < alto && caja.top > (visible - caja.bottom);
+};
+
 const terminoExpediente = ref<string>('');
+const inputExpediente = ref<HTMLInputElement | null>(null);
+const expedienteArriba = ref(false);
+
+// Se mide justo ANTES de que aparezcan las opciones, no después: medir con el desplegable ya
+// pintado devuelve la posición con él dentro y la cuenta sale al revés.
+watch(terminoExpediente, () => { expedienteArriba.value = abreHaciaArriba(inputExpediente.value); });
 const resultadosExpediente = ref<ExpedienteOpcion[]>([]);
 const expedienteSeleccionado = ref<ExpedienteOpcion | null>(null);
 const cotizacionesDelExpediente = ref<CotizacionOpcion[]>([]);
@@ -1977,20 +2005,6 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                         este filtro existe para eliminar.
                     -->
                     <div v-if="operacionStore.lugares.length" class="mt-2 flex flex-wrap items-center gap-1.5">
-                        <!-- Cómo se ordena el día. Por itinerario es el defecto: es como se lee
-                             un viaje, y deja el alojamiento y la comida —que no tienen hora—
-                             junto al servicio al que pertenecen en vez de al final del día. -->
-                        <button
-                            @click="ordenPorHora = !ordenPorHora"
-                            class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 mr-2"
-                            :class="ordenPorHora ? 'bg-[#376875] text-white border-[#376875]'
-                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
-                            :title="ordenPorHora ? 'Ordenado por hora. Toca para volver al orden del itinerario.'
-                                : 'Ordenado como el itinerario. Toca para ordenar por hora.'"
-                        >
-                            <i class="fas" :class="ordenPorHora ? 'fa-clock' : 'fa-list-ol'"></i>
-                            {{ ordenPorHora ? 'Por hora' : 'Itinerario' }}
-                        </button>
 
                         <!-- El rótulo ES el interruptor: un botón aparte para plegar cuatro
                              líneas de chips sería un control más que explicar. El contador dice
@@ -2010,7 +2024,13 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                             <i class="fas text-[8px]" :class="mostrarLugares ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                         </button>
 
-                        <template v-if="mostrarLugares || lugaresSeleccionados.length">
+                        <!-- El interruptor MANDA, aunque haya filtros activos.
+                             La primera versión forzaba abrir si había alguno, para que un filtro
+                             activo no quedara escondido — el fallo que ya costó las filas de tipo
+                             `contacto`. Pero eso lo dejaba clavado abierto justo cuando más
+                             estorba, y el riesgo ya lo cubre el contador del rótulo: cerrado, la
+                             pastilla dice cuántos hay puestos. -->
+                        <template v-if="mostrarLugares">
                         <button
                             v-for="l in operacionStore.lugares"
                             :key="l.id"
@@ -2057,14 +2077,16 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
 
                                 <template v-else>
                                     <input
+                                        ref="inputExpediente"
                                         v-model="terminoExpediente"
                                         type="text"
-                                        placeholder="Buscar por nombre de grupo…"
+                                        placeholder="Expediente…"
                                         class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
                                     />
                                     <div
                                         v-if="resultadosExpediente.length || buscandoExpediente"
-                                        class="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-20 max-h-56 overflow-y-auto"
+                                        class="absolute left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-20 max-h-56 overflow-y-auto"
+                                        :class="expedienteArriba ? 'bottom-full mb-1' : 'top-full mt-1'"
                                     >
                                         <p v-if="buscandoExpediente" class="px-3 py-2 text-xs text-slate-400">
                                             <i class="fas fa-spinner fa-spin mr-1"></i> Buscando…
@@ -2283,7 +2305,24 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                     <thead>
                                         <tr class="bg-slate-50 border-b border-slate-200">
                                             <th class="px-3 py-3 w-8"></th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Hora</th>
+                                            <!-- El interruptor de orden vive AQUÍ, bajo el título de
+                                                 la columna que ordena. En la barra de filtros era
+                                                 un botón más entre otros diez y no se relacionaba
+                                                 con nada; aquí dice de qué va sin leerlo. -->
+                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest align-top">
+                                                Hora
+                                                <button
+                                                    @click="ordenPorHora = !ordenPorHora"
+                                                    class="mt-1 flex items-center gap-1 px-1.5 py-0.5 border rounded text-[9px] font-black uppercase tracking-wider transition-colors"
+                                                    :class="ordenPorHora ? 'bg-[#376875] text-white border-[#376875]'
+                                                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
+                                                    :title="ordenPorHora ? 'Ordenado por hora. Toca para volver al orden del itinerario.'
+                                                        : 'Ordenado como el itinerario. Toca para ordenar por hora.'"
+                                                >
+                                                    <i class="fas text-[8px]" :class="ordenPorHora ? 'fa-clock' : 'fa-list-ol'"></i>
+                                                    {{ ordenPorHora ? 'Hora' : 'Itin.' }}
+                                                </button>
+                                            </th>
                                             <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Servicio</th>
                                             <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Expediente</th>
                                             <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Pax</th>
@@ -3949,7 +3988,16 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                acaba, porque lo de en medio es logística suya. Sobre una orden ya emitida esto
                también se toca desde su tarjeta, que es donde se ve la cadena entera. -->
           <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 space-y-2">
-            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Qué ve el proveedor</p>
+            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Qué verá el proveedor</p>
+            <!-- ⚠️ Esto es la SEMILLA, no la decisión final. Se copia a la orden al emitirla, y a
+                 partir de ahí manda la orden. Con una orden ya emitida se ajusta desde su tarjeta
+                 —ahí sí se ve la cadena entera y si el «auto» acaba mostrando u ocultando—, que es
+                 el contexto que aquí no existe: una fila suelta no sabe con quién hará cadena. -->
+            <p class="text-[10px] font-bold text-slate-400 leading-snug">
+                Se copia a la orden al emitirla. <b class="text-slate-500">Automático</b> deja mandar la regla:
+                varios servicios seguidos del mismo proveedor dicen sólo dónde empieza y dónde acaba.
+                En una orden ya emitida esto se ajusta desde su tarjeta, donde se ve la cadena completa.
+            </p>
             <div class="flex items-center gap-2">
               <span class="text-[11px] font-bold text-slate-500 w-16 shrink-0">Recojo</span>
               <select v-model="borradorFicha.visibilidadRecojo"

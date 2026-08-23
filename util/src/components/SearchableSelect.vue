@@ -156,8 +156,21 @@ const posicionar = (): void => {
   if (!el) return;
   const r = el.getBoundingClientRect();
   const alto = 320; // input de búsqueda + lista (max-h-64) + márgenes, aproximado
-  const espacioAbajo = window.innerHeight - r.bottom;
-  const abrirArriba = espacioAbajo < alto && r.top > espacioAbajo;
+
+  // ⚠️ `visualViewport` y NO `innerHeight`, y es toda la diferencia en un teléfono.
+  //
+  // `innerHeight` **no encoge cuando sale el teclado** (en iOS nunca; en Android depende del
+  // modo). Con él, la cuenta dice que hay sitio de sobra abajo justo cuando el teclado acaba de
+  // taparlo: la lista se abre hacia abajo, queda detrás del teclado, y como el campo ya está en
+  // el límite tampoco hay scroll con el que alcanzarla. No es que se vea mal — es que no se
+  // puede elegir, que es el fallo que reportó el operador.
+  const vv = window.visualViewport;
+  const alturaVisible = vv?.height ?? window.innerHeight;
+  const desplazamiento = vv?.offsetTop ?? 0;
+
+  const espacioAbajo = (desplazamiento + alturaVisible) - r.bottom;
+  const espacioArriba = r.top - desplazamiento;
+  const abrirArriba = espacioAbajo < alto && espacioArriba > espacioAbajo;
   dropdownStyle.value = abrirArriba
     ? { left: `${r.left}px`, width: `${r.width}px`, bottom: `${window.innerHeight - r.top + 8}px` }
     : { left: `${r.left}px`, width: `${r.width}px`, top: `${r.bottom + 8}px` };
@@ -178,19 +191,25 @@ watch(isOpen, async (abierta) => {
     searchInputRef.value?.focus();
     window.addEventListener('scroll', posicionar, true);
     window.addEventListener('resize', posicionar);
+    // El teclado no dispara `resize` de forma fiable; lo que sí cambia es el visualViewport. Sin
+    // esto, la lista se coloca bien al abrirse y se queda mal en cuanto sube el teclado.
+    window.visualViewport?.addEventListener('resize', posicionar);
+    window.visualViewport?.addEventListener('scroll', posicionar);
     document.addEventListener('pointerdown', onDocDown, true);
   } else {
-    window.removeEventListener('scroll', posicionar, true);
-    window.removeEventListener('resize', posicionar);
-    document.removeEventListener('pointerdown', onDocDown, true);
+    quitarEscuchas();
   }
 });
 
-onBeforeUnmount(() => {
+const quitarEscuchas = (): void => {
   window.removeEventListener('scroll', posicionar, true);
   window.removeEventListener('resize', posicionar);
+  window.visualViewport?.removeEventListener('resize', posicionar);
+  window.visualViewport?.removeEventListener('scroll', posicionar);
   document.removeEventListener('pointerdown', onDocDown, true);
-});
+};
+
+onBeforeUnmount(quitarEscuchas);
 
 // Temporizador para el debounce de la búsqueda asíncrona
 let debounceTimer: ReturnType<typeof setTimeout>;
