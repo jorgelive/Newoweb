@@ -829,21 +829,7 @@ class OperacionOrdenServicio
                     continue;
                 }
 
-                // La regla decide, y los enums del ítem la corrigen — por lado. `AUTO` deja que
-                // mande la cadena: el primero enseña su recojo, el último su entrega, el resto
-                // nada. `SIEMPRE` y `OCULTO` imponen la respuesta contraria.
-                $conRecojo = match ($item->getVisibilidadRecojo()) {
-                    VisibilidadPuntoEnum::SIEMPRE => true,
-                    VisibilidadPuntoEnum::OCULTO => false,
-                    VisibilidadPuntoEnum::AUTO => $item === $primero,
-                };
-
-                $conEntrega = match ($item->getVisibilidadEntrega()) {
-                    VisibilidadPuntoEnum::SIEMPRE => true,
-                    VisibilidadPuntoEnum::OCULTO => false,
-                    VisibilidadPuntoEnum::AUTO => $item === $ultimo,
-                };
-
+                [$conRecojo, $conEntrega] = self::resolverLados($item, $primero, $ultimo);
                 $ruta = $item->rutaParaLaOrden($conRecojo, $conEntrega);
 
                 if ($ruta !== null) {
@@ -853,6 +839,73 @@ class OperacionOrdenServicio
         }
 
         return $visibles;
+    }
+
+    /**
+     * Qué lados se imprimen de un ítem, ya resueltos.
+     *
+     * La regla decide y los enums la corrigen, por lado. `AUTO` deja mandar a la cadena —el
+     * primero enseña su recojo, el último su entrega, el resto nada—; `SIEMPRE` y `OCULTO` imponen
+     * la respuesta contraria.
+     *
+     * Vive aparte porque lo usan dos: el texto que se imprime y el informe que el panel pinta en
+     * las pastillas. Con la regla escrita dos veces, la pastilla acabaría diciendo «visible» de un
+     * renglón que el documento se calla.
+     *
+     * @return array{0: bool, 1: bool} [recojo, entrega]
+     */
+    private static function resolverLados(
+        OperacionOrdenServicioItem $item,
+        OperacionOrdenServicioItem $primero,
+        OperacionOrdenServicioItem $ultimo,
+    ): array {
+        return [
+            match ($item->getVisibilidadRecojo()) {
+                VisibilidadPuntoEnum::SIEMPRE => true,
+                VisibilidadPuntoEnum::OCULTO => false,
+                VisibilidadPuntoEnum::AUTO => $item === $primero,
+            },
+            match ($item->getVisibilidadEntrega()) {
+                VisibilidadPuntoEnum::SIEMPRE => true,
+                VisibilidadPuntoEnum::OCULTO => false,
+                VisibilidadPuntoEnum::AUTO => $item === $ultimo,
+            },
+        ];
+    }
+
+    /**
+     * Lo que de verdad se imprime de cada lado, para que la pastilla lo diga.
+     *
+     * ⚠️ «Auto» a secas no informa: el operador no puede saber si esa línea sale o se calla sin
+     * reconstruir la cadena de cabeza. Como el sistema **ya lo ha calculado**, la pastilla puede
+     * decir «Auto (visible)» o «Auto (oculto)» — que es la diferencia entre un ajuste y una
+     * respuesta.
+     *
+     * @return array<string, array{recojo: bool, entrega: bool}>
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ApiProperty(openapiContext: ['type' => 'object'])]
+    public function getVisibilidadEfectiva(): array
+    {
+        $mapa = [];
+
+        foreach ($this->cadenasDe($this->itemsOrdenados()) as $cadena) {
+            $primero = $cadena[0];
+            $ultimo = $cadena[count($cadena) - 1];
+
+            foreach ($cadena as $item) {
+                $id = $item->getId()?->toRfc4122();
+
+                if ($id === null) {
+                    continue;
+                }
+
+                [$recojo, $entrega] = self::resolverLados($item, $primero, $ultimo);
+                $mapa[$id] = ['recojo' => $recojo, 'entrega' => $entrega];
+            }
+        }
+
+        return $mapa;
     }
 
     /**

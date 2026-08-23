@@ -1241,12 +1241,45 @@ const VISIBILIDAD_SIGUIENTE: Record<string, string> = { auto: 'oculto', oculto: 
 const etiquetaVisibilidad = (v?: string | null): string =>
     ({ auto: 'Auto', oculto: 'Oculto', siempre: 'Siempre' })[v ?? 'auto'] ?? 'Auto';
 
-const claseVisibilidad = (v?: string | null): string =>
-    ({
-        auto: 'bg-white text-slate-500 border-slate-200 hover:border-slate-400',
-        oculto: 'bg-slate-200 text-slate-500 border-slate-300 line-through',
-        siempre: 'bg-[#376875] text-white border-[#376875]',
-    })[v ?? 'auto'] ?? 'bg-white text-slate-500 border-slate-200';
+/**
+ * El color va por el RESULTADO, no por el ajuste.
+ *
+ * Un «auto» que acaba oculto tiene que verse como oculto: al operador le importa qué sale, no cómo
+ * se llama la regla que lo decidió.
+ */
+const claseVisibilidad = (v: string | null | undefined, sale: boolean): string => {
+    if (v === 'siempre') return 'bg-[#376875] text-white border-[#376875]';
+    if (!sale) return 'bg-slate-200 text-slate-400 border-slate-300';
+
+    return 'bg-white text-slate-600 border-slate-300 hover:border-slate-500';
+};
+
+/** «Auto (visible)» / «Auto (oculto)»: el ajuste y su consecuencia, que no son lo mismo. */
+const textoVisibilidad = (v: string | null | undefined, sale: boolean): string =>
+    (v ?? 'auto') === 'auto' ? `Auto (${sale ? 'visible' : 'oculto'})` : etiquetaVisibilidad(v);
+
+/** Lo que el backend ya calculó: si ese lado se imprime. */
+const efectiva = (
+    orden: OperacionOrdenServicio,
+    item: { id?: string | null },
+    lado: 'recojo' | 'entrega',
+): boolean => {
+    const mapa = (orden as unknown as { visibilidadEfectiva?: Record<string, { recojo?: boolean; entrega?: boolean }> }).visibilidadEfectiva;
+
+    return Boolean(mapa?.[item.id ?? '']?.[lado]);
+};
+
+/** Las líneas del documento agrupadas por día, en orden. */
+const lineasPorDia = (orden: OperacionOrdenServicio): Record<string, NonNullable<OperacionOrdenServicio['items']>> => {
+    const mapa: Record<string, NonNullable<OperacionOrdenServicio['items']>> = {};
+
+    for (const it of orden.items ?? []) {
+        const dia = (it.fechaServicio ?? '').slice(0, 10) || 'Sin fecha';
+        (mapa[dia] ??= []).push(it);
+    }
+
+    return mapa;
+};
 
 /** Sólo sobre un documento vigente: en borrador se edita la fila viva; una anulada es terminal. */
 const puedeAjustarRutas = (orden: OperacionOrdenServicio): boolean =>
@@ -2885,15 +2918,21 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                     El <b class="text-slate-500">texto</b> del punto se edita en La Biblia, y cambiarlo sí obliga a reemitir.
                                 </p>
 
-                                <div class="flex flex-col gap-1.5">
-                                    <div v-for="it in (orden.items ?? [])" :key="it.id ?? ''"
+                                <!-- Agrupado por DÍA: la regla de cadenas trabaja por jornada, así
+                                     que ver las líneas sueltas obliga a reconstruir de cabeza qué
+                                     va con qué. Con el día delante, se ve la cadena. -->
+                                <div v-for="(lineas, dia) in lineasPorDia(orden)" :key="dia" class="mb-2">
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                        <i class="far fa-calendar mr-1"></i>{{ dia }}
+                                    </p>
+                                    <div class="flex flex-col gap-1.5">
+                                    <div v-for="it in lineas" :key="it.id ?? ''"
                                          class="bg-slate-50 rounded-lg px-2 py-1.5">
                                         <div class="flex items-start justify-between gap-2">
                                             <div class="min-w-0">
                                                 <p class="text-[11px] font-black text-slate-800 leading-snug">{{ it.descripcion }}</p>
                                                 <p class="text-[10px] text-slate-400 leading-snug">
-                                                    {{ (it.fechaServicio ?? '').slice(0, 10) }}
-                                                    <span v-if="it.hora"> · {{ it.hora }}</span>
+                                                    <span v-if="it.hora">{{ it.hora }}</span>
                                                     <span v-if="it.cantidadPax"> · {{ it.cantidadPax }} pax</span>
                                                     <span v-if="it.prestadorNombre"> · {{ it.prestadorNombre }}</span>
                                                 </p>
@@ -2918,19 +2957,20 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                     @click.stop="alternarVisibilidad(orden, it, 'recojo')"
                                                     :disabled="ajustandoRutas"
                                                     class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border transition-colors disabled:opacity-40"
-                                                    :class="claseVisibilidad(it.visibilidadRecojo)"
+                                                    :class="claseVisibilidad(it.visibilidadRecojo, efectiva(orden, it, 'recojo'))"
                                                     :title="`Recojo: ${etiquetaVisibilidad(it.visibilidadRecojo)}. Toca para cambiar.`">
-                                                <i class="fas fa-location-dot mr-1"></i>Recojo: {{ etiquetaVisibilidad(it.visibilidadRecojo) }}
+                                                <i class="fas fa-location-dot mr-1"></i>Recojo: {{ textoVisibilidad(it.visibilidadRecojo, efectiva(orden, it, 'recojo')) }}
                                             </button>
                                             <button v-if="it.puntoEntregaConfirmado"
                                                     @click.stop="alternarVisibilidad(orden, it, 'entrega')"
                                                     :disabled="ajustandoRutas"
                                                     class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border transition-colors disabled:opacity-40"
-                                                    :class="claseVisibilidad(it.visibilidadEntrega)"
+                                                    :class="claseVisibilidad(it.visibilidadEntrega, efectiva(orden, it, 'entrega'))"
                                                     :title="`Entrega: ${etiquetaVisibilidad(it.visibilidadEntrega)}. Toca para cambiar.`">
-                                                <i class="fas fa-flag-checkered mr-1"></i>Entrega: {{ etiquetaVisibilidad(it.visibilidadEntrega) }}
+                                                <i class="fas fa-flag-checkered mr-1"></i>Entrega: {{ textoVisibilidad(it.visibilidadEntrega, efectiva(orden, it, 'entrega')) }}
                                             </button>
                                         </div>
+                                    </div>
                                     </div>
                                 </div>
                             </template>

@@ -2340,6 +2340,40 @@ prestador, puntos y ahora los enums—, así que es determinista y el documento 
 meses después. Materializarla sería guardar copia de un derivado, que es lo que `isSoloReferencia()`
 y `getOrdenItinerario()` se niegan a hacer.
 
+#### La pastilla dice el RESULTADO, no el ajuste
+
+`getVisibilidadEfectiva()` devuelve, por ítem y por lado, si de verdad se imprime. La pastilla pone
+**«Auto (visible)»** o **«Auto (oculto)»**.
+
+⚠️ «Auto» a secas no informaba: el operador no puede saber si esa línea sale sin reconstruir la
+cadena de cabeza. Como el sistema **ya lo ha calculado**, decirlo es gratis — y es la diferencia
+entre un ajuste y una respuesta. El color va también por el resultado: un `auto` que acaba oculto
+se ve como oculto.
+
+La resolución por lado vive en `resolverLados()` y la usan **las dos** —el texto que se imprime y
+el informe de las pastillas—. Escrita dos veces, la pastilla acabaría diciendo «visible» de un
+renglón que el documento se calla.
+
+Y el listado va **agrupado por día**: la regla de cadenas trabaja por jornada, así que ver las
+líneas sueltas obliga a reconstruir qué va con qué.
+
+#### 🚧 Un servicio que está en La Biblia y NO debe llegar al proveedor
+
+Caso real: un Camino Inca de 4 días necesita **un componente por día** para llevar hora de inicio y
+fin (ver `docs/Travel.md`), pero para el proveedor **es un solo servicio** y esas cuatro líneas
+sobran en su orden.
+
+**No hace falta nada nuevo.** El mecanismo ya existe: un componente **sin tarifa** —o en modo
+`no_incluido`— es «sólo referencia» (`isSoloReferencia()`), y `motivoNoComprable()` lo deja fuera de
+cualquier Orden de Servicio. Vive en el cuadro de tráfico con sus horas, marca el servicio principal
+del día, resuelve los puntos… y **nunca llega al documento**.
+
+Lo que sí va a la orden es el pool real con su precio: una línea, que es como el proveedor lo vende.
+
+⚠️ Es el reverso exacto del contacto con el pasajero, donde la tarifa de 0 era **obligatoria**
+precisamente para que sí llegara. La regla es la misma leída en los dos sentidos: **sin tarifa =
+existe para nosotros, no para el proveedor**.
+
 #### La puerta: `POST /ops/orden-servicios/{id}/rutas`
 
 `AjustarRutasProcessor`. Sólo sobre **emitida** o **confirmada**: en borrador se edita la fila viva
