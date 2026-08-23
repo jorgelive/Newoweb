@@ -1024,6 +1024,40 @@ nombreSnapshot: []
 | `getNombreMaestroRef()` | `CotizacionEditorView.vue` | Sin maestro manda **su** `nombreSnapshot`; «Insumo sin seleccionar» sólo si tampoco hay nombre propio |
 | Categoría Operativa | ficha del componente + `onTipoManualChange()` en el store | Selector, **sólo si `componenteMaestroId` es null** |
 
+### El modo manual es una DECISIÓN, no la ausencia de maestro
+
+Desbloquear los campos no bastaba: el buscador de insumos seguía presidiendo la ficha, y un
+buscador arriba del todo dice «elige uno». Ahora hay **dos botones de alta** —«+ Añadir Extra» y
+«Manual»— y el segundo marca `CotizacionCotcomponente::$esManual`.
+
+⚠️ **`esManual` no es `componenteMaestroId === null`, y por eso es una columna y no un cálculo.**
+Un componente recién creado tampoco tiene maestro, pero está *esperando* que le elijan uno. La
+marca dice que **ya se decidió que no lo tendrá**. Inferirla de que el nombre interno esté relleno
+funcionaría hasta el primer manual sin nombre, y entonces volvería a pedir un maestro sin que
+nadie entendiera por qué.
+
+Elegir un insumo **desmarca** el modo manual (`onComponenteMaestroChange()`): son excluyentes, y
+dejar la marca escondería el buscador justo después de usarlo. En la ficha manual queda un enlace
+«Buscar en el catálogo» por si se pulsó el botón equivocado.
+
+### El nombre INTERNO, que el componente no tenía
+
+`CotizacionCotcomponente` sólo guardaba `nombreSnapshot`, que es el **título público**: el nombre
+interno venía siempre del maestro, y por eso «siempre existía». Un manual no tiene maestro, así
+que La Biblia acababa rotulando la fila con el texto del cliente —o con «Servicio sin nombre»—.
+
+`$nombreInternoSnapshot` (string, nullable) lo cubre, y entra en `resolverDescripcion()` **por
+delante del nombre interno de la tarifa**: éste nombra *el servicio* («Traslado a La Olla de
+Juanita (ida)») y aquél la *línea de precio*, que en un componente hecho a mano se suele quedar
+con el «Nueva Tarifa» de fábrica. Ver `docs/Operacion.md` §3.3.
+
+⚠️ **Sin `#[AutoTranslate]` a propósito**: no se le enseña a ningún pasajero, así que traducirlo a
+siete idiomas es coste puro. Mismo criterio que la nota al prestador.
+
+Comprobado con datos reales (`var/probar-componente-manual.php`, en transacción con `rollback`):
+con nombre interno La Biblia rotula «Traslado a La Olla de Juanita (ida)»; sin él sigue cayendo al
+título público, que es el comportamiento de siempre.
+
 ⚠️ **El selector no aparece con maestro, y es deliberado.** El tipo lo pone el maestro y ahí tiene
 que seguir mandando: un componente que dijera una cosa y su maestro otra no lo denunciaría nada
 después.
@@ -1214,6 +1248,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Enlazar una línea de inclusión con su componente** → `componenteId`, que emite `construirInclusiones()`. Para propuestas viejas: `app:cotizacion:backfill-componente-id`. Nunca reconstruir el vínculo con una clave natural en tiempo de render.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
+- **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `nombreSnapshot` (público). Ver §6.h.
 - **Que un componente sin maestro se pueda nombrar y tipar** → `isComponenteSoloItems()` y `getNombreMaestroRef()` en `CotizacionEditorView.vue`, y `onTipoManualChange()` en el store. Ver §6.h — y ojo con lo que la cadena sigue exigiendo (tarifa, prestador, nombre).
 - **Saber qué se lleva la papelera de un párrafo** → el pie de la tarjeta en el Constructor de Storytelling, alimentado por `store.idSegmentoDeComponente()`. Ver §6.i.
 - **Quién ve un detalle del componente** → banderas de `AudienciaDetalleEnum` en `detallesOperativos`; se leen con `detallesPara()` / `textosPara()` y se filtran para el cliente en `getDetallesParaCliente()`. Ver §6.g, y **toca también el espejo** `AudienciaDetalle` en `cotizacionEditorModel.ts`.

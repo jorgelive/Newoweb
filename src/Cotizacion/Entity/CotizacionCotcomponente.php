@@ -107,6 +107,37 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $componenteMaestroId = null;
 
+    /**
+     * Este componente **no viene del catálogo y no va a venir**.
+     *
+     * ⚠️ No es lo mismo que `componenteMaestroId === null`, y por eso es un campo y no un
+     * cálculo: un componente recién creado tampoco tiene maestro, pero está *esperando* que le
+     * elijan uno. Esto dice que **ya se decidió que no lo tendrá** — un traslado a un fundo
+     * concreto, una parada irrepetible—, y de esa decisión cuelga que el editor esconda el
+     * buscador de insumos y pida los nombres a mano.
+     *
+     * Inferirlo de que el nombre interno esté relleno funcionaría hasta el primer manual sin
+     * nombre, y entonces volvería a pedir un maestro sin que nadie entendiera por qué.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(name: 'es_manual', type: 'boolean', options: ['default' => false])]
+    private bool $esManual = false;
+
+    /**
+     * Cómo se llama esto **para nosotros y para el proveedor**.
+     *
+     * El componente sólo tenía `nombreSnapshot`, que es el título **público**; el nombre interno
+     * salía siempre del maestro (`componenteMaestroId` → catálogo) y por eso «siempre existía».
+     * Un componente manual no tiene maestro, así que sin este campo se quedaba sin nombre
+     * interno y La Biblia lo rotulaba con el título del cliente — o con «Servicio sin nombre».
+     *
+     * Sin `#[AutoTranslate]` a propósito: esto no se le enseña a ningún pasajero, así que
+     * traducirlo a siete idiomas es coste puro. Lo mismo que la nota al prestador.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(name: 'nombre_interno_snapshot', type: 'string', length: 255, nullable: true)]
+    private ?string $nombreInternoSnapshot = null;
+
     /** @var list<array<string, mixed>> */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['detalle'], format: 'text')]
@@ -786,5 +817,18 @@ class CotizacionCotcomponente
             'servicioMaestroId' => $this->prestadorServicioMaestroId,
             'servicioNombre' => $this->prestadorServicioNombreSnapshot,
         ];
+    }
+
+    public function isEsManual(): bool { return $this->esManual; }
+    public function setEsManual(bool $v): self { $this->esManual = $v; return $this; }
+
+    public function getNombreInternoSnapshot(): ?string { return $this->nombreInternoSnapshot; }
+
+    public function setNombreInternoSnapshot(?string $v): self
+    {
+        $v = $v !== null ? trim($v) : null;
+        $this->nombreInternoSnapshot = ($v === '' ? null : $v);
+
+        return $this;
     }
 }

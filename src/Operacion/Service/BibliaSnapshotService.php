@@ -469,13 +469,25 @@ class BibliaSnapshotService
             return $paraProveedor;
         }
 
-        // Prioridad 2: nombre interno de la tarifa (campo operativo)
+        // Prioridad 2: el nombre interno del COMPONENTE, si alguien lo escribió.
+        //
+        // Sólo lo tienen los componentes manuales: los de catálogo sacan su nombre interno del
+        // maestro, que ya viene por las prioridades de arriba. Va antes que el de la tarifa
+        // porque nombra **el servicio** —«Traslado a La Olla de Juanita (ida)»— mientras que el
+        // de la tarifa nombra la línea de precio, y en un componente hecho a mano ésa se suele
+        // quedar con el «Nueva Tarifa» que trae de fábrica.
+        $propio = trim($componente->getNombreInternoSnapshot() ?? '');
+        if ($propio !== '') {
+            return $propio;
+        }
+
+        // Prioridad 3: nombre interno de la tarifa (campo operativo)
         $descripcion = trim($tarifa?->getNombreInternoSnapshot() ?? '');
         if ($descripcion !== '') {
             return $descripcion;
         }
 
-        // Prioridad 3: nombre del componente en español (snapshot i18n)
+        // Prioridad 4: nombre del componente en español (snapshot i18n)
         return $this->textoEspanol($componente->getNombreSnapshot()) ?? 'Servicio sin nombre';
     }
 

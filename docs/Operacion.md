@@ -164,7 +164,7 @@ muestra y los deja filtrar.
 | `resolverTarifaPrimaria()` | Descarta rol `ALTERNATIVA`, ordena por `grupoTarifa` ascendente (`null` al final) y toma la primera. |
 | `resolverFechaServicio()` | `componente.fechaHoraInicio` normalizada a medianoche; si es `null`, cae a `cotservicio.fechaInicioAbsoluta`. |
 | `resolverHoraRecojo()` | `H:i` del componente; **`null` si `isSinHorario()`** — por eso hay filas con `--:--`. |
-| `resolverDescripcion()` | 1) `tarifa.nombreInternoSnapshot` → 2) snapshot i18n `es` del componente → 3) `'Servicio sin nombre'`. |
+| `resolverDescripcion()` | **Cinco prioridades**, de lo más específico a lo más genérico: 0) `prestador.servicioNombre` —qué le encargas, «Habitación suite superior»— → 1) `tarifa.nombreParaProveedorSnapshot` —cómo lo llama ÉL— → 2) `componente.nombreInternoSnapshot` —sólo lo tienen los manuales; ver `docs/Cotizaciones.md` §6.h— → 3) `tarifa.nombreInternoSnapshot` → 4) snapshot i18n `es` del componente → `'Servicio sin nombre'`. ⚠️ Esta tabla documentó tres durante un tiempo, cuando el código ya tenía cuatro. |
 | `textoEspanol()` | Extrae el `content` en `es` de un snapshot i18n; se usa también para `contextoServicio`. |
 
 ⚠️ La prioridad 1 de la descripción es el **nombre interno de la tarifa** (`"Buffet regular"`,

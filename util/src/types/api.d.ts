@@ -7065,6 +7065,13 @@ export interface components {
             cottarifas?: string[];
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /**
+             * @description Este componente **no viene del catálogo y no va a venir**.
+             * @default false
+             */
+            esManual: boolean;
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -7159,6 +7166,13 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa-cotizacion.read_timestamp.read"][];
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /**
+             * @description Este componente **no viene del catálogo y no va a venir**.
+             * @default false
+             */
+            esManual: boolean;
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -7248,6 +7262,13 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa-cotizacion.write"][];
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /**
+             * @description Este componente **no viene del catálogo y no va a venir**.
+             * @default false
+             */
+            esManual: boolean;
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -7437,6 +7458,13 @@ export interface components {
             cottarifas?: string[];
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /**
+             * @description Este componente **no viene del catálogo y no va a venir**.
+             * @default false
+             */
+            esManual: boolean;
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -7531,6 +7559,13 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-cotizacion.read_timestamp.read"][];
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /**
+             * @description Este componente **no viene del catálogo y no va a venir**.
+             * @default false
+             */
+            esManual: boolean;
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -7724,6 +7759,13 @@ export interface components {
             cottarifas?: string[];
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /**
+             * @description Este componente **no viene del catálogo y no va a venir**.
+             * @default false
+             */
+            esManual: boolean;
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -7819,6 +7861,13 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read"][];
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /**
+             * @description Este componente **no viene del catálogo y no va a venir**.
+             * @default false
+             */
+            esManual: boolean;
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -8015,6 +8064,13 @@ export interface components {
             cottarifas?: string[];
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /**
+             * @description Este componente **no viene del catálogo y no va a venir**.
+             * @default false
+             */
+            esManual: boolean;
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];
@@ -8109,6 +8165,13 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-cotizacion.read_timestamp.read"][];
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /**
+             * @description Este componente **no viene del catálogo y no va a venir**.
+             * @default false
+             */
+            esManual: boolean;
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
                 [key: string]: string | null;
             }[];

@@ -2729,7 +2729,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
-    const agregarComponente = (servicioId: string): void => {
+    /**
+     * Un componente logístico más.
+     *
+     * `manual` marca los que **no vienen del catálogo y no van a venir** — un traslado a un fundo
+     * concreto, una parada irrepetible—. No se infiere de que falte el maestro porque uno recién
+     * creado tampoco lo tiene y sí está esperando que le elijan uno; ver el docblock de
+     * `CotizacionCotcomponente::$esManual`.
+     */
+    const agregarComponente = (servicioId: string, manual = false): void => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
         const servicio = cotizacion.value.cotservicios.find((s: CotServicio) => s.id === servicioId);
@@ -2741,6 +2749,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const nuevoComponente: ComponenteCompleto = {
                 id: crypto.randomUUID(),
                 componenteMaestroId: null,
+                esManual: manual,
+                nombreInternoSnapshot: null,
                 nombreSnapshot: [],
                 tipo: 'extras',
                 sinHorario: true,
@@ -2939,6 +2949,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         horaServicioCompleto: false,
                         prestadorVisible: false,
                         upsellSourceItemId: item.id,
+                        // Sale de un ítem del catálogo, así que de manual no tiene nada.
+                        esManual: false,
                         sobreescribirTraduccion: false,
                         snapshotItems: [],
                         cottarifas: [],
@@ -3514,6 +3526,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     fechaHoraFin: fHoraFin,
                     cotsegmentoId: idSegmentoGenerado,
                     cotsegmento: null,
+                    // Viene de la plantilla, con su maestro detrás.
+                    esManual: false,
                     sobreescribirTraduccion: false,
                     cottarifas: [],
                     detallesOperativos: [],
@@ -3891,6 +3905,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const maestro = catalogos.value.allComponentes.find((c) => extractIdStr(c) === targetId);
 
         if (isComponenteCompleto(maestro) && componente) {
+            // Elegir un insumo cierra el modo manual: son excluyentes por definición, y dejar la
+            // marca puesta escondería el buscador justo después de usarlo.
+            componente.esManual = false;
             componente.tipo = maestro.tipo || 'extras';   // 🔥 snapshot autónomo del tipo
             componente.sinHorario = sinHorarioDeTipo(maestro.tipo);   // 🔥 snapshot del flag de horario
             componente.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
