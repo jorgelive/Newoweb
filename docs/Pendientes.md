@@ -729,11 +729,33 @@ Resuelve mejor que un token por miembro el problema que sí es real: el padrón 
 trámite (Alma Angelina → María del Carmen), y un enlace por posición apuntaría a otra persona el
 día que alguien se dé de baja. Aquí la persona se identifica sola y no hay nada que repartir.
 
-⚠️⚠️ **Es un FILTRO, no un control de acceso, y así se decidió a propósito.** Cualquiera con el
-enlace y un DNI del grupo ve los datos de esa persona. Hoy da igual —lo que se enseña es su
-itinerario y sus códigos—, pero detrás de esa ventanita van a acabar **escaneos de pasaporte y
-autorizaciones notariales de menores**. El día que eso ocurra, esta frase deja de ser una nota y
-pasa a ser un requisito: o se añade un segundo factor, o esos archivos no entran ahí.
+⚠️ **Es un FILTRO, no un control de acceso, y así se decidió a propósito.** Cualquiera con el
+enlace y un DNI del grupo ve los datos de esa persona.
+
+Eso es aceptable **por lo que hay detrás, y sólo mientras siga siendo eso**. La regla que lo
+mantiene barato:
+
+> **Tras el filtro va lo que el pasajero necesita LLEVARSE. Lo que sirve para COMPROBAR se queda
+> del lado del operador**, en `util/`, que ya tiene sesión y roles.
+
+| Se queda en `util/` | Puede salir por el `/search` |
+|---|---|
+| escaneo de DNI y pasaporte | itinerario, grupo, habitación |
+| autorización notarial de menor | códigos de reserva, hora de encuentro |
+| | boarding pass |
+
+El escaneo del pasaporte existe para que **nosotros** verifiquemos la vigencia; el pasajero ya
+tiene su pasaporte y no necesita descargárselo. La autorización notarial es un **insumo** que
+entrega la familia, no un entregable. Con esa separación el enlace público nunca tiene detrás nada
+que justifique un SMS o un token por persona — que para 133 familias de un colegio es coste
+operativo real: números mal cargados, padres que no lo reciben, y soporte.
+
+Si algún día hace falta fricción sin infraestructura: la búsqueda ya pide tipo **y** número; añadir
+la fecha de nacimiento como tercer campo es gratis. No es seguridad —quien tenga el padrón los
+tiene todos— pero corta el probar números a ver qué sale, que es el uso realista.
+
+⚠️ Lo que **no** se puede hacer es meter ahí los escaneos «porque es cómodo» y dejar la nota. Ese
+es el día en que esto sí necesita un segundo factor.
 
 ### El orden
 
