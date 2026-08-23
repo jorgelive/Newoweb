@@ -642,3 +642,102 @@ sin importar nada de Vue, está bien cortado.**
 —rangos de edad, opcionales, multimoneda—, guardar la salida de hoy y exigir que lo extraído dé
 exactamente lo mismo. Son ~527 líneas que nunca se han revisado con calculadora. Sirve para las
 dos cosas —mover el cálculo y ordenar el store—, así que se paga una vez.
+
+---
+
+## Padrón de grupos grandes: documentos por persona, subgrupos y acceso — 23/08/2026
+
+Decidido con el padrón real de **Punta Cana 2026** (Colegio San José La Salle, 133 personas)
+delante. Nada empezado. Se anota para no rehacer el análisis.
+
+### Lo que el padrón real ya denuncia
+
+Medido sobre el archivo, no estimado:
+
+```
+133 personas · 100 menores de 18 a la fecha del viaje · 28 adultos · 5 sin fecha
+ 11 DNI YA VENCIDOS hoy (23/08/2026), el más antiguo del 22/06
+  8 DNI vencen DURANTE el viaje (28/08 – 24/09)
+ 22 personas sin fecha de vencimiento de DNI cargada — no se puede ni comprobar
+  0 pasaportes vencidos
+```
+
+⚠️ La hoja *Resumen* del padrón comprueba **pasaportes** y dice «vence antes del retorno: 0».
+Nadie comprobó el **DNI**, que es con lo que se embarca el tramo nacional Cusco–Lima. Once
+personas hoy no embarcan, y una es Coordinador.
+
+**Eso es lo que justifica la funcionalidad**: no es un listado más bonito, es que un vencimiento
+sin campo se revisa a mano y a mano se olvida uno de los dos documentos.
+
+### No son dos documentos, son tres
+
+DNI y pasaporte parecen bastar, pero **100 de 133 son menores** y salir del Perú siendo menor
+exige **autorización de viaje notarial**: tercer documento, por cabeza, con su vigencia y su
+escaneo, y es el que para en migraciones y no en el mostrador.
+
+Por eso van como **filas y no como columnas**: cuatro columnas se vuelven ocho, la mitad nulas
+para los adultos, y el día del carné de extranjería o la visa toca migración.
+
+### El modelo acordado
+
+**Documentos** — `CotizacionFiledocumento` ya tiene `vencimiento`, tipo y subida de archivo. Le
+falta el dueño, y con **dos claves nulables** queda todo el alcance resuelto:
+
+```
+pasajero  (nullable) → DNI, pasaporte, autorización notarial, boarding pass
+grupo     (nullable) → namelist de Arajet JA2CWN: lo ve su grupo entero
+ninguno              → global del expediente (lo de hoy, intacto)
+```
+
+`ArchivoTipoEnum` gana `DNI`, `PASAPORTE`, `AUTORIZACION_MENOR` (hoy sólo conoce boleto, factura,
+reserva, otros).
+
+⚠️ `CotizacionFilepasajero` **ya tiene** `tipodocumento` y `numerodocumento`. Con los documentos
+como filas queda el DNI en dos sitios, y aquí *la copia muerta gana porque es la que se lee*. Hay
+que decidir: vaciarlos y exponer `documentoPrincipal()`, o mantenerlos por listener con la regla
+escrita de quién manda. Preferido lo primero.
+
+**Subgrupos** — una sola tabla y la pertenencia en many-to-many. **No es un árbol**: en el padrón
+real salón y grupo se cruzan (5 salones, 10 grupos, 43 combinaciones; 9 de los 10 grupos aparecen
+en más de un salón, el grupo 1 en los cinco).
+
+```
+Grupo
+  file                ⚠️ cuelga del EXPEDIENTE: el «Grupo 5» de Punta Cana no es otro
+  tipo    enum        salon | grupo | habitacion | reserva_aerea
+  clave   'B' · '5' · 'HA13' · 'JA2CWN'
+  nombre  opcional    si está vacío se rotula tipo + clave
+  ÚNICO (file, tipo, clave)
+  pasajero ↔ grupo    many-to-many, y la fila de pertenencia lleva `esJefe`
+```
+
+El **tipo va como enum** —son pocos y el código sí distingue al menos uno: una reserva aérea lleva
+PNR y documentos—; **la clave nunca**: de cuatro ejes, dos tienen valores que los pone alguien de
+fuera (66 habitaciones del hotel, 20 PNR de aerolíneas). La **unicidad** hace el trabajo que se le
+pediría a un enum de valores: al reimportar el Excel corregido —y se va a reimportar varias veces
+antes del viaje— un `firstOrCreate` por `(file, tipo, clave)` no duplica nada.
+
+**Jefe de grupo** es un rol de la **pertenencia**, no de la persona: alguien lidera el grupo 5 y es
+miembro raso del salón B.
+
+### El acceso: buscar por documento, no un enlace por persona
+
+Se reparte **un** enlace, el de la cotización, con `/search`: una ventanita pide tipo de documento
+y número, y muestra lo suyo. Si es jefe de grupo, lo suyo **y lo de su grupo**.
+
+Resuelve mejor que un token por miembro el problema que sí es real: el padrón lleva un reemplazo en
+trámite (Alma Angelina → María del Carmen), y un enlace por posición apuntaría a otra persona el
+día que alguien se dé de baja. Aquí la persona se identifica sola y no hay nada que repartir.
+
+⚠️⚠️ **Es un FILTRO, no un control de acceso, y así se decidió a propósito.** Cualquiera con el
+enlace y un DNI del grupo ve los datos de esa persona. Hoy da igual —lo que se enseña es su
+itinerario y sus códigos—, pero detrás de esa ventanita van a acabar **escaneos de pasaporte y
+autorizaciones notariales de menores**. El día que eso ocurra, esta frase deja de ser una nota y
+pasa a ser un requisito: o se añade un segundo factor, o esos archivos no entran ahí.
+
+### El orden
+
+1. **Documento con dueño + los tres tipos + la consulta de vencimientos.** Paga solo: los 11 DNI
+   vencidos dejan de descubrirse leyendo un Excel.
+2. Los subgrupos y la importación del padrón.
+3. El `/search` y el jefe de grupo.
