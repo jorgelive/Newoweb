@@ -2873,6 +2873,18 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                     <i class="fas fa-triangle-exclamation mr-1"></i>{{ aviso }}
                                 </p>
 
+                                <!-- Qué significan las pastillas, dicho una vez y no en cada
+                                     línea. Sin esto, «Auto» a secas no dice ni de qué es ni qué
+                                     hace: era un control que había que adivinar. -->
+                                <p v-if="puedeAjustarRutas(orden)" class="text-[10px] font-bold text-slate-400 leading-snug mb-1.5">
+                                    <i class="fas fa-circle-info mr-1"></i>
+                                    Las pastillas deciden qué se le imprime al proveedor.
+                                    <b class="text-slate-500">Auto</b>: varios servicios seguidos del mismo proveedor dicen sólo
+                                    dónde empieza y dónde acaba. <b class="text-slate-500">Siempre</b>: se imprime aunque esté en medio.
+                                    <b class="text-slate-500">Oculto</b>: no se imprime.
+                                    El <b class="text-slate-500">texto</b> del punto se edita en La Biblia, y cambiarlo sí obliga a reemitir.
+                                </p>
+
                                 <div class="flex flex-col gap-1.5">
                                     <div v-for="it in (orden.items ?? [])" :key="it.id ?? ''"
                                          class="bg-slate-50 rounded-lg px-2 py-1.5">
@@ -2908,7 +2920,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                     class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border transition-colors disabled:opacity-40"
                                                     :class="claseVisibilidad(it.visibilidadRecojo)"
                                                     :title="`Recojo: ${etiquetaVisibilidad(it.visibilidadRecojo)}. Toca para cambiar.`">
-                                                <i class="fas fa-location-dot mr-1"></i>{{ etiquetaVisibilidad(it.visibilidadRecojo) }}
+                                                <i class="fas fa-location-dot mr-1"></i>Recojo: {{ etiquetaVisibilidad(it.visibilidadRecojo) }}
                                             </button>
                                             <button v-if="it.puntoEntregaConfirmado"
                                                     @click.stop="alternarVisibilidad(orden, it, 'entrega')"
@@ -2916,7 +2928,7 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                     class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border transition-colors disabled:opacity-40"
                                                     :class="claseVisibilidad(it.visibilidadEntrega)"
                                                     :title="`Entrega: ${etiquetaVisibilidad(it.visibilidadEntrega)}. Toca para cambiar.`">
-                                                <i class="fas fa-flag-checkered mr-1"></i>{{ etiquetaVisibilidad(it.visibilidadEntrega) }}
+                                                <i class="fas fa-flag-checkered mr-1"></i>Entrega: {{ etiquetaVisibilidad(it.visibilidadEntrega) }}
                                             </button>
                                         </div>
                                     </div>
