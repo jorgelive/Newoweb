@@ -17,7 +17,8 @@ import type { ApiPais } from '@/types/maestroModel';
 import {
   getArchivoLabel, ARCHIVO_TIPO_LABELS,
   getSexoLabel, SEXO_LABELS,
-  getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS,
+  getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS, GRUPO_TIPO_LABELS,
+  type ApiFileGrupo,
   type ApiCotizacionFile,
   type ApiCotizacionFilepasajero,
   type ApiCotizacionFilearchivo,
@@ -328,7 +329,9 @@ const isSubmittingDoc = ref(false);
 const paxForm = ref({
   nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '',
   // Una persona lleva DNI *y* pasaporte, con vencimientos distintos. Ver §6.l del doc.
-  identificaciones: [] as Array<{ tipo: string; numero: string; vencimiento: string }>
+  identificaciones: [] as Array<{ tipo: string; numero: string; vencimiento: string }>,
+  /** IRIs de los grupos a los que pertenece, y de cuáles es jefe. */
+  pertenencias: [] as Array<{ grupo: string; esJefe: boolean }>
 });
 
 const docForm = ref({
@@ -420,7 +423,7 @@ const abrirMotor = (cotizacion: ApiCotizacionVersion) => {
 const paxEditandoIri = ref<string | null>(null);
 const abrirPaxModal = () => {
   paxEditandoIri.value = null; // modo creación
-  paxForm.value = { nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', identificaciones: [] };
+  paxForm.value = { nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', identificaciones: [], pertenencias: [] };
   showPaxModal.value = true;
 };
 
@@ -439,7 +442,13 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero) => {
       tipo: i.tipo ?? '',
       numero: i.numero ?? '',
       vencimiento: i.vencimiento ? i.vencimiento.split('T')[0] : '',
-    }))
+    })),
+    pertenencias: (pax.pertenencias ?? []).map(p => ({
+      grupo: typeof p.grupo === 'string'
+        ? p.grupo
+        : (p.grupo ? `/platform/sales/cotizacion_file_grupos/${extractIdStr(p.grupo.id)}` : ''),
+      esJefe: p.esJefe ?? false,
+    })).filter(p => p.grupo)
   };
   showPaxModal.value = true;
 };
@@ -459,6 +468,75 @@ const agregarIdentificacion = () => {
   const libre = tiposIdDisponibles.value[0];
   if (!libre) return;
   paxForm.value.identificaciones.push({ tipo: libre[0], numero: '', vencimiento: '' });
+};
+
+const iriDeGrupo = (g: ApiFileGrupo): string =>
+  g['@id'] || `/platform/sales/cotizacion_file_grupos/${extractIdStr(g.id)}`;
+
+const perteneceA = (g: ApiFileGrupo): boolean =>
+  paxForm.value.pertenencias.some(p => p.grupo === iriDeGrupo(g));
+
+const alternarPertenencia = (g: ApiFileGrupo): void => {
+  const iri = iriDeGrupo(g);
+  const i = paxForm.value.pertenencias.findIndex(p => p.grupo === iri);
+  if (i >= 0) { paxForm.value.pertenencias.splice(i, 1); }
+  else { paxForm.value.pertenencias.push({ grupo: iri, esJefe: false }); }
+};
+
+/** Jefe de UN grupo, no en general: por eso el flag vive en la pertenencia. */
+const alternarJefatura = (g: ApiFileGrupo): void => {
+  const p = paxForm.value.pertenencias.find(x => x.grupo === iriDeGrupo(g));
+  if (p) { p.esJefe = !p.esJefe; }
+};
+
+const esJefeDe = (g: ApiFileGrupo): boolean =>
+  paxForm.value.pertenencias.find(p => p.grupo === iriDeGrupo(g))?.esJefe ?? false;
+
+// ── Subgrupos del expediente ───────────────────────────────────────────────
+//
+// Se agrupan por EJE para pintarlos, pero no anidan: una persona está a la vez en su salón, su
+// grupo, su habitación y sus reservas. Ver docs/Cotizaciones.md §6.m.
+const gruposPorTipo = computed(() => {
+  const mapa: Record<string, ApiFileGrupo[]> = {};
+  for (const g of (file.value?.grupos ?? [])) {
+    const tipo = String(g.tipo ?? 'grupo');
+    (mapa[tipo] ??= []).push(g);
+  }
+  return mapa;
+});
+
+const nuevoGrupo = ref({ tipo: 'grupo', clave: '', nombre: '' });
+const creandoGrupo = ref(false);
+
+const agregarGrupo = async () => {
+  if (!file.value || !nuevoGrupo.value.clave.trim()) return;
+
+  creandoGrupo.value = true;
+  const ok = await fileStore.crearGrupo(
+    extractIdStr(file.value.id || file.value['@id']) || '',
+    { tipo: nuevoGrupo.value.tipo, clave: nuevoGrupo.value.clave, nombre: nuevoGrupo.value.nombre || null },
+  );
+  creandoGrupo.value = false;
+
+  if (ok) {
+    nuevoGrupo.value.clave = '';
+    nuevoGrupo.value.nombre = '';
+    await cargarFile();
+  } else {
+    alert(fileStore.error || 'No se pudo crear el subgrupo.');
+  }
+};
+
+const borrarGrupo = async (grupo: ApiFileGrupo) => {
+  const miembros = grupo.totalMiembros ?? 0;
+  const aviso = miembros
+    ? `Se quitará de ${miembros} pasajero(s). Ellos NO se borran: sólo dejan de pertenecer.`
+    : 'No tiene miembros.';
+  if (!confirm(`¿Eliminar «${grupo.etiqueta}»?\n\n${aviso}`)) return;
+
+  const iri = grupo['@id'] || `/platform/sales/cotizacion_file_grupos/${extractIdStr(grupo.id)}`;
+  if (await fileStore.eliminarGrupo(iri)) { await cargarFile(); }
+  else { alert(fileStore.error || 'No se pudo eliminar.'); }
 };
 
 const paisSelectRef = ref<{ validate: () => boolean } | null>(null);
@@ -766,6 +844,67 @@ const eliminarDocumento = async (iri?: string) => {
         <section class="space-y-8 min-w-0">
 
           <div>
+            <!-- ── Subgrupos ─────────────────────────────────────────────────
+                 Ejes cruzados, no un árbol: en un padrón real 9 de cada 10 grupos aparecen en más
+                 de un salón, así que una persona pertenece a varios a la vez. Se definen aquí y se
+                 asignan en la ficha de cada pasajero. -->
+            <div class="mb-8">
+              <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
+                <i class="fas fa-layer-group mr-2 text-teal-500"></i> Subgrupos
+              </h2>
+
+              <div class="flex flex-wrap gap-2 items-end bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-4">
+                <div>
+                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Eje</label>
+                  <select v-model="nuevoGrupo.tipo" class="border rounded-lg px-2 py-2 text-sm outline-none focus:border-teal-500">
+                    <option v-for="(cfg, valor) in GRUPO_TIPO_LABELS" :key="valor" :value="valor">{{ cfg.label }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clave</label>
+                  <input v-model="nuevoGrupo.clave" type="text" placeholder="B · 5 · HA13 · JA2CWN" maxlength="60"
+                         @keyup.enter="agregarGrupo"
+                         class="w-40 border rounded-lg px-3 py-2 text-sm font-bold uppercase outline-none focus:border-teal-500 placeholder:font-normal placeholder:normal-case placeholder:text-slate-300">
+                </div>
+                <div class="flex-1 min-w-40">
+                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nombre (opcional)</label>
+                  <input v-model="nuevoGrupo.nombre" type="text" placeholder="Arajet JA2CWN (Lima–Punta Cana)" maxlength="150"
+                         @keyup.enter="agregarGrupo"
+                         class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
+                </div>
+                <button @click="agregarGrupo" :disabled="creandoGrupo || !nuevoGrupo.clave.trim()"
+                        class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                  <i class="fas fa-spinner fa-spin" v-if="creandoGrupo"></i>
+                  <span v-else>+ Añadir</span>
+                </button>
+              </div>
+
+              <p v-if="!file.grupos?.length" class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-3">
+                Sin subgrupos. Se usan para el padrón de grupos grandes: salones, grupos, habitaciones y reservas aéreas.
+              </p>
+
+              <div v-else class="space-y-3">
+                <div v-for="(lista, tipo) in gruposPorTipo" :key="tipo">
+                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                    <i class="fas" :class="GRUPO_TIPO_LABELS[tipo]?.icon"></i>
+                    {{ GRUPO_TIPO_LABELS[tipo]?.label || tipo }} ({{ lista.length }})
+                  </p>
+                  <div class="flex flex-wrap gap-2">
+                    <span v-for="g in lista" :key="g.id"
+                          class="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-lg pl-3 pr-1 py-1 shadow-sm group">
+                      <span class="text-[11px] font-black text-slate-700">{{ g.clave }}</span>
+                      <span class="text-[10px] font-bold text-slate-400">{{ g.totalMiembros ?? 0 }} pax</span>
+                      <button @click="borrarGrupo(g)"
+                              class="w-5 h-5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                        <i class="fas fa-times text-[10px]"></i>
+                      </button>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest"><i class="fas fa-users mr-2 text-indigo-500"></i> Manifiesto de Pasajeros</h2>
               <button @click="abrirPaxModal" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm">+ Añadir Pax</button>
@@ -1048,6 +1187,34 @@ const eliminarDocumento = async (iri?: string) => {
               <p v-if="paxForm.identificaciones.some(i => !i.vencimiento)" class="text-[9px] font-bold text-amber-600 mt-1">
                 <i class="fas fa-triangle-exclamation mr-1"></i>Sin fecha de vencimiento no se puede comprobar nada: cuentan como «sin comprobar», no como vigentes.
               </p>
+            </div>
+
+            <!-- ── A qué subgrupos pertenece ─────────────────────────────────
+                 Se marcan varios de ejes distintos a la vez: alguien está en el salón B, el grupo
+                 5, la habitación HA13 y dos reservas aéreas. La corona marca de cuál es JEFE, y
+                 eso va por grupo — se lidera uno, no en general. -->
+            <div v-if="file?.grupos?.length" class="col-span-2">
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Subgrupos</label>
+              <div v-for="(lista, tipo) in gruposPorTipo" :key="tipo" class="mb-2">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  <i class="fas" :class="GRUPO_TIPO_LABELS[tipo]?.icon"></i> {{ GRUPO_TIPO_LABELS[tipo]?.label || tipo }}
+                </p>
+                <div class="flex flex-wrap gap-1.5">
+                  <span v-for="g in lista" :key="g.id"
+                        class="inline-flex items-center rounded-lg border text-[11px] font-black transition-colors overflow-hidden"
+                        :class="perteneceA(g) ? 'bg-teal-50 text-teal-700 border-teal-300' : 'bg-white text-slate-400 border-slate-200'">
+                    <button type="button" @click="alternarPertenencia(g)" class="px-2.5 py-1 hover:bg-black/5">
+                      {{ g.clave }}
+                    </button>
+                    <button v-if="perteneceA(g)" type="button" @click="alternarJefatura(g)"
+                            :title="esJefeDe(g) ? 'Es jefe de este grupo' : 'Marcar como jefe'"
+                            class="px-2 py-1 border-l border-teal-200 hover:bg-black/5"
+                            :class="esJefeDe(g) ? 'text-amber-500' : 'text-teal-300'">
+                      <i class="fas fa-crown text-[10px]"></i>
+                    </button>
+                  </span>
+                </div>
+              </div>
             </div>
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nacimiento</label>

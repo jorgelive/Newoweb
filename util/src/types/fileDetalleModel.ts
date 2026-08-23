@@ -40,7 +40,20 @@ export type ApiCotizacionFilearchivo = Omit<
 // esos campos solo llevan #[Groups(['file:item:read'])] en el entity.
 type BaseApiCotizacionFile = components['schemas']['CotizacionFile.jsonld-file.read_file.item.read_timestamp.read'];
 
-export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 'filepasajeros' | 'filearchivos' | 'cotizaciones' | 'versionesFechas'> & {
+/** Un subgrupo del expediente: salón B, grupo 5, habitación HA13, reserva JA2CWN. */
+export type ApiFileGrupo = components['schemas']['CotizacionFileGrupo-file.read_file.item.read_timestamp.read'] & {
+    '@id'?: string;
+};
+
+/** Espejo de `App\Cotizacion\Enum\GrupoTipoEnum`. **Al tocar una, tocar la otra.** */
+export const GRUPO_TIPO_LABELS: Record<string, { label: string; icon: string; color: string }> = {
+    salon:         { label: 'Salón',         icon: 'fa-chalkboard-user', color: 'indigo' },
+    grupo:         { label: 'Grupo',         icon: 'fa-people-group',    color: 'teal' },
+    habitacion:    { label: 'Habitación',    icon: 'fa-bed',             color: 'amber' },
+    reserva_aerea: { label: 'Reserva aérea', icon: 'fa-plane-departure', color: 'sky' },
+};
+
+export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 'filepasajeros' | 'filearchivos' | 'grupos' | 'cotizaciones' | 'versionesFechas'> & {
     '@id'?: string;
     '@type'?: string;
     id?: string;
@@ -51,6 +64,7 @@ export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 
     cotizaciones?: ApiCotizacionVersion[];
     filepasajeros?: ApiCotizacionFilepasajero[];
     filearchivos?: ApiCotizacionFilearchivo[];
+    grupos?: ApiFileGrupo[];
     /** Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión. Viene del listado admin (GetCollection). */
     versionesFechas?: { version: number; fechaInicio: string | null }[];
 };

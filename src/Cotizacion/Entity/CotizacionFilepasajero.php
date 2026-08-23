@@ -106,10 +106,24 @@ class CotizacionFilepasajero
     #[ORM\OneToMany(mappedBy: 'pasajero', targetEntity: CotizacionPasajeroIdentificacion::class, cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EAGER')]
     private Collection $identificaciones;
 
+    /**
+     * A qué subgrupos pertenece: su salón, su grupo, su habitación, sus reservas aéreas.
+     *
+     * ⚠️ `EAGER` por lo mismo que las identificaciones: con `LAZY` esto es una consulta por
+     * pasajero al pintar el manifiesto, y con 140 personas eso son 140 consultas que con dos no
+     * se notan. Medido en `docs/Cotizaciones.md` §6.l.
+     *
+     * @var Collection<int, CotizacionPasajeroGrupo>
+     */
+    #[Groups(['file:item:read', 'file:write'])]
+    #[ORM\OneToMany(mappedBy: 'pasajero', targetEntity: CotizacionPasajeroGrupo::class, cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EAGER')]
+    private Collection $pertenencias;
+
     public function __construct()
     {
         $this->initializeId();
         $this->identificaciones = new ArrayCollection();
+        $this->pertenencias = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -283,5 +297,52 @@ class CotizacionFilepasajero
             $this->identificaciones->toArray(),
             static fn (CotizacionPasajeroIdentificacion $i): bool => $i->getVencimiento() === null,
         ));
+    }
+
+    /** @return Collection<int, CotizacionPasajeroGrupo> */
+    public function getPertenencias(): Collection { return $this->pertenencias; }
+
+    public function addPertenencia(CotizacionPasajeroGrupo $pertenencia): self
+    {
+        if (!$this->pertenencias->contains($pertenencia)) {
+            $this->pertenencias->add($pertenencia);
+            $pertenencia->setPasajero($this);
+        }
+
+        return $this;
+    }
+
+    public function removePertenencia(CotizacionPasajeroGrupo $pertenencia): self
+    {
+        if ($this->pertenencias->removeElement($pertenencia) && $pertenencia->getPasajero() === $this) {
+            $pertenencia->setPasajero(null);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Sus grupos, sin la capa de pertenencia.
+     *
+     * @return list<CotizacionFileGrupo>
+     */
+    public function grupos(): array
+    {
+        return array_values(array_filter(array_map(
+            static fn (CotizacionPasajeroGrupo $p): ?CotizacionFileGrupo => $p->getGrupo(),
+            $this->pertenencias->toArray(),
+        )));
+    }
+
+    /** ¿Lidera algún grupo? De esto cuelga que al buscarse vea también lo de su grupo. */
+    public function esJefeDeAlgunGrupo(): bool
+    {
+        foreach ($this->pertenencias as $pertenencia) {
+            if ($pertenencia->isEsJefe()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

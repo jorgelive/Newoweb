@@ -188,6 +188,20 @@ class CotizacionFile
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFilearchivo::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $filearchivos;
 
+    /**
+     * Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas.
+     *
+     * Cuelgan de aquí y no del sistema: el «Grupo 5» de un viaje no es el de otro. Ver
+     * {@see CotizacionFileGrupo}.
+     *
+     * @var Collection<int, CotizacionFileGrupo>
+     */
+    #[ApiProperty(fetchEager: false)]
+    #[Groups(['file:item:read'])]
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFileGrupo::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['tipo' => 'ASC', 'clave' => 'ASC'])]
+    private Collection $grupos;
+
     // ══════════════════════════════════════════════════════════════════════
     // PROPIEDADES VIRTUALES DE LA VISTA PÚBLICA (no persistidas)
     // Las llena CotizacionFilePublicProvider; la entity no hace queries.
@@ -211,6 +225,7 @@ class CotizacionFile
         $this->cotizaciones = new ArrayCollection();
         $this->filepasajeros = new ArrayCollection();
         $this->filearchivos = new ArrayCollection();
+        $this->grupos = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -443,4 +458,26 @@ class CotizacionFile
 
     public function getContacto(): ?MaestroContacto { return $this->contacto; }
     public function setContacto(?MaestroContacto $contacto): self { $this->contacto = $contacto; return $this; }
+
+    /** @return Collection<int, CotizacionFileGrupo> */
+    public function getGrupos(): Collection { return $this->grupos; }
+
+    public function addGrupo(CotizacionFileGrupo $grupo): self
+    {
+        if (!$this->grupos->contains($grupo)) {
+            $this->grupos->add($grupo);
+            $grupo->setFile($this);
+        }
+
+        return $this;
+    }
+
+    public function removeGrupo(CotizacionFileGrupo $grupo): self
+    {
+        if ($this->grupos->removeElement($grupo) && $grupo->getFile() === $this) {
+            $grupo->setFile(null);
+        }
+
+        return $this;
+    }
 }

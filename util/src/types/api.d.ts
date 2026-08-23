@@ -676,6 +676,50 @@ export interface paths {
         patch: operations["api_salescotizacion_files_id_patch"];
         trace?: never;
     };
+    "/platform/sales/cotizacion_file_grupos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a CotizacionFileGrupo resource.
+         * @description Creates a CotizacionFileGrupo resource.
+         */
+        post: operations["api_salescotizacion_file_grupos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacion_file_grupos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Removes the CotizacionFileGrupo resource.
+         * @description Removes the CotizacionFileGrupo resource.
+         */
+        delete: operations["api_salescotizacion_file_grupos_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the CotizacionFileGrupo resource.
+         * @description Updates the CotizacionFileGrupo resource.
+         */
+        patch: operations["api_salescotizacion_file_grupos_id_patch"];
+        trace?: never;
+    };
     "/platform/sales/cotizacion_filearchivos": {
         parameters: {
             query?: never;
@@ -9577,6 +9621,8 @@ export interface components {
             cotizaciones?: string[];
             filepasajeros?: string[];
             filearchivos?: string[];
+            /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
+            grupos?: string[];
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -9630,6 +9676,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo-file.read_file.item.read_timestamp.read"][];
+            grupos?: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
@@ -9792,6 +9839,8 @@ export interface components {
             cotizaciones?: string[];
             filepasajeros?: string[];
             filearchivos?: string[];
+            /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
+            grupos?: string[];
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -9845,6 +9894,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion.html-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.html-file.read_file.item.read_timestamp.read"][];
+            grupos?: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
@@ -9967,6 +10017,8 @@ export interface components {
             cotizaciones?: string[];
             filepasajeros?: string[];
             filearchivos?: string[];
+            /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
+            grupos?: string[];
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -10007,6 +10059,7 @@ export interface components {
         "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": {
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read"][];
+            grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
@@ -10146,6 +10199,8 @@ export interface components {
             cotizaciones?: string[];
             filepasajeros?: string[];
             filearchivos?: string[];
+            /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
+            grupos?: string[];
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -10199,6 +10254,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion.multipart-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.multipart-file.read_file.item.read_timestamp.read"][];
+            grupos?: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
@@ -10290,6 +10346,189 @@ export interface components {
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read_pax_cotizacion.read"][];
         };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        CotizacionFileGrupo: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** @enum {string} */
+            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            nombre?: string | null;
+            miembros?: components["schemas"]["CotizacionPasajeroGrupo"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
+        "CotizacionFileGrupo-file.read_file.item.read_timestamp.read": {
+            /** @enum {string} */
+            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            nombre?: string | null;
+            miembros?: components["schemas"]["CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo-file.write": {
+            file?: components["schemas"]["CotizacionFile-file.write"];
+            /** @enum {string} */
+            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            nombre?: string | null;
+            id?: string;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo-file.write.jsonMergePatch": {
+            file?: components["schemas"]["CotizacionFile-file.write"];
+            /** @enum {string} */
+            tipo?: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave?: string;
+            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            nombre?: string | null;
+            id?: string;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** @enum {string} */
+            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            nombre?: string | null;
+            miembros?: components["schemas"]["CotizacionPasajeroGrupo.html"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
+        "CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read": {
+            /** @enum {string} */
+            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            nombre?: string | null;
+            miembros?: components["schemas"]["CotizacionPasajeroGrupo.html-file.read_file.item.read_timestamp.read"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** @enum {string} */
+            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            nombre?: string | null;
+            miembros?: components["schemas"]["CotizacionPasajeroGrupo.jsonld"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @enum {string} */
+            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            nombre?: string | null;
+            miembros?: components["schemas"]["CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** @enum {string} */
+            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            nombre?: string | null;
+            miembros?: components["schemas"]["CotizacionPasajeroGrupo.multipart"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
+        "CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read": {
+            /** @enum {string} */
+            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            nombre?: string | null;
+            miembros?: components["schemas"]["CotizacionPasajeroGrupo.multipart-file.read_file.item.read_timestamp.read"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
         CotizacionFilearchivo: {
             /**
              * @description Qué CLASE DE ARCHIVO es: boleto, factura, confirmación de reserva.
@@ -10301,6 +10540,17 @@ export interface components {
              * @example https://example.com/
              */
             file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las tres combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -10327,6 +10577,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -10337,6 +10589,8 @@ export interface components {
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
+            pasajero?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
@@ -10348,6 +10602,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
         };
         "CotizacionFilearchivo-file.write": {
             /**
@@ -10356,6 +10612,8 @@ export interface components {
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
+            pasajero?: components["schemas"]["CotizacionFilepasajero-file.write"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo-file.write"] | null;
             imageName?: string | null;
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
@@ -10376,6 +10634,8 @@ export interface components {
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile-file.write"];
+            pasajero?: components["schemas"]["CotizacionFilepasajero-file.write"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo-file.write"] | null;
             imageName?: string | null;
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
@@ -10424,6 +10684,17 @@ export interface components {
              * @example https://example.com/
              */
             file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las tres combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -10450,6 +10721,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -10460,6 +10733,8 @@ export interface components {
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
+            pasajero?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
@@ -10471,6 +10746,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
         };
         "CotizacionFilearchivo.html-pax_file.read": {
             /**
@@ -10507,6 +10784,17 @@ export interface components {
              * @example https://example.com/
              */
             file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las tres combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -10533,6 +10821,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -10543,6 +10833,8 @@ export interface components {
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
+            pasajero?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
@@ -10554,6 +10846,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
         };
         "CotizacionFilearchivo.jsonld-pax_file.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
@@ -10590,6 +10884,17 @@ export interface components {
              * @example https://example.com/
              */
             file?: string;
+            /**
+             * Format: iri-reference
+             * @description De quién es este archivo. **Las dos nulables, y las tres combinaciones significan algo:**
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo?: string | null;
             /** Format: binary */
             imageFile?: string | null;
             imageName?: string | null;
@@ -10616,6 +10921,8 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
             /** @description Determina si el archivo es compatible con LiipImagine. */
             readonly image?: boolean;
         };
@@ -10626,6 +10933,8 @@ export interface components {
              */
             tipoArchivo?: "boleto" | "factura" | "reserva" | "otros";
             file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
+            pasajero?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"] | null;
+            grupo?: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"] | null;
             imageName?: string | null;
             imageSize?: number | null;
             /** @description Propiedad virtual para exponer la URL pública. */
@@ -10637,6 +10946,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description ¿Lo ve todo el expediente, o es de alguien? */
+            readonly alcance?: string;
         };
         "CotizacionFilearchivo.multipart-pax_file.read": {
             /**
@@ -10680,6 +10991,7 @@ export interface components {
              */
             file?: string;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -10707,6 +11019,7 @@ export interface components {
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.read_file.item.read_timestamp.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -10736,6 +11049,7 @@ export interface components {
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile-file.write"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.write"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo-file.write"][];
         };
         "CotizacionFilepasajero-file.write.jsonMergePatch": {
             nombre?: string;
@@ -10751,6 +11065,7 @@ export interface components {
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile-file.write"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.write"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo-file.write"][];
         };
         "CotizacionFilepasajero-pax_file.read": {
             nombre?: string;
@@ -10798,6 +11113,7 @@ export interface components {
              */
             file?: string;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.html"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -10825,6 +11141,7 @@ export interface components {
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-file.read_file.item.read_timestamp.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.html-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -10886,6 +11203,7 @@ export interface components {
              */
             file?: string;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.jsonld"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -10913,6 +11231,7 @@ export interface components {
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-file.read_file.item.read_timestamp.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -10974,6 +11293,7 @@ export interface components {
              */
             file?: string;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.multipart"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11001,6 +11321,7 @@ export interface components {
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-file.read_file.item.read_timestamp.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.multipart-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -11043,6 +11364,155 @@ export interface components {
             /** Format: date-time */
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-pax_file.read_pax_cotizacion.read"][];
+        };
+        CotizacionPasajeroGrupo: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pasajero: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo: string;
+            /**
+             * @description ¿Lidera este grupo?
+             * @default false
+             */
+            esJefe: boolean;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"];
+            /**
+             * @description ¿Lidera este grupo?
+             * @default false
+             */
+            esJefe: boolean;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroGrupo-file.write": {
+            grupo: components["schemas"]["CotizacionFileGrupo-file.write"];
+            /**
+             * @description ¿Lidera este grupo?
+             * @default false
+             */
+            esJefe: boolean;
+            id?: string;
+        };
+        "CotizacionPasajeroGrupo.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pasajero: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo: string;
+            /**
+             * @description ¿Lidera este grupo?
+             * @default false
+             */
+            esJefe: boolean;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroGrupo.html-file.read_file.item.read_timestamp.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"];
+            /**
+             * @description ¿Lidera este grupo?
+             * @default false
+             */
+            esJefe: boolean;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroGrupo.jsonld": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pasajero: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo: string;
+            /**
+             * @description ¿Lidera este grupo?
+             * @default false
+             */
+            esJefe: boolean;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"];
+            /**
+             * @description ¿Lidera este grupo?
+             * @default false
+             */
+            esJefe: boolean;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroGrupo.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pasajero: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            grupo: string;
+            /**
+             * @description ¿Lidera este grupo?
+             * @default false
+             */
+            esJefe: boolean;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroGrupo.multipart-file.read_file.item.read_timestamp.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"];
+            /**
+             * @description ¿Lidera este grupo?
+             * @default false
+             */
+            esJefe: boolean;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         CotizacionPasajeroIdentificacion: {
             /**
@@ -33037,6 +33507,177 @@ export interface operations {
                     "application/json": components["schemas"]["CotizacionFile"];
                     "text/html": components["schemas"]["CotizacionFile.html"];
                     "multipart/form-data": components["schemas"]["CotizacionFile.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_file_grupos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new CotizacionFileGrupo resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["CotizacionFileGrupo-file.write"];
+                "application/json": components["schemas"]["CotizacionFileGrupo-file.write"];
+                "text/html": components["schemas"]["CotizacionFileGrupo-file.write"];
+                "multipart/form-data": components["schemas"]["CotizacionFileGrupo-file.write"];
+            };
+        };
+        responses: {
+            /** @description CotizacionFileGrupo resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionFileGrupo.jsonld"];
+                    "application/json": components["schemas"]["CotizacionFileGrupo"];
+                    "text/html": components["schemas"]["CotizacionFileGrupo.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionFileGrupo.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_file_grupos_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionFileGrupo identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionFileGrupo resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_file_grupos_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionFileGrupo identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated CotizacionFileGrupo resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["CotizacionFileGrupo-file.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description CotizacionFileGrupo resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionFileGrupo.jsonld"];
+                    "application/json": components["schemas"]["CotizacionFileGrupo"];
+                    "text/html": components["schemas"]["CotizacionFileGrupo.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionFileGrupo.multipart"];
                 };
             };
             /** @description Invalid input */

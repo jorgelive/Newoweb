@@ -163,6 +163,43 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     };
 
     // ────────────────────────────────────────────────────────────────────────
+    // SUBGRUPOS DEL EXPEDIENTE
+    //
+    // Salón, grupo, habitación, reserva aérea. No anidan: en un padrón real 9 de
+    // cada 10 grupos aparecen en más de un salón, así que son ejes cruzados y la
+    // pertenencia es N:M. Ver docs/Cotizaciones.md §6.m.
+    // ────────────────────────────────────────────────────────────────────────
+
+    const crearGrupo = async (
+        fileId: string,
+        payload: { tipo: string; clave: string; nombre?: string | null }
+    ): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.post('/platform/sales/cotizacion_file_grupos', {
+                ...payload,
+                file: `/platform/sales/cotizacion_files/${fileId}`,
+            });
+            return true;
+        } catch (err: unknown) {
+            // El 422 más probable es la unicidad `(file, tipo, clave)`: ese grupo ya existe.
+            error.value = extractApiErrorMessage(err, 'No se pudo crear el subgrupo. ¿Ya existe uno con esa clave?');
+            return false;
+        }
+    };
+
+    const eliminarGrupo = async (iri: string): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.delete(iri);
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo eliminar el subgrupo.');
+            return false;
+        }
+    };
+
+    // ────────────────────────────────────────────────────────────────────────
     // RECONCILIACIÓN CON OPERACIONES — dos pasos, nunca uno
     //
     // La generación automática sólo se dispara en la TRANSICIÓN a `confirmado`, y
@@ -401,6 +438,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         updateDocument,
         cloneCotizacion,
         guardarHistorico,
+        crearGrupo,
+        eliminarGrupo,
         planificarOperacion,
         aplicarPlanOperacion
     };

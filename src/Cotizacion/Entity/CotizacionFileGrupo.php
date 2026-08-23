@@ -1,0 +1,175 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Cotizacion\Entity;
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use App\Cotizacion\Enum\GrupoTipoEnum;
+use App\Security\Roles;
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
+
+/**
+ * Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN.
+ *
+ * ## Cuelga del EXPEDIENTE, y esto no es un detalle
+ *
+ * El «Grupo 5» de Punta Cana no es el «Grupo 5» de otro viaje. De ahí sale la unicidad
+ * `(file, tipo, clave)`, que además es lo que hace que **reimportar el padrón corregido no
+ * duplique nada** — y ese Excel se vuelve a subir varias veces antes de un viaje.
+ *
+ * ## El código es DATO; el papel es archivo
+ *
+ * `clave` guarda el PNR (`JA2CWN`), no el PDF. Si el código viviera dentro del archivo no se
+ * podría buscar por él, ordenarlo, imprimirlo en la orden ni pegarlo en la web de la aerolínea,
+ * que es todo lo que se hace con un localizador. El namelist se sube aparte y cuelga de este
+ * grupo — ver la clave `grupo` de {@see CotizacionFilearchivo}.
+ *
+ * El propio padrón describe el orden: *«la asignación individual se define al cargar los
+ * namelists»*. El archivo no **es** la pertenencia: la **define**, y después queda de respaldo.
+ */
+#[ApiResource(
+    shortName: 'CotizacionFileGrupo',
+    operations: [
+        new Post(
+            denormalizationContext: ['groups' => ['file:write']],
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para crear subgrupos.'
+        ),
+        new Patch(
+            denormalizationContext: ['groups' => ['file:write']],
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar subgrupos.'
+        ),
+        // Borrar un grupo se lleva sus pertenencias por CASCADE, no a los pasajeros: perder el
+        // «Salón B» no es perder a nadie, sólo deja de haber salón.
+        new Delete(
+            security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar subgrupos.'
+        ),
+    ],
+    routePrefix: '/sales'
+)]
+#[ORM\Entity]
+#[ORM\Table(name: 'cotizacion_file_grupo')]
+#[ORM\UniqueConstraint(name: 'uniq_file_grupo_tipo_clave', columns: ['file_id', 'tipo', 'clave'])]
+#[ORM\HasLifecycleCallbacks]
+class CotizacionFileGrupo
+{
+    use IdTrait;
+    use TimestampTrait;
+
+    #[Groups(['file:write'])]
+    #[ORM\ManyToOne(targetEntity: CotizacionFile::class, inversedBy: 'grupos')]
+    #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private ?CotizacionFile $file = null;
+
+    #[Assert\NotNull(message: 'Indica en qué eje agrupa.')]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[ORM\Column(type: 'string', length: 20, enumType: GrupoTipoEnum::class)]
+    private ?GrupoTipoEnum $tipo = null;
+
+    /**
+     * El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`.
+     *
+     * Se normaliza al guardar —sin espacios, en mayúsculas— porque de aquí depende la unicidad: sin
+     * eso, «ha13» y «HA13 » serían dos habitaciones distintas y el cruce posterior no encontraría a
+     * nadie.
+     */
+    #[Assert\NotBlank(message: 'El grupo necesita un valor: «B», «5», «HA13»…')]
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[ORM\Column(type: 'string', length: 60)]
+    private ?string $clave = null;
+
+    /** Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $nombre = null;
+
+    /** @var Collection<int, CotizacionPasajeroGrupo> */
+    #[Groups(['file:item:read'])]
+    #[ORM\OneToMany(mappedBy: 'grupo', targetEntity: CotizacionPasajeroGrupo::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $miembros;
+
+    public function __construct()
+    {
+        $this->initializeId();
+        $this->miembros = new ArrayCollection();
+    }
+
+    public function __toString(): string
+    {
+        return $this->getEtiqueta();
+    }
+
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    public function getId(): ?Uuid { return $this->id; }
+
+    #[Groups(['file:write'])]
+    public function setId(Uuid|string $id): self
+    {
+        $this->id = is_string($id) ? Uuid::fromString($id) : $id;
+
+        return $this;
+    }
+
+    public function getFile(): ?CotizacionFile { return $this->file; }
+    public function setFile(?CotizacionFile $v): self { $this->file = $v; return $this; }
+
+    public function getTipo(): ?GrupoTipoEnum { return $this->tipo; }
+    public function setTipo(?GrupoTipoEnum $v): self { $this->tipo = $v; return $this; }
+
+    public function getClave(): ?string { return $this->clave; }
+
+    public function setClave(?string $v): self
+    {
+        $this->clave = $v !== null ? (mb_strtoupper(trim($v)) ?: null) : null;
+
+        return $this;
+    }
+
+    public function getNombre(): ?string { return $this->nombre; }
+    public function setNombre(?string $v): self { $this->nombre = $v !== null ? (trim($v) ?: null) : null; return $this; }
+
+    /** @return Collection<int, CotizacionPasajeroGrupo> */
+    public function getMiembros(): Collection { return $this->miembros; }
+
+    public function addMiembro(CotizacionPasajeroGrupo $miembro): self
+    {
+        if (!$this->miembros->contains($miembro)) {
+            $this->miembros->add($miembro);
+            $miembro->setGrupo($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMiembro(CotizacionPasajeroGrupo $miembro): self
+    {
+        if ($this->miembros->removeElement($miembro) && $miembro->getGrupo() === $this) {
+            $miembro->setGrupo(null);
+        }
+
+        return $this;
+    }
+
+    /** Cómo se llama esto en pantalla. */
+    #[Groups(['file:item:read', 'pax_file:read'])]
+    public function getEtiqueta(): string
+    {
+        return $this->nombre ?? sprintf('%s %s', $this->tipo?->label() ?? 'Grupo', $this->clave ?? '—');
+    }
+
+    #[Groups(['file:item:read'])]
+    public function getTotalMiembros(): int { return $this->miembros->count(); }
+}

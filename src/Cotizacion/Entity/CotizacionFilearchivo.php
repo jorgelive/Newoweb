@@ -77,6 +77,28 @@ class CotizacionFilearchivo
     #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
 
+    /**
+     * De quién es este archivo. **Las dos nulables, y las tres combinaciones significan algo:**
+     *
+     * | `pasajero` | `grupo` | qué es |
+     * |---|---|---|
+     * | ✓ | — | suyo: su boarding pass, su autorización notarial |
+     * | — | ✓ | del grupo: el namelist que manda la aerolínea con el PNR |
+     * | — | — | del expediente: lo de siempre, lo ve todo el mundo |
+     *
+     * Un solo mecanismo para los tres alcances. Sin esto harían falta tres modelos, y el día que
+     * apareciera un cuarto alcance, un cuarto.
+     */
+    #[Groups(['file:item:read', 'file:write'])]
+    #[ORM\ManyToOne(targetEntity: CotizacionFilepasajero::class)]
+    #[ORM\JoinColumn(name: 'pasajero_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
+    private ?CotizacionFilepasajero $pasajero = null;
+
+    #[Groups(['file:item:read', 'file:write'])]
+    #[ORM\ManyToOne(targetEntity: CotizacionFileGrupo::class)]
+    #[ORM\JoinColumn(name: 'grupo_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
+    private ?CotizacionFileGrupo $grupo = null;
+
     /* ======================================================
      * PROPIEDADES DE VICH UPLOADER Y MEDIA TRAIT
      * ====================================================== */
@@ -179,4 +201,47 @@ class CotizacionFilearchivo
      * @param list<array{language?: string, content?: string|null}> $nombre
      */
     public function setNombre(array $nombre): void { $this->nombre = $nombre; }
+
+    public function getPasajero(): ?CotizacionFilepasajero { return $this->pasajero; }
+    public function setPasajero(?CotizacionFilepasajero $v): self { $this->pasajero = $v; return $this; }
+
+    public function getGrupo(): ?CotizacionFileGrupo { return $this->grupo; }
+    public function setGrupo(?CotizacionFileGrupo $v): self { $this->grupo = $v; return $this; }
+
+    /**
+     * El dueño tiene que ser del MISMO expediente que el archivo.
+     *
+     * Mismo invariante que en {@see CotizacionPasajeroGrupo}: las dos claves son válidas por
+     * separado y nada impide colgarle a un expediente el boarding pass de otro. A mano no pasa;
+     * en una importación en lote, sí.
+     */
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function validarDuenoDelMismoExpediente(): void
+    {
+        $mio = $this->file?->getId();
+        if ($mio === null) {
+            return;
+        }
+
+        foreach ([
+            'pasajero' => $this->pasajero?->getFile()?->getId(),
+            'grupo' => $this->grupo?->getFile()?->getId(),
+        ] as $que => $suyo) {
+            if ($suyo !== null && !$mio->equals($suyo)) {
+                throw new \DomainException(sprintf('El archivo y su %s son de expedientes distintos.', $que));
+            }
+        }
+    }
+
+    /** ¿Lo ve todo el expediente, o es de alguien? */
+    #[Groups(['file:item:read'])]
+    public function getAlcance(): string
+    {
+        return match (true) {
+            $this->pasajero !== null => 'pasajero',
+            $this->grupo !== null => 'grupo',
+            default => 'expediente',
+        };
+    }
 }

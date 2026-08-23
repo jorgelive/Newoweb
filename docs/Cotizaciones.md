@@ -1408,6 +1408,81 @@ pasajero.
 forma laxa, iterar `identificaciones` daba `never` y sólo se vio al compilar: lo laxo esconde justo
 lo que hace falta el día que el backend cambia de forma.
 
+## 6.m Subgrupos del expediente: ejes cruzados, no un árbol (24/08/2026)
+
+Un padrón de grupo grande no agrupa de una forma sino de varias a la vez. Medido sobre el de Punta
+Cana 2026:
+
+```
+5 salones · 10 grupos · 43 combinaciones distintas
+9 de los 10 grupos aparecen en MÁS DE UN salón — el grupo 1, en los cinco
+```
+
+Una persona está a la vez en el salón B, el grupo 5, la habitación HA13 y sus dos reservas aéreas.
+**Eso no es una jerarquía**, y modelarlo anidado se rompe en cuanto quieres filtrar por el otro eje.
+
+```
+CotizacionFileGrupo                    CotizacionPasajeroGrupo
+   file      ← del EXPEDIENTE             pasajero ─┐
+   tipo      GrupoTipoEnum                grupo    ─┤ N:M
+   clave     'B' · '5' · 'HA13'           esJefe    │
+   nombre    opcional                               │
+   ÚNICO (file, tipo, clave)              ÚNICO (pasajero, grupo)
+```
+
+### El eje va como enum; la clave, nunca
+
+De los cuatro ejes, **dos reciben su valor de fuera**: 66 habitaciones las numera el hotel y 20
+códigos de reserva los dan las aerolíneas. Ahí un enum es imposible.
+
+Lo que evita los duplicados por tecleo no es congelar una lista sino **la unicidad
+`(file, tipo, clave)`** más normalizar la clave al guardar —sin espacios, en mayúsculas—. Con eso,
+reimportar el Excel corregido no duplica nada, y ese archivo se vuelve a subir varias veces antes
+de un viaje.
+
+⚠️ **Cuelga del expediente**: el «Grupo 5» de Punta Cana no es el de otro viaje.
+
+### El código es dato; el papel es archivo
+
+`clave` guarda el PNR (`JA2CWN`), no el PDF. Si viviera dentro del archivo no se podría buscar por
+él, ordenarlo, imprimirlo en la orden ni pegarlo en la web de la aerolínea. El namelist se sube
+aparte y cuelga del grupo — ver las dos claves nulables de `CotizacionFilearchivo`:
+
+| `pasajero` | `grupo` | qué es |
+|---|---|---|
+| ✓ | — | suyo: boarding pass, autorización notarial |
+| — | ✓ | del grupo: el namelist con el PNR |
+| — | — | del expediente: lo de siempre |
+
+El propio padrón describe el orden: *«la asignación individual se define al cargar los
+namelists»*. El archivo no **es** la pertenencia: la **define**, y luego queda de respaldo.
+
+### ⚠️ La pertenencia es entidad, no `ManyToMany`
+
+Porque lleva `esJefe`, que es atributo **de la pertenencia**: se lidera *un* grupo, no en general.
+Doctrine no deja colgar columnas de la tabla de unión de un `ManyToMany`.
+
+### ⚠️ La coherencia de expediente NO la impone el esquema
+
+`cotizacion_pasajero_grupo` **no lleva `file_id`** —sería una tercera copia del mismo hecho—, así
+que nada a nivel de base impide unir un pasajero del expediente A con un grupo del B. Lo cierran
+dos callbacks de ciclo de vida:
+
+- `CotizacionPasajeroGrupo::validarMismoExpediente()`
+- `CotizacionFilearchivo::validarDuenoDelMismoExpediente()`
+
+Es un invariante que **no se rompe nunca a mano y que un importador rompe en lote**.
+
+### En pantalla
+
+- **Sección «Subgrupos»** en `FileDetalle`, antes del manifiesto: se definen primero y se asignan
+  después. Alta con eje + clave + nombre opcional; al borrar avisa a cuántos pasajeros se quita y
+  aclara que **ellos no se borran**.
+- **En la ficha del pasajero**, píldoras por eje: se marcan varias a la vez y la corona marca de
+  cuál es jefe.
+- `pertenencias` va **`EAGER`** por lo mismo que las identificaciones (§6.l): con `LAZY` son 140
+  consultas que con dos pasajeros no se ven.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -1520,6 +1595,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
 - **Guardar el estado de una cotización antes de tocarla** → botón de cámara en `FileDetalle` → `GuardarHistoricoProcessor`. ⚠️ **No es clonar**: clonar crea la versión siguiente y hace perder las órdenes. Ver §6.j.
+- **Agrupar pasajeros (salón, grupo, habitación, reserva aérea)** → `CotizacionFileGrupo` + `CotizacionPasajeroGrupo` (§6.m). ⚠️ Ejes cruzados, no un árbol; y el `esJefe` va en la pertenencia.
 - **El DNI o el pasaporte de un pasajero, con su vencimiento** → `CotizacionPasajeroIdentificacion`, una fila por documento (§6.l). ⚠️ Sin fecha es «sin comprobar», nunca «vigente».
 - **Adjuntar un archivo a un expediente** → `CotizacionFilearchivo` (antes `…Filedocumento`, ver §6.k). ⚠️ No confundir con `CotizacionFilepasajero::$tipodocumento`, que sí es identidad.
 - **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `nombreSnapshot` (público). Ver §6.h.
