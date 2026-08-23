@@ -53,7 +53,7 @@ final class OrdenPublicaController extends AbstractController
         return $this->render('operacion/orden_publica.html.twig', [
             'orden' => $orden,
             // Mismo criterio que el mensaje al proveedor: el recojo, una vez al día.
-            'rutas' => $orden->rutasVisibles(),
+            'rutas' => $orden->getRutasVisibles(),
             'paraPdf' => false,
         ]);
     }
@@ -71,7 +71,7 @@ final class OrdenPublicaController extends AbstractController
 
         $dompdf = new Dompdf($opciones);
         $dompdf->loadHtml($this->renderView('operacion/orden_publica.html.twig', [
-            'rutas' => $orden->rutasVisibles(),
+            'rutas' => $orden->getRutasVisibles(),
             'orden' => $orden,
             'paraPdf' => true,
         ]));

@@ -925,12 +925,13 @@ interface BorradorFicha {
     puntoEntrega: string;
     estadoReservaProveedor: string;
     estadoOperacion: string;
-    puntosSiempreVisibles: boolean;
+    visibilidadRecojo: string;
+    visibilidadEntrega: string;
 }
 
 const borradorFicha = ref<BorradorFicha>({
     horaRecojo: '', puntoRecojo: '', puntoEntrega: '',
-    estadoReservaProveedor: '', estadoOperacion: '', puntosSiempreVisibles: false,
+    estadoReservaProveedor: '', estadoOperacion: '', visibilidadRecojo: 'auto', visibilidadEntrega: 'auto',
 });
 
 /** Se abre SÓLO en móvil: en escritorio la tabla ya es editable y abrir una ficha estorbaría. */
@@ -945,7 +946,8 @@ const abrirFicha = (servicio: OperacionServicio) => {
         puntoEntrega: servicio.puntoEntrega ?? '',
         estadoReservaProveedor: servicio.estadoReservaProveedor ?? 'sin-solicitar',
         estadoOperacion: servicio.estadoOperacion ?? 'pendiente',
-        puntosSiempreVisibles: servicio.puntosSiempreVisibles ?? false,
+        visibilidadRecojo: servicio.visibilidadRecojo ?? 'auto',
+        visibilidadEntrega: servicio.visibilidadEntrega ?? 'auto',
     };
 };
 
@@ -964,7 +966,8 @@ const cambiosDeFicha = (): Record<string, unknown> => {
     if (texto(b.puntoEntrega) !== (s.puntoEntrega ?? null)) cambios.puntoEntrega = texto(b.puntoEntrega);
     if (b.estadoReservaProveedor !== s.estadoReservaProveedor) cambios.estadoReservaProveedor = b.estadoReservaProveedor;
     if (b.estadoOperacion !== s.estadoOperacion) cambios.estadoOperacion = b.estadoOperacion;
-    if (b.puntosSiempreVisibles !== (s.puntosSiempreVisibles ?? false)) cambios.puntosSiempreVisibles = b.puntosSiempreVisibles;
+    if (b.visibilidadRecojo !== (s.visibilidadRecojo ?? 'auto')) cambios.visibilidadRecojo = b.visibilidadRecojo;
+    if (b.visibilidadEntrega !== (s.visibilidadEntrega ?? 'auto')) cambios.visibilidadEntrega = b.visibilidadEntrega;
 
     return cambios;
 };
@@ -1227,6 +1230,48 @@ const alternarDetalle = (orden: OperacionOrdenServicio) => {
 };
 
 /** Los servicios de la orden abierta, tal como vinieron en el listado. */
+/**
+ * Qué ve el proveedor de cada extremo, y el ciclo del interruptor.
+ *
+ * `auto → oculto → siempre → auto`. Tres estados en un solo control porque son excluyentes y
+ * caben en una pastilla; un desplegable por lado y por línea llenaría la tarjeta de cajas.
+ */
+const VISIBILIDAD_SIGUIENTE: Record<string, string> = { auto: 'oculto', oculto: 'siempre', siempre: 'auto' };
+
+const etiquetaVisibilidad = (v?: string | null): string =>
+    ({ auto: 'Auto', oculto: 'Oculto', siempre: 'Siempre' })[v ?? 'auto'] ?? 'Auto';
+
+const claseVisibilidad = (v?: string | null): string =>
+    ({
+        auto: 'bg-white text-slate-500 border-slate-200 hover:border-slate-400',
+        oculto: 'bg-slate-200 text-slate-500 border-slate-300 line-through',
+        siempre: 'bg-[#376875] text-white border-[#376875]',
+    })[v ?? 'auto'] ?? 'bg-white text-slate-500 border-slate-200';
+
+/** Sólo sobre un documento vigente: en borrador se edita la fila viva; una anulada es terminal. */
+const puedeAjustarRutas = (orden: OperacionOrdenServicio): boolean =>
+    orden.estadoOs === 'emitida' || orden.estadoOs === 'confirmada';
+
+const ajustandoRutas = ref(false);
+
+const alternarVisibilidad = async (
+    orden: OperacionOrdenServicio,
+    item: { id?: string | null; visibilidadRecojo?: string | null; visibilidadEntrega?: string | null },
+    lado: 'recojo' | 'entrega',
+) => {
+    if (!orden.id || !item.id) return;
+
+    const actual = (lado === 'recojo' ? item.visibilidadRecojo : item.visibilidadEntrega) ?? 'auto';
+    const siguiente = VISIBILIDAD_SIGUIENTE[actual] ?? 'auto';
+
+    ajustandoRutas.value = true;
+    try {
+        await operacionStore.ajustarRutas(orden.id, { [item.id]: { [lado]: siguiente } });
+    } finally {
+        ajustandoRutas.value = false;
+    }
+};
+
 const serviciosDeOrdenAbierta = computed<OperacionServicio[]>(() => {
     const orden = operacionStore.ordenesServicio.find(o => o.id === ordenExpandida.value);
     return (orden?.operacionServicios ?? []) as unknown as OperacionServicio[];
@@ -2805,6 +2850,80 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
 
                         <!-- Detalle: los servicios que agrupa. Estaba sin forma de verse. -->
                         <div v-if="ordenExpandida === orden.id" class="px-3 pb-2.5 border-t border-slate-100 pt-2">
+                            <!-- ══ EL DOCUMENTO CONGELADO ═══════════════════════════════════
+                                 En cuanto la orden deja de ser borrador, lo que se pinta son sus
+                                 ÍTEMS, no las filas vivas.
+
+                                 ⚠️ Antes se pintaba siempre desde el enlace vivo, y eso mentía dos
+                                 veces: una orden ANULADA salía vacía —suelta sus servicios por
+                                 diseño— aunque su documento estuviera entero en la base; y una
+                                 EMITIDA enseñaba lo que La Biblia dice AHORA, no lo que el
+                                 proveedor tiene en la mano. Justo lo que `getDivergencias()` existe
+                                 para denunciar, pintado como si fuera el documento. -->
+                            <template v-if="orden.estadoOs !== 'borrador'">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                    {{ (orden.items ?? []).length }} línea(s) · documento emitido
+                                </p>
+
+                                <!-- Lo que falta por decir al proveedor. Se avisa, no se bloquea:
+                                     la decisión es de la persona, el sistema hace visible la
+                                     consecuencia. -->
+                                <p v-for="aviso in (orden.avisosDeRutas ?? [])" :key="aviso"
+                                   class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
+                                    <i class="fas fa-triangle-exclamation mr-1"></i>{{ aviso }}
+                                </p>
+
+                                <div class="flex flex-col gap-1.5">
+                                    <div v-for="it in (orden.items ?? [])" :key="it.id ?? ''"
+                                         class="bg-slate-50 rounded-lg px-2 py-1.5">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <div class="min-w-0">
+                                                <p class="text-[11px] font-black text-slate-800 leading-snug">{{ it.descripcion }}</p>
+                                                <p class="text-[10px] text-slate-400 leading-snug">
+                                                    {{ (it.fechaServicio ?? '').slice(0, 10) }}
+                                                    <span v-if="it.hora"> · {{ it.hora }}</span>
+                                                    <span v-if="it.cantidadPax"> · {{ it.cantidadPax }} pax</span>
+                                                    <span v-if="it.prestadorNombre"> · {{ it.prestadorNombre }}</span>
+                                                </p>
+                                                <p v-if="(orden.rutasVisibles ?? {})[it.id ?? '']"
+                                                   class="text-[10px] font-bold text-slate-600 leading-snug mt-0.5">
+                                                    <i class="fas fa-route text-[8px] mr-1 text-slate-300"></i>{{ (orden.rutasVisibles ?? {})[it.id ?? ''] }}
+                                                </p>
+                                            </div>
+                                            <p class="text-[11px] font-black text-slate-700 tabular-nums shrink-0">
+                                                <span class="text-slate-300 mr-1">{{ it.moneda?.id || '' }}</span>{{ importe(it.importe) }}
+                                            </p>
+                                        </div>
+
+                                        <!-- ── Qué ve el proveedor, línea por línea ──────────
+                                             Aquí y no en La Biblia porque aquí está el contexto:
+                                             se ve la cadena entera y qué renglones salen. Cambiarlo
+                                             NO obliga a reemitir — ocultar dice menos, no dice algo
+                                             falso; cambiar el TEXTO de un punto sí sería pacto. -->
+                                        <div v-if="puedeAjustarRutas(orden) && (it.puntoRecojoConfirmado || it.puntoEntregaConfirmado)"
+                                             class="mt-1.5 pt-1.5 border-t border-slate-200 flex flex-wrap gap-1.5">
+                                            <button v-if="it.puntoRecojoConfirmado"
+                                                    @click.stop="alternarVisibilidad(orden, it, 'recojo')"
+                                                    :disabled="ajustandoRutas"
+                                                    class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border transition-colors disabled:opacity-40"
+                                                    :class="claseVisibilidad(it.visibilidadRecojo)"
+                                                    :title="`Recojo: ${etiquetaVisibilidad(it.visibilidadRecojo)}. Toca para cambiar.`">
+                                                <i class="fas fa-location-dot mr-1"></i>{{ etiquetaVisibilidad(it.visibilidadRecojo) }}
+                                            </button>
+                                            <button v-if="it.puntoEntregaConfirmado"
+                                                    @click.stop="alternarVisibilidad(orden, it, 'entrega')"
+                                                    :disabled="ajustandoRutas"
+                                                    class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border transition-colors disabled:opacity-40"
+                                                    :class="claseVisibilidad(it.visibilidadEntrega)"
+                                                    :title="`Entrega: ${etiquetaVisibilidad(it.visibilidadEntrega)}. Toca para cambiar.`">
+                                                <i class="fas fa-flag-checkered mr-1"></i>{{ etiquetaVisibilidad(it.visibilidadEntrega) }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template v-else>
                             <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
                                 {{ serviciosDeOrdenAbierta.length }} servicio(s)
                             </p>
@@ -2871,7 +2990,9 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                         </div>
                                     </div>
                                 </div>
-                                <p class="text-[10px] text-slate-400 leading-snug mt-1.5">
+                                </template>
+
+                                <p v-if="orden.estadoOs === 'borrador'" class="text-[10px] text-slate-400 leading-snug mt-1.5">
                                     <i class="fas fa-circle-info mr-1"></i>
                                     Toca el importe para editarlo. Vacío = todavía sin negociar, vale el
                                     cotizado. Estos campos son tuyos: una resincronización de la cotización
@@ -3771,18 +3892,31 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
 
           <p class="text-[10px] font-bold text-slate-400 -mt-3">Vacío = lo que diga el catálogo.</p>
 
-          <!-- Por defecto, una cadena de servicios del mismo proveedor dice sólo dónde empieza y
-               dónde acaba: lo de en medio es logística suya. Esto es la salida para cuando esa
-               suposición no vale. Sólo AÑADE líneas; nunca quita el principio ni el final. -->
-          <label class="flex items-start gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer">
-            <input type="checkbox" v-model="borradorFicha.puntosSiempreVisibles" class="mt-0.5 w-4 h-4 accent-[#376875]" />
-            <span class="text-[11px] font-bold text-slate-600 leading-snug">
-              Mostrar estos puntos en la orden aunque esté en medio de una cadena
-              <span class="block text-[10px] font-bold text-slate-400 mt-0.5">
-                Normalmente, varios servicios seguidos del mismo proveedor sólo dicen dónde empieza y dónde acaba.
-              </span>
-            </span>
-          </label>
+          <!-- Qué se le imprime al proveedor, por lado. `Auto` deja mandar la regla de cadenas:
+               varios servicios seguidos del mismo proveedor dicen sólo dónde empieza y dónde
+               acaba, porque lo de en medio es logística suya. Sobre una orden ya emitida esto
+               también se toca desde su tarjeta, que es donde se ve la cadena entera. -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 space-y-2">
+            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Qué ve el proveedor</p>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold text-slate-500 w-16 shrink-0">Recojo</span>
+              <select v-model="borradorFicha.visibilidadRecojo"
+                      class="flex-1 text-[11px] font-bold bg-white px-2 py-1.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875]">
+                <option value="auto">Automático</option>
+                <option value="siempre">Mostrar siempre</option>
+                <option value="oculto">Ocultar al proveedor</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold text-slate-500 w-16 shrink-0">Entrega</span>
+              <select v-model="borradorFicha.visibilidadEntrega"
+                      class="flex-1 text-[11px] font-bold bg-white px-2 py-1.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875]">
+                <option value="auto">Automático</option>
+                <option value="siempre">Mostrar siempre</option>
+                <option value="oculto">Ocultar al proveedor</option>
+              </select>
+            </div>
+          </div>
 
           <div>
             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Reserva con el proveedor</label>

@@ -2288,6 +2288,99 @@ En el cuadro, el botón sale sólo si hay borradores compatibles, y el modal ens
 comprador** de cada uno: sin el comprador delante, elegir entre «OS-014» y «OS-015» es adivinar, y
 equivocarse manda el encargo al proveedor que no era.
 
+### La visibilidad de los puntos: presentación, no pacto (22/08/2026)
+
+#### El diagnóstico que lo desbloqueó todo
+
+El operador temía que conservar una orden anulada obligara a «snapshots de snapshots». **No hay
+tal**: existe exactamente **un** nivel de congelación (`items`, al emitir) y la sucesión de
+documentos ya la resuelve la cadena `reemplazaA`. Nunca se copia un ítem desde otro ítem.
+
+Lo que creaba la ilusión era un bug del panel: **sólo leía el enlace vivo, nunca `items`**. Una
+orden anulada aparecía vacía —suelta sus servicios por diseño— aunque su documento estuviera entero
+en la base. Y una **emitida** enseñaba lo que La Biblia dice *ahora*, no lo que el proveedor tiene
+en la mano: la misma mentira que `getDivergencias()` existe para denunciar, pintada como si fuera
+el documento.
+
+**Ahora: borrador → vista viva; de emitida en adelante → los ítems.**
+
+#### Tres clases de cambio, no dos
+
+La regla nunca fue «el ítem no se toca», sino **«el pacto no se toca»**. El módulo ya lo practicaba:
+
+| Clase | Qué toca | Mecanismo |
+|---|---|---|
+| **Pacto** | importes, fechas, pax, qué servicios, comprador | anular + reemitir (`reemplazaA`) |
+| **Completado** | lo que era **nulo** y ahora se sabe | `aplicarCambiosMenores()` — **ya escribía en ítems emitidos** |
+| **Presentación** | qué renglones se imprimen | `getRutasVisibles()` — **ya ocultaba puntos verdaderos** |
+
+Ocultar un renglón **no afirma nada falso: dice menos**. Cambiar el TEXTO de un punto sí es pacto.
+Ésa es la frontera, y es la que permite editar la presentación sin reemitir.
+
+#### `VisibilidadPuntoEnum`, dos por línea
+
+```
+AUTO      manda la regla de cadenas (defecto)
+SIEMPRE   se imprime aunque esté en medio
+OCULTO    NO se imprime aunque sea el extremo
+```
+
+Uno para el recojo y otro para la entrega, porque **la granularidad del mecanismo ya es por lado**:
+el primero de una cadena enseña su recojo y el último su entrega.
+
+Viven **en los dos sitios con papeles distintos, no con precedencia**: el ítem manda sobre ESTE
+documento; la fila viva es la semilla del siguiente. Nunca se leen a la vez.
+
+⚠️ **La puerta escribe los DOS.** Si sólo tocara el ítem, **reemitir resucitaría el renglón que el
+operador acaba de ocultar** — en silencio, semanas después, en un documento que nadie va a comparar
+con el anterior.
+
+⚠️ **`getRutasVisibles()` NO se materializa.** Todos sus insumos ya están congelados —fecha, hora,
+prestador, puntos y ahora los enums—, así que es determinista y el documento se reproduce igual
+meses después. Materializarla sería guardar copia de un derivado, que es lo que `isSoloReferencia()`
+y `getOrdenItinerario()` se niegan a hacer.
+
+#### La puerta: `POST /ops/orden-servicios/{id}/rutas`
+
+`AjustarRutasProcessor`. Sólo sobre **emitida** o **confirmada**: en borrador se edita la fila viva
+como cualquier override, y una anulada es terminal —retocar la presentación de un documento que ya
+no vale sólo sirve para dudar de si sigue vigente—.
+
+⚠️ **Puerta dedicada, no un PATCH al ítem.** El ítem no es `ApiResource` y no debe serlo: abrirlo a
+PATCH genérico expondría toda la línea congelada —importes incluidos— a una escritura sin reglas.
+Misma doctrina que el cambio de estado.
+
+Valida con **lista blanca**: el ítem tiene que ser de esa orden. Sin eso, editar la presentación de
+un documento ajeno desde su hermana es una puerta que nadie vuelve a encontrar.
+
+#### Se relaja el «nunca quita», y con qué a cambio
+
+El control anterior era un booleano que sólo podía **añadir** líneas, con el argumento de que
+quitar el principio de una cadena deja al proveedor sin saber dónde ir. El argumento sigue siendo
+bueno; lo que cambió es el control: ahora se decide **por lado, sobre el listado de la orden**,
+donde se ve la cadena entera. Y bloquearlo empujaba al atajo destructivo —vaciar el texto del
+punto— que además pierde el dato.
+
+⚠️ A cambio, `getAvisosDeRutas()`: si una cadena queda sin decir dónde se recoge o dónde se deja, el
+panel lo pinta en ámbar. **Aviso, no bloqueo** — el mismo criterio de «se falla abierto» del filtro
+de tipos: el sistema hace visible la consecuencia; la decisión es de la persona.
+
+#### El recálculo, acotado
+
+`getCambiosMenores()` gana los puntos, con la **misma asimetría que la hora**: sólo rellena lo que
+estaba **nulo**, nunca pisa lo que ya tenía valor. Recalcular el texto de un punto ya impreso *es*
+reemitir, y eso ya tiene su botón. El contrato del recálculo es **«rellena lo vacío y denuncia lo
+demás»**.
+
+Y compara sólo contra el override del operador, no contra el catálogo: volver a derivarlo necesita
+el expediente y la cadena de alojamiento, y esto se pinta por fila.
+
+#### `getDivergencias()` no se toca
+
+La visibilidad le es **ortogonal**: compara textos congelados contra overrides vivos, y ocultar un
+renglón no toca ningún texto. Una divergencia de visibilidad no debe existir —la puerta escribe
+ambos— y, si existiera, no obliga a reemitir.
+
 ### Una cadena del mismo prestador dice dónde EMPIEZA y dónde ACABA
 
 `OperacionOrdenServicio::rutasVisibles()`.
@@ -2389,3 +2482,5 @@ casos** que `OperacionServicio::esComprable()`, y tiene test propio.
   día se fija según compartido/privado del abarcador, y hay 33 segmentos compartidos: si dos
   plantillas de tipo distinto comparten el final, la primera procesada decide por ambas. Ya se
   ejecutó; es auditoría pendiente, no un fix.
+| Cambiar qué extremos ve el proveedor en una orden emitida | `src/Operacion/ApiPlatform/State/AjustarRutasProcessor.php` | `POST /{id}/rutas` — **escribe el ítem Y la fila viva** |
+| Ajustar la regla de qué renglón se imprime | `src/Operacion/Entity/OperacionOrdenServicio.php` | `getRutasVisibles()`, `cadenasDe()`, `getAvisosDeRutas()` |

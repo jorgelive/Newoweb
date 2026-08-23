@@ -1324,6 +1324,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/ops/orden-servicios/{id}/rutas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a OperacionOrdenServicio resource.
+         * @description Creates a OperacionOrdenServicio resource.
+         */
+        post: operations["api_opsorden-servicios_idrutas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/ops/operacion_pagos": {
         parameters: {
             query?: never;
@@ -14622,6 +14642,12 @@ export interface components {
             readonly cambiosMenores?: string[];
             /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
         };
         "OperacionOrdenServicio-operacion.mensaje.read_timestamp.read": {
             /** Format: date-time */
@@ -14675,6 +14701,12 @@ export interface components {
             readonly cambiosMenores?: string[];
             /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
         };
         "OperacionOrdenServicio-operacion.write": {
             numeroOs?: string;
@@ -14715,6 +14747,13 @@ export interface components {
         "OperacionOrdenServicio.AgregarAOrdenInput-operacion.orden.write": {
             servicioIds?: string[];
         };
+        "OperacionOrdenServicio.AjustarRutasInput-operacion.orden.write": {
+            visibilidad?: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            };
+        };
         "OperacionOrdenServicio.CambiarEstadoOrdenInput-operacion.orden.write": {
             /**
              * @default
@@ -14753,6 +14792,12 @@ export interface components {
             readonly cambiosMenores?: string[];
             /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
         };
         "OperacionOrdenServicio.html-operacion.mensaje.read_timestamp.read": {
             /** Format: date-time */
@@ -14806,6 +14851,12 @@ export interface components {
             readonly cambiosMenores?: string[];
             /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
         };
         "OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read": {
             reemplazaA?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read"] | null;
@@ -14819,6 +14870,12 @@ export interface components {
             readonly cambiosMenores?: string[];
             /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
         } & (components["schemas"]["HydraItemBaseSchema"] & {
             items?: components["schemas"]["OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read"][];
         });
@@ -14860,6 +14917,12 @@ export interface components {
             readonly cambiosMenores?: string[];
             /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
         } & (components["schemas"]["HydraItemBaseSchema"] & {
             numeroOs?: string;
             file?: components["schemas"]["CotizacionFile.jsonld-operacion.read_timestamp.read"];
@@ -14889,6 +14952,12 @@ export interface components {
             readonly cambiosMenores?: string[];
             /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
         };
         "OperacionOrdenServicio.multipart-operacion.mensaje.read_timestamp.read": {
             /** Format: date-time */
@@ -14942,6 +15011,12 @@ export interface components {
             readonly cambiosMenores?: string[];
             /** @description ¿Hay que reemitir? Es lo que pinta el aviso rojo. */
             readonly sucia?: boolean;
+            /** @description Qué enseña cada ítem del «recoge en… → deja en…», y qué se calla. */
+            readonly rutasVisibles?: {
+                [key: string]: string;
+            };
+            /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
+            readonly avisosDeRutas?: string[];
         };
         "OperacionOrdenServicioItem-operacion.item.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
@@ -14958,10 +15033,16 @@ export interface components {
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
             /**
-             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -14992,10 +15073,16 @@ export interface components {
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
             /**
-             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15026,10 +15113,16 @@ export interface components {
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
             /**
-             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15060,10 +15153,16 @@ export interface components {
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
             /**
-             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15094,10 +15193,16 @@ export interface components {
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
             /**
-             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15128,10 +15233,16 @@ export interface components {
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
             /**
-             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15162,10 +15273,16 @@ export interface components {
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
             /**
-             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15196,10 +15313,16 @@ export interface components {
             puntoRecojoConfirmado?: string | null;
             puntoEntregaConfirmado?: string | null;
             /**
-             * @description El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             cantidadPax?: number | null;
             cantidad?: string | null;
             /** @default 0.00 */
@@ -15345,10 +15468,16 @@ export interface components {
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
             /**
-             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -15546,10 +15675,16 @@ export interface components {
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
             /**
-             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             prestadorOverrideMaestroId?: string | null;
             prestadorOverrideNombre?: string | null;
             prestadorServicioOverrideMaestroId?: string | null;
@@ -15629,10 +15764,16 @@ export interface components {
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
             /**
-             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             prestadorOverrideMaestroId?: string | null;
             prestadorOverrideNombre?: string | null;
             prestadorServicioOverrideMaestroId?: string | null;
@@ -15704,10 +15845,16 @@ export interface components {
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
             /**
-             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -15897,10 +16044,16 @@ export interface components {
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
             /**
-             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -16090,10 +16243,16 @@ export interface components {
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
             /**
-             * @description Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
-             * @default false
+             * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
+             * @default auto
+             * @enum {string}
              */
-            puntosSiempreVisibles: boolean;
+            visibilidadRecojo: "auto" | "siempre" | "oculto";
+            /**
+             * @default auto
+             * @enum {string}
+             */
+            visibilidadEntrega: "auto" | "siempre" | "oculto";
             prestadorMaestroId?: string | null;
             prestadorNombre?: string | null;
             /**
@@ -34915,6 +35074,73 @@ export interface operations {
                 "application/json": components["schemas"]["OperacionOrdenServicio.CambiarEstadoOrdenInput-operacion.orden.write"];
                 "text/html": components["schemas"]["OperacionOrdenServicio.CambiarEstadoOrdenInput-operacion.orden.write"];
                 "multipart/form-data": components["schemas"]["OperacionOrdenServicio.CambiarEstadoOrdenInput-operacion.orden.write"];
+            };
+        };
+        responses: {
+            /** @description OperacionOrdenServicio resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["OperacionOrdenServicio.jsonld-operacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["OperacionOrdenServicio-operacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["OperacionOrdenServicio.html-operacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["OperacionOrdenServicio.multipart-operacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    "api_opsorden-servicios_idrutas_post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description OperacionOrdenServicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new OperacionOrdenServicio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["OperacionOrdenServicio.AjustarRutasInput-operacion.orden.write"];
+                "application/json": components["schemas"]["OperacionOrdenServicio.AjustarRutasInput-operacion.orden.write"];
+                "text/html": components["schemas"]["OperacionOrdenServicio.AjustarRutasInput-operacion.orden.write"];
+                "multipart/form-data": components["schemas"]["OperacionOrdenServicio.AjustarRutasInput-operacion.orden.write"];
             };
         };
         responses: {

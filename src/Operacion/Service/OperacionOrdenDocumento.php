@@ -37,8 +37,8 @@ final readonly class OperacionOrdenDocumento
         $lineas = [];
 
         // Qué ítems enseñan el recojo: uno al día, salvo que cambie — lo decide la orden, que es
-        // quien ve todas sus líneas. Ver `OperacionOrdenServicio::rutasVisibles()`.
-        $rutas = $orden->rutasVisibles();
+        // quien ve todas sus líneas. Ver `OperacionOrdenServicio::getRutasVisibles()`.
+        $rutas = $orden->getRutasVisibles();
 
         foreach ($orden->getItems() as $item) {
             $lineas[] = $this->linea($item, $rutas);

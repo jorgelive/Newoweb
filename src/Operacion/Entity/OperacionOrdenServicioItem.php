@@ -8,6 +8,7 @@ use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use DateTimeInterface;
+use App\Operacion\Enum\VisibilidadPuntoEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
@@ -119,14 +120,24 @@ class OperacionOrdenServicioItem
     private ?string $puntoEntregaConfirmado = null;
 
     /**
-     * El operador pidió que esta línea enseñe sus puntos aunque esté en medio de una cadena.
+     * Si el recojo y la entrega de esta línea se le imprimen al proveedor, **en ESTE documento**.
      *
-     * Se congela como todo lo demás: la decisión se tomó al emitir y el documento tiene que poder
-     * reconstruirse igual meses después, aunque para entonces la fila de La Biblia diga otra cosa.
+     * Se congela al emitir desde la fila viva, y a partir de ahí manda esto. Se puede cambiar con
+     * la orden ya emitida —`POST /ops/orden-servicios/{id}/rutas`— y **eso no obliga a reemitir**:
+     * ocultar un renglón no cambia lo que el proveedor tiene que hacer, dice menos. Cambiar el
+     * TEXTO de un punto sí sería otra cosa, y ésa sigue pasando por anular y reemitir.
+     *
+     * ⚠️ Es el mismo tipo de excepción que ya tenía `horaRecojoConfirmada` con
+     * {@see OperacionOrdenServicio::aplicarCambiosMenores()}: la regla nunca fue «el ítem no se
+     * toca», sino **«el pacto no se toca»**.
      */
     #[Groups(['operacion:read', 'operacion:item:read'])]
-    #[ORM\Column(name: 'puntos_siempre_visibles', type: 'boolean', options: ['default' => false])]
-    private bool $puntosSiempreVisibles = false;
+    #[ORM\Column(name: 'visibilidad_recojo', type: 'string', length: 12, enumType: VisibilidadPuntoEnum::class, options: ['default' => 'auto'])]
+    private VisibilidadPuntoEnum $visibilidadRecojo = VisibilidadPuntoEnum::AUTO;
+
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(name: 'visibilidad_entrega', type: 'string', length: 12, enumType: VisibilidadPuntoEnum::class, options: ['default' => 'auto'])]
+    private VisibilidadPuntoEnum $visibilidadEntrega = VisibilidadPuntoEnum::AUTO;
 
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'integer', nullable: true)]
@@ -197,10 +208,12 @@ class OperacionOrdenServicioItem
      * ⚠️ **Un punto ausente no se rellena.** Nada de «Recoge en —»: un guion invita a suponer que
      * es el hotel. Callarlo deja claro que hay que preguntarlo, que es la verdad.
      */
-    public function rutaParaLaOrden(): ?string
+    public function rutaParaLaOrden(bool $conRecojo = true, bool $conEntrega = true): ?string
     {
-        $recojo = trim((string) $this->puntoRecojoConfirmado);
-        $entrega = trim((string) $this->puntoEntregaConfirmado);
+        // Por lado, porque la cadena decide por lado: el primero enseña su recojo y el último su
+        // entrega. Antes esto era todo o nada y obligaba a componer la frase fuera.
+        $recojo = $conRecojo ? trim((string) $this->puntoRecojoConfirmado) : '';
+        $entrega = $conEntrega ? trim((string) $this->puntoEntregaConfirmado) : '';
 
         return match (true) {
             $recojo !== '' && $entrega !== '' && $recojo !== $entrega => sprintf('Recoge en %s → deja en %s', $recojo, $entrega),
@@ -217,8 +230,11 @@ class OperacionOrdenServicioItem
     public function getPuntoEntregaConfirmado(): ?string { return $this->puntoEntregaConfirmado; }
     public function setPuntoEntregaConfirmado(?string $v): self { $this->puntoEntregaConfirmado = $v; return $this; }
 
-    public function isPuntosSiempreVisibles(): bool { return $this->puntosSiempreVisibles; }
-    public function setPuntosSiempreVisibles(bool $v): self { $this->puntosSiempreVisibles = $v; return $this; }
+    public function getVisibilidadRecojo(): VisibilidadPuntoEnum { return $this->visibilidadRecojo; }
+    public function setVisibilidadRecojo(VisibilidadPuntoEnum $v): self { $this->visibilidadRecojo = $v; return $this; }
+
+    public function getVisibilidadEntrega(): VisibilidadPuntoEnum { return $this->visibilidadEntrega; }
+    public function setVisibilidadEntrega(VisibilidadPuntoEnum $v): self { $this->visibilidadEntrega = $v; return $this; }
 
     public function getCantidadPax(): ?int { return $this->cantidadPax; }
     public function setCantidadPax(?int $v): self { $this->cantidadPax = $v; return $this; }

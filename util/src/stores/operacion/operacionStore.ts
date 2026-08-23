@@ -734,6 +734,27 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     /**
+     * Cambia qué extremos ve el proveedor en una orden YA EMITIDA, sin reemitirla.
+     *
+     * Es presentación, no pacto: ocultar un renglón dice menos, no dice algo falso. Cambiar el
+     * TEXTO de un punto sí obligaría a anular y emitir la sucesora.
+     *
+     * La respuesta trae la orden entera con `rutasVisibles` y `avisosDeRutas` ya recalculados, así
+     * que la tarjeta se repinta con lo que el proveedor verá — sin recargar el cuadro.
+     */
+    const ajustarRutas = async (
+        ordenId: string,
+        visibilidad: Record<string, { recojo?: string; entrega?: string }>,
+    ): Promise<OperacionOrdenServicio> => {
+        const { data } = await apiClient.post(`/platform/ops/orden-servicios/${ordenId}/rutas`, { visibilidad });
+
+        const i = ordenesServicio.value.findIndex((o: OperacionOrdenServicio) => o.id === ordenId);
+        if (i !== -1) ordenesServicio.value[i] = data;
+
+        return data;
+    };
+
+    /**
      * Aplica lo que NO obliga a reemitir: hoy, la hora que el proveedor acaba de confirmar.
      *
      * Actualiza el documento y la orden **sigue emitida**. El aviso que sale de aquí es una
@@ -1063,7 +1084,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         fetchCotizacionesDeExpediente,
         actualizarServicio,
         fetchOrdenesServicio,
-        emitirOrdenServicio, agregarAOrden,
+        emitirOrdenServicio, agregarAOrden, ajustarRutas,
         cambiarEstadoOrden,
         eliminarOrdenServicio,
         documentoDeOrden,

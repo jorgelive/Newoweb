@@ -12,10 +12,12 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use App\Operacion\ApiPlatform\Dto\CambiarEstadoOrdenInput;
 use App\Operacion\ApiPlatform\Dto\AgregarAOrdenInput;
+use App\Operacion\ApiPlatform\Dto\AjustarRutasInput;
 use App\Operacion\ApiPlatform\Dto\EmitirOrdenInput;
 use App\Operacion\ApiPlatform\State\AplicarCambiosMenoresProcessor;
 use App\Operacion\ApiPlatform\State\CambiarEstadoOrdenProcessor;
 use App\Operacion\ApiPlatform\State\AgregarAOrdenProcessor;
+use App\Operacion\ApiPlatform\State\AjustarRutasProcessor;
 use App\Operacion\ApiPlatform\State\EmitirOrdenProcessor;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
@@ -23,6 +25,7 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Operacion\Enum\EstadoOrdenServicioEnum;
+use App\Operacion\Enum\VisibilidadPuntoEnum;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -73,6 +76,19 @@ use Symfony\Component\Uid\Uuid;
             read: false,
             processor: EmitirOrdenProcessor::class
         ),
+        // Qué extremos ve el proveedor, con la orden YA EMITIDA y sin reemitirla. Es
+        // presentación, no pacto: ocultar un renglón dice menos, no dice algo falso. Ver
+        // AjustarRutasProcessor.
+        new Post(
+            uriTemplate: '/orden-servicios/{id}/rutas',
+            denormalizationContext: ['groups' => ['operacion:orden:write']],
+            input: AjustarRutasInput::class,
+            security: "is_granted('" . Roles::OPERACIONES_WRITE . "')",
+            securityMessage: 'No tienes permiso para modificar órdenes de servicio.',
+            read: false,
+            processor: AjustarRutasProcessor::class
+        ),
+
         // Sumar filas a una orden que se está componiendo. SÓLO sobre borradores: una emitida
         // es un documento que el proveedor ya tiene, y añadirle una línea por detrás la
         // cambiaría sin que él se entere. Ver AgregarAOrdenProcessor.
@@ -673,6 +689,33 @@ class OperacionOrdenServicio
             }
         }
 
+        // ── Los PUNTOS que estaban vacíos y ahora se saben ──────────────────
+        //
+        // ⚠️ **Sólo lo NULO se rellena. Lo que ya tenía valor no se pisa nunca.** Recalcular el
+        // texto de un punto ya impreso ES reemitir —cambia lo que el proveedor tiene que hacer— y
+        // eso ya tiene su botón. Es la misma asimetría que la hora: nulo→con valor es que el dato
+        // apareció; con valor→otro valor es una modificación, y ésa se denuncia en `getDivergencias()`.
+        //
+        // Y se compara sólo contra el OVERRIDE del operador, no contra el catálogo: volver a
+        // derivarlo necesita el expediente y la cadena de alojamiento, y esto se pinta por fila.
+        // Ver docs/Operacion.md §12.
+        foreach ($this->items as $item) {
+            $servicio = $this->vivoDe($item);
+
+            if ($servicio === null) {
+                continue;
+            }
+
+            foreach ([
+                ['recojo', $item->getPuntoRecojoConfirmado(), $servicio->getPuntoRecojo()],
+                ['entrega', $item->getPuntoEntregaConfirmado(), $servicio->getPuntoEntrega()],
+            ] as [$lado, $congelado, $vivo]) {
+                if (trim((string) $congelado) === '' && trim((string) $vivo) !== '') {
+                    $avisos[] = sprintf('«%s»: ya se sabe dónde es el %s — %s', $this->etiqueta($item), $lado, $vivo);
+                }
+            }
+        }
+
         return $avisos;
     }
 
@@ -715,6 +758,24 @@ class OperacionOrdenServicio
             }
         }
 
+
+        // Los puntos que estaban vacíos. Mismo criterio: rellena, nunca pisa.
+        foreach ($this->items as $item) {
+            $servicio = $this->vivoDe($item);
+
+            if ($servicio === null) {
+                continue;
+            }
+
+            if (trim((string) $item->getPuntoRecojoConfirmado()) === '' && trim((string) $servicio->getPuntoRecojo()) !== '') {
+                $item->setPuntoRecojoConfirmado($servicio->getPuntoRecojo());
+            }
+
+            if (trim((string) $item->getPuntoEntregaConfirmado()) === '' && trim((string) $servicio->getPuntoEntrega()) !== '') {
+                $item->setPuntoEntregaConfirmado($servicio->getPuntoEntrega());
+            }
+        }
+
         return $aplicados;
     }
 
@@ -750,7 +811,97 @@ class OperacionOrdenServicio
      *
      * @return array<string, string> id de ítem → la línea a pintar. Los ausentes no la pintan.
      */
-    public function rutasVisibles(): array
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ApiProperty(openapiContext: ['type' => 'object', 'additionalProperties' => ['type' => 'string']])]
+    public function getRutasVisibles(): array
+    {
+        $items = $this->itemsOrdenados();
+        $visibles = [];
+
+        foreach ($this->cadenasDe($items) as $cadena) {
+            $primero = $cadena[0];
+            $ultimo = $cadena[count($cadena) - 1];
+
+            foreach ($cadena as $item) {
+                $id = $item->getId()?->toRfc4122();
+
+                if ($id === null) {
+                    continue;
+                }
+
+                // La regla decide, y los enums del ítem la corrigen — por lado. `AUTO` deja que
+                // mande la cadena: el primero enseña su recojo, el último su entrega, el resto
+                // nada. `SIEMPRE` y `OCULTO` imponen la respuesta contraria.
+                $conRecojo = match ($item->getVisibilidadRecojo()) {
+                    VisibilidadPuntoEnum::SIEMPRE => true,
+                    VisibilidadPuntoEnum::OCULTO => false,
+                    VisibilidadPuntoEnum::AUTO => $item === $primero,
+                };
+
+                $conEntrega = match ($item->getVisibilidadEntrega()) {
+                    VisibilidadPuntoEnum::SIEMPRE => true,
+                    VisibilidadPuntoEnum::OCULTO => false,
+                    VisibilidadPuntoEnum::AUTO => $item === $ultimo,
+                };
+
+                $ruta = $item->rutaParaLaOrden($conRecojo, $conEntrega);
+
+                if ($ruta !== null) {
+                    $visibles[$id] = $ruta;
+                }
+            }
+        }
+
+        return $visibles;
+    }
+
+    /**
+     * Cadenas que se quedaron sin decir dónde empiezan o dónde acaban.
+     *
+     * ⚠️ **Se AVISA, no se bloquea.** Ocultar el arranque de una cadena deja al proveedor sin saber
+     * dónde recoger al grupo, y eso es una orden que no se puede cumplir — pero impedirlo empujaba
+     * al atajo destructivo de vaciar el texto del punto, que además pierde el dato. El sistema hace
+     * visible la consecuencia; la decisión es de la persona. Mismo criterio que el filtro de tipos:
+     * se falla abierto.
+     *
+     * @return list<string> los avisos, en palabras, para pintar en ámbar
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ApiProperty(openapiContext: ['type' => 'array', 'items' => ['type' => 'string']])]
+    public function getAvisosDeRutas(): array
+    {
+        $avisos = [];
+
+        foreach ($this->cadenasDe($this->itemsOrdenados()) as $cadena) {
+            $primero = $cadena[0];
+            $ultimo = $cadena[count($cadena) - 1];
+            $dia = $primero->getFechaServicio()?->format('d/m/Y') ?? 'sin fecha';
+
+            $tieneRecojo = trim((string) $primero->getPuntoRecojoConfirmado()) !== ''
+                && $primero->getVisibilidadRecojo() !== VisibilidadPuntoEnum::OCULTO;
+
+            $tieneEntrega = trim((string) $ultimo->getPuntoEntregaConfirmado()) !== ''
+                && $ultimo->getVisibilidadEntrega() !== VisibilidadPuntoEnum::OCULTO;
+
+            if (!$tieneRecojo) {
+                $avisos[] = sprintf('El %s no dice dónde se recoge al grupo (%s).', $dia, $primero->getDescripcion());
+            }
+
+            if (!$tieneEntrega) {
+                $avisos[] = sprintf('El %s no dice dónde se le deja (%s).', $dia, $ultimo->getDescripcion());
+            }
+        }
+
+        return $avisos;
+    }
+
+    /**
+     * Los ítems por fecha y hora. Compartido por la regla y por sus avisos, para que las dos
+     * miren exactamente las mismas cadenas.
+     *
+     * @return list<OperacionOrdenServicioItem>
+     */
+    private function itemsOrdenados(): array
     {
         /** @var list<OperacionOrdenServicioItem> $items */
         $items = $this->items->toArray();
@@ -760,52 +911,7 @@ class OperacionOrdenServicio
                 <=> [$b->getFechaServicio()?->format('Y-m-d') ?? '', (string) $b->getHora()];
         });
 
-        $visibles = [];
-
-        foreach ($this->cadenasDe($items) as $cadena) {
-            $primero = $cadena[0];
-            $ultimo = $cadena[count($cadena) - 1];
-
-            // Cadena de uno: es un servicio suelto y se cuenta entero.
-            if ($primero === $ultimo) {
-                $ruta = $primero->rutaParaLaOrden();
-                $id = $primero->getId()?->toRfc4122();
-
-                if ($ruta !== null && $id !== null) {
-                    $visibles[$id] = $ruta;
-                }
-
-                continue;
-            }
-
-            // ⚠️ Los marcados a mano se cuentan ENTEROS aunque estén en medio: es la salida para
-            // cuando la suposición de «lo de en medio es suyo» no vale — un tramo subcontratado, o
-            // un punto intermedio que el proveedor sí necesita por escrito. Sólo puede AÑADIR
-            // líneas; el principio y el final de la cadena salen igual.
-            foreach ($cadena as $item) {
-                $id = $item->getId()?->toRfc4122();
-                $ruta = $item->rutaParaLaOrden();
-
-                if ($item->isPuntosSiempreVisibles() && $id !== null && $ruta !== null) {
-                    $visibles[$id] = $ruta;
-                }
-            }
-
-            $recojo = trim((string) $primero->getPuntoRecojoConfirmado());
-            $entrega = trim((string) $ultimo->getPuntoEntregaConfirmado());
-            $idPrimero = $primero->getId()?->toRfc4122();
-            $idUltimo = $ultimo->getId()?->toRfc4122();
-
-            if ($recojo !== '' && $idPrimero !== null) {
-                $visibles[$idPrimero] = sprintf('Recoge en %s', $recojo);
-            }
-
-            if ($entrega !== '' && $idUltimo !== null) {
-                $visibles[$idUltimo] = sprintf('Deja en %s', $entrega);
-            }
-        }
-
-        return $visibles;
+        return $items;
     }
 
     /**

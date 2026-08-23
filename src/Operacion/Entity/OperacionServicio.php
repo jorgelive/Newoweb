@@ -25,6 +25,7 @@ use App\Cotizacion\Enum\ComponenteEstadoEnum;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Operacion\Enum\EstadoOperacionEnum;
+use App\Operacion\Enum\VisibilidadPuntoEnum;
 use App\Operacion\Enum\EstadoReservaProveedorEnum;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
@@ -192,20 +193,24 @@ class OperacionServicio
     private ?string $puntoEntrega = null;
 
     /**
-     * Enseñar el recojo y la entrega de ESTA línea aunque esté en medio de una cadena.
+     * Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
      *
-     * Por defecto, una cadena de servicios del mismo prestador dice sólo dónde empieza y dónde
-     * acaba —lo de en medio es logística suya, ver {@see OperacionOrdenServicio::rutasVisibles()}—.
-     * Esto es la salida para cuando esa suposición no vale: un tramo que lo hace un subcontratado,
-     * o un punto intermedio que el proveedor sí necesita por escrito.
+     * Por defecto `AUTO`: manda la regla de cadenas —una cadena del mismo prestador enseña sólo su
+     * principio y su final, porque lo de en medio es logística suya. Ver
+     * {@see OperacionOrdenServicio::getRutasVisibles()} y {@see VisibilidadPuntoEnum}.
      *
-     * ⚠️ Sólo puede AÑADIR líneas, nunca quitarlas. Un interruptor que también sirviera para
-     * ocultar el principio o el final de una cadena dejaría al proveedor sin saber dónde recoge —
-     * y eso no es una preferencia de formato, es una orden que no se puede cumplir.
+     * ⚠️ **Aquí es la SEMILLA, no la decisión final.** Al emitir se congela una copia en el ítem, y
+     * a partir de ahí manda el ítem para ese documento. Esta fila decide lo que heredará la
+     * PRÓXIMA orden — por eso la puerta de edición post-emisión escribe las dos: si sólo tocara el
+     * ítem, reemitir resucitaría el renglón que el operador acababa de ocultar.
      */
     #[Groups(['operacion:item:read', 'operacion:write'])]
-    #[ORM\Column(name: 'puntos_siempre_visibles', type: 'boolean', options: ['default' => false])]
-    private bool $puntosSiempreVisibles = false;
+    #[ORM\Column(name: 'visibilidad_recojo', type: 'string', length: 12, enumType: VisibilidadPuntoEnum::class, options: ['default' => 'auto'])]
+    private VisibilidadPuntoEnum $visibilidadRecojo = VisibilidadPuntoEnum::AUTO;
+
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(name: 'visibilidad_entrega', type: 'string', length: 12, enumType: VisibilidadPuntoEnum::class, options: ['default' => 'auto'])]
+    private VisibilidadPuntoEnum $visibilidadEntrega = VisibilidadPuntoEnum::AUTO;
 
     // ─────────────────────────────────────────────────────────────────────────
     // PRESTADOR — quién opera, frente a comprador* = a quién se le manda el encargo
@@ -678,8 +683,11 @@ class OperacionServicio
     public function getPuntoEntrega(): ?string { return $this->puntoEntrega; }
     public function setPuntoEntrega(?string $v): self { $this->puntoEntrega = $this->limpiar($v); return $this; }
 
-    public function isPuntosSiempreVisibles(): bool { return $this->puntosSiempreVisibles; }
-    public function setPuntosSiempreVisibles(bool $v): self { $this->puntosSiempreVisibles = $v; return $this; }
+    public function getVisibilidadRecojo(): VisibilidadPuntoEnum { return $this->visibilidadRecojo; }
+    public function setVisibilidadRecojo(VisibilidadPuntoEnum $v): self { $this->visibilidadRecojo = $v; return $this; }
+
+    public function getVisibilidadEntrega(): VisibilidadPuntoEnum { return $this->visibilidadEntrega; }
+    public function setVisibilidadEntrega(VisibilidadPuntoEnum $v): self { $this->visibilidadEntrega = $v; return $this; }
 
     /**
      * Una cadena en blanco vuelve a ser `null`, y no es cosmética.
