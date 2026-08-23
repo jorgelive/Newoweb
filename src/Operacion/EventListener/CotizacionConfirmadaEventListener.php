@@ -72,6 +72,12 @@ class CotizacionConfirmadaEventListener
                 CotizacionEstadoEnum::PENDIENTE,
                 CotizacionEstadoEnum::ENVIADO,
                 CotizacionEstadoEnum::ARCHIVADO  => $this->propagarEstadoOperacion($entity, $em, $uow, EstadoOperacionEnum::CANCELADO),
+                // ⚠️ Explícito, no por el `default`. Un histórico nace ya congelado —el processor
+                // lo inserta, no lo transiciona— así que en la práctica esta rama no se pisa; pero
+                // el día que alguien mande a histórico una cotización viva, sus filas tienen que
+                // cancelarse como con cualquier otro estado no confirmado. Caer en el `default`
+                // las dejaría activas sin que nada lo denunciara.
+                CotizacionEstadoEnum::HISTORICO  => $this->propagarEstadoOperacion($entity, $em, $uow, EstadoOperacionEnum::CANCELADO),
                 default                          => null,
             };
         }

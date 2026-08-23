@@ -95,9 +95,20 @@ final class CotizacionFilePublicProvider implements ProviderInterface
 
         // ── 2. Detalle: cargar SOLO la versión solicitada ─────────────────────
         if (isset($uriVariables['version'])) {
+            // ⚠️ El ESTADO va en la consulta, no sólo en la comprobación de abajo.
+            //
+            // Desde que existen los históricos, `(file, version)` puede devolver más de una fila:
+            // un histórico conserva a propósito el número de la cotización de la que salió. Con
+            // el `findOneBy` a secas, MySQL podía entregar la foto congelada y esto respondía 404
+            // aunque hubiera una versión pública perfectamente viva — un enlace que el cliente ya
+            // tenía dejando de funcionar sin que cambiara nada suyo.
             $cotizacion = $this->em->getRepository(Cotizacion::class)->findOneBy([
                 'file'    => $file,
                 'version' => (int) $uriVariables['version'],
+                'estado'  => array_filter(
+                    CotizacionEstadoEnum::cases(),
+                    static fn (CotizacionEstadoEnum $e): bool => $e->esPublico(),
+                ),
             ]);
 
             $esVisible = $cotizacion

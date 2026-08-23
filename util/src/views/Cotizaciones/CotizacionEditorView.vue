@@ -145,6 +145,17 @@ onMounted(() => {
   }
 });
 
+/**
+ * Al detalle del expediente, que es donde se listan las fotos guardadas.
+ *
+ * No se abren desde aquí: cambiar de cotización sin salir del editor dejaría el `isDirty` y el
+ * guarda de salida apuntando a la anterior.
+ */
+const irAExpediente = (): void => {
+  const fileId = store.extractIdStr(store.fileActual?.id ?? '');
+  if (fileId) router.push(`/cotizacion/${fileId}`);
+};
+
 onUnmounted(() => {
   window.removeEventListener('beforeunload', onBeforeUnload);
 });
@@ -1200,6 +1211,24 @@ store.$onAction(({ name, args }) => {
           <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
             {{ store.modoCatalogo ? 'Catálogo de Tours' : 'Motor Operativo' }}
             <span v-if="store.cotizacion">• {{ store.modoCatalogo ? 'Tour' : 'V' }}{{ store.cotizacion.version ?? 1 }}</span>
+
+            <!-- ⚠️ Estás EDITANDO una foto del pasado. Va en la cabecera y en violeta porque
+                 todo lo demás de esta pantalla se ve exactamente igual que en la versión viva:
+                 sin este aviso se puede trabajar media hora sobre algo que no operará nadie. -->
+            <span v-if="store.cotizacion?.estado === 'historico'"
+                  class="ml-1.5 inline-flex items-center gap-1 bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded normal-case tracking-normal">
+              <i class="fas fa-clock-rotate-left text-[8px]"></i> Histórico — sólo lectura de hecho
+            </span>
+
+            <!-- Y al revés: desde la viva, cuántas fotos hay detrás. Lleva a la lista del
+                 expediente, que es donde se abren. -->
+            <button v-else-if="(store.cotizacion?.totalHistoricos ?? 0) > 0"
+                    @click="irAExpediente"
+                    class="ml-1.5 inline-flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-300 px-1.5 py-0.5 rounded normal-case tracking-normal transition-colors"
+                    title="Ver las fotos guardadas de esta versión">
+              <i class="fas fa-camera text-[8px]"></i>
+              {{ store.cotizacion?.totalHistoricos }} histórico{{ store.cotizacion?.totalHistoricos === 1 ? '' : 's' }}
+            </button>
           </p>
         </div>
       </div>

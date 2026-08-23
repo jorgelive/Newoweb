@@ -13,6 +13,7 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
 use App\Attribute\AutoTranslate;
 use App\Cotizacion\ApiPlatform\State\CloneCotizacionProcessor;
+use App\Cotizacion\ApiPlatform\State\GuardarHistoricoProcessor;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
@@ -51,6 +52,18 @@ use Symfony\Component\Uid\Uuid;
             deserialize: false,
             validate: false,
             processor: CloneCotizacionProcessor::class
+        ),
+        // Clonar hacia ATRÁS: la copia es el pasado y ésta sigue viva con sus órdenes.
+        // El porqué de que sean dos acciones distintas está en GuardarHistoricoProcessor.
+        new Post(
+            uriTemplate: '/client/cotizacion/{id}/historico',
+            normalizationContext: ['groups' => ['file:item:read']],
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para guardar históricos.',
+            read: true,
+            deserialize: false,
+            validate: false,
+            processor: GuardarHistoricoProcessor::class
         ),
         // Reconciliación en dos pasos: plan → revisión humana → aplicar sólo lo aprobado.
         //
@@ -103,6 +116,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_cotizacion')]
 #[ORM\Index(columns: ['file_id', 'version'], name: 'idx_cotizacion_file_version')]
+#[ORM\Index(columns: ['derivada_de_id'], name: 'idx_cotizacion_derivada_de')]
 #[ORM\Index(columns: ['catalogo_id', 'version'], name: 'idx_cotizacion_catalogo_version')]
 #[ORM\HasLifecycleCallbacks]
 class Cotizacion
@@ -126,6 +140,34 @@ class Cotizacion
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer')]
     private int $version = 1;
+
+    /**
+     * De qué cotización VIVA salió este histórico.
+     *
+     * Sólo lo llevan los `HISTORICO`, y apunta siempre a la que sigue trabajando — la que
+     * conserva sus componentes, sus filas de La Biblia y sus órdenes. Es lo único que relaciona
+     * dos filas del mismo expediente: hasta ahora v1 y v2 sólo compartían `file_id`, así que no
+     * había forma de saber que una salió de la otra.
+     *
+     * ⚠️ `SET NULL` y no `CASCADE`: si alguien borra la cotización viva, **el histórico
+     * sobrevive**. Es el rastro de lo que ya se le vendió a alguien, y borrarlo deja el
+     * expediente contando una versión incompleta de lo que pasó.
+     */
+    // ⚠️ Sin `#[Groups]`: serializar la relación entera anida la cotización padre completa —con
+    // sus servicios, componentes y tarifas— y encima es recursiva. Lo que el front necesita es el
+    // id, y para eso está `getDerivadaDeId()`.
+    #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'historicos')]
+    #[ORM\JoinColumn(name: 'derivada_de_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?self $derivadaDe = null;
+
+    /**
+     * Las fotos congeladas de esta cotización, de la más reciente a la más antigua.
+     *
+     * @var Collection<int, self>
+     */
+    #[ORM\OneToMany(mappedBy: 'derivadaDe', targetEntity: self::class, fetch: 'EXTRA_LAZY')]
+    #[ORM\OrderBy(['createdAt' => 'DESC'])]
+    private Collection $historicos;
 
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     // El default de la columna estaba en 'Pendiente' con mayúscula, que CotizacionEstadoEnum
@@ -284,6 +326,7 @@ class Cotizacion
     {
         $this->initializeId();
         $this->cotservicios = new ArrayCollection();
+        $this->historicos = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -297,6 +340,11 @@ class Cotizacion
         $copia = clone $this;               // clone superficial por defecto (sin __clone)
         $copia->resetId();
         $copia->cotservicios = new ArrayCollection();
+
+        // Ni el vínculo ni la colección se copian: la copia empieza suelta y quien la crea decide
+        // qué es. Arrastrarlos colgaría los históricos de la copia y no del original.
+        $copia->derivadaDe = null;
+        $copia->historicos = new ArrayCollection();
 
         foreach ($this->cotservicios as $servicio) {
             $copiaServicio = $servicio->duplicar();
@@ -553,4 +601,30 @@ class Cotizacion
      * @param list<array{language?: string, content?: string|null}> $resumen
      */
     public function setResumen(array $resumen): void { $this->resumen = $resumen; }
+
+    public function getDerivadaDe(): ?self { return $this->derivadaDe; }
+
+    /** De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]
+    public function getDerivadaDeId(): ?string { return (string) $this->derivadaDe?->getId() ?: null; }
+    public function setDerivadaDe(?self $v): self { $this->derivadaDe = $v; return $this; }
+
+    /** @return Collection<int, self> */
+    public function getHistoricos(): Collection { return $this->historicos; }
+
+    /**
+     * Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor.
+     *
+     * ⚠️ **La colección es `EXTRA_LAZY` y tiene que seguir siéndolo.** Sin eso, este `count()`
+     * hidrata las cotizaciones enteras y las ordena por fecha, y una fila de esta tabla lleva
+     * varios JSON grandes —`clasificacionFinanciera`, `titulo`, `resumen`—: MySQL intenta
+     * meterlos en el buffer de ordenación y responde **«Out of sort memory»**. Con `EXTRA_LAZY`
+     * esto es un `SELECT COUNT(*)` y no toca ni una fila. Mismo motivo que en
+     * `CotizacionFile::$cotizaciones`.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]
+    public function getTotalHistoricos(): int { return $this->historicos->count(); }
+
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]
+    public function isHistorico(): bool { return $this->estado->esHistorico(); }
 }

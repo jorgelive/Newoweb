@@ -1166,6 +1166,91 @@ documento sigue diciendo lo que decía.
 - Dato: `store.idSegmentoDeComponente()`, que ya existía y **ahora se exporta**. El vínculo llega
   unas veces como IRI y otras como id plano, así que un `===` a mano falla la mitad de las veces.
 
+## 6.j Versiones e históricos: dos clones en direcciones opuestas (23/08/2026)
+
+Un expediente tiene N `Cotizacion`, numeradas `version`. **Son propuestas**, no versiones de un
+documento: lo que el cliente elige entre varias. Y hasta ahora sólo compartían `file_id` — no
+había forma de saber que la v2 salió de la v1.
+
+### El problema: clonar hacia adelante rompe las órdenes
+
+`CloneCotizacionProcessor` hace que la copia sea **la nueva** (v2, `PENDIENTE`) y la v1 se quede
+como estaba. Eso vale **antes de vender**. Después, no:
+
+```
+v1 confirmada ──▶ OperacionServicio ──▶ órdenes emitidas
+                        │
+   clonas ▶ v2          │ hay que sacar v1 de confirmado para que
+                        │ La Biblia no muestre los días dos veces
+                        ▼
+                  filas CANCELADAS  ← aquí colgaban las órdenes
+
+   v2 confirmada ──▶ filas NUEVAS (componentes con UUID nuevo) ──▶ SIN órdenes
+```
+
+Las órdenes cuelgan de `OperacionServicio`, que cuelga de los **componentes**, y `duplicar()` les
+da UUID nuevo a todos. Resultado: hay que reemitirlo todo, incluidos los servicios que no cambiaron.
+
+### La solución: clonar hacia ATRÁS
+
+`GuardarHistoricoProcessor` (`POST /platform/sales/client/cotizacion/{id}/historico`) hace que **la
+copia sea el pasado**. La cotización viva conserva su id, sus componentes, sus filas de La Biblia y
+sus órdenes; lo que cambie después lo denuncia `OperacionOrdenServicio::getDivergencias()`, que ya
+distingue lo que obliga a reemitir de lo que sólo hay que completar.
+
+**Son dos acciones distintas y la dirección depende de si ya vendiste**, no del tamaño del cambio:
+
+| Acción | Dirección | Cuándo | Qué pasa con las órdenes |
+|---|---|---|---|
+| **Nueva propuesta** (`/clonar`) | adelante: la copia es v+1 | antes de vender, el cliente elige | se pierden: hay que reemitir |
+| **Guardar histórico** (`/historico`) | atrás: la copia es el pasado | después de confirmar | **no se mueven** |
+
+### El histórico NO consume número de versión
+
+El histórico de la v1 sigue siendo **v1**, distinguido por su `createdAt`. Gastar un número haría
+que la siguiente propuesta real se llamara v3 sin que existiera ninguna v2.
+
+⚠️ **Consecuencia: `(file_id, version)` no puede ser único**, y quien busque por versión tiene que
+filtrar el estado **en la misma consulta**. `CotizacionFilePublicProvider` hacía `findOneBy(file,
+version)` y comprobaba `esPublico()` después: MySQL podía entregarle la foto congelada y responder
+404 aunque hubiera una versión pública viva — un enlace que el cliente ya tenía dejando de
+funcionar sin que cambiara nada suyo. Ya va filtrado.
+
+### El vínculo
+
+`Cotizacion::$derivadaDe` (self ManyToOne) — sólo lo llevan los `HISTORICO`, y apunta a la viva.
+
+- **`SET NULL`, no `CASCADE`**: borrar la viva **no** se lleva su histórico. Es el rastro de lo que
+  ya se le vendió a alguien.
+- **Sin `#[Groups]` en la relación**: serializarla anida la cotización padre entera y es recursiva.
+  El front recibe `getDerivadaDeId()`, plano.
+- ⚠️ **La colección `$historicos` es `EXTRA_LAZY` y tiene que seguir siéndolo.** Sin eso,
+  `getTotalHistoricos()` hidrata las cotizaciones enteras y las ordena por fecha; una fila de esta
+  tabla lleva varios JSON grandes y MySQL responde **«Out of sort memory»**. Lo cazó la sonda con
+  datos reales, no un test.
+- `duplicar()` **no copia** ni el vínculo ni la colección: la copia empieza suelta y quien la crea
+  decide qué es.
+
+### El estado `HISTORICO`
+
+No es público, no es confirmable, y en el `match` de `CotizacionConfirmadaEventListener` va
+**explícito** — ese `match` acaba en `default => null`, así que un estado nuevo pasaría en silencio
+y dejaría filas de operación activas sin que nada lo denunciara.
+
+### En pantalla
+
+- **`FileDetalle.vue`**: el listado usa `versionesVivas` —si no, habría dos tarjetas «V1» sin forma
+  de saber cuál es la buena—, y los históricos cuelgan plegados de la suya, identificados por
+  **fecha**. Botón de cámara al lado del de clonar: son la misma operación en direcciones opuestas,
+  y confundirlas es lo caro.
+- **Cabecera del editor**: si estás **dentro** de un histórico, aviso en violeta —el resto de la
+  pantalla se ve exactamente igual que en la viva y se puede trabajar media hora sobre algo que no
+  operará nadie—. Si estás en la viva, cuántas fotos hay detrás, con enlace al expediente.
+
+Comprobado con datos reales (transacción con `rollback`) sobre una v1 confirmada con 42 filas de
+operación: la foto sale `v1 / historico / derivadaDe = la viva`, no pública; la viva conserva sus
+42 componentes y sus 42 filas, y el enlace `/v/1` sigue resolviendo a la viva.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -1276,6 +1361,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Enlazar una línea de inclusión con su componente** → `componenteId`, que emite `construirInclusiones()`. Para propuestas viejas: `app:cotizacion:backfill-componente-id`. Nunca reconstruir el vínculo con una clave natural en tiempo de render.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
+- **Guardar el estado de una cotización antes de tocarla** → botón de cámara en `FileDetalle` → `GuardarHistoricoProcessor`. ⚠️ **No es clonar**: clonar crea la versión siguiente y hace perder las órdenes. Ver §6.j.
 - **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `nombreSnapshot` (público). Ver §6.h.
 - **Que un componente sin maestro se pueda nombrar y tipar** → `isComponenteSoloItems()` y `getNombreMaestroRef()` en `CotizacionEditorView.vue`, y `onTipoManualChange()` en el store. Ver §6.h — y ojo con lo que la cadena sigue exigiendo (tarifa, prestador, nombre).
 - **Saber qué se lleva la papelera de un párrafo** → el pie de la tarjeta en el Constructor de Storytelling, alimentado por `store.idSegmentoDeComponente()`. Ver §6.i.

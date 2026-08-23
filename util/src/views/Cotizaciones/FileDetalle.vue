@@ -172,6 +172,64 @@ const eliminarVersion = async (cot: ApiCotizacionVersion) => {
  * Clona una versión existente delegando la llamada al store.
  * Al completarse, refresca la vista del expediente para mostrar la nueva tarjeta.
  */
+// ── Versiones vivas y sus fotos del pasado ─────────────────────────────────
+//
+// Un histórico conserva a propósito el número de la versión de la que salió, así que si se
+// listaran juntos habría dos tarjetas diciendo «V1» sin forma de saber cuál es la buena. Cuelgan
+// de la suya, plegados.
+const versionesVivas = computed<ApiCotizacionVersion[]>(
+  () => (file.value?.cotizaciones ?? []).filter((c: ApiCotizacionVersion) => c.estado !== 'historico')
+);
+
+const historicosDe = (cot: ApiCotizacionVersion): ApiCotizacionVersion[] => {
+  const id = extractIdStr(cot.id || cot['@id']);
+  if (!id) return [];
+
+  return (file.value?.cotizaciones ?? []).filter(
+    (c: ApiCotizacionVersion) => c.estado === 'historico' && extractIdStr(c.derivadaDeId ?? '') === id
+  );
+};
+
+const historicosAbiertos = ref<Set<string>>(new Set());
+
+const alternarHistoricos = (id: string): void => {
+  const abiertos = new Set(historicosAbiertos.value);
+  if (abiertos.has(id)) { abiertos.delete(id); } else { abiertos.add(id); }
+  historicosAbiertos.value = abiertos;
+};
+
+const guardandoHistorico = ref<string | null>(null);
+
+/**
+ * Congela una foto ANTES de tocar la cotización.
+ *
+ * ⚠️ No es clonar. Clonar crea la versión SIGUIENTE y deja ésta atrás, y eso después de confirmar
+ * obliga a reemitir todas las órdenes: cuelgan de los componentes de esta cotización, y la copia
+ * nace con componentes nuevos. Aquí la copia es el pasado y ésta sigue siendo la misma para
+ * Operaciones.
+ */
+const guardarHistorico = async (cot: ApiCotizacionVersion) => {
+  const idStr = extractIdStr(cot.id || cot['@id']);
+  if (!idStr) return;
+
+  if (!confirm(
+    `¿Guardar una foto de la Versión ${cot.version} tal como está ahora?\n\n`
+    + 'Queda como histórico y esta versión sigue viva: sus órdenes de servicio no se mueven.'
+  )) return;
+
+  guardandoHistorico.value = idStr;
+  const ok = await fileStore.guardarHistorico(idStr);
+
+  if (ok) {
+    historicosAbiertos.value = new Set([...historicosAbiertos.value, idStr]);
+    await cargarFile();
+  } else {
+    alert(fileStore.error || 'No se pudo guardar el histórico.');
+  }
+
+  guardandoHistorico.value = null;
+};
+
 const clonarVersion = async (cot: ApiCotizacionVersion) => {
   const idStr = extractIdStr(cot.id || cot['@id']);
 
@@ -737,7 +795,7 @@ const eliminarDocumento = async (iri?: string) => {
               <p class="text-xs mt-2 font-medium">Haz clic en "Crear Nueva Versión" para arrancar el motor operativo.</p>
             </div>
 
-            <div v-else v-for="cot in file.cotizaciones" :key="cot.id" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm hover:border-[#376875] transition-colors group mb-4">
+            <div v-else v-for="cot in versionesVivas" :key="cot.id" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm hover:border-[#376875] transition-colors group mb-4">
 
               <!-- 1. CABECERA: Versión, Estado y Botones -->
               <div class="flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 mb-4">
@@ -792,6 +850,17 @@ const eliminarDocumento = async (iri?: string) => {
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors"
                           title="Revisar los cambios de esta versión en el Centro de Operaciones">
                     <i class="fas fa-code-compare text-xs"></i>
+                  </button>
+
+                  <!-- Guardar histórico vive AL LADO de clonar porque son la misma operación en
+                       direcciones opuestas, y confundirlas es lo caro: clonar crea la versión
+                       siguiente y deja ésta atrás —bien antes de vender—; esto congela una foto y
+                       deja ésta viva con sus órdenes. Ver docs/Cotizaciones.md §6.j. -->
+                  <button @click="guardarHistorico(cot)" :disabled="guardandoHistorico === extractIdStr(cot.id || cot['@id'])"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-violet-500 hover:border-violet-200 hover:bg-violet-50 transition-colors disabled:opacity-50"
+                          title="Guardar una foto de cómo está ahora, antes de modificarla">
+                    <i class="fas fa-spinner fa-spin text-xs" v-if="guardandoHistorico === extractIdStr(cot.id || cot['@id'])"></i>
+                    <i class="fas fa-camera text-xs" v-else></i>
                   </button>
 
                   <button @click="clonarVersion(cot)" :disabled="clonandoItem === extractIdStr(cot.id || cot['@id'])"
@@ -856,6 +925,34 @@ const eliminarDocumento = async (iri?: string) => {
                 </div>
 
               </div>
+
+              <!-- ── Las fotos del pasado de esta versión ────────────────────
+                   Plegadas: lo normal es que no interesen, y desplegadas empujarían las versiones
+                   vivas fuera de la pantalla. Se identifican por FECHA y no por número, porque
+                   comparten el de su versión a propósito. -->
+              <div v-if="historicosDe(cot).length" class="mt-3 pt-3 border-t border-slate-100">
+                <button @click="alternarHistoricos(extractIdStr(cot.id || cot['@id']) || '')"
+                        class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-violet-500 hover:text-violet-700 transition-colors">
+                  <i class="fas fa-camera"></i>
+                  {{ historicosDe(cot).length }} histórico{{ historicosDe(cot).length === 1 ? '' : 's' }}
+                  <i class="fas text-[8px]" :class="historicosAbiertos.has(extractIdStr(cot.id || cot['@id']) || '') ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+
+                <div v-if="historicosAbiertos.has(extractIdStr(cot.id || cot['@id']) || '')" class="mt-2 space-y-1.5">
+                  <div v-for="h in historicosDe(cot)" :key="h.id"
+                       class="flex items-center justify-between gap-3 bg-violet-50/60 border border-violet-100 rounded-lg px-3 py-2">
+                    <span class="text-[11px] font-bold text-violet-800 min-w-0 truncate">
+                      <i class="fas fa-clock-rotate-left text-[9px] mr-1.5 text-violet-400"></i>
+                      V{{ h.version }} · {{ h.createdAt ? new Date(h.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }) : 'sin fecha' }}
+                    </span>
+                    <button @click="abrirMotor(h)"
+                            class="text-[10px] font-black text-violet-600 hover:text-violet-900 underline underline-offset-2 shrink-0">
+                      Ver
+                    </button>
+                  </div>
+                </div>
+              </div>
+
 
             </div>
 

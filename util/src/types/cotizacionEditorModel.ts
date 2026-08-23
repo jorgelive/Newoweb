@@ -177,6 +177,9 @@ export const ESTADO_COTIZACION_CONFIG: Record<CotizacionEstadoValue, EstadoUICon
     confirmado: { label: 'Confirmado', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check' },
     operado: { label: 'Operado', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', icon: 'fa-plane-departure' },
     cancelado: { label: 'Cancelado', bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', icon: 'fa-times-circle' },
+    // Espejo de `CotizacionEstadoEnum::HISTORICO`. No es una propuesta: es la foto de una que ya
+    // se vendió, congelada antes de tocarla. Comparte número de versión con la viva a propósito.
+    historico: { label: 'Histórico', bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', icon: 'fa-clock-rotate-left' },
 };
 
 export type ComponenteModoValue = 'incluido' | 'no_incluido' | 'cortesia' | 'reemplazado';

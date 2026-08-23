@@ -2535,6 +2535,7 @@ casos** que `OperacionServicio::esComprable()`, y tiene test propio.
   ejecutó; es auditoría pendiente, no un fix.
 | Cambiar qué extremos ve el proveedor en una orden emitida | `src/Operacion/ApiPlatform/State/AjustarRutasProcessor.php` | `POST /{id}/rutas` — **escribe el ítem Y la fila viva** |
 | Ajustar la regla de qué renglón se imprime | `src/Operacion/Entity/OperacionOrdenServicio.php` | `getRutasVisibles()`, `cadenasDe()`, `getAvisosDeRutas()` |
+| Conservar lo vendido antes de modificar la cotización | `src/Cotizacion/ApiPlatform/State/GuardarHistoricoProcessor.php` | clona hacia ATRÁS: las órdenes no pierden su ancla — ver `docs/Cotizaciones.md` §6.j |
 | Cambiar qué se le dice al proveedor en una línea | `src/Operacion/Entity/OperacionServicio.php` | `notasPrestador` (override) / `getNotasPrestadorEfectivas()` — §13 |
 | Que un detalle de la cotización llegue a la orden | editor de cotización | marcar la audiencia `prestador` en el componente — §13 |
 

@@ -139,6 +139,29 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Congela una foto de la cotización ANTES de tocarla.
+     *
+     * ⚠️ **No es `cloneCotizacion` con otro estado.** Aquélla clona hacia adelante —la copia es la
+     * nueva propuesta— y vale mientras se está vendiendo. Ésta clona hacia atrás: la copia es el
+     * pasado y la cotización viva conserva su id, sus componentes y, con ellos, sus órdenes de
+     * servicio. Después de vender, la primera obliga a reemitirlo todo.
+     *
+     * El porqué completo está en `GuardarHistoricoProcessor` y en `docs/Cotizaciones.md` §6.j.
+     */
+    const guardarHistorico = async (iriOrId: string): Promise<boolean> => {
+        error.value = null;
+        const id = String(iriOrId).includes('/') ? String(iriOrId).split('/').pop() : iriOrId;
+
+        try {
+            await apiClient.post(`/platform/sales/client/cotizacion/${id}/historico`, {});
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al guardar el histórico de la cotización.');
+            return false;
+        }
+    };
+
     // ────────────────────────────────────────────────────────────────────────
     // RECONCILIACIÓN CON OPERACIONES — dos pasos, nunca uno
     //
@@ -377,6 +400,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         updatePassenger,
         updateDocument,
         cloneCotizacion,
+        guardarHistorico,
         planificarOperacion,
         aplicarPlanOperacion
     };
