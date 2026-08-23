@@ -2729,15 +2729,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
-    /**
-     * Un componente logístico más.
-     *
-     * `manual` marca los que **no vienen del catálogo y no van a venir** — un traslado a un fundo
-     * concreto, una parada irrepetible—. No se infiere de que falte el maestro porque uno recién
-     * creado tampoco lo tiene y sí está esperando que le elijan uno; ver el docblock de
-     * `CotizacionCotcomponente::$esManual`.
-     */
-    const agregarComponente = (servicioId: string, manual = false): void => {
+    const agregarComponente = (servicioId: string): void => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
         const servicio = cotizacion.value.cotservicios.find((s: CotServicio) => s.id === servicioId);
@@ -2749,7 +2741,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const nuevoComponente: ComponenteCompleto = {
                 id: crypto.randomUUID(),
                 componenteMaestroId: null,
-                esManual: manual,
+                // Nace del catálogo: es el caso normal, y pasar a manual son dos toques en la
+                // ficha. Al revés —nacer manual— haría que el 90 % tuviera que deshacerlo.
+                esManual: false,
                 nombreInternoSnapshot: null,
                 nombreSnapshot: [],
                 tipo: 'extras',
@@ -3973,6 +3967,23 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         ordenarComponentesCronologicamente(findServicioByComponenteId(componente.id)?.cotcomponentes ?? []);
     };
 
+    /**
+     * Pasa el componente activo a MANUAL, desvinculándolo del catálogo.
+     *
+     * ⚠️ Suelta el maestro, y tiene que hacerlo: `esManual` con un `componenteMaestroId` puesto
+     * es un estado que se contradice, y el que gana depende de qué pantalla lo lea. El nombre y
+     * el tipo que había **se conservan** — vienen de un maestro real y suelen ser el punto de
+     * partida de lo que se quiere escribir; borrarlos castigaría el «me equivoqué de insumo».
+     */
+    const marcarComponenteManual = (): void => {
+        const componente = componenteActivo.value;
+        if (!componente) return;
+
+        componente.esManual = true;
+        componente.componenteMaestroId = null;
+        catalogos.value.tarifas = [];
+    };
+
     const onSegmentoDiaChange = (servicioId: string, segmentoId: string, nuevoDiaStr: string | number) => {
         const nuevoDia = parseInt(String(nuevoDiaStr)) || 1;
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
@@ -4480,7 +4491,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarSegmentoIndividual, reordenarSegmentos, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange, onCambioModoComponente,
-        onTipoManualChange, idSegmentoDeComponente,
+        onTipoManualChange, marcarComponenteManual, idSegmentoDeComponente,
         actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo, alternarAudienciaDetalle,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,

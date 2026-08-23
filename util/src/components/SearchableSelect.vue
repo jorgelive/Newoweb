@@ -14,7 +14,17 @@
       <span class="truncate font-bold text-sm" :class="!selectedLabel ? 'text-slate-400 font-medium' : ''">
         {{ selectedLabel || placeholder }}
       </span>
-      <i class="fas fa-chevron-down text-[10px] transition-transform" :class="{ 'rotate-180': isOpen }"></i>
+      <span class="flex items-center gap-2 shrink-0">
+        <!-- `@click.stop`: sin él, limpiar abriría el desplegable acto seguido — el disparador
+             entero es el que lo abre. -->
+        <button v-if="limpiable && !isEmpty" type="button"
+                @click.stop="limpiar"
+                title="Quitar la selección"
+                class="text-slate-300 hover:text-red-500 transition-colors">
+          <i class="fas fa-times-circle text-sm"></i>
+        </button>
+        <i class="fas fa-chevron-down text-[10px] transition-transform" :class="{ 'rotate-180': isOpen }"></i>
+      </span>
     </div>
 
     <!-- Mensaje de error opcional (solo si se activa `required`/`invalid`) -->
@@ -129,6 +139,14 @@ const props = withDefaults(defineProps<{
    * vacío; el filtrado local sigue igual. Por defecto 0 = comportamiento de siempre.
    */
   minCharsBusqueda?: number;
+  /**
+   * Enseña una «×» para vaciar la selección.
+   *
+   * Opt-in: la mayoría de estos selectores son obligatorios —un servicio maestro, una moneda— y
+   * ahí un botón de limpiar sólo sirve para dejar el formulario inválido. Se activa donde
+   * desvincular es una operación legítima, como el insumo maestro de un componente.
+   */
+  limpiable?: boolean;
 }>(), {
   placeholder: '',
   darkMode: false,
@@ -136,6 +154,7 @@ const props = withDefaults(defineProps<{
   invalid: false,
   errorMessage: '',
   minCharsBusqueda: 0,
+  limpiable: false,
 });
 
 const emit = defineEmits(['update:modelValue', 'change', 'search', 'blur']);
@@ -223,6 +242,20 @@ watch(searchQuery, (newVal) => {
 });
 
 const isEmpty = computed(() => props.modelValue === '' || props.modelValue === null || props.modelValue === undefined);
+
+/**
+ * Vacía la selección.
+ *
+ * Emite `change` además de `update:modelValue` porque los padres cuelgan de ahí sus efectos
+ * —recargar tarifas, resetear la cascada del prestador—, y desvincular tiene que dispararlos
+ * igual que vincular. `touched` se marca para que un campo `required` denuncie el hueco en el
+ * acto en vez de esperar a que alguien lo abra.
+ */
+const limpiar = (): void => {
+  touched.value = true;
+  emit('update:modelValue', null);
+  emit('change', null);
+};
 
 // Muestra error si: el padre lo fuerza (invalid) o es required, está vacío y ya fue tocado
 const showError = computed(() => props.invalid || (props.required && isEmpty.value && touched.value));

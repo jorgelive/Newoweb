@@ -260,6 +260,14 @@ Detalles que no se ven leyendo el componente:
   lista, y se reposiciona en `scroll`/`resize` mientras está abierta. Es un componente muy
   reutilizado (tarifas, prestador, comprador, servicios): cualquier cambio ahí se prueba en varias
   pantallas.
+- **`limpiable` — la «×» para soltar la selección** (2026-08-23). Opt-in y por buenas razones: la
+  mayoría de estos selectores son **obligatorios** —un servicio maestro, una moneda— y ahí un botón
+  de limpiar sólo sirve para dejar el formulario inválido. Se activa donde desvincular es una
+  operación legítima, hoy el insumo maestro de un componente de cotización.
+  ⚠️ Emite `null` por `update:modelValue` **y por `change`**: los padres cuelgan de `change` sus
+  efectos en cascada —recargar tarifas, resetear el prestador—, y desvincular tiene que dispararlos
+  igual que vincular. Y el botón lleva `@click.stop`, porque el disparador entero es el que abre la
+  lista: sin él, limpiar la abriría acto seguido.
 - **El cierre por clic fuera escucha en `document` con `capture: true`.** Las vistas de
   calendario montan overlays a pantalla completa que se tragan el clic antes de que burbujee;
   sin la fase de captura el panel se quedaba abierto detrás de ellos.

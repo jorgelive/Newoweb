@@ -1915,17 +1915,12 @@ store.$onAction(({ name, args }) => {
             <div class="border-t border-slate-100 pt-5">
               <h3 class="text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 flex items-center justify-between">
                 <span>Componentes Logísticos</span>
-                <span class="flex items-center gap-2">
-                  <button @click="store.agregarComponente(servicioActivoId)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow-sm border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Extra</button>
-                  <!-- El manual es otra decisión, no otro paso del mismo botón: quien lo pulsa ya
-                       sabe que no va a encontrar su servicio en el catálogo, y lo que necesita es
-                       que el buscador se quite de en medio. -->
-                  <button @click="store.agregarComponente(servicioActivoId, true)"
-                          title="Un servicio que no está en el catálogo y no va a estarlo"
-                          class="bg-white text-slate-500 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow-sm border border-slate-200 hover:bg-slate-100 transition-colors">
-                    <i class="fas fa-pen-nib mr-1"></i>Manual
-                  </button>
-                </span>
+                <!-- ⚠️ UN botón, no dos.
+                     Estuvieron «+ Añadir Extra» y «Manual» separados, y era una decisión mal
+                     colocada: los dos creaban exactamente lo mismo y la diferencia sólo se veía
+                     DESPUÉS, al abrir la ficha. De catálogo o a mano se elige dentro, donde se
+                     puede cambiar de opinión sin borrar y volver a crear. -->
+                <button @click="store.agregarComponente(servicioActivoId)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow-sm border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Extra</button>
               </h3>
               <div class="space-y-3">
 
@@ -2134,25 +2129,32 @@ store.$onAction(({ name, args }) => {
           <div class="p-5 flex-1 overflow-y-auto space-y-6 pb-28">
             <div class="bg-white border border-sky-200 p-4 rounded-xl shadow-sm">
 
-              <!-- ── Manual: el buscador estorba ─────────────────────────────
-                   No se deshabilita, se quita. Un buscador presidiendo la ficha dice «elige uno»,
-                   y quien creó el componente a mano ya decidió que no hay ninguno que elegir. El
-                   enlace de vuelta existe por si se equivocó de botón. -->
-              <div v-if="store.componenteActivo.esManual" class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center shadow-inner shrink-0">
-                    <i class="fas fa-pen-nib text-sm"></i>
-                  </div>
-                  <div class="flex flex-col min-w-0">
-                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Servicio manual</span>
-                    <span class="text-[11px] font-bold text-slate-500 leading-snug">Fuera del catálogo: los nombres se escriben aquí.</span>
-                  </div>
-                </div>
-                <button @click="store.componenteActivo.esManual = false"
-                        class="text-[10px] font-black text-sky-600 hover:text-sky-800 underline underline-offset-2 shrink-0">
-                  Buscar en el catálogo
+              <!-- ── De dónde sale este componente ───────────────────────────
+                   La decisión vive AQUÍ y no en el botón de alta: así se cambia de opinión sin
+                   borrar y volver a crear, y se ve qué implica cada lado — con catálogo el
+                   nombre y el tipo los pone el maestro; a mano se escriben.
+
+                   Oculto si el componente vino inyectado desde un segmento: ahí no se elige
+                   nada, y ofrecer el conmutador sería mentir. -->
+              <div v-if="!store.isComponenteBloqueado(store.componenteActivo)"
+                   class="flex bg-slate-100 rounded-xl p-1 mb-3 gap-1">
+                <button type="button"
+                        @click="store.componenteActivo.esManual = false"
+                        class="flex-1 px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-colors"
+                        :class="!store.componenteActivo.esManual ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'">
+                  <i class="fas fa-box-open mr-1"></i> Del catálogo
+                </button>
+                <button type="button"
+                        @click="store.marcarComponenteManual()"
+                        class="flex-1 px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-colors"
+                        :class="store.componenteActivo.esManual ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'">
+                  <i class="fas fa-pen-nib mr-1"></i> A mano
                 </button>
               </div>
+
+              <p v-if="store.componenteActivo.esManual" class="text-[11px] font-bold text-slate-500 leading-snug">
+                Fuera del catálogo: el nombre y la categoría se escriben abajo.
+              </p>
 
               <template v-else>
               <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2"><i class="fas fa-box-open mr-1"></i> Insumo Maestro</label>
@@ -2162,6 +2164,7 @@ store.$onAction(({ name, args }) => {
                   v-model="store.componenteActivo.componenteMaestroId"
                   :options="opcionesComponentes"
                   placeholder="Buscar insumo..."
+                  limpiable
                   @change="val => store.onComponenteMaestroChange(val)"
               />
               <div v-else class="flex flex-col gap-2 bg-teal-50/60 p-4 rounded-xl border border-teal-100 shadow-sm mt-1">
@@ -2179,14 +2182,16 @@ store.$onAction(({ name, args }) => {
               </div>
               </template>
 
-              <!-- ── Categoría Operativa, SÓLO sin maestro ────────────────────
-                   Con maestro el tipo lo pone él y ahí tiene que seguir mandando: un componente
-                   que dijera una cosa y su maestro otra no lo denunciaría nada después.
+              <!-- ── Categoría Operativa, SÓLO en modo manual ─────────────────
+                   Con catálogo el tipo lo pone el maestro y ahí tiene que seguir mandando: un
+                   componente que dijera una cosa y su maestro otra no lo denunciaría nada después.
+                   Y en modo catálogo SIN insumo elegido tampoco sale, porque elegirlo lo pisaría
+                   acto seguido: ofrecer un campo que se va a sobreescribir es peor que no tenerlo.
 
                    ⚠️ No es cosmético. De este campo cuelga si el componente aporta punto de
                    recojo y entrega (`ComponenteTipoEnum::puntosDeServicio()`): `transporte` da
                    los dos, `extras` —con el que nace— no da ninguno **y no da error**. -->
-              <div v-if="!store.componenteActivo.componenteMaestroId" class="mt-4">
+              <div v-if="store.componenteActivo.esManual" class="mt-4">
                 <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">
                   <i class="fas fa-tag mr-1"></i> Categoría Operativa
                 </label>
@@ -2205,13 +2210,13 @@ store.$onAction(({ name, args }) => {
 
             <div class="grid grid-cols-2 gap-4">
 
-              <!-- ── El nombre INTERNO, sólo sin maestro ─────────────────────
+              <!-- ── El nombre INTERNO, sólo en modo manual ──────────────────
                    Los componentes de catálogo ya tienen nombre interno: el del maestro. Los
                    manuales no tenían ninguno —el componente sólo guarda el título público— y La
                    Biblia acababa rotulando la fila con el texto del cliente, o con «Servicio sin
                    nombre». Éste gana en la orden y en el cuadro de tráfico; el de abajo es lo
                    único que ve el pasajero. -->
-              <div v-if="!store.componenteActivo.componenteMaestroId" class="col-span-2">
+              <div v-if="store.componenteActivo.esManual" class="col-span-2">
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
                   Nombre interno <span class="text-slate-400 normal-case font-bold">— para la orden y La Biblia</span>
                 </label>

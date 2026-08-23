@@ -1027,8 +1027,7 @@ nombreSnapshot: []
 ### El modo manual es una DECISIÓN, no la ausencia de maestro
 
 Desbloquear los campos no bastaba: el buscador de insumos seguía presidiendo la ficha, y un
-buscador arriba del todo dice «elige uno». Ahora hay **dos botones de alta** —«+ Añadir Extra» y
-«Manual»— y el segundo marca `CotizacionCotcomponente::$esManual`.
+buscador arriba del todo dice «elige uno». Lo marca `CotizacionCotcomponente::$esManual`.
 
 ⚠️ **`esManual` no es `componenteMaestroId === null`, y por eso es una columna y no un cálculo.**
 Un componente recién creado tampoco tiene maestro, pero está *esperando* que le elijan uno. La
@@ -1036,9 +1035,38 @@ marca dice que **ya se decidió que no lo tendrá**. Inferirla de que el nombre 
 funcionaría hasta el primer manual sin nombre, y entonces volvería a pedir un maestro sin que
 nadie entendiera por qué.
 
-Elegir un insumo **desmarca** el modo manual (`onComponenteMaestroChange()`): son excluyentes, y
-dejar la marca escondería el buscador justo después de usarlo. En la ficha manual queda un enlace
-«Buscar en el catálogo» por si se pulsó el botón equivocado.
+#### ⚠️ Un botón de alta, no dos
+
+La primera versión puso dos —«+ Añadir Extra» y «Manual»— y **era una decisión mal colocada**: los
+dos creaban exactamente lo mismo y la diferencia sólo se veía *después*, al abrir la ficha. Nadie
+puede elegir entre dos botones cuya diferencia está en la pantalla siguiente.
+
+La elección vive **dentro de la ficha**, en un conmutador `Del catálogo` / `A mano`. Así se cambia
+de opinión sin borrar y volver a crear, y se ve qué implica cada lado: con catálogo el nombre y el
+tipo los pone el maestro; a mano se escriben.
+
+- Nace en **catálogo**, que es el caso normal. Nacer manual haría que el 90 % tuviera que
+  deshacerlo.
+- `marcarComponenteManual()` **suelta el maestro**: `esManual` con un `componenteMaestroId` puesto
+  es un estado que se contradice, y el que gana depende de qué pantalla lo lea. El nombre y el tipo
+  que hubiera **se conservan** — vienen de un maestro real y suelen ser el punto de partida de lo
+  que se quiere escribir.
+- Elegir un insumo **desmarca** el modo manual (`onComponenteMaestroChange()`): son excluyentes.
+- El conmutador **no sale** si el componente vino inyectado desde un segmento: ahí no se elige
+  nada, y ofrecerlo sería mentir.
+
+Los dos campos exclusivos del manual —nombre interno y Categoría Operativa— se muestran por
+`esManual`, **no** por «no tiene maestro»: en modo catálogo sin insumo todavía elegido, ofrecerlos
+sería ofrecer campos que el maestro va a pisar en cuanto se elija.
+
+#### El insumo se puede soltar
+
+`SearchableSelect` gana una prop **`limpiable`**: con ella y un valor puesto, aparece una «×» que
+emite `null` por `update:modelValue` **y por `change`** —los padres cuelgan de `change` sus efectos
+en cascada, y desvincular tiene que dispararlos igual que vincular—.
+
+⚠️ Es **opt-in**. La mayoría de estos selectores son obligatorios —un servicio maestro, una
+moneda— y ahí un botón de limpiar sólo sirve para dejar el formulario inválido.
 
 ### El nombre INTERNO, que el componente no tenía
 
