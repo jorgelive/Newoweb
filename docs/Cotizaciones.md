@@ -1349,6 +1349,24 @@ antes de un viaje.
 ⚠️ **No confundir con {@see CotizacionFilearchivo}** (§6.k): eso son adjuntos —boletos, facturas—.
 Aquí no hay archivo, es un dato: se consulta por vencimiento, no se descarga.
 
+### ⚠️ La colección va `EAGER`, y es lo único que aguanta un grupo real
+
+Con `LAZY` —el defecto— pintar el manifiesto es **una consulta por pasajero**. Medido sobre un
+expediente de 142, que es el tamaño de un grupo de colegio y no el de las dos personas con las que
+se diseñó:
+
+```
+LAZY    143 consultas · 70 ms
+EAGER     3 consultas · 44 ms
+```
+
+Doctrine agrupa el EAGER de una colección en un solo `WHERE pasajero_id IN (…)`.
+
+Con dos pasajeros la diferencia **no se ve**, y ése es el motivo de que esté escrito: la regresión
+no la nota nadie hasta que la nota un grupo entero. Los tres `#[ApiProperty(fetchEager: false)]` de
+`CotizacionFile` no ayudan aquí —sólo el de `cotizaciones` tiene un motivo escrito; los otros dos
+parecen copiados—, así que el arreglo va en la propia asociación.
+
 ### La migración, en dos pasos y a propósito
 
 `app:cotizacion:pasajeros-a-identificaciones` (`--dry-run`) copia la columna vieja a una fila.
