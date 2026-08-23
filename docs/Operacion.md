@@ -2187,6 +2187,32 @@ Es de la peor familia: un paso de generación que se salta lo nuevo en silencio,
 declarando a mano lo que debía venir generado. El script ahora hace `cache:clear --quiet` antes de
 exportar.
 
+### 🐛 El botón que nunca aparecía: comparar un objeto con un IRI
+
+«Agregar a OS» se ofrecía sólo si había borradores compatibles, y **no salía nunca** — con la orden
+compatible delante. La condición comparaba `servicio.file` con `orden.file`, y **la API devuelve esa
+misma relación como objeto en uno y como IRI en el otro** según el grupo de serialización. Un `===`
+entre las dos formas es siempre `false`.
+
+Y una condición que siempre es falsa **se ve exactamente igual que «no hay nada que ofrecer»**: sin
+error, sin hueco, sin nada.
+
+Se normaliza con `idDeRecurso()`, que acepta las tres formas —objeto con `id`, IRI y uuid pelado—.
+La regla: **antes de comparar dos relaciones de la API, extrae el id de las dos**.
+
+### Crear y emitir son dos decisiones, y sólo una es reversible
+
+- **«Crear»** —a secas, en verde— es la acción segura y la del 90 % de los casos. Se llamaba «Crear
+  borrador» y sonaba a paso intermedio que hay que rematar; lo que crea es una orden, que además se
+  puede emitir después desde su tarjeta.
+- **«Crear y emitir»** pide **dos pulsaciones**: la segunda confirma. Emitir congela el contenido y
+  no vuelve atrás —para cambiar algo hay que anular y reemitir— y el botón está justo al lado del
+  seguro. Un diálogo aparte sería más ceremonioso; el botón que se convierte en «¿Seguro? Toca otra
+  vez» corta el error sin añadir una ventana más, y en el teléfono se agradece.
+
+⚠️ La confirmación **se olvida sola a los 4 segundos**: una que se queda armada indefinidamente es
+la misma pulsación accidental, sólo que más tarde.
+
 ### El cuadro de tráfico en móvil (22/08/2026)
 
 Nueve columnas no caben en 360 px. En vez de comprimirlas —que es como se llega a una fila que no

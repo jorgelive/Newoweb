@@ -776,15 +776,31 @@ const ordenesParaAgregar = computed(() => {
     const sel = serviciosSeleccionados.value;
     if (sel.length === 0 || conflictoSeleccion.value) return [];
 
-    const fileId = sel[0].file;
+    // ⚠️ Por ID EXTRAÍDO, no comparando los campos tal cual. `file` llega como objeto en el
+    // servicio y como IRI en la orden, así que un `===` entre los dos no coincidía NUNCA y el
+    // botón no aparecía jamás — con la orden compatible delante. Es la clase de fallo que no da
+    // error: una condición que siempre es falsa se ve igual que «no hay nada que ofrecer».
+    const fileId = idDeRecurso(sel[0].file);
     const comprador = sel[0].compradorEfectivoMaestroId ?? sel[0].compradorMaestroId ?? null;
 
     return operacionStore.ordenesServicio.filter((o) =>
         o.estadoOs === 'borrador'
-        && o.file === fileId
+        && idDeRecurso(o.file) === fileId
         && (o.compradorMaestroId ?? null) === comprador
     );
 });
+
+/**
+ * El id de un recurso venga como venga: objeto con `id`, IRI («/platform/…/uuid») o el uuid pelado.
+ *
+ * La API devuelve la misma relación de las tres formas según el grupo de serialización, y
+ * compararlas entre sí sin normalizar da siempre `false` — sin error y sin nada que lo delate.
+ */
+const idDeRecurso = (v: unknown): string | null => {
+    if (typeof v === 'string') return v.split('/').pop() || null;
+    if (v && typeof v === 'object' && 'id' in v) return String((v as { id?: unknown }).id ?? '') || null;
+    return null;
+};
 
 const mostrarModalAgregar = ref(false);
 const errorAgregar = ref<string | null>(null);
@@ -810,6 +826,33 @@ const agregarAOrden = async (ordenId?: string | null) => {
     }
 };
 
+/**
+ * Emitir pide DOS pulsaciones: la segunda es la confirmación.
+ *
+ * Emitir congela el contenido y no vuelve atrás —para cambiar algo hay que anular y reemitir—, y
+ * el botón está justo al lado del seguro. Un diálogo aparte sería más ceremonioso; dos toques con
+ * el botón diciendo «¿Seguro?» corta el error sin añadir una ventana más, y en el teléfono se
+ * agradece.
+ *
+ * Se olvida sola a los 4 segundos: una confirmación que se queda armada indefinidamente es la
+ * misma pulsación accidental, sólo que más tarde.
+ */
+const confirmandoEmitir = ref(false);
+let tiempoConfirmarEmitir: ReturnType<typeof setTimeout> | null = null;
+
+const pedirConfirmacionEmitir = () => {
+    if (confirmandoEmitir.value) {
+        if (tiempoConfirmarEmitir) clearTimeout(tiempoConfirmarEmitir);
+        confirmandoEmitir.value = false;
+        void confirmarOs(true);
+
+        return;
+    }
+
+    confirmandoEmitir.value = true;
+    tiempoConfirmarEmitir = setTimeout(() => { confirmandoEmitir.value = false; }, 4000);
+};
+
 const confirmarOs = async (emitir: boolean) => {
     const sel = serviciosSeleccionados.value;
     if (sel.length === 0) return;
@@ -825,6 +868,7 @@ const confirmarOs = async (emitir: boolean) => {
             soloBorrador: !emitir,
         });
         mostrarModalOs.value = false;
+        confirmandoEmitir.value = false;
         seleccionados.value = [];
         await cargarBiblia();
     } catch (e) {
@@ -2012,9 +2056,18 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                     <!-- Fila 3: sólo si hay algo que decir. Con el cuadro vacío y sin
                          seleccionar, esta franja era espacio en blanco fijo. -->
                     <div v-if="seleccionados.length || hayServiciosOcultos" class="mt-2 flex items-center gap-3">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest sm:hidden">
-                            {{ operacionStore.servicios.length }} servicio{{ operacionStore.servicios.length !== 1 ? 's' : '' }}
-                        </span>
+                        <!-- Los dos contadores APILADOS, no en fila. En un teléfono ocupaban dos
+                             tercios del ancho y empujaban los botones fuera de la pantalla: el de
+                             «agregar a orden» no llegaba a verse. Uno sobre otro caben en una
+                             columna estrecha y dejan el resto para lo que se pulsa. -->
+                        <div class="flex flex-col leading-tight shrink-0">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest sm:hidden">
+                                {{ operacionStore.servicios.length }} servicio{{ operacionStore.servicios.length !== 1 ? 's' : '' }}
+                            </span>
+                            <span v-if="seleccionados.length" class="text-[10px] font-black text-[#376875] uppercase tracking-widest">
+                                {{ seleccionados.length }} sel.
+                            </span>
+                        </div>
 
                         <!-- La página trae 200 como mucho y aquí no se pagina. Sin este
                              aviso, un rango amplio recortaba el cuadro en silencio: el
@@ -2029,9 +2082,6 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                         </span>
 
                         <template v-if="seleccionados.length">
-                            <span class="text-[10px] font-black text-[#376875] uppercase tracking-widest">
-                                {{ seleccionados.length }} seleccionado{{ seleccionados.length !== 1 ? 's' : '' }}
-                            </span>
                             <span v-if="conflictoSeleccion" class="text-[10px] font-bold text-rose-600">
                                 <i class="fas fa-triangle-exclamation mr-1"></i>{{ conflictoSeleccion }}
                             </span>
@@ -3452,23 +3502,30 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                          Componer y mandar son decisiones distintas: se puede querer repasar el
                          destinatario o los importes antes de que el documento exista para
                          alguien de fuera. El borrador se puede emitir después desde su tarjeta. -->
+                    <!-- «Crear» a secas y en verde: es la acción segura y la que se usa el 90 %
+                         de las veces. Se llamaba «Crear borrador» y sonaba a paso intermedio que
+                         hay que rematar; lo que crea es una orden, que además se puede emitir
+                         después desde su tarjeta. -->
                     <button
                         @click="confirmarOs(false)"
                         :disabled="guardandoOs"
-                        title="La crea en borrador: se puede repasar y emitir después desde su tarjeta"
-                        class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 disabled:opacity-50 text-slate-600 text-xs font-black uppercase tracking-widest rounded-lg shadow-sm"
+                        title="La crea. Se puede repasar y emitir después desde su tarjeta"
+                        class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-lg shadow-sm"
                     >
                         <i v-if="guardandoOs" class="fas fa-spinner fa-spin mr-1"></i>
-                        Crear borrador
+                        Crear
                     </button>
+                    <!-- ⚠️ Emitir PIDE CONFIRMACIÓN: congela el contenido y ya no vuelve a
+                         borrador — para cambiar algo hay que anular y reemitir. Un botón de una
+                         sola pulsación al lado del seguro es cómo se emite sin querer. -->
                     <button
-                        @click="confirmarOs(true)"
+                        @click="pedirConfirmacionEmitir"
                         :disabled="guardandoOs"
                         title="La crea y la emite: congela el contenido y ya no vuelve a borrador"
                         class="px-5 py-2 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-lg shadow-sm"
                     >
                         <i v-if="guardandoOs" class="fas fa-spinner fa-spin mr-1"></i>
-                        Crear y emitir
+                        {{ confirmandoEmitir ? '¿Seguro? Toca otra vez' : 'Crear y emitir' }}
                     </button>
                 </footer>
             </div>
