@@ -22,6 +22,7 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 8. [Gotchas](#8-gotchas)
 9. [Pendiente de decidir](#9-pendiente-de-decidir)
 10. [Dónde tocar para cambiar X](#10-dónde-tocar-para-cambiar-x)
+13. [Lo que se le dice al proveedor](#13-lo-que-se-le-dice-al-proveedor-22082026)
 
 ---
 
@@ -2534,3 +2535,71 @@ casos** que `OperacionServicio::esComprable()`, y tiene test propio.
   ejecutó; es auditoría pendiente, no un fix.
 | Cambiar qué extremos ve el proveedor en una orden emitida | `src/Operacion/ApiPlatform/State/AjustarRutasProcessor.php` | `POST /{id}/rutas` — **escribe el ítem Y la fila viva** |
 | Ajustar la regla de qué renglón se imprime | `src/Operacion/Entity/OperacionOrdenServicio.php` | `getRutasVisibles()`, `cadenasDe()`, `getAvisosDeRutas()` |
+| Cambiar qué se le dice al proveedor en una línea | `src/Operacion/Entity/OperacionServicio.php` | `notasPrestador` (override) / `getNotasPrestadorEfectivas()` — §13 |
+| Que un detalle de la cotización llegue a la orden | editor de cotización | marcar la audiencia `prestador` en el componente — §13 |
+
+---
+
+## 13. Lo que se le dice al proveedor (22/08/2026)
+
+El cotizador anota cosas sobre un componente —frecuencias del tren, número de vuelo, dirección
+del hotel— y parte de eso es exactamente lo que el proveedor necesita para hacer su trabajo.
+Hasta ahora no salía del expediente: la orden le llegaba con qué, cuándo, cuántos y dónde, pero
+sin **qué tiene que saber**.
+
+### La cadena, y por qué cada eslabón es distinto
+
+```
+CotizacionCotcomponente.detallesOperativos     el dato, con sus banderas de audiencia
+   │  textosPara(PRESTADOR, 'es')              ← sólo lo marcado para él, en español
+   ▼
+OperacionServicio.notasPrestador               NULL = «usa lo del componente»
+   │  getNotasPrestadorEfectivas()             ← override si lo hay, si no el derivado
+   ▼
+OperacionOrdenServicioItem.notasPrestador       CONGELADO al emitir
+```
+
+Es la misma pareja que ya forman `puntoRecojo` (nullable, vacío = catálogo) y
+`puntoRecojoConfirmado` (congelado), y por los mismos dos motivos:
+
+- **El override es un campo APARTE, no una copia del derivado.** Guardar aquí lo derivado abriría
+  la puerta a que las dos se contradigan, y la copia muerta gana siempre porque es la que se lee.
+  Corregir el detalle en la cotización tiene que arreglar todos los viajes a la vez.
+- **El ítem es copia y no enlace.** Leerlo en vivo haría que el proveedor abriera su enlace la
+  semana siguiente y viera instrucciones **distintas** de las que se le mandaron. Un documento
+  emitido dice lo que decía al emitirse.
+
+⚠️ **Vaciar el campo devuelve al derivado, no significa «no le digas nada».** `[]` y `null` se
+guardan igual (`setNotasPrestador()`): una lista vacía persistida seguiría contando como override
+y taparía los detalles del componente para siempre con algo que no dice nada.
+
+### Después de emitir: completar sí, cambiar no
+
+Misma asimetría que la hora y los puntos, y por la misma razón:
+
+| Situación | Clase | Dónde sale |
+|---|---|---|
+| El ítem no tenía notas y ahora hay | **completado** | `getCambiosMenores()` → «ya hay instrucciones para el proveedor» |
+| El ítem tenía notas y ahora dicen otra cosa | **pacto** | `getDivergencias()` → «cambió lo que se le pide al proveedor» → reemitir |
+
+`aplicarCambiosMenores()` **sólo rellena lo vacío, nunca pisa**: cambiar un texto ya impreso es
+cambiarle el encargo, y eso tiene su propio botón.
+
+### En el cuadro de tráfico
+
+`OperacionView.vue` pinta un `textarea` —una nota por línea— con el derivado de **placeholder**,
+así que se ve qué se va a imprimir sin abrir la cotización. En la tarjeta de la orden salen las
+del ítem, en sólo lectura, porque ahí lo que importa es lo que el proveedor tiene en la mano.
+
+⚠️ **El campo aparece sólo si ya hay algo que decir** —del componente o escrito a mano—, igual
+que los puntos. Lo que no existe se escribe en la cotización, que es donde vive el dato: este
+campo es para **ajustar**, no para redactar de cero. Si algún día hace falta redactar aquí, es
+quitar esa condición; ponerlo ahora invitaría a llenar la Biblia de texto que la cotización no
+conoce y que se perdería al reemitir.
+
+### Nadie sale a `prestador` solo
+
+La conversión de detalles a audiencias (`docs/Cotizaciones.md` §6.g) deja todo en `cliente` e
+`interno`. **Marcar `prestador` es una decisión por componente y se toma en el editor de la
+cotización**: es el único cambio de esta familia que no se puede deshacer, porque un texto de más
+se ve cuando el proveedor ya lo leyó.

@@ -21,7 +21,7 @@ import {
     CotServicio,
     DeltaUpgradePorPerfil,
     DetalleOperativoBloque,
-    DetalleOperativoTipo,
+    AudienciaDetalle,
     etiquetaGrupoTarifa,
     expurgarParaCliente,
     formatRangoEdad,
@@ -2837,15 +2837,39 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
 
-    const agregarDetalleOperativo = (componenteId: string, tipo: DetalleOperativoTipo = DetalleOperativoTipo.CLIENTE): void => {
+    const agregarDetalleOperativo = (
+        componenteId: string,
+        audiencias: AudienciaDetalle[] = [AudienciaDetalle.CLIENTE],
+    ): void => {
         const componente = componenteActivo.value;
         if (componente && componente.id === componenteId) {
             if (!componente.detallesOperativos) componente.detallesOperativos = [];
             componente.detallesOperativos.push({
                 id: crypto.randomUUID(),
-                tipo,
+                audiencias: [...audiencias],
                 detalle: [{ language: 'es', content: '' }]
             });
+        }
+    };
+
+    /**
+     * Marca o desmarca una audiencia, sin dejar el bloque sin ninguna.
+     *
+     * La última no se puede quitar: un detalle sin audiencia no lo lee nadie y el backend lo
+     * rechaza al guardar, así que el editor no debería poder llegar ahí. Para eso está el
+     * botón de eliminar.
+     */
+    const alternarAudienciaDetalle = (componenteId: string, bloqueId: string, audiencia: AudienciaDetalle): void => {
+        const componente = componenteActivo.value;
+        const bloque = componente?.id === componenteId
+            ? componente.detallesOperativos?.find((b: DetalleOperativoBloque) => b.id === bloqueId)
+            : undefined;
+        if (!bloque) return;
+
+        if (!bloque.audiencias.includes(audiencia)) {
+            bloque.audiencias = [...bloque.audiencias, audiencia];
+        } else if (bloque.audiencias.length > 1) {
+            bloque.audiencias = bloque.audiencias.filter((a: AudienciaDetalle) => a !== audiencia);
         }
     };
 
@@ -4404,7 +4428,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarSegmentoIndividual, reordenarSegmentos, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange, onCambioModoComponente,
-        actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo,
+        actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo, alternarAudienciaDetalle,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,
         servicioActualDeComponente, componentesHermanos, irAComponenteAdyacente, serviciosOrdenados, irAServicioAdyacente, historialNavegacion,

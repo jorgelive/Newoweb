@@ -9,7 +9,7 @@ use ApiPlatform\Metadata\Get;
 use App\Attribute\AutoTranslate;
 use App\Cotizacion\Dto\CompradorResuelto;
 use App\Cotizacion\Enum\ComponenteEstadoEnum;
-use App\Cotizacion\Enum\DetalleOperativoTipoEnum;
+use App\Cotizacion\Enum\AudienciaDetalleEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
@@ -501,53 +501,148 @@ class CotizacionCotcomponente
     }
 
     /**
-     * Obtiene los detalles operativos internos.
+     * Los detalles del componente, siempre en la forma con audiencias.
      *
-     * @return array
+     * Normaliza al leer, así que una fila que todavía tenga el `tipo` viejo sale ya convertida
+     * y el editor no necesita entender las dos formas.
      *
      * @return list<array<string, mixed>>
      */
     public function getDetallesOperativos(): array
     {
-        return $this->detallesOperativos;
+        return array_map(self::normalizarBloque(...), $this->detallesOperativos);
     }
 
     /**
-     * Establece los detalles operativos internos, validando su tipo.
-     *
-     * @param array $detallesOperativos
-     * @return self
-     * @throws \InvalidArgumentException
-     *
      * @param list<array<string, mixed>> $detallesOperativos
+     *
+     * @throws \InvalidArgumentException si un bloque no marca ninguna audiencia válida
      */
     public function setDetallesOperativos(array $detallesOperativos): self
     {
-        foreach ($detallesOperativos as $bloque) {
-            if (!isset($bloque['tipo']) || DetalleOperativoTipoEnum::tryFrom($bloque['tipo']) === null) {
-                throw new \InvalidArgumentException('Tipo de detalle operativo inválido.');
-            }
-        }
-        $this->detallesOperativos = $detallesOperativos;
+        $this->detallesOperativos = array_map(self::normalizarBloque(...), $detallesOperativos);
+
         return $this;
     }
 
     /**
-     * Superficie segura para exponer al cliente final: filtra bloques OPERATIVA.
-     * Retorna únicamente los detalles que el cliente está autorizado a ver.
+     * Deja un bloque en la forma con audiencias, venga como venga.
      *
-     * @return array
+     * ⚠️ Tolera el `tipo` viejo **a propósito**: entre que se despliega el código y corre el
+     * comando de conversión hay filas con la forma antigua, y durante ese rato el editor tiene
+     * que poder leerlas y guardarlas sin reventar.
+     *
+     * ⚠️ Y `operativa` se convierte en `interno`, **nunca en `prestador`**. Es el único error de
+     * esta conversión que no se puede deshacer: mandarle a un proveedor externo un texto que
+     * nadie decidió enseñarle ya no se recoge. Que falte una marca se ve y se pone; que sobre,
+     * se ve cuando el proveedor ya lo leyó.
+     *
+     * @param array<string, mixed> $bloque
+     *
+     * @return array<string, mixed>
+     */
+    private static function normalizarBloque(array $bloque): array
+    {
+        $audiencias = $bloque['audiencias'] ?? null;
+
+        if ($audiencias === null && isset($bloque['tipo'])) {
+            $audiencias = $bloque['tipo'] === AudienciaDetalleEnum::CLIENTE->value
+                ? [AudienciaDetalleEnum::CLIENTE->value]
+                : [AudienciaDetalleEnum::INTERNO->value];
+        }
+
+        if (!is_array($audiencias) || $audiencias === []) {
+            throw new \InvalidArgumentException('Un detalle sin audiencia no lo lee nadie: marca al menos una.');
+        }
+
+        $marcadas = [];
+        foreach ($audiencias as $audiencia) {
+            if (!is_string($audiencia) || AudienciaDetalleEnum::tryFrom($audiencia) === null) {
+                throw new \InvalidArgumentException(sprintf(
+                    'Audiencia de detalle inválida: «%s».',
+                    is_string($audiencia) ? $audiencia : get_debug_type($audiencia),
+                ));
+            }
+            $marcadas[$audiencia] = true;
+        }
+
+        unset($bloque['tipo']);
+
+        // En el orden del enum, no en el que llegaron: así dos guardados iguales dan el mismo
+        // JSON y un diff sólo sale cuando de verdad cambió algo.
+        $bloque['audiencias'] = array_values(array_filter(
+            AudienciaDetalleEnum::valores(),
+            static fn (string $valor): bool => isset($marcadas[$valor]),
+        ));
+
+        return $bloque;
+    }
+
+    /**
+     * Los bloques que ve una audiencia.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function detallesPara(AudienciaDetalleEnum $audiencia): array
+    {
+        return array_values(array_filter(
+            $this->getDetallesOperativos(),
+            static fn (array $bloque): bool => in_array($audiencia->value, $bloque['audiencias'], true),
+        ));
+    }
+
+    /**
+     * Superficie segura para el cliente final.
+     *
+     * Se mantiene el nombre viejo porque lo consumen la cotización y la app del pasajero; lo que
+     * cambia por dentro es que filtra por audiencia en vez de por tipo.
      *
      * @return list<array<string, mixed>>
      */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     public function getDetallesParaCliente(): array
     {
-        return array_values(array_filter(
-            $this->detallesOperativos,
-            static fn (array $bloque): bool =>
-                ($bloque['tipo'] ?? null) === DetalleOperativoTipoEnum::CLIENTE->value
-        ));
+        return $this->detallesPara(AudienciaDetalleEnum::CLIENTE);
+    }
+
+    /**
+     * Los textos de una audiencia en un idioma, listos para pegar en un documento.
+     *
+     * Operación y prestador leen **siempre español**, y el bloque se traduce igualmente a los
+     * siete idiomas: enseñarle a `AutoTranslationService` a saltarse entradas es tocar el
+     * servicio que traduce todo el sistema, y sale más caro que unas traducciones de más.
+     *
+     * Si falta el idioma pedido cae al primero que haya — un texto en otro idioma sigue siendo
+     * más útil que un hueco en una orden de servicio.
+     *
+     * @return list<string>
+     */
+    public function textosPara(AudienciaDetalleEnum $audiencia, string $idioma = 'es'): array
+    {
+        $textos = [];
+
+        foreach ($this->detallesPara($audiencia) as $bloque) {
+            $traducciones = is_array($bloque['detalle'] ?? null) ? $bloque['detalle'] : [];
+            $elegido = null;
+
+            foreach ($traducciones as $traduccion) {
+                if (!is_array($traduccion) || !is_string($traduccion['content'] ?? null)) {
+                    continue;
+                }
+                $elegido ??= $traduccion['content'];
+                if (($traduccion['language'] ?? null) === $idioma) {
+                    $elegido = $traduccion['content'];
+                    break;
+                }
+            }
+
+            $elegido = trim((string) $elegido);
+            if ($elegido !== '') {
+                $textos[] = $elegido;
+            }
+        }
+
+        return $textos;
     }
 
     /**

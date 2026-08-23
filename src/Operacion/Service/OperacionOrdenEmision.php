@@ -72,7 +72,10 @@ final readonly class OperacionOrdenEmision
                     // Por NOMBRE y el EFECTIVO: el documento no depende de que la ficha siga
                     // existiendo, y lo que se pidió es lo que operaciones decidió.
                     ->setPrestadorNombre($servicio->getPrestadorEfectivoNombre())
-                    ->setPrestadorServicioNombre($servicio->getPrestadorServicioEfectivoNombre());
+                    ->setPrestadorServicioNombre($servicio->getPrestadorServicioEfectivoNombre())
+                    // Lo que hay que contarle: su redacción si el operador la escribió, si no los
+                    // detalles que la cotización marcó para él. Congelado, como todo lo demás.
+                    ->setNotasPrestador($servicio->getNotasPrestadorEfectivas());
 
                 // ── Dónde recoge y dónde deja, CONGELADOS ────────────────────
                 //

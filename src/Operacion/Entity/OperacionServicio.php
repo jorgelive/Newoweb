@@ -18,6 +18,7 @@ use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
+use App\Cotizacion\Enum\AudienciaDetalleEnum;
 use App\Cotizacion\Entity\CotizacionCotservicio;
 use App\Cotizacion\Entity\CotizacionCottarifa;
 use App\Cotizacion\Entity\CotizacionFile;
@@ -191,6 +192,21 @@ class OperacionServicio
     #[Groups(['operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $puntoEntrega = null;
+
+    /**
+     * Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**.
+     *
+     * Vacío es lo normal y significa «usa lo que dice el componente»: los detalles que la
+     * cotización marcó para la audiencia `prestador`. Mismo trato que `puntoRecojo` y por el mismo
+     * motivo — guardar aquí una copia del derivado abre la puerta a que las dos se contradigan, y
+     * la copia muerta gana siempre porque es la que se lee. Corregir el detalle en la cotización
+     * tiene que arreglar todos los viajes a la vez.
+     *
+     * @var list<string>|null
+     */
+    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $notasPrestador = null;
 
     /**
      * Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
@@ -1006,4 +1022,34 @@ class OperacionServicio
 
     /** @param array<string, string|int|null> $v */
     public function setSnapshotOrigen(array $v): self { $this->snapshotOrigen = $v; return $this; }
+
+    /** @return list<string>|null */
+    public function getNotasPrestador(): ?array { return $this->notasPrestador; }
+
+    /** @param list<string>|null $notas */
+    public function setNotasPrestador(?array $notas): self
+    {
+        // Una lista vacía es «no he escrito nada», igual que `null`. Guardarlas distinto haría
+        // que vaciar el campo en el editor significase «el proveedor no necesita saber nada»,
+        // que es lo contrario de lo que quiere quien lo vacía para volver a lo del componente.
+        $this->notasPrestador = ($notas === null || $notas === []) ? null : $notas;
+
+        return $this;
+    }
+
+    /**
+     * Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente.
+     *
+     * En español siempre. El detalle se traduce a siete idiomas porque el listener camina el campo
+     * entero, pero al proveedor se le escribe en el idioma en que se trabaja con él.
+     *
+     * @return list<string>
+     */
+    #[Groups(['operacion:item:read'])]
+    public function getNotasPrestadorEfectivas(): array
+    {
+        return $this->notasPrestador
+            ?? $this->cotizacionComponente?->textosPara(AudienciaDetalleEnum::PRESTADOR)
+            ?? [];
+    }
 }

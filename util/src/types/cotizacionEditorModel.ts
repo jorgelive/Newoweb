@@ -538,15 +538,36 @@ export type SegmentoComponenteProcesado = components['schemas']['TravelSegmentoC
     tarifaId?: string | null;
 };
 
-export const DetalleOperativoTipo = {
+/**
+ * A quién se le enseña un detalle del componente.
+ *
+ * Espejo de `App\Cotizacion\Enum\AudienciaDetalleEnum` — ahí está el porqué de que sean
+ * banderas y no un tipo, y por qué la audiencia de casa se llama `interno` y no `operador`
+ * (en turismo «operador» es muchas veces una agencia de fuera). **Al tocar una, tocar la otra.**
+ */
+export const AudienciaDetalle = {
     CLIENTE: 'cliente',
-    OPERATIVA: 'operativa',
+    INTERNO: 'interno',
+    PRESTADOR: 'prestador',
 } as const;
-export type DetalleOperativoTipo = typeof DetalleOperativoTipo[keyof typeof DetalleOperativoTipo];
+export type AudienciaDetalle = typeof AudienciaDetalle[keyof typeof AudienciaDetalle];
+
+/** Cada audiencia existe porque hay un documento que la recibe. */
+export const AUDIENCIA_DETALLE_CONFIG: Record<AudienciaDetalle, { label: string; documento: string; icon: string }> = {
+    cliente:   { label: 'Cliente',   documento: 'Cotización y app del pasajero', icon: 'fa-user' },
+    interno:   { label: 'Interno',   documento: 'La Biblia',                     icon: 'fa-lock' },
+    prestador: { label: 'Prestador', documento: 'Orden de Servicio',             icon: 'fa-truck' },
+};
 
 export interface DetalleOperativoBloque {
     id: string;
-    tipo: DetalleOperativoTipo | string;
+    /**
+     * Nunca vacío: un detalle sin audiencia no lo lee nadie, y el backend lo rechaza.
+     *
+     * ⚠️ Sin `| string` a propósito. Estaba así y una unión con `string` **colapsa el tipo
+     * entero**: la unión cerrada de la izquierda no tipaba nada y cualquier cadena pasaba.
+     */
+    audiencias: AudienciaDetalle[];
     detalle: I18nContent[];
 }
 

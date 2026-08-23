@@ -7112,8 +7112,10 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
@@ -7199,8 +7201,10 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCotcomponente-cotizacion.write": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.write"] | null;
@@ -7282,8 +7286,10 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCotcomponente-operacion.item.read_timestamp.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
@@ -7330,8 +7336,10 @@ export interface components {
             prestadorMaestroId?: string | null;
             /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCotcomponente-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"] | null;
@@ -7370,8 +7378,10 @@ export interface components {
             prestadorMaestroId?: string | null;
             /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.html": {
@@ -7474,8 +7484,10 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
@@ -7561,8 +7573,10 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCotcomponente.html-operacion.item.read_timestamp.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
@@ -7609,8 +7623,10 @@ export interface components {
             prestadorMaestroId?: string | null;
             /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"] | null;
@@ -7649,8 +7665,10 @@ export interface components {
             prestadorMaestroId?: string | null;
             /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -7753,8 +7771,10 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -7841,8 +7861,10 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -7891,8 +7913,10 @@ export interface components {
             prestadorMaestroId?: string | null;
             /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -7932,8 +7956,10 @@ export interface components {
             prestadorMaestroId?: string | null;
             /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.multipart": {
@@ -8036,8 +8062,10 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
@@ -8123,8 +8151,10 @@ export interface components {
              * @default false
              */
             sobreescribirTraduccion: boolean;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
@@ -8171,8 +8201,10 @@ export interface components {
             prestadorMaestroId?: string | null;
             /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         "CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"] | null;
@@ -8211,8 +8243,10 @@ export interface components {
             prestadorMaestroId?: string | null;
             /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
             prestadorServicioMaestroId?: string | null;
-            /** @description Superficie segura para exponer al cliente final: filtra bloques OPERATIVA. */
-            readonly detallesParaCliente?: (string | null)[];
+            /** @description Superficie segura para el cliente final. */
+            readonly detallesParaCliente?: {
+                [key: string]: string | null;
+            }[];
         };
         CotizacionCotservicio: {
             /**
@@ -14646,6 +14680,8 @@ export interface components {
             readonly rutasVisibles?: {
                 [key: string]: string;
             };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         };
@@ -14705,6 +14741,8 @@ export interface components {
             readonly rutasVisibles?: {
                 [key: string]: string;
             };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         };
@@ -14796,6 +14834,8 @@ export interface components {
             readonly rutasVisibles?: {
                 [key: string]: string;
             };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         };
@@ -14855,6 +14895,8 @@ export interface components {
             readonly rutasVisibles?: {
                 [key: string]: string;
             };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         };
@@ -14874,6 +14916,8 @@ export interface components {
             readonly rutasVisibles?: {
                 [key: string]: string;
             };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         } & (components["schemas"]["HydraItemBaseSchema"] & {
@@ -14921,6 +14965,8 @@ export interface components {
             readonly rutasVisibles?: {
                 [key: string]: string;
             };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         } & (components["schemas"]["HydraItemBaseSchema"] & {
@@ -14956,6 +15002,8 @@ export interface components {
             readonly rutasVisibles?: {
                 [key: string]: string;
             };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         };
@@ -15015,6 +15063,8 @@ export interface components {
             readonly rutasVisibles?: {
                 [key: string]: string;
             };
+            /** @description Lo que de verdad se imprime de cada lado, para que la pastilla lo diga. */
+            readonly visibilidadEfectiva?: Record<string, never>;
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         };
@@ -15051,6 +15101,8 @@ export interface components {
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -15091,6 +15143,8 @@ export interface components {
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -15131,6 +15185,8 @@ export interface components {
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -15171,6 +15227,8 @@ export interface components {
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -15211,6 +15269,8 @@ export interface components {
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -15251,6 +15311,8 @@ export interface components {
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -15291,6 +15353,8 @@ export interface components {
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -15331,6 +15395,8 @@ export interface components {
             /** @description Quién presta, por NOMBRE: el documento no depende de que la ficha siga existiendo. */
             prestadorNombre?: string | null;
             prestadorServicioNombre?: string | null;
+            /** @description Lo que se le dijo al proveedor, **congelado**. */
+            notasPrestador?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -15467,6 +15533,8 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /** @description Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**. */
+            notasPrestador?: string[] | null;
             /**
              * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
              * @default auto
@@ -15579,6 +15647,8 @@ export interface components {
             readonly ordenItinerario?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
         };
         "OperacionServicio-operacion.read_timestamp.read": {
             /** Format: date-time */
@@ -15674,6 +15744,8 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /** @description Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**. */
+            notasPrestador?: string[] | null;
             /**
              * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
              * @default auto
@@ -15763,6 +15835,8 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /** @description Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**. */
+            notasPrestador?: string[] | null;
             /**
              * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
              * @default auto
@@ -15844,6 +15918,8 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /** @description Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**. */
+            notasPrestador?: string[] | null;
             /**
              * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
              * @default auto
@@ -15956,6 +16032,8 @@ export interface components {
             readonly ordenItinerario?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
         };
         "OperacionServicio.html-operacion.read_timestamp.read": {
             /** Format: date-time */
@@ -16043,6 +16121,8 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /** @description Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**. */
+            notasPrestador?: string[] | null;
             /**
              * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
              * @default auto
@@ -16155,6 +16235,8 @@ export interface components {
             readonly ordenItinerario?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
         };
         "OperacionServicio.jsonld-operacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
@@ -16242,6 +16324,8 @@ export interface components {
             /** @description Dónde se recoge y dónde se deja, **si el operador lo fija a mano**. */
             puntoRecojo?: string | null;
             puntoEntrega?: string | null;
+            /** @description Lo que hay que decirle al proveedor, **si el operador lo redacta a mano**. */
+            notasPrestador?: string[] | null;
             /**
              * @description Si el recojo y la entrega de ESTA línea se le imprimen al proveedor.
              * @default auto
@@ -16354,6 +16438,8 @@ export interface components {
             readonly ordenItinerario?: number | null;
             /** @description Prioridad de despacho heredada de ComponenteTipoEnum::prioridad(). */
             readonly prioridadOperativa?: number;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
         };
         "OperacionServicio.multipart-operacion.read_timestamp.read": {
             /** Format: date-time */

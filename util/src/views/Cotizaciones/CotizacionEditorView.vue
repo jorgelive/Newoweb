@@ -23,6 +23,7 @@ import {
   getRolTarifaUI, Servicio, TarifaSnapshot, ImagenSnapshot, formatRangoEdad,
   CotServicio, CotSegmento, ComponenteCompleto, SnapshotItem, Segmento, OpcionUpgradeInterna, NotaSnapshot,
   MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE,
+  AudienciaDetalle, AUDIENCIA_DETALLE_CONFIG,
   type TarifaModalidadValue, type TarifaCategoriaValue
 } from '@/types/cotizacionEditorModel';
 import OrganizacionFormulario from '@/components/common/OrganizacionFormulario.vue';
@@ -1951,10 +1952,11 @@ store.$onAction(({ name, args }) => {
                          @pointerdown.stop="onDetallePointerDown($event, bloque.id)"
                          @pointerup.stop="onDetallePointerUp"
                          @pointercancel.stop="onDetallePointerUp">
-    <span class="text-[9px] font-black px-2 py-1 rounded-lg border shadow-sm flex items-center gap-1 cursor-help select-none"
-          :class="bloque.tipo === 'operativa' ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-sky-50 text-sky-700 border-sky-100'">
-      <i class="fas" :class="bloque.tipo === 'operativa' ? 'fa-cogs' : 'fa-info-circle'"></i>
-      {{ bloque.tipo === 'operativa' ? 'Operativa' : 'Detalle' }}
+    <span class="text-[9px] font-black px-2 py-1 rounded-lg border shadow-sm flex items-center gap-1.5 cursor-help select-none"
+          :class="bloque.audiencias?.includes('cliente') ? 'bg-sky-50 text-sky-700 border-sky-100' : 'bg-slate-100 text-slate-600 border-slate-200'">
+      <i v-for="a in bloque.audiencias" :key="a" class="fas" :class="AUDIENCIA_DETALLE_CONFIG[a]?.icon"
+         :title="AUDIENCIA_DETALLE_CONFIG[a]?.documento"></i>
+      {{ (bloque.audiencias ?? []).map(a => AUDIENCIA_DETALLE_CONFIG[a]?.label).filter(Boolean).join(' · ') || 'Sin audiencia' }}
     </span>
                       <div v-if="tooltipDetalleActivo === bloque.id"
                            class="absolute z-30 bottom-full left-0 mb-2 w-52 bg-slate-900 text-white text-[10px] font-medium p-2.5 rounded-lg shadow-xl leading-snug">
@@ -2539,10 +2541,25 @@ store.$onAction(({ name, args }) => {
                 </div>
                 <div v-else v-for="bloque in store.componenteActivo.detallesOperativos" :key="bloque.id"
                      class="flex gap-2 items-start bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
-                  <select v-model="bloque.tipo" class="shrink-0 w-32 bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-[10px] font-bold text-slate-600 outline-none">
-                    <option value="cliente">Detalles</option>
-                    <option value="operativa">Operativa</option>
-                  </select>
+                  <!--
+                    Banderas, no un desplegable: el mismo texto suele ir a más de un sitio. Con el
+                    `tipo` viejo había que escribirlo dos veces, y en producción los 15 componentes
+                    que tenían los dos bloques los tenían idénticos palabra por palabra.
+                    La última audiencia no se puede quitar — para eso está la papelera de al lado.
+                  -->
+                  <div class="shrink-0 w-32 flex flex-col gap-1">
+                    <button v-for="(cfg, aud) in AUDIENCIA_DETALLE_CONFIG" :key="aud"
+                            type="button"
+                            :title="cfg.documento"
+                            @click="store.componenteActivo && store.alternarAudienciaDetalle(store.componenteActivo.id, bloque.id, aud as AudienciaDetalle)"
+                            class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-bold transition-colors"
+                            :class="bloque.audiencias?.includes(aud as AudienciaDetalle)
+                              ? 'bg-sky-100 text-sky-700 border-sky-200'
+                              : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'">
+                      <i class="fas w-3 text-center" :class="cfg.icon"></i>
+                      {{ cfg.label }}
+                    </button>
+                  </div>
                   <textarea :value="store.getI18nText(bloque.detalle, store.cotizacion?.idiomaEdicion || 'es')"
                             @input="e => { if(store.cotizacion) store.setI18nText(bloque.detalle, store.cotizacion.idiomaEdicion, (e.target as HTMLTextAreaElement).value) }"
                             rows="2"

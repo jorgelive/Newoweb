@@ -905,6 +905,86 @@ párrafo: sin eso no se ve a qué día va a parar el segmento nuevo, que es just
 decidiendo a ciegas.
 
 
+## 6.g Los detalles del componente: audiencias, no tipos (22/08/2026)
+
+`CotizacionCotcomponente::$detallesOperativos` es un JSON con las cosas sueltas que el cotizador
+anota sobre un componente: frecuencias de un tren, número de vuelo y hora de aterrizaje, nombre y
+dirección del hotel.
+
+### Lo que se midió antes de tocar nada
+
+El campo nació con un `tipo` por bloque —`cliente` u `operativa`— y la foto de producción del
+22/08/2026 fue concluyente:
+
+```
+17 componentes con detalles
+15 tienen los DOS bloques  →  los 15 son IDÉNTICOS palabra por palabra (100 %)
+ 0 tienen sólo el operativo
+ 7 idiomas por bloque, también el operativo
+```
+
+**La distinción nunca se ejerció.** Lo único que conseguía era obligar a escribir dos veces lo
+mismo y a mantener las dos copias en siete idiomas. Se sustituyó por banderas: un bloque, una
+lista de audiencias.
+
+```json
+{ "id": "…", "audiencias": ["cliente", "prestador"],
+  "detalle": [{ "language": "es", "content": "Latam LA-2356 aterriza 13:35" }] }
+```
+
+### Una audiencia = un documento
+
+La lista de `AudienciaDetalleEnum` **no crece con roles: crece con
+superficies que reciben papel**. Una bandera que no cambie a dónde llega el texto no se añade,
+porque enseña a ignorar las demás.
+
+| Audiencia   | Dónde aterriza                | Quién lo lee |
+|-------------|-------------------------------|--------------|
+| `cliente`   | cotización y app del pasajero | `getDetallesParaCliente()` |
+| `interno`   | La Biblia                     | `detallesPara()` |
+| `prestador` | Orden de Servicio             | `textosPara()` → ver `docs/Operacion.md` §13 |
+
+⚠️ **La audiencia de casa se llama `interno`, no `operador`.** En turismo «operador» es muchas
+veces una agencia de fuera, así que ese nombre habría dicho justo lo contrario de lo que marca.
+
+⚠️ **Y no es un many-to-many.** Son tres casos que define el código y no cambian nunca; una tabla
+intermedia añadiría dos joins y una pantalla de mantenimiento a cambio de nada. El día que una
+audiencia sea un dato que el operador crea —«sólo para ESTE proveedor»— será otra forma.
+
+### Se traduce todo, y operación lee español
+
+Podría traducirse sólo lo que lleva `cliente`, y sería lo elegante. **No se hace a propósito:**
+`AutoTranslationService::processNestedStructure()` camina el campo entero y enseñarle a saltarse
+entradas es tocar el servicio que traduce **todo** el sistema. Unas traducciones de más cuestan
+céntimos; ese cambio arriesga las traducciones de todos los módulos. Quien consume una nota
+interna pide español y ya está — `textosPara($audiencia, 'es')`.
+
+### La conversión
+
+`app:cotizacion:detalles-a-audiencias` (`--dry-run`, `--con-prestador`). Convierte el `tipo` viejo
+y **funde los bloques que dicen lo mismo en español**, uniendo sus audiencias. En producción: 32
+bloques → 17, con las 7 traducciones intactas.
+
+⚠️ **Nadie sale a `prestador` por conversión automática.** Es el único cambio irreversible: que a
+un proveedor le falte una línea se ve y se añade; que le sobre, se ve cuando ya la leyó. Por eso
+`operativa` → `interno` y punto, y `--con-prestador` existe sólo para quien lo asuma a sabiendas.
+
+⚠️ **La entidad tolera el `tipo` viejo al leer** (`normalizarBloque()`), para que entre el
+despliegue y el comando el editor no reviente. El comando compara contra el JSON **guardado**, no
+contra lo que devuelve el getter: si comparase contra el getter —que normaliza al leer— un bloque
+sin repetidos saldría «sin cambios» y se quedaría con la forma antigua en base para siempre,
+volviendo permanente una tolerancia que sólo debe durar el despliegue.
+
+### Espejo TS
+
+`util/src/types/cotizacionEditorModel.ts` → `AudienciaDetalle` y `AUDIENCIA_DETALLE_CONFIG`.
+**Al tocar una, tocar la otra.** El editor pinta tres botones-bandera en vez del desplegable, y
+`cotizacionEditorStore.alternarAudienciaDetalle()` impide quitar la última: un detalle sin
+audiencia no lo lee nadie y el backend lo rechaza.
+
+⚠️ El tipo del bloque era `tipo: DetalleOperativoTipo | string`, y eso **no tipaba nada**: una
+unión con `string` colapsa el tipo entero. Ahora es `audiencias: AudienciaDetalle[]`, cerrado.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -1015,6 +1095,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Enlazar una línea de inclusión con su componente** → `componenteId`, que emite `construirInclusiones()`. Para propuestas viejas: `app:cotizacion:backfill-componente-id`. Nunca reconstruir el vínculo con una clave natural en tiempo de render.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
+- **Quién ve un detalle del componente** → banderas de `AudienciaDetalleEnum` en `detallesOperativos`; se leen con `detallesPara()` / `textosPara()` y se filtran para el cliente en `getDetallesParaCliente()`. Ver §6.g, y **toca también el espejo** `AudienciaDetalle` en `cotizacionEditorModel.ts`.
 
 ### Checklist al tocar la lógica de alternativas/inclusiones
 1. Editar `resumenFinanciero` (interno) y/o `expurgarParaCliente` (cliente).

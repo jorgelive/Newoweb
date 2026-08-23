@@ -513,6 +513,19 @@ const editarPunto = async (servicio: OperacionServicio, lado: 'recojo' | 'entreg
     await guardarCampo(servicio, { [campo]: valor === '' ? null : valor });
 };
 
+/**
+ * Lo que se le dice al proveedor: una nota por línea.
+ *
+ * Vacío = `null` y no `[]`, por lo mismo que en los puntos: una lista vacía guardada seguiría
+ * contando como override y taparía para siempre los detalles del componente.
+ */
+const editarNotasPrestador = async (servicio: OperacionServicio, evento: Event) => {
+    const area = evento.target as HTMLTextAreaElement;
+    const lineas = area.value.split('\n').map(l => l.trim()).filter(l => l !== '');
+
+    await guardarCampo(servicio, { notasPrestador: lineas.length ? lineas : null });
+};
+
 const editarHora = async (servicio: OperacionServicio, evento: Event) => {
     const input = evento.target as HTMLInputElement;
     const valor = input.value.trim();
@@ -955,11 +968,13 @@ interface BorradorFicha {
     estadoOperacion: string;
     visibilidadRecojo: string;
     visibilidadEntrega: string;
+    notasPrestador: string;
 }
 
 const borradorFicha = ref<BorradorFicha>({
     horaRecojo: '', puntoRecojo: '', puntoEntrega: '',
     estadoReservaProveedor: '', estadoOperacion: '', visibilidadRecojo: 'auto', visibilidadEntrega: 'auto',
+    notasPrestador: '',
 });
 
 /** Se abre SÓLO en móvil: en escritorio la tabla ya es editable y abrir una ficha estorbaría. */
@@ -976,6 +991,7 @@ const abrirFicha = (servicio: OperacionServicio) => {
         estadoOperacion: servicio.estadoOperacion ?? 'pendiente',
         visibilidadRecojo: servicio.visibilidadRecojo ?? 'auto',
         visibilidadEntrega: servicio.visibilidadEntrega ?? 'auto',
+        notasPrestador: (servicio.notasPrestador ?? []).join('\n'),
     };
 };
 
@@ -996,6 +1012,9 @@ const cambiosDeFicha = (): Record<string, unknown> => {
     if (b.estadoOperacion !== s.estadoOperacion) cambios.estadoOperacion = b.estadoOperacion;
     if (b.visibilidadRecojo !== (s.visibilidadRecojo ?? 'auto')) cambios.visibilidadRecojo = b.visibilidadRecojo;
     if (b.visibilidadEntrega !== (s.visibilidadEntrega ?? 'auto')) cambios.visibilidadEntrega = b.visibilidadEntrega;
+
+    const notas = b.notasPrestador.split('\n').map(l => l.trim()).filter(l => l !== '');
+    if (notas.join('\n') !== (s.notasPrestador ?? []).join('\n')) cambios.notasPrestador = notas.length ? notas : null;
 
     return cambios;
 };
@@ -2464,6 +2483,34 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                              aplique—. Si no, ese dato seguiría mandando en la emisión
                                                              y el operador no lo vería ni podría vaciarlo.
                                                              Ver docs/Operacion.md §12. -->
+                                                        <!-- ── Lo que se le dice al proveedor ────────────────
+                                                             Una nota por línea. Vacío = lo que traigan los detalles
+                                                             del componente marcados para la audiencia `prestador`, y
+                                                             el placeholder los enseña, así que se ve qué se va a
+                                                             imprimir sin abrir la cotización.
+
+                                                             ⚠️ Sale sólo si YA hay algo que decir —del componente o
+                                                             escrito aquí—, igual que los puntos. Lo que no existe se
+                                                             escribe en la cotización, que es donde vive el dato: este
+                                                             campo es para AJUSTAR, no para redactar de cero, y ponerlo
+                                                             en todas las filas invitaría a llenar la Biblia de texto
+                                                             que la cotización no conoce. -->
+                                                        <div v-if="(servicio.notasPrestadorEfectivas ?? []).length || servicio.notasPrestador"
+                                                             class="mt-1.5 flex items-start gap-1">
+                                                            <i class="fas fa-comment-dots text-[9px] text-slate-300 w-3 text-center mt-1"
+                                                               title="Qué se le dice al proveedor"></i>
+                                                            <textarea
+                                                                :value="(servicio.notasPrestador ?? []).join('\n')"
+                                                                @change="editarNotasPrestador(servicio, $event)"
+                                                                @click.stop
+                                                                :placeholder="(servicio.notasPrestadorEfectivas ?? []).join('\n') || 'nada que indicarle'"
+                                                                rows="2"
+                                                                class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic resize-none"
+                                                                :class="servicio.notasPrestador ? 'text-slate-900' : 'text-slate-500'"
+                                                                title="Una nota por línea. Vacío = los detalles del componente."
+                                                            ></textarea>
+                                                        </div>
+
                                                         <div v-if="puntosDe(servicio)?.aplica || servicio.puntoRecojo || servicio.puntoEntrega" class="mt-1.5 space-y-1">
                                                             <div class="flex items-center gap-1">
                                                                 <i class="fas fa-location-dot text-[9px] text-slate-300 w-3 text-center"
@@ -2990,6 +3037,13 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                                 <p v-if="(orden.rutasVisibles ?? {})[it.id ?? '']"
                                                    class="text-[10px] font-bold text-slate-600 leading-snug mt-0.5">
                                                     <i class="fas fa-route text-[8px] mr-1 text-slate-300"></i>{{ (orden.rutasVisibles ?? {})[it.id ?? ''] }}
+                                                </p>
+                                                <!-- Congelado al emitir, no en vivo: lo que el proveedor
+                                                     tiene en la mano es esto. Si cambia, la orden lo
+                                                     denuncia y hay que reemitir. -->
+                                                <p v-for="nota in (it.notasPrestador ?? [])" :key="nota"
+                                                   class="text-[10px] font-bold text-slate-600 leading-snug mt-0.5">
+                                                    <i class="fas fa-comment-dots text-[8px] mr-1 text-slate-300"></i>{{ nota }}
                                                 </p>
                                             </div>
                                             <p class="text-[11px] font-black text-slate-700 tabular-nums shrink-0">
@@ -3994,6 +4048,17 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
           </div>
 
           <p class="text-[10px] font-bold text-slate-400 -mt-3">Vacío = lo que diga el catálogo.</p>
+
+          <div>
+            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Qué se le dice al proveedor</label>
+            <textarea
+              v-model="borradorFicha.notasPrestador"
+              :placeholder="(servicioFicha.notasPrestadorEfectivas ?? []).join('\n') || 'nada que indicarle'"
+              rows="3"
+              class="w-full mt-1 text-xs font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic resize-none"
+            ></textarea>
+            <p class="text-[10px] font-bold text-slate-400 mt-1">Una por línea. Vacío = los detalles del componente.</p>
+          </div>
 
           <!-- Qué se le imprime al proveedor, por lado. `Auto` deja mandar la regla de cadenas:
                varios servicios seguidos del mismo proveedor dicen sólo dónde empieza y dónde

@@ -165,6 +165,22 @@ class OperacionOrdenServicioItem
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $prestadorServicioNombre = null;
 
+    /**
+     * Lo que se le dijo al proveedor, **congelado**.
+     *
+     * Sale de {@see OperacionServicio::getNotasPrestadorEfectivas()} al emitir: la redacción del
+     * operador si la hay, si no los detalles que la cotización marcó para `prestador`.
+     *
+     * ⚠️ Copia y no enlace, por lo mismo que los puntos de recojo: leerlo en vivo haría que el
+     * proveedor abriera el enlace público la semana siguiente y viera instrucciones DISTINTAS de
+     * las que se le mandaron. Un documento emitido dice lo que decía al emitirse.
+     *
+     * @var list<string>
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'json')]
+    private array $notasPrestador = [];
+
     public function __construct()
     {
         $this->initializeId();
@@ -253,4 +269,18 @@ class OperacionOrdenServicioItem
 
     public function getPrestadorServicioNombre(): ?string { return $this->prestadorServicioNombre; }
     public function setPrestadorServicioNombre(?string $v): self { $this->prestadorServicioNombre = $v; return $this; }
+
+    /** @return list<string> */
+    public function getNotasPrestador(): array { return $this->notasPrestador; }
+
+    /** @param list<string> $notas */
+    public function setNotasPrestador(array $notas): self
+    {
+        $this->notasPrestador = array_values(array_filter(
+            array_map(static fn (string $n): string => trim($n), $notas),
+            static fn (string $n): bool => $n !== '',
+        ));
+
+        return $this;
+    }
 }

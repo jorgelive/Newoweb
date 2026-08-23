@@ -649,6 +649,14 @@ class OperacionOrdenServicio
                     );
                 }
             }
+
+            // Instrucciones que YA se le imprimieron y ahora dicen otra cosa. Misma asimetría
+            // que los puntos: que aparezcan por primera vez es completar el documento y va en
+            // `getCambiosMenores()`; que cambien es cambiarle el encargo, y eso se reemite.
+            $notasItem = $item->getNotasPrestador();
+            if ($notasItem !== [] && $notasItem !== $servicio->getNotasPrestadorEfectivas()) {
+                $avisos[] = sprintf('«%s»: cambió lo que se le pide al proveedor', $que);
+            }
         }
 
         return $avisos;
@@ -714,6 +722,10 @@ class OperacionOrdenServicio
                     $avisos[] = sprintf('«%s»: ya se sabe dónde es el %s — %s', $this->etiqueta($item), $lado, $vivo);
                 }
             }
+
+            if ($item->getNotasPrestador() === [] && $servicio->getNotasPrestadorEfectivas() !== []) {
+                $avisos[] = sprintf('«%s»: ya hay instrucciones para el proveedor', $this->etiqueta($item));
+            }
         }
 
         return $avisos;
@@ -773,6 +785,10 @@ class OperacionOrdenServicio
 
             if (trim((string) $item->getPuntoEntregaConfirmado()) === '' && trim((string) $servicio->getPuntoEntrega()) !== '') {
                 $item->setPuntoEntregaConfirmado($servicio->getPuntoEntrega());
+            }
+
+            if ($item->getNotasPrestador() === []) {
+                $item->setNotasPrestador($servicio->getNotasPrestadorEfectivas());
             }
         }
 
