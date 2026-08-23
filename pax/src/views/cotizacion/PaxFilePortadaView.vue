@@ -233,8 +233,8 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
                 <p class="font-black text-gray-800 text-sm leading-tight truncate">
                   {{ pax.nombre }} {{ pax.apellido }}
                 </p>
-                <p v-if="pax.tipodocumento && pax.numerodocumento" class="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider mt-0.5">
-                  {{ pax.tipodocumento }}: {{ pax.numerodocumento }}
+                <p v-if="pax.identificaciones?.length" class="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider mt-0.5">
+                  <span v-for="(ident, i) in pax.identificaciones" :key="i"><span v-if="i"> · </span>{{ ident.tipo }}: {{ ident.numero }}</span>
                 </p>
               </div>
             </div>
@@ -354,7 +354,7 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
               class="flex items-center gap-2 bg-slate-50 hover:bg-[#376875]/5 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-[#376875] transition-colors"
           >
             <i class="fas fa-file-pdf text-[#E07845]"></i>
-            {{ store.traducir(doc.nombre) || doc.tipodocumento }}
+            {{ store.traducir(doc.nombre) || doc.tipoArchivo }}
           </a>
         </div>
       </div>

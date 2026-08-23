@@ -326,7 +326,9 @@ const isSubmittingPax = ref(false);
 const isSubmittingDoc = ref(false);
 
 const paxForm = ref({
-  nombre: '', apellido: '', pais: '', sexo: '', tipodocumento: '', numerodocumento: '', fechanacimiento: ''
+  nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '',
+  // Una persona lleva DNI *y* pasaporte, con vencimientos distintos. Ver §6.l del doc.
+  identificaciones: [] as Array<{ tipo: string; numero: string; vencimiento: string }>
 });
 
 const docForm = ref({
@@ -418,7 +420,7 @@ const abrirMotor = (cotizacion: ApiCotizacionVersion) => {
 const paxEditandoIri = ref<string | null>(null);
 const abrirPaxModal = () => {
   paxEditandoIri.value = null; // modo creación
-  paxForm.value = { nombre: '', apellido: '', pais: '', sexo: '', tipodocumento: '', numerodocumento: '', fechanacimiento: '' };
+  paxForm.value = { nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', identificaciones: [] };
   showPaxModal.value = true;
 };
 
@@ -429,11 +431,34 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero) => {
     apellido: pax.apellido || '',
     pais: typeof pax.pais === 'object' && pax.pais ? (pax.pais['@id'] || pax.pais.id || '') : (pax.pais || ''),
     sexo: pax.sexo || '',
-    tipodocumento: pax.tipodocumento || '',
-    numerodocumento: pax.numerodocumento || '',
-    fechanacimiento: pax.fechanacimiento ? pax.fechanacimiento.split('T')[0] : ''
+    fechanacimiento: pax.fechanacimiento ? pax.fechanacimiento.split('T')[0] : '',
+    // ⚠️ Sin identidad: al guardar se manda la lista entera y `orphanRemoval` reemplaza. Para
+    // dos o tres filas es predecible; casar por IRI exigiría que la identificación fuese un
+    // ApiResource propio, y no lo es —sólo existe colgando de su pasajero—.
+    identificaciones: (pax.identificaciones ?? []).map(i => ({
+      tipo: i.tipo ?? '',
+      numero: i.numero ?? '',
+      vencimiento: i.vencimiento ? i.vencimiento.split('T')[0] : '',
+    }))
   };
   showPaxModal.value = true;
+};
+
+/**
+ * Los tipos que este pasajero todavía no tiene.
+ *
+ * La restricción es `(pasajero, tipo)` única en base: ofrecer un tipo repetido sólo consigue un
+ * 422 al guardar, después de que alguien haya escrito el número.
+ */
+const tiposIdDisponibles = computed(() => {
+  const usados = new Set(paxForm.value.identificaciones.map(i => i.tipo));
+  return Object.entries(DOCUMENTO_IDENTIDAD_LABELS).filter(([valor]) => !usados.has(valor));
+});
+
+const agregarIdentificacion = () => {
+  const libre = tiposIdDisponibles.value[0];
+  if (!libre) return;
+  paxForm.value.identificaciones.push({ tipo: libre[0], numero: '', vencimiento: '' });
 };
 
 const paisSelectRef = ref<{ validate: () => boolean } | null>(null);
@@ -771,7 +796,10 @@ const eliminarDocumento = async (iri?: string) => {
                     </div>
                     <p class="text-[9px] text-slate-400 font-bold uppercase mt-2">
                       <i class="fas fa-globe-americas"></i> {{ pax.pais?.nombre }} ({{ getSexoLabel(pax.sexo) }})<br>
-                      <i class="far fa-id-card mt-1"></i> {{ getDocIdLabel(pax.tipodocumento) }}: {{ pax.numerodocumento }}
+                      <i class="far fa-id-card mt-1"></i>
+                      <span v-for="(ident, i) in (pax.identificaciones ?? [])" :key="ident.id || i">
+                        <span v-if="i"> · </span>{{ getDocIdLabel(ident.tipo) }}: {{ ident.numero }}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -984,15 +1012,42 @@ const eliminarDocumento = async (iri?: string) => {
                   error-message="La nacionalidad es obligatoria."
               />
             </div>
-            <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tipo Doc *</label>
-              <select v-model="paxForm.tipodocumento" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
-                <option v-for="(label, valor) in DOCUMENTO_IDENTIDAD_LABELS" :key="valor" :value="valor">{{ label }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">N° Documento</label>
-              <input v-model="paxForm.numerodocumento" type="text" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
+            <!-- ── Documentos de identidad ───────────────────────────────────
+                 Una lista y no dos campos: una persona lleva DNI *y* pasaporte, con vencimientos
+                 distintos, y los menores además necesitan autorización para salir del país. Los
+                 tipos ya usados no se vuelven a ofrecer: la unicidad es `(pasajero, tipo)` en
+                 base, así que repetir sólo consigue un 422 después de escribir el número. -->
+            <div class="col-span-2">
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[10px] font-bold text-slate-500 uppercase">Documentos de identidad</label>
+                <button type="button" @click="agregarIdentificacion" :disabled="!tiposIdDisponibles.length"
+                        class="text-[10px] font-black text-indigo-600 hover:text-indigo-800 disabled:text-slate-300 disabled:cursor-not-allowed">
+                  + Añadir
+                </button>
+              </div>
+
+              <p v-if="!paxForm.identificaciones.length" class="text-[10px] text-slate-400 italic border border-dashed border-slate-200 rounded-lg px-3 py-2">
+                Sin documentos. Añade al menos el que se use para viajar.
+              </p>
+
+              <div v-for="(ident, idx) in paxForm.identificaciones" :key="idx" class="flex gap-2 items-start mb-2">
+                <select v-model="ident.tipo" required class="w-28 shrink-0 border rounded-lg px-2 py-2 text-sm outline-none focus:border-indigo-500">
+                  <option v-for="(label, valor) in DOCUMENTO_IDENTIDAD_LABELS" :key="valor" :value="valor">{{ label }}</option>
+                </select>
+                <input v-model="ident.numero" required type="text" placeholder="Número"
+                       class="flex-1 min-w-0 border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                <div class="w-32 shrink-0">
+                  <MaskedDateInput v-model="ident.vencimiento" placeholder="Vence" />
+                </div>
+                <button type="button" @click="paxForm.identificaciones.splice(idx, 1)"
+                        class="shrink-0 w-9 h-9 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+
+              <p v-if="paxForm.identificaciones.some(i => !i.vencimiento)" class="text-[9px] font-bold text-amber-600 mt-1">
+                <i class="fas fa-triangle-exclamation mr-1"></i>Sin fecha de vencimiento no se puede comprobar nada: cuentan como «sin comprobar», no como vigentes.
+              </p>
             </div>
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nacimiento</label>

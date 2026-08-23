@@ -1310,6 +1310,75 @@ en el front, porque los dos campos se llamaban igual y viven en la misma pantall
 3. **Front y back van juntos.** El `shortName` cambió, así que la ruta de la API cambió: un build
    viejo posteando a `/cotizacion_filedocumentos` recibe 404.
 
+## 6.l Los documentos de identidad del pasajero (23/08/2026)
+
+`CotizacionFilepasajero` tenía **un** `tipodocumento` y **un** `numerodocumento`, sin vencimiento.
+Un padrón real lo desmiente en las tres cosas: en el de Punta Cana 2026, **130 de 133 personas
+llevan DNI y pasaporte a la vez** con fechas distintas —un DNI que caduca en 2026 junto a un
+pasaporte que caduca en 2031—, y **100 de los 133 son menores**, que además necesitan autorización
+notarial para salir del país.
+
+```
+CotizacionPasajeroIdentificacion       tabla cotizacion_pasajero_identificacion
+    pasajero      ManyToOne, CASCADE
+    tipo          DocumentoTipoEnum    DNI · CE · RUC · PASAPORTE · CI (ya existía)
+    numero        string               se recorta al guardar
+    vencimiento   date nullable
+    paisEmisor    MaestroPais nullable
+    ÚNICO (pasajero, tipo)
+```
+
+### ⚠️ Nulo es «sin comprobar», no «vigente»
+
+Es la regla de la que cuelga todo lo demás. `estaVigenteEl()` devuelve **`null`** si no hay fecha,
+y `identificacionesVencidasAl()` **no** incluye esos documentos — quien llame tiene que contarlos
+aparte con `identificacionesSinComprobar()`.
+
+Está pagado: la hoja *Resumen* de ese padrón afirmaba «Pasaporte vence antes del retorno: 0», y era
+cierto. Nadie miró el **DNI**, que es con lo que se embarca el tramo nacional, y había **once
+vencidos** y **veintidós sin fecha**. Un listado que cuente lo desconocido como bueno reproduce
+exactamente ese error.
+
+### Por qué filas y no columnas
+
+Con columnas serían ocho campos, la mitad nulos para los adultos, y una migración el día del carné
+de extranjería o la visa. Y hay un motivo más fuerte: la unicidad `(pasajero, tipo)` es la que hace
+que **reimportar el padrón corregido no duplique nada**, y ese Excel se vuelve a subir varias veces
+antes de un viaje.
+
+⚠️ **No confundir con {@see CotizacionFilearchivo}** (§6.k): eso son adjuntos —boletos, facturas—.
+Aquí no hay archivo, es un dato: se consulta por vencimiento, no se descarga.
+
+### La migración, en dos pasos y a propósito
+
+`app:cotizacion:pasajeros-a-identificaciones` (`--dry-run`) copia la columna vieja a una fila.
+Idempotente por la unicidad.
+
+⚠️ **Las columnas viejas no se tiran en el mismo despliegue.** El comando lee de ellas, así que
+tirarlas a la vez lo dejaría sin fuente. La secuencia es:
+
+1. **Este despliegue**: tabla nueva, columnas viejas fuera de la API y `tipodocumento` a nulable
+   —si no, un pasajero nuevo llegaría sin él y el `NOT NULL` lo rechazaría—.
+2. **Correr el comando en producción** y comprobar.
+3. **Despliegue siguiente**: `ALTER TABLE … DROP tipodocumento, DROP numerodocumento`.
+
+Lo copiado nace **sin vencimiento**, porque la columna vieja no lo guardaba. El comando lo avisa en
+voz alta: no es un hueco que rellenar luego, es información que nunca existió.
+
+### En el front
+
+El formulario del pasajero pasa de dos campos a una **lista**: tipo, número y vencimiento por fila,
+y los tipos ya usados no se vuelven a ofrecer —la unicidad es de base, y repetir sólo consigue un
+422 después de escribir el número—. Avisa en ámbar cuando alguna fila va sin fecha.
+
+⚠️ Al guardar **se manda la colección entera** y `orphanRemoval` reemplaza. Casar por IRI exigiría
+que la identificación fuese un `ApiResource` propio, y no lo es: sólo existe colgando de su
+pasajero.
+
+⚠️ Y `operacionStore.ExpedienteDetalle.filepasajeros` dejó de ser `Record<string, unknown>`. Con la
+forma laxa, iterar `identificaciones` daba `never` y sólo se vio al compilar: lo laxo esconde justo
+lo que hace falta el día que el backend cambia de forma.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -1422,6 +1491,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
 - **Guardar el estado de una cotización antes de tocarla** → botón de cámara en `FileDetalle` → `GuardarHistoricoProcessor`. ⚠️ **No es clonar**: clonar crea la versión siguiente y hace perder las órdenes. Ver §6.j.
+- **El DNI o el pasaporte de un pasajero, con su vencimiento** → `CotizacionPasajeroIdentificacion`, una fila por documento (§6.l). ⚠️ Sin fecha es «sin comprobar», nunca «vigente».
 - **Adjuntar un archivo a un expediente** → `CotizacionFilearchivo` (antes `…Filedocumento`, ver §6.k). ⚠️ No confundir con `CotizacionFilepasajero::$tipodocumento`, que sí es identidad.
 - **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `nombreSnapshot` (público). Ver §6.h.
 - **Que un componente sin maestro se pueda nombrar y tipar** → `isComponenteSoloItems()` y `getNombreMaestroRef()` en `CotizacionEditorView.vue`, y `onTipoManualChange()` en el store. Ver §6.h — y ojo con lo que la cadena sigue exigiendo (tarifa, prestador, nombre).

@@ -29,11 +29,31 @@ export interface ContactoProveedor {
     email: string | null;
 }
 
-/** Ficha de expediente para el modal: namelist + documentos. Forma laxa del file:item:read. */
+/** Un documento de identidad tal como llega anidado en el pasajero. */
+export interface IdentificacionDePasajero {
+    tipo?: string | null;
+    numero?: string | null;
+    vencimiento?: string | null;
+}
+
+/**
+ * Ficha de expediente para el modal: namelist + archivos. Forma laxa del `file:item:read`.
+ *
+ * ⚠️ El pasajero está tipado y ya no es un `Record<string, unknown>`: con la forma laxa, iterar
+ * `identificaciones` daba `never` y sólo se vio al compilar. Lo laxo esconde exactamente lo que
+ * hace falta cuando el backend cambia de forma.
+ */
+export interface PasajeroDeExpediente {
+    nombre?: string | null;
+    apellido?: string | null;
+    identificaciones?: IdentificacionDePasajero[];
+    [clave: string]: unknown;
+}
+
 export interface ExpedienteDetalle {
     nombreGrupo?: string | null;
     pasajeroPrincipal?: string | null;
-    filepasajeros?: Array<Record<string, unknown>>;
+    filepasajeros?: PasajeroDeExpediente[];
     filearchivos?: Array<Record<string, unknown>>;
 }
 

@@ -3312,7 +3312,9 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                     <div v-for="(pax, i) in (expedienteDetalle?.filepasajeros ?? [])" :key="i" class="py-2">
                                         <p class="text-sm font-bold text-slate-800">{{ nombrePasajero(pax) }}</p>
                                         <p class="text-[10px] text-slate-400">
-                                            <span v-if="pax.numerodocumento">{{ pax.tipodocumento || 'Doc' }}: {{ pax.numerodocumento }}</span>
+                                            <span v-for="(ident, idxDoc) in (pax.identificaciones ?? [])" :key="idxDoc">
+                                              <span v-if="idxDoc"> · </span>{{ ident.tipo || 'Doc' }}: {{ ident.numero }}
+                                            </span>
                                             <span v-if="pax.pais && typeof pax.pais === 'object'"> · {{ (pax.pais as { nombre?: string }).nombre }}</span>
                                         </p>
                                     </div>

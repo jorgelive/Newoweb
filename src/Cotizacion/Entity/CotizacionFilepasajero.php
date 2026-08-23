@@ -17,6 +17,8 @@ use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
 use DateTimeImmutable;
 use DateTimeInterface;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -72,15 +74,22 @@ class CotizacionFilepasajero
     private ?SexoEnum $sexo = null;
 
     // 🔥 Reemplazado por Enum
-    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
-    #[ORM\Column(type: 'string', length: 20, enumType: DocumentoTipoEnum::class)]
+    /**
+     * @deprecated Sustituido por {@see self::$identificaciones}. Se cae en la migración siguiente.
+     *
+     * ⚠️ Fuera de todos los grupos a propósito: la API ya no lo expone ni lo acepta, así que nadie
+     * puede escribir aquí y creerse que ha guardado algo. La columna sigue un ciclo más **sólo**
+     * para que `app:cotizacion:pasajeros-a-identificaciones` tenga de dónde copiar en producción;
+     * tirarla en el mismo despliegue dejaría el comando sin fuente.
+     */
+    #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: DocumentoTipoEnum::class)]
     private ?DocumentoTipoEnum $tipodocumento = null;
 
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'date', nullable: true)]
     private ?DateTimeInterface $fechanacimiento = null;
 
-    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    /** @deprecated Ver {@see self::$tipodocumento}: se cae en la migración siguiente. */
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $numerodocumento = null;
 
@@ -89,9 +98,22 @@ class CotizacionFilepasajero
     #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
 
+    /**
+     * Los documentos que identifican a esta persona: su DNI, su pasaporte, su carné.
+     *
+     * Sustituye a `tipodocumento` + `numerodocumento`, que sólo admitían uno y sin vencimiento.
+     * Ver el docblock de {@see CotizacionPasajeroIdentificacion} para el porqué.
+     *
+     * @var Collection<int, CotizacionPasajeroIdentificacion>
+     */
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[ORM\OneToMany(mappedBy: 'pasajero', targetEntity: CotizacionPasajeroIdentificacion::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $identificaciones;
+
     public function __construct()
     {
         $this->initializeId();
+        $this->identificaciones = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -207,4 +229,67 @@ class CotizacionFilepasajero
 
     public function getFile(): ?CotizacionFile { return $this->file; }
     public function setFile(?CotizacionFile $file): self { $this->file = $file; return $this; }
+
+    /** @return Collection<int, CotizacionPasajeroIdentificacion> */
+    public function getIdentificaciones(): Collection { return $this->identificaciones; }
+
+    public function addIdentificacion(CotizacionPasajeroIdentificacion $identificacion): self
+    {
+        if (!$this->identificaciones->contains($identificacion)) {
+            $this->identificaciones->add($identificacion);
+            $identificacion->setPasajero($this);
+        }
+
+        return $this;
+    }
+
+    public function removeIdentificacion(CotizacionPasajeroIdentificacion $identificacion): self
+    {
+        if ($this->identificaciones->removeElement($identificacion)) {
+            if ($identificacion->getPasajero() === $this) {
+                $identificacion->setPasajero(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /** El documento de un tipo concreto, o `null`. */
+    public function identificacionDe(DocumentoTipoEnum $tipo): ?CotizacionPasajeroIdentificacion
+    {
+        foreach ($this->identificaciones as $identificacion) {
+            if ($identificacion->getTipo() === $tipo) {
+                return $identificacion;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Los documentos que NO sirven para viajar en una fecha.
+     *
+     * ⚠️ Los que no tienen fecha cargada **no salen aquí**, y por eso quien llame tiene que
+     * contarlos aparte: en el padrón real de Punta Cana había 22 personas sin vencimiento de DNI, y
+     * tratarlas como vigentes es lo que dejó pasar once documentos caducados en una lista que se
+     * daba por revisada. «Sin comprobar» no es «vigente».
+     *
+     * @return list<CotizacionPasajeroIdentificacion>
+     */
+    public function identificacionesVencidasAl(\DateTimeInterface $fecha): array
+    {
+        return array_values(array_filter(
+            $this->identificaciones->toArray(),
+            static fn (CotizacionPasajeroIdentificacion $i): bool => $i->estaVigenteEl($fecha) === false,
+        ));
+    }
+
+    /** @return list<CotizacionPasajeroIdentificacion> */
+    public function identificacionesSinComprobar(): array
+    {
+        return array_values(array_filter(
+            $this->identificaciones->toArray(),
+            static fn (CotizacionPasajeroIdentificacion $i): bool => $i->getVencimiento() === null,
+        ));
+    }
 }

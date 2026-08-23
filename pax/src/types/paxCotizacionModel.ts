@@ -311,17 +311,30 @@ export interface PaxFilepasajero {
     apellido: string;
     pais?: unknown; // objeto MaestroPais embebido según serialización
     sexo?: 'M' | 'F' | null;
-    tipodocumento?: string | null;
     fechanacimiento?: string | null;
-    numerodocumento?: string | null;
+    /**
+     * Sus documentos de identidad. Espejo de `CotizacionPasajeroIdentificacion`.
+     *
+     * ⚠️ Sustituye a `tipodocumento` + `numerodocumento`, que admitían uno solo: una persona lleva
+     * DNI *y* pasaporte con vencimientos distintos. **Al tocar la entidad, tocar esto.**
+     */
+    identificaciones?: Array<{ tipo?: string | null; numero?: string | null; vencimiento?: string | null }>;
 }
 
+/**
+ * Un adjunto del expediente: boleto, factura, confirmación de reserva.
+ *
+ * ⚠️ Escrito a mano, así que **no lo protege el compilador**: cuando el backend renombró
+ * `tipodocumento` → `tipoArchivo` y quitó `vencimiento`, este archivo siguió compilando y la
+ * portada dejó de rotular los adjuntos en silencio. Es literalmente el caso que documenta
+ * `CLAUDE.md`: un tipo escrito a mano que se queda corto no falla, miente.
+ * Espejo de `App\Cotizacion\Entity\CotizacionFilearchivo`. **Al tocar una, tocar la otra.**
+ */
 export interface PaxFilearchivo {
     '@id'?: string;
     id?: string;
     nombre?: I18n;
-    vencimiento?: string | null;
-    tipodocumento?: string | null;
+    tipoArchivo?: string | null;
     imageUrl?: string | null;
 }
 

@@ -10672,8 +10672,8 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** @enum {string|null} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             numerodocumento?: string | null;
@@ -10682,6 +10682,7 @@ export interface components {
              * @example https://example.com/
              */
             file?: string;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -10705,12 +10706,10 @@ export interface components {
             pais?: components["schemas"]["Pais-file.read_file.item.read_timestamp.read"];
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
             file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -10736,12 +10735,10 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
             file?: components["schemas"]["CotizacionFile-file.write"];
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.write"][];
         };
         "CotizacionFilepasajero-file.write.jsonMergePatch": {
             nombre?: string;
@@ -10753,12 +10750,10 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
             file?: components["schemas"]["CotizacionFile-file.write"];
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.write"][];
         };
         "CotizacionFilepasajero-pax_file.read": {
             nombre?: string;
@@ -10770,11 +10765,9 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-pax_file.read"][];
         };
         "CotizacionFilepasajero-pax_file.read_pax_cotizacion.read": {
             nombre?: string;
@@ -10786,11 +10779,9 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-pax_file.read_pax_cotizacion.read"][];
         };
         "CotizacionFilepasajero.html": {
             nombre?: string;
@@ -10802,8 +10793,8 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** @enum {string|null} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             numerodocumento?: string | null;
@@ -10812,6 +10803,7 @@ export interface components {
              * @example https://example.com/
              */
             file?: string;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -10835,12 +10827,10 @@ export interface components {
             pais?: components["schemas"]["Pais.html-file.read_file.item.read_timestamp.read"];
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
             file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -10866,11 +10856,9 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-pax_file.read"][];
         };
         "CotizacionFilepasajero.html-pax_file.read_pax_cotizacion.read": {
             nombre?: string;
@@ -10882,11 +10870,9 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-pax_file.read_pax_cotizacion.read"][];
         };
         "CotizacionFilepasajero.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
@@ -10898,8 +10884,8 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** @enum {string|null} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             numerodocumento?: string | null;
@@ -10908,6 +10894,7 @@ export interface components {
              * @example https://example.com/
              */
             file?: string;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -10931,12 +10918,10 @@ export interface components {
             pais?: components["schemas"]["Pais.jsonld-file.read_file.item.read_timestamp.read"];
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
             file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -10962,11 +10947,9 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-pax_file.read"][];
         };
         "CotizacionFilepasajero.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
@@ -10978,11 +10961,9 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-pax_file.read_pax_cotizacion.read"][];
         };
         "CotizacionFilepasajero.multipart": {
             nombre?: string;
@@ -10994,8 +10975,8 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** @enum {string|null} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             numerodocumento?: string | null;
@@ -11004,6 +10985,7 @@ export interface components {
              * @example https://example.com/
              */
             file?: string;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11027,12 +11009,10 @@ export interface components {
             pais?: components["schemas"]["Pais.multipart-file.read_file.item.read_timestamp.read"];
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
             file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -11058,11 +11038,9 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-pax_file.read"][];
         };
         "CotizacionFilepasajero.multipart-pax_file.read_pax_cotizacion.read": {
             nombre?: string;
@@ -11074,11 +11052,350 @@ export interface components {
             pais?: string;
             /** @enum {string} */
             sexo?: "M" | "F";
-            /** @enum {string} */
-            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
             /** Format: date-time */
             fechanacimiento?: string | null;
-            numerodocumento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-pax_file.read_pax_cotizacion.read"][];
+        };
+        CotizacionPasajeroIdentificacion: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pasajero?: string;
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Quién lo emitió. Nulo se lee como «el país del pasajero».
+             * @example https://example.com/
+             */
+            paisEmisor?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion-file.read_file.item.read_timestamp.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais-file.read_file.item.read_timestamp.read"] | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion-file.write": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Quién lo emitió. Nulo se lee como «el país del pasajero».
+             * @example https://example.com/
+             */
+            paisEmisor?: string | null;
+            id?: string;
+        };
+        "CotizacionPasajeroIdentificacion-pax_file.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            id?: string;
+        };
+        "CotizacionPasajeroIdentificacion-pax_file.read_pax_cotizacion.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            id?: string;
+        };
+        "CotizacionPasajeroIdentificacion.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pasajero?: string;
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Quién lo emitió. Nulo se lee como «el país del pasajero».
+             * @example https://example.com/
+             */
+            paisEmisor?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion.html-file.read_file.item.read_timestamp.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais.html-file.read_file.item.read_timestamp.read"] | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion.html-pax_file.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            id?: string;
+        };
+        "CotizacionPasajeroIdentificacion.html-pax_file.read_pax_cotizacion.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            id?: string;
+        };
+        "CotizacionPasajeroIdentificacion.jsonld": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pasajero?: string;
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Quién lo emitió. Nulo se lee como «el país del pasajero».
+             * @example https://example.com/
+             */
+            paisEmisor?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion.jsonld-file.read_file.item.read_timestamp.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais.jsonld-file.read_file.item.read_timestamp.read"] | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion.jsonld-pax_file.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            id?: string;
+        };
+        "CotizacionPasajeroIdentificacion.jsonld-pax_file.read_pax_cotizacion.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            id?: string;
+        };
+        "CotizacionPasajeroIdentificacion.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pasajero?: string;
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            /**
+             * Format: iri-reference
+             * @description Quién lo emitió. Nulo se lee como «el país del pasajero».
+             * @example https://example.com/
+             */
+            paisEmisor?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion.multipart-file.read_file.item.read_timestamp.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais.multipart-file.read_file.item.read_timestamp.read"] | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion.multipart-pax_file.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            id?: string;
+        };
+        "CotizacionPasajeroIdentificacion.multipart-pax_file.read_pax_cotizacion.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            id?: string;
         };
         CotizacionSegmento: {
             /**

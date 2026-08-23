@@ -19,8 +19,8 @@ export interface PasajeroPayload {
     apellido?: string;
     pais?: string;
     sexo?: string;
-    tipodocumento?: string;
-    numerodocumento?: string;
+    /** Espejo de `CotizacionPasajeroIdentificacion`: una persona lleva DNI *y* pasaporte. */
+    identificaciones?: Array<{ tipo: string; numero: string; vencimiento?: string | null }>;
     fechanacimiento?: string;
     file?: string;
 }
