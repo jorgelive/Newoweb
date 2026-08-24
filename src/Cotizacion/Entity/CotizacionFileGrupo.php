@@ -92,14 +92,21 @@ class CotizacionFileGrupo
      * multitramo Lima→Cusco→Puno→Lima habría pedido un `case` por vuelo, o sea **un despliegue
      * para apuntar un billete**.
      *
-     * Vacío significa «el eje entero, sin subdividir», que es el caso de un viaje con un solo
-     * vuelo y el de todos los ejes que no lo admiten ({@see GrupoTipoEnum::admiteSubeje()}).
+     * Cadena vacía significa «el eje entero, sin subdividir»: un viaje con un solo vuelo, y todos
+     * los ejes que no admiten tramo ({@see GrupoTipoEnum::admiteSubeje()}).
+     *
+     * ⚠️ **Vacía, NO nula, y es lo que sostiene la unicidad.** En InnoDB un índice único admite
+     * cuantos `NULL` quiera, así que con la columna nullable **todo grupo sin tramo —habitaciones,
+     * grupos, servicios: casi todo lo que existe— se quedaba fuera de
+     * `uniq_file_grupo_tipo_clave`**. Un doble POST creaba dos «HA13» sin que nada lo impidiera,
+     * justo la protección que había antes de partir esta columna. Con cadena vacía, la fila entra
+     * en el índice.
      *
      * Entra por la cabecera de la columna del padrón: `#Vuelo Nacional` → `subeje = 'Nacional'`.
      */
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
-    #[ORM\Column(type: 'string', length: 60, nullable: true)]
-    private ?string $subeje = null;
+    #[ORM\Column(type: 'string', length: 60, options: ['default' => ''])]
+    private string $subeje = '';
 
     /**
      * El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`.
@@ -200,14 +207,14 @@ class CotizacionFileGrupo
         return $this;
     }
 
-    public function getSubeje(): ?string { return $this->subeje; }
-    public function setSubeje(?string $v): self { $this->subeje = $v !== null ? (trim($v) ?: null) : null; return $this; }
+    public function getSubeje(): string { return $this->subeje; }
+    public function setSubeje(?string $v): self { $this->subeje = trim($v ?? ''); return $this; }
 
     /** «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
     #[Groups(['file:item:read', 'pax_file:read'])]
     public function getEtiquetaDeEje(): string
     {
-        return trim(($this->tipo?->label() ?? '').' '.($this->subeje ?? ''));
+        return trim(($this->tipo?->label() ?? '').' '.$this->subeje);
     }
 
     public function getNombre(): ?string { return $this->nombre; }

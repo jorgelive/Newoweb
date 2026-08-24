@@ -658,7 +658,11 @@ const bajarHoja = async (ruta: string, nombre: string) => {
  */
 const descargarFiltrado = async () => {
     const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
-    const ids = pasajerosFiltrados.value.map(p => extractIdStr(p.id)).filter(Boolean);
+    // ⚠️ `@id`, NO `id`. El pasajero **no expone `id`** en el grupo de lectura —a diferencia del
+    // subgrupo o de la identificación, que sí—: sólo llega el IRI de JSON-LD. Con `p.id` la lista
+    // salía entera vacía, el `if` de abajo cortaba, y el botón no hacía absolutamente nada: ni
+    // descarga, ni error, ni rastro.
+    const ids = pasajerosFiltrados.value.map(p => extractIdStr(p['@id'] ?? p.id)).filter(Boolean);
     if (!id || !ids.length) return;
 
     descargandoPlantilla.value = true;
@@ -1034,15 +1038,48 @@ const hayFiltros = computed(() =>
 //
 // Se agrupan por EJE para pintarlos, pero no anidan: una persona está a la vez en su salón, su
 // grupo, su habitación y sus reservas. Ver docs/Cotizaciones.md §6.m.
-const gruposPorTipo = computed(() => {
-  const mapa: Record<string, ApiFileGrupo[]> = {};
-  for (const g of (file.value?.grupos ?? [])) {
-    // ⚠️ Se agrupa por eje Y TRAMO: «Vuelo Nacional» y «Vuelo Cusco-Puno» son dos listas, no una
-    // de veinte localizadores mezclados donde no se sabe cuál es de qué vuelo.
-    const clave = (g.etiquetaDeEje ?? '').trim() || String(g.tipo ?? 'grupo');
-    (mapa[clave] ??= []).push(g);
-  }
-  return mapa;
+/**
+ * Los subgrupos por eje Y TRAMO: «Vuelo Nacional» y «Vuelo Cusco-Puno» son dos listas, no una de
+ * veinte localizadores mezclados donde no se sabe cuál es de qué vuelo.
+ *
+ * ⚠️ Devuelve **secciones con su rótulo y su icono ya resueltos**, no un mapa indexado por la
+ * clave. Al pasar de agrupar por `tipo` a agrupar por etiqueta, los consumidores seguían haciendo
+ * `GRUPO_TIPO_LABELS[clave]` —que ahora es «Vuelo Nacional», no `reserva_aerea`— y devolvía
+ * `undefined`: los iconos desaparecían y el resumen decía «9 Grupo · 66 Habitación» en vez de
+ * «9 grupos · 66 habitaciones». Resolviéndolo aquí, donde SÍ se conoce el tipo, no hay forma de
+ * que un consumidor se equivoque.
+ */
+interface SeccionDeGrupos {
+    clave: string;
+    label: string;
+    plural: string;
+    icon: string;
+    lista: ApiFileGrupo[];
+}
+
+const seccionesDeGrupos = computed<SeccionDeGrupos[]>(() => {
+    const mapa = new Map<string, SeccionDeGrupos>();
+
+    for (const g of (file.value?.grupos ?? [])) {
+        const cfg = GRUPO_TIPO_LABELS[String(g.tipo)];
+        const clave = (g.etiquetaDeEje ?? '').trim() || cfg?.label || String(g.tipo ?? 'grupo');
+
+        if (!mapa.has(clave)) {
+            // El plural del eje con el tramo pegado: «vuelos Nacional» no; «Vuelo Nacional» sí,
+            // porque el tramo ya lo singulariza. Sin tramo manda el plural del diccionario.
+            const tramo = (g.subeje ?? '').trim();
+            mapa.set(clave, {
+                clave,
+                label: clave,
+                plural: tramo ? clave.toLowerCase() : (cfg?.plural ?? clave.toLowerCase()),
+                icon: cfg?.icon ?? 'fa-tag',
+                lista: [],
+            });
+        }
+        mapa.get(clave)?.lista.push(g);
+    }
+
+    return [...mapa.values()];
 });
 
 /**
@@ -1100,17 +1137,13 @@ const subgruposAbiertos = ref(false);
 
 /** «9 grupos · 66 habitaciones · 23 reservas · 10 servicios», para no tener que abrir. */
 const resumenSubgrupos = computed(() => {
-    const partes = Object.entries(gruposPorTipo.value)
-        .map(([tipo, lista]) => {
-            const cfg = GRUPO_TIPO_LABELS[tipo];
-
-            return `${lista.length} ${(lista.length === 1 ? cfg?.label : cfg?.plural)?.toLowerCase() ?? tipo}`;
-        });
+    const partes = seccionesDeGrupos.value
+        .map(s => `${s.lista.length} ${(s.lista.length === 1 ? s.label : s.plural).toLowerCase()}`);
 
     return partes.length ? partes.join(' · ') : 'ninguno';
 });
 
-const nuevoGrupo = ref({ tipo: 'grupo', clave: '', nombre: '', detalle: '' });
+const nuevoGrupo = ref({ tipo: 'grupo', subeje: '', clave: '', nombre: '', detalle: '' });
 const creandoGrupo = ref(false);
 
 const agregarGrupo = async () => {
@@ -1121,6 +1154,7 @@ const agregarGrupo = async () => {
     extractIdStr(file.value.id || file.value['@id']) || '',
     {
       tipo: nuevoGrupo.value.tipo,
+      subeje: nuevoGrupo.value.subeje || '',
       clave: nuevoGrupo.value.clave,
       nombre: nuevoGrupo.value.nombre || null,
       detalle: nuevoGrupo.value.detalle || null,
@@ -1729,7 +1763,7 @@ const eliminarDocumento = async (iri?: string) => {
                    la tarjeta y apuntar a un icono de 28 px con el pulgar es la parte incómoda.
                    La plumita entra directa a editar; los dos botones paran la propagación para no
                    disparar además la apertura de la tarjeta. -->
-              <div v-for="(pax, idx) in pasajerosFiltrados" :key="pax.id"
+              <div v-for="(pax, idx) in pasajerosFiltrados" :key="pax['@id'] ?? pax.id"
                    @click="abrirEdicionPax(pax)"
                    class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all">
                 <div class="absolute top-3 right-3 flex items-center gap-1">
@@ -1919,6 +1953,16 @@ const eliminarDocumento = async (iri?: string) => {
                     <option v-for="(cfg, valor) in GRUPO_TIPO_LABELS" :key="valor" :value="valor">{{ cfg.label }}</option>
                   </select>
                 </div>
+                <!-- ⚠️ El tramo sólo para el vuelo. Sin este campo, un vuelo con tramo únicamente
+                     podía entrar por el .xlsx: al quitar los dos casos de enum, el desplegable de
+                     eje dejó de ofrecer «nacional» e «internacional» y aquí no quedó forma de
+                     escribirlo. Los demás ejes no se subdividen. -->
+                <div v-if="nuevoGrupo.tipo === 'reserva_aerea'">
+                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tramo</label>
+                  <input v-model="nuevoGrupo.subeje" type="text" placeholder="Nacional · Cusco-Puno" maxlength="60"
+                         @keyup.enter="agregarGrupo"
+                         class="w-36 border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
+                </div>
                 <div>
                   <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clave</label>
                   <input v-model="nuevoGrupo.clave" type="text" placeholder="B · 5 · HA13 · JA2CWN" maxlength="60"
@@ -1968,19 +2012,19 @@ const eliminarDocumento = async (iri?: string) => {
                   </button>
                 </div>
 
-                <div v-for="(lista, tipo) in gruposPorTipo" :key="tipo">
+                <div v-for="sec in seccionesDeGrupos" :key="sec.clave">
                   <div class="flex items-center justify-between mb-1.5">
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                      <i class="fas" :class="GRUPO_TIPO_LABELS[tipo]?.icon"></i>
-                      {{ GRUPO_TIPO_LABELS[tipo]?.label || tipo }} ({{ lista.length }})
+                      <i class="fas" :class="sec.icon"></i>
+                      {{ sec.label }} ({{ sec.lista.length }})
                     </p>
-                    <button v-if="lista.length > TOPE_PILDORAS" type="button" @click="alternarEje(`lista-${tipo}`)"
+                    <button v-if="sec.lista.length > TOPE_PILDORAS" type="button" @click="alternarEje(`lista-${sec.clave}`)"
                             class="text-[9px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
-                      {{ ejeEstaAbierto(`lista-${tipo}`, lista.length) ? 'Plegar' : `Ver las ${lista.length}` }}
+                      {{ ejeEstaAbierto(`lista-${sec.clave}`, sec.lista.length) ? 'Plegar' : `Ver las ${sec.lista.length}` }}
                     </button>
                   </div>
                   <div class="flex flex-wrap gap-2">
-                    <span v-for="g in (ejeEstaAbierto(`lista-${tipo}`, lista.length) ? lista : lista.slice(0, TOPE_PILDORAS))" :key="g.id"
+                    <span v-for="g in (ejeEstaAbierto(`lista-${sec.clave}`, sec.lista.length) ? sec.lista : sec.lista.slice(0, TOPE_PILDORAS))" :key="g.id"
                           class="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-lg pl-3 py-1 shadow-sm"
                           :class="modoGestionGrupos ? 'pr-1 border-red-200' : 'pr-3'">
                       <span class="text-[11px] font-black text-slate-700">{{ g.clave }}</span>
@@ -1993,8 +2037,8 @@ const eliminarDocumento = async (iri?: string) => {
                         <i class="fas fa-times text-[10px]"></i>
                       </button>
                     </span>
-                    <span v-if="!ejeEstaAbierto(`lista-${tipo}`, lista.length)" class="text-[10px] font-bold text-slate-300 italic py-1.5">
-                      +{{ lista.length - TOPE_PILDORAS }} más
+                    <span v-if="!ejeEstaAbierto(`lista-${sec.clave}`, sec.lista.length)" class="text-[10px] font-bold text-slate-300 italic py-1.5">
+                      +{{ sec.lista.length - TOPE_PILDORAS }} más
                     </span>
                   </div>
                 </div>
@@ -2438,24 +2482,24 @@ const eliminarDocumento = async (iri?: string) => {
                 </span>
               </div>
 
-              <div v-for="(lista, tipo) in (subgruposPaxAbiertos ? gruposPorTipo : {})" :key="tipo" class="mb-2">
+              <div v-for="sec in (subgruposPaxAbiertos ? seccionesDeGrupos : [])" :key="sec.clave" class="mb-2">
                 <div class="flex items-center justify-between mb-1">
                   <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                    <i class="fas" :class="GRUPO_TIPO_LABELS[tipo]?.icon"></i> {{ GRUPO_TIPO_LABELS[tipo]?.label || tipo }}
+                    <i class="fas" :class="sec.icon"></i> {{ sec.label }}
                   </p>
                   <!-- El plegado sólo aparece si sobra: con nueve grupos el botón es ruido. -->
-                  <button v-if="lista.length > TOPE_PILDORAS" type="button" @click="alternarEje(tipo)"
+                  <button v-if="sec.lista.length > TOPE_PILDORAS" type="button" @click="alternarEje(sec.clave)"
                           class="text-[9px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
-                    {{ ejeEstaAbierto(tipo, lista.length) ? 'Plegar' : `Ver las ${lista.length}` }}
+                    {{ ejeEstaAbierto(sec.clave, sec.lista.length) ? 'Plegar' : `Ver las ${sec.lista.length}` }}
                   </button>
                 </div>
 
-                <input v-if="ejeEstaAbierto(tipo, lista.length) && lista.length > TOPE_PILDORAS"
-                       v-model="filtroEje[tipo]" type="text" placeholder="Filtrar…"
+                <input v-if="ejeEstaAbierto(sec.clave, sec.lista.length) && sec.lista.length > TOPE_PILDORAS"
+                       v-model="filtroEje[sec.clave]" type="text" placeholder="Filtrar…"
                        class="w-full mb-1.5 border rounded-lg px-2.5 py-1 text-[11px] outline-none focus:border-indigo-500">
 
                 <div class="flex flex-wrap gap-1.5">
-                  <span v-for="g in pildorasVisibles(tipo, lista)" :key="g.id"
+                  <span v-for="g in pildorasVisibles(sec.clave, sec.lista)" :key="g.id"
                         class="inline-flex items-center rounded-lg border text-[11px] font-black transition-colors overflow-hidden"
                         :class="perteneceA(g) ? 'bg-teal-50 text-teal-700 border-teal-300' : 'bg-white text-slate-400 border-slate-200'">
                     <!-- ⚠️ Aerolínea y código, y NADA MÁS. La píldora existe para ELEGIR entre
@@ -2466,15 +2510,15 @@ const eliminarDocumento = async (iri?: string) => {
                       <span v-if="g.nombre" class="ml-1 font-medium opacity-60">{{ g.nombre }}</span>
                     </button>
                   </span>
-                  <span v-if="!pildorasVisibles(tipo, lista).length"
+                  <span v-if="!pildorasVisibles(sec.clave, sec.lista).length"
                         class="text-[10px] font-bold text-slate-300 italic py-1">
-                    {{ ejeEstaAbierto(tipo, lista.length) ? 'Nada coincide con el filtro.' : 'Sin asignar.' }}
+                    {{ ejeEstaAbierto(sec.clave, sec.lista.length) ? 'Nada coincide con el filtro.' : 'Sin asignar.' }}
                   </span>
                 </div>
 
                 <!-- El itinerario, sólo de los grupos a los que PERTENECE: es para comprobar un
                      horario, no para elegir, y pintarlo de los 66 que no le tocan es ruido. -->
-                <div v-for="g in detallesDe(lista)" :key="`d-${g.id}`"
+                <div v-for="g in detallesDe(sec.lista)" :key="`d-${g.id}`"
                      class="mt-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
                   <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ g.clave }}</p>
                   <!-- eslint-disable-next-line vue/no-v-html -- Lo escribe el operador y `formatoAHtml()` escapa ANTES de aplicar marcas. -->

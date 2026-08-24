@@ -29,14 +29,29 @@ final class Version20260824060000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE cotizacion_file_grupo ADD subeje VARCHAR(60) DEFAULT NULL');
+        $this->addSql("ALTER TABLE cotizacion_file_grupo ADD subeje VARCHAR(60) DEFAULT '' NOT NULL");
+
+        // ⚠️ El índice VIEJO se tira ANTES de tocar el `tipo`.
+        //
+        // Al pasar `reserva_aerea_nacional` y `_internacional` al mismo `reserva_aerea`, dos filas
+        // con el MISMO localizador en tramos distintos —el caso que motiva todo este cambio,
+        // porque las aerolíneas reutilizan códigos— chocarían contra
+        // `(file_id, tipo, clave)`. La migración moriría a mitad, con la columna ya añadida y la
+        // versión sin registrar: el DDL de MySQL no es transaccional, así que reintentar tampoco
+        // funcionaría.
+        $this->addSql('DROP INDEX uniq_file_grupo_tipo_clave ON cotizacion_file_grupo');
 
         // Primero la etiqueta, después el tipo: al revés se perdería de cuál venía cada fila.
         $this->addSql("UPDATE cotizacion_file_grupo SET subeje = 'Nacional' WHERE tipo = 'reserva_aerea_nacional'");
         $this->addSql("UPDATE cotizacion_file_grupo SET subeje = 'Internacional' WHERE tipo = 'reserva_aerea_internacional'");
         $this->addSql("UPDATE cotizacion_file_grupo SET tipo = 'reserva_aerea' WHERE tipo IN ('reserva_aerea_nacional', 'reserva_aerea_internacional')");
 
-        $this->addSql('DROP INDEX uniq_file_grupo_tipo_clave ON cotizacion_file_grupo');
+        // ⚠️ `NOT NULL DEFAULT ''` y no `NULL`, y esto es lo importante del índice.
+        //
+        // En InnoDB un índice único admite CUANTOS NULL quiera: con la columna nullable, todo
+        // grupo sin tramo —habitaciones, grupos, servicios: casi todo lo que existe— se quedaba
+        // SIN protección de unicidad, que es justo la que había antes de este cambio. Un doble
+        // POST creaba dos «HA13» en silencio. Con cadena vacía, la fila entra en el índice.
         $this->addSql('CREATE UNIQUE INDEX uniq_file_grupo_tipo_clave ON cotizacion_file_grupo (file_id, tipo, subeje, clave)');
     }
 

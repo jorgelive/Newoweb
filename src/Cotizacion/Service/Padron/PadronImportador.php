@@ -822,7 +822,10 @@ final readonly class PadronImportador
         // el grupo del primer token ya está creado. Y se avisa, que el archivo hay que arreglarlo.
         if ($tipo !== GrupoTipoEnum::SERVICIO && str_contains($normalizada, ' ')) {
             [$soloClave] = PadronFormato::partirClaveYNombre($normalizada);
-            $declarada = isset($nombresDeGrupo[PadronFormato::claveDeGrupo($tipo->value, $soloClave)]);
+            // ⚠️ CON el tramo. Sin él la sonda buscaba «reserva_aerea/|Y9KZ7J» mientras el mapa
+            // guardaba «reserva_aerea/nacional|Y9KZ7J»: nunca encontraba nada, y la rama que
+            // existe para evitar el grupo duplicado no se disparaba jamás en un vuelo con tramo.
+            $declarada = isset($nombresDeGrupo[PadronFormato::claveDeGrupo($tipo->value, $soloClave, $subeje)]);
 
             // La PRUEBA es que la hoja «Grupos» declara ese código, no que exista ya un grupo:
             // los grupos se crean sobre la marcha, así que mirar los existentes dependía del orden

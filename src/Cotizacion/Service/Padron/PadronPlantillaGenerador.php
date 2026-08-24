@@ -648,7 +648,7 @@ final readonly class PadronPlantillaGenerador
             .'cada código, en vez de repetirlo en las 133 filas. Es opcional: sin esta hoja los grupos entran igual, '
             .'sólo que sin rótulo.');
         $linea(PadronFormato::COL_GRUPO_EJE, 'El mismo texto que la cabecera de la columna, con su marca: '
-            .'«#Habitación», «#Reserva aérea nacional», «+Coco Bongo». Se repite tantas veces como códigos tenga.');
+            .'«#Habitación», «#Vuelo Nacional», «+Coco Bongo». Se repite tantas veces como códigos tenga.');
         $linea(PadronFormato::COL_GRUPO_CLAVE, 'El código, IGUAL que en la hoja de pasajeros: HA50, Y9KZ7J, 5. '
             .'Es lo que une las dos hojas. En un servicio («+…») se deja vacía: no tiene código.');
         $linea(PadronFormato::COL_GRUPO_NOMBRE, 'CORTO, dos o tres palabras: «JetSmart», «DOBLE». Es lo que sale al '

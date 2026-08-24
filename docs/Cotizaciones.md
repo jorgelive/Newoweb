@@ -1731,6 +1731,12 @@ Ahora hay **un solo eje de vuelo** y el tramo vive en `CotizacionFileGrupo::$sub
 eje habitación con tramo «doble» en vez de denunciarse — y el tipo de habitación tiene su sitio,
 que es la columna «Nombre» de la hoja «Grupos».
 
+⚠️ **`subeje` es NOT NULL con cadena vacía, y eso NO es cosmético.** En InnoDB un índice único
+admite **cuantos `NULL` quiera**: con la columna nullable, meterla en `uniq_file_grupo_tipo_clave`
+dejó fuera de la unicidad a todo grupo sin tramo —habitaciones, grupos, servicios: casi todo lo
+que existe—, que es justo la protección que había ANTES de partir la columna. Un doble POST
+creaba dos «HA13» en silencio. Lo cazó una revisión; no se habría visto de otra forma.
+
 ⚠️ **La unicidad incluye el tramo**: `(file, tipo, subeje, clave)`. `#Vuelo Ida` y `#Vuelo Retorno`
 con el mismo localizador —las aerolíneas reutilizan códigos— son dos grupos distintos, y sin la
 columna en la clave el segundo se fundía con el primero en silencio.
