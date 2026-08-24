@@ -752,6 +752,40 @@ convive con el `overflow-y-auto` del hijo. Y donde estaba puesto `overflow-visib
 ⚠️ El patrón **no está aplicado en toda la app**. Los drawers de Tarifas y Reservas, el modal de
 plan de operación y los de chat siguen sin tope. Se van arreglando al tocarlos.
 
+## 3.j Girar la ficha para editarla, en vez de abrirla editando (2026-08-24)
+
+Los paneles de datos —el del expediente y el del pasajero— abrían **en formulario**. Con 131
+fichas que se recorren con las flechas, eso es lo contrario de lo que se hace: en un formulario
+los datos están repartidos entre campos que hay que interpretar, y leerlos de corrido se hace de
+un vistazo. **Ahora abren leyendo, y editar tiene su botón.**
+
+### El giro es de MEDIA vuelta, no de dos caras
+
+Una tarjeta con anverso y reverso exige que las dos caras **midan lo mismo** —van superpuestas en
+absoluto— y aquí no se parecen: seis líneas en lectura contra seis campos, un buscador de países y
+el panel de contacto en edición. Fijar una altura para las dos deja la de lectura con un hueco
+enorme o la de edición cortada.
+
+Se gira **90°**, se cambia el contenido con la tarjeta **de canto**, y se vuelve:
+
+```
+const girar = (aVista: boolean) => {
+    girando.value = true;                                    // rotateY(90deg), 180 ms
+    setTimeout(() => { modoVista.value = aVista;             // ← de canto: nadie ve el cambio
+                       girando.value = false; }, 180);       // vuelve a 0
+};
+```
+
+Se ve igual que un volteo y no pelea con la altura. El CSS vive en el `<style scoped>` de
+`FileDetalle.vue`: `.panel-giratorio` pone la `perspective`, `.cara` la transición, `.de-canto` el
+`rotateY(90deg)`.
+
+⚠️ **Respeta `prefers-reduced-motion`**: quien pide menos movimiento no quiere una tarjeta
+girando, así que ahí el contenido se cambia y ya.
+
+⚠️ **Cancelar DESCARTA.** Volver a lectura enseñando lo que se tecleó y no se guardó sería mentir:
+si hay cambios, se pregunta y se recarga.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -778,4 +812,5 @@ plan de operación y los de chat siguen sin tope. Se van arreglando al tocarlos.
 | Añadir una ayuda a un panel sin gastarle una franja (§3.e) | `InfoTooltip.vue` | `<InfoTooltip lado="…">` — el slot admite formato |
 | Que un tooltip no se salga por el borde de un panel (§3.e) | Vista que lo monta | `lado="derecha"` (ancla por el borde derecho) |
 | Cambiar cómo se comporta el tooltip en táctil (§3.e) | `InfoTooltip.vue` | `alTocar()` + `conPuntero` — ⚠️ NO se vuelve a `:hover`, lee el gotcha |
+| Que una ficha abra leyendo y se gire para editar (§3.j) | La vista que la monta | `modoVista` + `girar()`, y las clases `.panel-giratorio` / `.cara` / `.de-canto`. ⚠️ Media vuelta, NO dos caras |
 | Que un modal no quede tapado por el teclado del móvil (§3.i) | La tarjeta del modal | `flex flex-col max-h-[calc(100dvh-2rem)]` + `shrink-0` en la cabecera + `overflow-y-auto` en el cuerpo. ⚠️ `dvh`, nunca `vh` |

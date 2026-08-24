@@ -330,6 +330,16 @@ const showDocModal = ref(false);
 const isSubmittingPax = ref(false);
 /** Lo pone el botón «Guardar y siguiente»: se consume en `guardarPasajero()`. */
 const seguirTrasGuardar = ref(false);
+
+// El mismo giro de media vuelta que el panel del expediente. Ver el bloque <style>.
+const modoVistaPax = ref(true);
+const girandoPax = ref(false);
+
+const girarPanelPax = (aVista: boolean) => {
+    if (girandoPax.value) return;
+    girandoPax.value = true;
+    window.setTimeout(() => { modoVistaPax.value = aVista; girandoPax.value = false; }, 180);
+};
 const isSubmittingDoc = ref(false);
 
 const paxForm = ref({
@@ -380,6 +390,54 @@ const handleVolver = () => {
   volverAtras('/cotizacion');   // vuelve a donde estabas; el dashboard sólo si no hay historial
 };
 
+// ── El panel del expediente: se lee, y para editar se gira ────────────────
+//
+// ⚠️ El giro es de MEDIA vuelta, no de dos caras.
+//
+// Una tarjeta con anverso y reverso exige que las dos caras midan lo mismo —van superpuestas en
+// absoluto— y aquí no se parecen: en lectura son seis líneas, en edición son seis campos, un
+// desplegable de países y el panel de contacto. Girar 90°, cambiar el contenido con la tarjeta de
+// canto, y volver, se ve igual y no pelea con la altura.
+const modoVistaFile = ref(true);
+
+/** Lo que se lee en la cara de lectura, en el mismo orden que el formulario. */
+const datosDelFile = computed(() => {
+    const f = file.value ?? {};
+    const contacto = [f.telefono ? formatearTelefono(f.telefono) : '', f.email ?? ''].filter(Boolean).join(' · ');
+
+    return [
+        { rotulo: 'Nombre Grupo', valor: f.nombreGrupo ?? '' },
+        { rotulo: 'Titular', valor: f.pasajeroPrincipal ?? '' },
+        { rotulo: 'Contacto', valor: contacto },
+        { rotulo: 'País de Origen', valor: typeof f.pais === 'object' && f.pais ? (f.pais.nombre ?? '') : '' },
+        // El rótulo del estado sale del mismo diccionario que el desplegable; si llegara uno que
+        // no está —una migración a medias—, se enseña el valor crudo en vez de dejarlo en blanco.
+        {
+            rotulo: 'Estado',
+            valor: (ESTADO_FILE_LABELS as Record<string, string>)[String(f.estado)] ?? String(f.estado ?? ''),
+        },
+        {
+            rotulo: 'Idioma',
+            valor: idiomasDisponibles.value.find(i => i.id === (f.idiomaCliente || 'es'))?.nombre ?? (f.idiomaCliente || 'es'),
+        },
+    ];
+});
+const girandoFile = ref(false);
+
+const girarPanelFile = (aVista: boolean) => {
+    if (girandoFile.value) return;
+    girandoFile.value = true;
+    // A los 180 ms la tarjeta está de canto: es cuando se cambia lo que hay dentro.
+    window.setTimeout(() => { modoVistaFile.value = aVista; girandoFile.value = false; }, 180);
+};
+
+/** Cancelar DESCARTA: enseñar en modo lectura lo que se tecleó y no se guardó sería mentir. */
+const cancelarEdicionFile = async () => {
+    if (isDirty.value && !confirm('Se pierden los cambios sin guardar. ¿Continuar?')) return;
+    if (isDirty.value) await cargarFile();
+    girarPanelFile(true);
+};
+
 const guardarFile = async () => {
   isSavingFile.value = true;
 
@@ -401,6 +459,7 @@ const guardarFile = async () => {
 
     if (success) {
       isDirty.value = false;
+      girarPanelFile(true);
       alert('Expediente actualizado correctamente.');
     } else {
       alert(fileStore.error || 'Error al guardar el expediente.');
@@ -430,10 +489,16 @@ const paxEditandoIri = ref<string | null>(null);
 const abrirPaxModal = () => {
   paxEditandoIri.value = null; // modo creación
   paxForm.value = { nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', tipo: '', telefono: '', observaciones: '', identificaciones: [], pertenencias: [] };
+  // Uno nuevo no tiene nada que leer: se abre escribiendo.
+  modoVistaPax.value = false;
   showPaxModal.value = true;
 };
 
 const abrirEdicionPax = (pax: ApiCotizacionFilepasajero) => {
+  // ⚠️ Abre LEYENDO. Recorrer 131 fichas con las flechas es lo que más se hace, y en un formulario
+  // los datos están repartidos entre campos que hay que interpretar; leerlos de corrido se hace de
+  // un vistazo. Editar es la excepción, y tiene su botón.
+  modoVistaPax.value = true;
   paxEditandoIri.value = pax['@id'] || `/platform/sales/cotizacion_filepasajeros/${extractIdStr(pax.id)}`;
   paxForm.value = {
     nombre: pax.nombre || '',
@@ -879,6 +944,20 @@ const detallesDe = (lista: ApiFileGrupo[]): ApiFileGrupo[] =>
 /** El borrado de subgrupos, apagado por defecto. Ver el comentario de la sección. */
 const modoGestionGrupos = ref(false);
 
+const subgruposAbiertos = ref(false);
+
+/** «9 grupos · 66 habitaciones · 23 reservas · 10 servicios», para no tener que abrir. */
+const resumenSubgrupos = computed(() => {
+    const partes = Object.entries(gruposPorTipo.value)
+        .map(([tipo, lista]) => {
+            const cfg = GRUPO_TIPO_LABELS[tipo];
+
+            return `${lista.length} ${(lista.length === 1 ? cfg?.label : cfg?.plural)?.toLowerCase() ?? tipo}`;
+        });
+
+    return partes.length ? partes.join(' · ') : 'ninguno';
+});
+
 const nuevoGrupo = ref({ tipo: 'grupo', clave: '', nombre: '', detalle: '' });
 const creandoGrupo = ref(false);
 
@@ -932,6 +1011,27 @@ const paisSelectRef = ref<{ validate: () => boolean } | null>(null);
 const indiceEnFiltrados = computed(() =>
     pasajerosFiltrados.value.findIndex(p =>
         (p['@id'] || `/platform/sales/cotizacion_filepasajeros/${extractIdStr(p.id)}`) === paxEditandoIri.value));
+
+/** El pasajero que se está mirando, tal como está GUARDADO (no el formulario). */
+const paxEnFoco = computed<ApiCotizacionFilepasajero | undefined>(() =>
+    pasajerosFiltrados.value[indiceEnFiltrados.value]);
+
+/** Un documento vencido no es un matiz: es alguien que no embarca. Se marca. */
+const documentosDe = computed(() => {
+    const hoy = new Date().toISOString().slice(0, 10);
+
+    return (paxEnFoco.value?.identificaciones ?? []).map((d) => {
+        const vence = d.vencimiento ? d.vencimiento.split('T')[0] : '';
+
+        return {
+            id: String(d.id ?? d.numero ?? ''),
+            etiqueta: getDocIdLabel(d.tipo),
+            numero: d.numero ?? '',
+            vence,
+            vencido: vence !== '' && vence < hoy,
+        };
+    });
+});
 
 const hayAnterior = computed(() => indiceEnFiltrados.value > 0);
 const haySiguiente = computed(() =>
@@ -1155,9 +1255,32 @@ const eliminarDocumento = async (iri?: string) => {
 
         <aside class="space-y-6 lg:sticky lg:top-0 min-w-0">
 
-          <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-            <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-5 border-b pb-3"><i class="fas fa-folder-open mr-2 text-[#E07845]"></i> Datos del Expediente</h2>
-            <form @submit.prevent="guardarFile" class="space-y-4">
+          <div class="panel-giratorio">
+          <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm cara" :class="{ 'de-canto': girandoFile }">
+            <div class="flex items-center justify-between mb-5 border-b pb-3 gap-2">
+              <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
+                <i class="fas fa-folder-open mr-2 text-[#E07845]"></i> Datos del Expediente
+              </h2>
+              <button v-if="modoVistaFile" type="button" @click="girarPanelFile(false)"
+                      class="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors">
+                <i class="fas fa-pencil-alt text-[9px]"></i> Editar
+              </button>
+              <span v-else-if="isDirty" class="shrink-0 text-[9px] font-black text-amber-600 uppercase tracking-widest">
+                <i class="fas fa-circle text-[6px] mr-1"></i> Sin guardar
+              </span>
+            </div>
+
+            <!-- ── Cara de lectura ───────────────────────────────────────── -->
+            <dl v-if="modoVistaFile" class="space-y-3">
+              <div v-for="d in datosDelFile" :key="d.rotulo">
+                <dt class="text-[10px] font-bold text-slate-400 uppercase">{{ d.rotulo }}</dt>
+                <dd class="text-sm font-bold text-slate-800 break-words" :class="!d.valor ? 'text-slate-300 italic font-medium' : ''">
+                  {{ d.valor || '— sin definir' }}
+                </dd>
+              </div>
+            </dl>
+
+            <form v-else @submit.prevent="guardarFile" class="space-y-4">
               <div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre Grupo</label>
                 <input v-model="file.nombreGrupo" type="text" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none">
@@ -1225,10 +1348,17 @@ const eliminarDocumento = async (iri?: string) => {
                   </div>
                 </div>
               </div>
-              <button type="submit" :disabled="isSavingFile" class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow mt-2">
-                <i v-if="isSavingFile" class="fas fa-spinner fa-spin mr-1"></i> Guardar Cambios
-              </button>
+              <div class="flex gap-2 mt-2">
+                <button type="button" @click="cancelarEdicionFile"
+                        class="px-4 py-3 border border-slate-200 text-slate-500 font-bold rounded-xl text-sm hover:bg-slate-50">
+                  Cancelar
+                </button>
+                <button type="submit" :disabled="isSavingFile" class="flex-1 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow">
+                  <i v-if="isSavingFile" class="fas fa-spinner fa-spin mr-1"></i> Guardar Cambios
+                </button>
+              </div>
             </form>
+          </div>
           </div>
 
           <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
@@ -1526,12 +1656,24 @@ const eliminarDocumento = async (iri?: string) => {
                  Ejes cruzados, no un árbol: en un padrón real 9 de cada 10 grupos aparecen en más
                  de un salón, así que una persona pertenece a varios a la vez. Se definen aquí y se
                  asignan en la ficha de cada pasajero. -->
+            <!-- ⚠️ PLEGADA por defecto, y el resumen basta.
+                 Los subgrupos se crean solos al cargar el padrón y casi nunca se tocan a mano: son
+                 el andamio, no la obra. Desplegados ocupaban tres pantallas de scroll entre el
+                 manifiesto y lo que viene después, y quien baja a esta zona va a otra cosa. El
+                 rótulo dice de un vistazo lo que hay dentro, que es lo único que se consulta a
+                 diario. -->
             <div v-if="file.usaPadron" class="mb-8">
-              <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
-                <i class="fas fa-layer-group mr-2 text-teal-500"></i> Subgrupos
-              </h2>
+              <button type="button" @click="subgruposAbiertos = !subgruposAbiertos"
+                      class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
+                  <i class="fas fa-layer-group mr-2 text-teal-500"></i> Subgrupos
+                  <span class="text-slate-300 font-bold normal-case tracking-normal ml-1">{{ resumenSubgrupos }}</span>
+                </h2>
+                <i class="fas fa-chevron-down text-slate-400 text-xs transition-transform shrink-0 group-hover:text-teal-500"
+                   :class="subgruposAbiertos ? 'rotate-180' : ''"></i>
+              </button>
 
-              <div class="flex flex-wrap gap-2 items-end bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-4">
+              <div v-if="subgruposAbiertos" class="flex flex-wrap gap-2 items-end bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-4">
                 <div>
                   <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Eje</label>
                   <select v-model="nuevoGrupo.tipo" class="border rounded-lg px-2 py-2 text-sm outline-none focus:border-teal-500">
@@ -1803,7 +1945,9 @@ const eliminarDocumento = async (iri?: string) => {
       <!-- `overflow-visible` seguía haciendo falta: el desplegable de SearchableSelect se
            teletransporta a `body` con `fixed`, así que no lo recorta nada. Lo que se añade es el
            tope en `dvh` —que sí encoge con el teclado del móvil— y el scroll del cuerpo. -->
-      <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-visible flex flex-col max-h-[calc(100dvh-2rem)]">
+      <div class="panel-giratorio w-full max-w-lg">
+      <div class="bg-white w-full rounded-3xl shadow-2xl overflow-visible flex flex-col max-h-[calc(100dvh-2rem)] cara"
+           :class="{ 'de-canto': girandoPax }">
         <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white rounded-t-3xl shrink-0 gap-3">
           <div class="min-w-0">
             <h3 class="font-black text-sm uppercase tracking-widest truncate">
@@ -1824,12 +1968,86 @@ const eliminarDocumento = async (iri?: string) => {
                     title="Siguiente" class="w-8 h-8 rounded-lg text-indigo-100 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-transparent">
               <i class="fas fa-chevron-right text-xs"></i>
             </button>
+            <button v-if="modoVistaPax && paxEditandoIri" type="button" @click="girarPanelPax(false)"
+                    title="Editar" class="w-8 h-8 rounded-lg text-indigo-100 hover:bg-indigo-500 ml-1">
+              <i class="fas fa-pencil-alt text-xs"></i>
+            </button>
             <button @click="showPaxModal = false" class="w-8 h-8 rounded-lg text-indigo-200 hover:text-white hover:bg-indigo-500 ml-1">
               <i class="fas fa-times"></i>
             </button>
           </div>
         </div>
-        <form @submit.prevent="guardarPasajero" class="p-6 space-y-4 overflow-y-auto">
+        <!-- ── Cara de lectura ─────────────────────────────────────────
+             Recorrer 131 fichas con las flechas es lo que más se hace, y en un formulario los
+             datos están repartidos entre campos que hay que interpretar. Aquí se leen de corrido. -->
+        <div v-if="modoVistaPax && paxEnFoco" class="p-6 space-y-4 overflow-y-auto">
+          <div>
+            <p class="text-xl font-black text-slate-800 leading-tight">{{ paxEnFoco.nombre }} {{ paxEnFoco.apellido }}</p>
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+              {{ PASAJERO_TIPO_CONFIG[String(paxEnFoco.tipo)]?.label ?? 'Sin rol' }}
+              <span v-if="paxEnFoco.edad" class="text-slate-300"> · {{ paxEnFoco.edad }} años</span>
+              <span v-if="paxEnFoco.sexo" class="text-slate-300"> · {{ getSexoLabel(paxEnFoco.sexo) }}</span>
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <p class="text-[10px] font-bold text-slate-400 uppercase">Nacionalidad</p>
+              <p class="text-sm font-bold text-slate-700">{{ paxEnFoco.pais?.nombre || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-[10px] font-bold text-slate-400 uppercase">Teléfono</p>
+              <p class="text-sm font-bold text-slate-700">{{ paxEnFoco.telefono ? formatearTelefono(paxEnFoco.telefono) : '—' }}</p>
+            </div>
+          </div>
+
+          <div v-if="documentosDe.length">
+            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Documentos</p>
+            <!-- El vencido en rojo y con la palabra: un documento caducado no es un matiz de
+                 formato, es alguien que no embarca. -->
+            <div v-for="d in documentosDe" :key="d.id" class="flex items-baseline gap-2 text-sm">
+              <span class="font-bold text-slate-700">{{ d.etiqueta }}</span>
+              <span class="font-black text-slate-800">{{ d.numero }}</span>
+              <span v-if="d.vence" class="text-[11px] font-bold" :class="d.vencido ? 'text-red-600' : 'text-slate-400'">
+                {{ d.vencido ? 'VENCIDO ' : 'vence ' }}{{ d.vence.split('-').reverse().join('/') }}
+              </span>
+              <span v-else class="text-[11px] font-bold text-amber-500">sin comprobar</span>
+            </div>
+          </div>
+
+          <div v-if="vuelosDe(paxEnFoco).length">
+            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Vuelos</p>
+            <p v-for="v in vuelosDe(paxEnFoco)" :key="v.id" class="text-sm">
+              <span class="font-bold text-sky-600">{{ v.tramo }}</span>
+              <span class="text-slate-700 font-bold"> {{ v.nombre }}</span>
+              <span class="text-slate-400"> · {{ v.clave }}</span>
+            </p>
+          </div>
+
+          <div v-if="gruposDePax(paxEnFoco).length">
+            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Subgrupos</p>
+            <div class="flex flex-wrap gap-1.5">
+              <span v-for="g in gruposDePax(paxEnFoco)" :key="g.id"
+                    class="inline-flex items-center gap-1 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg px-2 py-1 text-[11px] font-black">
+                {{ g.clave }}<span v-if="g.nombre" class="font-medium opacity-70">{{ g.nombre }}</span>
+              </span>
+            </div>
+          </div>
+
+          <div v-if="paxEnFoco.observaciones">
+            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Observaciones</p>
+            <p class="text-sm font-medium text-slate-600">{{ paxEnFoco.observaciones }}</p>
+          </div>
+
+          <div class="pt-4 border-t border-slate-100 flex justify-end">
+            <button type="button" @click="girarPanelPax(false)"
+                    class="px-5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-indigo-700 flex items-center gap-2">
+              <i class="fas fa-pencil-alt text-[10px]"></i> Editar
+            </button>
+          </div>
+        </div>
+
+        <form v-else @submit.prevent="guardarPasajero" class="p-6 space-y-4 overflow-y-auto">
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombres *</label>
@@ -1996,7 +2214,8 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
           </div>
           <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
-            <button type="button" @click="showPaxModal = false" class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg">Cancelar</button>
+            <button type="button" @click="paxEditandoIri ? girarPanelPax(true) : (showPaxModal = false)"
+                    class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg">Cancelar</button>
             <button v-if="haySiguiente" type="submit" @click="seguirTrasGuardar = true" :disabled="isSubmittingPax"
                     class="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 text-xs font-bold rounded-lg hover:bg-indigo-50 flex items-center gap-2">
               Guardar y siguiente <i class="fas fa-chevron-right text-[10px]"></i>
@@ -2006,6 +2225,7 @@ const eliminarDocumento = async (iri?: string) => {
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   </Teleport>
@@ -2081,3 +2301,33 @@ const eliminarDocumento = async (iri?: string) => {
   />
 
 </template>
+
+<style scoped>
+/*
+ * El giro del panel del expediente.
+ *
+ * ⚠️ Media vuelta, no dos caras. Una tarjeta con anverso y reverso obliga a que las dos midan lo
+ * mismo —van superpuestas en absoluto— y aquí no se parecen en nada: seis líneas en lectura
+ * contra seis campos, un buscador de países y el panel de contacto en edición. Se gira 90°, se
+ * cambia el contenido con la tarjeta de canto, y se vuelve. Se ve igual y no pelea con la altura.
+ */
+.panel-giratorio {
+  perspective: 1400px;
+}
+
+.cara {
+  transition: transform 0.18s ease-in-out;
+  transform-origin: center;
+  backface-visibility: hidden;
+}
+
+.cara.de-canto {
+  transform: rotateY(90deg);
+}
+
+/* Quien pide menos movimiento no quiere una tarjeta girando: se cambia y ya. */
+@media (prefers-reduced-motion: reduce) {
+  .cara { transition: none; }
+  .cara.de-canto { transform: none; }
+}
+</style>

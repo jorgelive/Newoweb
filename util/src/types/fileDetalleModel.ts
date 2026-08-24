@@ -82,18 +82,20 @@ export type ApiFileGrupo = components['schemas']['CotizacionFileGrupo-file.read_
 };
 
 /** Espejo de `App\Cotizacion\Enum\GrupoTipoEnum`. **Al tocar una, tocar la otra.** */
-export const GRUPO_TIPO_LABELS: Record<string, { label: string; icon: string; color: string }> = {
-    grupo:         { label: 'Grupo',         icon: 'fa-people-group',    color: 'teal' },
-    habitacion:    { label: 'Habitación',    icon: 'fa-bed',             color: 'amber' },
-    reserva_aerea: { label: 'Reserva aérea', icon: 'fa-plane-departure', color: 'sky' },
+// ⚠️ El plural va escrito, no se deduce. «Habitación» + «s» da «habitacións», y «reserva aérea
+// nacional» + «s» da algo peor. Es una palabra por caso, y se escribe una vez.
+export const GRUPO_TIPO_LABELS: Record<string, { label: string; plural: string; icon: string; color: string }> = {
+    grupo:         { label: 'Grupo',         plural: 'grupos',         icon: 'fa-people-group',    color: 'teal' },
+    habitacion:    { label: 'Habitación',    plural: 'habitaciones',   icon: 'fa-bed',             color: 'amber' },
+    reserva_aerea: { label: 'Reserva aérea', plural: 'reservas aéreas', icon: 'fa-plane-departure', color: 'sky' },
     // ⚠️ Los tres conviven: una pareja que vuela a Cusco tiene UNA reserva y no hay tramo del que
     // hablar. Son ejes propios porque la plantilla del padrón identifica el eje por la CABECERA, y
     // con las dos llamándose igual el tramo dependía de la posición de la columna.
-    reserva_aerea_nacional:      { label: 'Reserva aérea nacional',      icon: 'fa-plane-departure', color: 'sky' },
-    reserva_aerea_internacional: { label: 'Reserva aérea internacional', icon: 'fa-earth-americas',  color: 'sky' },
+    reserva_aerea_nacional:      { label: 'Reserva aérea nacional',      plural: 'reservas nacionales',      icon: 'fa-plane-departure', color: 'sky' },
+    reserva_aerea_internacional: { label: 'Reserva aérea internacional', plural: 'reservas internacionales', icon: 'fa-earth-americas',  color: 'sky' },
     // ⚠️ Binario: se pertenece o no, sin valor. Es lo que llena el panel de inclusiones
     // específicas de cada participante, y la lista de quién va en cada orden de servicio.
-    servicio:      { label: 'Servicio',      icon: 'fa-circle-check',    color: 'emerald' },
+    servicio:      { label: 'Servicio',      plural: 'servicios',      icon: 'fa-circle-check',    color: 'emerald' },
 };
 
 export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 'filepasajeros' | 'filearchivos' | 'grupos' | 'cotizaciones' | 'versionesFechas'> & {
