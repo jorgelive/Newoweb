@@ -2010,9 +2010,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // En catálogo nace activo: un tour no es un grupo concreto, así que su
             // "total de viaje" (numPax base × precio) no es vendible — ver docs §6.b.
             totalesOcultos: modoCatalogo.value,
-            // Nace apagado también en catálogo: un catálogo es público por definición, y pedirle
-            // el documento a quien mira un tour es lo contrario de un catálogo.
-            accesoIdentificado: false,
             titulo: [],
             resumen: [],
             sobreescribirTraduccion: false,

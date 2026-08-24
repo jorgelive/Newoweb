@@ -1585,6 +1585,67 @@ Dos caminos, sin decidir:
 - **Participación contra el componente** (`pasajero ↔ cotcomponente`): da el precio exacto porque
   cada uno suma lo suyo, y es lo correcto conceptualmente. Es la relación que hoy no existe.
 
+## 6.q El modo del expediente: una decisión, no cinco banderas (24/08/2026)
+
+`CotizacionFile::$modo` — `ESTANDAR` o `GRUPO` — y de ahí cuelga todo:
+
+| | estándar | grupo / incentivo |
+|---|---|---|
+| `exigeIdentificacion()` | no | documento + fecha de nacimiento |
+| `ocultaTotalDeGrupo()` | no | precio por persona |
+| `usaPadron()` | no | subgrupos, importación, panel por participante |
+
+### Por qué un modo y no banderas
+
+Iban a ser tres flags y eran **la misma decisión escrita tres veces**. Con banderas sueltas existen
+combinaciones que no significan nada —«padrón sí, identificación no»— y alguien tendría que decidir
+qué hacen.
+
+Es la misma idea que `modoCatalogo`, que hoy **no es un flag**: sale de que la cotización cuelgue de
+un `CotizacionCatalogo` en vez de un `CotizacionFile`. Aquí se consigue lo mismo sin una entidad
+aparte — basta decir qué es el expediente.
+
+⚠️ **Va en el EXPEDIENTE, no en la cotización.** Un expediente tiene N versiones y el modo es
+propiedad del **negocio**: la v2 de un viaje de colegio sigue siendo un viaje de colegio. Por
+versión abriría la puerta a que la v1 pida documento y la v2 no, sin que eso quiera decir nada.
+
+### Qué cambia en modo grupo
+
+El calculador financiero **deja de ser lo que ve el cliente** y pasa a ser coste interno. Aquí no
+se vende «coste + margen» sino un precio de paquete acordado, con gratuidades y excepciones que
+ninguna fórmula describe. Lo que se publica son tres superficies:
+
+```
+1. INCLUYE / NO INCLUYE del paquete base      construirInclusiones(), como siempre
+2. SERVICIOS ADICIONALES con su precio         el bucket `opcionales`, como siempre
+3. INCLUSIONES ESPECÍFICAS del participante    los grupos de tipo SERVICIO
+```
+
+⚠️ La tercera es **informativa y sin precios**. Al no tener que calcular nada, no toca el motor
+financiero: «los que van a Coco Bongo» es un conjunto de personas, o sea un grupo, y la pertenencia
+*es* la participación. Sale gratis la lista de quién va que necesita la orden de ese proveedor.
+
+### El «salón» se quitó
+
+Era control académico del colegio —qué aula le toca a cada alumno— y no describe nada del viaje. Un
+eje que no cambia ninguna decisión operativa sólo enseña a ignorar los demás. Cero filas en
+producción cuando se retiró.
+
+### Dos marcadores en la plantilla, no uno
+
+```
+#Grupo · #Habitación · #Reserva aérea     ejes CON VALOR
++Seguro · +Tour Saona · +Coco Bongo       servicios: SÍ/NO por persona
+```
+
+Una columna `#Coco Bongo` con «SÍ» crearía un grupo llamado «SI», que no significa nada. Y las
+columnas `+` **son las de tu viaje**: la plantilla trae las del padrón real como ejemplo porque una
+plantilla con columnas plausibles se entiende sin leer nada, y una con «Servicio 1, Servicio 2» hay
+que explicarla.
+
+⚠️ **Vacío se lee como NO.** En 133 filas una celda en blanco es «no me consta», y apuntar a alguien
+a un servicio por descuido cuesta dinero.
+
 ## 6.p Quién ve a quién en un padrón (24/08/2026)
 
 ### Dos ejes, y confundirlos es la fuga

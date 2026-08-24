@@ -4362,11 +4362,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -4466,11 +4461,6 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
-            /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -4580,11 +4570,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -4679,11 +4664,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -4764,11 +4744,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -4846,11 +4821,6 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
-            /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -4934,11 +4904,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5005,11 +4970,6 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
-            /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5146,11 +5106,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5251,11 +5206,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5350,11 +5300,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5432,11 +5377,6 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
-            /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5520,11 +5460,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5592,11 +5527,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5663,11 +5593,6 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
-            /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5769,11 +5694,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5868,11 +5788,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5950,11 +5865,6 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
-            /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6038,11 +5948,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -6110,11 +6015,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -6181,11 +6081,6 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
-            /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6287,11 +6182,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -6386,11 +6276,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -6468,11 +6353,6 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
-            /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6556,11 +6436,6 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
-            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -6627,11 +6502,6 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
-            /**
-             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
-             * @default false
-             */
-            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -9753,6 +9623,12 @@ export interface components {
             filearchivos?: string[];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -9781,6 +9657,9 @@ export interface components {
             readonly localizador?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         "CotizacionFile-cotizacion.read_timestamp.read": {
             /** Format: date-time */
@@ -9808,6 +9687,12 @@ export interface components {
             filearchivos?: components["schemas"]["CotizacionFilearchivo-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"][];
             /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
              *     escalar batched para toda la página del dashboard (sin N+1), evitando
@@ -9821,6 +9706,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-file.read_timestamp.read": {
@@ -9838,6 +9726,12 @@ export interface components {
              */
             estado: "abierto" | "cerrado" | "archivado";
             /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
              *     escalar batched para toda la página del dashboard (sin N+1), evitando
@@ -9851,6 +9745,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-file.write": {
@@ -9871,6 +9768,12 @@ export interface components {
              * @enum {string}
              */
             estado: "abierto" | "cerrado" | "archivado";
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-file.write.jsonMergePatch": {
@@ -9891,6 +9794,12 @@ export interface components {
              * @enum {string}
              */
             estado: "abierto" | "cerrado" | "archivado";
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
         };
         "CotizacionFile-operacion.item.read_timestamp.read": {
             nombreGrupo?: string;
@@ -9916,12 +9825,21 @@ export interface components {
             /** @default es */
             idiomaCliente: string;
             filepasajeros?: components["schemas"]["CotizacionFilepasajero-pax_file.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read"][];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-pax_file.read_pax_cotizacion.read": {
@@ -9930,6 +9848,12 @@ export interface components {
             /** @default es */
             idiomaCliente: string;
             filepasajeros?: components["schemas"]["CotizacionFilepasajero-pax_file.read_pax_cotizacion.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -9937,6 +9861,9 @@ export interface components {
             cotizacionParaCliente?: components["schemas"]["Cotizacion-pax_file.read_pax_cotizacion.read"] | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read_pax_cotizacion.read"][];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.html": {
@@ -9971,6 +9898,12 @@ export interface components {
             filearchivos?: string[];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -9999,6 +9932,9 @@ export interface components {
             readonly localizador?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         "CotizacionFile.html-cotizacion.read_timestamp.read": {
             /** Format: date-time */
@@ -10026,6 +9962,12 @@ export interface components {
             filearchivos?: components["schemas"]["CotizacionFilearchivo.html-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"][];
             /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
              *     escalar batched para toda la página del dashboard (sin N+1), evitando
@@ -10039,6 +9981,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.html-file.read_timestamp.read": {
@@ -10056,6 +10001,12 @@ export interface components {
              */
             estado: "abierto" | "cerrado" | "archivado";
             /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
              *     escalar batched para toda la página del dashboard (sin N+1), evitando
@@ -10069,6 +10020,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         "CotizacionFile.html-operacion.item.read_timestamp.read": {
             nombreGrupo?: string;
@@ -10094,12 +10048,21 @@ export interface components {
             /** @default es */
             idiomaCliente: string;
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-pax_file.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read"][];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.html-pax_file.read_pax_cotizacion.read": {
@@ -10108,6 +10071,12 @@ export interface components {
             /** @default es */
             idiomaCliente: string;
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-pax_file.read_pax_cotizacion.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -10115,6 +10084,9 @@ export interface components {
             cotizacionParaCliente?: components["schemas"]["Cotizacion.html-pax_file.read_pax_cotizacion.read"] | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read_pax_cotizacion.read"][];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -10149,6 +10121,12 @@ export interface components {
             filearchivos?: string[];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -10177,6 +10155,9 @@ export interface components {
             readonly localizador?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -10191,6 +10172,12 @@ export interface components {
             filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
             /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
              *     escalar batched para toda la página del dashboard (sin N+1), evitando
@@ -10204,6 +10191,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         } & (components["schemas"]["HydraItemBaseSchema"] & {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
@@ -10236,6 +10226,12 @@ export interface components {
              */
             estado: "abierto" | "cerrado" | "archivado";
             /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
              *     escalar batched para toda la página del dashboard (sin N+1), evitando
@@ -10249,6 +10245,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -10276,12 +10275,21 @@ export interface components {
             /** @default es */
             idiomaCliente: string;
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-pax_file.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read"][];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -10290,6 +10298,12 @@ export interface components {
             /** @default es */
             idiomaCliente: string;
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-pax_file.read_pax_cotizacion.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -10297,6 +10311,9 @@ export interface components {
             cotizacionParaCliente?: components["schemas"]["Cotizacion.jsonld-pax_file.read_pax_cotizacion.read"] | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read_pax_cotizacion.read"][];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.multipart": {
@@ -10331,6 +10348,12 @@ export interface components {
             filearchivos?: string[];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -10359,6 +10382,9 @@ export interface components {
             readonly localizador?: string | null;
             /** @description Documentos visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         "CotizacionFile.multipart-cotizacion.read_timestamp.read": {
             /** Format: date-time */
@@ -10386,6 +10412,12 @@ export interface components {
             filearchivos?: components["schemas"]["CotizacionFilearchivo.multipart-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"][];
             /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
              *     escalar batched para toda la página del dashboard (sin N+1), evitando
@@ -10399,6 +10431,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.multipart-file.read_timestamp.read": {
@@ -10416,6 +10451,12 @@ export interface components {
              */
             estado: "abierto" | "cerrado" | "archivado";
             /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
+            /**
              * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
              *     expediente. La llena CotizacionFileCollectionProvider con UN query
              *     escalar batched para toda la página del dashboard (sin N+1), evitando
@@ -10429,6 +10470,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         "CotizacionFile.multipart-operacion.item.read_timestamp.read": {
             nombreGrupo?: string;
@@ -10454,12 +10498,21 @@ export interface components {
             /** @default es */
             idiomaCliente: string;
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-pax_file.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read"][];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.multipart-pax_file.read_pax_cotizacion.read": {
@@ -10468,6 +10521,12 @@ export interface components {
             /** @default es */
             idiomaCliente: string;
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-pax_file.read_pax_cotizacion.read"][];
+            /**
+             * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
+             * @default estandar
+             * @enum {string}
+             */
+            modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
             versionesParaCliente?: {
                 [key: string]: string | null;
@@ -10475,6 +10534,9 @@ export interface components {
             cotizacionParaCliente?: components["schemas"]["Cotizacion.multipart-pax_file.read_pax_cotizacion.read"] | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read_pax_cotizacion.read"][];
+            /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
+            readonly usaPadron?: boolean;
+            readonly exigeIdentificacion?: boolean;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         CotizacionFileGrupo: {
@@ -10484,7 +10546,7 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
@@ -10501,7 +10563,7 @@ export interface components {
         };
         "CotizacionFileGrupo-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
-            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
@@ -10520,7 +10582,7 @@ export interface components {
         "CotizacionFileGrupo-file.write": {
             file?: components["schemas"]["CotizacionFile-file.write"];
             /** @enum {string} */
-            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
@@ -10531,7 +10593,7 @@ export interface components {
         "CotizacionFileGrupo-file.write.jsonMergePatch": {
             file?: components["schemas"]["CotizacionFile-file.write"];
             /** @enum {string} */
-            tipo?: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            tipo?: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave?: string;
             /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
@@ -10546,7 +10608,7 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
@@ -10563,7 +10625,7 @@ export interface components {
         };
         "CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
-            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
@@ -10586,7 +10648,7 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
@@ -10604,7 +10666,7 @@ export interface components {
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @enum {string} */
-            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
@@ -10627,7 +10689,7 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
@@ -10644,7 +10706,7 @@ export interface components {
         };
         "CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
-            tipo: "salon" | "grupo" | "habitacion" | "reserva_aerea";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */

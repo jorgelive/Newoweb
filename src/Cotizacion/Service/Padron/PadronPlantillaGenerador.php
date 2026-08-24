@@ -71,7 +71,9 @@ final readonly class PadronPlantillaGenerador
             $estilo->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(
                 // Las de eje en naranja: se ven de un vistazo, y son las que se borran cuando no
                 // se usan. Las obligatorias también, porque son las que no.
-                PadronFormato::esColumnaDeEje($cabecera) || in_array($cabecera, $obligatorias, true)
+                PadronFormato::esColumnaDeEje($cabecera)
+                || PadronFormato::esColumnaDeServicio($cabecera)
+                || in_array($cabecera, $obligatorias, true)
                     ? self::NARANJA
                     : self::AZUL,
             );
@@ -92,10 +94,13 @@ final readonly class PadronPlantillaGenerador
                 'Venc. Pasaporte' => '27/05/2031',
                 'DNI' => '73398300',
                 'Venc. DNI' => '04/08/2028',
-                PadronFormato::MARCA_EJE.'Salón' => 'B',
                 PadronFormato::MARCA_EJE.'Grupo' => '5',
                 PadronFormato::MARCA_EJE.'Habitación' => 'HA13',
                 PadronFormato::MARCA_EJE.'Reserva aérea' => 'JA2CWN',
+                PadronFormato::MARCA_SERVICIO.'Seguro' => 'SI',
+                PadronFormato::MARCA_SERVICIO.'Tour Saona' => 'SI',
+                PadronFormato::MARCA_SERVICIO.'Coco Bongo' => 'NO',
+                PadronFormato::MARCA_SERVICIO.'Hotel' => 'SI',
             ],
             [
                 PadronFormato::COL_NOMBRES => 'Todd Joseph',
@@ -193,14 +198,20 @@ final readonly class PadronPlantillaGenerador
         $nota('Los grupos se crean solos al importar, y volver a subir el archivo corregido no los duplica. '
             .'Para quitar una agrupación, borra su columna.');
         foreach (PadronFormato::columnasDeEje() as $eje) {
-            // Sin `default`: el `match` sobre el enum es exhaustivo, y si mañana se añade un eje
-            // el compilador obliga a escribirle su ejemplo en vez de dejarlo en «—».
-            $linea($eje['columna'], 'Ejemplos: '.match ($eje['tipo']) {
-                GrupoTipoEnum::SALON => 'A, B, C, D, PPFF',
-                GrupoTipoEnum::GRUPO => '1, 2, 3…',
-                GrupoTipoEnum::HABITACION => 'HA13, HA44 — el número que da el hotel',
-                GrupoTipoEnum::RESERVA_AEREA => 'JA2CWN, YMFLHB — el localizador de la aerolínea',
-            });
+            // Los ejemplos viven en el enum: al añadir un eje, su `match` obliga a escribirlos.
+            $linea($eje['columna'], 'Ejemplos: '.$eje['tipo']->ejemplos());
+        }
+        ++$fila;
+
+        $titulo('Qué lleva cada participante');
+        $nota('Toda columna que empieza por «+» es un servicio del viaje, y se marca SÍ o NO por persona. '
+            .'Estas columnas son LAS DE TU VIAJE: cámbialas, quita las que no uses y añade las que falten.');
+        $nota('⚠️ Vacío se lee como NO. En un padrón de 133 filas una celda en blanco es «no me consta», y '
+            .'apuntar a alguien a un servicio por descuido cuesta dinero.');
+        $nota('Con esto cada participante ve en su panel qué le incluye a ÉL, y la orden de servicio de cada '
+            .'proveedor sale con la lista de quién va. No se usa para calcular precios.');
+        foreach (PadronFormato::SERVICIOS_DE_EJEMPLO as $servicio) {
+            $linea(PadronFormato::MARCA_SERVICIO.$servicio, 'SÍ o NO. Ejemplo del padrón real — cámbialo por el tuyo.');
         }
 
         $hoja->getStyle([1, 1, 2, $fila])->getBorders()->getInside()->setBorderStyle(Border::BORDER_HAIR);

@@ -15,27 +15,30 @@ use Doctrine\Migrations\AbstractMigration;
  * nada y que además podía abrir una puerta de acceso es peor que no tenerla. Cero filas en
  * producción, así que no se pierde nada.
  *
- * ⚠️ `acceso_identificado` es un flag APARTE de `totales_ocultos`: aquél es presentación de precio,
- * éste es acceso. Si fueran el mismo, ocultar el total de grupo implicaría pedir el documento.
+ * ⚠️ El acceso identificado NO va como flag en la cotización sino como **modo del expediente**.
+ * Iba a haber una bandera por consecuencia —ocultar totales, pedir documento, habilitar padrón— y
+ * eran la misma decisión escrita tres veces, con combinaciones que no significan nada. El modo es
+ * propiedad del NEGOCIO, no de la propuesta: la v2 de un viaje de colegio sigue siendo un viaje de
+ * colegio.
  */
 final class Version20260824120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Tipo y observaciones del pasajero, acceso identificado, y se quita es_jefe';
+        return 'Tipo y observaciones del pasajero, modo del expediente, y se quita es_jefe';
     }
 
     public function up(Schema $schema): void
     {
         $this->addSql('ALTER TABLE cotizacion_file_pasajero ADD tipo VARCHAR(20) DEFAULT NULL, ADD observaciones LONGTEXT DEFAULT NULL');
-        $this->addSql('ALTER TABLE cotizacion_cotizacion ADD acceso_identificado TINYINT(1) DEFAULT 0 NOT NULL');
+        $this->addSql("ALTER TABLE cotizacion_file ADD modo VARCHAR(20) DEFAULT 'estandar' NOT NULL");
         $this->addSql('ALTER TABLE cotizacion_pasajero_grupo DROP es_jefe');
     }
 
     public function down(Schema $schema): void
     {
         $this->addSql('ALTER TABLE cotizacion_pasajero_grupo ADD es_jefe TINYINT(1) DEFAULT 0 NOT NULL');
-        $this->addSql('ALTER TABLE cotizacion_cotizacion DROP acceso_identificado');
+        $this->addSql('ALTER TABLE cotizacion_file DROP modo');
         $this->addSql('ALTER TABLE cotizacion_file_pasajero DROP tipo, DROP observaciones');
     }
 }

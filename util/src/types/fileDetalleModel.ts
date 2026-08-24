@@ -41,6 +41,26 @@ export type ApiCotizacionFilearchivo = Omit<
 type BaseApiCotizacionFile = components['schemas']['CotizacionFile.jsonld-file.read_file.item.read_timestamp.read'];
 
 /**
+ * Espejo de `App\Cotizacion\Enum\FileModoEnum`. **Al tocar una, tocar la otra.**
+ *
+ * Una decisión, no cinco banderas: de aquí cuelga si se pide documento, si se enseña precio por
+ * persona en vez de total, y si hay padrón. Combinaciones sueltas —«padrón sí, documento no»— no
+ * significarían nada y alguien tendría que decidir qué hacen.
+ */
+export const FILE_MODO_CONFIG: Record<string, { label: string; ayuda: string; icon: string }> = {
+    estandar: {
+        label: 'Estándar',
+        ayuda: 'Venta normal: precio de grupo y enlace público sin identificarse.',
+        icon: 'fa-user-group',
+    },
+    grupo: {
+        label: 'Grupo / incentivo',
+        ayuda: 'Colegio, empresa o promoción: padrón, precio por persona, y cada uno entra con su documento y ve sólo lo suyo.',
+        icon: 'fa-school',
+    },
+};
+
+/**
  * Espejo de `App\Cotizacion\Enum\PasajeroTipoEnum`. **Al tocar una, tocar la otra.**
  *
  * `alcance` es qué VE; `expuesto` es si le VEN. Son dos ejes distintos y confundirlos es la fuga:
@@ -63,10 +83,12 @@ export type ApiFileGrupo = components['schemas']['CotizacionFileGrupo-file.read_
 
 /** Espejo de `App\Cotizacion\Enum\GrupoTipoEnum`. **Al tocar una, tocar la otra.** */
 export const GRUPO_TIPO_LABELS: Record<string, { label: string; icon: string; color: string }> = {
-    salon:         { label: 'Salón',         icon: 'fa-chalkboard-user', color: 'indigo' },
     grupo:         { label: 'Grupo',         icon: 'fa-people-group',    color: 'teal' },
     habitacion:    { label: 'Habitación',    icon: 'fa-bed',             color: 'amber' },
     reserva_aerea: { label: 'Reserva aérea', icon: 'fa-plane-departure', color: 'sky' },
+    // ⚠️ Binario: se pertenece o no, sin valor. Es lo que llena el panel de inclusiones
+    // específicas de cada participante, y la lista de quién va en cada orden de servicio.
+    servicio:      { label: 'Servicio',      icon: 'fa-circle-check',    color: 'emerald' },
 };
 
 export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 'filepasajeros' | 'filearchivos' | 'grupos' | 'cotizaciones' | 'versionesFechas'> & {

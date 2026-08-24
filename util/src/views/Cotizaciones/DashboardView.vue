@@ -128,6 +128,8 @@ const handleCreate = async (): Promise<void> => {
     pasajeroPrincipal: newFile.value.pasajeroPrincipal || null,
     email: newFile.value.email || null,
     telefono: newFile.value.telefono || null,
+    // Un expediente nace estándar: el modo grupo se elige después, cuando se sabe que lo es.
+    modo: 'estandar',
     estado: 'abierto',
     // El idioma elegido aquí manda sobre TODO lo que verá el cliente: cada
     // cotización del expediente lo hereda al crearse (crearCotizacionVacia) y

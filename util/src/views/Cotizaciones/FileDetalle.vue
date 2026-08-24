@@ -17,7 +17,7 @@ import type { ApiPais } from '@/types/maestroModel';
 import {
   getArchivoLabel, ARCHIVO_TIPO_LABELS,
   getSexoLabel, SEXO_LABELS,
-  getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS, GRUPO_TIPO_LABELS, PASAJERO_TIPO_CONFIG,
+  getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS, GRUPO_TIPO_LABELS, PASAJERO_TIPO_CONFIG, FILE_MODO_CONFIG,
   type ApiFileGrupo,
   type ApiCotizacionFile,
   type ApiCotizacionFilepasajero,
@@ -485,6 +485,13 @@ const alternarPertenencia = (g: ApiFileGrupo): void => {
 };
 
 
+const cambiarModo = async (modo: 'estandar' | 'grupo' | string) => {
+  if (!file.value) return;
+  const iri = file.value['@id'] || `/platform/sales/cotizacion_files/${extractIdStr(file.value.id)}`;
+  if (await fileStore.updateFile(iri, { modo: modo as 'estandar' | 'grupo' })) { await cargarFile(); }
+  else { alert(fileStore.error || 'No se pudo cambiar el modo.'); }
+};
+
 // ── Padrón: plantilla e importación ────────────────────────────────────────
 //
 // La plantilla se GENERA en el servidor desde los enums, no es un archivo guardado: un tipo de
@@ -861,11 +868,31 @@ const eliminarDocumento = async (iri?: string) => {
         <section class="space-y-8 min-w-0">
 
           <div>
+            <!-- ── Qué clase de expediente es ────────────────────────────────
+                 UNA decisión de la que cuelga todo lo demás: padrón, precio por persona y acceso
+                 identificado. Va en el EXPEDIENTE y no en la versión porque es propiedad del
+                 negocio: la v2 de un viaje de colegio sigue siendo un viaje de colegio. -->
+            <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-3 justify-between">
+              <div class="min-w-0">
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">
+                  <i class="fas mr-2 text-slate-400" :class="FILE_MODO_CONFIG[file.modo || 'estandar']?.icon"></i>
+                  Modo del expediente
+                </h2>
+                <p class="text-[10px] font-bold text-slate-400 mt-1 leading-snug max-w-lg">
+                  {{ FILE_MODO_CONFIG[file.modo || 'estandar']?.ayuda }}
+                </p>
+              </div>
+              <select :value="file.modo || 'estandar'" @change="cambiarModo(($event.target as HTMLSelectElement).value)"
+                      class="border rounded-lg px-3 py-2 text-sm font-bold outline-none focus:border-teal-500 shrink-0">
+                <option v-for="(cfg, valor) in FILE_MODO_CONFIG" :key="valor" :value="valor">{{ cfg.label }}</option>
+              </select>
+            </div>
+
             <!-- ── Subgrupos ─────────────────────────────────────────────────
                  Ejes cruzados, no un árbol: en un padrón real 9 de cada 10 grupos aparecen en más
                  de un salón, así que una persona pertenece a varios a la vez. Se definen aquí y se
                  asignan en la ficha de cada pasajero. -->
-            <div class="mb-8">
+            <div v-if="file.usaPadron" class="mb-8">
               <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">
                   <i class="fas fa-layer-group mr-2 text-teal-500"></i> Subgrupos

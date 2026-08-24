@@ -22,9 +22,18 @@ use App\Enum\DocumentoTipoEnum;
  * FIJAS        Nombres · Apellidos · Nacionalidad · Sexo · F. Nacimiento · Observaciones
  * DOCUMENTOS   una por DocumentoTipoEnum, más su «Venc. »
  *                  DNI · Venc. DNI · Pasaporte · Venc. Pasaporte · …
- * EJES         cualquiera que empiece por «#»
- *                  #Salón · #Grupo · #Habitación · #Reserva aérea
+ * EJES         cualquiera que empiece por «#» — llevan un VALOR
+ *                  #Grupo · #Habitación · #Reserva aérea
+ * SERVICIOS    cualquiera que empiece por «+» — llevan SÍ/NO
+ *                  +Seguro · +Tour Saona · +Coco Bongo · +Hotel · +Comidas Lima
  * ```
+ *
+ * ⚠️ **Dos marcadores y no uno**, porque son dos cosas distintas: un eje tiene valor —«Habitación
+ * HA13»— y un servicio sólo tiene pertenencia. Una columna `#Coco Bongo` con «SÍ» crearía un grupo
+ * llamado «SI», que no significa nada.
+ *
+ * ⚠️ **El «salón» ya no está**: es control académico del colegio, no describe nada del viaje, y un
+ * eje que no cambia ninguna decisión operativa sólo enseña a ignorar los demás.
  *
  * ## Qué la hace reutilizable
  *
@@ -48,6 +57,7 @@ use App\Enum\DocumentoTipoEnum;
 final class PadronFormato
 {
     public const MARCA_EJE = '#';
+    public const MARCA_SERVICIO = '+';
     public const PREFIJO_VENCIMIENTO = 'Venc. ';
 
     public const COL_NOMBRES = 'Nombres';
@@ -56,6 +66,21 @@ final class PadronFormato
     public const COL_SEXO = 'Sexo';
     public const COL_NACIMIENTO = 'F. Nacimiento';
     public const COL_OBSERVACIONES = 'Observaciones';
+
+    /**
+     * Los servicios que trae la plantilla de fábrica.
+     *
+     * ⚠️ Son un EJEMPLO, no una lista cerrada: cada viaje tiene los suyos. Salen del padrón real
+     * de Punta Cana porque una plantilla con columnas plausibles se entiende sin leer nada, y una
+     * con «Servicio 1, Servicio 2» hay que explicarla.
+     *
+     * @var list<string>
+     */
+    public const SERVICIOS_DE_EJEMPLO = [
+        'Vuelo Nacional', 'Vuelo Internacional', 'Seguro',
+        'Traslado Ida', 'Traslado Retorno', 'Tour Saona', 'Coco Bongo',
+        'Hotel', 'Traslado Lima', 'Comidas Lima',
+    ];
 
     /**
      * Las columnas de persona, en el orden en que se escriben.
@@ -119,19 +144,44 @@ final class PadronFormato
      */
     public static function columnasDeEje(): array
     {
-        return array_map(
+        // Sin el SERVICIO: es binario y va con «+», no con «#».
+        return array_values(array_map(
             static fn (GrupoTipoEnum $t): array => [
                 'columna' => self::MARCA_EJE.$t->label(),
                 'tipo' => $t,
             ],
-            GrupoTipoEnum::cases(),
-        );
+            array_filter(GrupoTipoEnum::cases(), static fn (GrupoTipoEnum $t): bool => $t->esEjeConValor()),
+        ));
     }
 
-    /** ¿Esta cabecera es un eje? */
+    /** ¿Esta cabecera es un eje con valor? */
     public static function esColumnaDeEje(string $cabecera): bool
     {
         return str_starts_with(trim($cabecera), self::MARCA_EJE);
+    }
+
+    /** ¿Esta cabecera es un servicio (SÍ/NO)? */
+    public static function esColumnaDeServicio(string $cabecera): bool
+    {
+        return str_starts_with(trim($cabecera), self::MARCA_SERVICIO);
+    }
+
+    /** El nombre del servicio que hay tras el «+». */
+    public static function servicioDe(string $cabecera): string
+    {
+        return trim(ltrim(trim($cabecera), self::MARCA_SERVICIO));
+    }
+
+    /**
+     * ¿Esta celda dice que sí participa?
+     *
+     * Se acepta lo que la gente escribe de verdad —SI, SÍ, X, 1— y **todo lo demás es no**,
+     * incluido el vacío: en un padrón de 133 filas, una celda en blanco es «no me consta», y
+     * apuntar a alguien a un servicio por descuido cuesta dinero.
+     */
+    public static function participa(?string $celda): bool
+    {
+        return in_array(mb_strtoupper(trim((string) $celda)), ['SI', 'SÍ', 'X', '1', 'SÍ.', 'YES'], true);
     }
 
     /**
@@ -169,6 +219,12 @@ final class PadronFormato
 
         foreach (self::columnasDeEje() as $eje) {
             $cabeceras[] = $eje['columna'];
+        }
+
+        // Los servicios NO salen de un enum: son los de este viaje. La plantilla trae los del
+        // padrón real como ejemplo y el operador los cambia — es su lista, no la nuestra.
+        foreach (self::SERVICIOS_DE_EJEMPLO as $servicio) {
+            $cabeceras[] = self::MARCA_SERVICIO.$servicio;
         }
 
         return $cabeceras;

@@ -18,6 +18,7 @@ use App\Api\Provider\Cotizacion\CotizacionFileCollectionProvider;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
 use App\Cotizacion\Enum\FileEstadoEnum;
+use App\Cotizacion\Enum\FileModoEnum;
 use App\Entity\Maestro\MaestroContacto;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroPais;
@@ -201,6 +202,16 @@ class CotizacionFile
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFileGrupo::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['tipo' => 'ASC', 'clave' => 'ASC'])]
     private Collection $grupos;
+
+    /**
+     * Qué clase de negocio es, y de ahí cómo se comporta todo.
+     *
+     * Una sola decisión en vez de banderas sueltas —ocultar totales, exigir documento, habilitar
+     * padrón—, que eran la misma escrita tres veces. Ver {@see FileModoEnum}.
+     */
+    #[Groups(['file:read', 'file:item:read', 'file:write', 'pax_file:read'])]
+    #[ORM\Column(type: 'string', length: 20, enumType: FileModoEnum::class, options: ['default' => 'estandar'])]
+    private FileModoEnum $modo = FileModoEnum::ESTANDAR;
 
     // ══════════════════════════════════════════════════════════════════════
     // PROPIEDADES VIRTUALES DE LA VISTA PÚBLICA (no persistidas)
@@ -480,4 +491,14 @@ class CotizacionFile
 
         return $this;
     }
+
+    public function getModo(): FileModoEnum { return $this->modo; }
+    public function setModo(FileModoEnum $v): self { $this->modo = $v; return $this; }
+
+    /** Atajos para que quien pregunte no tenga que conocer el enum. */
+    #[Groups(['file:read', 'file:item:read', 'pax_file:read'])]
+    public function isUsaPadron(): bool { return $this->modo->usaPadron(); }
+
+    #[Groups(['file:read', 'file:item:read', 'pax_file:read'])]
+    public function isExigeIdentificacion(): bool { return $this->modo->exigeIdentificacion(); }
 }

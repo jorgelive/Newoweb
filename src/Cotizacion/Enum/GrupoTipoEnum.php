@@ -9,10 +9,13 @@ namespace App\Cotizacion\Enum;
  *
  * ## No es un árbol, son ejes cruzados
  *
- * ⚠️ En el padrón real de Punta Cana 2026 —133 personas— hay **5 salones y 10 grupos, con 43
- * combinaciones distintas**, y **9 de los 10 grupos aparecen en más de un salón**; el grupo 1 está
- * en los cinco. Una persona pertenece a la vez a su salón, su grupo, su habitación y sus dos
- * reservas aéreas. Modelarlo anidado se rompe en cuanto quieres filtrar por el otro eje.
+ * ⚠️ Una persona pertenece a la vez a su grupo, su habitación, sus dos reservas aéreas y los
+ * servicios que lleva. En el padrón real de Punta Cana hay **13 combinaciones distintas de
+ * servicios entre 133 personas**. Modelarlo anidado se rompe en cuanto quieres filtrar por otro eje.
+ *
+ * ⚠️ **El «salón» se quitó a propósito**: es control académico interno del colegio —qué aula le
+ * toca a cada alumno— y no describe nada del viaje. Un eje que no cambia ninguna decisión
+ * operativa sólo enseña a ignorar los demás.
  *
  * ## Por qué el EJE es enum y el VALOR nunca
  *
@@ -27,26 +30,60 @@ namespace App\Cotizacion\Enum;
  */
 enum GrupoTipoEnum: string
 {
-    case SALON = 'salon';
     case GRUPO = 'grupo';
     case HABITACION = 'habitacion';
     case RESERVA_AEREA = 'reserva_aerea';
 
+    /**
+     * Quién participa en un servicio concreto: los que van a Coco Bongo, los que llevan seguro.
+     *
+     * ⚠️ Es el único eje **binario**: los demás tienen un valor —salón B, habitación HA13— y éste
+     * sólo tiene pertenencia. Por eso en la plantilla del padrón entra con el marcador `+` y no
+     * con `#`: una columna `#Coco Bongo` con «SÍ» crearía un grupo llamado «SI», que no significa
+     * nada. Ver {@see \App\Cotizacion\Service\Padron\PadronFormato}.
+     *
+     * Sirve para dos cosas a la vez sin duplicar nada: el panel de inclusiones específicas de cada
+     * participante, y la lista de quién va que necesita la orden de servicio de ese proveedor.
+     */
+    case SERVICIO = 'servicio';
+
     public function label(): string
     {
         return match ($this) {
-            self::SALON => 'Salón',
             self::GRUPO => 'Grupo',
             self::HABITACION => 'Habitación',
             self::RESERVA_AEREA => 'Reserva aérea',
+            self::SERVICIO => 'Servicio',
+        };
+    }
+
+    /**
+     * ¿Lleva un VALOR, o sólo pertenencia?
+     *
+     * El servicio es el único binario: se va a Coco Bongo o no se va. Los demás tienen un valor
+     * —«Habitación HA13»— y por eso viajan con marcador distinto en la plantilla del padrón.
+     */
+    public function esEjeConValor(): bool
+    {
+        return $this !== self::SERVICIO;
+    }
+
+    /** Qué se escribe en su columna. Va aquí y no en el generador: al añadir un eje, el `match` obliga. */
+    public function ejemplos(): string
+    {
+        return match ($this) {
+            self::GRUPO => '1, 2, 3…',
+            self::HABITACION => 'HA13, HA44 — el número que da el hotel',
+            self::RESERVA_AEREA => 'JA2CWN, YMFLHB — el localizador de la aerolínea',
+            self::SERVICIO => 'SÍ o NO (esta columna va con «+», no con «#»)',
         };
     }
 
     /**
      * ¿Este eje recibe documentos propios?
      *
-     * Hoy sólo la reserva aérea: su namelist llega de la aerolínea y lo mira todo el grupo. Un
-     * salón o una habitación no tienen papeles.
+     * Hoy sólo la reserva aérea: su namelist llega de la aerolínea y lo mira todo el grupo. Una
+     * habitación o un servicio no tienen papeles propios.
      */
     public function admiteArchivos(): bool
     {
