@@ -1494,6 +1494,41 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
   habitación va al lado pero apagada: se consulta al llegar al hotel, no cada mañana.
   ⚠️ El grupo se rotula con su `nombre` («Grupo 5») y la habitación con su `clave` («HA13»): el
   nombre de una habitación es «DOBLE», que no identifica a ninguna.
+- **El manifiesto se ordena por JERARQUÍA**: supervisor → coordinador → participante →
+  acompañante → invitado → no participa, y alfabético dentro de cada rango. Quien abre la lista
+  busca primero a quien manda, porque es con quien se habla.
+
+  ⚠️ **Qué pasa si esos roles no existen**, que es la pregunta buena y está probada:
+  quien no tiene rol cae a `?? 90` —al final, en bloque y ordenado alfabéticamente entre los
+  suyos—, y la fila de facetas **no se pinta** si sólo hay una clase (`> 1`). Un expediente
+  normal de dos personas sin rol ni subgrupos se ve exactamente como antes: sin fila de rol, sin
+  aerolíneas, sin subgrupos, sin desplegable. Un rol desconocido —una migración a medias— también
+  cae al final en vez de romper el `sort`. Y la clave interna `sin_rol` se rotula «Sin rol»: no
+  se enseña cruda.
+- **Filtro de documentos**: `Vencido`, `Vence < 1 año` y `Sin comprobar`, con su conteo. Los tres
+  son estados distintos y ninguno se lee como los otros — «sin comprobar» **no** es «casi
+  vigente», es que no sabemos, y es justo lo que hay que mirar antes de un viaje.
+- **La barra de filtros se pliega**, pero el **buscador y el contador se quedan siempre fuera**:
+  son lo que se usa cada vez, y cinco filas de píldoras empujaban la lista fuera de la pantalla en
+  un móvil.
+- **Los subgrupos de la ficha del pasajero van plegados**, enseñando sólo los que ya tiene.
+  Desplegados son 108 píldoras entre el teléfono y el botón de guardar: quien abre a corregir un
+  apellido tenía que recorrerlas todas para llegar abajo.
+- **Exportar sólo lo filtrado.** El botón sale al lado del contador y únicamente con filtros
+  puestos —sin ellos ya está «Descargar con lo cargado», y dos botones que hacen lo mismo obligan
+  a pensar cuál es cuál—.
+
+  ⚠️ Los ids van por **POST** aunque no escriba nada: son UUID de 36 caracteres, y 131 personas
+  son 4 700 caracteres de URL —por encima de lo que aguantan varios proxys, y lo que se corta ahí
+  no da error, da una exportación a la que le faltan filas—.
+
+  ⚠️ Se manda **la lista de personas, no los filtros**. Repetir los filtros en el servidor serían
+  dos implementaciones de la misma pregunta, y la que se quedara corta lo haría en silencio.
+
+  ⚠️ Y filtra **filas, nunca columnas**: los ejes y servicios salen del expediente entero. Una
+  exportación de «los de Copa» que perdiera la columna `#Reserva aérea nacional` volvería a
+  subirse sin ella, y el importador leería que a esa gente le quitaron el vuelo nacional. Sobrar
+  una columna es inofensivo; faltar, no.
 - **La tarjeta entera abre la ficha en LECTURA; la plumita entra a editar.** En un móvil el
   blanco es la mitad de la tarjeta y apuntar a un icono de 28 px con el pulgar es la parte
   incómoda. Los dos botones llevan `@click.stop`, o abrirían además la tarjeta.

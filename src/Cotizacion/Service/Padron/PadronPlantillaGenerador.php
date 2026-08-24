@@ -68,15 +68,21 @@ final readonly class PadronPlantillaGenerador
      * aunque le hayan cambiado el nombre y el documento a la vez. Sin ella habría que casar por
      * documento, y corregir un pasaporte duplicaría a esa persona.
      */
-    public function exportar(CotizacionFile $file): string
+    /**
+     * @param list<string>|null $soloEstos ids de pasajero; `null` = todos
+     */
+    public function exportar(CotizacionFile $file, ?array $soloEstos = null): string
     {
-        return $this->construir($file);
+        return $this->construir($file, $soloEstos);
     }
 
-    private function construir(?CotizacionFile $file): string
+    /**
+     * @param list<string>|null $soloEstos
+     */
+    private function construir(?CotizacionFile $file, ?array $soloEstos = null): string
     {
         $libro = new Spreadsheet();
-        $this->hojaPasajeros($libro, $file);
+        $this->hojaPasajeros($libro, $file, $soloEstos);
         $this->hojaGrupos($libro, $file);
         $this->hojaInstrucciones($libro);
         $this->hojaTablas($libro);
@@ -91,7 +97,10 @@ final readonly class PadronPlantillaGenerador
         return $contenido;
     }
 
-    private function hojaPasajeros(Spreadsheet $libro, ?CotizacionFile $file = null): void
+    /**
+     * @param list<string>|null $soloEstos
+     */
+    private function hojaPasajeros(Spreadsheet $libro, ?CotizacionFile $file = null, ?array $soloEstos = null): void
     {
         $hoja = $libro->getActiveSheet();
         $hoja->setTitle('Pasajeros');
@@ -117,7 +126,7 @@ final readonly class PadronPlantillaGenerador
         $porNombre = array_flip($cabeceras);
 
         if ($file !== null) {
-            $this->volcarPasajeros($hoja, $file, $porNombre, count($cabeceras));
+            $this->volcarPasajeros($hoja, $file, $porNombre, count($cabeceras), $soloEstos);
             $this->desplegables($hoja, $porNombre);
             $hoja->freezePane('A2');
 
@@ -284,12 +293,22 @@ final readonly class PadronPlantillaGenerador
      *
      * @param array<string, int> $porNombre
      */
+    /**
+     * @param array<string, int>  $porNombre
+     * @param list<string>|null   $soloEstos ids de pasajero; `null` = todos
+     */
     private function volcarPasajeros(
         \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $hoja,
         CotizacionFile $file,
         array $porNombre,
         int $totalColumnas,
+        ?array $soloEstos = null,
     ): void {
+        // ⚠️ Filtra las FILAS, nunca las columnas. Los ejes y servicios salen del expediente
+        // entero a propósito: una exportación de «los de Copa» que perdiera la columna
+        // `#Reserva aérea nacional` volvería a subirse sin ella, y el importador leería que a esa
+        // gente le quitaron el vuelo nacional. Sobrar una columna es inofensivo; faltar, no.
+        $permitidos = $soloEstos === null ? null : array_flip($soloEstos);
         $texto = static function (\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $h, array $porNombre, int $fila, string $columna, ?string $valor): void {
             if ($valor === null || $valor === '' || !isset($porNombre[$columna])) {
                 return;
@@ -300,6 +319,10 @@ final readonly class PadronPlantillaGenerador
         $n = 2;
 
         foreach ($file->getFilepasajeros() as $pasajero) {
+            if ($permitidos !== null && !isset($permitidos[(string) $pasajero->getId()])) {
+                continue;
+            }
+
             $texto($hoja, $porNombre, $n, PadronFormato::COL_ID, (string) $pasajero->getId());
             $texto($hoja, $porNombre, $n, PadronFormato::COL_NOMBRES, $pasajero->getNombre());
             $texto($hoja, $porNombre, $n, PadronFormato::COL_APELLIDOS, $pasajero->getApellido());

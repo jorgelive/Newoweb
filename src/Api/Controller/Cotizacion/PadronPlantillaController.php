@@ -10,6 +10,7 @@ use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -48,11 +49,12 @@ final class PadronPlantillaController extends AbstractController
         '/cotizacion/user/padron/exportar/{id}',
         name: 'cotizacion_padron_exportar',
         requirements: ['id' => '[0-9a-fA-F-]{36}'],
-        methods: ['GET'],
+        methods: ['GET', 'POST'],
     )]
     #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para exportar padrones.')]
     public function exportar(
         string $id,
+        Request $peticion,
         PadronPlantillaGenerador $generador,
         EntityManagerInterface $em,
     ): Response {
@@ -62,9 +64,38 @@ final class PadronPlantillaController extends AbstractController
             return new Response('No encontré el expediente.', Response::HTTP_NOT_FOUND);
         }
 
-        $nombre = preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) $file->getNombreGrupo()) ?? 'padron';
+        // ⚠️ Los ids van en el CUERPO y por eso hay POST, aunque no escriba nada.
+        //
+        // Son UUID de 36 caracteres: 131 personas son 4 700 caracteres de URL, por encima de lo
+        // que aguantan varios proxys —y lo que se corta ahí no da un error, da una exportación a
+        // la que le faltan filas—. Y en la URL quedarían además en los logs de acceso.
+        //
+        // Filtrar en el servidor repitiendo los filtros del panel se descartó: serían dos
+        // implementaciones de la misma pregunta, y la que se quedase corta lo haría en silencio.
+        // El panel ya sabe exactamente quién cumple; sólo tiene que decirlo.
+        $soloEstos = null;
+        if ($peticion->isMethod('POST')) {
+            /** @var array{ids?: list<string>} $cuerpo */
+            $cuerpo = $peticion->toArray();
+            $ids = array_values(array_filter(
+                array_map(static fn (mixed $v): string => trim((string) $v), $cuerpo['ids'] ?? []),
+                static fn (string $v): bool => $v !== '',
+            ));
 
-        return $this->comoDescarga($generador->exportar($file), sprintf('padron-%s.xlsx', trim($nombre, '-')));
+            if ($ids === []) {
+                return new Response('No mandaste a nadie que exportar.', Response::HTTP_BAD_REQUEST);
+            }
+
+            $soloEstos = $ids;
+        }
+
+        $nombre = preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) $file->getNombreGrupo()) ?? 'padron';
+        $sufijo = $soloEstos === null ? '' : sprintf('-filtrado-%d', count($soloEstos));
+
+        return $this->comoDescarga(
+            $generador->exportar($file, $soloEstos),
+            sprintf('padron-%s%s.xlsx', trim($nombre, '-'), $sufijo),
+        );
     }
 
     private function comoDescarga(string $contenido, string $nombreArchivo): Response

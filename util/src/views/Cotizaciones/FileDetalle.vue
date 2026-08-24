@@ -501,6 +501,7 @@ const abrirPaxModal = () => {
  */
 const abrirEdicionPax = (pax: ApiCotizacionFilepasajero, editar = false) => {
   modoVistaPax.value = !editar;
+  subgruposPaxAbiertos.value = false;
   paxEditandoIri.value = pax['@id'] || `/platform/sales/cotizacion_filepasajeros/${extractIdStr(pax.id)}`;
   paxForm.value = {
     nombre: pax.nombre || '',
@@ -644,6 +645,42 @@ const bajarHoja = async (ruta: string, nombre: string) => {
   }
 };
 
+/**
+ * La misma hoja, pero SÓLO con quien cumple los filtros.
+ *
+ * ⚠️ Los ids van por POST aunque no escriba nada: son UUID de 36 caracteres, y 131 personas son
+ * 4 700 caracteres de URL —por encima de lo que aguantan varios proxys, y lo que se corta ahí no
+ * da un error, da una exportación a la que le faltan filas—.
+ *
+ * ⚠️ Y se manda la LISTA, no los filtros. Repetir los filtros en el servidor serían dos
+ * implementaciones de la misma pregunta, y la que se quedase corta lo haría en silencio. El panel
+ * ya sabe quién cumple: sólo tiene que decirlo.
+ */
+const descargarFiltrado = async () => {
+    const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
+    const ids = pasajerosFiltrados.value.map(p => extractIdStr(p.id)).filter(Boolean);
+    if (!id || !ids.length) return;
+
+    descargandoPlantilla.value = true;
+    try {
+        const { data } = await apiClient.post(
+            `/cotizacion/user/padron/exportar/${id}`,
+            { ids },
+            { responseType: 'blob' },
+        );
+        const url = URL.createObjectURL(data as Blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `padron-filtrado-${ids.length}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch {
+        alert('No se pudo descargar el archivo.');
+    } finally {
+        descargandoPlantilla.value = false;
+    }
+};
+
 /** La plantilla en blanco, con ejemplos e instrucciones. */
 const descargarPlantilla = () => bajarHoja('/cotizacion/user/padron/plantilla', 'padron-plantilla.xlsx');
 
@@ -773,6 +810,69 @@ const vuelosDe = (pax: ApiCotizacionFilepasajero) =>
             detalle: g.detalle ?? '',
         }));
 
+/**
+ * El orden del manifiesto: por JERARQUÍA, no por como vinieran en la hoja.
+ *
+ * Quien abre la lista busca primero a quien manda —el supervisor, los coordinadores— porque es
+ * con quien se habla. Alfabético dentro de cada rango, que es como se busca a una persona
+ * concreta.
+ *
+ * ⚠️ El `?? 90` importa: un pasajero **sin rol** —lo normal en un expediente que no es de grupo,
+ * y en cualquier padrón cargado sin la columna «Rol»— no rompe nada, cae al final en bloque y
+ * sigue ordenado alfabéticamente entre los suyos.
+ */
+const RANGO_ROL: Record<string, number> = {
+    supervisor: 0, coordinador: 1, participante: 2, acompanante: 3, invitado: 4, no_participa: 5,
+};
+
+const porJerarquia = (a: ApiCotizacionFilepasajero, b: ApiCotizacionFilepasajero): number => {
+    const ra = RANGO_ROL[String(a.tipo)] ?? 90;
+    const rb = RANGO_ROL[String(b.tipo)] ?? 90;
+    if (ra !== rb) return ra - rb;
+
+    return `${a.apellido ?? ''} ${a.nombre ?? ''}`.localeCompare(`${b.apellido ?? ''} ${b.nombre ?? ''}`, 'es');
+};
+
+// ── Alerta de documentos ──────────────────────────────────────────────────
+//
+// ⚠️ Los tres estados son distintos y ninguno se puede leer como los otros:
+//   vencido       → hoy ya no sirve
+//   vence pronto  → sirve hoy y no el día del viaje, o no lo aceptan en frontera
+//   sin comprobar → NO es «vigente». No sabemos, y eso es exactamente lo que hay que mirar.
+const filtroDocumento = ref<string[]>([]);
+const filtrosAbiertos = ref(false);
+
+const estadoDocumentalDe = (pax: ApiCotizacionFilepasajero): Set<string> => {
+    const hoy = new Date();
+    const enUnAnio = new Date(hoy.getFullYear() + 1, hoy.getMonth(), hoy.getDate());
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const estados = new Set<string>();
+
+    for (const doc of pax.identificaciones ?? []) {
+        const vence = doc.vencimiento ? doc.vencimiento.split('T')[0] : '';
+        if (!vence) { estados.add('sin_fecha'); continue; }
+        if (vence < iso(hoy)) { estados.add('vencido'); continue; }
+        if (vence < iso(enUnAnio)) { estados.add('pronto'); }
+    }
+
+    return estados;
+};
+
+const ETIQUETAS_DOCUMENTO: Record<string, { label: string; clase: string; punto: string }> = {
+    vencido:    { label: 'Vencido',       clase: 'bg-red-100 text-red-700 border-red-200',       punto: 'bg-red-500' },
+    pronto:     { label: 'Vence < 1 año', clase: 'bg-orange-100 text-orange-700 border-orange-200', punto: 'bg-orange-500' },
+    sin_fecha:  { label: 'Sin comprobar', clase: 'bg-amber-100 text-amber-800 border-amber-200',  punto: 'bg-amber-500' },
+};
+
+const conteoPorDocumento = computed<Record<string, number>>(() => {
+    const mapa: Record<string, number> = {};
+    for (const p of pasajerosConsiderados.value) {
+        for (const e of estadoDocumentalDe(p)) mapa[e] = (mapa[e] ?? 0) + 1;
+    }
+
+    return mapa;
+});
+
 const filtroRol = ref<string[]>([]);
 const filtroAerolinea = ref<string[]>([]);   // «eje|NOMBRE», p. ej. «reserva_aerea_nacional|JetSMART»
 
@@ -816,6 +916,7 @@ const alternar = (lista: string[], valor: string): string[] =>
     lista.includes(valor) ? lista.filter(x => x !== valor) : [...lista, valor];
 
 const alternarRol = (valor: string) => { filtroRol.value = alternar(filtroRol.value, valor); };
+const alternarDocumento = (valor: string) => { filtroDocumento.value = alternar(filtroDocumento.value, valor); };
 const alternarAerolinea = (valor: string) => { filtroAerolinea.value = alternar(filtroAerolinea.value, valor); };
 
 const pasajerosFiltrados = computed<ApiCotizacionFilepasajero[]>(() => {
@@ -858,6 +959,11 @@ const pasajerosFiltrados = computed<ApiCotizacionFilepasajero[]>(() => {
             }
         }
 
+        if (filtroDocumento.value.length) {
+            const suyos = estadoDocumentalDe(pax);
+            if (!filtroDocumento.value.some(e => suyos.has(e))) return false;
+        }
+
         if (!texto) return true;
 
         // La búsqueda mira también las etiquetas: «jetsmart» encuentra a los de esa aerolínea
@@ -869,7 +975,7 @@ const pasajerosFiltrados = computed<ApiCotizacionFilepasajero[]>(() => {
         ].filter(Boolean).join(' ').toLowerCase();
 
         return paja.includes(texto);
-    });
+    }).sort(porJerarquia);
 });
 
 /** Los subgrupos elegibles, agrupados por eje para el desplegable. */
@@ -908,13 +1014,14 @@ const limpiarFiltros = () => {
     gruposFiltrados.value = [];
     filtroRol.value = [];
     filtroAerolinea.value = [];
+    filtroDocumento.value = [];
     busquedaPax.value = '';
     incluirNoParticipa.value = false;
 };
 
 const hayFiltros = computed(() =>
     gruposFiltrados.value.length > 0 || filtroRol.value.length > 0 || filtroAerolinea.value.length > 0
-    || busquedaPax.value.trim() !== '' || incluirNoParticipa.value);
+    || filtroDocumento.value.length > 0 || busquedaPax.value.trim() !== '' || incluirNoParticipa.value);
 
 // ── Subgrupos del expediente ───────────────────────────────────────────────
 //
@@ -966,6 +1073,12 @@ const pildorasVisibles = (tipo: string, lista: ApiFileGrupo[]): ApiFileGrupo[] =
         `${g.clave ?? ''} ${g.nombre ?? ''}`.toUpperCase().includes(filtro),
     );
 };
+
+const subgruposPaxAbiertos = ref(false);
+
+/** Los subgrupos que tiene marcados la ficha abierta, en el orden de los ejes. */
+const gruposElegidosEnFicha = computed<ApiFileGrupo[]>(() =>
+    (file.value?.grupos ?? []).filter(perteneceA));
 
 /** Los grupos de este eje a los que pertenece Y que traen itinerario. */
 const detallesDe = (lista: ApiFileGrupo[]): ApiFileGrupo[] =>
@@ -1467,6 +1580,21 @@ const eliminarDocumento = async (iri?: string) => {
                            class="w-full border rounded-lg pl-8 pr-3 py-2 text-xs outline-none focus:border-indigo-500 placeholder:text-slate-300">
                   </div>
 
+                  <button type="button" @click="filtrosAbiertos = !filtrosAbiertos"
+                          class="flex items-center gap-1.5 border rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-colors"
+                          :class="hayFiltros
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'">
+                    <i class="fas fa-sliders"></i> Filtros
+                    <i class="fas fa-chevron-down text-[9px] transition-transform" :class="filtrosAbiertos ? 'rotate-180' : ''"></i>
+                  </button>
+                </div>
+
+                <!-- ⚠️ El buscador y el contador se quedan SIEMPRE fuera del plegado. Son lo que se
+                     usa cada vez; las facetas son para una pregunta concreta y cinco filas de
+                     píldoras empujaban la lista fuera de la pantalla en un móvil. -->
+                <div v-if="filtrosAbiertos" class="mt-3 pt-3 border-t border-slate-200">
+                  <div class="flex flex-wrap items-center gap-3">
                   <div class="w-full sm:w-56">
                     <SearchableSelect
                         v-model="grupoPorAnadir"
@@ -1483,7 +1611,7 @@ const eliminarDocumento = async (iri?: string) => {
                     <input v-model="incluirNoParticipa" type="checkbox" class="accent-indigo-600">
                     Ver «no participa» ({{ totalNoParticipa }})
                   </label>
-                </div>
+                  </div>
 
                 <!-- Rol y aerolínea son FACETAS: se marcan varias y suman (O), porque nadie es
                      participante y coordinador a la vez ni vuela en dos aerolíneas el mismo tramo.
@@ -1499,7 +1627,26 @@ const eliminarDocumento = async (iri?: string) => {
                     <!-- El punto lleva el color aunque la píldora esté apagada: es lo que enseña
                          a reconocer el color antes de haberlo usado nunca. -->
                     <span class="w-1.5 h-1.5 rounded-full" :class="PASAJERO_TIPO_CONFIG[String(rol)]?.punto ?? 'bg-slate-400'"></span>
-                    {{ PASAJERO_TIPO_CONFIG[String(rol)]?.label ?? rol }} <span class="opacity-60">{{ n }}</span>
+                    <!-- «sin_rol» es la clave interna de quien no tiene rol —lo normal en un
+                         expediente que no es de grupo—: se rotula, no se enseña cruda. -->
+                    {{ PASAJERO_TIPO_CONFIG[String(rol)]?.label ?? 'Sin rol' }} <span class="opacity-60">{{ n }}</span>
+                  </button>
+                </div>
+
+                <!-- Los tres estados NO son grados del mismo: «sin comprobar» no es «casi vigente»,
+                     es que no sabemos, y es justo lo que hay que mirar antes de un viaje. -->
+                <div v-if="Object.keys(conteoPorDocumento).length" class="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">
+                    <i class="far fa-id-card mr-0.5"></i>Documentos
+                  </span>
+                  <button v-for="(cfg, clave) in ETIQUETAS_DOCUMENTO" :key="clave" v-show="conteoPorDocumento[clave]"
+                          type="button" @click="alternarDocumento(String(clave))"
+                          class="inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
+                          :class="filtroDocumento.includes(String(clave))
+                            ? cfg.clase
+                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="cfg.punto"></span>
+                    {{ cfg.label }} <span class="opacity-60">{{ conteoPorDocumento[clave] }}</span>
                   </button>
                 </div>
 
@@ -1525,17 +1672,29 @@ const eliminarDocumento = async (iri?: string) => {
                   </span>
                 </div>
 
-                <div class="flex items-center justify-between mt-2">
+                </div>
+
+                <div class="flex items-center justify-between mt-2 flex-wrap gap-2">
                   <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Mostrando {{ pasajerosFiltrados.length }} de {{ pasajerosConsiderados.length }}
                     <span v-if="!incluirNoParticipa && totalNoParticipa" class="text-slate-300 normal-case font-bold">
                       · {{ totalNoParticipa }} no participa{{ totalNoParticipa > 1 ? 'n' : '' }}, fuera de la cuenta
                     </span>
                   </p>
-                  <button v-if="hayFiltros" type="button" @click="limpiarFiltros"
-                          class="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
-                    Limpiar filtros
-                  </button>
+                  <div class="flex items-center gap-3">
+                    <!-- Sólo con filtros puestos: sin ellos ya está «Descargar con lo cargado», y
+                         dos botones que hacen lo mismo obligan a pensar cuál es cuál. -->
+                    <button v-if="hayFiltros && pasajerosFiltrados.length" type="button" @click="descargarFiltrado"
+                            :disabled="descargandoPlantilla"
+                            class="text-[10px] font-black uppercase tracking-widest text-teal-600 hover:text-teal-800 disabled:opacity-40">
+                      <i class="fas mr-1" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
+                      Exportar estos {{ pasajerosFiltrados.length }}
+                    </button>
+                    <button v-if="hayFiltros" type="button" @click="limpiarFiltros"
+                            class="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
+                      Limpiar filtros
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -2235,8 +2394,29 @@ const eliminarDocumento = async (iri?: string) => {
                  5, la habitación HA13 y dos reservas aéreas. La corona marca de cuál es JEFE, y
                  eso va por grupo — se lidera uno, no en general. -->
             <div v-if="file?.grupos?.length" class="col-span-2">
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Subgrupos</label>
-              <div v-for="(lista, tipo) in gruposPorTipo" :key="tipo" class="mb-2">
+              <!-- ⚠️ PLEGADO por defecto, y enseñando SÓLO lo que ya tiene. Desplegado son 108
+                   píldoras entre el teléfono y el botón de guardar: quien abre a corregir un
+                   apellido tenía que recorrerlas todas para llegar abajo. Casi nadie cambia de
+                   habitación al editar; los que sí, tocan «Cambiar». -->
+              <button type="button" @click="subgruposPaxAbiertos = !subgruposPaxAbiertos"
+                      class="w-full flex items-center justify-between gap-2 mb-1.5">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase cursor-pointer">Subgrupos</label>
+                <span class="text-[10px] font-black uppercase tracking-widest text-indigo-500">
+                  {{ subgruposPaxAbiertos ? 'Listo' : 'Cambiar' }}
+                </span>
+              </button>
+
+              <div v-if="!subgruposPaxAbiertos" class="flex flex-wrap gap-1.5 mb-2">
+                <span v-for="g in gruposElegidosEnFicha" :key="g.id"
+                      class="inline-flex items-center gap-1 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg px-2 py-1 text-[11px] font-black">
+                  {{ g.clave }}<span v-if="g.nombre" class="font-medium opacity-70">{{ g.nombre }}</span>
+                </span>
+                <span v-if="!gruposElegidosEnFicha.length" class="text-[10px] font-bold text-slate-300 italic py-1">
+                  Sin subgrupos asignados.
+                </span>
+              </div>
+
+              <div v-for="(lista, tipo) in (subgruposPaxAbiertos ? gruposPorTipo : {})" :key="tipo" class="mb-2">
                 <div class="flex items-center justify-between mb-1">
                   <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                     <i class="fas" :class="GRUPO_TIPO_LABELS[tipo]?.icon"></i> {{ GRUPO_TIPO_LABELS[tipo]?.label || tipo }}
