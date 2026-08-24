@@ -41,6 +41,15 @@ services:
             $modelo: '%env(resolve:ANTHROPIC_MODEL)%'
             $modelos: '%env(resolve:ANTHROPIC_MODELS)%'
 
+    # DeepSeek es compatible con la API de OpenAI, así que el cliente es el mismo HttpClient de
+    # siempre y no hace falta SDK. Su caché es AUTOMÁTICO por prefijo: no hay marcas que poner,
+    # sólo un prefijo que no puede cambiar. Ver DeepSeekClient::firmaDeCache().
+    App\Agent\Provider\DeepSeek\DeepSeekClient:
+        arguments:
+            $apiKey: '%env(resolve:DEEPSEEK_API_KEY)%'
+            $modelo: '%env(resolve:DEEPSEEK_MODEL)%'
+            $modelos: '%env(resolve:DEEPSEEK_MODELS)%'
+
     App\Agent\Provider\Google\GoogleAIClient:
         arguments:
             $apiKey: '%env(resolve:GOOGLE_AI_API_KEY)%'

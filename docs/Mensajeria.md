@@ -4230,6 +4230,70 @@ quedaría con el acuse de recibo genérico. Se sube a Pro cuando haya facturaci�
 
 ---
 
+### 12.9 DeepSeek: el caché que no se pide y hay que merecer (24/08/2026)
+
+`src/Agent/Provider/DeepSeek/` — tercer proveedor. La API es **compatible con OpenAI**
+(`/chat/completions`, `tools`, `tool_calls`), así que no hay SDK: el mismo `HttpClientInterface`
+que usa `src/Exchange/`.
+
+**El bucle es nuestro.** Anthropic trae un `toolRunner` que gira solo; aquí la API devuelve
+`tool_calls`, hay que ejecutarlas, añadirlas al hilo y volver a llamar. `MAX_VUELTAS = 8`, el
+mismo tope que el runner de Anthropic, para que cambiar de proveedor no cambie lo que el agente
+puede resolver.
+
+#### La diferencia que manda: no hay marca de caché
+
+| | Anthropic | DeepSeek |
+|---|---|---|
+| Cómo se cachea | se **marca** el bloque (`cacheControl`) | **automático**, por prefijo |
+| Si el orden es malo | se corrige moviendo la marca | **no hay caché, y punto** |
+| Qué informa | `cacheRead` / `cacheCreation` | `prompt_cache_hit_tokens` / `..._miss_tokens` |
+
+Con marca, un prefijo mal ordenado se arregla. Sin marca, **el nombre del huésped arriba significa
+caché cero para siempre y sin un solo aviso**. Por eso el motor arma el prompt en este orden y
+manda lo volátil en un `system` aparte, nunca concatenado:
+
+```
+[ system estable ] [ catálogo de skills ] [ contexto de esta conversación ] [ mensajes ]
+  └────── idéntico por (roles, escritura, modelo) ──────┘   └── volátil, detrás ──┘
+```
+
+#### ⚠️ `firmaDeCache()`: por ROLES, nunca por persona
+
+El caché se indexa por prefijo, así que dos usos que empiecen distinto no comparten nada. Con los
+tramos de potencia eso importa: el mismo modelo puede atender el alto del panel y el bajo del
+chat.
+
+> **Sin separar, cada tramo pisa el prefijo del otro en cada consulta.** El alto escribe su
+> catálogo, llega una del bajo con otro prefijo y falla, escribe el suyo, vuelve una del alto y
+> falla otra vez. Nadie borra nada —el caché es por prefijo, no una casilla— pero **ninguno
+> acierta nunca**. Es el fallo más caro posible porque no da error: sólo una factura que no baja.
+
+La firma va en el campo `user` de la petición y es `modelo/rw|ro/hash(roles)`:
+
+```
+mismo rol, dos personas    deepseek-chat/rw/0072c9bf77b4   ← misma línea: comparten
+los mismos roles al revés  deepseek-chat/rw/0072c9bf77b4   ← se ordenan antes de firmar
+CAMBIO DE POTENCIA         deepseek-reasoner/rw/0072c9…    ← línea nueva, la anterior intacta
+chat del huésped (sin rw)  deepseek-chat/ro/0072c9bf77b4
+otro rol                   deepseek-chat/rw/e82c84fadf33
+```
+
+⚠️ **Por roles y no por persona**, que es lo intuitivo y destruye el ahorro: lo que hace largo el
+prefijo es el catálogo de skills, y ése depende de los roles y de si se permite escribir, no de
+quién pregunta. Firmando por persona cada una escribiría su copia para leerla dos turnos y
+tirarla — el mismo fallo que Anthropic tuvo aquí (§12.4), con el `system` llevando el nombre del
+huésped dentro.
+
+#### Dos cosas que DeepSeek no tiene
+
+- **Structured outputs con esquema.** Sólo `json_object`, que obliga a JSON válido pero **no a que
+  case con nuestra forma**: el esquema se pide en el prompt y quien llama valida, que es lo que ya
+  hace. La API además **exige la palabra «json» en el prompt** con ese modo, y responde 400 si
+  falta; el motor la añade en vez de confiar en que todos los prompts la lleven.
+- **Herramientas en `deepseek-reasoner`.** Razona antes de contestar y no admite `tools`: sirve
+  para el tramo bajo —clasificar, redactar cortesía—, no para el agente con skills.
+
 ## 13. Triaje de entrada y tramos de potencia
 
 Hasta aquí, un turno del agente costaba lo mismo dijera lo que dijera el huésped. «Hola» y
