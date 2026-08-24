@@ -1378,7 +1378,11 @@ const eliminarDocumento = async (iri?: string) => {
                  De aquí cuelga qué ve al consultar su viaje Y si aparece ante los demás. Son dos
                  ejes: el invitado no es «el que menos ve», es el que NO SE VE — sus gratuidades
                  las paga la agencia y el colegio no las mira. Ver docs §6.p. -->
-            <div class="col-span-2">
+            <!-- Sólo en modo grupo: en un expediente estándar el rol no gobierna nada —el enlace es
+                 público y nadie entra con documento— así que sería un desplegable que pide una
+                 decisión sin consecuencia. Un namelist de dos personas se rellena con nombre y
+                 documento, y ya. -->
+            <div v-if="file?.usaPadron" class="col-span-2">
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Rol en el grupo</label>
               <select v-model="paxForm.tipo" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
                 <option value="">— sin definir (ve sólo lo suyo) —</option>

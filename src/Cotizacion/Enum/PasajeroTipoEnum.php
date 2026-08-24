@@ -7,6 +7,11 @@ namespace App\Cotizacion\Enum;
 /**
  * Qué es esta persona dentro del grupo, y de ahí, qué ve y quién la ve.
  *
+ * ⚠️ El caso base se llama **PARTICIPANTE y no «alumno»**: el modo grupo sirve igual para un viaje
+ * de promoción de colegio que para un incentivo de empresa, y en el segundo nadie es alumno de
+ * nada. `desdeTexto()` sigue aceptando «Alumno» porque es lo que escribe el colegio en su padrón —
+ * el nombre interno no tiene por qué imponerle vocabulario a nadie.
+ *
  * ## Dos ejes, y confundirlos es la fuga
  *
  * - **{@see self::alcance()}** — qué expediente ve.
@@ -33,7 +38,7 @@ namespace App\Cotizacion\Enum;
  */
 enum PasajeroTipoEnum: string
 {
-    case ALUMNO = 'alumno';
+    case PARTICIPANTE = 'participante';
     case PADRE = 'padre';
     case COORDINADOR = 'coordinador';
     case SUPERVISOR = 'supervisor';
@@ -43,7 +48,7 @@ enum PasajeroTipoEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::ALUMNO => 'Alumno',
+            self::PARTICIPANTE => 'Participante',
             self::PADRE => 'Padre de familia',
             self::COORDINADOR => 'Coordinador',
             self::SUPERVISOR => 'Supervisor',
@@ -64,7 +69,7 @@ enum PasajeroTipoEnum: string
         return match ($this) {
             self::SUPERVISOR => AlcanceDeVistaEnum::EXPEDIENTE,
             self::COORDINADOR => AlcanceDeVistaEnum::SUS_GRUPOS,
-            self::ALUMNO, self::PADRE, self::INVITADO, self::NO_PARTICIPA => AlcanceDeVistaEnum::SOLO_YO,
+            self::PARTICIPANTE, self::PADRE, self::INVITADO, self::NO_PARTICIPA => AlcanceDeVistaEnum::SOLO_YO,
         };
     }
 
@@ -79,7 +84,7 @@ enum PasajeroTipoEnum: string
     {
         return match ($this) {
             self::INVITADO => false,
-            self::ALUMNO, self::PADRE, self::COORDINADOR, self::SUPERVISOR, self::NO_PARTICIPA => true,
+            self::PARTICIPANTE, self::PADRE, self::COORDINADOR, self::SUPERVISOR, self::NO_PARTICIPA => true,
         };
     }
 
@@ -100,7 +105,11 @@ enum PasajeroTipoEnum: string
             str_contains($limpio, 'invitado') => self::INVITADO,
             str_contains($limpio, 'no participa') => self::NO_PARTICIPA,
             str_contains($limpio, 'padre'), str_contains($limpio, 'madre'), str_contains($limpio, 'ppff') => self::PADRE,
-            str_contains($limpio, 'alumno'), str_contains($limpio, 'acompa') => self::ALUMNO,
+            // «Alumno» y «acompañante» siguen entrando: un padrón de colegio los escribe así, y el
+            // enum se llama PARTICIPANTE porque esto también vale para viajes de incentivo de
+            // empresa, donde nadie es alumno de nada.
+            str_contains($limpio, 'alumno'), str_contains($limpio, 'acompa'),
+            str_contains($limpio, 'participante'), str_contains($limpio, 'pasajero') => self::PARTICIPANTE,
             default => null,
         };
     }

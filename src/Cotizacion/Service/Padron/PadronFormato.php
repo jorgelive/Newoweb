@@ -103,7 +103,8 @@ final class PadronFormato
             ['columna' => self::COL_NACIMIENTO, 'obligatoria' => false,
                 'ayuda' => 'DD/MM/AAAA. Hace falta para saber quién viaja como menor.'],
             ['columna' => self::COL_TIPO, 'obligatoria' => false,
-                'ayuda' => 'Alumno · Padre de familia · Coordinador · Supervisor · Invitado · No participa. '
+                'ayuda' => 'Participante · Padre de familia · Coordinador · Supervisor · Invitado · No participa. '
+                    .'También se acepta «Alumno», que es como lo escribe un colegio. '
                     .'De aquí cuelga qué ve cada uno al consultar su viaje y si aparece ante los demás.'],
             ['columna' => self::COL_TELEFONO, 'obligatoria' => false,
                 'ayuda' => 'El suyo, no el del expediente: con 133 personas hay 133 familias a las que llamar.'],
