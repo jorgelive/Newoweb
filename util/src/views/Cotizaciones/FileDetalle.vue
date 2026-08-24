@@ -4,6 +4,7 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 // El gesto «atrás» del móvil cierra la capa de arriba en vez de sacarte de la pantalla.
 import { useCapasEnHistorial } from '@/composables/useCapasEnHistorial';
+import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 import MaskedDateInput from '@/components/MaskedDateInput.vue';   // ajusta ruta
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import ContactoDeIdentidad from '@/components/common/ContactoDeIdentidad.vue';
@@ -403,6 +404,10 @@ const cargarFile = async () => {
     }, 100);
   }
 };
+
+// Si el asistente toca algo del expediente, esta ficha se recarga sola en vez de pedir un
+// recargón de la página — que aquí tiraría el pasajero a medio editar.
+useRefrescoDelAsistente(() => { void cargarFile(); });
 
 const handleVolver = () => {
   volverAtras('/cotizacion');   // vuelve a donde estabas; el dashboard sólo si no hay historial

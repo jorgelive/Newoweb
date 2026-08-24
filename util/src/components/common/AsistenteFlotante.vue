@@ -23,6 +23,7 @@ import { ref, computed, onMounted } from 'vue';
 import AsistenteBar from '@/components/common/AsistenteBar.vue';
 import { useCapasEnHistorial } from '@/composables/useCapasEnHistorial';
 import { usePermisosStore } from '@/stores/permisosStore';
+import { avisarDeCambio, hayQuienEscuche } from '@/composables/useRefrescoDelAsistente';
 
 const permisos = usePermisosStore();
 const capas = useCapasEnHistorial();
@@ -48,12 +49,17 @@ const cerrar = (): void => capas.cerrar('asistente');
 /**
  * El asistente escribió en la base, así que lo que hay en pantalla ya no vale.
  *
- * ⚠️ Aquí NO se recarga solo. Embebido en el Home, la vista sabía qué refrescar
- * (`cargarPanelHoy`); en el armazón no se sabe qué pinta la pantalla de turno, y recargarla
- * entera por nuestra cuenta tiraría lo que el operador estuviera editando sin guardar. Se avisa y
- * decide él.
+ * Se avisa a las vistas montadas que sepan refrescarse ({@see useRefrescoDelAsistente}) y **sólo
+ * si no hay ninguna** se ofrece recargar la página.
+ *
+ * ⚠️ Nunca se recarga entero por cuenta propia: desde el armazón no se sabe si la pantalla de
+ * turno tiene un formulario a medias, y perderlo por un refresco que nadie pidió es peor que el
+ * dato viejo. Por eso el recargón es un botón, no un efecto.
  */
-const alCambiarDatos = (): void => { huboEscritura.value = true; };
+const alCambiarDatos = (): void => {
+    avisarDeCambio();
+    huboEscritura.value = !hayQuienEscuche();
+};
 
 const recargar = (): void => window.location.reload();
 

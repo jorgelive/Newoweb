@@ -45,6 +45,7 @@ import {
     type CalendarRecursoFeed,
 } from '@/types/calendarFeedModel';
 import { telefonoParaWhatsapp } from '@/utils/telefono';
+import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 
 const router = useRouter();
 const route = useRoute();
@@ -115,6 +116,10 @@ async function recargarCalendario(): Promise<void> {
     await new Promise((r) => setTimeout(r, 600));
     recargando.value = false;
 }
+
+// El asistente escribe en el PMS —«confirma la reserva», «registra el pago»— y el calendario se
+// queda viejo. Se registra aquí para recargar SÓLO esto en vez de la página entera.
+useRefrescoDelAsistente(() => { void recargarCalendario(); });
 
 /**
  * Gira el icono mientras recarga.

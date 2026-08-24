@@ -868,16 +868,25 @@ pantalla.
 usuario; a quien no las tiene le contestaría «no puedo» a todo, y una lengüeta que sólo sabe
 negarse es peor que ninguna.
 
-### Lo que se pierde al sacarlo del Home, y por qué se acepta
+### El refresco lo declara cada vista, no el armazón
 
-Embebido, la vista sabía qué refrescar: emitía `datos-cambiados` y el Home llamaba a
-`cargarPanelHoy()`. Desde el armazón **no se sabe qué pinta la pantalla de turno**, ni si tiene
-cambios sin guardar — recargarla por nuestra cuenta tiraría lo que el operador estuviera
-editando.
+Embebido en el Home, la vista sabía qué refrescar. Desde el armazón no — pero eso **no obliga a
+recargar la página**: la vista lo dice, y sólo mientras está montada.
 
-Así que el flotante **avisa y deja decidir**: sale una franja ámbar «el asistente cambió datos, lo
-que ves puede estar desactualizado» con un botón de recargar. Es peor que el refresco fino y mejor
-que perder un formulario a medias.
+```ts
+useRefrescoDelAsistente(() => cargarPanelHoy());
+```
+
+⚠️ **La pieza que lo hace funcionar es `hayQuienEscuche()`.** Si la pantalla actual se refresca
+sola, el asistente no enseña nada; si no hay nadie registrado, ofrece recargar la página, que es
+lo único que puede prometer ahí. Sin esa comprobación habría que elegir entre molestar siempre o
+dejar datos viejos en las vistas no registradas — y las dos son peores.
+
+⚠️ **El recargón es un botón, nunca un efecto.** Desde el armazón no se sabe si la pantalla tiene
+un formulario a medias, y perderlo por un refresco que nadie pidió es peor que el dato viejo.
+
+Registradas hoy: **Home** (panel de llegadas y salidas), **Reservas** (calendario) y **la ficha
+del expediente** (padrón). Las demás caen al botón de recargar; añadir una es una línea.
 
 ## 4. Dónde tocar para cambiar X
 

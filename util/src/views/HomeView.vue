@@ -7,6 +7,7 @@ import { isSessionExpired } from '@/services/sessionAuth';
 import { MODULOS_APP } from '@/types/modulosApp';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import ConversacionVistaPrevia from '@/components/common/ConversacionVistaPrevia.vue';
+import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 import { apiClient } from '@/services/apiClient';
 import { coleccionFeed, type CalendarEventoFeed } from '@/types/calendarFeedModel';
 import type { PmsEventoExtendedProps } from '@/types/pmsReservaModel';
@@ -189,6 +190,10 @@ async function cargarPanelHoy(): Promise<void> {
     }
 }
 
+// El asistente vive ahora en el armazón, pero el panel de hoy se sigue recargando solo: escribir
+// «registra la salida a las 8» deja estas llegadas y salidas viejas. Ver el composable.
+useRefrescoDelAsistente(() => { void cargarPanelHoy(); });
+
 /**
  * Abre la estancia en el calendario de Reservas, con su ficha ya desplegada en
  * modo lectura. Los ids viajan por la query porque el drawer de Reservas solo
@@ -366,13 +371,9 @@ const cerrarVistaPrevia = () => { vistaPreviaConv.value = null; };
              operador aquí ("¿tengo sitio del 12 al 15?"), y el panel es para mirar, no para
              preguntar. Sólo con sesión: sin ella el endpoint responde 401. -->
         <!-- ⚠️ El asistente ya NO se embebe aquí: vive en el armazón (`AsistenteFlotante` en
-             `App.vue`) y está en todas las vistas. Tenerlo además en el Home serían dos, y el de
-             arriba tapa a éste.
-
-             Lo que se pierde al sacarlo es el refresco fino: embebido avisaba a `cargarPanelHoy()`
-             y sólo se recargaba este panel. Desde el armazón no se sabe qué pinta cada pantalla
-             —ni si tiene cambios sin guardar—, así que el flotante AVISA y deja recargar a quien
-             mira. Ver el componente. -->
+             `App.vue`) y está en todas las vistas. El refresco fino NO se perdió: esta vista se
+             registra con `useRefrescoDelAsistente` más arriba, así que cuando el asistente
+             escribe algo se recarga sólo este panel y nadie ve el aviso de recargar la página. -->
 
         <!-- PANEL DE HOY: lo primero que se mira al entrar. Llegadas y salidas
              del día salen del feed del calendario de Reservas (ver el script). -->
