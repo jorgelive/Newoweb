@@ -1708,6 +1708,12 @@ Hoy las cinco operaciones de escritura llevan `normalizationContext` con `file:i
 comprueba `var/probar-circular-pasajero.php`, que arma el grafo con el círculo cerrado y serializa
 cada operación con el contexto que declara su propio `#[ApiResource]`.
 
+⚠️ **Y por eso `CotizacionFilepasajero::$file` es sólo de escritura.** Filtrar por grupos cortó el
+ciclo pero destapó lo caro: con `file` dentro del grupo de lectura, guardar UN pasajero devolvía el
+expediente entero colgando de él —**1,13 MB por guardado**, medidos en producción— y el front tira
+ese cuerpo a la basura, porque recarga el expediente aparte. Devolver el expediente no le sirve a
+nadie: quien lee un pasajero ya sabe de dónde lo sacó. La misma respuesta pesa ahora unos pocos KB.
+
 ### Los padrones vienen GRITADOS, y el importador los baja (24/08/2026)
 
 Se teclean con el bloqueo de mayúsculas puesto —«VALDIVIA BERRIOS»— y de ahí salían tal cual a la

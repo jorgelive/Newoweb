@@ -111,7 +111,15 @@ class CotizacionFilepasajero
     #[ORM\Column(type: 'date', nullable: true)]
     private ?DateTimeInterface $fechanacimiento = null;
 
-    #[Groups(['file:item:read', 'file:write'])]
+    /**
+     * ⚠️ Sólo de escritura: es como un POST engancha el pasajero a su expediente, pero devolverlo
+     * no le sirve a nadie —el que lee un pasajero ya sabe de qué expediente lo sacó— y cuesta
+     * carísimo. Al guardar uno, la respuesta se serializa con `file:item:read`; si `file` estaba
+     * ahí dentro, el expediente ENTERO viajaba colgando del pasajero: **1,13 MB por guardado**,
+     * medidos en producción el 24/08/2026, con el vendedor en el móvil y el front tirando ese
+     * cuerpo a la basura porque recarga el expediente aparte.
+     */
+    #[Groups(['file:write'])]
     #[ORM\ManyToOne(targetEntity: CotizacionFile::class, inversedBy: 'filepasajeros')]
     #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
