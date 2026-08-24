@@ -16,6 +16,7 @@ use App\Enum\DocumentoTipoEnum;
 use App\Enum\SexoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Lee un padrón y lo vuelca al expediente.
@@ -224,11 +225,28 @@ final readonly class PadronImportador
     private function denunciarDocumentosRepetidos(array $filas, array $columnas, int $indiceCabecera, ResultadoDelPadron $resultado): void
     {
         $vistos = [];
+        $ids = [];
 
         foreach ($filas as $n => $fila) {
             $nombre = trim((string) ($fila[$columnas['fijas'][PadronFormato::COL_NOMBRES]] ?? ''));
             if ($nombre === '' || $this->pareceTotal($nombre)) {
                 continue;
+            }
+
+            // Un `Id` repetido llega copiando una fila para crear a alguien parecido, y es tan
+            // destructivo como un documento repetido: las dos filas escribirían sobre la misma
+            // persona y una desaparecería.
+            $id = trim((string) ($fila[$columnas['fijas'][PadronFormato::COL_ID] ?? -1] ?? ''));
+            if ($id !== '') {
+                if (isset($ids[$id])) {
+                    $resultado->error(sprintf(
+                        'El Id %s está en dos filas: «%s» y «%s». Si copiaste una fila para crear a otra '
+                        .'persona, borra su Id: así se creará como nueva.',
+                        $id, $ids[$id], $nombre,
+                    ));
+                } else {
+                    $ids[$id] = $nombre;
+                }
             }
 
             foreach ($columnas['docs'] as $valorTipo => $donde) {
@@ -369,7 +387,15 @@ final readonly class PadronImportador
     {
         $texto = fn (string $col): string => trim((string) ($fila[$columnas['fijas'][$col] ?? -1] ?? ''));
 
-        $pasajero = $this->buscarPorDocumento($file, $fila, $columnas)
+        // ── Identidad, en tres peldaños de menos a más adivinanza ───────────
+        //
+        // 1. El `Id` de la exportación: exacto. La fila vuelve a SU persona aunque le hayan
+        //    cambiado el nombre y el documento a la vez.
+        // 2. El documento: bueno, pero si alguien corrige un pasaporte esa persona se duplica.
+        // 3. El nombre normalizado: el peor, y existe sólo para que quien no tiene documento no
+        //    se duplique en cada resubida.
+        $pasajero = $this->buscarPorId($file, $texto(PadronFormato::COL_ID))
+            ?? $this->buscarPorDocumento($file, $fila, $columnas)
             ?? $this->buscarPorNombre($file, $texto(PadronFormato::COL_NOMBRES), $texto(PadronFormato::COL_APELLIDOS));
 
         if ($pasajero === null) {
@@ -428,6 +454,31 @@ final readonly class PadronImportador
         $pasajero->setPais($pais);
 
         return $pasajero;
+    }
+
+    /**
+     * El pasajero por su `Id`, si la fila lo trae y es de ESTE expediente.
+     *
+     * ⚠️ Un id de otro expediente **no se ignora en silencio**: se denuncia. Llega ahí copiando
+     * filas entre dos hojas exportadas, y tratarlo como «no lo encuentro» crearía un duplicado del
+     * que nadie sospecharía.
+     */
+    private function buscarPorId(CotizacionFile $file, string $id): ?CotizacionFilepasajero
+    {
+        if ($id === '' || !Uuid::isValid($id)) {
+            return null;
+        }
+
+        foreach ($file->getFilepasajeros() as $candidato) {
+            if ((string) $candidato->getId() === mb_strtolower($id)) {
+                return $candidato;
+            }
+        }
+
+        throw new \DomainException(sprintf(
+            'el Id «%s» no es de este expediente. ¿Copiaste filas de otra hoja? Bórralo y se creará como nuevo.',
+            $id,
+        ));
     }
 
     /**

@@ -60,6 +60,19 @@ final class PadronFormato
     public const MARCA_SERVICIO = '+';
     public const PREFIJO_VENCIMIENTO = 'Venc. ';
 
+    /**
+     * El identificador del pasajero. **Sólo lo pone la exportación.**
+     *
+     * ⚠️ Es lo que convierte la idempotencia en exacta. Sin él hay que casar por documento —y si
+     * alguien corrige un pasaporte, esa persona se duplica— o por nombre, que es peor todavía. Con
+     * él, una fila exportada vuelve a su sitio aunque le hayas cambiado el nombre, el documento y
+     * la nacionalidad a la vez.
+     *
+     * La plantilla en blanco **no lo trae**: una columna vacía llamada «Id» sólo invita a
+     * rellenarla con cualquier cosa.
+     */
+    public const COL_ID = 'Id';
+
     public const COL_NOMBRES = 'Nombres';
     public const COL_APELLIDOS = 'Apellidos';
     public const COL_NACIONALIDAD = 'Nacionalidad';
@@ -87,27 +100,30 @@ final class PadronFormato
     /**
      * Las columnas de persona, en el orden en que se escriben.
      *
-     * @return list<array{columna: string, obligatoria: bool, soloGrupo: bool, ayuda: string}>
+     * @return list<array{columna: string, obligatoria: bool, soloGrupo: bool, soloExport: bool, ayuda: string}>
      */
     public static function columnasFijas(): array
     {
         return [
-            ['columna' => self::COL_NOMBRES, 'obligatoria' => true, 'soloGrupo' => false,
+            ['columna' => self::COL_ID, 'obligatoria' => false, 'soloGrupo' => false, 'soloExport' => true,
+                'ayuda' => 'Lo pone la descarga «con lo cargado». NO LO TOQUES: es lo que hace que al volver '
+                    .'a subir el archivo cada fila vuelva a su persona, aunque le hayas cambiado el nombre.'],
+            ['columna' => self::COL_NOMBRES, 'obligatoria' => true, 'soloGrupo' => false, 'soloExport' => false,
                 'ayuda' => 'Nombres de pila. Es lo único imprescindible.'],
-            ['columna' => self::COL_APELLIDOS, 'obligatoria' => false, 'soloGrupo' => false,
+            ['columna' => self::COL_APELLIDOS, 'soloExport' => false, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'Apellidos, en su propia columna: partir «Nombres y Apellidos» a ojo se equivoca con dos nombres y dos apellidos.'],
-            ['columna' => self::COL_NACIONALIDAD, 'obligatoria' => false, 'soloGrupo' => false,
+            ['columna' => self::COL_NACIONALIDAD, 'soloExport' => false, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'Código ISO de dos letras. Los 198 están en la hoja «Tablas». Vacío se toma el del expediente.'],
-            ['columna' => self::COL_SEXO, 'obligatoria' => false, 'soloGrupo' => false,
+            ['columna' => self::COL_SEXO, 'soloExport' => false, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'M o F.'],
-            ['columna' => self::COL_NACIMIENTO, 'obligatoria' => false, 'soloGrupo' => false,
+            ['columna' => self::COL_NACIMIENTO, 'soloExport' => false, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'DD/MM/AAAA. Hace falta para saber quién viaja como menor.'],
-            ['columna' => self::COL_TIPO, 'obligatoria' => false, 'soloGrupo' => true,
+            ['columna' => self::COL_TIPO, 'soloExport' => false, 'obligatoria' => false, 'soloGrupo' => true,
                 'ayuda' => 'Uno EXACTO de la hoja «Tablas» (hay desplegable). De aquí cuelga qué ve cada '
                     .'uno al consultar su viaje y si aparece ante los demás, así que un valor a medias no vale.'],
-            ['columna' => self::COL_TELEFONO, 'obligatoria' => false, 'soloGrupo' => false,
+            ['columna' => self::COL_TELEFONO, 'soloExport' => false, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'El suyo, no el del expediente: con 133 personas hay 133 familias a las que llamar.'],
-            ['columna' => self::COL_OBSERVACIONES, 'obligatoria' => false, 'soloGrupo' => false,
+            ['columna' => self::COL_OBSERVACIONES, 'soloExport' => false, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'Texto libre: «FALTA PASAPORTE», «reemplaza a…».'],
         ];
     }
@@ -174,6 +190,8 @@ final class PadronFormato
      * @var array<string, string>
      */
     public const ALIAS = [
+        'id' => self::COL_ID,
+        'id interno' => self::COL_ID,
         'nombre' => self::COL_NOMBRES,
         'nombres y apellidos' => self::COL_NOMBRES,
         'apellido' => self::COL_APELLIDOS,
@@ -313,13 +331,30 @@ final class PadronFormato
      */
     public static function cabeceras(): array
     {
+        return [...self::cabecerasBase(), ...self::cabecerasDeGrupo()];
+    }
+
+    /**
+     * Sólo lo de cualquier expediente: persona y documentos. Sin `Id`, sin ejes, sin servicios.
+     *
+     * La exportación parte de aquí y añade **los ejes y servicios que ese expediente usa de
+     * verdad**: sacar `+Coco Bongo` de ejemplo junto a `+COCO BONGO` real daba dos columnas para
+     * lo mismo, y la segunda ganaba por casualidad de orden.
+     *
+     * @return list<string>
+     */
+    public static function cabecerasBase(): array
+    {
         // ⚠️ Lo NORMAL primero, y lo de grupo al final en bloque.
         //
         // Un expediente corriente es dos personas con su documento: si el rol y las agrupaciones se
         // intercalan en medio, quien sólo necesita eso tiene que ir saltándoselas. Al final y con
         // otro color, se borran de una pasada.
         $cabeceras = array_column(
-            array_filter(self::columnasFijas(), static fn (array $c): bool => !$c['soloGrupo']),
+            array_filter(
+                self::columnasFijas(),
+                static fn (array $c): bool => !$c['soloGrupo'] && !$c['soloExport'],
+            ),
             'columna',
         );
 
@@ -327,6 +362,18 @@ final class PadronFormato
             $cabeceras[] = $doc['columna'];
             $cabeceras[] = $doc['vencimiento'];
         }
+
+        return $cabeceras;
+    }
+
+    /**
+     * Las columnas que sólo hacen falta en un padrón: rol, ejes y servicios de ejemplo.
+     *
+     * @return list<string>
+     */
+    public static function cabecerasDeGrupo(): array
+    {
+        $cabeceras = [];
 
         foreach (self::columnasFijas() as $columna) {
             if ($columna['soloGrupo']) {

@@ -555,21 +555,36 @@ const cancelarPadron = () => {
 };
 
 
-const descargarPlantilla = async () => {
+const bajarHoja = async (ruta: string, nombre: string) => {
   descargandoPlantilla.value = true;
   try {
-    const { data } = await apiClient.get('/cotizacion/user/padron/plantilla', { responseType: 'blob' });
+    const { data } = await apiClient.get(ruta, { responseType: 'blob' });
     const url = URL.createObjectURL(data as Blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'padron-plantilla.xlsx';
+    a.download = nombre;
     a.click();
     URL.revokeObjectURL(url);
   } catch {
-    alert('No se pudo descargar la plantilla.');
+    alert('No se pudo descargar el archivo.');
   } finally {
     descargandoPlantilla.value = false;
   }
+};
+
+/** La plantilla en blanco, con ejemplos e instrucciones. */
+const descargarPlantilla = () => bajarHoja('/cotizacion/user/padron/plantilla', 'padron-plantilla.xlsx');
+
+/**
+ * La misma plantilla YA RELLENA con lo que hay cargado.
+ *
+ * ⚠️ Trae la columna `Id`, y ahí está la gracia: al volver a subirla, cada fila regresa a SU
+ * persona aunque le hayas cambiado el nombre y el documento a la vez. Es lo que hace que completar
+ * un padrón a medias no duplique a nadie.
+ */
+const descargarCargado = () => {
+  const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
+  if (id) { void bajarHoja(`/cotizacion/user/padron/exportar/${id}`, 'padron-cargado.xlsx'); }
 };
 
 // ── Subgrupos del expediente ───────────────────────────────────────────────
@@ -997,12 +1012,23 @@ const eliminarDocumento = async (iri?: string) => {
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">
                   <i class="fas fa-file-import mr-2 text-teal-500"></i> Cargar pasajeros desde una hoja
                 </h2>
-                <button @click="descargarPlantilla" :disabled="descargandoPlantilla"
-                        title="Trae hoja de instrucciones y tablas de países, sexo y roles"
-                        class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50">
-                  <i class="fas" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
-                  Descargar plantilla
-                </button>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button @click="descargarPlantilla" :disabled="descargandoPlantilla"
+                          title="En blanco, con hoja de instrucciones y tablas de países, sexo y roles"
+                          class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50">
+                    <i class="fas" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
+                    Plantilla en blanco
+                  </button>
+                  <!-- La descarga con datos es lo que hace cómodo completar un padrón a medias:
+                       trae el `Id` de cada persona, así que al resubirla nadie se duplica aunque
+                       le hayas corregido el nombre o el pasaporte. -->
+                  <button v-if="file.filepasajeros?.length" @click="descargarCargado" :disabled="descargandoPlantilla"
+                          title="La misma hoja, ya rellena con los pasajeros cargados. Complétala y vuelve a subirla."
+                          class="flex items-center gap-2 bg-teal-50 border border-teal-200 text-teal-700 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-teal-100 transition-colors disabled:opacity-50">
+                    <i class="fas fa-file-pen"></i>
+                    Descargar con lo cargado ({{ file.filepasajeros.length }})
+                  </button>
+                </div>
               </div>
               <!-- ── Cargar el padrón ──────────────────────────────────────
                    Siempre ENSAYO primero, y el informe dice en qué expediente va a escribir: cargar

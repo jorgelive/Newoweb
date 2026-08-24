@@ -1832,6 +1832,58 @@ una hoja. Lo exclusivo de un grupo son los **subgrupos**, no la carga.
 ⚠️ Y el padrón va **después** del manifiesto. Estuvo delante, y eso hacía que lo excepcional
 presidiera lo corriente: en un expediente normal los pasajeros son lo único que hay.
 
+### Idempotencia: tres peldaños, de exacto a adivinanza
+
+```
+1. Id            exacto     — sólo lo trae la descarga «con lo cargado»
+2. documento     bueno      — pero corregir un pasaporte duplicaría a esa persona
+3. nombre        el peor    — existe para que quien no tiene documento no se duplique
+```
+
+⚠️ **La columna `Id` es lo que convierte la idempotencia en exacta**, y por eso la exportación
+existe: probado cambiándole a la misma fila el nombre, el apellido, el DNI **y** el pasaporte a la
+vez → **0 creados, 133 actualizados**. Volvió a su persona igual.
+
+La plantilla **en blanco no la trae**: una columna vacía llamada «Id» sólo invita a rellenarla con
+cualquier cosa.
+
+Dos comprobaciones antes de tocar nada, y las dos abortan:
+
+- **`Id` repetido** — llega copiando una fila para crear a alguien parecido. Las dos escribirían
+  sobre la misma persona y una desaparecería. El mensaje dice qué hacer: borra el Id de la copia.
+- **`Id` de otro expediente** — llega copiando filas entre dos hojas exportadas. Tratarlo como «no
+  lo encuentro» crearía un duplicado del que nadie sospecharía.
+
+### La descarga «con lo cargado»
+
+`GET /cotizacion/user/padron/exportar/{id}`. La misma hoja, ya rellena. Es la forma cómoda de
+completar un padrón a medias: se baja lo que hay, se rellenan los huecos y se vuelve a subir.
+
+⚠️ **No parte de la plantilla en blanco.** Ésta trae servicios de ejemplo —`+Coco Bongo`— y el
+expediente los tiene ya normalizados —`+COCO BONGO`—: juntarlos daba **dos columnas para lo mismo**
+y al reimportar ganaba una por casualidad de orden. La exportación saca **sólo lo que ese
+expediente usa**.
+
+⚠️ Y de cada eje saca **tantas columnas como grupos tenga quien más tenga**. Con una sola, alguien
+con dos reservas aéreas —la nacional y la internacional— perdía la segunda al exportar, y al
+resubir se la quitaba de verdad. Como varias columnas comparten cabecera, el volcado **no puede
+usar `array_flip`**: colapsa las repetidas.
+
+⚠️ Los servicios se vuelcan **SÍ/NO explícito**, no sólo los «SÍ»: el importador lee el vacío como
+NO, así que dejar en blanco al que no participa haría indistinguible «no va» de «nadie lo ha
+mirado».
+
+### Nada se guarda en el servidor
+
+Ni la plantilla ni la exportación existen como archivo: se construyen en memoria en cada petición y
+el temporal que PhpSpreadsheet necesita se borra en el acto. Guardarlas reintroduce el problema que
+resuelve generarlas — **una plantilla desactualizada es peor que ninguna**.
+
+⚠️ La librería es **PhpSpreadsheet 1.30.6**, la última de su rama, y ya estaba en el proyecto. No se
+actualizó a propósito: saltar a la 5.x son cuatro majors sobre una librería que **todavía sirve el
+panel legado de `src/Oweb/`** (3 archivos). Cuando Oweb se retire, el salto es de dos archivos y sin
+riesgo.
+
 ### Valores estrictos, porque la plantilla los da
 
 `desdeTexto()` **ya no adivina**. Aceptaba «alumno», «acompa», «ppff», y era un error de criterio:

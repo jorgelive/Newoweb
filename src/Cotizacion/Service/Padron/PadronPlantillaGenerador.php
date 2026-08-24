@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Cotizacion\Service\Padron;
 
 use App\Cotizacion\Enum\GrupoTipoEnum;
+use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\PasajeroTipoEnum;
 use App\Entity\Maestro\MaestroPais;
 use Doctrine\ORM\EntityManagerInterface;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -48,10 +50,33 @@ final readonly class PadronPlantillaGenerador
         'grupo' => self::NARANJA,// sólo si es un padrón: se borra entero si no
     ];
 
+    /**
+     * La plantilla en blanco, con dos filas de ejemplo.
+     */
     public function generar(): string
     {
+        return $this->construir(null);
+    }
+
+    /**
+     * La misma plantilla, **ya rellena** con lo que hay cargado.
+     *
+     * Es la forma cómoda de completar un padrón a medias: se descarga lo que existe, se rellenan los
+     * huecos —los vencimientos que faltan, los teléfonos— y se vuelve a subir.
+     *
+     * ⚠️ Trae la columna `Id`, y ahí está la gracia: al resubir, cada fila vuelve a SU persona
+     * aunque le hayan cambiado el nombre y el documento a la vez. Sin ella habría que casar por
+     * documento, y corregir un pasaporte duplicaría a esa persona.
+     */
+    public function exportar(CotizacionFile $file): string
+    {
+        return $this->construir($file);
+    }
+
+    private function construir(?CotizacionFile $file): string
+    {
         $libro = new Spreadsheet();
-        $this->hojaPasajeros($libro);
+        $this->hojaPasajeros($libro, $file);
         $this->hojaInstrucciones($libro);
         $this->hojaTablas($libro);
         $libro->setActiveSheetIndex(0);
@@ -65,12 +90,14 @@ final readonly class PadronPlantillaGenerador
         return $contenido;
     }
 
-    private function hojaPasajeros(Spreadsheet $libro): void
+    private function hojaPasajeros(Spreadsheet $libro, ?CotizacionFile $file = null): void
     {
         $hoja = $libro->getActiveSheet();
         $hoja->setTitle('Pasajeros');
 
-        $cabeceras = PadronFormato::cabeceras();
+        $cabeceras = $file === null
+            ? PadronFormato::cabeceras()
+            : $this->cabecerasDelExpediente($file);
 
         foreach ($cabeceras as $i => $cabecera) {
             $col = $i + 1;
@@ -86,8 +113,17 @@ final readonly class PadronPlantillaGenerador
             $hoja->getColumnDimensionByColumn($col)->setWidth(max(12, mb_strlen($cabecera) + 4));
         }
 
-        // ── Dos ejemplos: el completo y el mínimo ───────────────────────────
         $porNombre = array_flip($cabeceras);
+
+        if ($file !== null) {
+            $this->volcarPasajeros($hoja, $file, $porNombre, count($cabeceras));
+            $this->desplegables($hoja, $porNombre);
+            $hoja->freezePane('A2');
+
+            return;
+        }
+
+        // ── Dos ejemplos: el completo y el mínimo ───────────────────────────
         $ejemplos = [
             [
                 PadronFormato::COL_NOMBRES => 'Nune',
@@ -132,11 +168,80 @@ final readonly class PadronPlantillaGenerador
         $hoja->setCellValue([1, 5], '↑ Las dos filas de arriba son EJEMPLOS: bórralas antes de importar.');
         $hoja->getStyle([1, 5])->getFont()->setBold(true)->getColor()->setARGB(self::NARANJA);
 
-        // ── Desplegables, y para TODA la columna ────────────────────────────
-        //
-        // Es lo que hace que el formato pueda ser estricto sin castigar a nadie: si la hoja ofrece
-        // los valores, exigirlos deja de ser una trampa. Antes se adivinaba «alumno» o «acompa» —y
-        // eso convertía un «Alumbo» mal escrito en un silencio—.
+        $this->desplegables($hoja, $porNombre);
+
+        $hoja->freezePane('A2');
+    }
+
+
+    /**
+     * Las cabeceras de UN expediente: sólo lo que usa de verdad.
+     *
+     * ⚠️ No se parte de la plantilla en blanco. Ésta trae servicios de ejemplo —`+Coco Bongo`— y el
+     * expediente tiene los suyos ya normalizados —`+COCO BONGO`—: juntarlos daba **dos columnas
+     * para lo mismo**, y al reimportar ganaba una por casualidad de orden.
+     *
+     * ⚠️ Y de cada eje se sacan **tantas columnas como grupos tenga la persona que más tenga**. Con
+     * una sola, alguien con dos reservas aéreas —la nacional y la internacional, que es el caso
+     * normal— perdía la segunda al exportar, y al resubir el archivo se la quitaba de verdad.
+     *
+     * @return list<string>
+     */
+    private function cabecerasDelExpediente(CotizacionFile $file): array
+    {
+        $cabeceras = [PadronFormato::COL_ID, ...PadronFormato::cabecerasBase(), PadronFormato::COL_TIPO];
+
+        /** @var array<string, int> $cuantosPorEje */
+        $cuantosPorEje = [];
+        foreach ($file->getFilepasajeros() as $pasajero) {
+            $suyos = [];
+            foreach ($pasajero->grupos() as $grupo) {
+                if ($grupo->getTipo() !== null && $grupo->getTipo() !== GrupoTipoEnum::SERVICIO) {
+                    $suyos[$grupo->getTipo()->value] = ($suyos[$grupo->getTipo()->value] ?? 0) + 1;
+                }
+            }
+            foreach ($suyos as $eje => $cuantos) {
+                $cuantosPorEje[$eje] = max($cuantosPorEje[$eje] ?? 0, $cuantos);
+            }
+        }
+
+        $servicios = [];
+        foreach ($file->getGrupos() as $grupo) {
+            $tipo = $grupo->getTipo();
+            if ($tipo === GrupoTipoEnum::SERVICIO) {
+                $servicios[(string) $grupo->getClave()] = true;
+            } elseif ($tipo !== null && !isset($cuantosPorEje[$tipo->value])) {
+                // Un eje con grupos pero sin nadie dentro: se saca una columna igual, para poder
+                // asignar gente sin volver a crearlos.
+                $cuantosPorEje[$tipo->value] = 1;
+            }
+        }
+
+        foreach ($cuantosPorEje as $eje => $cuantos) {
+            $etiqueta = GrupoTipoEnum::from($eje)->label();
+            for ($i = 0; $i < $cuantos; ++$i) {
+                $cabeceras[] = PadronFormato::MARCA_EJE.$etiqueta;
+            }
+        }
+
+        foreach (array_keys($servicios) as $servicio) {
+            $cabeceras[] = PadronFormato::MARCA_SERVICIO.$servicio;
+        }
+
+        return $cabeceras;
+    }
+
+    /**
+     * Los desplegables con validación, para TODA la columna.
+     *
+     * Es lo que hace que el formato pueda ser estricto sin castigar a nadie: si la hoja ofrece los
+     * valores, exigirlos deja de ser una trampa. Antes se adivinaba «alumno» o «acompa», y eso
+     * convertía un «Alumbo» mal escrito en un silencio.
+     *
+     * @param array<string, int> $porNombre
+     */
+    private function desplegables(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $hoja, array $porNombre): void
+    {
         $listas = [
             PadronFormato::COL_SEXO => '"M,F"',
             PadronFormato::COL_TIPO => '"'.implode(',', PasajeroTipoEnum::valoresValidos()).'"',
@@ -171,7 +276,110 @@ final readonly class PadronPlantillaGenerador
                 ->setFormula1('Tablas!$A$3:$A$500');
         }
 
-        $hoja->freezePane('A2');
+    }
+
+    /**
+     * Vuelca los pasajeros que ya están cargados.
+     *
+     * @param array<string, int> $porNombre
+     */
+    private function volcarPasajeros(
+        \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $hoja,
+        CotizacionFile $file,
+        array $porNombre,
+        int $totalColumnas,
+    ): void {
+        $texto = static function (\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $h, array $porNombre, int $fila, string $columna, ?string $valor): void {
+            if ($valor === null || $valor === '' || !isset($porNombre[$columna])) {
+                return;
+            }
+            $h->setCellValueExplicit([$porNombre[$columna] + 1, $fila], $valor, DataType::TYPE_STRING);
+        };
+
+        $n = 2;
+
+        foreach ($file->getFilepasajeros() as $pasajero) {
+            $texto($hoja, $porNombre, $n, PadronFormato::COL_ID, (string) $pasajero->getId());
+            $texto($hoja, $porNombre, $n, PadronFormato::COL_NOMBRES, $pasajero->getNombre());
+            $texto($hoja, $porNombre, $n, PadronFormato::COL_APELLIDOS, $pasajero->getApellido());
+            $texto($hoja, $porNombre, $n, PadronFormato::COL_NACIONALIDAD, $pasajero->getPais()?->getId());
+            $texto($hoja, $porNombre, $n, PadronFormato::COL_SEXO, $pasajero->getSexo()?->value);
+            $texto($hoja, $porNombre, $n, PadronFormato::COL_NACIMIENTO, $pasajero->getFechanacimiento()?->format('d/m/Y'));
+            $texto($hoja, $porNombre, $n, PadronFormato::COL_TIPO, $pasajero->getTipo()?->label());
+            $texto($hoja, $porNombre, $n, PadronFormato::COL_TELEFONO, $pasajero->getTelefono());
+            $texto($hoja, $porNombre, $n, PadronFormato::COL_OBSERVACIONES, $pasajero->getObservaciones());
+
+            foreach ($pasajero->getIdentificaciones() as $identificacion) {
+                $tipo = $identificacion->getTipo();
+                if ($tipo === null) {
+                    continue;
+                }
+                $etiqueta = PadronFormato::etiquetaDeDocumento($tipo);
+                $texto($hoja, $porNombre, $n, $etiqueta, $identificacion->getNumero());
+                $texto($hoja, $porNombre, $n, PadronFormato::PREFIJO_VENCIMIENTO.$etiqueta,
+                    $identificacion->getVencimiento()?->format('d/m/Y'));
+            }
+
+            // ⚠️ Los servicios se vuelcan SÍ/NO explícito, no sólo los «SÍ». Dejar en blanco al que
+            // no participa haría indistinguible «no va» de «nadie lo ha mirado», y el importador lee
+            // el vacío como NO: al resubir se perdería la diferencia sin que nadie lo notase.
+            foreach ($file->getGrupos() as $grupo) {
+                if ($grupo->getTipo() !== GrupoTipoEnum::SERVICIO) {
+                    continue;
+                }
+                $columna = PadronFormato::MARCA_SERVICIO.$grupo->getClave();
+                $va = in_array($grupo, $pasajero->grupos(), true);
+                $texto($hoja, $porNombre, $n, $columna, $va ? 'SI' : 'NO');
+            }
+
+            foreach ($pasajero->grupos() as $grupo) {
+                if ($grupo->getTipo() === GrupoTipoEnum::SERVICIO) {
+                    continue;
+                }
+                $columna = PadronFormato::MARCA_EJE.($grupo->getTipo()?->label() ?? '');
+
+                // ⚠️ Varias columnas comparten cabecera —dos «#Reserva aérea», la nacional y la
+                // internacional— así que no vale `array_flip`: colapsa las repetidas y la segunda
+                // reserva se perdía. Se recorren TODAS las posiciones de esa cabecera y se usa la
+                // primera libre de esta fila.
+                foreach ($this->columnasDe($hoja, $columna) as $col) {
+                    if ($hoja->getCell([$col, $n])->getValue() === null) {
+                        $hoja->setCellValueExplicit([$col, $n], (string) $grupo->getClave(), DataType::TYPE_STRING);
+                        break;
+                    }
+                }
+            }
+
+            ++$n;
+        }
+
+        // El `Id` en gris: se ve que es maquinaria y no un dato que rellenar.
+        if (isset($porNombre[PadronFormato::COL_ID]) && $n > 2) {
+            $hoja->getStyle([$porNombre[PadronFormato::COL_ID] + 1, 2, $porNombre[PadronFormato::COL_ID] + 1, $n - 1])
+                ->getFont()->setSize(8)->getColor()->setARGB('FFCBD5E1');
+        }
+
+        unset($totalColumnas);
+    }
+
+    /**
+     * Todas las columnas (1-indexadas) que llevan esa cabecera.
+     *
+     * @return list<int>
+     */
+    private function columnasDe(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $hoja, string $cabecera): array
+    {
+        $columnas = [];
+
+        $ultima = Coordinate::columnIndexFromString($hoja->getHighestColumn());
+
+        for ($col = 1; $col <= $ultima; ++$col) {
+            if ((string) $hoja->getCell([$col, 1])->getValue() === $cabecera) {
+                $columnas[] = $col;
+            }
+        }
+
+        return $columnas;
     }
 
     /**
