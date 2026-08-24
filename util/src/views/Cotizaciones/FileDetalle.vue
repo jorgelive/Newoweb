@@ -944,52 +944,66 @@ const eliminarDocumento = async (iri?: string) => {
               </select>
             </div>
 
-            <!-- ── Subgrupos ─────────────────────────────────────────────────
-                 Ejes cruzados, no un árbol: en un padrón real 9 de cada 10 grupos aparecen en más
-                 de un salón, así que una persona pertenece a varios a la vez. Se definen aquí y se
-                 asignan en la ficha de cada pasajero. -->
-            <div v-if="file.usaPadron" class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest"><i class="fas fa-users mr-2 text-indigo-500"></i> Manifiesto de Pasajeros</h2>
+              <button @click="abrirPaxModal" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm">+ Añadir Pax</button>
+            </div>
+
+            <div v-if="!file.filepasajeros?.length" class="bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-3xl p-8 text-center text-indigo-400">
+              <i class="fas fa-user-plus text-3xl mb-3 opacity-50"></i>
+              <p class="text-xs font-bold uppercase tracking-widest">Sin pasajeros registrados</p>
+            </div>
+
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div v-for="(pax, idx) in file.filepasajeros" :key="pax.id" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group">
+                <div class="absolute top-3 right-3 flex items-center gap-1">
+                  <button @click="abrirEdicionPax(pax)" class="text-slate-300 hover:text-indigo-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
+                    <i class="fas fa-pencil-alt text-xs"></i>
+                  </button>
+                  <button @click="eliminarPasajero(pax['@id'])" class="text-slate-300 hover:text-red-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
+                    <i class="fas fa-trash-alt text-xs"></i>
+                  </button>
+                </div>
+                <div class="flex items-start gap-3 pr-16">
+                  <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-black text-xs flex items-center justify-center border border-indigo-200">{{ idx + 1 }}</div>
+                  <div>
+                    <h3 class="text-sm font-black text-slate-800 leading-tight">{{ pax.nombre }} {{ pax.apellido }}</h3>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      <span class="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 uppercase">{{ pax.tipopaxperurail === 1 ? 'Adulto' : 'Niño' }} PR</span>
+                      <span v-if="pax.edad" class="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 uppercase">{{ pax.edad }} Años</span>
+                    </div>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-2">
+                      <i class="fas fa-globe-americas"></i> {{ pax.pais?.nombre }} ({{ getSexoLabel(pax.sexo) }})<br>
+                      <span v-if="pax.telefono" class="block text-[10px] font-bold text-slate-400">
+                        <i class="fas fa-phone text-[9px] mr-1"></i>{{ formatearTelefono(pax.telefono) }}
+                      </span>
+                      <i class="far fa-id-card mt-1"></i>
+                      <span v-for="(ident, i) in (pax.identificaciones ?? [])" :key="ident.id || i">
+                        <span v-if="i"> · </span>{{ getDocIdLabel(ident.tipo) }}: {{ ident.numero }}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+            <!-- ── PADRÓN: plantilla y carga ────────────────────────────────
+                 ⚠️ FUERA del modo grupo: cargar un namelist de dos personas es tan válido como
+                 cargar 133, y esconderlo en modo normal obligaba a teclear a mano lo que ya está
+                 en una hoja. Lo que sí es exclusivo de un grupo son los SUBGRUPOS, abajo. -->
+            <div class="mb-8">
               <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">
-                  <i class="fas fa-layer-group mr-2 text-teal-500"></i> Subgrupos
+                  <i class="fas fa-file-import mr-2 text-teal-500"></i> Cargar pasajeros desde una hoja
                 </h2>
-
-                <!-- La plantilla vive junto a la carga porque es donde se necesita: quien va a
-                     subir un padrón es quien no sabe qué columnas lleva. -->
                 <button @click="descargarPlantilla" :disabled="descargandoPlantilla"
-                        title="Plantilla del padrón: sirve para dos pasajeros con un pasaporte y para 133 con cinco agrupaciones"
+                        title="Trae hoja de instrucciones y tablas de países, sexo y roles"
                         class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50">
                   <i class="fas" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
-                  Descargar plantilla del padrón
+                  Descargar plantilla
                 </button>
               </div>
-
-              <div class="flex flex-wrap gap-2 items-end bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-4">
-                <div>
-                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Eje</label>
-                  <select v-model="nuevoGrupo.tipo" class="border rounded-lg px-2 py-2 text-sm outline-none focus:border-teal-500">
-                    <option v-for="(cfg, valor) in GRUPO_TIPO_LABELS" :key="valor" :value="valor">{{ cfg.label }}</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clave</label>
-                  <input v-model="nuevoGrupo.clave" type="text" placeholder="B · 5 · HA13 · JA2CWN" maxlength="60"
-                         @keyup.enter="agregarGrupo"
-                         class="w-40 border rounded-lg px-3 py-2 text-sm font-bold uppercase outline-none focus:border-teal-500 placeholder:font-normal placeholder:normal-case placeholder:text-slate-300">
-                </div>
-                <div class="flex-1 min-w-40">
-                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nombre (opcional)</label>
-                  <input v-model="nuevoGrupo.nombre" type="text" placeholder="Arajet JA2CWN (Lima–Punta Cana)" maxlength="150"
-                         @keyup.enter="agregarGrupo"
-                         class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
-                </div>
-                <button @click="agregarGrupo" :disabled="creandoGrupo || !nuevoGrupo.clave.trim()"
-                        class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
-                  <i class="fas fa-spinner fa-spin" v-if="creandoGrupo"></i>
-                  <span v-else>+ Añadir</span>
-                </button>
-              </div>
-
               <!-- ── Cargar el padrón ──────────────────────────────────────
                    Siempre ENSAYO primero, y el informe dice en qué expediente va a escribir: cargar
                    133 personas en el que no toca es un error caro y silencioso. -->
@@ -1061,6 +1075,43 @@ const eliminarDocumento = async (iri?: string) => {
                 </div>
               </div>
 
+            </div>
+
+            <!-- ── Subgrupos ─────────────────────────────────────────────────
+                 Ejes cruzados, no un árbol: en un padrón real 9 de cada 10 grupos aparecen en más
+                 de un salón, así que una persona pertenece a varios a la vez. Se definen aquí y se
+                 asignan en la ficha de cada pasajero. -->
+            <div v-if="file.usaPadron" class="mb-8">
+              <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
+                <i class="fas fa-layer-group mr-2 text-teal-500"></i> Subgrupos
+              </h2>
+
+              <div class="flex flex-wrap gap-2 items-end bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-4">
+                <div>
+                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Eje</label>
+                  <select v-model="nuevoGrupo.tipo" class="border rounded-lg px-2 py-2 text-sm outline-none focus:border-teal-500">
+                    <option v-for="(cfg, valor) in GRUPO_TIPO_LABELS" :key="valor" :value="valor">{{ cfg.label }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clave</label>
+                  <input v-model="nuevoGrupo.clave" type="text" placeholder="B · 5 · HA13 · JA2CWN" maxlength="60"
+                         @keyup.enter="agregarGrupo"
+                         class="w-40 border rounded-lg px-3 py-2 text-sm font-bold uppercase outline-none focus:border-teal-500 placeholder:font-normal placeholder:normal-case placeholder:text-slate-300">
+                </div>
+                <div class="flex-1 min-w-40">
+                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nombre (opcional)</label>
+                  <input v-model="nuevoGrupo.nombre" type="text" placeholder="Arajet JA2CWN (Lima–Punta Cana)" maxlength="150"
+                         @keyup.enter="agregarGrupo"
+                         class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
+                </div>
+                <button @click="agregarGrupo" :disabled="creandoGrupo || !nuevoGrupo.clave.trim()"
+                        class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                  <i class="fas fa-spinner fa-spin" v-if="creandoGrupo"></i>
+                  <span v-else>+ Añadir</span>
+                </button>
+              </div>
+
               <p v-if="!file.grupos?.length" class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-3">
                 Sin subgrupos. Se crean solos al cargar el padrón, o a mano aquí arriba.
               </p>
@@ -1086,50 +1137,6 @@ const eliminarDocumento = async (iri?: string) => {
               </div>
             </div>
 
-
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest"><i class="fas fa-users mr-2 text-indigo-500"></i> Manifiesto de Pasajeros</h2>
-              <button @click="abrirPaxModal" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm">+ Añadir Pax</button>
-            </div>
-
-            <div v-if="!file.filepasajeros?.length" class="bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-3xl p-8 text-center text-indigo-400">
-              <i class="fas fa-user-plus text-3xl mb-3 opacity-50"></i>
-              <p class="text-xs font-bold uppercase tracking-widest">Sin pasajeros registrados</p>
-            </div>
-
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div v-for="(pax, idx) in file.filepasajeros" :key="pax.id" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group">
-                <div class="absolute top-3 right-3 flex items-center gap-1">
-                  <button @click="abrirEdicionPax(pax)" class="text-slate-300 hover:text-indigo-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
-                    <i class="fas fa-pencil-alt text-xs"></i>
-                  </button>
-                  <button @click="eliminarPasajero(pax['@id'])" class="text-slate-300 hover:text-red-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
-                    <i class="fas fa-trash-alt text-xs"></i>
-                  </button>
-                </div>
-                <div class="flex items-start gap-3 pr-16">
-                  <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-black text-xs flex items-center justify-center border border-indigo-200">{{ idx + 1 }}</div>
-                  <div>
-                    <h3 class="text-sm font-black text-slate-800 leading-tight">{{ pax.nombre }} {{ pax.apellido }}</h3>
-                    <div class="flex flex-wrap gap-1 mt-2">
-                      <span class="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 uppercase">{{ pax.tipopaxperurail === 1 ? 'Adulto' : 'Niño' }} PR</span>
-                      <span v-if="pax.edad" class="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 uppercase">{{ pax.edad }} Años</span>
-                    </div>
-                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-2">
-                      <i class="fas fa-globe-americas"></i> {{ pax.pais?.nombre }} ({{ getSexoLabel(pax.sexo) }})<br>
-                      <span v-if="pax.telefono" class="block text-[10px] font-bold text-slate-400">
-                        <i class="fas fa-phone text-[9px] mr-1"></i>{{ formatearTelefono(pax.telefono) }}
-                      </span>
-                      <i class="far fa-id-card mt-1"></i>
-                      <span v-for="(ident, i) in (pax.identificaciones ?? [])" :key="ident.id || i">
-                        <span v-if="i"> · </span>{{ getDocIdLabel(ident.tipo) }}: {{ ident.numero }}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           <div>
             <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4"><i class="fas fa-code-branch mr-2 text-[#E07845]"></i> Historial de Versiones</h2>

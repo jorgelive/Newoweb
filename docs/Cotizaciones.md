@@ -1808,7 +1808,49 @@ Coco Bongo: 122 — el mismo número que sale de contar el Excel a mano
 
 ## 6.s La carga del padrón, y dos callejones sin salida (24/08/2026)
 
-### Dónde se carga
+### Dónde se carga, y por qué NO va con el modo grupo
+
+`FileDetalle`, después del manifiesto:
+
+```
+Modo del expediente
+Manifiesto de pasajeros
+Cargar pasajeros desde una hoja   ← plantilla + carga, SIEMPRE visible
+Subgrupos                          ← sólo en modo grupo
+Historial de versiones
+```
+
+⚠️ **La carga y la plantilla están fuera del `usaPadron`.** Cargar un namelist de dos personas es
+tan válido como cargar 133, y esconderlo en modo normal obligaba a teclear a mano lo que ya está en
+una hoja. Lo exclusivo de un grupo son los **subgrupos**, no la carga.
+
+⚠️ Y el padrón va **después** del manifiesto. Estuvo delante, y eso hacía que lo excepcional
+presidiera lo corriente: en un expediente normal los pasajeros son lo único que hay.
+
+### Valores estrictos, porque la plantilla los da
+
+`desdeTexto()` **ya no adivina**. Aceptaba «alumno», «acompa», «ppff», y era un error de criterio:
+la plantilla trae hoja de instrucciones, una tabla de **198 países**, las equivalencias de sexo, los
+roles con lo que ve cada uno, y **desplegables con validación en las propias columnas**.
+
+Con la lista delante, exigir el valor exacto deja de ser una trampa. Adivinar convertía un «Alumbo»
+mal escrito en un silencio — y el rol decide qué ve cada persona.
+
+Un valor fuera de lista **detiene la carga nombrándolo**: *«el rol "Alumno" no existe. Válidos:
+Participante, Padre de familia…»*.
+
+### Tres bandas de color en la plantilla
+
+```
+verde    Nombres                        sin esto no hay fila
+azul     apellidos · país · sexo · nacimiento · teléfono · observaciones · documentos
+naranja  Rol · #Grupo · #Habitación · #Reserva aérea · +Servicios
+```
+
+Las naranjas van **al final y en bloque**, para poder borrarlas de una pasada. Quien abre la
+plantilla para cargar dos pasajeros necesita saber qué puede quitar, y con dos colores no se sabía.
+
+### El antiguo «Dónde se carga»
 
 `FileDetalle` → **Subgrupos** → «Cargar padrón». Junto a «Descargar plantilla», que es donde lo
 busca quien va a subir uno.

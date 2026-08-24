@@ -89,28 +89,35 @@ enum PasajeroTipoEnum: string
     }
 
     /**
-     * Lo que escribe el colegio en su padrón, traducido.
+     * El rol tal como viene en la hoja. **Estricto: sólo lo que la plantilla enumera.**
      *
-     * Acepta lo que viene en el Excel real —«Alumno/Acompañante», «Padre de familia»— sin exigir
-     * que nadie aprenda nuestros identificadores.
+     * ⚠️ Antes adivinaba —«alumno», «acompañante», «ppff»— y era un error de criterio: la plantilla
+     * trae una hoja de instrucciones con los valores válidos y un desplegable en la propia columna,
+     * así que adivinar sólo consigue que un «Alumbo» mal escrito entre como algo y nadie se entere.
+     *
+     * Un valor que no esté en la lista devuelve `null`, y el importador **lo dice con nombre y
+     * apellido** en vez de tragárselo.
      */
     public static function desdeTexto(?string $texto): ?self
     {
         $limpio = mb_strtolower(trim((string) $texto));
 
-        return match (true) {
-            $limpio === '' => null,
-            str_contains($limpio, 'supervisor') => self::SUPERVISOR,
-            str_contains($limpio, 'coordinador') => self::COORDINADOR,
-            str_contains($limpio, 'invitado') => self::INVITADO,
-            str_contains($limpio, 'no participa') => self::NO_PARTICIPA,
-            str_contains($limpio, 'padre'), str_contains($limpio, 'madre'), str_contains($limpio, 'ppff') => self::PADRE,
-            // «Alumno» y «acompañante» siguen entrando: un padrón de colegio los escribe así, y el
-            // enum se llama PARTICIPANTE porque esto también vale para viajes de incentivo de
-            // empresa, donde nadie es alumno de nada.
-            str_contains($limpio, 'alumno'), str_contains($limpio, 'acompa'),
-            str_contains($limpio, 'participante'), str_contains($limpio, 'pasajero') => self::PARTICIPANTE,
-            default => null,
-        };
+        if ($limpio === '') {
+            return null;
+        }
+
+        foreach (self::cases() as $caso) {
+            if ($limpio === $caso->value || $limpio === mb_strtolower($caso->label())) {
+                return $caso;
+            }
+        }
+
+        return null;
+    }
+
+    /** @return list<string> Lo que se acepta escribir, para la hoja de instrucciones. */
+    public static function valoresValidos(): array
+    {
+        return array_map(static fn (self $c): string => $c->label(), self::cases());
     }
 }

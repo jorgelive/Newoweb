@@ -390,7 +390,20 @@ final readonly class PadronImportador
             $pasajero->setApellido($texto(PadronFormato::COL_APELLIDOS) ?: $pasajero->getApellido() ?? '');
         }
 
-        if (($tipo = PasajeroTipoEnum::desdeTexto($texto(PadronFormato::COL_TIPO))) !== null) {
+        $rolEscrito = $texto(PadronFormato::COL_TIPO);
+        if ($rolEscrito !== '') {
+            $tipo = PasajeroTipoEnum::desdeTexto($rolEscrito);
+
+            if ($tipo === null) {
+                // Se denuncia en vez de ignorarlo: el rol decide qué ve cada uno, y un «Alumbo» mal
+                // escrito que entrara como nada dejaría a alguien viendo de menos sin explicación.
+                throw new \DomainException(sprintf(
+                    'el rol «%s» no existe. Válidos: %s.',
+                    $rolEscrito,
+                    implode(', ', PasajeroTipoEnum::valoresValidos()),
+                ));
+            }
+
             $pasajero->setTipo($tipo);
         }
         if (($telefono = $texto(PadronFormato::COL_TELEFONO)) !== '') {

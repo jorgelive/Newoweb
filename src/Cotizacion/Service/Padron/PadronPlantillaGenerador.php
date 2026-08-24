@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Cotizacion\Service\Padron;
 
 use App\Cotizacion\Enum\GrupoTipoEnum;
+use App\Cotizacion\Enum\PasajeroTipoEnum;
+use App\Entity\Maestro\MaestroPais;
+use Doctrine\ORM\EntityManagerInterface;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -29,17 +33,27 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  */
 final readonly class PadronPlantillaGenerador
 {
+    public function __construct(private EntityManagerInterface $em) {}
+
     public const NOMBRE_ARCHIVO = 'padron-plantilla.xlsx';
 
     private const AZUL = 'FF376875';
     private const NARANJA = 'FFE07845';
     private const GRIS = 'FFF1F5F9';
 
+    /** Un color por banda: se ve de un vistazo qué es imprescindible y qué se puede borrar. */
+    private const COLOR_DE_BANDA = [
+        'clave' => 'FF0F766E',   // teal oscuro: sin esto no hay fila
+        'normal' => self::AZUL,  // lo de cualquier expediente
+        'grupo' => self::NARANJA,// sólo si es un padrón: se borra entero si no
+    ];
+
     public function generar(): string
     {
         $libro = new Spreadsheet();
         $this->hojaPasajeros($libro);
         $this->hojaInstrucciones($libro);
+        $this->hojaTablas($libro);
         $libro->setActiveSheetIndex(0);
 
         $temporal = tempnam(sys_get_temp_dir(), 'padron_');
@@ -57,10 +71,6 @@ final readonly class PadronPlantillaGenerador
         $hoja->setTitle('Pasajeros');
 
         $cabeceras = PadronFormato::cabeceras();
-        $obligatorias = array_column(
-            array_filter(PadronFormato::columnasFijas(), static fn (array $c): bool => $c['obligatoria']),
-            'columna',
-        );
 
         foreach ($cabeceras as $i => $cabecera) {
             $col = $i + 1;
@@ -68,15 +78,10 @@ final readonly class PadronPlantillaGenerador
 
             $estilo = $hoja->getStyle([$col, 1]);
             $estilo->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
-            $estilo->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(
-                // Las de eje en naranja: se ven de un vistazo, y son las que se borran cuando no
-                // se usan. Las obligatorias también, porque son las que no.
-                PadronFormato::esColumnaDeEje($cabecera)
-                || PadronFormato::esColumnaDeServicio($cabecera)
-                || in_array($cabecera, $obligatorias, true)
-                    ? self::NARANJA
-                    : self::AZUL,
-            );
+            // Un color por banda: verde lo imprescindible, azul lo de cualquier expediente,
+            // naranja lo que sólo hace falta en un padrón — y que se borra de una pasada.
+            $estilo->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB(self::COLOR_DE_BANDA[PadronFormato::bandaDe($cabecera)]);
             $estilo->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $hoja->getColumnDimensionByColumn($col)->setWidth(max(12, mb_strlen($cabecera) + 4));
         }
@@ -127,14 +132,105 @@ final readonly class PadronPlantillaGenerador
         $hoja->setCellValue([1, 5], '↑ Las dos filas de arriba son EJEMPLOS: bórralas antes de importar.');
         $hoja->getStyle([1, 5])->getFont()->setBold(true)->getColor()->setARGB(self::NARANJA);
 
-        // Desplegable de sexo, que es donde más se escribe «Masculino» y falla
-        $validacion = $hoja->getCell([$porNombre[PadronFormato::COL_SEXO] + 1, 2])->getDataValidation();
-        $validacion->setType(DataValidation::TYPE_LIST)
-            ->setAllowBlank(true)
-            ->setShowDropDown(true)
-            ->setFormula1('"M,F"');
+        // ── Desplegables, y para TODA la columna ────────────────────────────
+        //
+        // Es lo que hace que el formato pueda ser estricto sin castigar a nadie: si la hoja ofrece
+        // los valores, exigirlos deja de ser una trampa. Antes se adivinaba «alumno» o «acompa» —y
+        // eso convertía un «Alumbo» mal escrito en un silencio—.
+        $listas = [
+            PadronFormato::COL_SEXO => '"M,F"',
+            PadronFormato::COL_TIPO => '"'.implode(',', PasajeroTipoEnum::valoresValidos()).'"',
+        ];
+
+        foreach ($listas as $columna => $formula) {
+            if (!isset($porNombre[$columna])) {
+                continue;
+            }
+
+            $letra = $hoja->getCell([$porNombre[$columna] + 1, 1])->getColumn();
+            $validacion = $hoja->getDataValidation(sprintf('%s2:%s500', $letra, $letra));
+            $validacion->setType(DataValidation::TYPE_LIST)
+                ->setAllowBlank(true)
+                ->setShowDropDown(true)
+                ->setShowErrorMessage(true)
+                ->setErrorTitle('Valor no válido')
+                ->setError('Elige uno de la lista. La hoja «Tablas» los enumera.')
+                ->setFormula1($formula);
+        }
+
+        // La nacionalidad contra la tabla de países: 198 valores no caben en una fórmula literal.
+        if (isset($porNombre[PadronFormato::COL_NACIONALIDAD])) {
+            $letra = $hoja->getCell([$porNombre[PadronFormato::COL_NACIONALIDAD] + 1, 1])->getColumn();
+            $validacion = $hoja->getDataValidation(sprintf('%s2:%s500', $letra, $letra));
+            $validacion->setType(DataValidation::TYPE_LIST)
+                ->setAllowBlank(true)
+                ->setShowDropDown(true)
+                ->setShowErrorMessage(true)
+                ->setErrorTitle('País no reconocido')
+                ->setError('Usa el código ISO de dos letras. La hoja «Tablas» los lista todos.')
+                ->setFormula1('Tablas!$A$3:$A$500');
+        }
 
         $hoja->freezePane('A2');
+    }
+
+    /**
+     * Los valores válidos, en su propia hoja.
+     *
+     * Existe para que el formato pueda ser **estricto sin castigar a nadie**: si la plantilla trae
+     * la lista y el desplegable, exigir el valor exacto deja de ser una trampa y pasa a ser lo
+     * único razonable. Adivinar «alumno» o «acompa» convertía un «Alumbo» mal escrito en un
+     * silencio, y el rol decide qué ve cada persona.
+     */
+    private function hojaTablas(Spreadsheet $libro): void
+    {
+        $hoja = $libro->createSheet();
+        $hoja->setTitle('Tablas');
+        $hoja->getColumnDimensionByColumn(1)->setWidth(10);
+        $hoja->getColumnDimensionByColumn(2)->setWidth(34);
+        $hoja->getColumnDimensionByColumn(4)->setWidth(24);
+        $hoja->getColumnDimensionByColumn(5)->setWidth(34);
+
+        $cabecera = function (int $col, int $fila, string $texto) use ($hoja): void {
+            $hoja->setCellValue([$col, $fila], $texto);
+            $estilo = $hoja->getStyle([$col, $fila]);
+            $estilo->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+            $estilo->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::AZUL);
+        };
+
+        $cabecera(1, 1, 'PAÍSES — usa el código');
+        $hoja->mergeCells([1, 1, 2, 1]);
+        $cabecera(1, 2, 'Código');
+        $cabecera(2, 2, 'País');
+
+        /** @var list<MaestroPais> $paises */
+        $paises = $this->em->getRepository(MaestroPais::class)->findBy([], ['nombre' => 'ASC']);
+        foreach ($paises as $i => $pais) {
+            $hoja->setCellValueExplicit([1, $i + 3], (string) $pais->getId(), DataType::TYPE_STRING);
+            $hoja->setCellValue([2, $i + 3], $pais->getNombre());
+        }
+
+        $cabecera(4, 1, 'SEXO');
+        $hoja->mergeCells([4, 1, 5, 1]);
+        $hoja->setCellValue([4, 2], 'M');
+        $hoja->setCellValue([5, 2], 'Masculino');
+        $hoja->setCellValue([4, 3], 'F');
+        $hoja->setCellValue([5, 3], 'Femenino');
+
+        $cabecera(4, 5, 'ROL — escribe uno de éstos, tal cual');
+        $hoja->mergeCells([4, 5, 5, 5]);
+        foreach (PasajeroTipoEnum::cases() as $i => $rol) {
+            $hoja->setCellValue([4, $i + 6], $rol->label());
+            $hoja->setCellValue([5, $i + 6], match ($rol) {
+                PasajeroTipoEnum::PARTICIPANTE => 'Ve sólo lo suyo. El caso normal.',
+                PasajeroTipoEnum::PADRE => 'Ve sólo lo suyo.',
+                PasajeroTipoEnum::COORDINADOR => 'Ve su grupo entero.',
+                PasajeroTipoEnum::SUPERVISOR => 'Ve el viaje entero, menos los invitados.',
+                PasajeroTipoEnum::INVITADO => 'Ve sólo lo suyo, y NO APARECE para los demás.',
+                PasajeroTipoEnum::NO_PARTICIPA => 'Figura en el padrón pero no viaja.',
+            });
+        }
+        $hoja->getStyle([4, 5, 5, 5 + count(PasajeroTipoEnum::cases())])->getAlignment()->setWrapText(true);
     }
 
     private function hojaInstrucciones(Spreadsheet $libro): void
@@ -177,6 +273,9 @@ final readonly class PadronPlantillaGenerador
         ++$fila;
 
         $titulo('Columnas de la persona');
+        $nota('⚠️ Los valores de Nacionalidad, Sexo y Rol son ESTRICTOS: hay desplegable en la '
+            .'columna y la hoja «Tablas» los enumera. Un valor que no esté en la lista detiene la '
+            .'carga con su nombre, en vez de entrar como algo que nadie pidió.');
         foreach (PadronFormato::columnasFijas() as $columna) {
             $linea($columna['columna'].($columna['obligatoria'] ? ' *' : ''), $columna['ayuda']);
         }

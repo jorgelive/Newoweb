@@ -87,28 +87,27 @@ final class PadronFormato
     /**
      * Las columnas de persona, en el orden en que se escriben.
      *
-     * @return list<array{columna: string, obligatoria: bool, ayuda: string}>
+     * @return list<array{columna: string, obligatoria: bool, soloGrupo: bool, ayuda: string}>
      */
     public static function columnasFijas(): array
     {
         return [
-            ['columna' => self::COL_NOMBRES, 'obligatoria' => true,
+            ['columna' => self::COL_NOMBRES, 'obligatoria' => true, 'soloGrupo' => false,
                 'ayuda' => 'Nombres de pila. Es lo único imprescindible.'],
-            ['columna' => self::COL_APELLIDOS, 'obligatoria' => false,
+            ['columna' => self::COL_APELLIDOS, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'Apellidos, en su propia columna: partir «Nombres y Apellidos» a ojo se equivoca con dos nombres y dos apellidos.'],
-            ['columna' => self::COL_NACIONALIDAD, 'obligatoria' => false,
-                'ayuda' => 'Código ISO de dos letras (PE, US, AR) o el nombre del país. Vacío se toma el del expediente.'],
-            ['columna' => self::COL_SEXO, 'obligatoria' => false,
+            ['columna' => self::COL_NACIONALIDAD, 'obligatoria' => false, 'soloGrupo' => false,
+                'ayuda' => 'Código ISO de dos letras. Los 198 están en la hoja «Tablas». Vacío se toma el del expediente.'],
+            ['columna' => self::COL_SEXO, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'M o F.'],
-            ['columna' => self::COL_NACIMIENTO, 'obligatoria' => false,
+            ['columna' => self::COL_NACIMIENTO, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'DD/MM/AAAA. Hace falta para saber quién viaja como menor.'],
-            ['columna' => self::COL_TIPO, 'obligatoria' => false,
-                'ayuda' => 'Participante · Padre de familia · Coordinador · Supervisor · Invitado · No participa. '
-                    .'También se acepta «Alumno», que es como lo escribe un colegio. '
-                    .'De aquí cuelga qué ve cada uno al consultar su viaje y si aparece ante los demás.'],
-            ['columna' => self::COL_TELEFONO, 'obligatoria' => false,
+            ['columna' => self::COL_TIPO, 'obligatoria' => false, 'soloGrupo' => true,
+                'ayuda' => 'Uno EXACTO de la hoja «Tablas» (hay desplegable). De aquí cuelga qué ve cada '
+                    .'uno al consultar su viaje y si aparece ante los demás, así que un valor a medias no vale.'],
+            ['columna' => self::COL_TELEFONO, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'El suyo, no el del expediente: con 133 personas hay 133 familias a las que llamar.'],
-            ['columna' => self::COL_OBSERVACIONES, 'obligatoria' => false,
+            ['columna' => self::COL_OBSERVACIONES, 'obligatoria' => false, 'soloGrupo' => false,
                 'ayuda' => 'Texto libre: «FALTA PASAPORTE», «reemplaza a…».'],
         ];
     }
@@ -192,6 +191,7 @@ final class PadronFormato
         'observaciones' => self::COL_OBSERVACIONES,
         'notas' => self::COL_OBSERVACIONES,
         'tipo' => self::COL_TIPO,
+        'tipo de pasajero' => self::COL_TIPO,
         'rol' => self::COL_TIPO,
         'telefono' => self::COL_TELEFONO,
         'teléfono' => self::COL_TELEFONO,
@@ -233,6 +233,27 @@ final class PadronFormato
             implode(' ', array_slice($partes, 0, count($partes) - 2)),
             implode(' ', array_slice($partes, -2)),
         ];
+    }
+
+    /**
+     * A qué banda pertenece una cabecera. Es lo que pinta el color en la plantilla.
+     *
+     * Tres y no dos: «lo imprescindible», «lo normal» y «sólo si es un grupo». Sin la tercera, quien
+     * abre la plantilla para cargar dos pasajeros no sabe cuáles puede borrar.
+     */
+    public static function bandaDe(string $cabecera): string
+    {
+        if (self::esColumnaDeEje($cabecera) || self::esColumnaDeServicio($cabecera)) {
+            return 'grupo';
+        }
+
+        foreach (self::columnasFijas() as $columna) {
+            if ($columna['columna'] === $cabecera) {
+                return $columna['soloGrupo'] ? 'grupo' : ($columna['obligatoria'] ? 'clave' : 'normal');
+            }
+        }
+
+        return 'normal';
     }
 
     /** ¿Esta cabecera es un eje con valor? */
@@ -291,11 +312,25 @@ final class PadronFormato
      */
     public static function cabeceras(): array
     {
-        $cabeceras = array_column(self::columnasFijas(), 'columna');
+        // ⚠️ Lo NORMAL primero, y lo de grupo al final en bloque.
+        //
+        // Un expediente corriente es dos personas con su documento: si el rol y las agrupaciones se
+        // intercalan en medio, quien sólo necesita eso tiene que ir saltándoselas. Al final y con
+        // otro color, se borran de una pasada.
+        $cabeceras = array_column(
+            array_filter(self::columnasFijas(), static fn (array $c): bool => !$c['soloGrupo']),
+            'columna',
+        );
 
         foreach (self::columnasDeDocumento() as $doc) {
             $cabeceras[] = $doc['columna'];
             $cabeceras[] = $doc['vencimiento'];
+        }
+
+        foreach (self::columnasFijas() as $columna) {
+            if ($columna['soloGrupo']) {
+                $cabeceras[] = $columna['columna'];
+            }
         }
 
         foreach (self::columnasDeEje() as $eje) {
