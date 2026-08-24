@@ -281,9 +281,14 @@ const loadMore = (): void => {
 
     <!-- INTERFAZ MODAL: NUEVO FILE -->
     <div v-if="showCreateModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-fade-in border border-slate-200">
+      <!-- ⚠️ `100dvh` y no `100vh`, y el formulario con scroll propio.
+           En un móvil, al abrir el teclado la ventana NO cambia de alto en `vh` —esa unidad ignora
+           el teclado—, así que el modal seguía midiendo la pantalla entera y los campos de arriba
+           quedaban debajo del teclado, sin forma de subir: «Nombre del Grupo» era inalcanzable.
+           `dvh` sí encoge, y con la cabecera fija el cuerpo se puede recorrer. -->
+      <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-fade-in border border-slate-200 flex flex-col max-h-[calc(100dvh-2rem)]">
 
-        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
           <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
             <i class="fas fa-file-invoice text-[#E07845]"></i> Aperturar Expediente Comercial
           </h3>
@@ -292,7 +297,7 @@ const loadMore = (): void => {
           </button>
         </div>
 
-        <form @submit.prevent="handleCreate" class="p-6 space-y-5">
+        <form @submit.prevent="handleCreate" class="p-6 space-y-5 overflow-y-auto">
 
           <!-- Nomenclatura del File -->
           <div>

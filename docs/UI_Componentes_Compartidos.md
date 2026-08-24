@@ -715,6 +715,43 @@ la identidad, y sin ellos no hay a quién escribir. Lo parte el prop `organizaci
 compararlo en el navegador daría «semilla» cuando sí hay identidad —lo normal es que ambos
 valores coincidan—.
 
+## 3.i Un modal en el móvil: `dvh`, no `vh` (2026-08-24)
+
+Reportado desde un móvil: al tocar un campo del modal «Aperturar Expediente», el teclado tapaba
+la mitad de arriba y **«Nombre del Grupo» quedaba inalcanzable**. No había forma de subir.
+
+La causa no es que faltara scroll, es la unidad:
+
+> **`100vh` ignora el teclado.** Es el alto de la ventana *large*, el que tendría con las barras
+> del navegador retraídas, y **no cambia cuando se abre el teclado**. El modal seguía midiendo la
+> pantalla entera, así que su mitad superior quedaba debajo del teclado y no había nada que
+> recorrer: el contenido no desbordaba, sólo estaba tapado.
+
+`100dvh` —*dynamic viewport height*— sí encoge. Con el tope puesto ahí, el modal cabe en lo que
+queda visible y el cuerpo se puede recorrer.
+
+El patrón, en los tres modales del flujo de expedientes (`DashboardView`, y el de pasajero y el de
+documento en `FileDetalle`):
+
+```html
+<div class="fixed inset-0 flex items-center justify-center p-4 …">
+  <div class="… flex flex-col max-h-[calc(100dvh-2rem)]">   <!-- el tope, y columna -->
+    <div class="… shrink-0">cabecera</div>                  <!-- no se encoge -->
+    <form class="p-6 overflow-y-auto">…</form>              <!-- lo que se recorre -->
+```
+
+Las tres piezas son necesarias: sin `flex flex-col` el `overflow-y-auto` no tiene de qué colgar,
+sin `shrink-0` la cabecera se aplasta antes que el cuerpo, y sin el tope en `dvh` no hay desbordo
+que recorrer.
+
+⚠️ **`overflow-hidden` en la tarjeta no estorba** —es lo que recorta las esquinas redondeadas— y
+convive con el `overflow-y-auto` del hijo. Y donde estaba puesto `overflow-visible` a propósito
+(el modal de pasajero) **se queda**: el desplegable de `SearchableSelect` se teletransporta a
+`body` con `fixed`, así que no lo recorta nadie.
+
+⚠️ El patrón **no está aplicado en toda la app**. Los drawers de Tarifas y Reservas, el modal de
+plan de operación y los de chat siguen sin tope. Se van arreglando al tocarlos.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -741,3 +778,4 @@ valores coincidan—.
 | Añadir una ayuda a un panel sin gastarle una franja (§3.e) | `InfoTooltip.vue` | `<InfoTooltip lado="…">` — el slot admite formato |
 | Que un tooltip no se salga por el borde de un panel (§3.e) | Vista que lo monta | `lado="derecha"` (ancla por el borde derecho) |
 | Cambiar cómo se comporta el tooltip en táctil (§3.e) | `InfoTooltip.vue` | `alTocar()` + `conPuntero` — ⚠️ NO se vuelve a `:hover`, lee el gotcha |
+| Que un modal no quede tapado por el teclado del móvil (§3.i) | La tarjeta del modal | `flex flex-col max-h-[calc(100dvh-2rem)]` + `shrink-0` en la cabecera + `overflow-y-auto` en el cuerpo. ⚠️ `dvh`, nunca `vh` |

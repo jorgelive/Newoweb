@@ -1550,12 +1550,15 @@ const eliminarDocumento = async (iri?: string) => {
 
   <Teleport to="body">
     <div v-if="showPaxModal" class="fixed inset-0 z-1000 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-visible">
-        <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white rounded-t-3xl">
+      <!-- `overflow-visible` seguía haciendo falta: el desplegable de SearchableSelect se
+           teletransporta a `body` con `fixed`, así que no lo recorta nada. Lo que se añade es el
+           tope en `dvh` —que sí encoge con el teclado del móvil— y el scroll del cuerpo. -->
+      <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-visible flex flex-col max-h-[calc(100dvh-2rem)]">
+        <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white rounded-t-3xl shrink-0">
           <h3 class="font-black text-sm uppercase tracking-widest">{{ paxEditandoIri ? 'Editar Pasajero' : 'Nuevo Pasajero' }}</h3>
           <button @click="showPaxModal = false" class="text-indigo-200 hover:text-white"><i class="fas fa-times"></i></button>
         </div>
-        <form @submit.prevent="guardarPasajero" class="p-6 space-y-4">
+        <form @submit.prevent="guardarPasajero" class="p-6 space-y-4 overflow-y-auto">
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombres *</label>
@@ -1734,9 +1737,9 @@ const eliminarDocumento = async (iri?: string) => {
 
   <Teleport to="body">
     <div v-if="showDocModal" class="fixed inset-0 z-1000 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
 
-        <div class="bg-sky-600 px-6 py-4 flex justify-between items-center text-white">
+        <div class="bg-sky-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
           <h3 class="font-black text-sm uppercase tracking-widest">
             <i class="fas fa-upload mr-2" v-if="!docEditandoIri"></i>
             <i class="fas fa-pencil-alt mr-2" v-else></i>
@@ -1744,7 +1747,7 @@ const eliminarDocumento = async (iri?: string) => {
           </h3>
           <button @click="showDocModal = false; docEditandoIri = null" class="text-sky-200 hover:text-white"><i class="fas fa-times"></i></button>
         </div>
-        <form @submit.prevent="guardarDocumento" class="p-6 space-y-4">
+        <form @submit.prevent="guardarDocumento" class="p-6 space-y-4 overflow-y-auto">
           <div v-if="!docEditandoIri">
             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Archivo (PDF / Img) *</label>
             <input type="file" @change="handleFileUpload" required class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
