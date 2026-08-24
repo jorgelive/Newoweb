@@ -6,6 +6,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
 import GlobalLoginModal from "@/components/GlobalLoginModal.vue";
 import GestoDeRecarga from '@/components/common/GestoDeRecarga.vue';
+import AsistenteFlotante from '@/components/common/AsistenteFlotante.vue';
 
 const notificationStore = useNotificationStore();
 const noLeidosStore = useNoLeidosStore();
@@ -92,6 +93,11 @@ onUnmounted(() => {
        única vista cuya raíz scrollea— y cablearlo vista por vista, con doce scrollers en el
        editor de cotizaciones, sería olvidarse en alguna. Ver el componente. -->
   <GestoDeRecarga />
+
+  <!-- El asistente, en el armazón y no en una vista: lo que se le pregunta —«¿quién está en el
+       grupo 6?»— es justo lo que hace falta SIN soltar la pantalla en la que estás. Ver el
+       componente. -->
+  <AsistenteFlotante />
 
   <NotificationToast />
 

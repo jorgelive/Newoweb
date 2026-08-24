@@ -6,7 +6,6 @@ import { useNoLeidosStore } from '@/stores/chat/noLeidosStore';
 import { isSessionExpired } from '@/services/sessionAuth';
 import { MODULOS_APP } from '@/types/modulosApp';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
-import AsistenteBar from '@/components/common/AsistenteBar.vue';
 import ConversacionVistaPrevia from '@/components/common/ConversacionVistaPrevia.vue';
 import { apiClient } from '@/services/apiClient';
 import { coleccionFeed, type CalendarEventoFeed } from '@/types/calendarFeedModel';
@@ -366,12 +365,14 @@ const cerrarVistaPrevia = () => { vistaPreviaConv.value = null; };
         <!-- ASISTENTE: va antes del panel del día porque resuelve la pregunta que trae al
              operador aquí ("¿tengo sitio del 12 al 15?"), y el panel es para mirar, no para
              preguntar. Sólo con sesión: sin ella el endpoint responde 401. -->
-        <section v-if="isSessionActive" class="mb-6">
-          <!-- El asistente escribe en el PMS («registra la salida a las 8»), así que el panel de
-             llegadas y salidas que hay justo debajo se queda viejo. Se recarga cuando avisa.
-             Sólo emite si de verdad hubo escritura: preguntar «quién sale mañana» no recarga. -->
-        <AsistenteBar @datos-cambiados="cargarPanelHoy" />
-        </section>
+        <!-- ⚠️ El asistente ya NO se embebe aquí: vive en el armazón (`AsistenteFlotante` en
+             `App.vue`) y está en todas las vistas. Tenerlo además en el Home serían dos, y el de
+             arriba tapa a éste.
+
+             Lo que se pierde al sacarlo es el refresco fino: embebido avisaba a `cargarPanelHoy()`
+             y sólo se recargaba este panel. Desde el armazón no se sabe qué pinta cada pantalla
+             —ni si tiene cambios sin guardar—, así que el flotante AVISA y deja recargar a quien
+             mira. Ver el componente. -->
 
         <!-- PANEL DE HOY: lo primero que se mira al entrar. Llegadas y salidas
              del día salen del feed del calendario de Reservas (ver el script). -->

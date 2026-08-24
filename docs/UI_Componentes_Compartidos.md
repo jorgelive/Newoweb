@@ -847,6 +847,38 @@ enseña exactamente lo que se va a guardar, que es lo contrario del caso anterio
 Barrido hecho el 24/08/2026 sobre `util/` y `pax/`: los cinco campos editables que quedan con
 versal son todos **códigos que se normalizan** (clave de subgrupo, localizadores de búsqueda).
 
+## 3.m `AsistenteFlotante` — el asistente en toda la app (2026-08-24)
+
+`AsistenteBar` vivía embebido en el Home, así que preguntarle algo mientras editabas una
+cotización o revisabas el padrón exigía **salir de donde estabas y volver**. Y lo que se le
+pregunta —«¿quién está en el grupo 6?», «¿qué casitas tengo libres?»— es justo lo que hace falta
+sin soltar la pantalla.
+
+`AsistenteFlotante` lo envuelve y se monta en `App.vue`, junto a `GestoDeRecarga`: una lengüeta
+anclada al borde superior que al tocarla baja el panel.
+
+⚠️ **Anclada ARRIBA y no abajo.** Abajo compiten el teclado del móvil, la barra de gestos del
+sistema y el aviso de notificaciones que ya vive ahí. Abriendo hacia abajo desde el borde
+superior, el teclado se queda donde está.
+
+⚠️ **Se engancha a `useCapasEnHistorial`** (§3.k): «atrás» lo colapsa en vez de sacarte de la
+pantalla.
+
+⚠️ **Sólo se pinta con `ROLE_RESERVAS_SHOW`.** El asistente consulta el PMS con las skills del
+usuario; a quien no las tiene le contestaría «no puedo» a todo, y una lengüeta que sólo sabe
+negarse es peor que ninguna.
+
+### Lo que se pierde al sacarlo del Home, y por qué se acepta
+
+Embebido, la vista sabía qué refrescar: emitía `datos-cambiados` y el Home llamaba a
+`cargarPanelHoy()`. Desde el armazón **no se sabe qué pinta la pantalla de turno**, ni si tiene
+cambios sin guardar — recargarla por nuestra cuenta tiraría lo que el operador estuviera
+editando.
+
+Así que el flotante **avisa y deja decidir**: sale una franja ámbar «el asistente cambió datos, lo
+que ves puede estar desactualizado» con un botón de recargar. Es peor que el refresco fino y mejor
+que perder un formulario a medias.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -874,6 +906,7 @@ versal son todos **códigos que se normalizan** (clave de subgrupo, localizadore
 | Que un tooltip no se salga por el borde de un panel (§3.e) | Vista que lo monta | `lado="derecha"` (ancla por el borde derecho) |
 | Cambiar cómo se comporta el tooltip en táctil (§3.e) | `InfoTooltip.vue` | `alTocar()` + `conPuntero` — ⚠️ NO se vuelve a `:hover`, lee el gotcha |
 | Decidir si un campo lleva `uppercase` (§3.l) | La vista que lo monta | Rótulo → sí. Campo editable → sólo si el valor se normaliza al guardar |
+| Que el asistente aparezca (o no) en una vista (§3.m) | `AsistenteFlotante.vue` en `App.vue` | `visible` — hoy es el rol; es el único sitio que decide |
 | Que «atrás» cierre un modal en vez de salir de la pantalla (§3.k) | La vista que lo monta | `useCapasEnHistorial()` — `abrir(nombre, alCerrar)` / `cerrar(nombre)`. ⚠️ TODOS los cierres pasan por `cerrar()`, incluida la ✕ |
 | Que una ficha abra leyendo y se gire para editar (§3.j) | La vista que la monta | `modoVista` + `girar()`, y las clases `.panel-giratorio` / `.cara` / `.de-canto`. ⚠️ Media vuelta, NO dos caras |
 | Que un modal no quede tapado por el teclado del móvil (§3.i) | La tarjeta del modal | `flex flex-col max-h-[calc(100dvh-2rem)]` + `shrink-0` en la cabecera + `overflow-y-auto` en el cuerpo. ⚠️ `dvh`, nunca `vh` |
