@@ -3321,10 +3321,17 @@ store.$onAction(({ name, args }) => {
                                      class="w-12 bg-slate-50 border border-slate-300 rounded px-1 py-1 text-xs font-black text-center outline-none focus:ring-2 focus:ring-teal-500 text-slate-800">
                             </div>
 
+                            <!-- ⚠️ Este campo va SIN `uppercase`, a diferencia de los rótulos.
+                                 Era sólo CSS —el valor se guarda tal cual— y eso es justo el
+                                 problema: escribiendo no había forma de ver si el título quedaba
+                                 «La Olla de Juanita» o «la olla de juanita». Se veía mayúsculo en
+                                 pantalla y se guardaba como se tecleó, así que nadie podía
+                                 corregir lo que no veía. La versal se queda donde el texto NO se
+                                 edita. -->
                             <div class="flex items-center gap-2 w-full lg:w-auto min-w-0">
                               <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
                                      @input="e => { if(store.cotizacion) store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
-                                     class="bg-transparent text-[11px] md:text-xs font-black text-slate-700 uppercase outline-none flex-1 w-full truncate" placeholder="Título..." />
+                                     class="bg-transparent text-[11px] md:text-xs font-black text-slate-700 outline-none flex-1 w-full truncate" placeholder="Título del párrafo..." />
 
                               <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
                                       class="transition-colors px-2 py-1.5 rounded text-[10px] font-bold border flex items-center gap-1 shadow-sm shrink-0"

@@ -1993,6 +1993,10 @@ const eliminarDocumento = async (iri?: string) => {
                          @keyup.enter="agregarGrupo"
                          class="w-36 border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
                 </div>
+                <!-- Aquí el `uppercase` del campo SÍ se queda, y no es lo mismo que en los
+                     títulos: la clave se normaliza a mayúsculas al guardar —de ella depende la
+                     unicidad, ver `CotizacionFileGrupo::$clave`—, así que el campo enseña
+                     exactamente lo que se va a guardar. -->
                 <div>
                   <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clave</label>
                   <input v-model="nuevoGrupo.clave" type="text" placeholder="B · 5 · HA13 · JA2CWN" maxlength="60"

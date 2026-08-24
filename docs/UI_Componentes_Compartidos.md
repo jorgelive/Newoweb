@@ -825,6 +825,28 @@ Aplicado en `FileDetalle.vue` a la ficha del pasajero, su modo edición, el moda
 panel del expediente. ⚠️ **No está en el resto de la app**: los drawers de Tarifas y Reservas y los
 modales de chat siguen sacándote de la pantalla. Se van enganchando al tocarlos.
 
+## 3.l La versal va donde NO se edita (2026-08-24)
+
+`uppercase` es sólo CSS: el valor se guarda tal cual se tecleó. Eso suena inofensivo y es
+justamente el problema **cuando el campo es editable**: escribiendo el título de un párrafo no
+había forma de ver si quedaba «La Olla de Juanita» o «la olla de juanita». La pantalla lo enseñaba
+mayúsculo, la base guardaba lo tecleado, y **nadie puede corregir lo que no ve** — el error sólo
+aparece en el documento del cliente.
+
+La regla:
+
+| | |
+|---|---|
+| **Rótulos, cabeceras, badges** | `uppercase` — es decoración sobre texto que nadie edita |
+| **Un campo que se escribe** | sin `uppercase`, salvo que el valor **se normalice** al guardar |
+
+La excepción está en `FileDetalle`: la clave de un subgrupo sí lleva `uppercase`, porque
+`CotizacionFileGrupo::$clave` la sube al guardar —de ella depende la unicidad—. Ahí el campo
+enseña exactamente lo que se va a guardar, que es lo contrario del caso anterior.
+
+Barrido hecho el 24/08/2026 sobre `util/` y `pax/`: los cinco campos editables que quedan con
+versal son todos **códigos que se normalizan** (clave de subgrupo, localizadores de búsqueda).
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -851,6 +873,7 @@ modales de chat siguen sacándote de la pantalla. Se van enganchando al tocarlos
 | Añadir una ayuda a un panel sin gastarle una franja (§3.e) | `InfoTooltip.vue` | `<InfoTooltip lado="…">` — el slot admite formato |
 | Que un tooltip no se salga por el borde de un panel (§3.e) | Vista que lo monta | `lado="derecha"` (ancla por el borde derecho) |
 | Cambiar cómo se comporta el tooltip en táctil (§3.e) | `InfoTooltip.vue` | `alTocar()` + `conPuntero` — ⚠️ NO se vuelve a `:hover`, lee el gotcha |
+| Decidir si un campo lleva `uppercase` (§3.l) | La vista que lo monta | Rótulo → sí. Campo editable → sólo si el valor se normaliza al guardar |
 | Que «atrás» cierre un modal en vez de salir de la pantalla (§3.k) | La vista que lo monta | `useCapasEnHistorial()` — `abrir(nombre, alCerrar)` / `cerrar(nombre)`. ⚠️ TODOS los cierres pasan por `cerrar()`, incluida la ✕ |
 | Que una ficha abra leyendo y se gire para editar (§3.j) | La vista que la monta | `modoVista` + `girar()`, y las clases `.panel-giratorio` / `.cara` / `.de-canto`. ⚠️ Media vuelta, NO dos caras |
 | Que un modal no quede tapado por el teclado del móvil (§3.i) | La tarjeta del modal | `flex flex-col max-h-[calc(100dvh-2rem)]` + `shrink-0` en la cabecera + `overflow-y-auto` en el cuerpo. ⚠️ `dvh`, nunca `vh` |
