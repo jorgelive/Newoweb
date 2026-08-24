@@ -4238,8 +4238,11 @@ que usa `src/Exchange/`.
 
 **El bucle es nuestro.** Anthropic trae un `toolRunner` que gira solo; aquí la API devuelve
 `tool_calls`, hay que ejecutarlas, añadirlas al hilo y volver a llamar. `MAX_VUELTAS = 8`, el
-mismo tope que el runner de Anthropic, para que cambiar de proveedor no cambie lo que el agente
-puede resolver.
+mismo tope que el runner de Anthropic.
+
+⚠️ **En la última vuelta NO se ejecuta nada.** Ejecutar sin poder volver a llamar significa que la
+skill escribe en la base y su resultado se tira, porque no hay quien lo lea — y el turno entrega
+un «déjame consultar…» de una vuelta anterior marcado como si esas skills lo hubieran informado.
 
 #### La diferencia que manda: no hay marca de caché
 
@@ -4249,50 +4252,69 @@ puede resolver.
 | Si el orden es malo | se corrige moviendo la marca | **no hay caché, y punto** |
 | Qué informa | `cacheRead` / `cacheCreation` | `prompt_cache_hit_tokens` / `..._miss_tokens` |
 
-Con marca, un prefijo mal ordenado se arregla. Sin marca, **el nombre del huésped arriba significa
-caché cero para siempre y sin un solo aviso**. Por eso el motor arma el prompt en este orden y
-manda lo volátil en un `system` aparte, nunca concatenado:
+Y el emparejamiento exige el prefijo **entero**: «A + C» no casa con «A + B» aunque compartan la
+«A». Por eso el motor arma el prompt así, con lo volátil en un `system` aparte y nunca
+concatenado —concatenando, cualquier cambio reescribe la cadena y con ella el prefijo—:
 
 ```
 [ system estable ] [ catálogo de skills ] [ contexto de esta conversación ] [ mensajes ]
-  └────── idéntico por (roles, escritura, modelo) ──────┘   └── volátil, detrás ──┘
+  └──────── idéntico para el mismo catálogo ────────┘   └── volátil, detrás ──┘
 ```
 
-#### ⚠️ `firmaDeCache()`: por ROLES, nunca por persona
+#### ⚠️ `user_id`, y lo que NO hace
 
-El caché se indexa por prefijo, así que dos usos que empiecen distinto no comparten nada. Con los
-tramos de potencia eso importa: el mismo modelo puede atender el alto del panel y el bajo del
-chat.
+Se manda una firma estable en **`user_id`** (`modelo_cat|seco_rw|ro_hash`).
 
-> **Sin separar, cada tramo pisa el prefijo del otro en cada consulta.** El alto escribe su
-> catálogo, llega una del bajo con otro prefijo y falla, escribe el suyo, vuelve una del alto y
-> falla otra vez. Nadie borra nada —el caché es por prefijo, no una casilla— pero **ninguno
-> acierta nunca**. Es el fallo más caro posible porque no da error: sólo una factura que no baja.
+> **No parte el caché.** La documentación de DeepSeek no dice que `user_id` intervenga en el
+> emparejamiento. Quien separa un tramo de otro es que **su prefijo ya es distinto**: otro modelo,
+> otro system, otro catálogo. Lo que la firma hace es *declarar* el grupo — agrupa las llamadas
+> equivalentes para los límites de tasa, permite mirar la factura por tramo, y deja escrito en el
+> código cuál se supone que es el prefijo compartido, que es lo que hay que mirar el día que el
+> caché deje de acertar.
 
-La firma va en el campo `user` de la petición y es `modelo/rw|ro/hash(roles)`:
+Se agrupa por lo que determina el prefijo, **nunca por persona**: modelo · con catálogo o seco ·
+escritura · roles + dominios (que es por lo que filtra `SkillRegistry::paraActor()`). Dos personas
+con los mismos roles mandan exactamente el mismo prefijo; separarlas sugeriría una división que no
+existe.
 
-```
-mismo rol, dos personas    deepseek-chat/rw/0072c9bf77b4   ← misma línea: comparten
-los mismos roles al revés  deepseek-chat/rw/0072c9bf77b4   ← se ordenan antes de firmar
-CAMBIO DE POTENCIA         deepseek-reasoner/rw/0072c9…    ← línea nueva, la anterior intacta
-chat del huésped (sin rw)  deepseek-chat/ro/0072c9bf77b4
-otro rol                   deepseek-chat/rw/e82c84fadf33
-```
+⚠️ La API sólo admite `[a-zA-Z0-9-_]` y 512 caracteres en ese campo: un nombre de modelo con un
+punto colaría un carácter inválido y **la petición entera se rechazaría con un 400**, por un campo
+que sólo agrupa. Se sanea antes de mandarlo.
 
-⚠️ **Por roles y no por persona**, que es lo intuitivo y destruye el ahorro: lo que hace largo el
-prefijo es el catálogo de skills, y ése depende de los roles y de si se permite escribir, no de
-quién pregunta. Firmando por persona cada una escribiría su copia para leerla dos turnos y
-tirarla — el mismo fallo que Anthropic tuvo aquí (§12.4), con el `system` llevando el nombre del
-huésped dentro.
+#### ⚠️ Los nombres de modelo cambiaron
 
-#### Dos cosas que DeepSeek no tiene
+`deepseek-chat` y `deepseek-reasoner` están **retirados desde el 24/07/2026**. Los vigentes son
+`deepseek-v4-flash` y `deepseek-v4-pro`, y el modo pensante dejó de ser un modelo aparte: va en el
+parámetro `thinking`, y **sí admite herramientas**.
 
-- **Structured outputs con esquema.** Sólo `json_object`, que obliga a JSON válido pero **no a que
-  case con nuestra forma**: el esquema se pide en el prompt y quien llama valida, que es lo que ya
-  hace. La API además **exige la palabra «json» en el prompt** con ese modo, y responde 400 si
-  falta; el motor la añade en vez de confiar en que todos los prompts la lleven.
-- **Herramientas en `deepseek-reasoner`.** Razona antes de contestar y no admite `tools`: sirve
-  para el tramo bajo —clasificar, redactar cortesía—, no para el agente con skills.
+Nacer con un alias muerto no rompía nada visible: `estaDisponible()` seguía diciendo que sí y cada
+llamada fallaba en silencio. Es la peor forma de estar roto — la que no da error, sólo un motor
+que no contesta nunca.
+
+⚠️ Si algún día se activa el modo pensante **con `tools`**, la API exige que `reasoning_content`
+vuelva ENTERO en todos los mensajes de asistente posteriores o responde 400. El bucle ya reenvía
+el mensaje del asistente tal cual lo devolvió la API, así que eso ya se cumple; el día que alguien
+lo reconstruya campo a campo, se rompe.
+
+#### `finish_reason`, que los otros dos motores sí miran
+
+- `content_filter` → `rechazada()`, igual que el `refusal` de Anthropic y el `FIN_RECHAZADO` de
+  Google. Sin esa rama, una respuesta filtrada salía como texto normal a medias: peor que no
+  contestar, porque parece una respuesta.
+- `length` **con esquema** en `turnoDirecto()` → `null`. El JSON viene cortado a media clave y
+  parece válido; es el mismo fallo que ya costó caro en Google (§12.6), donde el triaje recibía
+  `{"tipo":"peticion","skill` y lo daba por indeterminado sin que nadie lo relacionara con el
+  presupuesto de tokens.
+
+#### Lo que DeepSeek no tiene
+
+**Structured outputs con esquema.** Sólo `json_object`, que obliga a JSON válido pero **no a que
+case con nuestra forma**: el esquema se pide en el prompt y quien llama valida. Los dos sitios que
+pasan esquema —`Triaje` y `RevisarOrdenDelNombre`— ya validan, así que no rompen; pero con este
+proveedor el camino de «vino JSON raro, me caigo al camino largo» pasa de teórico a probable.
+
+La API además **exige la palabra «json» en el prompt** con ese modo y responde 400 si falta; el
+motor la añade en vez de confiar en que todos los prompts la lleven.
 
 ## 13. Triaje de entrada y tramos de potencia
 

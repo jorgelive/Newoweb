@@ -124,11 +124,15 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
                     'messages' => $mensajes,
                     'tools' => $tools,
                     'max_tokens' => $peticion->maxTokens,
-                    // ⚠️ Por ROLES, no por persona. Ver DeepSeekClient::firmaDeCache().
-                    'user' => DeepSeekClient::firmaDeCache(
+                    // ⚠️ `user_id`, NO `user`. `user` es de OpenAI; DeepSeek no lo tiene y un
+                    // campo desconocido se ignora en silencio: el mecanismo entero quedaba
+                    // inerte sin un solo error. Ver DeepSeekClient::firmaDeCache().
+                    'user_id' => DeepSeekClient::firmaDeCache(
                         $peticion->actor->roles(),
-                        $peticion->permitirEscritura,
-                        $modelo,
+                        $peticion->actor->dominios(),
+                        conCatalogo: true,
+                        permiteEscritura: $peticion->permitirEscritura,
+                        modelo: $modelo,
                     ),
                 ]);
             } catch (Throwable $e) {
@@ -136,9 +140,18 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
 
                 // Con algo ya redactado se entrega eso; si no, se declara no disponible y quien
                 // llama decide. Nunca se propaga: al otro lado hay un huésped esperando.
-                return $texto !== null
+                //
+                // ⚠️ `sinSkill()` SÓLO si de verdad no se usó ninguna. Es el motivo que alimenta
+                // la métrica de «respuestas sin datos detrás», y devolverlo con skills ya
+                // ejecutadas la ensucia — además de que algún canal descarta por ese motivo un
+                // texto que sí salía de los datos.
+                if ($texto === null) {
+                    return ConversationResponse::noDisponible();
+                }
+
+                return $usadas === []
                     ? ConversationResponse::sinSkill($texto)
-                    : ConversationResponse::noDisponible();
+                    : ConversationResponse::ok($texto, array_values(array_unique($usadas)));
             }
 
             $uso = $respuesta['usage'] ?? [];
@@ -148,6 +161,20 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
 
             $eleccion = $respuesta['choices'][0] ?? null;
             $mensaje = $eleccion['message'] ?? null;
+            $motivoFin = (string) ($eleccion['finish_reason'] ?? '');
+
+            // Los filtros de contenido cortan la respuesta. Los otros dos motores lo distinguen
+            // —Anthropic con `refusal`, Google con `FIN_RECHAZADO`— y el canal de arriba decide
+            // qué hacer con eso. Sin esta rama, una respuesta filtrada salía como texto normal a
+            // medias: peor que no contestar, porque parece una respuesta.
+            if ($motivoFin === 'content_filter') {
+                $this->logger->warning(sprintf(
+                    'Agent (deepseek): petición filtrada por el proveedor para %s.',
+                    $peticion->actor->etiqueta(),
+                ));
+
+                return ConversationResponse::rechazada();
+            }
 
             if (!is_array($mensaje)) {
                 break;
@@ -162,6 +189,21 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
             $llamadas = is_array($mensaje['tool_calls'] ?? null) ? $mensaje['tool_calls'] : [];
 
             if ($llamadas === []) {
+                break;
+            }
+
+            // ⚠️ En la ÚLTIMA vuelta no se ejecuta nada, y no es cosmético: ejecutar sin poder
+            // volver a llamar significa que la skill escribe en la base y su resultado se tira,
+            // porque no hay quien lo lea. El turno acabaría entregando un «déjame consultar…» de
+            // una vuelta anterior, marcado como si esas skills hubieran informado la respuesta.
+            if ($i === self::MAX_VUELTAS - 1) {
+                $this->logger->warning(sprintf(
+                    'Agent (deepseek): tope de %d vueltas con herramientas aún pendientes para %s; '
+                    .'no se ejecutan y se entrega lo que haya.',
+                    self::MAX_VUELTAS,
+                    $peticion->actor->etiqueta(),
+                ));
+
                 break;
             }
 
@@ -227,9 +269,15 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
                 ['role' => 'user', 'content' => $peticion->mensaje],
             ],
             'max_tokens' => $peticion->maxTokens,
-            // Un turno seco no lleva herramientas, así que su prefijo es otro: se firma con
-            // `permitirEscritura` a false para que no comparta línea con el turno con catálogo.
-            'user' => DeepSeekClient::firmaDeCache($peticion->actor->roles(), false, $modelo),
+            // Un turno seco no lleva catálogo, así que su prefijo es otro: `conCatalogo: false`
+            // es lo que lo separa del turno con herramientas del mismo actor.
+            'user_id' => DeepSeekClient::firmaDeCache(
+                $peticion->actor->roles(),
+                $peticion->actor->dominios(),
+                conCatalogo: false,
+                permiteEscritura: false,
+                modelo: $modelo,
+            ),
         ];
 
         // ⚠️ DeepSeek NO tiene structured outputs con esquema: sólo `json_object`, que obliga a
@@ -269,6 +317,29 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
             (int) ($uso['prompt_cache_miss_tokens'] ?? 0),
             (int) ($uso['completion_tokens'] ?? 0),
         ));
+
+        $motivoFin = (string) ($respuesta['choices'][0]['finish_reason'] ?? '');
+
+        // ⚠️ `length` con esquema: el JSON viene CORTADO A MEDIA CLAVE y parece una respuesta.
+        //
+        // Es el mismo fallo que ya costó caro en Google y que su motor corrige explícitamente: el
+        // triaje recibía `{"tipo":"peticion","skill` y lo daba por indeterminado, sin que nadie
+        // relacionara el síntoma con el presupuesto de tokens. Devolver `null` manda al camino
+        // largo, que es lo correcto, y el aviso dice dónde mirar.
+        if ($motivoFin === 'length' && $esquema !== null) {
+            $this->logger->warning(sprintf(
+                'Agent (deepseek): turno directo cortado por max_tokens (%d) con esquema; el JSON '
+                .'llegaría incompleto. Se descarta.',
+                $peticion->maxTokens,
+            ));
+
+            return null;
+        }
+
+        // Filtrado por el proveedor: no hay respuesta, y devolver el trozo sería peor.
+        if ($motivoFin === 'content_filter') {
+            return null;
+        }
 
         $texto = trim((string) ($respuesta['choices'][0]['message']['content'] ?? ''));
 
