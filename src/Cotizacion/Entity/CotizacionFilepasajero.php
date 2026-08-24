@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Entity\Maestro\MaestroPais;
 use App\Cotizacion\Enum\AlcanceDeVistaEnum;
+use App\Cotizacion\State\CotizacionFilepasajeroProcessor;
 use App\Cotizacion\Enum\PasajeroTipoEnum;
 use App\Enum\DocumentoTipoEnum;
 use App\Enum\SexoEnum;
@@ -30,16 +31,29 @@ use Symfony\Component\Serializer\Annotation\Groups;
     operations: [
         new Post(
             denormalizationContext: ['groups' => ['file:write']],
+            processor: CotizacionFilepasajeroProcessor::class,
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear pasajeros.'
         ),
         new Put(
+            // ⚠️ `standard_put` desactivado a propósito. Con el estándar —el de serie desde API
+            // Platform 4—, el PUT deserializa sobre un objeto NUEVO y el processor de Doctrine
+            // copia sus propiedades por reflexión sobre la entidad cargada, **colecciones
+            // incluidas**. Eso cambia la `PersistentCollection` entera por otra: `orphanRemoval`
+            // borra las filas de antes, se insertan las nuevas, y como los INSERT van primero se
+            // vuelve al 1062 de `(pasajero, tipo)` por otra puerta —justo la que
+            // {@see CotizacionFilepasajeroProcessor} no puede ver, porque ahí no hay foto contra
+            // la que comparar—. Nadie usa este PUT (el front escribe con POST y PATCH), pero
+            // dejarlo armado es dejar una trampa cargada.
+            extraProperties: ['standard_put' => false],
             denormalizationContext: ['groups' => ['file:write']],
+            processor: CotizacionFilepasajeroProcessor::class,
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar pasajeros.'
         ),
         new Patch(
             denormalizationContext: ['groups' => ['file:write']],
+            processor: CotizacionFilepasajeroProcessor::class,
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar pasajeros.'
         ),

@@ -546,9 +546,12 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero, editar = false) => {
     tipo: pax.tipo || '',
     telefono: pax.telefono || '',
     observaciones: pax.observaciones || '',
-    // ⚠️ Sin identidad: al guardar se manda la lista entera y `orphanRemoval` reemplaza. Para
-    // dos o tres filas es predecible; casar por IRI exigiría que la identificación fuese un
-    // ApiResource propio, y no lo es —sólo existe colgando de su pasajero—.
+    // ⚠️ Sin identidad, y a propósito: se manda la lista entera y el servidor casa cada entrada
+    // por su `tipo` —`CotizacionFilepasajeroProcessor`—, así que reescribir un documento
+    // actualiza la fila que ya estaba en vez de estrenar otra. Casar por IRI exigiría que la
+    // identificación fuese un ApiResource propio, y no lo es —sólo existe colgando de su
+    // pasajero—. Ojo: hasta el 24/08/2026 el servidor reemplazaba a ciegas y cada guardado de un
+    // pasajero con documentos daba 500 contra el índice único `(pasajero, tipo)`.
     identificaciones: (pax.identificaciones ?? []).map(i => ({
       tipo: i.tipo ?? '',
       numero: i.numero ?? '',
@@ -566,8 +569,9 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero, editar = false) => {
 /**
  * Los tipos que este pasajero todavía no tiene.
  *
- * La restricción es `(pasajero, tipo)` única en base: ofrecer un tipo repetido sólo consigue un
- * 422 al guardar, después de que alguien haya escrito el número.
+ * La restricción es `(pasajero, tipo)` única en base: ofrecer un tipo repetido sólo consigue que
+ * el servidor funda las dos entradas en una, después de que alguien haya escrito los dos números
+ * y se pregunte cuál de los dos quedó.
  */
 const tiposIdDisponibles = computed(() => {
   const usados = new Set(paxForm.value.identificaciones.map(i => i.tipo));

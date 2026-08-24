@@ -1438,12 +1438,54 @@ eso es el compilador haciendo su trabajo: el espejo apuntaba a un sitio que ya n
 ### En el front
 
 El formulario del pasajero pasa de dos campos a una **lista**: tipo, número y vencimiento por fila,
-y los tipos ya usados no se vuelven a ofrecer —la unicidad es de base, y repetir sólo consigue un
-422 después de escribir el número—. Avisa en ámbar cuando alguna fila va sin fecha.
+y los tipos ya usados no se vuelven a ofrecer —la unicidad es de base, y repetir sólo consigue que
+las dos filas se fundan en una después de escribir los dos números—. Avisa en ámbar cuando alguna
+fila va sin fecha.
 
-⚠️ Al guardar **se manda la colección entera** y `orphanRemoval` reemplaza. Casar por IRI exigiría
-que la identificación fuese un `ApiResource` propio, y no lo es: sólo existe colgando de su
-pasajero.
+⚠️ Al guardar **se manda la colección entera y sin identidad**. Casar por IRI exigiría que la
+identificación fuese un `ApiResource` propio, y no lo es: sólo existe colgando de su pasajero. Es
+el servidor el que casa cada entrada con la fila que ya existía —ver abajo—.
+
+### El guardado NO puede reemplazar la colección a ciegas (24/08/2026)
+
+Durante unas horas sí lo hizo, y **cada guardado de un pasajero con documentos daba 500**, aunque
+sólo se viniera a cambiar el teléfono. Se descubrió por casualidad, mirando `error.log`.
+
+El mecanismo, que no se ve leyendo el código:
+
+1. El deserializador de API Platform recibe la lista sin ids, así que **saca de la colección las
+   filas viejas y mete objetos nuevos** equivalentes.
+2. `orphanRemoval` programa el borrado de las viejas y `cascade: persist` la inserción de las
+   nuevas.
+3. ⚠️ **Doctrine ejecuta los INSERT antes que los DELETE en el mismo flush.** La fila nueva del DNI
+   entra mientras la vieja sigue viva, las dos con el mismo `(pasajero, tipo)`, y MySQL corta con
+   un 1062.
+
+Y sale como **500, no como 422**: una violación de índice único no pasa por el validador.
+
+Lo arregla `CotizacionFilepasajeroProcessor`, que se interpone antes del processor de Doctrine y
+casa cada entrada con la foto que la `PersistentCollection` guardó al cargarse —por `tipo` en las
+identificaciones, por `grupo` en las pertenencias, que tienen el mismo defecto y el mismo índice—.
+Los datos se copian sobre la fila **original** y el objeto nuevo se descarta: lo que sale es un
+UPDATE, y de paso la fila conserva su `createdAt`.
+
+Es el mismo criterio que ya usaba `PadronImportador`, que reutiliza con `identificacionDe($tipo)`.
+Por eso reimportar el padrón corregido nunca duplicó nada y la ficha sí: eran dos caminos con dos
+reglas, y sólo uno estaba escrito.
+
+La mitad que los tests unitarios no pueden cubrir —el orden de los INSERT y los DELETE dentro de
+un mismo flush— se verifica con datos reales en `var/probar-identificaciones-1062.php`, que corre
+el mismo guardado con el arreglo y sin él: sin él reproduce el 1062 exacto de producción; con él,
+las filas conservan su id y su `createdAt`.
+
+⚠️ **El índice único se queda donde está.** Es lo que garantiza que reimportar el padrón no
+duplique; quitarlo habría tapado el síntoma y devuelto el problema que lo motivó.
+
+⚠️ Y el `PUT` de `CotizacionFilepasajero` lleva `standard_put => false` **por esto mismo**: con el
+PUT estándar de API Platform 4, el processor del vendor copia las propiedades por reflexión sobre
+la entidad cargada —colecciones incluidas—, la `PersistentCollection` entera se cambia por otra y
+se vuelve al 1062 por una puerta donde ya no hay foto contra la que comparar. Nadie usa ese PUT,
+pero armado era una trampa esperando.
 
 ⚠️ Y `operacionStore.ExpedienteDetalle.filepasajeros` dejó de ser `Record<string, unknown>`. Con la
 forma laxa, iterar `identificaciones` daba `never` y sólo se vio al compilar: lo laxo esconde justo
