@@ -494,11 +494,13 @@ const abrirPaxModal = () => {
   showPaxModal.value = true;
 };
 
-const abrirEdicionPax = (pax: ApiCotizacionFilepasajero) => {
-  // ⚠️ Abre LEYENDO. Recorrer 131 fichas con las flechas es lo que más se hace, y en un formulario
-  // los datos están repartidos entre campos que hay que interpretar; leerlos de corrido se hace de
-  // un vistazo. Editar es la excepción, y tiene su botón.
-  modoVistaPax.value = true;
+/**
+ * @param editar `true` sólo cuando se entra por la plumita. El resto —tocar la tarjeta, las
+ *               flechas— abre LEYENDO: recorrer 131 fichas es lo que más se hace, y en un
+ *               formulario los datos están repartidos entre campos que hay que interpretar.
+ */
+const abrirEdicionPax = (pax: ApiCotizacionFilepasajero, editar = false) => {
+  modoVistaPax.value = !editar;
   paxEditandoIri.value = pax['@id'] || `/platform/sales/cotizacion_filepasajeros/${extractIdStr(pax.id)}`;
   paxForm.value = {
     nombre: pax.nombre || '',
@@ -768,6 +770,7 @@ const vuelosDe = (pax: ApiCotizacionFilepasajero) =>
             tramo: (GRUPO_TIPO_LABELS[String(g.tipo)]?.label ?? '').replace('Reserva aérea', '').trim(),
             nombre: g.nombre ?? '',
             clave: g.clave,
+            detalle: g.detalle ?? '',
         }));
 
 const filtroRol = ref<string[]>([]);
@@ -1541,12 +1544,20 @@ const eliminarDocumento = async (iri?: string) => {
               </p>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div v-for="(pax, idx) in pasajerosFiltrados" :key="pax.id" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group">
+              <!-- La tarjeta ENTERA abre la ficha en lectura: en un móvil el blanco es la mitad de
+                   la tarjeta y apuntar a un icono de 28 px con el pulgar es la parte incómoda.
+                   La plumita entra directa a editar; los dos botones paran la propagación para no
+                   disparar además la apertura de la tarjeta. -->
+              <div v-for="(pax, idx) in pasajerosFiltrados" :key="pax.id"
+                   @click="abrirEdicionPax(pax)"
+                   class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all">
                 <div class="absolute top-3 right-3 flex items-center gap-1">
-                  <button @click="abrirEdicionPax(pax)" class="text-slate-300 hover:text-indigo-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
+                  <button @click.stop="abrirEdicionPax(pax, true)" title="Editar"
+                          class="text-slate-300 hover:text-indigo-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
                     <i class="fas fa-pencil-alt text-xs"></i>
                   </button>
-                  <button @click="eliminarPasajero(pax['@id'])" class="text-slate-300 hover:text-red-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
+                  <button @click.stop="eliminarPasajero(pax['@id'])" title="Eliminar"
+                          class="text-slate-300 hover:text-red-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
                     <i class="fas fa-trash-alt text-xs"></i>
                   </button>
                 </div>
@@ -2074,13 +2085,20 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
           </div>
 
+          <!-- Aquí sí va el ITINERARIO. En la lista basta la aerolínea y el localizador —es para
+               reconocer—, pero abierta una persona lo que se consulta es a qué hora sale. -->
           <div v-if="vuelosDe(paxEnFoco).length">
             <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Vuelos</p>
-            <p v-for="v in vuelosDe(paxEnFoco)" :key="v.id" class="text-sm">
-              <span class="font-bold text-sky-600">{{ v.tramo }}</span>
-              <span class="text-slate-700 font-bold"> {{ v.nombre }}</span>
-              <span class="text-slate-400"> · {{ v.clave }}</span>
-            </p>
+            <div v-for="v in vuelosDe(paxEnFoco)" :key="v.id" class="mb-2 last:mb-0">
+              <p class="text-sm">
+                <span class="font-bold text-sky-600">{{ v.tramo }}</span>
+                <span class="text-slate-700 font-bold"> {{ v.nombre }}</span>
+                <span class="text-slate-400"> · {{ v.clave }}</span>
+              </p>
+              <!-- eslint-disable-next-line vue/no-v-html -- Lo escribe el operador y `formatoAHtml()` escapa ANTES de aplicar marcas. -->
+              <p v-if="v.detalle" v-html="formatoAHtml(v.detalle)"
+                 class="text-[11px] font-medium text-slate-500 whitespace-pre-line leading-snug bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 mt-1"></p>
+            </div>
           </div>
 
           <!-- Sólo los SERVICIOS: el grupo y la habitación ya están arriba junto al rol, y los

@@ -1494,6 +1494,12 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
   habitación va al lado pero apagada: se consulta al llegar al hotel, no cada mañana.
   ⚠️ El grupo se rotula con su `nombre` («Grupo 5») y la habitación con su `clave` («HA13»): el
   nombre de una habitación es «DOBLE», que no identifica a ninguna.
+- **La tarjeta entera abre la ficha en LECTURA; la plumita entra a editar.** En un móvil el
+  blanco es la mitad de la tarjeta y apuntar a un icono de 28 px con el pulgar es la parte
+  incómoda. Los dos botones llevan `@click.stop`, o abrirían además la tarjeta.
+- **El itinerario sólo en la ficha abierta.** En la lista basta la aerolínea y el localizador —es
+  para reconocer—; abierta una persona lo que se consulta es a qué hora sale, y ahí se pinta el
+  `detalle` del grupo con `formatoAHtml()`.
 - **La cara de lectura no repite.** Grupo y habitación arriba, vuelos en su bloque, y el bloque de
   abajo sólo los **servicios** («Lleva»). Antes salían los tres tipos juntos y la misma
   información aparecía tres veces.
