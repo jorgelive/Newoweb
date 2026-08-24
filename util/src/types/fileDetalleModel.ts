@@ -70,7 +70,7 @@ export const FILE_MODO_CONFIG: Record<string, { label: string; ayuda: string; ic
 export const PASAJERO_TIPO_CONFIG: Record<string, { label: string; alcance: string; expuesto: boolean; color: string }> = {
     supervisor:   { label: 'Supervisor',       alcance: 'Todo el expediente', expuesto: true,  color: 'indigo' },
     coordinador:  { label: 'Coordinador',      alcance: 'Sus grupos',         expuesto: true,  color: 'teal' },
-    padre:        { label: 'Padre de familia', alcance: 'Sólo él',            expuesto: true,  color: 'sky' },
+    acompanante:  { label: 'Acompañante',      alcance: 'Sólo él',            expuesto: true,  color: 'sky' },
     participante: { label: 'Participante',     alcance: 'Sólo él',            expuesto: true,  color: 'slate' },
     invitado:     { label: 'Invitado',         alcance: 'Sólo él',            expuesto: false, color: 'amber' },
     no_participa: { label: 'No participa',     alcance: 'Sólo él',            expuesto: true,  color: 'rose' },

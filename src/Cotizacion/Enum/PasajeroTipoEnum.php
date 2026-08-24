@@ -7,10 +7,10 @@ namespace App\Cotizacion\Enum;
 /**
  * Qué es esta persona dentro del grupo, y de ahí, qué ve y quién la ve.
  *
- * ⚠️ El caso base se llama **PARTICIPANTE y no «alumno»**: el modo grupo sirve igual para un viaje
- * de promoción de colegio que para un incentivo de empresa, y en el segundo nadie es alumno de
- * nada. `desdeTexto()` sigue aceptando «Alumno» porque es lo que escribe el colegio en su padrón —
- * el nombre interno no tiene por qué imponerle vocabulario a nadie.
+ * ⚠️ **El vocabulario no es escolar.** El modo grupo sirve igual para la promoción de un colegio
+ * que para un incentivo de empresa, así que los nombres describen el PAPEL y no el contexto:
+ * `PARTICIPANTE` y no «alumno», `ACOMPANANTE` y no «padre de familia». En un viaje de empresa nadie
+ * es alumno ni padre de nadie, y en uno de colegio los dos nombres siguen leyéndose bien.
  *
  * ## Dos ejes, y confundirlos es la fuga
  *
@@ -39,7 +39,7 @@ namespace App\Cotizacion\Enum;
 enum PasajeroTipoEnum: string
 {
     case PARTICIPANTE = 'participante';
-    case PADRE = 'padre';
+    case ACOMPANANTE = 'acompanante';
     case COORDINADOR = 'coordinador';
     case SUPERVISOR = 'supervisor';
     case INVITADO = 'invitado';
@@ -49,7 +49,7 @@ enum PasajeroTipoEnum: string
     {
         return match ($this) {
             self::PARTICIPANTE => 'Participante',
-            self::PADRE => 'Padre de familia',
+            self::ACOMPANANTE => 'Acompañante',
             self::COORDINADOR => 'Coordinador',
             self::SUPERVISOR => 'Supervisor',
             self::INVITADO => 'Invitado',
@@ -69,7 +69,7 @@ enum PasajeroTipoEnum: string
         return match ($this) {
             self::SUPERVISOR => AlcanceDeVistaEnum::EXPEDIENTE,
             self::COORDINADOR => AlcanceDeVistaEnum::SUS_GRUPOS,
-            self::PARTICIPANTE, self::PADRE, self::INVITADO, self::NO_PARTICIPA => AlcanceDeVistaEnum::SOLO_YO,
+            self::PARTICIPANTE, self::ACOMPANANTE, self::INVITADO, self::NO_PARTICIPA => AlcanceDeVistaEnum::SOLO_YO,
         };
     }
 
@@ -84,7 +84,7 @@ enum PasajeroTipoEnum: string
     {
         return match ($this) {
             self::INVITADO => false,
-            self::PARTICIPANTE, self::PADRE, self::COORDINADOR, self::SUPERVISOR, self::NO_PARTICIPA => true,
+            self::PARTICIPANTE, self::ACOMPANANTE, self::COORDINADOR, self::SUPERVISOR, self::NO_PARTICIPA => true,
         };
     }
 

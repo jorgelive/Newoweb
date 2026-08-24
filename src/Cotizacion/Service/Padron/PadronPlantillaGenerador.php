@@ -222,8 +222,8 @@ final readonly class PadronPlantillaGenerador
         foreach (PasajeroTipoEnum::cases() as $i => $rol) {
             $hoja->setCellValue([4, $i + 6], $rol->label());
             $hoja->setCellValue([5, $i + 6], match ($rol) {
-                PasajeroTipoEnum::PARTICIPANTE => 'Ve sólo lo suyo. El caso normal.',
-                PasajeroTipoEnum::PADRE => 'Ve sólo lo suyo.',
+                PasajeroTipoEnum::PARTICIPANTE => 'Ve sólo lo suyo. El caso normal: quien viaja.',
+                PasajeroTipoEnum::ACOMPANANTE => 'Ve sólo lo suyo. Acompaña: un padre, una pareja, un directivo.',
                 PasajeroTipoEnum::COORDINADOR => 'Ve su grupo entero.',
                 PasajeroTipoEnum::SUPERVISOR => 'Ve el viaje entero, menos los invitados.',
                 PasajeroTipoEnum::INVITADO => 'Ve sólo lo suyo, y NO APARECE para los demás.',

@@ -1662,9 +1662,14 @@ una propiedad de la persona, y por eso son dos preguntas y no una.
 |---|---|---|
 | Supervisor | el expediente **menos invitados** | sí |
 | Coordinador | sus grupos, menos invitados | sí |
-| Padre · Alumno · No participa | sólo su ficha | sí |
+| Participante · Acompañante · No participa | sólo su ficha | sí |
 | **Invitado** | sólo su ficha | **no** |
 | sin tipo | sólo su ficha | sí |
+
+⚠️ **Los nombres describen el PAPEL, no el contexto.** `PARTICIPANTE` y no «alumno», `ACOMPANANTE` y
+no «padre de familia»: el modo grupo sirve igual para la promoción de un colegio que para un
+incentivo de empresa, y allí nadie es alumno ni padre de nadie. Un acompañante puede ser un padre,
+una pareja o un directivo. En un colegio los dos nombres se siguen leyendo bien; al revés, no.
 
 ### Por qué los invitados desaparecen para TODOS
 

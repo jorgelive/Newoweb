@@ -11192,7 +11192,7 @@ export interface components {
              * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
              * @enum {string|null}
              */
-            tipo?: "participante" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
             /** @description Su teléfono, no el del expediente. */
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
@@ -11240,7 +11240,7 @@ export interface components {
              * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
              * @enum {string|null}
              */
-            tipo?: "participante" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
             /** @description Su teléfono, no el del expediente. */
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
@@ -11290,7 +11290,7 @@ export interface components {
              * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
              * @enum {string|null}
              */
-            tipo?: "participante" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
             /** @description Su teléfono, no el del expediente. */
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
@@ -11319,7 +11319,7 @@ export interface components {
              * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
              * @enum {string|null}
              */
-            tipo?: "participante" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
             /** @description Su teléfono, no el del expediente. */
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
@@ -11388,7 +11388,7 @@ export interface components {
              * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
              * @enum {string|null}
              */
-            tipo?: "participante" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
             /** @description Su teléfono, no el del expediente. */
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
@@ -11436,7 +11436,7 @@ export interface components {
              * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
              * @enum {string|null}
              */
-            tipo?: "participante" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
             /** @description Su teléfono, no el del expediente. */
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
@@ -11526,7 +11526,7 @@ export interface components {
              * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
              * @enum {string|null}
              */
-            tipo?: "participante" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
             /** @description Su teléfono, no el del expediente. */
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
@@ -11574,7 +11574,7 @@ export interface components {
              * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
              * @enum {string|null}
              */
-            tipo?: "participante" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
             /** @description Su teléfono, no el del expediente. */
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
@@ -11664,7 +11664,7 @@ export interface components {
              * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
              * @enum {string|null}
              */
-            tipo?: "participante" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
             /** @description Su teléfono, no el del expediente. */
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
@@ -11712,7 +11712,7 @@ export interface components {
              * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
              * @enum {string|null}
              */
-            tipo?: "participante" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
             /** @description Su teléfono, no el del expediente. */
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */

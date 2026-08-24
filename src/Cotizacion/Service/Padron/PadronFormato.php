@@ -192,6 +192,7 @@ final class PadronFormato
         'notas' => self::COL_OBSERVACIONES,
         'tipo' => self::COL_TIPO,
         'tipo de pasajero' => self::COL_TIPO,
+        'rol en el grupo' => self::COL_TIPO,
         'rol' => self::COL_TIPO,
         'telefono' => self::COL_TELEFONO,
         'teléfono' => self::COL_TELEFONO,
