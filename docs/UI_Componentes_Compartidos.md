@@ -786,6 +786,45 @@ girando, así que ahí el contenido se cambia y ya.
 ⚠️ **Cancelar DESCARTA.** Volver a lectura enseñando lo que se tecleó y no se guardó sería mentir:
 si hay cambios, se pregunta y se recarga.
 
+## 3.k `useCapasEnHistorial` — «atrás» cierra la capa, no la pantalla (2026-08-24)
+
+En un móvil, «atrás» es el gesto con el que se cierra cualquier cosa: el botón del sistema y el
+deslizar desde el borde. Con un modal abierto **no cerraba el modal, navegaba**: estabas revisando
+la ficha de un pasajero, deslizabas para volver a la lista, y aparecías en el Home — con el
+trabajo a medias y sin forma de volver a donde estabas.
+
+`util/src/composables/useCapasEnHistorial.ts` lo resuelve para cualquier capa: un modal, una ficha,
+un modo de edición.
+
+```ts
+const capas = useCapasEnHistorial();
+
+abrir:  capas.abrir('pax', () => { showPaxModal.value = false; });
+cerrar: capas.cerrar('pax');     // ← también desde la ✕ y desde «Cancelar»
+```
+
+⚠️ **El cierre programático NO cierra: llama a `history.back()`.** La ✕, «Cancelar» y el guardado
+pasan todos por `capas.cerrar()`, así que el cierre real ocurre siempre en el mismo sitio —el
+`popstate`— venga del gesto o del botón.
+
+Esa asimetría es deliberada, y es el error que se comete al hacer esto a mano: cerrando el modal
+*y* dejando la entrada en el historial, el siguiente «atrás» consume una entrada fantasma y **no
+hace nada visible**. Hay que pulsar dos veces para salir de la pantalla, y nadie relaciona eso con
+el modal que cerró hace un minuto.
+
+**Las capas se anidan.** En la ficha del pasajero, leer es una capa y editar es otra encima:
+«atrás» dentro de la edición vuelve a la lectura, y el siguiente sale de la ficha — el camino por
+el que se entró, al revés. `cerrar(nombre)` retrocede tantas entradas como capas haya que quitar,
+así que cerrar la de abajo se lleva las de arriba.
+
+⚠️ **La animación se separa del historial.** El giro de §3.j tiene su función privada (`girarPax`)
+que sólo anima; la pública decide además qué hacer con la pila. Juntándolas, el callback de cierre
+volvía a llamar al que cierra y se comía la animación o entraba en bucle.
+
+Aplicado en `FileDetalle.vue` a la ficha del pasajero, su modo edición, el modal de documento y el
+panel del expediente. ⚠️ **No está en el resto de la app**: los drawers de Tarifas y Reservas y los
+modales de chat siguen sacándote de la pantalla. Se van enganchando al tocarlos.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
@@ -812,5 +851,6 @@ si hay cambios, se pregunta y se recarga.
 | Añadir una ayuda a un panel sin gastarle una franja (§3.e) | `InfoTooltip.vue` | `<InfoTooltip lado="…">` — el slot admite formato |
 | Que un tooltip no se salga por el borde de un panel (§3.e) | Vista que lo monta | `lado="derecha"` (ancla por el borde derecho) |
 | Cambiar cómo se comporta el tooltip en táctil (§3.e) | `InfoTooltip.vue` | `alTocar()` + `conPuntero` — ⚠️ NO se vuelve a `:hover`, lee el gotcha |
+| Que «atrás» cierre un modal en vez de salir de la pantalla (§3.k) | La vista que lo monta | `useCapasEnHistorial()` — `abrir(nombre, alCerrar)` / `cerrar(nombre)`. ⚠️ TODOS los cierres pasan por `cerrar()`, incluida la ✕ |
 | Que una ficha abra leyendo y se gire para editar (§3.j) | La vista que la monta | `modoVista` + `girar()`, y las clases `.panel-giratorio` / `.cara` / `.de-canto`. ⚠️ Media vuelta, NO dos caras |
 | Que un modal no quede tapado por el teclado del móvil (§3.i) | La tarjeta del modal | `flex flex-col max-h-[calc(100dvh-2rem)]` + `shrink-0` en la cabecera + `overflow-y-auto` en el cuerpo. ⚠️ `dvh`, nunca `vh` |

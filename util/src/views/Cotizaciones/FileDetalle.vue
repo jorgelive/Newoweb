@@ -2,6 +2,8 @@
 import {ref, onMounted, onUnmounted, watch, computed, nextTick} from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
+// El gesto «atrás» del móvil cierra la capa de arriba en vez de sacarte de la pantalla.
+import { useCapasEnHistorial } from '@/composables/useCapasEnHistorial';
 import MaskedDateInput from '@/components/MaskedDateInput.vue';   // ajusta ruta
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import ContactoDeIdentidad from '@/components/common/ContactoDeIdentidad.vue';
@@ -326,6 +328,8 @@ onBeforeRouteLeave((to, from, next) => {
 });
 
 const showPaxModal = ref(false);
+const capas = useCapasEnHistorial();
+
 const showDocModal = ref(false);
 const isSubmittingPax = ref(false);
 /** Lo pone el botón «Guardar y siguiente»: se consume en `guardarPasajero()`. */
@@ -335,10 +339,24 @@ const seguirTrasGuardar = ref(false);
 const modoVistaPax = ref(true);
 const girandoPax = ref(false);
 
-const girarPanelPax = (aVista: boolean) => {
+/** Sólo la animación. No toca el historial: eso lo decide quien llama. */
+const girarPax = (aVista: boolean) => {
     if (girandoPax.value) return;
     girandoPax.value = true;
     window.setTimeout(() => { modoVistaPax.value = aVista; girandoPax.value = false; }, 180);
+};
+
+/**
+ * Pasar a editar y volver a leer.
+ *
+ * ⚠️ La edición es una capa ENCIMA de la lectura, no un interruptor. «Atrás» dentro de la edición
+ * vuelve a leer, y el siguiente sale de la ficha: el camino por el que se entró, al revés. Y
+ * volver a lectura se hace SIEMPRE por `capas.cerrar()` —nunca girando a mano— para que el gesto
+ * y el botón acaben en el mismo sitio y no quede una entrada fantasma en el historial.
+ */
+const girarPanelPax = (aVista: boolean) => {
+    if (aVista) capas.cerrar('pax-edicion');
+    else { capas.abrir('pax-edicion', () => girarPax(true)); girarPax(false); }
 };
 const isSubmittingDoc = ref(false);
 
@@ -424,11 +442,17 @@ const datosDelFile = computed(() => {
 });
 const girandoFile = ref(false);
 
-const girarPanelFile = (aVista: boolean) => {
+/** Sólo la animación. A los 180 ms la tarjeta está de canto: es cuando se cambia el contenido. */
+const girarFile = (aVista: boolean) => {
     if (girandoFile.value) return;
     girandoFile.value = true;
-    // A los 180 ms la tarjeta está de canto: es cuando se cambia lo que hay dentro.
     window.setTimeout(() => { modoVistaFile.value = aVista; girandoFile.value = false; }, 180);
+};
+
+/** Editar es una capa: «atrás» vuelve a lectura en vez de sacarte del expediente. */
+const girarPanelFile = (aVista: boolean) => {
+    if (aVista) capas.cerrar('file-edicion');
+    else { capas.abrir('file-edicion', () => girarFile(true)); girarFile(false); }
 };
 
 /** Cancelar DESCARTA: enseñar en modo lectura lo que se tecleó y no se guardó sería mentir. */
@@ -492,6 +516,7 @@ const abrirPaxModal = () => {
   // Uno nuevo no tiene nada que leer: se abre escribiendo.
   modoVistaPax.value = false;
   showPaxModal.value = true;
+  capas.abrir('pax', () => { showPaxModal.value = false; paxEditandoIri.value = null; });
 };
 
 /**
@@ -500,6 +525,10 @@ const abrirPaxModal = () => {
  *               formulario los datos están repartidos entre campos que hay que interpretar.
  */
 const abrirEdicionPax = (pax: ApiCotizacionFilepasajero, editar = false) => {
+  // Saltar de una ficha a otra con las flechas NO apila: es la misma capa cambiando de contenido.
+  if (!showPaxModal.value) {
+    capas.abrir('pax', () => { showPaxModal.value = false; paxEditandoIri.value = null; });
+  }
   modoVistaPax.value = !editar;
   subgruposPaxAbiertos.value = false;
   paxEditandoIri.value = pax['@id'] || `/platform/sales/cotizacion_filepasajeros/${extractIdStr(pax.id)}`;
@@ -1263,8 +1292,7 @@ const guardarPasajero = async () => {
     // El orden importa: primero se recarga, y sobre la lista NUEVA se decide a quién saltar. Al
     // revés se saltaría usando los datos viejos y el índice podría no ser el que se ve.
     if (!seguir) {
-      showPaxModal.value = false;
-      paxEditandoIri.value = null;
+      capas.cerrar('pax');
     }
     await cargarFile();
 
@@ -1272,7 +1300,7 @@ const guardarPasajero = async () => {
       paxEditandoIri.value = iriGuardado;
       await nextTick();
       if (haySiguiente.value) saltarA(1);
-      else showPaxModal.value = false;
+      else capas.cerrar('pax');
     }
   } else {
     seguirTrasGuardar.value = false;
@@ -1299,6 +1327,7 @@ const abrirDocModal = () => {
   docEditandoIri.value = null; // modo creación
   docForm.value = { nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null };
   showDocModal.value = true;
+  capas.abrir('doc', () => { showDocModal.value = false; docEditandoIri.value = null; });
 };
 
 const abrirEdicionDoc = (doc: ApiCotizacionFilearchivo) => {
@@ -1310,6 +1339,7 @@ const abrirEdicionDoc = (doc: ApiCotizacionFilearchivo) => {
     fileObject: null
   };
   showDocModal.value = true;
+  capas.abrir('doc', () => { showDocModal.value = false; docEditandoIri.value = null; });
 };
 
 const handleFileUpload = (e: Event) => {
@@ -1352,7 +1382,7 @@ const guardarDocumento = async () => {
   }
 
   if (success) {
-    showDocModal.value = false;
+    capas.cerrar('doc');
     docEditandoIri.value = null;
     await cargarFile();
   } else {
@@ -2255,7 +2285,7 @@ const eliminarDocumento = async (iri?: string) => {
                     title="Editar" class="w-8 h-8 rounded-lg text-indigo-100 hover:bg-indigo-500 ml-1">
               <i class="fas fa-pencil-alt text-xs"></i>
             </button>
-            <button @click="showPaxModal = false" class="w-8 h-8 rounded-lg text-indigo-200 hover:text-white hover:bg-indigo-500 ml-1">
+            <button @click="capas.cerrar('pax')" class="w-8 h-8 rounded-lg text-indigo-200 hover:text-white hover:bg-indigo-500 ml-1">
               <i class="fas fa-times"></i>
             </button>
           </div>
@@ -2539,7 +2569,7 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
           </div>
           <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
-            <button type="button" @click="paxEditandoIri ? girarPanelPax(true) : (showPaxModal = false)"
+            <button type="button" @click="paxEditandoIri ? girarPanelPax(true) : capas.cerrar('pax')"
                     class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg">Cancelar</button>
             <button v-if="haySiguiente" type="submit" @click="seguirTrasGuardar = true" :disabled="isSubmittingPax"
                     class="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 text-xs font-bold rounded-lg hover:bg-indigo-50 flex items-center gap-2">
@@ -2565,7 +2595,7 @@ const eliminarDocumento = async (iri?: string) => {
             <i class="fas fa-pencil-alt mr-2" v-else></i>
             {{ docEditandoIri ? 'Editar Documento' : 'Subir a Bóveda' }}
           </h3>
-          <button @click="showDocModal = false; docEditandoIri = null" class="text-sky-200 hover:text-white"><i class="fas fa-times"></i></button>
+          <button @click="capas.cerrar('doc')" class="text-sky-200 hover:text-white"><i class="fas fa-times"></i></button>
         </div>
         <form @submit.prevent="guardarDocumento" class="p-6 space-y-4 overflow-y-auto">
           <div v-if="!docEditandoIri">
@@ -2607,7 +2637,7 @@ const eliminarDocumento = async (iri?: string) => {
                  en el pasajero, no en un adjunto del expediente. -->
           </div>
           <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
-            <button type="button" @click="showDocModal = false; docEditandoIri = null" class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg">Cancelar</button>
+            <button type="button" @click="capas.cerrar('doc')" class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg">Cancelar</button>
             <button type="submit" :disabled="isSubmittingDoc" class="px-5 py-2 bg-sky-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-sky-700 flex items-center gap-2">
               <i v-if="isSubmittingDoc" class="fas fa-spinner fa-spin"></i>
               {{ docEditandoIri ? 'Guardar Cambios' : 'Subir Documento' }}
