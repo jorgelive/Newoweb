@@ -42,11 +42,17 @@ use Symfony\Component\Validator\Constraints as Assert;
     shortName: 'CotizacionFileGrupo',
     operations: [
         new Post(
+            // ⚠️ Por lo mismo que en CotizacionFilepasajero: sin grupos, la respuesta va
+            // grupo → miembros → pertenencia → el MISMO grupo y el serializador corta con una
+            // `CircularReferenceException`. Aquí se ve al renombrar un grupo que ya tiene gente.
+            normalizationContext: ['groups' => ['file:item:read', 'timestamp:read']],
             denormalizationContext: ['groups' => ['file:write']],
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear subgrupos.'
         ),
         new Patch(
+            // Grupos de normalización por lo mismo que arriba: el círculo de las pertenencias.
+            normalizationContext: ['groups' => ['file:item:read', 'timestamp:read']],
             denormalizationContext: ['groups' => ['file:write']],
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar subgrupos.'

@@ -30,12 +30,19 @@ use Symfony\Component\Serializer\Annotation\Groups;
     shortName: 'CotizacionFilepasajero',
     operations: [
         new Post(
+            // ⚠️ Sin grupos de normalización, la respuesta arrastra el grafo entero y el
+            // pasajero vuelve sobre sí mismo: pertenencia → grupo → miembros → la MISMA
+            // pertenencia. El serializador corta con una `CircularReferenceException`, que sale
+            // como 500 al guardar. Pasó el 24/08/2026 al asignarle un vuelo a un pasajero.
+            normalizationContext: ['groups' => ['file:item:read', 'timestamp:read']],
             denormalizationContext: ['groups' => ['file:write']],
             processor: CotizacionFilepasajeroProcessor::class,
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear pasajeros.'
         ),
         new Put(
+            // Grupos de normalización por lo mismo que arriba: el círculo de las pertenencias.
+            normalizationContext: ['groups' => ['file:item:read', 'timestamp:read']],
             // ⚠️ `standard_put` desactivado a propósito. Con el estándar —el de serie desde API
             // Platform 4—, el PUT deserializa sobre un objeto NUEVO y el processor de Doctrine
             // copia sus propiedades por reflexión sobre la entidad cargada, **colecciones
@@ -52,6 +59,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
             securityMessage: 'No tienes permiso para editar pasajeros.'
         ),
         new Patch(
+            // Grupos de normalización por lo mismo que arriba: el círculo de las pertenencias.
+            normalizationContext: ['groups' => ['file:item:read', 'timestamp:read']],
             denormalizationContext: ['groups' => ['file:write']],
             processor: CotizacionFilepasajeroProcessor::class,
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",

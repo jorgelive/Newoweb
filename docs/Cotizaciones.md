@@ -1696,6 +1696,18 @@ Lo que la tarjeta del grupo necesita es **cuántos son**, y eso lo da `getTotalM
 `fetch: 'EXTRA_LAZY'`: un `SELECT COUNT(*)` en vez de hidratar 1620 filas para contarlas. Medido
 sobre el expediente real, los 106 grupos salen en **15 KB y 0,04 s**.
 
+⚠️ **Y la regla no se cumple sola: hay que declarar los grupos también al ESCRIBIR.** Sacar
+`miembros` del grupo de lectura no basta si la operación no filtra por grupos, porque entonces se
+serializa **todo** y el ciclo vuelve. Es lo que pasaba con `POST`/`PUT`/`PATCH` de
+`CotizacionFilepasajero` y `CotizacionFileGrupo`: sólo declaraban `denormalizationContext`, así
+que la **respuesta** —que devuelve el recurso guardado— salía sin filtrar y daba 500. Se vio el
+24/08/2026 al asignarle un vuelo a un pasajero: el guardado se hacía y el cliente recibía un 500,
+que es la peor forma de fallar —parece que no se guardó, y sí se guardó—.
+
+Hoy las cinco operaciones de escritura llevan `normalizationContext` con `file:item:read`. Lo
+comprueba `var/probar-circular-pasajero.php`, que arma el grafo con el círculo cerrado y serializa
+cada operación con el contexto que declara su propio `#[ApiResource]`.
+
 ### Los padrones vienen GRITADOS, y el importador los baja (24/08/2026)
 
 Se teclean con el bloqueo de mayúsculas puesto —«VALDIVIA BERRIOS»— y de ahí salían tal cual a la
