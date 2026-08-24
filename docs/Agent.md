@@ -319,6 +319,52 @@ Ya no hay ningún contrato cruzado. Lo único claramente fuera de sitio es
 `ResumenConversacionService`: por lo que hace es la entrada 4 —nadie espera, la salida se guarda—
 y por dónde vive es mensajería.
 
+## 5.4 Las skills del padrón: buscar el expediente y preguntarle (24/08/2026)
+
+`src/Agent/Skill/Cotizacion/` — dos skills que se usan **en ese orden**:
+
+| | |
+|---|---|
+| `buscar_expediente` | Encuentra el file por localizador o nombre, y devuelve **el mapa**: los ejes que tiene, algunos valores de cada uno, y los servicios |
+| `consultar_padron` | Responde «quiénes están en el grupo 6», «quiénes NO llevan vuelo nacional», «cuántos tienen el pasaporte vencido» |
+
+### Por qué son dos y no una
+
+`consultar_padron` exige el localizador exacto. Sin la primera, el modelo tendría que inventárselo
+— y **un modelo se inventa identificadores con toda la seguridad del mundo**. Es el mismo motivo
+por el que `buscar_reserva` y `consultar_mi_reserva` están separadas.
+
+### Por qué los filtros son parámetros y no una frase
+
+Aceptar «los del grupo 6 sin vuelo» sería volver a escribir un intérprete de lenguaje natural
+**dentro** de la skill, y el suyo se equivoca en silencio: «grupo 6» y «habitación 6» son los dos
+«6», y elegir mal devuelve una lista plausible de gente equivocada. Con `subgrupo`, `servicio` y
+`rol` separados, el modelo tiene que decir en qué eje busca; si no lo sabe, pregunta.
+
+### ⚠️ Nombre errado ⇒ opciones, NUNCA lista vacía
+
+`subgrupo` y `servicio` se validan contra lo que ese expediente tiene. Si no encajan, la respuesta
+trae `error_de_nombre` y las opciones reales.
+
+> Una lista vacía se lee como «no hay nadie»: una respuesta **falsa y creíble**. Las opciones se
+> leen como «te has equivocado de nombre», que es la verdad.
+
+### ⚠️ La negación es un parámetro
+
+«Quiénes NO tienen vuelo nacional» no se contesta buscando: hay que partir de todos y quitar. Por
+eso existe `negar_servicio`. Y vacío se lee como NO, igual que en el padrón: si nadie marcó la
+casilla, esa persona no lo lleva.
+
+### ⚠️ Todo lo que se devuelve va recortado, y con su total
+
+Un padrón de colegio son 133 personas, 66 habitaciones y 23 localizadores. Volcarlos es media
+ventana de contexto para una pregunta que casi siempre se responde con el número: `solo_conteo`
+existe para eso, los nombres se cortan en 40 y las opciones se agrupan por eje con 12 valores cada
+una. **El total va siempre**, que es lo que permite decir la verdad sin enseñarla entera.
+
+Los «no participa» quedan fuera por defecto, como en el panel: conservan grupo y reservas aéreas,
+así que contarlos infla cualquier respuesta sobre cuánta gente va.
+
 ## 6. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
