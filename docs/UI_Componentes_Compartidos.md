@@ -885,8 +885,30 @@ dejar datos viejos en las vistas no registradas — y las dos son peores.
 ⚠️ **El recargón es un botón, nunca un efecto.** Desde el armazón no se sabe si la pantalla tiene
 un formulario a medias, y perderlo por un refresco que nadie pidió es peor que el dato viejo.
 
-Registradas hoy: **Home** (panel de llegadas y salidas), **Reservas** (calendario) y **la ficha
-del expediente** (padrón). Las demás caen al botón de recargar; añadir una es una línea.
+### Quién está registrado, y por qué ésos
+
+Se sacó de las skills que **escriben** (`NivelRiesgo::Escritura`), no de las pantallas que
+existen: una vista que el asistente nunca toca no necesita registrarse.
+
+| Vista | Qué recarga | Skills que la ensucian |
+|---|---|---|
+| **Home** | el panel de llegadas y salidas | `confirmar_estancia`, `modificar_reserva`, `aplicar_cambio_horario` |
+| **Reservas** | el calendario | `crear_reserva`, `crear_estancia`, `modificar_reserva`, `confirmar_estancia` |
+| **Tarifas** | el calendario de precios | `ajustar_tarifas` |
+| **Finanzas** | movimientos y saldo | `registrar_pago`, `registrar_cargo`, `generar_enlace_prepago` |
+| **Operación** | la pestaña que se esté mirando | `aplicar_cambio_horario` |
+| **Ficha del expediente** | el padrón | las de cotización |
+
+⚠️ **El chat NO se registra, y no es un olvido.** Va por Mercure: un mensaje que manda
+`enviar_mensaje_huesped` entra por el mismo túnel que cualquier otro y aparece solo. Registrarlo
+añadiría una recarga redundante sobre datos que ya llegaron.
+
+⚠️ **Operación recarga sólo la pestaña activa.** Pedir las órdenes mientras se mira La Biblia es
+tráfico que nadie ve.
+
+Las vistas que no están —Cotizaciones, Catálogo, Organizaciones— caen al botón de recargar.
+Añadir una es una línea, y el criterio es el de arriba: ¿hay alguna skill de escritura que toque
+lo que esa pantalla enseña?
 
 ## 4. Dónde tocar para cambiar X
 

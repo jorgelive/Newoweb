@@ -36,6 +36,7 @@ import {
     type OperacionServicio,
     type OperacionOrdenServicio,
 } from '@/types/operacionModel';
+import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 
 const operacionStore = useOperacionStore();
 const router = useRouter();
@@ -288,6 +289,10 @@ const cargarBiblia = async () => {
     seleccionados.value = [];
     await operacionStore.fetchServicios(filtrosActivos.value);
 };
+
+// `aplicar_cambio_horario` mueve servicios de La Biblia. Se recarga la pestaña que se está
+// mirando, no las dos: pedir las órdenes mientras miras la Biblia es tráfico que nadie ve.
+useRefrescoDelAsistente(() => { void (activeTab.value === 'biblia' ? cargarBiblia() : cargarOrdenes()); });
 
 const cargarOrdenes = async () => {
     await operacionStore.fetchOrdenesServicio();

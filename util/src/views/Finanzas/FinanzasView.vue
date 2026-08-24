@@ -28,6 +28,7 @@ import {
     type FinOrigenCobro,
 } from '@/types/finEnlacePagoModel';
 import type { FinCajaFiltros, FinMovimiento } from '@/types/finMovimientoModel';
+import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 
 const router = useRouter();
 const store = useCajaStore();
@@ -124,6 +125,10 @@ const cargar = async (): Promise<void> => {
         await store.fetchMovimientos(filtros.value);
     }
 };
+
+// `registrar_pago` y `registrar_cargo` escriben justo lo que esta pantalla enseña: sin
+// refresco, el saldo de arriba contradice al movimiento que el asistente acaba de apuntar.
+useRefrescoDelAsistente(() => { void cargar(); });
 
 const cambiarTab = async (tab: 'cobros' | 'caja'): Promise<void> => {
     activeTab.value = tab;

@@ -47,6 +47,7 @@ import {
     type PmsTarifaExtendedProps,
 } from '@/types/pmsTarifaModel';
 import type { PmsEventoExtendedProps } from '@/types/pmsReservaModel';
+import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
 
 const route = useRoute();
 const tarifasStore = useTarifasStore();
@@ -85,6 +86,10 @@ async function recargarCalendario(): Promise<void> {
     await new Promise((r) => setTimeout(r, 600));
     recargando.value = false;
 }
+
+// `ajustar_tarifas` cambia precios: sin esto el operador sigue mirando los viejos, que es
+// exactamente el fallo que el docblock de esta función ya avisa.
+useRefrescoDelAsistente(() => { void recargarCalendario(); });
 
 /**
  * Gira el icono mientras recarga.
