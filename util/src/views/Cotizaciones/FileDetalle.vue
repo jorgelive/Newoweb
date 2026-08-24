@@ -1455,11 +1455,24 @@ const eliminarDocumento = async (iri?: string) => {
                      expediente antiguo sin correo se quedaba sin sitio donde ponerlo — y sin
                      dato de contacto tampoco se puede abrir el hilo, que es donde se editan
                      los identificadores. Callejón sin salida. -->
+                <!-- ⚠️ `:telefono` + `@update:telefono` en vez de `v-model`, y con `?? ''`.
+                     Ahí estaba el callejón sin salida. `ContactoDeIdentidad` decide si ofrece el
+                     campo mirando `props.telefono !== undefined`, y la API **omite las claves
+                     nulas**: un expediente creado sin teléfono ni correo mandaba los dos
+                     `undefined`, el componente concluía «nadie me pasó nada» y pintaba sólo
+                     lectura. No había forma de escribir el primero — y el botón «Editar» tampoco
+                     servía, porque lleva al editor de identificadores y ése vive en el hilo, que
+                     no se puede abrir sin un dato de contacto. Para poner el teléfono hacía falta
+                     ya tener teléfono.
+                     Con `?? ''` el valor llega SIEMPRE definido y el campo se ofrece. Es la misma
+                     forma que ya usaba `OrganizacionFormulario`, donde nunca falló. -->
                 <ContactoDeIdentidad
                     context-type="cotizacion_file"
                     :context-id="fileId"
-                    v-model:telefono="file.telefono"
-                    v-model:correo="file.email"
+                    :telefono="file.telefono ?? ''"
+                    :correo="file.email ?? ''"
+                    @update:telefono="file.telefono = $event"
+                    @update:correo="file.email = $event"
                 />
               </div>
               <div>

@@ -932,3 +932,41 @@ seis filas, y volviendo a cargar —el `Id` de la exportación hace que cada fil
 persona, así que no se duplica nadie.
 
 La capitalización sí está resuelta: `NombreSanitizer` baja el CAPS LOCK y respeta las partículas.
+
+---
+
+## `ContactoDeIdentidad`: la comprobación de `useAttrs()` es código muerto — 24/08/2026
+
+El componente decide si ofrece el campo de la semilla así:
+
+```ts
+const editable = computed(() =>
+    Boolean(attrs['onUpdate:telefono'] ?? attrs['onUpdate:correo'])   // ← SIEMPRE undefined
+    || props.telefono !== undefined
+    || props.correo !== undefined,
+);
+```
+
+**La primera línea no vale nada.** `defineEmits` declara `update:telefono` y `update:correo`, y Vue
+**extrae de `attrs` los `onUpdate:` de los emits declarados** para que no acaben en el DOM. Así que
+`attrs['onUpdate:telefono']` es siempre `undefined` dentro de este componente.
+
+Se escribió justo para cerrar un callejón sin salida —un expediente sin teléfono ni correo manda
+los dos `undefined`, el componente pintaba sólo lectura y no había forma de escribir el primero— y
+**nunca lo cerró**. Peor: dejó un comentario largo afirmando que estaba resuelto, así que el
+siguiente que lo mire lo dará por bueno.
+
+El síntoma se arregló el 24/08/2026 **desde quien llama**: `FileDetalle.vue` pasa ahora
+`:telefono="file.telefono ?? ''"` con `@update:telefono`, igual que hacía `OrganizacionFormulario`
+—donde nunca falló, precisamente por el `?? ''`—.
+
+Lo que queda por hacer aquí:
+
+1. **Borrar la rama muerta** y dejar el docblock diciendo la verdad: lo que decide la edición es
+   que el padre pase un valor definido.
+2. Si se quiere volver a detectar el listener, `getCurrentInstance()?.vnode.props` sí lo conserva
+   —declarado o no—, pero es API interna: mejor un prop explícito.
+
+⚠️ No se tocó ya porque el arreglo del síntoma no lo necesita y el componente lo usan tres
+pantallas. Al tocarlo, comprobar las tres: `FileDetalle`, `OrganizacionFormulario` (con modelo) y
+`OrganizacionesView` (SIN modelo, sólo lectura a propósito).
