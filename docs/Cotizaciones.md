@@ -1489,6 +1489,18 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
   Por eso el «N pax» de cada subgrupo se calcula en el front y **no** se toma de `totalMiembros`,
   que es del servidor y los incluye. El aviso al borrar un subgrupo sí usa `totalMiembros`: ahí la
   pregunta es a cuánta gente se le quita la pertenencia, y ésos son todos.
+- **El ROL va primero en la ficha, y con color.** Antes la píldora decía «Adulto PR» —que es la
+  tarifa de PeruRail, adulto o niño para el tren— y **no decía si era coordinador, supervisor o
+  participante**, que es lo que se busca al mirar la lista. En 131 fichas, encontrar a los 9
+  coordinadores leyendo texto es imposible; con color se ven de un vistazo. Las píldoras del
+  filtro llevan además un punto del color aunque estén apagadas: es lo que enseña a reconocerlo
+  antes de haberlo usado nunca.
+
+  ⚠️ Las clases van **escritas enteras** en `PASAJERO_TIPO_CONFIG.clase`, no compuestas con el
+  `color`. Tailwind lee los ficheros como texto: `bg-${'{'}color{'}'}-100` no existe para él, y esa
+  píldora saldría **con color en desarrollo y sin color en producción** — la peor combinación,
+  porque se ve bien mientras lo haces y se rompe al desplegar. Se comprueba buscando la clase en el
+  CSS compilado (`public/app_util/assets/main-*.css`).
 - **Filtros por FACETAS: Y entre ejes, O dentro del mismo eje.** Acumular todo con Y era un fallo
   —elegir dos habitaciones daba **cero**, porque nadie está en dos a la vez—. La pregunta real es
   «los del grupo 5 que estén en HA01 **o** HA02». Sobre Punta Cana: `HA01 + HA02` → 4 personas,

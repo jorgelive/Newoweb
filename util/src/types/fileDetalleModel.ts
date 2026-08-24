@@ -67,13 +67,27 @@ export const FILE_MODO_CONFIG: Record<string, { label: string; ayuda: string; ic
  * el invitado no es «el que menos ve», es el que no se ve — sus gratuidades las paga la agencia y
  * el colegio no las mira.
  */
-export const PASAJERO_TIPO_CONFIG: Record<string, { label: string; alcance: string; expuesto: boolean; color: string }> = {
-    supervisor:   { label: 'Supervisor',       alcance: 'Todo el expediente', expuesto: true,  color: 'indigo' },
-    coordinador:  { label: 'Coordinador',      alcance: 'Sus grupos',         expuesto: true,  color: 'teal' },
-    acompanante:  { label: 'Acompañante',      alcance: 'Sólo él',            expuesto: true,  color: 'sky' },
-    participante: { label: 'Participante',     alcance: 'Sólo él',            expuesto: true,  color: 'slate' },
-    invitado:     { label: 'Invitado',         alcance: 'Sólo él',            expuesto: false, color: 'amber' },
-    no_participa: { label: 'No participa',     alcance: 'Sólo él',            expuesto: true,  color: 'rose' },
+// ⚠️ `clase` lleva las clases ESCRITAS ENTERAS, no compuestas con el `color`.
+//
+// Tailwind lee los ficheros como texto: `bg-${color}-100` no existe para él y esa píldora saldría
+// sin color en producción y CON color en desarrollo, que es la peor combinación —se ve bien
+// mientras lo haces y se rompe al desplegar—. `color` se queda porque lo usa quien necesita el
+// tono suelto.
+export const PASAJERO_TIPO_CONFIG: Record<string, {
+    label: string; alcance: string; expuesto: boolean; color: string; clase: string; punto: string;
+}> = {
+    supervisor:   { label: 'Supervisor',   alcance: 'Todo el expediente', expuesto: true,  color: 'indigo',
+        clase: 'bg-indigo-100 text-indigo-700 border-indigo-200',   punto: 'bg-indigo-500' },
+    coordinador:  { label: 'Coordinador',  alcance: 'Sus grupos',         expuesto: true,  color: 'teal',
+        clase: 'bg-teal-100 text-teal-700 border-teal-200',         punto: 'bg-teal-500' },
+    acompanante:  { label: 'Acompañante',  alcance: 'Sólo él',            expuesto: true,  color: 'sky',
+        clase: 'bg-sky-100 text-sky-700 border-sky-200',            punto: 'bg-sky-500' },
+    participante: { label: 'Participante', alcance: 'Sólo él',            expuesto: true,  color: 'slate',
+        clase: 'bg-slate-100 text-slate-600 border-slate-200',      punto: 'bg-slate-400' },
+    invitado:     { label: 'Invitado',     alcance: 'Sólo él',            expuesto: false, color: 'amber',
+        clase: 'bg-amber-100 text-amber-800 border-amber-200',      punto: 'bg-amber-500' },
+    no_participa: { label: 'No participa', alcance: 'Sólo él',            expuesto: true,  color: 'rose',
+        clase: 'bg-rose-100 text-rose-700 border-rose-200',         punto: 'bg-rose-500' },
 };
 
 /** Un subgrupo del expediente: salón B, grupo 5, habitación HA13, reserva JA2CWN. */

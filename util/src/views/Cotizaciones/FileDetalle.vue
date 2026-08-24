@@ -1462,10 +1462,13 @@ const eliminarDocumento = async (iri?: string) => {
                   <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">Rol</span>
                   <button v-for="(n, rol) in conteoPorRol" :key="rol" type="button"
                           @click="alternarRol(String(rol))"
-                          class="rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
+                          class="inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
                           :class="filtroRol.includes(String(rol))
-                            ? 'bg-indigo-600 text-white border-indigo-600'
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'">
+                            ? PASAJERO_TIPO_CONFIG[String(rol)]?.clase ?? 'bg-slate-100 text-slate-600 border-slate-200'
+                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'">
+                    <!-- El punto lleva el color aunque la píldora esté apagada: es lo que enseña
+                         a reconocer el color antes de haberlo usado nunca. -->
+                    <span class="w-1.5 h-1.5 rounded-full" :class="PASAJERO_TIPO_CONFIG[String(rol)]?.punto ?? 'bg-slate-400'"></span>
                     {{ PASAJERO_TIPO_CONFIG[String(rol)]?.label ?? rol }} <span class="opacity-60">{{ n }}</span>
                   </button>
                 </div>
@@ -1525,6 +1528,14 @@ const eliminarDocumento = async (iri?: string) => {
                   <div>
                     <h3 class="text-sm font-black text-slate-800 leading-tight">{{ pax.nombre }} {{ pax.apellido }}</h3>
                     <div class="flex flex-wrap gap-1 mt-2">
+                      <!-- ⚠️ El ROL primero. «Adulto PR» es la tarifa de PeruRail —adulto o niño para
+                           el tren— y no dice si es coordinador, supervisor o participante, que es
+                           lo que se busca al mirar la lista. Cada rol con su color: en 131 fichas,
+                           encontrar a los 9 coordinadores leyendo texto es imposible. -->
+                      <span v-if="pax.tipo" class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wide"
+                            :class="PASAJERO_TIPO_CONFIG[String(pax.tipo)]?.clase ?? 'bg-slate-100 text-slate-600 border-slate-200'">
+                        {{ PASAJERO_TIPO_CONFIG[String(pax.tipo)]?.label ?? pax.tipo }}
+                      </span>
                       <span class="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 uppercase">{{ pax.tipopaxperurail === 1 ? 'Adulto' : 'Niño' }} PR</span>
                       <span v-if="pax.edad" class="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 uppercase">{{ pax.edad }} Años</span>
                     </div>
@@ -1983,10 +1994,15 @@ const eliminarDocumento = async (iri?: string) => {
         <div v-if="modoVistaPax && paxEnFoco" class="p-6 space-y-4 overflow-y-auto">
           <div>
             <p class="text-xl font-black text-slate-800 leading-tight">{{ paxEnFoco.nombre }} {{ paxEnFoco.apellido }}</p>
-            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-              {{ PASAJERO_TIPO_CONFIG[String(paxEnFoco.tipo)]?.label ?? 'Sin rol' }}
-              <span v-if="paxEnFoco.edad" class="text-slate-300"> · {{ paxEnFoco.edad }} años</span>
-              <span v-if="paxEnFoco.sexo" class="text-slate-300"> · {{ getSexoLabel(paxEnFoco.sexo) }}</span>
+            <p class="mt-1.5 flex flex-wrap items-center gap-2">
+              <span class="text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-wide"
+                    :class="PASAJERO_TIPO_CONFIG[String(paxEnFoco.tipo)]?.clase ?? 'bg-slate-100 text-slate-600 border-slate-200'">
+                {{ PASAJERO_TIPO_CONFIG[String(paxEnFoco.tipo)]?.label ?? 'Sin rol' }}
+              </span>
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                <span v-if="paxEnFoco.edad">{{ paxEnFoco.edad }} años</span>
+                <span v-if="paxEnFoco.sexo" class="text-slate-300"> · {{ getSexoLabel(paxEnFoco.sexo) }}</span>
+              </span>
             </p>
           </div>
 
