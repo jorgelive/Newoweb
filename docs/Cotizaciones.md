@@ -1501,6 +1501,15 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
 - **El vuelo se ve en la ficha de cada persona** (tramo · aerolínea · localizador). Era el dato
   que había que ir a buscar abriendo a cada uno, y es justo el que se mira para armar el
   aeropuerto.
+- **La ficha del pasajero se recorre sin cerrarla**: flechas ‹ › en la cabecera, «N de M», y un
+  «Guardar y siguiente». ⚠️ Navega sobre **los filtrados**, no sobre todos — es lo que la hace
+  útil: filtras «Copa internacional» y repasas a esos 18 seguidos en vez de abrir y cerrar 18
+  veces buscándolos. Si al guardar alguien deja de cumplir el filtro, sale del recorrido: ya no es
+  uno de los que estabas repasando.
+- ⚠️ **La papelera de cada subgrupo va detrás de un interruptor** («Borrar subgrupos»). Con 66
+  habitaciones había 66 botones de borrar al alcance del pulgar, en la misma píldora que se toca
+  para leer el conteo; un roce se llevaba un subgrupo con sus pertenencias. Y las listas de más de
+  12 se pliegan, igual que en la ficha.
 - El desplegable de filtro es **`SearchableSelect`**, no un `<select>`: 108 subgrupos en el móvil
   son una pared de 108 filas. La segunda línea lleva el eje y cuántos van, y la búsqueda mira las
   dos, así que teclear «habitación» acota de golpe.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref, onMounted, onUnmounted, watch, computed} from 'vue';
+import {ref, onMounted, onUnmounted, watch, computed, nextTick} from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 import MaskedDateInput from '@/components/MaskedDateInput.vue';   // ajusta ruta
@@ -328,6 +328,8 @@ onBeforeRouteLeave((to, from, next) => {
 const showPaxModal = ref(false);
 const showDocModal = ref(false);
 const isSubmittingPax = ref(false);
+/** Lo pone el botón «Guardar y siguiente»: se consume en `guardarPasajero()`. */
+const seguirTrasGuardar = ref(false);
 const isSubmittingDoc = ref(false);
 
 const paxForm = ref({
@@ -874,6 +876,9 @@ const pildorasVisibles = (tipo: string, lista: ApiFileGrupo[]): ApiFileGrupo[] =
 const detallesDe = (lista: ApiFileGrupo[]): ApiFileGrupo[] =>
     lista.filter(g => g.detalle && perteneceA(g));
 
+/** El borrado de subgrupos, apagado por defecto. Ver el comentario de la sección. */
+const modoGestionGrupos = ref(false);
+
 const nuevoGrupo = ref({ tipo: 'grupo', clave: '', nombre: '', detalle: '' });
 const creandoGrupo = ref(false);
 
@@ -916,10 +921,35 @@ const borrarGrupo = async (grupo: ApiFileGrupo) => {
 
 const paisSelectRef = ref<{ validate: () => boolean } | null>(null);
 
+/**
+ * Moverse de una ficha a la siguiente sin cerrar.
+ *
+ * ⚠️ Se navega sobre `pasajerosFiltrados`, NO sobre todos. Es lo que hace útil el salto: filtras
+ * «Copa internacional» y repasas a esos 18 seguidos, en vez de abrir y cerrar 18 veces buscándolos
+ * en la lista. Si al guardar alguien deja de cumplir el filtro, desaparece del recorrido — que es
+ * lo correcto: ya no es uno de los que estabas repasando.
+ */
+const indiceEnFiltrados = computed(() =>
+    pasajerosFiltrados.value.findIndex(p =>
+        (p['@id'] || `/platform/sales/cotizacion_filepasajeros/${extractIdStr(p.id)}`) === paxEditandoIri.value));
+
+const hayAnterior = computed(() => indiceEnFiltrados.value > 0);
+const haySiguiente = computed(() =>
+    indiceEnFiltrados.value >= 0 && indiceEnFiltrados.value < pasajerosFiltrados.value.length - 1);
+
+const saltarA = (delta: number) => {
+    const destino = pasajerosFiltrados.value[indiceEnFiltrados.value + delta];
+    if (destino) abrirEdicionPax(destino);
+};
+
 const guardarPasajero = async () => {
   // SearchableSelect no dispara la validación nativa del form: validamos a mano.
   // validate() pinta el error dentro del componente y devuelve si es válido.
   if (paisSelectRef.value && !paisSelectRef.value.validate()) {
+    // Se limpia la intención: si no, el «guardar y siguiente» que falló la validación seguiría
+    // armado y el SIGUIENTE guardado normal saltaría de ficha sin que nadie lo pidiera.
+    seguirTrasGuardar.value = false;
+
     return;
   }
 
@@ -940,10 +970,26 @@ const guardarPasajero = async () => {
   }
 
   if (success) {
-    showPaxModal.value = false;
-    paxEditandoIri.value = null;
+    const iriGuardado = paxEditandoIri.value;
+    const seguir = seguirTrasGuardar.value;
+    seguirTrasGuardar.value = false;
+
+    // El orden importa: primero se recarga, y sobre la lista NUEVA se decide a quién saltar. Al
+    // revés se saltaría usando los datos viejos y el índice podría no ser el que se ve.
+    if (!seguir) {
+      showPaxModal.value = false;
+      paxEditandoIri.value = null;
+    }
     await cargarFile();
+
+    if (seguir) {
+      paxEditandoIri.value = iriGuardado;
+      await nextTick();
+      if (haySiguiente.value) saltarA(1);
+      else showPaxModal.value = false;
+    }
   } else {
+    seguirTrasGuardar.value = false;
     alert(fileStore.error || (paxEditandoIri.value ? 'Error al actualizar pasajero' : 'Error al registrar pasajero'));
   }
   isSubmittingPax.value = false;
@@ -1527,23 +1573,47 @@ const eliminarDocumento = async (iri?: string) => {
                 Sin subgrupos. Se crean solos al cargar el padrón, o a mano aquí arriba.
               </p>
 
+              <!-- ⚠️ La papelera de cada subgrupo va detrás de un interruptor, y no es ceremonia.
+                   Con 66 habitaciones había 66 botones de borrar al alcance del pulgar, en la
+                   misma píldora que se toca para leer el conteo. Un roce y se va un subgrupo con
+                   sus pertenencias. En modo lectura la píldora no hace nada. -->
               <div v-else class="space-y-3">
+                <div class="flex items-center justify-end">
+                  <button type="button" @click="modoGestionGrupos = !modoGestionGrupos"
+                          class="text-[10px] font-black uppercase tracking-widest transition-colors"
+                          :class="modoGestionGrupos ? 'text-red-500 hover:text-red-700' : 'text-slate-400 hover:text-indigo-600'">
+                    <i class="fas mr-1" :class="modoGestionGrupos ? 'fa-lock-open' : 'fa-lock'"></i>
+                    {{ modoGestionGrupos ? 'Terminar de borrar' : 'Borrar subgrupos' }}
+                  </button>
+                </div>
+
                 <div v-for="(lista, tipo) in gruposPorTipo" :key="tipo">
-                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                    <i class="fas" :class="GRUPO_TIPO_LABELS[tipo]?.icon"></i>
-                    {{ GRUPO_TIPO_LABELS[tipo]?.label || tipo }} ({{ lista.length }})
-                  </p>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      <i class="fas" :class="GRUPO_TIPO_LABELS[tipo]?.icon"></i>
+                      {{ GRUPO_TIPO_LABELS[tipo]?.label || tipo }} ({{ lista.length }})
+                    </p>
+                    <button v-if="lista.length > TOPE_PILDORAS" type="button" @click="alternarEje(`lista-${tipo}`)"
+                            class="text-[9px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
+                      {{ ejeEstaAbierto(`lista-${tipo}`, lista.length) ? 'Plegar' : `Ver las ${lista.length}` }}
+                    </button>
+                  </div>
                   <div class="flex flex-wrap gap-2">
-                    <span v-for="g in lista" :key="g.id"
-                          class="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-lg pl-3 pr-1 py-1 shadow-sm group">
+                    <span v-for="g in (ejeEstaAbierto(`lista-${tipo}`, lista.length) ? lista : lista.slice(0, TOPE_PILDORAS))" :key="g.id"
+                          class="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-lg pl-3 py-1 shadow-sm"
+                          :class="modoGestionGrupos ? 'pr-1 border-red-200' : 'pr-3'">
                       <span class="text-[11px] font-black text-slate-700">{{ g.clave }}</span>
+                      <span v-if="g.nombre" class="text-[10px] font-medium text-slate-400">{{ g.nombre }}</span>
                       <!-- El conteo se calcula aquí y no se toma de `totalMiembros`: el del servidor
                            incluye a los «no participa», que conservan grupo y reservas aéreas. -->
                       <span class="text-[10px] font-bold text-slate-400">{{ contarEnGrupo(g) }} pax</span>
-                      <button @click="borrarGrupo(g)"
-                              class="w-5 h-5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                      <button v-if="modoGestionGrupos" @click="borrarGrupo(g)"
+                              class="w-5 h-5 rounded text-red-300 hover:text-red-600 hover:bg-red-50 transition-colors">
                         <i class="fas fa-times text-[10px]"></i>
                       </button>
+                    </span>
+                    <span v-if="!ejeEstaAbierto(`lista-${tipo}`, lista.length)" class="text-[10px] font-bold text-slate-300 italic py-1.5">
+                      +{{ lista.length - TOPE_PILDORAS }} más
                     </span>
                   </div>
                 </div>
@@ -1734,9 +1804,30 @@ const eliminarDocumento = async (iri?: string) => {
            teletransporta a `body` con `fixed`, así que no lo recorta nada. Lo que se añade es el
            tope en `dvh` —que sí encoge con el teclado del móvil— y el scroll del cuerpo. -->
       <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-visible flex flex-col max-h-[calc(100dvh-2rem)]">
-        <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white rounded-t-3xl shrink-0">
-          <h3 class="font-black text-sm uppercase tracking-widest">{{ paxEditandoIri ? 'Editar Pasajero' : 'Nuevo Pasajero' }}</h3>
-          <button @click="showPaxModal = false" class="text-indigo-200 hover:text-white"><i class="fas fa-times"></i></button>
+        <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white rounded-t-3xl shrink-0 gap-3">
+          <div class="min-w-0">
+            <h3 class="font-black text-sm uppercase tracking-widest truncate">
+              {{ paxEditandoIri ? (paxForm.nombre || 'Editar Pasajero') : 'Nuevo Pasajero' }}
+            </h3>
+            <p v-if="indiceEnFiltrados >= 0" class="text-[10px] font-bold text-indigo-200 uppercase tracking-widest">
+              {{ indiceEnFiltrados + 1 }} de {{ pasajerosFiltrados.length }}
+            </p>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <!-- Recorrer sin cerrar: se repasa a los 18 de «Copa internacional» seguidos, en vez
+                 de abrir y cerrar 18 veces buscándolos en la lista. -->
+            <button v-if="indiceEnFiltrados >= 0" type="button" @click="saltarA(-1)" :disabled="!hayAnterior"
+                    title="Anterior" class="w-8 h-8 rounded-lg text-indigo-100 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-transparent">
+              <i class="fas fa-chevron-left text-xs"></i>
+            </button>
+            <button v-if="indiceEnFiltrados >= 0" type="button" @click="saltarA(1)" :disabled="!haySiguiente"
+                    title="Siguiente" class="w-8 h-8 rounded-lg text-indigo-100 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-transparent">
+              <i class="fas fa-chevron-right text-xs"></i>
+            </button>
+            <button @click="showPaxModal = false" class="w-8 h-8 rounded-lg text-indigo-200 hover:text-white hover:bg-indigo-500 ml-1">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
         </div>
         <form @submit.prevent="guardarPasajero" class="p-6 space-y-4 overflow-y-auto">
           <div class="grid grid-cols-2 gap-4">
@@ -1906,6 +1997,10 @@ const eliminarDocumento = async (iri?: string) => {
           </div>
           <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
             <button type="button" @click="showPaxModal = false" class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg">Cancelar</button>
+            <button v-if="haySiguiente" type="submit" @click="seguirTrasGuardar = true" :disabled="isSubmittingPax"
+                    class="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 text-xs font-bold rounded-lg hover:bg-indigo-50 flex items-center gap-2">
+              Guardar y siguiente <i class="fas fa-chevron-right text-[10px]"></i>
+            </button>
             <button type="submit" :disabled="isSubmittingPax" class="px-5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-indigo-700 flex items-center gap-2">
               <i v-if="isSubmittingPax" class="fas fa-spinner fa-spin"></i> Guardar Pasajero
             </button>
