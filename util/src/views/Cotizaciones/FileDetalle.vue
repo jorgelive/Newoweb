@@ -2452,7 +2452,7 @@ const eliminarDocumento = async (iri?: string) => {
                  distintos, y los menores además necesitan autorización para salir del país. Los
                  tipos ya usados no se vuelven a ofrecer: la unicidad es `(pasajero, tipo)` en
                  base, así que repetir sólo consigue un 422 después de escribir el número. -->
-            <div class="col-span-2">
+            <div class="col-span-2 @container">
               <div class="flex items-center justify-between mb-1">
                 <label class="text-[10px] font-bold text-slate-500 uppercase">Documentos de identidad</label>
                 <button type="button" @click="agregarIdentificacion" :disabled="!tiposIdDisponibles.length"
@@ -2465,17 +2465,29 @@ const eliminarDocumento = async (iri?: string) => {
                 Sin documentos. Añade al menos el que se use para viajar.
               </p>
 
-              <div v-for="(ident, idx) in paxForm.identificaciones" :key="idx" class="flex gap-2 items-start mb-2">
-                <select v-model="ident.tipo" required class="w-28 shrink-0 border rounded-lg px-2 py-2 text-sm outline-none focus:border-indigo-500">
+              <!-- ⚠️ En el móvil esta fila NO cabe en una línea. Tipo (7rem) + vencimiento (8rem) +
+                   papelera + huecos se comen ~300 px de los ~340 que tiene el panel, y al número
+                   —que es el dato— le quedaban 40: un recuadro donde no se ve ni una cifra. Por
+                   debajo de 26rem va en dos líneas (tipo y número arriba, vencimiento debajo) y a
+                   partir de ahí se recompone en la línea de siempre.
+
+                   ⚠️ La medida es `@container` y NO el breakpoint `sm:` a propósito: lo que aprieta
+                   es el ancho del PANEL, no el de la ventana. Con `sm:` una tablet en horizontal
+                   cumple el breakpoint y sigue teniendo el panel estrecho, o sea el mismo recuadro
+                   inservible con otra excusa. -->
+              <div v-for="(ident, idx) in paxForm.identificaciones" :key="idx"
+                   class="grid grid-cols-[7rem_1fr_2.25rem] @[26rem]:flex gap-2 items-start mb-3 @[26rem]:mb-2">
+                <select v-model="ident.tipo" required
+                        class="col-start-1 row-start-1 @[26rem]:w-28 @[26rem]:shrink-0 border rounded-lg px-2 py-2 text-sm outline-none focus:border-indigo-500">
                   <option v-for="(label, valor) in DOCUMENTO_IDENTIDAD_LABELS" :key="valor" :value="valor">{{ label }}</option>
                 </select>
                 <input v-model="ident.numero" required type="text" placeholder="Número"
-                       class="flex-1 min-w-0 border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
-                <div class="w-32 shrink-0">
+                       class="col-start-2 row-start-1 @[26rem]:flex-1 min-w-0 border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                <div class="col-start-1 col-span-2 row-start-2 @[26rem]:w-32 @[26rem]:shrink-0">
                   <MaskedDateInput v-model="ident.vencimiento" placeholder="Vence" />
                 </div>
                 <button type="button" @click="paxForm.identificaciones.splice(idx, 1)"
-                        class="shrink-0 w-9 h-9 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                        class="col-start-3 row-start-1 shrink-0 w-9 h-9 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
                   <i class="fas fa-times"></i>
                 </button>
               </div>
