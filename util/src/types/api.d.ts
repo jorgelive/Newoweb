@@ -10546,7 +10546,9 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
+            subeje?: string | null;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10559,13 +10561,17 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
+            subeje?: string | null;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10577,6 +10583,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
@@ -10585,7 +10593,9 @@ export interface components {
         "CotizacionFileGrupo-file.write": {
             file?: components["schemas"]["CotizacionFile-file.write"];
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
+            subeje?: string | null;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10598,7 +10608,9 @@ export interface components {
         "CotizacionFileGrupo-file.write.jsonMergePatch": {
             file?: components["schemas"]["CotizacionFile-file.write"];
             /** @enum {string} */
-            tipo?: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
+            tipo?: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
+            subeje?: string | null;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave?: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10615,7 +10627,9 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
+            subeje?: string | null;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10628,13 +10642,17 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
+            subeje?: string | null;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10646,6 +10664,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
@@ -10658,7 +10678,9 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
+            subeje?: string | null;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10671,6 +10693,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
@@ -10678,7 +10702,9 @@ export interface components {
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
+            subeje?: string | null;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10690,6 +10716,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
@@ -10702,7 +10730,9 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
+            subeje?: string | null;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10715,13 +10745,17 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
+            subeje?: string | null;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10733,6 +10767,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
             readonly totalMiembros?: number;

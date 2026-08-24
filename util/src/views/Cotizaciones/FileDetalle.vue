@@ -783,7 +783,7 @@ const PRIORIDAD_EJE: Record<string, number> = { grupo: 0, habitacion: 1 };
 
 const ejesDePax = (pax: ApiCotizacionFilepasajero) =>
     gruposDePax(pax)
-        .filter(g => !EJES_AEREOS.includes(String(g.tipo)) && String(g.tipo) !== 'servicio')
+        .filter(g => !esVuelo(g) && String(g.tipo) !== 'servicio')
         .sort((a, b) => (PRIORIDAD_EJE[String(a.tipo)] ?? 9) - (PRIORIDAD_EJE[String(b.tipo)] ?? 9))
         .map(g => ({
             id: String(g.id),
@@ -801,10 +801,10 @@ const serviciosDe = (pax: ApiCotizacionFilepasajero) =>
 /** Los vuelos de una persona, para pintarlos en su ficha: tramo, aerolínea y localizador. */
 const vuelosDe = (pax: ApiCotizacionFilepasajero) =>
     gruposDePax(pax)
-        .filter(g => EJES_AEREOS.includes(String(g.tipo)))
+        .filter(esVuelo)
         .map(g => ({
             id: String(g.id),
-            tramo: (GRUPO_TIPO_LABELS[String(g.tipo)]?.label ?? '').replace('Reserva aérea', '').trim(),
+            tramo: tramoDe(g),
             nombre: g.nombre ?? '',
             clave: g.clave,
             detalle: g.detalle ?? '',
@@ -874,30 +874,37 @@ const conteoPorDocumento = computed<Record<string, number>>(() => {
 });
 
 const filtroRol = ref<string[]>([]);
-const filtroAerolinea = ref<string[]>([]);   // «eje|NOMBRE», p. ej. «reserva_aerea_nacional|JetSMART»
+const filtroAerolinea = ref<string[]>([]);   // «tramo|NOMBRE», p. ej. «Nacional|JetSMART»
 
-/** Los ejes que llevan vuelo, tal como los tenga ESTE expediente. */
-const EJES_AEREOS = ['reserva_aerea', 'reserva_aerea_nacional', 'reserva_aerea_internacional'];
+/** El único eje de vuelo. El TRAMO es un dato del grupo, no un tipo. */
+const EJE_AEREO = 'reserva_aerea';
+
+const esVuelo = (g: ApiFileGrupo): boolean => String(g.tipo) === EJE_AEREO;
+
+/** El rótulo del tramo: «Nacional», «Cusco-Puno»… o «Vuelo» si el viaje tiene uno solo. */
+const tramoDe = (g: ApiFileGrupo): string => (g.subeje ?? '').trim() || 'Vuelo';
 
 /**
- * Las aerolíneas que hay, por eje: «Nacional → JetSMART, Sky Airline».
+ * Las aerolíneas que hay, por TRAMO: «Nacional → JetSMART, Sky Airline».
  *
- * Sale del `nombre` de los grupos, no de una lista nuestra: ocho localizadores distintos son la
- * misma Arajet, y lo que se quiere ver es «los de Arajet», no ocho códigos uno a uno.
+ * ⚠️ Los tramos salen de los datos, no de una lista: un multitramo Lima→Cusco→Puno→Lima genera
+ * cuatro facetas sin que nadie las declare. Y la aerolínea sale del `nombre` del grupo: ocho
+ * localizadores distintos son la misma Arajet, y lo que se quiere es «los de Arajet».
  */
-const aerolineasPorEje = computed(() =>
-    EJES_AEREOS
-        .map(eje => ({
-            eje,
-            label: GRUPO_TIPO_LABELS[eje]?.label ?? eje,
-            nombres: [...new Set(
-                (file.value?.grupos ?? [])
-                    .filter(g => String(g.tipo) === eje && g.nombre)
-                    .map(g => String(g.nombre)),
-            )].sort(),
-        }))
-        .filter(x => x.nombres.length > 0),
-);
+const aerolineasPorEje = computed(() => {
+    const porTramo = new Map<string, Set<string>>();
+
+    for (const g of (file.value?.grupos ?? [])) {
+        if (!esVuelo(g) || !g.nombre) continue;
+        const tramo = tramoDe(g);
+        if (!porTramo.has(tramo)) porTramo.set(tramo, new Set());
+        porTramo.get(tramo)?.add(String(g.nombre));
+    }
+
+    return [...porTramo.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0], 'es'))
+        .map(([tramo, nombres]) => ({ eje: tramo, label: tramo, nombres: [...nombres].sort() }));
+});
 
 /** Cuántos hay de cada rol, sobre los que cuentan. */
 const conteoPorRol = computed<Record<string, number>>(() => {
@@ -946,7 +953,7 @@ const pasajerosFiltrados = computed<ApiCotizacionFilepasajero[]>(() => {
         }
 
         if (filtroAerolinea.value.length) {
-            const suyas = new Set(suyos.filter(g => g.nombre).map(g => `${String(g.tipo)}|${g.nombre}`));
+            const suyas = new Set(suyos.filter(g => esVuelo(g) && g.nombre).map(g => `${tramoDe(g)}|${g.nombre}`));
             // Y entre ejes también aquí: «nacional JetSMART» + «internacional Copa» son dos
             // condiciones, no dos alternativas.
             const porEjeAereo = new Map<string, string[]>();
@@ -1030,8 +1037,10 @@ const hayFiltros = computed(() =>
 const gruposPorTipo = computed(() => {
   const mapa: Record<string, ApiFileGrupo[]> = {};
   for (const g of (file.value?.grupos ?? [])) {
-    const tipo = String(g.tipo ?? 'grupo');
-    (mapa[tipo] ??= []).push(g);
+    // ⚠️ Se agrupa por eje Y TRAMO: «Vuelo Nacional» y «Vuelo Cusco-Puno» son dos listas, no una
+    // de veinte localizadores mezclados donde no se sabe cuál es de qué vuelo.
+    const clave = (g.etiquetaDeEje ?? '').trim() || String(g.tipo ?? 'grupo');
+    (mapa[clave] ??= []).push(g);
   }
   return mapa;
 });
@@ -1652,7 +1661,7 @@ const eliminarDocumento = async (iri?: string) => {
 
                 <div v-for="grupo in aerolineasPorEje" :key="grupo.eje" class="flex flex-wrap items-center gap-1.5 mt-2">
                   <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">
-                    <i class="fas fa-plane-departure mr-0.5"></i>{{ grupo.label.replace('Reserva aérea', '').trim() || 'Vuelo' }}
+                    <i class="fas fa-plane-departure mr-0.5"></i>{{ grupo.label }}
                   </span>
                   <button v-for="nombre in grupo.nombres" :key="nombre" type="button"
                           @click="alternarAerolinea(`${grupo.eje}|${nombre}`)"

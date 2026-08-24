@@ -147,7 +147,8 @@ final readonly class PadronPlantillaGenerador
                 'Venc. DNI' => '04/08/2028',
                 PadronFormato::MARCA_EJE.'Grupo' => '5',
                 PadronFormato::MARCA_EJE.'Habitación' => 'HA13',
-                PadronFormato::MARCA_EJE.'Reserva aérea' => 'JA2CWN',
+                PadronFormato::MARCA_EJE.'Vuelo Nacional' => 'Y9KZ7J',
+                PadronFormato::MARCA_EJE.'Vuelo Internacional' => 'JA2CWN',
                 PadronFormato::MARCA_SERVICIO.'Seguro' => 'SI',
                 PadronFormato::MARCA_SERVICIO.'Tour Saona' => 'SI',
                 PadronFormato::MARCA_SERVICIO.'Coco Bongo' => 'NO',
@@ -201,13 +202,18 @@ final readonly class PadronPlantillaGenerador
     {
         $cabeceras = [PadronFormato::COL_ID, ...PadronFormato::cabecerasBase(), PadronFormato::COL_TIPO];
 
+        // ⚠️ Se cuenta por (eje, TRAMO), no por eje. Antes se contaba por eje y salían dos
+        // «#Reserva aérea» cuya distinción dependía de la POSICIÓN de la columna; ahora cada
+        // tramo tiene cabecera propia —`#Vuelo Nacional`, `#Vuelo Cusco-Puno`— y ya no hace falta
+        // repetir cabecera. La cuenta se queda por si alguien mete DOS grupos del mismo tramo.
         /** @var array<string, int> $cuantosPorEje */
         $cuantosPorEje = [];
         foreach ($file->getFilepasajeros() as $pasajero) {
             $suyos = [];
             foreach ($pasajero->grupos() as $grupo) {
                 if ($grupo->getTipo() !== null && $grupo->getTipo() !== GrupoTipoEnum::SERVICIO) {
-                    $suyos[$grupo->getTipo()->value] = ($suyos[$grupo->getTipo()->value] ?? 0) + 1;
+                    $clave = $grupo->getEtiquetaDeEje();
+                    $suyos[$clave] = ($suyos[$clave] ?? 0) + 1;
                 }
             }
             foreach ($suyos as $eje => $cuantos) {
@@ -220,15 +226,14 @@ final readonly class PadronPlantillaGenerador
             $tipo = $grupo->getTipo();
             if ($tipo === GrupoTipoEnum::SERVICIO) {
                 $servicios[(string) $grupo->getClave()] = true;
-            } elseif ($tipo !== null && !isset($cuantosPorEje[$tipo->value])) {
+            } elseif ($tipo !== null && !isset($cuantosPorEje[$grupo->getEtiquetaDeEje()])) {
                 // Un eje con grupos pero sin nadie dentro: se saca una columna igual, para poder
                 // asignar gente sin volver a crearlos.
-                $cuantosPorEje[$tipo->value] = 1;
+                $cuantosPorEje[$grupo->getEtiquetaDeEje()] = 1;
             }
         }
 
-        foreach ($cuantosPorEje as $eje => $cuantos) {
-            $etiqueta = GrupoTipoEnum::from($eje)->label();
+        foreach ($cuantosPorEje as $etiqueta => $cuantos) {
             for ($i = 0; $i < $cuantos; ++$i) {
                 $cabeceras[] = PadronFormato::MARCA_EJE.$etiqueta;
             }
@@ -360,7 +365,7 @@ final readonly class PadronPlantillaGenerador
                 if ($grupo->getTipo() === GrupoTipoEnum::SERVICIO) {
                     continue;
                 }
-                $columna = PadronFormato::MARCA_EJE.($grupo->getTipo()?->label() ?? '');
+                $columna = PadronFormato::MARCA_EJE.$grupo->getEtiquetaDeEje();
 
                 // ⚠️ Varias columnas comparten cabecera —dos «#Reserva aérea», la nacional y la
                 // internacional— así que no vale `array_flip`: colapsa las repetidas y la segunda
@@ -441,10 +446,11 @@ final readonly class PadronPlantillaGenerador
 
         if ($file === null) {
             $filas = [
-                [PadronFormato::MARCA_EJE.'Reserva aérea nacional', 'Y9KZ7J', 'JetSmart',
+                [PadronFormato::MARCA_EJE.'Vuelo Nacional', 'Y9KZ7J', 'JetSmart',
                     "Ida JA7854 · LIM 18/09/2026 03:00 → CUZ 18/09/2026 04:25\nRetorno JA3888 · CUZ 22/09/2026 20:22 → LIM 22/09/2026 21:45"],
-                [PadronFormato::MARCA_EJE.'Reserva aérea nacional', 'XSRD4', 'SKY', ''],
-                [PadronFormato::MARCA_EJE.'Reserva aérea internacional', 'BONT3N', 'ARAJET',
+                [PadronFormato::MARCA_EJE.'Vuelo Nacional', 'XSRD4', 'SKY', ''],
+                [PadronFormato::MARCA_EJE.'Vuelo Cusco-Puno', 'QQ12ZZ', 'LATAM', '— un tramo cualquiera: la etiqueta es libre'],
+                [PadronFormato::MARCA_EJE.'Vuelo Internacional', 'BONT3N', 'ARAJET',
                     "Ida DM6771 · LIM 18/09/2026 03:00 → PUJ 18/09/2026 09:19\nRetorno DM6770 · PUJ 22/09/2026 20:22 → LIM 23/09/2026 00:30"],
                 [PadronFormato::MARCA_EJE.'Habitación', 'HA50', 'DOBLE', ''],
             ];
@@ -455,8 +461,9 @@ final readonly class PadronPlantillaGenerador
                     continue;
                 }
                 $filas[] = [
-                    ($tipo === GrupoTipoEnum::SERVICIO ? PadronFormato::MARCA_SERVICIO : PadronFormato::MARCA_EJE)
-                        .($tipo === GrupoTipoEnum::SERVICIO ? (string) $grupo->getClave() : $tipo->label()),
+                    $tipo === GrupoTipoEnum::SERVICIO
+                        ? PadronFormato::MARCA_SERVICIO.(string) $grupo->getClave()
+                        : PadronFormato::MARCA_EJE.$grupo->getEtiquetaDeEje(),
                     $tipo === GrupoTipoEnum::SERVICIO ? '' : (string) $grupo->getClave(),
                     (string) $grupo->getNombre(),
                     (string) $grupo->getDetalle(),
@@ -605,6 +612,23 @@ final readonly class PadronPlantillaGenerador
             // Los ejemplos viven en el enum: al añadir un eje, su `match` obliga a escribirlos.
             $linea($eje['columna'], 'Ejemplos: '.$eje['tipo']->ejemplos());
         }
+        ++$fila;
+
+        $titulo('Vuelos: el TRAMO lo pones tú');
+        $nota('«#Vuelo» admite cualquier tramo detrás, y no hay lista de la que elegir: lo que escribas '
+            .'después de la palabra ES el tramo. Un viaje con un solo vuelo usa «#Vuelo» a secas.');
+        $linea(PadronFormato::MARCA_EJE.'Vuelo', 'Un único vuelo: no hay tramo del que hablar.');
+        $linea(PadronFormato::MARCA_EJE.'Vuelo Nacional', 'Dos tramos, que es el caso corriente de un viaje internacional.');
+        $linea(PadronFormato::MARCA_EJE.'Vuelo Internacional', 'El otro. Cada columna lleva SU localizador.');
+        $linea(PadronFormato::MARCA_EJE.'Vuelo Cusco-Puno', 'Un multitramo: añade tantas columnas como vuelos tenga el viaje.');
+        $linea(PadronFormato::MARCA_EJE.'Vuelo Retorno', 'Vale cualquier etiqueta: «Ida», «Retorno», «Tramo 3»…');
+        $nota('⚠️ Sólo «#Vuelo» acepta etiqueta libre. «#Habitación» o «#Grupo» van solos: si escribes '
+            .'«#Habitación doble» no se entiende como un tipo de habitación, se rechaza con un aviso — '
+            .'para eso está la columna «Nombre» de la hoja «'.PadronFormato::HOJA_GRUPOS.'».');
+        $nota('⚠️ Escribe el mismo tramo IGUAL en las dos hojas. «#Vuelo Nacional» en Pasajeros y '
+            .'«#Vuelo nacional» en Grupos son el mismo tramo —no distingue mayúsculas—, pero '
+            .'«#Vuelo Nac.» ya es otro distinto y sus rótulos no se encontrarían.');
+        $nota('Se acepta «#Reserva aérea …» como sinónimo de «#Vuelo …», por si vienes de una hoja vieja.');
         ++$fila;
 
         $titulo('Qué lleva cada participante');

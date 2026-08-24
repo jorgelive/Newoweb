@@ -17,6 +17,17 @@ namespace App\Cotizacion\Enum;
  * toca a cada alumno— y no describe nada del viaje. Un eje que no cambia ninguna decisión
  * operativa sólo enseña a ignorar los demás.
  *
+ * ## ⚠️ El TRAMO no es un eje: es una etiqueta del grupo
+ *
+ * `RESERVA_AEREA` estuvo partido en `_NACIONAL` e `_INTERNACIONAL`, y era un error de modelado:
+ * no son dos tipos, son **el mismo tipo con una etiqueta**. Un multitramo Lima→Cusco→Puno→Lima
+ * habría pedido un `case` nuevo por vuelo, es decir **un despliegue para apuntar un billete**.
+ *
+ * Ahora el tramo vive en `CotizacionFileGrupo::$subeje` y es texto libre, así que
+ * `#Vuelo Nacional`, `#Vuelo Cusco-Puno` y `#Vuelo Retorno` funcionan sin tocar nada. Lo que se
+ * partió mal fue el síntoma: el problema real era que dos columnas `#Reserva aérea` idénticas
+ * dependían de la POSICIÓN, y eso lo arregla la etiqueta en la cabecera, no un tipo nuevo.
+ *
  * ## Por qué el EJE es enum y el VALOR nunca
  *
  * Los ejes son pocos y el código sí distingue alguno —una reserva aérea lleva PNR y documentos, un
@@ -33,20 +44,6 @@ enum GrupoTipoEnum: string
     case GRUPO = 'grupo';
     case HABITACION = 'habitacion';
     case RESERVA_AEREA = 'reserva_aerea';
-
-    /**
-     * Los dos tramos, cuando el viaje los tiene separados y **en billetes distintos**.
-     *
-     * ⚠️ Son ejes propios y no un atributo de {@see self::RESERVA_AEREA} porque la plantilla del
-     * padrón identifica el eje **por la cabecera de la columna**. Con las dos llamándose «#Reserva
-     * aérea», cuál es cuál dependía de la POSICIÓN: al reimportar caían las dos en el mismo eje y
-     * **el tramo se perdía sin un solo error**. Nada en el archivo lo decía.
-     *
-     * Y los tres conviven a propósito: una pareja que vuela a Cusco tiene UNA reserva y no hay
-     * tramo del que hablar. Obligarla a elegir «nacional» sería inventarle una distinción.
-     */
-    case RESERVA_AEREA_NACIONAL = 'reserva_aerea_nacional';
-    case RESERVA_AEREA_INTERNACIONAL = 'reserva_aerea_internacional';
 
     /**
      * Quién participa en un servicio concreto: los que van a Coco Bongo, los que llevan seguro.
@@ -66,9 +63,7 @@ enum GrupoTipoEnum: string
         return match ($this) {
             self::GRUPO => 'Grupo',
             self::HABITACION => 'Habitación',
-            self::RESERVA_AEREA => 'Reserva aérea',
-            self::RESERVA_AEREA_NACIONAL => 'Reserva aérea nacional',
-            self::RESERVA_AEREA_INTERNACIONAL => 'Reserva aérea internacional',
+            self::RESERVA_AEREA => 'Vuelo',
             self::SERVICIO => 'Servicio',
         };
     }
@@ -91,8 +86,6 @@ enum GrupoTipoEnum: string
             self::GRUPO => '1, 2, 3…',
             self::HABITACION => 'HA13, HA44 — el número que da el hotel',
             self::RESERVA_AEREA => 'JA2CWN, YMFLHB — el localizador de la aerolínea',
-            self::RESERVA_AEREA_NACIONAL => 'Y9KZ7J — el localizador del tramo nacional',
-            self::RESERVA_AEREA_INTERNACIONAL => 'BONT3N — el localizador del tramo internacional',
             self::SERVICIO => 'SÍ o NO (esta columna va con «+», no con «#»)',
         };
     }
@@ -108,10 +101,23 @@ enum GrupoTipoEnum: string
         return $this->esReservaAerea();
     }
 
-    /** Cualquiera de los tres ejes de vuelo. Se pregunta por esto, no por el caso concreto. */
+    /** ¿Es un vuelo? Se pregunta por esto, no por el `case`. */
     public function esReservaAerea(): bool
     {
-        return in_array($this, [self::RESERVA_AEREA, self::RESERVA_AEREA_NACIONAL, self::RESERVA_AEREA_INTERNACIONAL], true);
+        return $this === self::RESERVA_AEREA;
+    }
+
+    /**
+     * ¿Este eje admite una etiqueta libre que lo subdivida?
+     *
+     * Hoy sólo el vuelo, y es lo que permite el multitramo sin tocar código: `#Vuelo Nacional`,
+     * `#Vuelo Cusco-Puno`, `#Vuelo Retorno` son todos `reserva_aerea` con `subeje` distinto.
+     * Una habitación no se subdivide —el hotel es uno— hasta que haya dos hoteles, y entonces
+     * bastará devolver `true` aquí.
+     */
+    public function admiteSubeje(): bool
+    {
+        return $this === self::RESERVA_AEREA;
     }
 
     /** @return list<string> */

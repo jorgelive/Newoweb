@@ -1711,6 +1711,38 @@ Markdown que la gente teclea: `**x**` → negrita, `* ` → viñeta—. Se pinta
 
 El libro queda **Pasajeros · Grupos · Instrucciones · Tablas**.
 
+### ⚠️ El TRAMO es una etiqueta, no un tipo (24/08/2026)
+
+`RESERVA_AEREA` estuvo partido en `_NACIONAL` e `_INTERNACIONAL`. **Era un error de modelado
+mío**: no son dos tipos, son el mismo tipo con una etiqueta. Un multitramo Lima→Cusco→Puno→Lima
+habría pedido un `case` por vuelo — **un despliegue para apuntar un billete**.
+
+Ahora hay **un solo eje de vuelo** y el tramo vive en `CotizacionFileGrupo::$subeje`, texto libre:
+
+```
+#Vuelo                 → reserva_aerea, sin tramo      (un viaje con un solo vuelo)
+#Vuelo Nacional        → reserva_aerea, «Nacional»
+#Vuelo Cusco-Puno      → reserva_aerea, «Cusco-Puno»   ← sin tocar código
+#Reserva aérea Ida     → reserva_aerea, «Ida»          (alias, para hojas viejas)
+#Habitación doble      → null: se avisa y se ignora    ← sólo el vuelo admite etiqueta
+```
+
+⚠️ **Sólo los ejes con `admiteSubeje()` se parten.** Sin eso, `#Habitacion doble` entraría como
+eje habitación con tramo «doble» en vez de denunciarse — y el tipo de habitación tiene su sitio,
+que es la columna «Nombre» de la hoja «Grupos».
+
+⚠️ **La unicidad incluye el tramo**: `(file, tipo, subeje, clave)`. `#Vuelo Ida` y `#Vuelo Retorno`
+con el mismo localizador —las aerolíneas reutilizan códigos— son dos grupos distintos, y sin la
+columna en la clave el segundo se fundía con el primero en silencio.
+
+⚠️ **El tramo se compara SIN mayúsculas, como lo compara MySQL.** La colación es
+`utf8mb4_unicode_ci`, así que para el índice «Nacional» y «nacional» son el mismo. Comparándolo
+con `===` en PHP se intentaba crear el segundo y saltaba una violación de unicidad al hacer
+flush: un error feo por una diferencia que a nadie le importa.
+
+La migración `Version20260824060000` convierte los datos ya cargados, así que **no hay que volver
+a subir ningún padrón**.
+
 ### ⚠️ Dos columnas con la misma cabecera perdían el tramo
 
 Había dos `#Reserva aérea`, la nacional y la internacional, y **cuál era cuál dependía de la

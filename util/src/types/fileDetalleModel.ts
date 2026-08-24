@@ -101,12 +101,10 @@ export type ApiFileGrupo = components['schemas']['CotizacionFileGrupo-file.read_
 export const GRUPO_TIPO_LABELS: Record<string, { label: string; plural: string; icon: string; color: string }> = {
     grupo:         { label: 'Grupo',         plural: 'grupos',         icon: 'fa-people-group',    color: 'teal' },
     habitacion:    { label: 'Habitación',    plural: 'habitaciones',   icon: 'fa-bed',             color: 'amber' },
-    reserva_aerea: { label: 'Reserva aérea', plural: 'reservas aéreas', icon: 'fa-plane-departure', color: 'sky' },
-    // ⚠️ Los tres conviven: una pareja que vuela a Cusco tiene UNA reserva y no hay tramo del que
-    // hablar. Son ejes propios porque la plantilla del padrón identifica el eje por la CABECERA, y
-    // con las dos llamándose igual el tramo dependía de la posición de la columna.
-    reserva_aerea_nacional:      { label: 'Reserva aérea nacional',      plural: 'reservas nacionales',      icon: 'fa-plane-departure', color: 'sky' },
-    reserva_aerea_internacional: { label: 'Reserva aérea internacional', plural: 'reservas internacionales', icon: 'fa-earth-americas',  color: 'sky' },
+    // ⚠️ UN solo eje de vuelo. El TRAMO —«Nacional», «Cusco-Puno», «Retorno»— vive en
+    // `grupo.subeje` y es texto libre, así que un multitramo no pide ningún caso nuevo. Estuvo
+    // partido en dos casos de enum y era un error: convertía una etiqueta en un tipo.
+    reserva_aerea: { label: 'Vuelo', plural: 'vuelos', icon: 'fa-plane-departure', color: 'sky' },
     // ⚠️ Binario: se pertenece o no, sin valor. Es lo que llena el panel de inclusiones
     // específicas de cada participante, y la lista de quién va en cada orden de servicio.
     servicio:      { label: 'Servicio',      plural: 'servicios',      icon: 'fa-circle-check',    color: 'emerald' },

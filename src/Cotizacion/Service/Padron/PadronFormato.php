@@ -199,20 +199,37 @@ final class PadronFormato
     }
 
     /**
+     * Los tramos que trae la plantilla de fábrica, como EJEMPLO.
+     *
+     * ⚠️ No es una lista cerrada ni se valida: `#Vuelo Cusco-Puno` funciona igual. Están éstos
+     * porque son los dos de un viaje internacional corriente y se entienden sin leer nada.
+     *
+     * @var list<string>
+     */
+    public const TRAMOS_DE_EJEMPLO = ['Nacional', 'Internacional'];
+
+    /**
      * Las columnas de eje que trae la plantilla, ya marcadas.
      *
-     * @return list<array{columna: string, tipo: GrupoTipoEnum}>
+     * @return list<array{columna: string, tipo: GrupoTipoEnum, subeje: ?string}>
      */
     public static function columnasDeEje(): array
     {
+        $columnas = [];
+
         // Sin el SERVICIO: es binario y va con «+», no con «#».
-        return array_values(array_map(
-            static fn (GrupoTipoEnum $t): array => [
-                'columna' => self::MARCA_EJE.$t->label(),
-                'tipo' => $t,
-            ],
-            array_filter(GrupoTipoEnum::cases(), static fn (GrupoTipoEnum $t): bool => $t->esEjeConValor()),
-        ));
+        foreach (array_filter(GrupoTipoEnum::cases(), static fn (GrupoTipoEnum $t): bool => $t->esEjeConValor()) as $tipo) {
+            if (!$tipo->admiteSubeje()) {
+                $columnas[] = ['columna' => self::cabeceraDeEje($tipo, null), 'tipo' => $tipo, 'subeje' => null];
+                continue;
+            }
+
+            foreach (self::TRAMOS_DE_EJEMPLO as $tramo) {
+                $columnas[] = ['columna' => self::cabeceraDeEje($tipo, $tramo), 'tipo' => $tipo, 'subeje' => $tramo];
+            }
+        }
+
+        return $columnas;
     }
 
     /**
@@ -349,17 +366,78 @@ final class PadronFormato
      * Devolver `null` en vez de inventar es lo que permite al lector avisar con nombre y apellido:
      * «la columna “#Bus” no corresponde a ningún eje», en vez de tragársela.
      */
-    public static function ejeDe(string $cabecera): ?GrupoTipoEnum
-    {
-        $buscada = mb_strtolower(trim(ltrim(trim($cabecera), self::MARCA_EJE)));
+    /**
+     * Nombres alternativos del eje en la cabecera. `#Reserva aérea Ida` y `#Vuelo Ida` son lo mismo.
+     *
+     * @var array<string, string>
+     */
+    public const ALIAS_EJE = [
+        'vuelo' => 'reserva_aerea',
+        'reserva aerea' => 'reserva_aerea',
+        'reserva aérea' => 'reserva_aerea',
+        'grupo' => 'grupo',
+        'habitacion' => 'habitacion',
+        'habitación' => 'habitacion',
+    ];
 
+    /**
+     * A qué eje —y a qué TRAMO— corresponde una cabecera marcada.
+     *
+     * ```
+     * #Vuelo                 → reserva_aerea, sin tramo
+     * #Vuelo Nacional        → reserva_aerea, tramo «Nacional»
+     * #Vuelo Cusco-Puno      → reserva_aerea, tramo «Cusco-Puno»
+     * #Reserva aérea Ida     → reserva_aerea, tramo «Ida»          (alias)
+     * #Habitación            → habitacion,    sin tramo
+     * #Bus                   → null                                 (se avisa y se ignora)
+     * ```
+     *
+     * ⚠️ El tramo es **texto libre y no se valida contra nada**, y es deliberado: un multitramo
+     * Lima→Cusco→Puno→Lima son cuatro columnas que nadie puede haber previsto. Lo que sí se
+     * valida es el EJE, porque de él cuelga cómo se pinta y se filtra.
+     *
+     * ⚠️ Sólo se parte lo que admite tramo ({@see GrupoTipoEnum::admiteSubeje()}). Sin eso, una
+     * cabecera mal escrita como `#Habitacion doble` entraría como eje habitación con tramo
+     * «doble» en vez de denunciarse.
+     *
+     * @return array{tipo: GrupoTipoEnum, subeje: ?string}|null
+     */
+    public static function ejeDe(string $cabecera): ?array
+    {
+        $texto = trim(ltrim(trim($cabecera), self::MARCA_EJE));
+        $buscada = mb_strtolower($texto);
+
+        // 1. La cabecera entera es un eje: sin tramo.
         foreach (GrupoTipoEnum::cases() as $tipo) {
             if (mb_strtolower($tipo->label()) === $buscada || $tipo->value === $buscada) {
-                return $tipo;
+                return ['tipo' => $tipo, 'subeje' => null];
+            }
+        }
+        if (isset(self::ALIAS_EJE[$buscada])) {
+            return ['tipo' => GrupoTipoEnum::from(self::ALIAS_EJE[$buscada]), 'subeje' => null];
+        }
+
+        // 2. Empieza por un eje que admite tramo: lo que sigue ES el tramo.
+        foreach (self::ALIAS_EJE as $prefijo => $valor) {
+            $tipo = GrupoTipoEnum::from($valor);
+            if (!$tipo->admiteSubeje()) {
+                continue;
+            }
+
+            if (str_starts_with($buscada, $prefijo.' ')) {
+                $subeje = trim(mb_substr($texto, mb_strlen($prefijo) + 1));
+
+                return ['tipo' => $tipo, 'subeje' => $subeje !== '' ? $subeje : null];
             }
         }
 
         return null;
+    }
+
+    /** La cabecera que se escribe para un eje y su tramo: `#Vuelo Nacional`. */
+    public static function cabeceraDeEje(GrupoTipoEnum $tipo, ?string $subeje): string
+    {
+        return self::MARCA_EJE.trim($tipo->label().' '.($subeje ?? ''));
     }
 
     /**
@@ -470,8 +548,8 @@ final class PadronFormato
      * La clave se normaliza a mayúsculas igual que al crear el grupo, para que «ha50» de la hoja
      * de grupos encuentre al «HA50» de la de pasajeros.
      */
-    public static function claveDeGrupo(string $eje, string $clave): string
+    public static function claveDeGrupo(string $eje, string $clave, ?string $subeje = null): string
     {
-        return $eje.'|'.mb_strtoupper(trim($clave));
+        return $eje.'/'.mb_strtolower(trim($subeje ?? '')).'|'.mb_strtoupper(trim($clave));
     }
 }

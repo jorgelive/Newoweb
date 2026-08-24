@@ -62,7 +62,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_file_grupo')]
-#[ORM\UniqueConstraint(name: 'uniq_file_grupo_tipo_clave', columns: ['file_id', 'tipo', 'clave'])]
+// ⚠️ El `subeje` entra en la unicidad: `#Vuelo Ida` y `#Vuelo Retorno` con el mismo localizador
+// —una aerolínea reutiliza códigos entre tramos— son dos grupos distintos. Sin él, el segundo se
+// fundiría con el primero en silencio.
+#[ORM\UniqueConstraint(name: 'uniq_file_grupo_tipo_clave', columns: ['file_id', 'tipo', 'subeje', 'clave'])]
 #[ORM\HasLifecycleCallbacks]
 class CotizacionFileGrupo
 {
@@ -80,6 +83,23 @@ class CotizacionFileGrupo
     // no cabía, y MySQL en modo no estricto lo habría TRUNCADO en vez de fallar.
     #[ORM\Column(type: 'string', length: 40, enumType: GrupoTipoEnum::class)]
     private ?GrupoTipoEnum $tipo = null;
+
+    /**
+     * La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+     *
+     * ⚠️ **Texto libre, y ahí está la gracia.** El tramo estuvo modelado como dos casos del enum
+     * —`RESERVA_AEREA_NACIONAL` e `_INTERNACIONAL`— y eso convertía una etiqueta en un tipo: un
+     * multitramo Lima→Cusco→Puno→Lima habría pedido un `case` por vuelo, o sea **un despliegue
+     * para apuntar un billete**.
+     *
+     * Vacío significa «el eje entero, sin subdividir», que es el caso de un viaje con un solo
+     * vuelo y el de todos los ejes que no lo admiten ({@see GrupoTipoEnum::admiteSubeje()}).
+     *
+     * Entra por la cabecera de la columna del padrón: `#Vuelo Nacional` → `subeje = 'Nacional'`.
+     */
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[ORM\Column(type: 'string', length: 60, nullable: true)]
+    private ?string $subeje = null;
 
     /**
      * El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`.
@@ -178,6 +198,16 @@ class CotizacionFileGrupo
         $this->clave = $v !== null ? (mb_strtoupper(trim($v)) ?: null) : null;
 
         return $this;
+    }
+
+    public function getSubeje(): ?string { return $this->subeje; }
+    public function setSubeje(?string $v): self { $this->subeje = $v !== null ? (trim($v) ?: null) : null; return $this; }
+
+    /** «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+    #[Groups(['file:item:read', 'pax_file:read'])]
+    public function getEtiquetaDeEje(): string
+    {
+        return trim(($this->tipo?->label() ?? '').' '.($this->subeje ?? ''));
     }
 
     public function getNombre(): ?string { return $this->nombre; }
