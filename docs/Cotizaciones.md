@@ -1489,6 +1489,14 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
   Por eso el «N pax» de cada subgrupo se calcula en el front y **no** se toma de `totalMiembros`,
   que es del servidor y los incluye. El aviso al borrar un subgrupo sí usa `totalMiembros`: ahí la
   pregunta es a cuánta gente se le quita la pertenencia, y ésos son todos.
+- **El GRUPO va arriba, junto al rol, y en sólido.** Es la unidad con la que se opera todos los
+  días —«que suba el grupo 5 al bus»— y estaba sólo dentro de la ficha, a dos toques. La
+  habitación va al lado pero apagada: se consulta al llegar al hotel, no cada mañana.
+  ⚠️ El grupo se rotula con su `nombre` («Grupo 5») y la habitación con su `clave` («HA13»): el
+  nombre de una habitación es «DOBLE», que no identifica a ninguna.
+- **La cara de lectura no repite.** Grupo y habitación arriba, vuelos en su bloque, y el bloque de
+  abajo sólo los **servicios** («Lleva»). Antes salían los tres tipos juntos y la misma
+  información aparecía tres veces.
 - **El ROL va primero en la ficha, y con color.** Antes la píldora decía «Adulto PR» —que es la
   tarifa de PeruRail, adulto o niño para el tren— y **no decía si era coordinador, supervisor o
   participante**, que es lo que se busca al mirar la lista. En 131 fichas, encontrar a los 9

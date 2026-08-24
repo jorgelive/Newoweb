@@ -732,6 +732,33 @@ const conteoPorGrupo = computed<Map<string, number>>(() => {
 const contarEnGrupo = (g: ApiFileGrupo): number =>
     conteoPorGrupo.value.get(extractIdStr(iriDeGrupoPlano(g))) ?? 0;
 
+/**
+ * Los ejes de pertenencia que NO son vuelo ni servicio: su grupo y su habitación.
+ *
+ * ⚠️ El grupo va arriba del todo, junto al rol. Es la unidad con la que se opera —«que suba el
+ * grupo 5 al bus», «el coordinador del 3 pregunta por…»— y estaba sólo dentro de la ficha, a dos
+ * toques. Se ordena con el grupo primero: la habitación se consulta al llegar al hotel, el grupo
+ * todos los días.
+ */
+const PRIORIDAD_EJE: Record<string, number> = { grupo: 0, habitacion: 1 };
+
+const ejesDePax = (pax: ApiCotizacionFilepasajero) =>
+    gruposDePax(pax)
+        .filter(g => !EJES_AEREOS.includes(String(g.tipo)) && String(g.tipo) !== 'servicio')
+        .sort((a, b) => (PRIORIDAD_EJE[String(a.tipo)] ?? 9) - (PRIORIDAD_EJE[String(b.tipo)] ?? 9))
+        .map(g => ({
+            id: String(g.id),
+            icono: GRUPO_TIPO_LABELS[String(g.tipo)]?.icon ?? 'fa-tag',
+            // El grupo se lee «Grupo 5» y la habitación «HA13»: el nombre de la habitación es
+            // «DOBLE», que no la identifica. Manda la clave, y el nombre sólo si aporta.
+            texto: String(g.tipo) === 'grupo' ? (g.nombre || `Grupo ${g.clave}`) : String(g.clave),
+            destacado: String(g.tipo) === 'grupo',
+        }));
+
+/** Lo que lleva contratado esta persona: los ejes binarios. */
+const serviciosDe = (pax: ApiCotizacionFilepasajero) =>
+    gruposDePax(pax).filter(g => String(g.tipo) === 'servicio');
+
 /** Los vuelos de una persona, para pintarlos en su ficha: tramo, aerolínea y localizador. */
 const vuelosDe = (pax: ApiCotizacionFilepasajero) =>
     gruposDePax(pax)
@@ -1538,6 +1565,15 @@ const eliminarDocumento = async (iri?: string) => {
                       </span>
                       <span class="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 uppercase">{{ pax.tipopaxperurail === 1 ? 'Adulto' : 'Niño' }} PR</span>
                       <span v-if="pax.edad" class="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 uppercase">{{ pax.edad }} Años</span>
+                      <!-- El grupo, a primera vista. Es la unidad con la que se opera todos los
+                           días y estaba sólo dentro de la ficha, a dos toques. -->
+                      <span v-for="e in ejesDePax(pax)" :key="e.id"
+                            class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wide"
+                            :class="e.destacado
+                              ? 'bg-teal-600 text-white border-teal-600'
+                              : 'bg-white text-slate-500 border-slate-200'">
+                        <i class="fas mr-0.5 text-[8px]" :class="e.icono"></i>{{ e.texto }}
+                      </span>
                     </div>
                     <p class="text-[9px] text-slate-400 font-bold uppercase mt-2">
                       <i class="fas fa-globe-americas"></i> {{ pax.pais?.nombre }} ({{ getSexoLabel(pax.sexo) }})<br>
@@ -1999,6 +2035,13 @@ const eliminarDocumento = async (iri?: string) => {
                     :class="PASAJERO_TIPO_CONFIG[String(paxEnFoco.tipo)]?.clase ?? 'bg-slate-100 text-slate-600 border-slate-200'">
                 {{ PASAJERO_TIPO_CONFIG[String(paxEnFoco.tipo)]?.label ?? 'Sin rol' }}
               </span>
+              <span v-for="e in ejesDePax(paxEnFoco)" :key="e.id"
+                    class="text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-wide"
+                    :class="e.destacado
+                      ? 'bg-teal-600 text-white border-teal-600'
+                      : 'bg-white text-slate-500 border-slate-200'">
+                <i class="fas mr-1 text-[9px]" :class="e.icono"></i>{{ e.texto }}
+              </span>
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                 <span v-if="paxEnFoco.edad">{{ paxEnFoco.edad }} años</span>
                 <span v-if="paxEnFoco.sexo" class="text-slate-300"> · {{ getSexoLabel(paxEnFoco.sexo) }}</span>
@@ -2040,12 +2083,14 @@ const eliminarDocumento = async (iri?: string) => {
             </p>
           </div>
 
-          <div v-if="gruposDePax(paxEnFoco).length">
-            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Subgrupos</p>
+          <!-- Sólo los SERVICIOS: el grupo y la habitación ya están arriba junto al rol, y los
+               vuelos tienen su bloque. Repetirlos aquí llenaba la ficha de lo mismo tres veces. -->
+          <div v-if="serviciosDe(paxEnFoco).length">
+            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Lleva</p>
             <div class="flex flex-wrap gap-1.5">
-              <span v-for="g in gruposDePax(paxEnFoco)" :key="g.id"
-                    class="inline-flex items-center gap-1 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg px-2 py-1 text-[11px] font-black">
-                {{ g.clave }}<span v-if="g.nombre" class="font-medium opacity-70">{{ g.nombre }}</span>
+              <span v-for="g in serviciosDe(paxEnFoco)" :key="g.id"
+                    class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg px-2 py-1 text-[11px] font-black">
+                <i class="fas fa-check text-[9px] opacity-60"></i>{{ g.clave }}
               </span>
             </div>
           </div>
