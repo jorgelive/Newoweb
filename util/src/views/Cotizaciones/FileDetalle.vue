@@ -665,16 +665,100 @@ const conteoPorGrupo = computed<Map<string, number>>(() => {
 const contarEnGrupo = (g: ApiFileGrupo): number =>
     conteoPorGrupo.value.get(extractIdStr(iriDeGrupoPlano(g))) ?? 0;
 
+/** Los vuelos de una persona, para pintarlos en su ficha: tramo, aerolínea y localizador. */
+const vuelosDe = (pax: ApiCotizacionFilepasajero) =>
+    gruposDePax(pax)
+        .filter(g => EJES_AEREOS.includes(String(g.tipo)))
+        .map(g => ({
+            id: String(g.id),
+            tramo: (GRUPO_TIPO_LABELS[String(g.tipo)]?.label ?? '').replace('Reserva aérea', '').trim(),
+            nombre: g.nombre ?? '',
+            clave: g.clave,
+        }));
+
+const filtroRol = ref<string[]>([]);
+const filtroAerolinea = ref<string[]>([]);   // «eje|NOMBRE», p. ej. «reserva_aerea_nacional|JetSMART»
+
+/** Los ejes que llevan vuelo, tal como los tenga ESTE expediente. */
+const EJES_AEREOS = ['reserva_aerea', 'reserva_aerea_nacional', 'reserva_aerea_internacional'];
+
+/**
+ * Las aerolíneas que hay, por eje: «Nacional → JetSMART, Sky Airline».
+ *
+ * Sale del `nombre` de los grupos, no de una lista nuestra: ocho localizadores distintos son la
+ * misma Arajet, y lo que se quiere ver es «los de Arajet», no ocho códigos uno a uno.
+ */
+const aerolineasPorEje = computed(() =>
+    EJES_AEREOS
+        .map(eje => ({
+            eje,
+            label: GRUPO_TIPO_LABELS[eje]?.label ?? eje,
+            nombres: [...new Set(
+                (file.value?.grupos ?? [])
+                    .filter(g => String(g.tipo) === eje && g.nombre)
+                    .map(g => String(g.nombre)),
+            )].sort(),
+        }))
+        .filter(x => x.nombres.length > 0),
+);
+
+/** Cuántos hay de cada rol, sobre los que cuentan. */
+const conteoPorRol = computed<Record<string, number>>(() => {
+    const mapa: Record<string, number> = {};
+    for (const p of pasajerosConsiderados.value) {
+        const t = String(p.tipo ?? 'sin_rol');
+        mapa[t] = (mapa[t] ?? 0) + 1;
+    }
+
+    return mapa;
+});
+
+// En la plantilla un `ref` llega ya desenvuelto, así que no se le puede pasar el `Ref`: cada
+// faceta tiene su propio interruptor sobre su `ref`.
+const alternar = (lista: string[], valor: string): string[] =>
+    lista.includes(valor) ? lista.filter(x => x !== valor) : [...lista, valor];
+
+const alternarRol = (valor: string) => { filtroRol.value = alternar(filtroRol.value, valor); };
+const alternarAerolinea = (valor: string) => { filtroAerolinea.value = alternar(filtroAerolinea.value, valor); };
+
 const pasajerosFiltrados = computed<ApiCotizacionFilepasajero[]>(() => {
     const texto = busquedaPax.value.trim().toLowerCase();
+
+    // ⚠️ Y entre EJES, O dentro del mismo eje.
+    //
+    // Acumular todo con Y era un error mío: elegir dos habitaciones daba cero, porque nadie está
+    // en dos a la vez. La pregunta real es «los del grupo 5 que estén en HA01 **o** HA02», que es
+    // exactamente el comportamiento de cualquier filtro por facetas.
+    const porEje = new Map<string, string[]>();
+    for (const iri of gruposFiltrados.value) {
+        const eje = String(grupoDeIri(iri)?.tipo ?? '');
+        porEje.set(eje, [...(porEje.get(eje) ?? []), extractIdStr(iri)]);
+    }
 
     return pasajerosConsiderados.value.filter((pax) => {
         const suyos = gruposDePax(pax);
 
-        // Acumulativos: tiene que estar en TODOS los elegidos.
-        if (gruposFiltrados.value.length) {
+        if (filtroRol.value.length && !filtroRol.value.includes(String(pax.tipo))) return false;
+
+        if (porEje.size) {
             const ids = new Set(suyos.map(g => extractIdStr(iriDeGrupoPlano(g))));
-            if (!gruposFiltrados.value.every(iri => ids.has(extractIdStr(iri)))) return false;
+            for (const elegidos of porEje.values()) {
+                if (!elegidos.some(id => ids.has(id))) return false;
+            }
+        }
+
+        if (filtroAerolinea.value.length) {
+            const suyas = new Set(suyos.filter(g => g.nombre).map(g => `${String(g.tipo)}|${g.nombre}`));
+            // Y entre ejes también aquí: «nacional JetSMART» + «internacional Copa» son dos
+            // condiciones, no dos alternativas.
+            const porEjeAereo = new Map<string, string[]>();
+            for (const clave of filtroAerolinea.value) {
+                const eje = clave.split('|')[0];
+                porEjeAereo.set(eje, [...(porEjeAereo.get(eje) ?? []), clave]);
+            }
+            for (const alternativas of porEjeAereo.values()) {
+                if (!alternativas.some(c => suyas.has(c))) return false;
+            }
         }
 
         if (!texto) return true;
@@ -725,12 +809,15 @@ const quitarFiltro = (iri: string) => {
 
 const limpiarFiltros = () => {
     gruposFiltrados.value = [];
+    filtroRol.value = [];
+    filtroAerolinea.value = [];
     busquedaPax.value = '';
     incluirNoParticipa.value = false;
 };
 
 const hayFiltros = computed(() =>
-    gruposFiltrados.value.length > 0 || busquedaPax.value.trim() !== '' || incluirNoParticipa.value);
+    gruposFiltrados.value.length > 0 || filtroRol.value.length > 0 || filtroAerolinea.value.length > 0
+    || busquedaPax.value.trim() !== '' || incluirNoParticipa.value);
 
 // ── Subgrupos del expediente ───────────────────────────────────────────────
 //
@@ -1192,6 +1279,35 @@ const eliminarDocumento = async (iri?: string) => {
                   </label>
                 </div>
 
+                <!-- Rol y aerolínea son FACETAS: se marcan varias y suman (O), porque nadie es
+                     participante y coordinador a la vez ni vuela en dos aerolíneas el mismo tramo.
+                     Entre facetas distintas manda la Y. Sólo salen si hay más de una opción. -->
+                <div v-if="Object.keys(conteoPorRol).length > 1" class="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">Rol</span>
+                  <button v-for="(n, rol) in conteoPorRol" :key="rol" type="button"
+                          @click="alternarRol(String(rol))"
+                          class="rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
+                          :class="filtroRol.includes(String(rol))
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'">
+                    {{ PASAJERO_TIPO_CONFIG[String(rol)]?.label ?? rol }} <span class="opacity-60">{{ n }}</span>
+                  </button>
+                </div>
+
+                <div v-for="grupo in aerolineasPorEje" :key="grupo.eje" class="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">
+                    <i class="fas fa-plane-departure mr-0.5"></i>{{ grupo.label.replace('Reserva aérea', '').trim() || 'Vuelo' }}
+                  </span>
+                  <button v-for="nombre in grupo.nombres" :key="nombre" type="button"
+                          @click="alternarAerolinea(`${grupo.eje}|${nombre}`)"
+                          class="rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
+                          :class="filtroAerolinea.includes(`${grupo.eje}|${nombre}`)
+                            ? 'bg-sky-600 text-white border-sky-600'
+                            : 'bg-white text-slate-500 border-slate-200 hover:border-sky-300'">
+                    {{ nombre }}
+                  </button>
+                </div>
+
                 <div v-if="gruposFiltrados.length" class="flex flex-wrap gap-1.5 mt-2">
                   <span v-for="iri in gruposFiltrados" :key="iri"
                         class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg pl-2.5 pr-1 py-1 text-[11px] font-black">
@@ -1245,6 +1361,13 @@ const eliminarDocumento = async (iri?: string) => {
                       <span v-for="(ident, i) in (pax.identificaciones ?? [])" :key="ident.id || i">
                         <span v-if="i"> · </span>{{ getDocIdLabel(ident.tipo) }}: {{ ident.numero }}
                       </span>
+                    </p>
+                    <!-- El vuelo, en la propia ficha: era el dato que había que ir a buscar abriendo
+                         a cada persona, y es justo el que se mira para armar el aeropuerto. -->
+                    <p v-for="v in vuelosDe(pax)" :key="v.id" class="text-[9px] font-bold text-sky-600 mt-1">
+                      <i class="fas fa-plane-departure text-[8px] mr-1"></i>{{ v.tramo }}
+                      <span class="text-slate-500">{{ v.nombre }}</span>
+                      <span class="text-slate-300"> · </span>{{ v.clave }}
                     </p>
                   </div>
                 </div>

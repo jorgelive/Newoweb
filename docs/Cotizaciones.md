@@ -1489,6 +1489,18 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
   Por eso el «N pax» de cada subgrupo se calcula en el front y **no** se toma de `totalMiembros`,
   que es del servidor y los incluye. El aviso al borrar un subgrupo sí usa `totalMiembros`: ahí la
   pregunta es a cuánta gente se le quita la pertenencia, y ésos son todos.
+- **Filtros por FACETAS: Y entre ejes, O dentro del mismo eje.** Acumular todo con Y era un fallo
+  —elegir dos habitaciones daba **cero**, porque nadie está en dos a la vez—. La pregunta real es
+  «los del grupo 5 que estén en HA01 **o** HA02». Sobre Punta Cana: `HA01 + HA02` → 4 personas,
+  no 0.
+- **Rol y aerolínea son facetas propias**, con sus píldoras y su conteo. La aerolínea sale del
+  `nombre` de los grupos aéreos, no de una lista nuestra: ocho localizadores distintos son la
+  misma Arajet, y lo que se quiere es «los de Arajet», no ocho códigos uno a uno. Cada tramo es
+  su propia faceta, así que «JetSMART nacional **y** Copa internacional» es una pregunta que se
+  puede hacer —6 personas—.
+- **El vuelo se ve en la ficha de cada persona** (tramo · aerolínea · localizador). Era el dato
+  que había que ir a buscar abriendo a cada uno, y es justo el que se mira para armar el
+  aeropuerto.
 - El desplegable de filtro es **`SearchableSelect`**, no un `<select>`: 108 subgrupos en el móvil
   son una pared de 108 filas. La segunda línea lleva el eje y cuántos van, y la búsqueda mira las
   dos, así que teclear «habitación» acota de golpe.
