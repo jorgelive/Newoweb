@@ -7,6 +7,9 @@ import SearchableSelect from '@/components/SearchableSelect.vue';
 import ContactoDeIdentidad from '@/components/common/ContactoDeIdentidad.vue';
 import { uuidDe } from '@/services/hydra';
 import { formatearTelefono } from '@/utils/telefono';
+// El itinerario se escribe en el canónico de la casa —el mismo del chat, que normaliza el Markdown
+// que la gente teclea— y se pinta con el mismo formateador, que escapa el HTML antes de marcar.
+import { formatoAHtml } from '@/utils/formatoDeTexto';
 import PlanOperacionModal from '@/components/operacion/PlanOperacionModal.vue';
 import { apiClient } from '@/services/apiClient';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
@@ -587,6 +590,102 @@ const descargarCargado = () => {
   if (id) { void bajarHoja(`/cotizacion/user/padron/exportar/${id}`, 'padron-cargado.xlsx'); }
 };
 
+// ── Filtros del manifiesto ─────────────────────────────────────────────────
+//
+// Con 133 personas y 108 subgrupos, la lista completa no sirve para nada: lo que se hace de
+// verdad es «los de JetSmart», «los de la habitación HA50», «los del grupo 5». Los filtros se
+// ACUMULAN (Y lógico, no O) porque la pregunta real es siempre una intersección: quién del grupo
+// 5 va en el vuelo de las 07:15.
+const busquedaPax = ref('');
+const gruposFiltrados = ref<string[]>([]);
+
+/**
+ * ⚠️ Los «No participa» salen fuera por defecto.
+ *
+ * Están en el padrón porque el colegio los apuntó y luego se cayeron, y **no se borran** —la
+ * lista tiene que seguir contando lo que pasó—. Pero para operar estorban: se cuentan solos al
+ * mirar cuánta gente va.
+ */
+const incluirNoParticipa = ref(false);
+
+const iriDeGrupoPlano = (g: ApiFileGrupo): string =>
+    g['@id'] || `/platform/sales/cotizacion_file_grupos/${extractIdStr(g.id)}`;
+
+/**
+ * Las etiquetas de una persona: clave + nombre de cada subgrupo suyo.
+ *
+ * La lectura de la API trae el grupo YA EMBEBIDO dentro de la pertenencia, así que no hay que
+ * buscarlo: con 133 personas y 108 grupos, cruzar las dos listas serían 14 000 comparaciones en
+ * cada tecla del buscador. El `string` es la forma de ESCRITURA, y se resuelve por si acaso.
+ */
+const gruposDePax = (pax: ApiCotizacionFilepasajero): ApiFileGrupo[] =>
+    (pax.pertenencias ?? []).flatMap((p) => {
+        if (p.grupo && typeof p.grupo === 'object') return [p.grupo as ApiFileGrupo];
+
+        const g = (file.value?.grupos ?? []).find(x => extractIdStr(iriDeGrupoPlano(x)) === extractIdStr(p.grupo));
+
+        return g ? [g] : [];
+    });
+
+const pasajerosFiltrados = computed<ApiCotizacionFilepasajero[]>(() => {
+    const texto = busquedaPax.value.trim().toLowerCase();
+
+    return (file.value?.filepasajeros ?? []).filter((pax) => {
+        if (!incluirNoParticipa.value && pax.tipo === 'no_participa') return false;
+
+        const suyos = gruposDePax(pax);
+
+        // Acumulativos: tiene que estar en TODOS los elegidos.
+        if (gruposFiltrados.value.length) {
+            const ids = new Set(suyos.map(g => extractIdStr(iriDeGrupoPlano(g))));
+            if (!gruposFiltrados.value.every(iri => ids.has(extractIdStr(iri)))) return false;
+        }
+
+        if (!texto) return true;
+
+        // La búsqueda mira también las etiquetas: «jetsmart» encuentra a los de esa aerolínea
+        // aunque la persona no la lleve escrita en ningún campo suyo.
+        const paja = [
+            pax.nombre, pax.apellido,
+            ...(pax.identificaciones ?? []).map(d => d.numero),
+            ...suyos.flatMap(g => [g.clave, g.nombre]),
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        return paja.includes(texto);
+    });
+});
+
+/** Los subgrupos elegibles, agrupados por eje para el desplegable. */
+const gruposElegibles = computed(() =>
+    (file.value?.grupos ?? [])
+        .filter(g => !gruposFiltrados.value.includes(iriDeGrupoPlano(g)))
+        .map(g => ({
+            iri: iriDeGrupoPlano(g),
+            eje: GRUPO_TIPO_LABELS[String(g.tipo)]?.label ?? String(g.tipo),
+            etiqueta: [g.clave, g.nombre].filter(Boolean).join(' · '),
+        })),
+);
+
+const grupoDeIri = (iri: string): ApiFileGrupo | undefined =>
+    (file.value?.grupos ?? []).find(g => iriDeGrupoPlano(g) === iri);
+
+const anadirFiltro = (iri: string) => {
+    if (iri && !gruposFiltrados.value.includes(iri)) gruposFiltrados.value.push(iri);
+};
+
+const quitarFiltro = (iri: string) => {
+    gruposFiltrados.value = gruposFiltrados.value.filter(x => x !== iri);
+};
+
+const limpiarFiltros = () => {
+    gruposFiltrados.value = [];
+    busquedaPax.value = '';
+    incluirNoParticipa.value = false;
+};
+
+const hayFiltros = computed(() =>
+    gruposFiltrados.value.length > 0 || busquedaPax.value.trim() !== '' || incluirNoParticipa.value);
+
 // ── Subgrupos del expediente ───────────────────────────────────────────────
 //
 // Se agrupan por EJE para pintarlos, pero no anidan: una persona está a la vez en su salón, su
@@ -600,7 +699,49 @@ const gruposPorTipo = computed(() => {
   return mapa;
 });
 
-const nuevoGrupo = ref({ tipo: 'grupo', clave: '', nombre: '' });
+/**
+ * Cuántas píldoras se pintan antes de plegar el eje.
+ *
+ * ⚠️ No es capricho de diseño: el hotel numera 66 habitaciones y las aerolíneas dan una veintena
+ * de localizadores. Desplegados, el eje «Grupo» —que son nueve y es el que más se usa— queda a
+ * tres pantallas de scroll, y la ficha del pasajero deja de ser utilizable justo en el expediente
+ * grande, que es donde hace falta.
+ */
+const TOPE_PILDORAS = 12;
+
+const ejesAbiertos = ref<Record<string, boolean>>({});
+const filtroEje = ref<Record<string, string>>({});
+
+const ejeEstaAbierto = (tipo: string, total: number): boolean =>
+    total <= TOPE_PILDORAS || ejesAbiertos.value[tipo] === true;
+
+const alternarEje = (tipo: string) => {
+    ejesAbiertos.value[tipo] = !ejesAbiertos.value[tipo];
+    if (!ejesAbiertos.value[tipo]) filtroEje.value[tipo] = '';
+};
+
+/**
+ * Qué píldoras se ven de un eje.
+ *
+ * Plegado enseña **sólo a las que pertenece**, que es la información que se venía a leer; abierto,
+ * todas, con un filtro de texto porque elegir entre 66 a ojo es peor que teclear «HA5».
+ */
+const pildorasVisibles = (tipo: string, lista: ApiFileGrupo[]): ApiFileGrupo[] => {
+    if (!ejeEstaAbierto(tipo, lista.length)) return lista.filter(perteneceA);
+
+    const filtro = (filtroEje.value[tipo] ?? '').trim().toUpperCase();
+    if (!filtro) return lista;
+
+    return lista.filter(g =>
+        `${g.clave ?? ''} ${g.nombre ?? ''}`.toUpperCase().includes(filtro),
+    );
+};
+
+/** Los grupos de este eje a los que pertenece Y que traen itinerario. */
+const detallesDe = (lista: ApiFileGrupo[]): ApiFileGrupo[] =>
+    lista.filter(g => g.detalle && perteneceA(g));
+
+const nuevoGrupo = ref({ tipo: 'grupo', clave: '', nombre: '', detalle: '' });
 const creandoGrupo = ref(false);
 
 const agregarGrupo = async () => {
@@ -609,13 +750,19 @@ const agregarGrupo = async () => {
   creandoGrupo.value = true;
   const ok = await fileStore.crearGrupo(
     extractIdStr(file.value.id || file.value['@id']) || '',
-    { tipo: nuevoGrupo.value.tipo, clave: nuevoGrupo.value.clave, nombre: nuevoGrupo.value.nombre || null },
+    {
+      tipo: nuevoGrupo.value.tipo,
+      clave: nuevoGrupo.value.clave,
+      nombre: nuevoGrupo.value.nombre || null,
+      detalle: nuevoGrupo.value.detalle || null,
+    },
   );
   creandoGrupo.value = false;
 
   if (ok) {
     nuevoGrupo.value.clave = '';
     nuevoGrupo.value.nombre = '';
+    nuevoGrupo.value.detalle = '';
     await cargarFile();
   } else {
     alert(fileStore.error || 'No se pudo crear el subgrupo.');
@@ -969,8 +1116,55 @@ const eliminarDocumento = async (iri?: string) => {
               <p class="text-xs font-bold uppercase tracking-widest">Sin pasajeros registrados</p>
             </div>
 
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div v-for="(pax, idx) in file.filepasajeros" :key="pax.id" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group">
+            <!-- ── Filtros ───────────────────────────────────────────────────
+                 Se ACUMULAN: la pregunta real es una intersección —quién del grupo 5 va en el
+                 vuelo de las 07:15—, no una lista de candidatos. -->
+            <div v-else>
+              <div class="mb-3 bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                <div class="flex flex-wrap items-center gap-2">
+                  <div class="relative flex-1 min-w-52">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                    <input v-model="busquedaPax" type="search" placeholder="Nombre, documento, JetSmart, HA50…"
+                           class="w-full border rounded-lg pl-8 pr-3 py-2 text-xs outline-none focus:border-indigo-500 placeholder:text-slate-300">
+                  </div>
+
+                  <select :value="''" @change="e => { anadirFiltro((e.target as HTMLSelectElement).value); (e.target as HTMLSelectElement).value = ''; }"
+                          class="border rounded-lg px-2 py-2 text-xs outline-none focus:border-indigo-500 max-w-52">
+                    <option value="">+ Añadir subgrupo…</option>
+                    <option v-for="g in gruposElegibles" :key="g.iri" :value="g.iri">{{ g.eje }}: {{ g.etiqueta }}</option>
+                  </select>
+
+                  <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer">
+                    <input v-model="incluirNoParticipa" type="checkbox" class="accent-indigo-600">
+                    Ver «no participa»
+                  </label>
+                </div>
+
+                <div v-if="gruposFiltrados.length" class="flex flex-wrap gap-1.5 mt-2">
+                  <span v-for="iri in gruposFiltrados" :key="iri"
+                        class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg pl-2.5 pr-1 py-1 text-[11px] font-black">
+                    {{ [grupoDeIri(iri)?.clave, grupoDeIri(iri)?.nombre].filter(Boolean).join(' · ') }}
+                    <button type="button" @click="quitarFiltro(iri)" class="px-1 hover:text-red-500"><i class="fas fa-times text-[10px]"></i></button>
+                  </span>
+                </div>
+
+                <div class="flex items-center justify-between mt-2">
+                  <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Mostrando {{ pasajerosFiltrados.length }} de {{ file.filepasajeros.length }}
+                  </p>
+                  <button v-if="hayFiltros" type="button" @click="limpiarFiltros"
+                          class="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
+                    Limpiar filtros
+                  </button>
+                </div>
+              </div>
+
+              <p v-if="!pasajerosFiltrados.length" class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-6 text-center">
+                Nadie cumple estos filtros.
+              </p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div v-for="(pax, idx) in pasajerosFiltrados" :key="pax.id" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group">
                 <div class="absolute top-3 right-3 flex items-center gap-1">
                   <button @click="abrirEdicionPax(pax)" class="text-slate-300 hover:text-indigo-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
                     <i class="fas fa-pencil-alt text-xs"></i>
@@ -999,6 +1193,7 @@ const eliminarDocumento = async (iri?: string) => {
                     </p>
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           </div>
@@ -1092,7 +1287,7 @@ const eliminarDocumento = async (iri?: string) => {
                   <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
                     <button @click="aplicarPadron" :disabled="cargandoPadron || ensayoPadron.errores.length > 0"
                             class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed">
-                      <i class="fas fa-check mr-1"></i> Cargar de verdad
+                      <i class="fas fa-check mr-1"></i> Procesar carga
                     </button>
                     <button @click="cancelarPadron" class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg hover:bg-slate-50">
                       Cancelar
@@ -1127,7 +1322,7 @@ const eliminarDocumento = async (iri?: string) => {
                 </div>
                 <div class="flex-1 min-w-40">
                   <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nombre (opcional)</label>
-                  <input v-model="nuevoGrupo.nombre" type="text" placeholder="Arajet JA2CWN (Lima–Punta Cana)" maxlength="150"
+                  <input v-model="nuevoGrupo.nombre" type="text" placeholder="ARAJET · DOBLE" maxlength="150"
                          @keyup.enter="agregarGrupo"
                          class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 placeholder:text-slate-300">
                 </div>
@@ -1136,6 +1331,18 @@ const eliminarDocumento = async (iri?: string) => {
                   <i class="fas fa-spinner fa-spin" v-if="creandoGrupo"></i>
                   <span v-else>+ Añadir</span>
                 </button>
+
+                <!-- A lo ancho y en varias líneas: el itinerario no es un rótulo, es lo que se
+                     consulta para comprobar un horario. Metido en «Nombre» convertiría la píldora
+                     del pasajero en un párrafo. -->
+                <div class="w-full">
+                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    Detalle (opcional) — varias líneas, admite *negrita* y listas
+                  </label>
+                  <textarea v-model="nuevoGrupo.detalle" rows="2"
+                            placeholder="Ida DM6771 · LIM 18/09/2026 03:00 → PUJ 18/09/2026 09:19&#10;Retorno DM6770 · PUJ 22/09/2026 20:22 → LIM 23/09/2026 00:30"
+                            class="w-full border rounded-lg px-3 py-2 text-xs outline-none focus:border-teal-500 placeholder:text-slate-300"></textarea>
+                </div>
               </div>
 
               <p v-if="!file.grupos?.length" class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-3">
@@ -1459,17 +1666,47 @@ const eliminarDocumento = async (iri?: string) => {
             <div v-if="file?.grupos?.length" class="col-span-2">
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Subgrupos</label>
               <div v-for="(lista, tipo) in gruposPorTipo" :key="tipo" class="mb-2">
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                  <i class="fas" :class="GRUPO_TIPO_LABELS[tipo]?.icon"></i> {{ GRUPO_TIPO_LABELS[tipo]?.label || tipo }}
-                </p>
+                <div class="flex items-center justify-between mb-1">
+                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    <i class="fas" :class="GRUPO_TIPO_LABELS[tipo]?.icon"></i> {{ GRUPO_TIPO_LABELS[tipo]?.label || tipo }}
+                  </p>
+                  <!-- El plegado sólo aparece si sobra: con nueve grupos el botón es ruido. -->
+                  <button v-if="lista.length > TOPE_PILDORAS" type="button" @click="alternarEje(tipo)"
+                          class="text-[9px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
+                    {{ ejeEstaAbierto(tipo, lista.length) ? 'Plegar' : `Ver las ${lista.length}` }}
+                  </button>
+                </div>
+
+                <input v-if="ejeEstaAbierto(tipo, lista.length) && lista.length > TOPE_PILDORAS"
+                       v-model="filtroEje[tipo]" type="text" placeholder="Filtrar…"
+                       class="w-full mb-1.5 border rounded-lg px-2.5 py-1 text-[11px] outline-none focus:border-indigo-500">
+
                 <div class="flex flex-wrap gap-1.5">
-                  <span v-for="g in lista" :key="g.id"
+                  <span v-for="g in pildorasVisibles(tipo, lista)" :key="g.id"
                         class="inline-flex items-center rounded-lg border text-[11px] font-black transition-colors overflow-hidden"
                         :class="perteneceA(g) ? 'bg-teal-50 text-teal-700 border-teal-300' : 'bg-white text-slate-400 border-slate-200'">
+                    <!-- ⚠️ Aerolínea y código, y NADA MÁS. La píldora existe para ELEGIR entre
+                         veinte localizadores de un vistazo; el itinerario se consulta después y va
+                         debajo. Metido aquí —o en el `title`— convierte la lista en un párrafo. -->
                     <button type="button" @click="alternarPertenencia(g)" class="px-2.5 py-1 hover:bg-black/5">
                       {{ g.clave }}
+                      <span v-if="g.nombre" class="ml-1 font-medium opacity-60">{{ g.nombre }}</span>
                     </button>
                   </span>
+                  <span v-if="!pildorasVisibles(tipo, lista).length"
+                        class="text-[10px] font-bold text-slate-300 italic py-1">
+                    {{ ejeEstaAbierto(tipo, lista.length) ? 'Nada coincide con el filtro.' : 'Sin asignar.' }}
+                  </span>
+                </div>
+
+                <!-- El itinerario, sólo de los grupos a los que PERTENECE: es para comprobar un
+                     horario, no para elegir, y pintarlo de los 66 que no le tocan es ruido. -->
+                <div v-for="g in detallesDe(lista)" :key="`d-${g.id}`"
+                     class="mt-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+                  <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ g.clave }}</p>
+                  <!-- eslint-disable-next-line vue/no-v-html -- Lo escribe el operador y `formatoAHtml()` escapa ANTES de aplicar marcas. -->
+                  <p v-html="formatoAHtml(g.detalle ?? '')"
+                     class="text-[10px] font-medium text-slate-600 whitespace-pre-line leading-snug"></p>
                 </div>
               </div>
             </div>

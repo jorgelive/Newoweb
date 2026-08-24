@@ -56,6 +56,44 @@ use App\Enum\DocumentoTipoEnum;
  */
 final class PadronFormato
 {
+    /**
+     * La hoja que dice QUÉ es cada código.
+     *
+     * ⚠️ **Va en hoja aparte y no en una columna del pasajero, y el motivo no es estética.** El
+     * nombre de un grupo —«Ida SKY H2-6478 · Retorno H2-3888»— pertenece al GRUPO, no a la
+     * persona. Puesto en la hoja de pasajeros habría que repetirlo en las 133 filas, y el
+     * importador lo escribiría 133 veces sobre el mismo grupo: **gana la última fila del bucle**,
+     * que es la que nadie mira. Una errata en la fila 90 renombraría la reserva entera sin un solo
+     * aviso.
+     *
+     * Aquí la identidad es el par `(eje, clave)` —el mismo `UNIQUE (file, tipo, clave)` que tiene
+     * la tabla—, así que el mismo eje aparece tantas veces como códigos tenga:
+     *
+     * ```
+     * #Reserva aérea nacional        Y9KZ7J   Ida SKY H2-6478 · Retorno H2-3888
+     * #Reserva aérea nacional        XSRD4    Ida JetSmart JA-7854 · Retorno JA-3888
+     * #Reserva aérea internacional   BONT3N   Ida ARAJET XS-7744 · Retorno XS-7884
+     * #Habitación                    HA50     DOBLE
+     * ```
+     *
+     * Se lee **antes** del bucle de pasajeros: cuando la fila de alguien crea el grupo, el nombre
+     * ya está puesto.
+     */
+    public const HOJA_GRUPOS = 'Grupos';
+
+    public const COL_GRUPO_EJE = 'Eje';
+    public const COL_GRUPO_CLAVE = 'Clave';
+    public const COL_GRUPO_NOMBRE = 'Nombre';
+
+    /**
+     * El itinerario largo, de varias líneas. Opcional.
+     *
+     * ⚠️ Columna propia y no pegada al nombre: el nombre se lee para ELEGIR entre veinte códigos y
+     * tiene que caber en una píldora; esto se lee para COMPROBAR un horario. Juntos, el corto deja
+     * de servir para lo primero.
+     */
+    public const COL_GRUPO_DETALLE = 'Detalle';
+
     public const MARCA_EJE = '#';
     public const MARCA_SERVICIO = '+';
     public const PREFIJO_VENCIMIENTO = 'Venc. ';
@@ -392,5 +430,48 @@ final class PadronFormato
         }
 
         return $cabeceras;
+    }
+
+    /**
+     * Las cabeceras de la hoja «Grupos».
+     *
+     * @return list<string>
+     */
+    public static function cabecerasDeLaHojaDeGrupos(): array
+    {
+        return [self::COL_GRUPO_EJE, self::COL_GRUPO_CLAVE, self::COL_GRUPO_NOMBRE, self::COL_GRUPO_DETALLE];
+    }
+
+    /**
+     * Parte «Y9KZ7J Jetsmart» en clave y rótulo.
+     *
+     * ⚠️ **Sólo se usa cuando la columna «Nombre» no dice nada.** La forma canónica —la que
+     * escribe la exportación— es una columna para cada cosa, porque la clave es lo que CASA con la
+     * columna del pasajero: si la identidad del grupo fuera «Y9KZ7J Jetsmart», habría que escribir
+     * eso mismo en las 133 filas.
+     *
+     * Se admite la forma junta porque es como se teclea de un tirón, y separar por el primer
+     * espacio acierta con lo que hay: un localizador aéreo son seis caracteres sin espacios, y un
+     * número de habitación tampoco los lleva. Cuando falla —una clave con espacio— la salida es
+     * poner el rótulo en su columna, que es la forma buena de todas formas.
+     *
+     * @return array{0: string, 1: string} clave, nombre
+     */
+    public static function partirClaveYNombre(string $celda): array
+    {
+        $partes = preg_split('/\s+/u', trim($celda), 2) ?: [];
+
+        return [$partes[0] ?? '', $partes[1] ?? ''];
+    }
+
+    /**
+     * La clave con la que se busca un nombre de grupo: `eje|CLAVE`.
+     *
+     * La clave se normaliza a mayúsculas igual que al crear el grupo, para que «ha50» de la hoja
+     * de grupos encuentre al «HA50» de la de pasajeros.
+     */
+    public static function claveDeGrupo(string $eje, string $clave): string
+    {
+        return $eje.'|'.mb_strtoupper(trim($clave));
     }
 }

@@ -1480,8 +1480,157 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
   aclara que **ellos no se borran**.
 - **En la ficha del pasajero**, píldoras por eje: se marcan varias a la vez y la corona marca de
   cuál es jefe.
+- ⚠️ **Los ejes de más de 12 píldoras se pliegan** (`TOPE_PILDORAS` en `FileDetalle.vue`). Plegado
+  enseña **sólo aquellas a las que pertenece**; abierto, todas con un filtro de texto. El hotel
+  numera 66 habitaciones y las aerolíneas dan una veintena de localizadores: desplegados dejaban
+  el eje «Grupo» —nueve píldoras, y el que más se usa— a tres pantallas de scroll, y la ficha
+  inservible justo en el expediente grande.
+- La píldora enseña `clave` **y `nombre`** en gris: el nombre es lo que dice QUÉ es ese código
+  —la aerolínea y sus vuelos, «DOBLE» en una habitación—. Sin él, elegir entre veinte
+  localizadores es adivinar.
 - `pertenencias` va **`EAGER`** por lo mismo que las identificaciones (§6.l): con `LAZY` son 140
   consultas que con dos pasajeros no se ven.
+
+### ⚠️ El grupo NO devuelve sus miembros, y no es un olvido
+
+`CotizacionFileGrupo::$miembros` **no se serializa**. Si lo hiciera, el grafo se cierra sobre sí
+mismo:
+
+```
+pasajero ──► pertenencias ──► CotizacionPasajeroGrupo ──► grupo
+                    ▲                                       │
+                    └──────────── miembros ◄────────────────┘
+```
+
+…y el serializador aborta el `GET` entero con *«A circular reference has been detected when
+serializing the object of class CotizacionPasajeroGrupo (configured limit: 1)»*. Un 500, no un
+campo de menos.
+
+⚠️ **Lo que lo hace caro es cuándo aparece.** Con los grupos vacíos la colección no tiene por
+dónde volver, así que el ciclo no existe: pasa las pruebas, pasa el despliegue, y revienta **el
+día que alguien carga un padrón de verdad**. Ocurrió tal cual — el expediente abría sin problema
+hasta que entraron los 133 de Punta Cana con sus 106 grupos y 1620 pertenencias.
+
+La regla general, que vale para cualquier `OneToMany` nuevo: **de una relación bidireccional sólo
+un lado puede ir en el grupo de lectura.** Aquí el lado bueno es el del pasajero, porque la
+pantalla pinta el manifiesto persona a persona.
+
+Lo que la tarjeta del grupo necesita es **cuántos son**, y eso lo da `getTotalMiembros()` con
+`fetch: 'EXTRA_LAZY'`: un `SELECT COUNT(*)` en vez de hidratar 1620 filas para contarlas. Medido
+sobre el expediente real, los 106 grupos salen en **15 KB y 0,04 s**.
+
+### Los padrones vienen GRITADOS, y el importador los baja (24/08/2026)
+
+Se teclean con el bloqueo de mayúsculas puesto —«VALDIVIA BERRIOS»— y de ahí salían tal cual a la
+ficha del huésped y a los mensajes. El importador pasa `Nombres` y `Apellidos` por
+`App\Service\Nombre\NombreSanitizer`, **el mismo que ya normalizaba lo que llega de Beds24**: una
+regla, un sitio.
+
+Sólo toca lo que está **claramente gritado** —una sola minúscula y lo deja intacto—, así que
+«de la Cruz», «McDonald» u «O'Brien», que alguien escribió así a propósito, se quedan. Y respeta
+las partículas: `LADRON DE GUEVARA` → `Ladron de Guevara`, pero `DE WILSON` abriendo el apellido
+→ `De Wilson`.
+
+⚠️ **No restituye tildes**: `JOSE` sale `Jose`. La tilde no está en el dato y aquí no se adivina.
+
+⚠️ Y no arregla el **corte** del nombre, que es otra cosa: partir «Nombres y Apellidos» por las dos
+últimas palabras falla con los apellidos compuestos —`ACOSTA PINTO DE WILSON` se parte por
+`DE WILSON`—. Se avisa al importar; se corrige poniendo nombre y apellido en columnas propias.
+
+### La hoja «Grupos»: qué es cada código (24/08/2026)
+
+Un localizador no dice nada. `IFBI5Q` es ARAJET y `Y9KZ7J` es JetSmart, y elegir entre veinte a
+ojo es adivinar. Lo mismo con `HA50`, que es DOBLE.
+
+Ese dato ya cabía: `CotizacionFileGrupo::$nombre` estaba ahí, vacío. Lo que faltaba era **por
+dónde entra**, y la respuesta NO es una columna en la hoja de pasajeros:
+
+> El nombre pertenece al GRUPO, no a la persona. En la fila del pasajero habría que repetirlo 133
+> veces, y el importador lo escribiría 133 veces sobre el mismo grupo: **gana la última fila del
+> bucle**. Una errata en la fila 90 renombraría la reserva entera sin un solo aviso.
+
+Por eso va en **hoja aparte**, con la identidad `(eje, clave)` — el mismo `UNIQUE (file, tipo,
+clave)` de la tabla — y se lee **antes** del bucle, para que el grupo nazca ya con su nombre:
+
+```
+Eje                            Clave    Nombre     Detalle
+#Reserva aérea nacional        Y9KZ7J   JetSmart   * **Ida** JA7854 · LIM 03:00 → CUZ 04:25
+                                                   * **Retorno** JA3888 · CUZ 20:22 → LIM 21:45
+#Reserva aérea nacional        XSRD4    SKY
+#Reserva aérea internacional   BONT3N   ARAJET     * **Ida** DM6771 · LIM 03:00 → PUJ 09:19
+#Habitación                    HA50     DOBLE
+```
+
+El mismo eje repite fila por cada código: son grupos distintos. Es **opcional** —sin ella los
+grupos entran sin rótulo— y en un grupo que ya existía **refresca** lo que la hoja traiga.
+
+⚠️ **Sólo lo que la hoja TRAE.** Una celda vacía es «no lo digo», no «bórralo»: si borrara, subir
+una hoja con la columna «Detalle» en blanco vaciaría los itinerarios de los 106 grupos sin que
+nadie lo hubiera pedido.
+
+**La clave admite el rótulo pegado.** «Y9KZ7J Jetsmart» en una sola celda se parte por el primer
+espacio, y **sólo si la columna «Nombre» no dice nada**: con las dos puestas manda la explícita. Se
+acepta porque es como se teclea de un tirón, y separar por el primer espacio acierta con lo que hay
+—un localizador son seis caracteres sin espacios, un número de habitación tampoco los lleva—.
+
+⚠️ Lo que **no** cambia es la identidad: la clave del grupo sigue siendo `Y9KZ7J` a secas, porque
+es lo que casa con la columna de las 133 filas de la hoja de pasajeros. Si la identidad fuera
+«Y9KZ7J Jetsmart» habría que escribir eso mismo en cada fila, que es justo lo que esta hoja existe
+para evitar.
+
+⚠️ **Y si el rótulo se cuela en la fila del PASAJERO** —«IFBI5Q ARAJET» donde va sólo el
+código— se usa el grupo del código. Sin eso se creaba una reserva aparte de «IFBI5Q»: dos donde
+hay una, y ninguna de las dos completa. La prueba de que es el mismo es que **la hoja «Grupos»
+declara ese código**, no que el grupo exista ya: los grupos se crean sobre la marcha, así que
+mirar los existentes dependía del orden de las filas —si la fila con el rótulo pegado venía
+primero, ganaba ella—. Se avisa siempre: el archivo hay que arreglarlo.
+
+⚠️ **La hoja «Grupos» se busca la ÚLTIMA al localizar a los pasajeros.** Su cabecera `Nombre` es
+alias de `Nombres` (`PadronFormato::ALIAS`), así que califica como hoja de personas. Con la
+pestaña arrastrada delante, `buscarHojaYCabecera()` la elegía a ella: entraban **pasajeros
+llamados «JetSMART» y «Sky Airline»**, y encima los rótulos se perdían —`leerHojaDeGrupos()` se
+salta la hoja de la que salieron las personas—. Todo en silencio. Se deja como último recurso en
+vez de excluirla, por si alguien llama «Grupos» a su hoja de gente.
+
+⚠️ **Cabecera repetida: gana la PRIMERA.** `array_flip` se quedaba con la última, y copiar la hoja
+sin borrar la columna vieja hacía leer la de la derecha —vacía—: los detalles entraban en blanco
+sin un solo aviso. En la hoja de PASAJEROS sí se repiten a propósito, que ahí dos ejes iguales son
+dos columnas.
+
+### Dos campos y no uno: `nombre` corto, `detalle` largo
+
+Son **dos lecturas distintas**, y por eso no se concatenan:
+
+| | Para qué | Dónde se pinta |
+|---|---|---|
+| `nombre` | **ELEGIR** entre veinte localizadores de un vistazo — «ARAJET», «DOBLE» | dentro de la píldora, junto a la clave |
+| `detalle` | **COMPROBAR** un horario cuando ya sabes cuál miras | debajo, y sólo de los grupos a los que pertenece |
+
+Metidos en el mismo campo, el corto deja de servir para lo primero: la píldora se convierte en un
+párrafo y la lista de 66 habitaciones es ilegible. Por eso la píldora lleva **aerolínea y código y
+nada más**, ni siquiera en el `title`.
+
+`detalle` es `TEXT` y se escribe en el **canónico de la casa** —el mismo del chat, que normaliza el
+Markdown que la gente teclea: `**x**` → negrita, `* ` → viñeta—. Se pinta con `formatoAHtml()`
+(`util/src/utils/formatoDeTexto.ts`), que **escapa el HTML antes** de aplicar marcas, así que el
+`v-html` es seguro. No hace falta ninguna librería de Markdown.
+
+El libro queda **Pasajeros · Grupos · Instrucciones · Tablas**.
+
+### ⚠️ Dos columnas con la misma cabecera perdían el tramo
+
+Había dos `#Reserva aérea`, la nacional y la internacional, y **cuál era cuál dependía de la
+posición de la columna**. El importador mapea *cabecera → eje*, así que las dos caían en
+`reserva_aerea` y el tramo desaparecía sin error: nada en el archivo lo decía.
+
+Se arregló con dos ejes propios —`RESERVA_AEREA_NACIONAL`, `RESERVA_AEREA_INTERNACIONAL`— y así
+la cabecera se describe a sí misma. **Los tres conviven a propósito**: una pareja que vuela a
+Cusco tiene UNA reserva y no hay tramo del que hablar; obligarla a elegir «nacional» sería
+inventarle una distinción.
+
+⚠️ `cotizacion_file_grupo.tipo` tuvo que pasar de `VARCHAR(20)` a `VARCHAR(40)`:
+`reserva_aerea_internacional` son 27 caracteres, y MySQL fuera de modo estricto **trunca en vez de
+fallar** — el error habría salido al LEER, no al escribir.
 
 ## 6.n La plantilla del padrón: una definición, dos usos (24/08/2026)
 

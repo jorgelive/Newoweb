@@ -86,6 +86,11 @@ export const GRUPO_TIPO_LABELS: Record<string, { label: string; icon: string; co
     grupo:         { label: 'Grupo',         icon: 'fa-people-group',    color: 'teal' },
     habitacion:    { label: 'Habitación',    icon: 'fa-bed',             color: 'amber' },
     reserva_aerea: { label: 'Reserva aérea', icon: 'fa-plane-departure', color: 'sky' },
+    // ⚠️ Los tres conviven: una pareja que vuela a Cusco tiene UNA reserva y no hay tramo del que
+    // hablar. Son ejes propios porque la plantilla del padrón identifica el eje por la CABECERA, y
+    // con las dos llamándose igual el tramo dependía de la posición de la columna.
+    reserva_aerea_nacional:      { label: 'Reserva aérea nacional',      icon: 'fa-plane-departure', color: 'sky' },
+    reserva_aerea_internacional: { label: 'Reserva aérea internacional', icon: 'fa-earth-americas',  color: 'sky' },
     // ⚠️ Binario: se pertenece o no, sin valor. Es lo que llena el panel de inclusiones
     // específicas de cada participante, y la lista de quién va en cada orden de servicio.
     servicio:      { label: 'Servicio',      icon: 'fa-circle-check',    color: 'emerald' },

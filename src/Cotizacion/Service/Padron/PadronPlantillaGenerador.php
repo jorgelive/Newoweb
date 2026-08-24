@@ -77,6 +77,7 @@ final readonly class PadronPlantillaGenerador
     {
         $libro = new Spreadsheet();
         $this->hojaPasajeros($libro, $file);
+        $this->hojaGrupos($libro, $file);
         $this->hojaInstrucciones($libro);
         $this->hojaTablas($libro);
         $libro->setActiveSheetIndex(0);
@@ -390,6 +391,79 @@ final readonly class PadronPlantillaGenerador
      * único razonable. Adivinar «alumno» o «acompa» convertía un «Alumbo» mal escrito en un
      * silencio, y el rol decide qué ve cada persona.
      */
+    /**
+     * La hoja «Grupos»: qué es cada código.
+     *
+     * Una fila por par `(eje, clave)`, que es la identidad del grupo. El mismo eje aparece tantas
+     * veces como códigos tenga —dos aerolíneas para el tramo nacional son dos filas— y el nombre
+     * es lo que se lee en la píldora del pasajero: la aerolínea con sus vuelos, «DOBLE» en una
+     * habitación.
+     *
+     * ⚠️ Por qué no es una columna de la hoja de pasajeros: ver {@see PadronFormato::HOJA_GRUPOS}.
+     */
+    private function hojaGrupos(Spreadsheet $libro, ?CotizacionFile $file): void
+    {
+        $hoja = $libro->createSheet();
+        $hoja->setTitle(PadronFormato::HOJA_GRUPOS);
+
+        foreach (PadronFormato::cabecerasDeLaHojaDeGrupos() as $i => $cabecera) {
+            $hoja->setCellValue([$i + 1, 1], $cabecera);
+            $estilo = $hoja->getStyle([$i + 1, 1]);
+            $estilo->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+            $estilo->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::NARANJA);
+            $hoja->getColumnDimensionByColumn($i + 1)->setWidth(match ($i) { 2 => 26, 3 => 62, default => 30 });
+        }
+
+        $filas = [];
+
+        if ($file === null) {
+            $filas = [
+                [PadronFormato::MARCA_EJE.'Reserva aérea nacional', 'Y9KZ7J', 'JetSmart',
+                    "Ida JA7854 · LIM 18/09/2026 03:00 → CUZ 18/09/2026 04:25\nRetorno JA3888 · CUZ 22/09/2026 20:22 → LIM 22/09/2026 21:45"],
+                [PadronFormato::MARCA_EJE.'Reserva aérea nacional', 'XSRD4', 'SKY', ''],
+                [PadronFormato::MARCA_EJE.'Reserva aérea internacional', 'BONT3N', 'ARAJET',
+                    "Ida DM6771 · LIM 18/09/2026 03:00 → PUJ 18/09/2026 09:19\nRetorno DM6770 · PUJ 22/09/2026 20:22 → LIM 23/09/2026 00:30"],
+                [PadronFormato::MARCA_EJE.'Habitación', 'HA50', 'DOBLE', ''],
+            ];
+        } else {
+            foreach ($file->getGrupos() as $grupo) {
+                $tipo = $grupo->getTipo();
+                if ($tipo === null) {
+                    continue;
+                }
+                $filas[] = [
+                    ($tipo === GrupoTipoEnum::SERVICIO ? PadronFormato::MARCA_SERVICIO : PadronFormato::MARCA_EJE)
+                        .($tipo === GrupoTipoEnum::SERVICIO ? (string) $grupo->getClave() : $tipo->label()),
+                    $tipo === GrupoTipoEnum::SERVICIO ? '' : (string) $grupo->getClave(),
+                    (string) $grupo->getNombre(),
+                    (string) $grupo->getDetalle(),
+                ];
+            }
+        }
+
+        foreach ($filas as $n => $fila) {
+            foreach ($fila as $c => $valor) {
+                if ($valor !== '') {
+                    $hoja->setCellValueExplicit([$c + 1, $n + 2], $valor, DataType::TYPE_STRING);
+                }
+            }
+            // El detalle es de varias líneas: sin ajuste de texto Excel enseña sólo la primera.
+            $hoja->getStyle([4, $n + 2])->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+            if ($file === null) {
+                $hoja->getStyle([1, $n + 2, 4, $n + 2])->getFont()->setItalic(true)->getColor()->setARGB('FF94A3B8');
+            }
+        }
+
+        if ($file === null) {
+            $hoja->setCellValue([1, count($filas) + 3],
+                '↑ EJEMPLOS: bórralos y pon los tuyos. Una fila por código. «Nombre» es corto (sale en la '
+                .'píldora); «Detalle» admite varias líneas (Alt+Intro) y es opcional.');
+            $hoja->getStyle([1, count($filas) + 3])->getFont()->setBold(true)->getColor()->setARGB(self::NARANJA);
+        }
+
+        $hoja->freezePane('A2');
+    }
+
     private function hojaTablas(Spreadsheet $libro): void
     {
         $hoja = $libro->createSheet();
@@ -520,6 +594,24 @@ final readonly class PadronPlantillaGenerador
         foreach (PadronFormato::SERVICIOS_DE_EJEMPLO as $servicio) {
             $linea(PadronFormato::MARCA_SERVICIO.$servicio, 'SÍ o NO. Ejemplo del padrón real — cámbialo por el tuyo.');
         }
+        ++$fila;
+
+        $titulo('La hoja «'.PadronFormato::HOJA_GRUPOS.'»: qué es cada código');
+        $nota('Un localizador no dice nada: IFBI5Q es Arajet y Y9KZ7J es JetSmart. Aquí se escribe UNA VEZ qué es '
+            .'cada código, en vez de repetirlo en las 133 filas. Es opcional: sin esta hoja los grupos entran igual, '
+            .'sólo que sin rótulo.');
+        $linea(PadronFormato::COL_GRUPO_EJE, 'El mismo texto que la cabecera de la columna, con su marca: '
+            .'«#Habitación», «#Reserva aérea nacional», «+Coco Bongo». Se repite tantas veces como códigos tenga.');
+        $linea(PadronFormato::COL_GRUPO_CLAVE, 'El código, IGUAL que en la hoja de pasajeros: HA50, Y9KZ7J, 5. '
+            .'Es lo que une las dos hojas. En un servicio («+…») se deja vacía: no tiene código.');
+        $linea(PadronFormato::COL_GRUPO_NOMBRE, 'CORTO, dos o tres palabras: «JetSmart», «DOBLE». Es lo que sale al '
+            .'lado del código al asignar gente, así que tiene que caber de un vistazo.');
+        $linea(PadronFormato::COL_GRUPO_DETALLE, 'Largo y opcional, varias líneas (Alt+Intro). Admite *negrita* y '
+            .'listas con «* ». Aquí van los vuelos con sus horarios: se consulta, no se elige con él.');
+        $nota('⚠️ Una celda vacía es «no lo digo», NO «bórralo». Subir la hoja con «Detalle» en blanco no borra los '
+            .'itinerarios que ya estaban: para quitar uno, se edita el grupo en la aplicación.');
+        $nota('Si escribes el código y el rótulo juntos —«Y9KZ7J JetSmart»— también vale: se parte por el primer '
+            .'espacio. Pero en la hoja de PASAJEROS va SIEMPRE el código solo.');
 
         $hoja->getStyle([1, 1, 2, $fila])->getBorders()->getInside()->setBorderStyle(Border::BORDER_HAIR);
         $hoja->getStyle([1, 1, 2, $fila])->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::GRIS);

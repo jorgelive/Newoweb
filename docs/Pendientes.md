@@ -763,3 +763,172 @@ es el día en que esto sí necesita un segundo factor.
    vencidos dejan de descubrirse leyendo un Excel.
 2. Los subgrupos y la importación del padrón.
 3. El `/search` y el jefe de grupo.
+
+---
+
+## Rellenar una plantilla oficial sin destruirla — 23/08/2026
+
+Las plantillas del **Ministerio de Cultura** (carga de visitantes a Llaqta) se rechazan como «no
+oficiales» después de pasar por PhpSpreadsheet, y de paso pierden los colores. No es un fallo que
+arregle actualizar la librería: es lo que hace un *round-trip*.
+
+Al abrir el `.xlsx` del Ministerio como zip aparece lo que se pierde:
+
+```
+customXml/item1.xml       18 KB   DataMashup — Power Query embebido
+customXml/itemProps1.xml          su datastoreItem {2162FCA5-…}
+xl/connections.xml                las conexiones de datos
+xl/tables/table1.xml              la tabla real (ListObject)
+xl/printerSettings/*.bin
+xl/theme/theme1.xml               los colores cuelgan de aquí (theme="4" tint=…)
+hojas: Hoja1 + «Tablas» oculta con estudianteLista, listaSexo, paisesLista,
+       procedenciaLista, tarifasLista, tdocLista
+```
+
+**PhpSpreadsheet no modela `customXml/`, ni las conexiones, ni los ListObject**: al cargar y
+volver a guardar, reconstruye el libro desde su modelo interno y esas partes no vuelven. El
+`DataMashup` es lo que el Ministerio busca para reconocer su propia plantilla, y el tema que
+emite el escritor no es el mismo del que cuelgan los índices de color de los estilos. De ahí
+salen exactamente los dos síntomas: «no oficial» y colores cambiados.
+
+**La vía que sí funciona: no cargar el libro.** Un `.xlsx` es un zip; se copia entrada por
+entrada y se sustituye **sólo `xl/worksheets/sheet1.xml`**, con los valores como `inlineStr`
+para no tocar tampoco `sharedStrings.xml`. Todo lo demás llega byte a byte como salió del
+Ministerio, así que no hay nada que se pueda perder — ni ahora ni cuando cambien la plantilla.
+
+⚠️ **No afecta al padrón.** Ahí la plantilla se genera desde cero y el importador sólo lee, que
+son los dos usos en los que un round-trip no destruye nada. Esto es para plantillas ajenas.
+
+Alternativa si algún día hay que rellenar plantillas con fórmulas vivas: LibreOffice headless.
+Es un proceso más que mantener, así que sólo si el zip no basta.
+
+---
+
+## El precio al cliente se calcula desde el costo, y en un grupo grande eso no aguanta — 23/08/2026
+
+Hoy no existe precio de venta: sale de `CotizacionCottarifa::$montoCosto` × (1 + margen), donde
+el margen es `Cotizacion::$comision` o el `comisionOverrideSnapshot` de la línea
+(`cotizacionEditorStore.ts` L693-707, L866). **El precio al cliente es una función del costo.**
+
+Eso funciona mientras el costo no se mueva después de aceptar. En Punta Cana 2026 se movió dos
+veces, y las dos son el caso normal de un grupo grande:
+
+- se cotizó el vuelo entero en **Arajet** y hubo que partir el grupo en dos aerolíneas;
+- **JetSmart** subió el precio a última hora y la mayoría acabó en **Sky**.
+
+Con el precio derivado, cada una de esas correcciones **mueve el precio de una familia que ya
+aceptó**. Y son correcciones inevitables: cuadrar las órdenes es exactamente mover prestadores y
+partir un servicio en varias tarifas.
+
+**Lo que ya está resuelto en el modelo:** el prestador vive en la **tarifa**
+(`CotizacionCottarifa::$prestadorMaestroId`), no en el componente, así que un mismo componente
+admite ya varias tarifas con prestadores distintos — Arajet y Sky bajo «Vuelo internacional» —
+y las órdenes salen por prestador. No hace falta partir el componente ni duplicar la línea que
+lee el cliente.
+
+**Lo que falta es un `montoVenta` fijado**, nullable, que cuando está gane sobre `costo × margen`.
+Con él el margen pasa a ser **derivado** (`venta − Σ costos`), que es justo el uso interno que se
+quiere: se ve cuánto se perdió con el cambio de aerolínea sin que el cliente se entere de nada.
+
+⚠️ El eje de esta decisión **no es el modo del expediente**: un precio cerrado lo quiere también
+una cotización de dos personas. Si se ata a `FileModoEnum::GRUPO` habrá que desatarlo después.
+
+Ver también el panel de inclusiones específicas por participante, que ya privilegia el precio
+fijado a mano frente al calculado.
+
+### El clasificador no puede repartir lo que no sabe quién compró
+
+Medido sobre el padrón real de Punta Cana 2026 (133 personas, 10 servicios):
+
+```
+105 con el paquete completo   96 alumnos + 9 coordinadores
+ 13 sin «Comidas Lima»        todos acompañantes y supervisores
+  7 invitados                 paquete mínimo, cada uno distinto
+  2 «No participa»            nada
+  3 alumnos sin vuelos        van por su cuenta
+```
+
+12 combinaciones, pero **una cubre el 79%** y la segunda es una resta por rol. Lo irregular de
+verdad son **10 personas**.
+
+**Lo que pasa hoy.** `resumenFinanciero` reparte por *atributos de la tarifa* —rango de edad y
+procedencia—: elige la «partición canónica» (el componente cuyas tarifas por pax suman
+exactamente `numPax`) y asigna los demás componentes sobre esas clases. Con `numPax = 133` y
+ningún componente que llegue a 133, salta en **los diez a la vez**:
+
+> «Comidas Lima» no cubre a todos los pasajeros: quedan sin tarifa 27 … **Se está cobrando de
+> menos.**
+
+Es un falso positivo. El aviso se puso para cazar el `numPax` subido sin reescalar tarifas; aquí
+dispara por lo contrario. Y «arreglarlo» poniendo 133 en cada tarifa cobra de más a 12 personas.
+
+**Por qué no se arregla dentro del clasificador.** Son dos modelos del mismo hecho: el
+clasificador reparte por atributo de tarifa, el padrón por **pertenencia** (`+Coco Bongo`). Una
+tarifa no sabe **quién**. Representar 12 combinaciones daría 12 clases de 1–3 personas — cifras
+que ya no describen a nadie, el mismo motivo por el que se quitó el «precio total del viaje».
+
+**La forma que encaja:** el clasificador se queda con el **paquete base** (para lo que está
+hecho); la resta por rol y las 10 excepciones salen del **padrón**, al panel de inclusiones
+específicas. Precio de cada familia = precio fijado ± lo suyo — sin `montoVenta`, quitarle
+«Comidas Lima» a un acompañante le recalcula el paquete entero.
+
+⚠️ Y el aviso de cobertura, en modo grupo, debe compararse contra **cuánta gente tiene ese
+`+servicio` en el padrón**, no contra `numPax`. Así vuelve a ser útil: avisa si la tarifa dice
+120 y el padrón dice 122.
+
+### El precio calculado ya viaja al cliente, línea por línea
+
+`expurgarParaCliente()` (`util/src/types/cotizacionEditorModel.ts`) quita `montoCosto` pero
+**conserva `ventaSoles`/`ventaDolares` en cada línea del `detalle`**, por clase, más
+`totalVentaBruta`. En el JSON que recibe `pax` está «Coco Bongo: 45 USD» desglosado.
+
+Así que **no basta con no mostrarlo**: es una decisión de la vista y el dato llega igual — el
+mismo fallo que ya pasó con `montoCotizado`. Y cuadrar una orden no mueve un número, mueve
+**todos** los del desglose, contra los que el cliente puede comparar lo que vio al aceptar.
+
+**El catálogo ya tiene la interfaz** (`preciosDesde`: perfil + moneda + valor, traducible), pero
+con el orden invertido: ahí el precio fijado es una etiqueta encima de una verdad calculada, y
+por eso se ve inútil — el cliente lee «Desde 890» y debajo la suma da 913.
+
+Lo que falta:
+
+- **`preciosDesde` deja de estar tras `modoCatalogo`**, igual que se hizo con `totalesOcultos` y
+  por el mismo motivo.
+- **El expurgador no emite `ventaSoles`/`ventaDolares` cuando hay precio fijado.** Es lo que
+  convierte «no lo muestro» en «no se puede ver»; sin esto lo demás es cosmético.
+- **El sugerido se queda, del lado interno.** Es lo único que dice si el precio fijado pierde
+  dinero tras mover el grupo a Sky. Lo que sobra es enseñarlo *junto* al fijado.
+
+⚠️ La propiedad que importa del sugerido **no es el redondeo, es que no se mueva solo**: un botón
+que **rellena el campo una vez** (redondeando hacia arriba), no un valor vivo. Un valor vivo
+vuelve a cambiar el día que cuadras la orden, que es el problema entero. Si el costo sube después,
+el aviso es interno: «fijaste 890 y ahora cuesta 913».
+
+---
+
+## Seis apellidos compuestos mal partidos en el padrón de Punta Cana — 24/08/2026
+
+`PadronFormato::partirNombre()` parte «Nombres y Apellidos» por **las dos últimas palabras**, que
+es la convención peruana y acierta con la inmensa mayoría. Falla con los apellidos compuestos, y
+en el padrón de Punta Cana 2026 hay **seis**:
+
+```
+ELENA PAULA ACOSTA PINTO DE WILSON   → nombres «Elena Paula Acosta Pinto» + apellidos «De Wilson»
+                                        (debería ser «Elena Paula» + «Acosta Pinto de Wilson»)
+PIERO GAEL LADRON DE GUEVARA IWAKI
+RAY SANTIAGO DIAZ LA TORRE
+WENDY JENNIFER SANCHEZ DE OLARTE
+MARIA DEL CARMEN VELASQUEZ ZEGARRA
+MERLY DEL CARMEN CARDENAS PAREDES
+```
+
+Concatenados **se leen bien** —«Elena Paula Acosta Pinto De Wilson»— así que en pantalla no se
+nota y nadie lo va a reportar. Donde duele es al **filtrar o buscar por apellido**, y en cualquier
+listado que ordene por él.
+
+⚠️ **No se arregla en el código**: partir un nombre completo es una conjetura y ya se avisa al
+importar. Se arregla **en el archivo**, poniendo nombre y apellido en columnas propias en esas
+seis filas, y volviendo a cargar —el `Id` de la exportación hace que cada fila vuelva a su
+persona, así que no se duplica nadie.
+
+La capitalización sí está resuelta: `NombreSanitizer` baja el CAPS LOCK y respeta las partículas.

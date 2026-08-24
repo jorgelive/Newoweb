@@ -10546,11 +10546,13 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
-            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             miembros?: components["schemas"]["CotizacionPasajeroGrupo"][];
             id?: string;
             /** Format: date-time */
@@ -10563,12 +10565,13 @@ export interface components {
         };
         "CotizacionFileGrupo-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
-            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            miembros?: components["schemas"]["CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read"][];
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10582,22 +10585,26 @@ export interface components {
         "CotizacionFileGrupo-file.write": {
             file?: components["schemas"]["CotizacionFile-file.write"];
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
-            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             id?: string;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo-file.write.jsonMergePatch": {
             file?: components["schemas"]["CotizacionFile-file.write"];
             /** @enum {string} */
-            tipo?: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            tipo?: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave?: string;
-            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             id?: string;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
@@ -10608,11 +10615,13 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
-            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             miembros?: components["schemas"]["CotizacionPasajeroGrupo.html"][];
             id?: string;
             /** Format: date-time */
@@ -10625,12 +10634,13 @@ export interface components {
         };
         "CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
-            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            miembros?: components["schemas"]["CotizacionPasajeroGrupo.html-file.read_file.item.read_timestamp.read"][];
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10648,11 +10658,13 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
-            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             miembros?: components["schemas"]["CotizacionPasajeroGrupo.jsonld"][];
             id?: string;
             /** Format: date-time */
@@ -10666,12 +10678,13 @@ export interface components {
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
-            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            miembros?: components["schemas"]["CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10689,11 +10702,13 @@ export interface components {
              */
             file?: string;
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
-            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             miembros?: components["schemas"]["CotizacionPasajeroGrupo.multipart"][];
             id?: string;
             /** Format: date-time */
@@ -10706,12 +10721,13 @@ export interface components {
         };
         "CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
-            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "reserva_aerea_nacional" | "reserva_aerea_internacional" | "servicio";
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
-            /** @description Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            miembros?: components["schemas"]["CotizacionPasajeroGrupo.multipart-file.read_file.item.read_timestamp.read"][];
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;

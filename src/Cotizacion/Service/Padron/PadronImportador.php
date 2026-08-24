@@ -14,6 +14,7 @@ use App\Cotizacion\Enum\PasajeroTipoEnum;
 use App\Entity\Maestro\MaestroPais;
 use App\Enum\DocumentoTipoEnum;
 use App\Enum\SexoEnum;
+use App\Service\Nombre\NombreSanitizer;
 use Doctrine\ORM\EntityManagerInterface;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Symfony\Component\Uid\Uuid;
@@ -46,7 +47,10 @@ use Symfony\Component\Uid\Uuid;
  */
 final readonly class PadronImportador
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private NombreSanitizer $nombreSanitizer = new NombreSanitizer(),
+    ) {}
 
     /**
      * @param string $rutaArchivo el .xlsx ya en disco
@@ -92,6 +96,12 @@ final readonly class PadronImportador
             return $resultado;
         }
 
+        // ⚠️ ANTES del bucle de pasajeros, y ahí está el porqué de que sea una hoja aparte: cuando
+        // la fila de alguien cree el grupo, su nombre ya tiene que estar puesto. Si el nombre
+        // viniera en la fila del pasajero se reescribiría una vez por persona y ganaría la última
+        // del bucle. Ver PadronFormato::HOJA_GRUPOS.
+        $nombresDeGrupo = $this->leerHojaDeGrupos($libro, $nombreHoja, $resultado);
+
         $this->denunciarDocumentosRepetidos($filas, $columnas, $indiceCabecera, $resultado);
         if ($resultado->tieneErrores()) {
             return $resultado;
@@ -119,7 +129,7 @@ final readonly class PadronImportador
             try {
                 $pasajero = $this->pasajeroDeLaFila($file, $fila, $columnas, $resultado);
                 $this->aplicarIdentificaciones($pasajero, $fila, $columnas, $resultado);
-                $this->aplicarGrupos($file, $pasajero, $fila, $columnas, $resultado);
+                $this->aplicarGrupos($file, $pasajero, $fila, $columnas, $nombresDeGrupo, $resultado);
                 $vistos[(string) spl_object_id($pasajero)] = true;
             } catch (\Throwable $e) {
                 $resultado->error(sprintf('Fila %d (%s): %s', $numeroFila, $nombre, $e->getMessage()));
@@ -286,7 +296,27 @@ final readonly class PadronImportador
      */
     private function buscarHojaYCabecera(\PhpOffice\PhpSpreadsheet\Spreadsheet $libro): array
     {
+        // ⚠️ La hoja «Grupos» se mira LA ÚLTIMA, y no es manía de orden.
+        //
+        // Su cabecera «Nombre» es alias de «Nombres» (PadronFormato::ALIAS), así que califica como
+        // hoja de pasajeros. Con la pestaña «Grupos» arrastrada delante —o en un libro armado a
+        // mano— se leía ella: entraban pasajeros llamados «JetSmart» y «ARAJET», y encima los
+        // rótulos se perdían, porque `leerHojaDeGrupos()` se salta la hoja de la que salieron las
+        // personas. Todo en silencio.
+        //
+        // Se deja como último recurso en vez de excluirla: si alguien llama «Grupos» a su hoja de
+        // gente, sigue funcionando.
+        $primero = [];
+        $ultimo = [];
         foreach ($libro->getAllSheets() as $hoja) {
+            if ($hoja->getTitle() === PadronFormato::HOJA_GRUPOS) {
+                $ultimo[] = $hoja;
+            } else {
+                $primero[] = $hoja;
+            }
+        }
+
+        foreach ([...$primero, ...$ultimo] as $hoja) {
             $filas = $hoja->toArray(null, true, false, false);
 
             foreach (array_slice($filas, 0, self::FILAS_A_MIRAR, true) as $i => $fila) {
@@ -407,13 +437,19 @@ final readonly class PadronImportador
             ++$resultado->pasajerosActualizados;
         }
 
+        // ⚠️ Los padrones vienen GRITADOS —«VALDIVIA BERRIOS»— porque se teclean con el bloqueo de
+        // mayúsculas puesto, y de ahí salen a la ficha del huésped y a los mensajes. `NombreSanitizer`
+        // sólo toca lo que está claramente gritado: «de la Cruz» o «McDonald» los escribió alguien así
+        // a propósito y se quedan. Es el mismo que normaliza los nombres que llegan de Beds24.
+        $propio = fn (string $v): string => (string) $this->nombreSanitizer->formatear($v);
+
         if ($columnas['nombreCompleto']) {
             [$nombres, $apellidos] = PadronFormato::partirNombre($texto(PadronFormato::COL_NOMBRES));
-            $pasajero->setNombre($nombres);
-            $pasajero->setApellido($apellidos);
+            $pasajero->setNombre($propio($nombres));
+            $pasajero->setApellido($propio($apellidos));
         } else {
-            $pasajero->setNombre($texto(PadronFormato::COL_NOMBRES));
-            $pasajero->setApellido($texto(PadronFormato::COL_APELLIDOS) ?: $pasajero->getApellido() ?? '');
+            $pasajero->setNombre($propio($texto(PadronFormato::COL_NOMBRES)));
+            $pasajero->setApellido($propio($texto(PadronFormato::COL_APELLIDOS)) ?: $pasajero->getApellido() ?? '');
         }
 
         $rolEscrito = $texto(PadronFormato::COL_TIPO);
@@ -562,21 +598,22 @@ final readonly class PadronImportador
     /**
      * @param list<mixed>                                                                                                            $fila
      * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, GrupoTipoEnum>, servicios: array<int, string>, nombreCompleto: bool} $columnas
+     * @param array<string, array{nombre: string, detalle: string}>                                                                  $nombresDeGrupo
      */
-    private function aplicarGrupos(CotizacionFile $file, CotizacionFilepasajero $pasajero, array $fila, array $columnas, ResultadoDelPadron $resultado): void
+    private function aplicarGrupos(CotizacionFile $file, CotizacionFilepasajero $pasajero, array $fila, array $columnas, array $nombresDeGrupo, ResultadoDelPadron $resultado): void
     {
         $deseados = [];
 
         foreach ($columnas['ejes'] as $i => $eje) {
             $clave = trim((string) ($fila[$i] ?? ''));
             if ($clave !== '') {
-                $deseados[] = $this->grupo($file, $eje, $clave, $resultado);
+                $deseados[] = $this->grupo($file, $eje, $clave, $nombresDeGrupo, $resultado);
             }
         }
 
         foreach ($columnas['servicios'] as $i => $servicio) {
             if (PadronFormato::participa($fila[$i] ?? null)) {
-                $deseados[] = $this->grupo($file, GrupoTipoEnum::SERVICIO, $servicio, $resultado);
+                $deseados[] = $this->grupo($file, GrupoTipoEnum::SERVICIO, $servicio, $nombresDeGrupo, $resultado);
             }
         }
 
@@ -616,18 +653,189 @@ final readonly class PadronImportador
     }
 
     /** El grupo `(file, tipo, clave)`, creándolo si hace falta. */
-    private function grupo(CotizacionFile $file, GrupoTipoEnum $tipo, string $clave, ResultadoDelPadron $resultado): CotizacionFileGrupo
+    /**
+     * Lee la hoja «Grupos», si la hay.
+     *
+     * Es **opcional**: un expediente de dos personas no la necesita, y un padrón que venga del
+     * colegio no la traerá. Sin ella los grupos se crean igual, sólo que sin nombre.
+     *
+     * ⚠️ Se salta la hoja de la que salieron los pasajeros: si alguien renombra su hoja de datos
+     * «Grupos», leerla como tabla de nombres daría basura en vez de un error.
+     *
+     * @return array<string, array{nombre: string, detalle: string}>
+     */
+    private function leerHojaDeGrupos(
+        \PhpOffice\PhpSpreadsheet\Spreadsheet $libro,
+        string $hojaDeLosPasajeros,
+        ResultadoDelPadron $resultado,
+    ): array {
+        $hoja = $libro->getSheetByName(PadronFormato::HOJA_GRUPOS);
+        if ($hoja === null || $hoja->getTitle() === $hojaDeLosPasajeros) {
+            return [];
+        }
+
+        $filas = $hoja->toArray(null, true, false, false);
+        if ($filas === []) {
+            return [];
+        }
+
+        $cabeceras = array_map(static fn ($c): string => trim((string) $c), array_shift($filas) ?? []);
+
+        // ⚠️ La PRIMERA que aparezca, no la última. `array_flip` se queda con la última, y una
+        // cabecera repetida —copiar la hoja y olvidar borrar la columna vieja— hacía que se leyera
+        // la columna vacía de la derecha: los detalles entraban en blanco sin un solo aviso.
+        // (En la hoja de PASAJEROS sí se repiten a propósito: dos ejes iguales son dos columnas.)
+        $col = [];
+        foreach ($cabeceras as $i => $cabecera) {
+            if ($cabecera !== '' && !isset($col[$cabecera])) {
+                $col[$cabecera] = $i;
+            }
+        }
+        // Sólo el eje y la clave son imprescindibles. «Nombre» y «Detalle» son opcionales: hay
+        // quien escribe «Y9KZ7J Jetsmart» de un tirón en la clave, y hay hojas de tres columnas
+        // ya circulando.
+        foreach ([PadronFormato::COL_GRUPO_EJE, PadronFormato::COL_GRUPO_CLAVE] as $necesaria) {
+            if (!isset($col[$necesaria])) {
+                $resultado->aviso(sprintf(
+                    'La hoja «%s» no tiene columna «%s»: se ignora entera y los grupos entrarán sin nombre.',
+                    PadronFormato::HOJA_GRUPOS,
+                    $necesaria,
+                ));
+
+                return [];
+            }
+        }
+
+        $nombres = [];
+        foreach ($filas as $fila) {
+            $eje = trim((string) ($fila[$col[PadronFormato::COL_GRUPO_EJE]] ?? ''));
+            $clave = trim((string) ($fila[$col[PadronFormato::COL_GRUPO_CLAVE]] ?? ''));
+            $nombre = isset($col[PadronFormato::COL_GRUPO_NOMBRE])
+                ? trim((string) ($fila[$col[PadronFormato::COL_GRUPO_NOMBRE]] ?? ''))
+                : '';
+            $detalle = isset($col[PadronFormato::COL_GRUPO_DETALLE])
+                ? trim((string) ($fila[$col[PadronFormato::COL_GRUPO_DETALLE]] ?? ''))
+                : '';
+
+            // «Y9KZ7J Jetsmart» en una sola celda: se parte por el primer espacio, y SÓLO si la
+            // columna «Nombre» no dijo nada. Con las dos columnas puestas manda la explícita.
+            if ($nombre === '' && $clave !== '') {
+                [$clave, $nombre] = PadronFormato::partirClaveYNombre($clave);
+            }
+
+            // Basta con que traiga UNO de los dos: hay grupos con itinerario y sin rótulo corto.
+            if ($eje === '' || ($nombre === '' && $detalle === '')) {
+                continue;
+            }
+
+            $valor = ['nombre' => $nombre, 'detalle' => $detalle];
+
+            // Un servicio no lleva clave —es binario—, así que su identidad es el eje a secas.
+            if (PadronFormato::esColumnaDeServicio($eje)) {
+                // En mayúsculas porque así es como `grupo()` normaliza la clave del servicio:
+                // si aquí entrara «Coco Bongo» y allí «COCO BONGO», el nombre no se encontraría.
+                $nombres[PadronFormato::claveDeGrupo(mb_strtoupper(PadronFormato::servicioDe($eje)), '')] = $valor;
+                continue;
+            }
+
+            // Un eje con valor y sin clave no identifica a nadie: la fila entraría en el mapa con
+            // una llave que ningún grupo puede tener y no haría NADA. Callarlo es lo peor de los
+            // dos mundos —el operador cree que puso el rótulo y no aparece por ningún sitio—.
+            if ($clave === '') {
+                $resultado->aviso(sprintf(
+                    'La hoja «%s» trae «%s» sin clave: sin el código no se sabe a qué grupo pone el '
+                    .'rótulo. Esa fila se ignora.',
+                    PadronFormato::HOJA_GRUPOS,
+                    $eje,
+                ));
+                continue;
+            }
+
+            $tipo = PadronFormato::ejeDe($eje);
+            if ($tipo === null) {
+                $resultado->aviso(sprintf(
+                    'La hoja «%s» nombra un eje que no existe: «%s». Esa fila se ignora.',
+                    PadronFormato::HOJA_GRUPOS,
+                    $eje,
+                ));
+                continue;
+            }
+
+            $nombres[PadronFormato::claveDeGrupo($tipo->value, $clave)] = $valor;
+        }
+
+        if ($nombres !== []) {
+            $resultado->aviso(sprintf('Se leyeron %d rótulos de grupo de la hoja «%s».', count($nombres), PadronFormato::HOJA_GRUPOS));
+        }
+
+        return $nombres;
+    }
+
+    /** @param array<string, array{nombre: string, detalle: string}> $nombresDeGrupo */
+    private function grupo(CotizacionFile $file, GrupoTipoEnum $tipo, string $clave, array $nombresDeGrupo, ResultadoDelPadron $resultado): CotizacionFileGrupo
     {
         $normalizada = mb_strtoupper(trim($clave));
+        $identidad = PadronFormato::claveDeGrupo(
+            $tipo === GrupoTipoEnum::SERVICIO ? $normalizada : $tipo->value,
+            $tipo === GrupoTipoEnum::SERVICIO ? '' : $normalizada,
+        );
+        $rotulo = $nombresDeGrupo[$identidad] ?? null;
 
         foreach ($file->getGrupos() as $grupo) {
             if ($grupo->getTipo() === $tipo && $grupo->getClave() === $normalizada) {
+                // Se refresca en el grupo que ya existía: es la vía por la que se CORRIGE un vuelo
+                // que cambió de aerolínea, y sin ella habría que borrar el grupo para renombrarlo.
+                //
+                // ⚠️ Sólo lo que la hoja TRAE. Una celda vacía es «no lo digo», no «bórralo»: si
+                // borrara, una hoja con la columna «Detalle» en blanco vaciaría los itinerarios de
+                // los 106 grupos sin que nadie lo pidiera.
+                if ($rotulo !== null) {
+                    if ($rotulo['nombre'] !== '') { $grupo->setNombre($rotulo['nombre']); }
+                    if ($rotulo['detalle'] !== '') { $grupo->setDetalle($rotulo['detalle']); }
+                }
+
                 return $grupo;
+            }
+        }
+
+        // ⚠️ «Y9KZ7J JETS MART» en la fila de un PASAJERO: el rótulo se coló donde va sólo el
+        // código. Sin esto se crea un grupo aparte de «Y9KZ7J» —dos reservas donde hay una— y no
+        // lo denuncia nadie: las dos claves son válidas por separado.
+        //
+        // Se reutiliza el que ya existe en vez de adivinar, porque hay PRUEBA de que es el mismo:
+        // el grupo del primer token ya está creado. Y se avisa, que el archivo hay que arreglarlo.
+        if ($tipo !== GrupoTipoEnum::SERVICIO && str_contains($normalizada, ' ')) {
+            [$soloClave] = PadronFormato::partirClaveYNombre($normalizada);
+            $declarada = isset($nombresDeGrupo[PadronFormato::claveDeGrupo($tipo->value, $soloClave)]);
+
+            // La PRUEBA es que la hoja «Grupos» declara ese código, no que exista ya un grupo:
+            // los grupos se crean sobre la marcha, así que mirar los existentes dependía del orden
+            // de las filas —si la fila con el rótulo pegado venía primero, ganaba ella—.
+            $yaCreado = false;
+            foreach ($file->getGrupos() as $existente) {
+                if ($existente->getTipo() === $tipo && $existente->getClave() === $soloClave) {
+                    $yaCreado = true;
+                    break;
+                }
+            }
+
+            if ($declarada || $yaCreado) {
+                $resultado->aviso(sprintf(
+                    '«%s» trae el rótulo pegado al código: se usa «%s». En la hoja de pasajeros va '
+                    .'SÓLO el código; el rótulo va en la hoja «%s».',
+                    $normalizada, $soloClave, PadronFormato::HOJA_GRUPOS,
+                ));
+
+                return $this->grupo($file, $tipo, $soloClave, $nombresDeGrupo, $resultado);
             }
         }
 
         $grupo = new CotizacionFileGrupo();
         $grupo->setTipo($tipo)->setClave($normalizada);
+        if ($rotulo !== null) {
+            $grupo->setNombre($rotulo['nombre'] ?: null);
+            $grupo->setDetalle($rotulo['detalle'] ?: null);
+        }
         $file->addGrupo($grupo);
         $this->em->persist($grupo);
         ++$resultado->gruposCreados;

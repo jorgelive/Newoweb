@@ -76,7 +76,9 @@ class CotizacionFileGrupo
 
     #[Assert\NotNull(message: 'Indica en qué eje agrupa.')]
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
-    #[ORM\Column(type: 'string', length: 20, enumType: GrupoTipoEnum::class)]
+    // 40 y no 20: `reserva_aerea_internacional` son 27 caracteres. Con el largo viejo el eje nuevo
+    // no cabía, y MySQL en modo no estricto lo habría TRUNCADO en vez de fallar.
+    #[ORM\Column(type: 'string', length: 40, enumType: GrupoTipoEnum::class)]
     private ?GrupoTipoEnum $tipo = null;
 
     /**
@@ -91,14 +93,54 @@ class CotizacionFileGrupo
     #[ORM\Column(type: 'string', length: 60)]
     private ?string $clave = null;
 
-    /** Rótulo largo, opcional: «Arajet JA2CWN (Lima–Punta Cana)». Vacío se pinta `tipo` + `clave`. */
+    /**
+     * El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart».
+     *
+     * Un localizador no dice nada: `IFBI5Q` es Arajet y `Y9KZ7J` es JetSmart, y elegir entre veinte
+     * a ojo es adivinar. La píldora del pasajero pinta `clave` + `nombre` en la misma línea, así
+     * que aquí caben tres palabras, no una frase. Lo que no quepa va a {@see self::$detalle}.
+     */
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombre = null;
 
-    /** @var Collection<int, CotizacionPasajeroGrupo> */
-    #[Groups(['file:item:read'])]
-    #[ORM\OneToMany(mappedBy: 'grupo', targetEntity: CotizacionPasajeroGrupo::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    /**
+     * El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una.
+     *
+     * ```
+     * Ida DM6771 · LIM 18/09/2026 03:00 → PUJ 18/09/2026 09:19
+     * Retorno DM6770 · PUJ 22/09/2026 20:22 → LIM 23/09/2026 00:30
+     * ```
+     *
+     * ⚠️ **Va aparte de `nombre` y no concatenado, porque son dos lecturas distintas.** El corto
+     * sirve para ELEGIR entre veinte códigos de un vistazo; el largo, para COMPROBAR un horario
+     * cuando ya sabes cuál miras. Metidos en el mismo campo, el corto deja de servir para lo
+     * primero: la píldora se convierte en un párrafo.
+     *
+     * `text` y no `string`: son dos líneas hoy y pueden ser cuatro con escalas.
+     */
+    #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $detalle = null;
+
+    /**
+     * ⚠️ **NO se serializa, y no es un olvido.**
+     *
+     * El pasajero expone sus `pertenencias`, y cada una expone su `grupo`. Si el grupo expusiera
+     * de vuelta sus miembros el ciclo se cierra —pasajero → pertenencia → grupo → miembro → la
+     * MISMA pertenencia— y el serializador aborta con «circular reference».
+     *
+     * Y no salta al programarlo: con los grupos vacíos la colección no tiene por dónde volver, así
+     * que pasa las pruebas, pasa el despliegue, y revienta el día que alguien carga un padrón. Fue
+     * exactamente lo que ocurrió con los 133 de Punta Cana.
+     *
+     * Lo que la pantalla necesita del grupo es **cuántos son**, y eso lo da
+     * {@see self::getTotalMiembros()} en un `SELECT COUNT(*)` gracias al `EXTRA_LAZY`. Los
+     * miembros uno a uno los tiene ya el otro lado.
+     *
+     * @var Collection<int, CotizacionPasajeroGrupo>
+     */
+    #[ORM\OneToMany(mappedBy: 'grupo', targetEntity: CotizacionPasajeroGrupo::class, cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EXTRA_LAZY')]
     private Collection $miembros;
 
     public function __construct()
@@ -140,6 +182,9 @@ class CotizacionFileGrupo
 
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $v): self { $this->nombre = $v !== null ? (trim($v) ?: null) : null; return $this; }
+
+    public function getDetalle(): ?string { return $this->detalle; }
+    public function setDetalle(?string $v): self { $this->detalle = $v !== null ? (trim($v) ?: null) : null; return $this; }
 
     /** @return Collection<int, CotizacionPasajeroGrupo> */
     public function getMiembros(): Collection { return $this->miembros; }

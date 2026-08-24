@@ -35,6 +35,20 @@ enum GrupoTipoEnum: string
     case RESERVA_AEREA = 'reserva_aerea';
 
     /**
+     * Los dos tramos, cuando el viaje los tiene separados y **en billetes distintos**.
+     *
+     * ⚠️ Son ejes propios y no un atributo de {@see self::RESERVA_AEREA} porque la plantilla del
+     * padrón identifica el eje **por la cabecera de la columna**. Con las dos llamándose «#Reserva
+     * aérea», cuál es cuál dependía de la POSICIÓN: al reimportar caían las dos en el mismo eje y
+     * **el tramo se perdía sin un solo error**. Nada en el archivo lo decía.
+     *
+     * Y los tres conviven a propósito: una pareja que vuela a Cusco tiene UNA reserva y no hay
+     * tramo del que hablar. Obligarla a elegir «nacional» sería inventarle una distinción.
+     */
+    case RESERVA_AEREA_NACIONAL = 'reserva_aerea_nacional';
+    case RESERVA_AEREA_INTERNACIONAL = 'reserva_aerea_internacional';
+
+    /**
      * Quién participa en un servicio concreto: los que van a Coco Bongo, los que llevan seguro.
      *
      * ⚠️ Es el único eje **binario**: los demás tienen un valor —salón B, habitación HA13— y éste
@@ -53,6 +67,8 @@ enum GrupoTipoEnum: string
             self::GRUPO => 'Grupo',
             self::HABITACION => 'Habitación',
             self::RESERVA_AEREA => 'Reserva aérea',
+            self::RESERVA_AEREA_NACIONAL => 'Reserva aérea nacional',
+            self::RESERVA_AEREA_INTERNACIONAL => 'Reserva aérea internacional',
             self::SERVICIO => 'Servicio',
         };
     }
@@ -75,6 +91,8 @@ enum GrupoTipoEnum: string
             self::GRUPO => '1, 2, 3…',
             self::HABITACION => 'HA13, HA44 — el número que da el hotel',
             self::RESERVA_AEREA => 'JA2CWN, YMFLHB — el localizador de la aerolínea',
+            self::RESERVA_AEREA_NACIONAL => 'Y9KZ7J — el localizador del tramo nacional',
+            self::RESERVA_AEREA_INTERNACIONAL => 'BONT3N — el localizador del tramo internacional',
             self::SERVICIO => 'SÍ o NO (esta columna va con «+», no con «#»)',
         };
     }
@@ -87,7 +105,13 @@ enum GrupoTipoEnum: string
      */
     public function admiteArchivos(): bool
     {
-        return $this === self::RESERVA_AEREA;
+        return $this->esReservaAerea();
+    }
+
+    /** Cualquiera de los tres ejes de vuelo. Se pregunta por esto, no por el caso concreto. */
+    public function esReservaAerea(): bool
+    {
+        return in_array($this, [self::RESERVA_AEREA, self::RESERVA_AEREA_NACIONAL, self::RESERVA_AEREA_INTERNACIONAL], true);
     }
 
     /** @return list<string> */
