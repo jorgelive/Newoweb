@@ -18,7 +18,7 @@
 // `contextId`, así que este componente no sabe qué es una reserva ni un expediente.
 // ============================================================================
 
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, useAttrs } from 'vue';
 import { useRouter } from 'vue-router';
 import { apiClient } from '@/services/apiClient';
 import { useChatStore } from '@/stores/chat/chatStore.ts';
@@ -68,6 +68,7 @@ const cargando = ref(false);
 const abriendo = ref(false);
 const error = ref<string | null>(null);
 
+const attrs = useAttrs();
 const chatStore = useChatStore();
 const router = useRouter();
 
@@ -82,8 +83,23 @@ const muestraCorreo = computed(() => props.conCorreo !== false);
 const telefonoEsIdentidad = computed(() => contacto.value?.telefonoOrigen === 'identidad');
 const correoEsIdentidad = computed(() => contacto.value?.correoOrigen === 'identidad');
 
-/** ¿El padre nos pasó los modelos? Sin ellos no se puede ofrecer edición de la semilla. */
-const editable = computed(() => props.telefono !== undefined || props.correo !== undefined);
+/**
+ * ¿El padre nos pasó los modelos? Sin ellos no se puede ofrecer edición de la semilla.
+ *
+ * ⚠️ Se mira si hay **listener de `v-model`**, no si el valor llegó definido. Miraba el valor, y
+ * eso creaba un callejón sin salida: la API omite las claves nulas, así que un expediente creado
+ * **sin teléfono ni correo** mandaba los dos `undefined`, el componente concluía «nadie me pasó
+ * nada», pintaba sólo lectura… y no había forma de añadir el primero. Para poner el teléfono
+ * hacía falta ya tener teléfono.
+ *
+ * El listener existe siempre que el padre escriba `v-model:telefono`, tenga valor o no. Es lo que
+ * de verdad se estaba preguntando.
+ */
+const editable = computed(() =>
+    Boolean(attrs['onUpdate:telefono'] ?? attrs['onUpdate:correo'])
+    || props.telefono !== undefined
+    || props.correo !== undefined,
+);
 
 // ══ ¿ESTE IDENTIFICADOR YA ES DE ALGUIEN? ══════════════════════════════════
 //

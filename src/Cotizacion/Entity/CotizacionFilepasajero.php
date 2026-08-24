@@ -14,6 +14,7 @@ use App\Cotizacion\Enum\AlcanceDeVistaEnum;
 use App\Cotizacion\Enum\PasajeroTipoEnum;
 use App\Enum\DocumentoTipoEnum;
 use App\Enum\SexoEnum;
+use App\Service\Phone\PhoneSanitizer;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
@@ -132,6 +133,16 @@ class CotizacionFilepasajero
     #[Groups(['file:item:read', 'file:write'])]
     #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: PasajeroTipoEnum::class)]
     private ?PasajeroTipoEnum $tipo = null;
+
+    /**
+     * Su teléfono, no el del expediente.
+     *
+     * `CotizacionFile` ya tiene uno, pero es el del contacto principal. En un grupo de 133 personas
+     * hay 133 familias a las que llamar cuando falta un pasaporte, y el padrón real los trae todos.
+     */
+    #[Groups(['file:item:read', 'file:write'])]
+    #[ORM\Column(type: 'string', length: 40, nullable: true)]
+    private ?string $telefono = null;
 
     /** Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
     #[Groups(['file:item:read', 'file:write'])]
@@ -356,6 +367,9 @@ class CotizacionFilepasajero
     public function getTipo(): ?PasajeroTipoEnum { return $this->tipo; }
     public function setTipo(?PasajeroTipoEnum $v): self { $this->tipo = $v; return $this; }
 
+    public function getTelefono(): ?string { return $this->telefono; }
+    public function setTelefono(?string $v): self { $this->telefono = $v !== null ? (trim($v) ?: null) : null; return $this; }
+
     public function getObservaciones(): ?string { return $this->observaciones; }
     public function setObservaciones(?string $v): self { $this->observaciones = $v !== null ? (trim($v) ?: null) : null; return $this; }
 
@@ -381,5 +395,28 @@ class CotizacionFilepasajero
     public function isExpuesto(): bool
     {
         return $this->tipo?->esExpuesto() ?? true;
+    }
+
+    /**
+     * El teléfono se guarda en E.164 sin el «+», como en todo el sistema.
+     *
+     * Mismo `PhoneSanitizer` que usa {@see CotizacionFile::sanitizarCampos()}: si cada sitio
+     * limpiara a su manera, el mismo número quedaría escrito de dos formas y buscar por teléfono
+     * dejaría de encontrar a nadie.
+     *
+     * ⚠️ Con una diferencia a favor: el expediente asume `'PE'` porque no tiene nada mejor, y el
+     * pasajero **sí sabe su país**. Un número mexicano de un invitado se interpreta como mexicano
+     * en vez de pegarle un +51.
+     */
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function sanitizarTelefono(): void
+    {
+        if ($this->telefono === null || $this->telefono === '') {
+            return;
+        }
+
+        $limpio = (new PhoneSanitizer())->cleanPhoneNumber($this->telefono, $this->pais?->getId() ?? 'PE');
+        $this->telefono = $limpio !== '' ? $limpio : null;
     }
 }

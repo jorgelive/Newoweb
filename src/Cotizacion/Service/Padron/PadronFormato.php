@@ -65,6 +65,8 @@ final class PadronFormato
     public const COL_NACIONALIDAD = 'Nacionalidad';
     public const COL_SEXO = 'Sexo';
     public const COL_NACIMIENTO = 'F. Nacimiento';
+    public const COL_TIPO = 'Rol';
+    public const COL_TELEFONO = 'Teléfono';
     public const COL_OBSERVACIONES = 'Observaciones';
 
     /**
@@ -100,6 +102,11 @@ final class PadronFormato
                 'ayuda' => 'M o F.'],
             ['columna' => self::COL_NACIMIENTO, 'obligatoria' => false,
                 'ayuda' => 'DD/MM/AAAA. Hace falta para saber quién viaja como menor.'],
+            ['columna' => self::COL_TIPO, 'obligatoria' => false,
+                'ayuda' => 'Alumno · Padre de familia · Coordinador · Supervisor · Invitado · No participa. '
+                    .'De aquí cuelga qué ve cada uno al consultar su viaje y si aparece ante los demás.'],
+            ['columna' => self::COL_TELEFONO, 'obligatoria' => false,
+                'ayuda' => 'El suyo, no el del expediente: con 133 personas hay 133 familias a las que llamar.'],
             ['columna' => self::COL_OBSERVACIONES, 'obligatoria' => false,
                 'ayuda' => 'Texto libre: «FALTA PASAPORTE», «reemplaza a…».'],
         ];
@@ -183,6 +190,11 @@ final class PadronFormato
         'observacion' => self::COL_OBSERVACIONES,
         'observaciones' => self::COL_OBSERVACIONES,
         'notas' => self::COL_OBSERVACIONES,
+        'tipo' => self::COL_TIPO,
+        'rol' => self::COL_TIPO,
+        'telefono' => self::COL_TELEFONO,
+        'teléfono' => self::COL_TELEFONO,
+        'celular' => self::COL_TELEFONO,
     ];
 
     /** La columna canónica para una cabecera, o la misma si no hay alias. */

@@ -6,6 +6,7 @@ import MaskedDateInput from '@/components/MaskedDateInput.vue';   // ajusta ruta
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import ContactoDeIdentidad from '@/components/common/ContactoDeIdentidad.vue';
 import { uuidDe } from '@/services/hydra';
+import { formatearTelefono } from '@/utils/telefono';
 import PlanOperacionModal from '@/components/operacion/PlanOperacionModal.vue';
 import { apiClient } from '@/services/apiClient';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
@@ -327,7 +328,7 @@ const isSubmittingPax = ref(false);
 const isSubmittingDoc = ref(false);
 
 const paxForm = ref({
-  nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', tipo: '', observaciones: '',
+  nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', tipo: '', telefono: '', observaciones: '',
   // Una persona lleva DNI *y* pasaporte, con vencimientos distintos. Ver §6.l del doc.
   identificaciones: [] as Array<{ tipo: string; numero: string; vencimiento: string }>,
   /** IRIs de los grupos a los que pertenece. Quién lidera lo dice el TIPO, no una bandera aquí. */
@@ -423,7 +424,7 @@ const abrirMotor = (cotizacion: ApiCotizacionVersion) => {
 const paxEditandoIri = ref<string | null>(null);
 const abrirPaxModal = () => {
   paxEditandoIri.value = null; // modo creación
-  paxForm.value = { nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', tipo: '', observaciones: '', identificaciones: [], pertenencias: [] };
+  paxForm.value = { nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', tipo: '', telefono: '', observaciones: '', identificaciones: [], pertenencias: [] };
   showPaxModal.value = true;
 };
 
@@ -436,6 +437,7 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero) => {
     sexo: pax.sexo || '',
     fechanacimiento: pax.fechanacimiento ? pax.fechanacimiento.split('T')[0] : '',
     tipo: pax.tipo || '',
+    telefono: pax.telefono || '',
     observaciones: pax.observaciones || '',
     // ⚠️ Sin identidad: al guardar se manda la lista entera y `orphanRemoval` reemplaza. Para
     // dos o tres filas es predecible; casar por IRI exigiría que la identificación fuese un
@@ -498,6 +500,60 @@ const cambiarModo = async (modo: 'estandar' | 'grupo' | string) => {
 // documento o un eje nuevo aparece en ella el mismo día que en el código. Una plantilla
 // desactualizada es peor que ninguna — la rellenan igual y el dato se pierde al importar.
 const descargandoPlantilla = ref(false);
+
+// ── Carga del padrón: siempre ensayo antes de escribir ─────────────────────
+interface ResultadoPadron {
+  expediente: string; ensayo: boolean; filasLeidas: number;
+  pasajerosCreados: number; pasajerosActualizados: number; identificacionesCreadas: number;
+  gruposCreados: number; pertenenciasCreadas: number; pertenenciasQuitadas: number;
+  noEstanEnElArchivo: string[]; avisos: string[]; errores: string[];
+}
+
+const archivoPadron = ref<File | null>(null);
+const cargandoPadron = ref(false);
+const ensayoPadron = ref<ResultadoPadron | null>(null);
+const inputPadron = ref<HTMLInputElement | null>(null);
+
+const elegirPadron = async (e: Event) => {
+  const archivo = (e.target as HTMLInputElement).files?.[0] ?? null;
+  if (!archivo || !file.value) return;
+
+  archivoPadron.value = archivo;
+  ensayoPadron.value = null;
+  cargandoPadron.value = true;
+
+  ensayoPadron.value = await fileStore.cargarPadron(
+    extractIdStr(file.value.id || file.value['@id']) || '', archivo, true,
+  );
+  cargandoPadron.value = false;
+
+  if (!ensayoPadron.value) { alert(fileStore.error || 'No se pudo leer el archivo.'); }
+};
+
+const aplicarPadron = async () => {
+  if (!archivoPadron.value || !file.value) return;
+
+  cargandoPadron.value = true;
+  const r = await fileStore.cargarPadron(
+    extractIdStr(file.value.id || file.value['@id']) || '', archivoPadron.value, false,
+  );
+  cargandoPadron.value = false;
+
+  if (r && r.errores.length === 0) {
+    cancelarPadron();
+    await cargarFile();
+  } else {
+    ensayoPadron.value = r;
+    alert(fileStore.error || 'No se guardó nada: hay filas con problemas.');
+  }
+};
+
+const cancelarPadron = () => {
+  archivoPadron.value = null;
+  ensayoPadron.value = null;
+  if (inputPadron.value) { inputPadron.value.value = ''; }
+};
+
 
 const descargarPlantilla = async () => {
   descargandoPlantilla.value = true;
@@ -934,8 +990,79 @@ const eliminarDocumento = async (iri?: string) => {
                 </button>
               </div>
 
+              <!-- ── Cargar el padrón ──────────────────────────────────────
+                   Siempre ENSAYO primero, y el informe dice en qué expediente va a escribir: cargar
+                   133 personas en el que no toca es un error caro y silencioso. -->
+              <div class="mb-4 border border-dashed border-teal-300 bg-teal-50/50 rounded-2xl p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-[11px] font-black text-teal-700 uppercase tracking-widest">
+                      <i class="fas fa-file-import mr-1"></i> Cargar padrón
+                    </p>
+                    <p class="text-[10px] font-bold text-teal-600/70 mt-0.5">
+                      Crea pasajeros, documentos y subgrupos de una vez. Se ensaya antes de guardar.
+                    </p>
+                  </div>
+                  <input ref="inputPadron" type="file" accept=".xlsx,.xls" class="hidden" @change="elegirPadron">
+                  <button @click="inputPadron?.click()" :disabled="cargandoPadron"
+                          class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 shadow-sm disabled:opacity-50 shrink-0">
+                    <i class="fas mr-1" :class="cargandoPadron ? 'fa-spinner fa-spin' : 'fa-upload'"></i>
+                    Elegir archivo…
+                  </button>
+                </div>
+
+                <!-- El informe del ensayo -->
+                <div v-if="ensayoPadron" class="mt-4 bg-white border border-slate-200 rounded-xl p-4">
+                  <p class="text-[10px] font-black uppercase tracking-widest mb-2"
+                     :class="ensayoPadron.errores.length ? 'text-red-600' : 'text-slate-500'">
+                    {{ ensayoPadron.errores.length ? 'No se puede cargar' : 'Ensayo' }} ·
+                    <span class="text-slate-700">{{ ensayoPadron.expediente }}</span>
+                  </p>
+
+                  <div v-if="!ensayoPadron.errores.length" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                    <p v-for="[etiqueta, valor] in [
+                         ['Filas leídas', ensayoPadron.filasLeidas],
+                         ['Pasajeros nuevos', ensayoPadron.pasajerosCreados],
+                         ['Actualizados', ensayoPadron.pasajerosActualizados],
+                         ['Documentos', ensayoPadron.identificacionesCreadas],
+                         ['Subgrupos nuevos', ensayoPadron.gruposCreados],
+                         ['Pertenencias', ensayoPadron.pertenenciasCreadas],
+                       ]" :key="etiqueta" class="text-[11px] font-bold text-slate-500">
+                      {{ etiqueta }}: <span class="text-slate-800 font-black tabular-nums">{{ valor }}</span>
+                    </p>
+                  </div>
+
+                  <p v-if="ensayoPadron.pertenenciasQuitadas" class="text-[10px] font-bold text-amber-600 mb-2">
+                    <i class="fas fa-arrow-right-from-bracket mr-1"></i>
+                    {{ ensayoPadron.pertenenciasQuitadas }} pertenencia(s) se quitarán: el archivo dice que ya no participan.
+                  </p>
+
+                  <p v-for="e in ensayoPadron.errores" :key="e" class="text-[11px] font-bold text-red-600 leading-snug mb-1">
+                    <i class="fas fa-circle-exclamation mr-1"></i>{{ e }}
+                  </p>
+                  <p v-for="a in ensayoPadron.avisos" :key="a" class="text-[10px] font-bold text-slate-400 leading-snug mb-1">
+                    <i class="fas fa-circle-info mr-1"></i>{{ a }}
+                  </p>
+                  <p v-if="ensayoPadron.noEstanEnElArchivo.length" class="text-[10px] font-bold text-amber-600 leading-snug mb-1">
+                    <i class="fas fa-user-slash mr-1"></i>
+                    {{ ensayoPadron.noEstanEnElArchivo.length }} persona(s) están aquí y no en el archivo.
+                    <b>No se borran</b>: {{ ensayoPadron.noEstanEnElArchivo.slice(0, 5).join(', ') }}{{ ensayoPadron.noEstanEnElArchivo.length > 5 ? '…' : '' }}
+                  </p>
+
+                  <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                    <button @click="aplicarPadron" :disabled="cargandoPadron || ensayoPadron.errores.length > 0"
+                            class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <i class="fas fa-check mr-1"></i> Cargar de verdad
+                    </button>
+                    <button @click="cancelarPadron" class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg hover:bg-slate-50">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <p v-if="!file.grupos?.length" class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-3">
-                Sin subgrupos. Se usan para el padrón de grupos grandes: salones, grupos, habitaciones y reservas aéreas.
+                Sin subgrupos. Se crean solos al cargar el padrón, o a mano aquí arriba.
               </p>
 
               <div v-else class="space-y-3">
@@ -990,6 +1117,9 @@ const eliminarDocumento = async (iri?: string) => {
                     </div>
                     <p class="text-[9px] text-slate-400 font-bold uppercase mt-2">
                       <i class="fas fa-globe-americas"></i> {{ pax.pais?.nombre }} ({{ getSexoLabel(pax.sexo) }})<br>
+                      <span v-if="pax.telefono" class="block text-[10px] font-bold text-slate-400">
+                        <i class="fas fa-phone text-[9px] mr-1"></i>{{ formatearTelefono(pax.telefono) }}
+                      </span>
                       <i class="far fa-id-card mt-1"></i>
                       <span v-for="(ident, i) in (pax.identificaciones ?? [])" :key="ident.id || i">
                         <span v-if="i"> · </span>{{ getDocIdLabel(ident.tipo) }}: {{ ident.numero }}
@@ -1264,7 +1394,21 @@ const eliminarDocumento = async (iri?: string) => {
               </p>
             </div>
 
-            <div class="col-span-2">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Teléfono</label>
+              <!-- El backend lo guarda en E.164 sin «+» con el mismo `PhoneSanitizer` que el
+                   expediente, usando el país del pasajero. Aquí se pinta con `formatearTelefono`,
+                   el mismo espejo que usan reservas y chat: un número escrito de dos formas deja
+                   de encontrarse al buscar. -->
+              <input v-model="paxForm.telefono" type="tel" maxlength="40"
+                     :placeholder="'+51 987 654 321'"
+                     class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 placeholder:text-slate-300">
+              <p v-if="paxEditandoIri && paxForm.telefono" class="text-[10px] font-bold text-slate-400 mt-1">
+                Se guarda como {{ formatearTelefono(paxForm.telefono) }}
+              </p>
+            </div>
+
+            <div>
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Observaciones</label>
               <input v-model="paxForm.observaciones" type="text" maxlength="500"
                      placeholder="FALTA PASAPORTE · reemplaza a…"

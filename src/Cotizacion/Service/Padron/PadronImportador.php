@@ -390,8 +390,11 @@ final readonly class PadronImportador
             $pasajero->setApellido($texto(PadronFormato::COL_APELLIDOS) ?: $pasajero->getApellido() ?? '');
         }
 
-        if (($tipo = PasajeroTipoEnum::desdeTexto($texto('Tipo') ?: $texto('Rol'))) !== null) {
+        if (($tipo = PasajeroTipoEnum::desdeTexto($texto(PadronFormato::COL_TIPO))) !== null) {
             $pasajero->setTipo($tipo);
+        }
+        if (($telefono = $texto(PadronFormato::COL_TELEFONO)) !== '') {
+            $pasajero->setTelefono($telefono);
         }
         if (($obs = $texto(PadronFormato::COL_OBSERVACIONES)) !== '') {
             $pasajero->setObservaciones($obs);

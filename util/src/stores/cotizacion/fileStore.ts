@@ -19,6 +19,9 @@ export interface PasajeroPayload {
     apellido?: string;
     pais?: string;
     sexo?: string;
+    tipo?: string;
+    telefono?: string;
+    observaciones?: string;
     /** Espejo de `CotizacionPasajeroIdentificacion`: una persona lleva DNI *y* pasaporte. */
     identificaciones?: Array<{ tipo: string; numero: string; vencimiento?: string | null }>;
     fechanacimiento?: string;
@@ -196,6 +199,49 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'No se pudo eliminar el subgrupo.');
             return false;
+        }
+    };
+
+    /** Lo que devuelve una carga de padrón, en ensayo o de verdad. */
+    interface ResultadoPadron {
+        expediente: string;
+        ensayo: boolean;
+        filasLeidas: number;
+        pasajerosCreados: number;
+        pasajerosActualizados: number;
+        identificacionesCreadas: number;
+        gruposCreados: number;
+        pertenenciasCreadas: number;
+        pertenenciasQuitadas: number;
+        noEstanEnElArchivo: string[];
+        avisos: string[];
+        errores: string[];
+    }
+
+    /**
+     * Carga un padrón. En ENSAYO por defecto.
+     *
+     * El ensayo no es una estimación: el backend escribe dentro de una transacción y la deshace,
+     * así que lo que devuelve incluye lo que fallaría al guardar.
+     */
+    const cargarPadron = async (fileId: string, archivo: File, ensayo = true): Promise<ResultadoPadron | null> => {
+        error.value = null;
+        const fd = new FormData();
+        fd.append('padron', archivo);
+
+        try {
+            const { data } = await apiClient.post(
+                `/cotizacion/user/padron/cargar/${fileId}?ensayo=${ensayo ? 1 : 0}`,
+                fd,
+                { headers: { 'Content-Type': 'multipart/form-data' } },
+            );
+            return data as ResultadoPadron;
+        } catch (err: unknown) {
+            // Un 422 trae el informe con los errores dentro: se devuelve para poder pintarlos.
+            const cuerpo = (err as { response?: { data?: ResultadoPadron } })?.response?.data;
+            if (cuerpo?.errores) { return cuerpo; }
+            error.value = extractApiErrorMessage(err, 'No se pudo leer el padrón.');
+            return null;
         }
     };
 
@@ -439,6 +485,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         cloneCotizacion,
         guardarHistorico,
         crearGrupo,
+        cargarPadron,
         eliminarGrupo,
         planificarOperacion,
         aplicarPlanOperacion

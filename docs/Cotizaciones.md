@@ -1806,6 +1806,43 @@ roles:  99 alumnos · 14 padres · 9 coordinadores · 7 invitados · 2 superviso
 Coco Bongo: 122 — el mismo número que sale de contar el Excel a mano
 ```
 
+## 6.s La carga del padrón, y dos callejones sin salida (24/08/2026)
+
+### Dónde se carga
+
+`FileDetalle` → **Subgrupos** → «Cargar padrón». Junto a «Descargar plantilla», que es donde lo
+busca quien va a subir uno.
+
+`POST /cotizacion/user/padron/cargar/{id}?ensayo=1|0`.
+
+⚠️ **Siempre ensayo primero, y el informe dice el nombre del expediente.** Cargar 133 personas en
+el que no toca es un error caro y silencioso — pasó durante el desarrollo, sobre un expediente real.
+
+### El teléfono del pasajero
+
+`CotizacionFilepasajero::$telefono`, con el **mismo `PhoneSanitizer`** que
+`CotizacionFile::sanitizarCampos()`: si cada sitio limpiara a su manera, el mismo número quedaría
+escrito de dos formas y buscar por teléfono dejaría de encontrar a nadie.
+
+⚠️ Con una mejora: el expediente asume `'PE'` porque no tiene nada mejor; el pasajero **sí sabe su
+país**, así que un número extranjero se interpreta bien en vez de llevarse un `+51`. Se pinta con
+`formatearTelefono()`, el mismo espejo que usan reservas y chat.
+
+### ⚠️ El callejón de `ContactoDeIdentidad`
+
+`editable` se calculaba con `props.telefono !== undefined`. La API **omite las claves nulas**, así
+que un expediente creado **sin teléfono ni correo** mandaba las dos `undefined`, el componente
+concluía «nadie me pasó modelos», pintaba sólo lectura, y **no había forma de añadir el primero**:
+para poner el teléfono hacía falta ya tener teléfono.
+
+Ahora mira si existe el **listener de `v-model`** (`attrs['onUpdate:telefono']`), que es lo que de
+verdad se estaba preguntando: el listener está siempre que el padre escriba `v-model`, tenga valor
+o no.
+
+⚠️ Es el segundo bucle de esta forma en el mismo día —el otro fue `isComponenteSoloItems`, §6.h—.
+El patrón es siempre igual: **una condición que deduce «puedo editar» del propio dato que falta**.
+Cuando el estado inicial es vacío, se cierra sobre sí misma.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |

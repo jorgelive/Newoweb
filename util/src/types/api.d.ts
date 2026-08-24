@@ -11173,8 +11173,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             /**
@@ -11189,6 +11193,8 @@ export interface components {
              * @enum {string|null}
              */
             tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
             /** Format: uuid */
@@ -11219,8 +11225,12 @@ export interface components {
             nombre?: string;
             apellido?: string;
             pais?: components["schemas"]["Pais-file.read_file.item.read_timestamp.read"];
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
@@ -11231,6 +11241,8 @@ export interface components {
              * @enum {string|null}
              */
             tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
             /** Format: date-time */
@@ -11263,8 +11275,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile-file.write"];
@@ -11275,6 +11291,8 @@ export interface components {
              * @enum {string|null}
              */
             tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
         };
@@ -11286,8 +11304,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile-file.write"];
@@ -11298,6 +11320,8 @@ export interface components {
              * @enum {string|null}
              */
             tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
         };
@@ -11309,8 +11333,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-pax_file.read"][];
@@ -11323,8 +11351,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-pax_file.read_pax_cotizacion.read"][];
@@ -11337,8 +11369,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             /**
@@ -11353,6 +11389,8 @@ export interface components {
              * @enum {string|null}
              */
             tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
             /** Format: uuid */
@@ -11383,8 +11421,12 @@ export interface components {
             nombre?: string;
             apellido?: string;
             pais?: components["schemas"]["Pais.html-file.read_file.item.read_timestamp.read"];
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
@@ -11395,6 +11437,8 @@ export interface components {
              * @enum {string|null}
              */
             tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
             /** Format: date-time */
@@ -11427,8 +11471,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-pax_file.read"][];
@@ -11441,8 +11489,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-pax_file.read_pax_cotizacion.read"][];
@@ -11455,8 +11507,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             /**
@@ -11471,6 +11527,8 @@ export interface components {
              * @enum {string|null}
              */
             tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
             /** Format: uuid */
@@ -11501,8 +11559,12 @@ export interface components {
             nombre?: string;
             apellido?: string;
             pais?: components["schemas"]["Pais.jsonld-file.read_file.item.read_timestamp.read"];
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
@@ -11513,6 +11575,8 @@ export interface components {
              * @enum {string|null}
              */
             tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
             /** Format: date-time */
@@ -11545,8 +11609,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-pax_file.read"][];
@@ -11559,8 +11627,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-pax_file.read_pax_cotizacion.read"][];
@@ -11573,8 +11645,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             /**
@@ -11589,6 +11665,8 @@ export interface components {
              * @enum {string|null}
              */
             tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
             /** Format: uuid */
@@ -11619,8 +11697,12 @@ export interface components {
             nombre?: string;
             apellido?: string;
             pais?: components["schemas"]["Pais.multipart-file.read_file.item.read_timestamp.read"];
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
@@ -11631,6 +11713,8 @@ export interface components {
              * @enum {string|null}
              */
             tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
             /** Format: date-time */
@@ -11663,8 +11747,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-pax_file.read"][];
@@ -11677,8 +11765,12 @@ export interface components {
              * @example https://example.com/
              */
             pais?: string;
-            /** @enum {string} */
-            sexo?: "M" | "F";
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-pax_file.read_pax_cotizacion.read"][];
