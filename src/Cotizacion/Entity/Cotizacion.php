@@ -208,6 +208,13 @@ class Cotizacion
      * El default false es el de un expediente de grupo. En catálogo el editor lo crea
      * ya activo (cotizacionEditorStore::crearCotizacionVacia) y sólo se apaga a mano
      * cuando el tour se vende como salida de grupo fijo.
+     *
+     * ⚠️ **También sirve en un EXPEDIENTE, y el interruptor estuvo escondido tras el modo
+     * catálogo por descuido.** Cuando dentro de un grupo no todos llevan los mismos servicios, el
+     * «precio total del viaje» no describe a nadie: en el padrón de Punta Cana 2026 hay **13
+     * combinaciones de servicios entre 133 personas** y sólo 105 llevan el paquete completo. Ahí
+     * lo que se le enseña a cada familia es su precio por persona, que es exactamente lo que este
+     * flag deja ver. Ver `docs/Cotizaciones.md` §6.o.
      */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]

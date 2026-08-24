@@ -1538,6 +1538,53 @@ COMPROBAR, que no es lo mismo que vigente»*.
 En la cabecera de **Subgrupos** de `FileDetalle`, junto a donde se cargará el padrón: quien va a
 subir uno es exactamente quien no sabe qué columnas lleva.
 
+## 6.o Cuando no todos llevan lo mismo: precio por persona, no total de grupo (24/08/2026)
+
+El padrón de Punta Cana ganó **diez columnas de SÍ/NO**, una por servicio: vuelo nacional, vuelo
+internacional, seguro, traslados, Tour Saona, Coco Bongo, hotel, comidas. Medido sobre las 133
+personas:
+
+```
+13 combinaciones distintas de servicios
+   105 personas  paquete completo (10/10)
+    13 personas  todo salvo «Comidas Lima»
+    15 personas  casos sueltos: 0/10, 1/10, 2/10, 4/10…
+
+⚠️ el TIPO de pasajero NO explica la combinación:
+   «Alumno» tiene 4 · «Padre de familia» 4 · «Invitado» 4
+```
+
+**No son paquetes por rol: es un paquete con excepciones individuales.** Eso descarta modelarlo
+como «clases de pasajero», que es por perfil.
+
+### Lo que se arregló hoy, y era una condición de más
+
+`Cotizacion::$totalesOcultos` ya hacía exactamente lo que hace falta —oculta el «2X» del perfil, el
+«× N pax · total» y la barra «Precio total del viaje», dejando ver el precio unitario—, pero **su
+interruptor estaba tras `v-if="modoCatalogo"`**, así que en un expediente no se podía activar.
+
+El flag nunca estuvo limitado; sólo el botón. Ahora sale siempre, con el texto de ayuda cambiando
+según el caso.
+
+⚠️ Con 13 combinaciones, **un «precio total del viaje» no describe a nadie**: ni al que lleva los
+diez servicios ni al que lleva dos. Lo único cierto que se le puede enseñar a cada familia es su
+propio precio.
+
+### Lo que NO resuelve, y es el siguiente paso
+
+Que el precio por persona sea **el suyo** exige saber qué servicios lleva cada uno, y eso hoy no
+existe: la cotización tiene una estructura de precios para el grupo entero. Las diez columnas del
+padrón describen justo ese dato.
+
+Dos caminos, sin decidir:
+
+- **Participación como subgrupo** (`GrupoTipoEnum::SERVICIO`): «los que van a Coco Bongo» es un
+  conjunto de personas, y encaja con lo ya construido — la orden de servicio de Coco Bongo saldría
+  con su lista de quién va. Pero un grupo no sabe a qué `CotizacionCotcomponente` corresponde, así
+  que **no da el precio**.
+- **Participación contra el componente** (`pasajero ↔ cotcomponente`): da el precio exacto porque
+  cada uno suma lo suyo, y es lo correcto conceptualmente. Es la relación que hoy no existe.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |

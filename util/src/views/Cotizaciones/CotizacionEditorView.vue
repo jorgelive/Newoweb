@@ -1521,10 +1521,19 @@ store.$onAction(({ name, args }) => {
               </div>
             </div>
 
-            <div v-if="store.modoCatalogo" class="order-5 shrink-0 bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+            <!-- ⚠️ Estuvo detrás de `v-if="modoCatalogo"` y era una condición de más: el precio
+                 unitario sin total de grupo lo necesita también un EXPEDIENTE cuando no todos
+                 llevan lo mismo. En el padrón de Punta Cana hay 13 combinaciones de servicios
+                 entre 133 personas, así que un «precio total del viaje» no describe a nadie.
+                 Ver docs/Cotizaciones.md §6.o. -->
+            <div class="order-5 shrink-0 bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
               <div>
                 <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest"><i class="fas fa-user-tag mr-1"></i> Ocultar Total de Grupo</h3>
-                <p class="text-[9px] text-orange-400 mt-1 font-medium leading-tight pr-4">Suprime en la vista del cliente el "2X" del perfil, el "× N pax · total" y la barra "Precio total del viaje". El precio por pasajero se sigue viendo. Actívalo salvo que el tour se venda como salida de grupo fijo (el Num Pax base es entonces el tamaño real).</p>
+                <p class="text-[9px] text-orange-400 mt-1 font-medium leading-tight pr-4">
+                  Suprime en la vista del cliente el «2X» del perfil, el «× N pax · total» y la barra «Precio total del viaje». El precio por pasajero se sigue viendo.
+                  <template v-if="store.modoCatalogo">Actívalo salvo que el tour se venda como salida de grupo fijo.</template>
+                  <template v-else>Útil en un grupo donde no todos llevan los mismos servicios: ahí el total no describe a nadie.</template>
+                </p>
               </div>
               <button @click="store.cotizacion.totalesOcultos = !store.cotizacion.totalesOcultos"
                       :class="[
