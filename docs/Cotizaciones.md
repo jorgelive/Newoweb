@@ -1480,6 +1480,18 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
   aclara que **ellos no se borran**.
 - **En la ficha del pasajero**, píldoras por eje: se marcan varias a la vez y la corona marca de
   cuál es jefe.
+- ⚠️ **Los «no participa» salen de todos los conteos**, salvo que se marque la casilla —que lleva
+  al lado cuántos son, porque una casilla sin número no dice de qué habla—. No se borran: se
+  apuntaron y luego se cayeron, y la lista tiene que seguir contando lo que pasó. Pero
+  **conservan su grupo y sus reservas aéreas**, así que sumaban donde no debían: con sólo dos
+  personas caídas, en Punta Cana 2026 hay **cinco conteos mintiendo** —`JA2CWN` decía 25 y vuelan
+  24, `PV7PFM` 10 por 9, `BBBBB` 44 por 43, `X9SYVZ` 9 por 8, y el grupo 6, 12 por 11—.
+  Por eso el «N pax» de cada subgrupo se calcula en el front y **no** se toma de `totalMiembros`,
+  que es del servidor y los incluye. El aviso al borrar un subgrupo sí usa `totalMiembros`: ahí la
+  pregunta es a cuánta gente se le quita la pertenencia, y ésos son todos.
+- El desplegable de filtro es **`SearchableSelect`**, no un `<select>`: 108 subgrupos en el móvil
+  son una pared de 108 filas. La segunda línea lleva el eje y cuántos van, y la búsqueda mira las
+  dos, así que teclear «habitación» acota de golpe.
 - ⚠️ **Los ejes de más de 12 píldoras se pliegan** (`TOPE_PILDORAS` en `FileDetalle.vue`). Plegado
   enseña **sólo aquellas a las que pertenece**; abierto, todas con un filtro de texto. El hotel
   numera 66 habitaciones y las aerolíneas dan una veintena de localizadores: desplegados dejaban

@@ -627,12 +627,48 @@ const gruposDePax = (pax: ApiCotizacionFilepasajero): ApiFileGrupo[] =>
         return g ? [g] : [];
     });
 
+/**
+ * La base de TODOS los conteos: quién cuenta como que va.
+ *
+ * ⚠️ No es lo mismo que «los que están en el padrón». Los «no participa» siguen ahí —se apuntaron
+ * y luego se cayeron, y no se borran— pero **conservan su grupo y sus reservas aéreas**, así que
+ * sumaban en los totales. Medido sobre Punta Cana 2026, con dos personas caídas ya hay cinco
+ * conteos mintiendo: `JA2CWN` decía 25 y vuelan 24, `PV7PFM` 10 por 9, `BBBBB` 44 por 43,
+ * `X9SYVZ` 9 por 8 y el grupo 6, 12 por 11.
+ *
+ * Cualquier número que se enseñe sale de aquí, NO de `filepasajeros`.
+ */
+const pasajerosConsiderados = computed<ApiCotizacionFilepasajero[]>(() =>
+    (file.value?.filepasajeros ?? []).filter(p => incluirNoParticipa.value || p.tipo !== 'no_participa'));
+
+const totalNoParticipa = computed(() =>
+    (file.value?.filepasajeros ?? []).filter(p => p.tipo === 'no_participa').length);
+
+/**
+ * Cuánta gente que cuenta hay en cada subgrupo, en UNA pasada.
+ *
+ * Contar grupo a grupo eran 108 × 133 recorridos cada vez que se repinta la lista; así es un
+ * recorrido de 133 y una consulta al mapa.
+ */
+const conteoPorGrupo = computed<Map<string, number>>(() => {
+    const mapa = new Map<string, number>();
+    for (const pax of pasajerosConsiderados.value) {
+        for (const g of gruposDePax(pax)) {
+            const id = extractIdStr(iriDeGrupoPlano(g));
+            mapa.set(id, (mapa.get(id) ?? 0) + 1);
+        }
+    }
+
+    return mapa;
+});
+
+const contarEnGrupo = (g: ApiFileGrupo): number =>
+    conteoPorGrupo.value.get(extractIdStr(iriDeGrupoPlano(g))) ?? 0;
+
 const pasajerosFiltrados = computed<ApiCotizacionFilepasajero[]>(() => {
     const texto = busquedaPax.value.trim().toLowerCase();
 
-    return (file.value?.filepasajeros ?? []).filter((pax) => {
-        if (!incluirNoParticipa.value && pax.tipo === 'no_participa') return false;
-
+    return pasajerosConsiderados.value.filter((pax) => {
         const suyos = gruposDePax(pax);
 
         // Acumulativos: tiene que estar en TODOS los elegidos.
@@ -656,15 +692,25 @@ const pasajerosFiltrados = computed<ApiCotizacionFilepasajero[]>(() => {
 });
 
 /** Los subgrupos elegibles, agrupados por eje para el desplegable. */
+// ⚠️ `SearchableSelect` y no un `<select>` nativo: con 108 subgrupos, en un móvil la lista nativa
+// es una pared de 108 filas que hay que recorrer con el dedo. Éste teclea y filtra, y busca
+// también en la segunda línea —el eje—, así que «habitación» acota de golpe.
 const gruposElegibles = computed(() =>
     (file.value?.grupos ?? [])
         .filter(g => !gruposFiltrados.value.includes(iriDeGrupoPlano(g)))
         .map(g => ({
-            iri: iriDeGrupoPlano(g),
-            eje: GRUPO_TIPO_LABELS[String(g.tipo)]?.label ?? String(g.tipo),
-            etiqueta: [g.clave, g.nombre].filter(Boolean).join(' · '),
+            value: iriDeGrupoPlano(g),
+            label: [g.clave, g.nombre].filter(Boolean).join(' · '),
+            sublabel: `${GRUPO_TIPO_LABELS[String(g.tipo)]?.label ?? String(g.tipo)} · ${contarEnGrupo(g)} pax`,
         })),
 );
+
+/** El desplegable se vacía en cuanto elige: es un «añadir», no una selección que se queda. */
+const grupoPorAnadir = ref<string | number | null>(null);
+watch(grupoPorAnadir, (iri) => {
+    if (typeof iri === 'string' && iri) anadirFiltro(iri);
+    grupoPorAnadir.value = null;
+});
 
 const grupoDeIri = (iri: string): ApiFileGrupo | undefined =>
     (file.value?.grupos ?? []).find(g => iriDeGrupoPlano(g) === iri);
@@ -1128,15 +1174,21 @@ const eliminarDocumento = async (iri?: string) => {
                            class="w-full border rounded-lg pl-8 pr-3 py-2 text-xs outline-none focus:border-indigo-500 placeholder:text-slate-300">
                   </div>
 
-                  <select :value="''" @change="e => { anadirFiltro((e.target as HTMLSelectElement).value); (e.target as HTMLSelectElement).value = ''; }"
-                          class="border rounded-lg px-2 py-2 text-xs outline-none focus:border-indigo-500 max-w-52">
-                    <option value="">+ Añadir subgrupo…</option>
-                    <option v-for="g in gruposElegibles" :key="g.iri" :value="g.iri">{{ g.eje }}: {{ g.etiqueta }}</option>
-                  </select>
+                  <div class="w-full sm:w-56">
+                    <SearchableSelect
+                        v-model="grupoPorAnadir"
+                        :options="gruposElegibles"
+                        placeholder="+ Añadir subgrupo…"
+                    />
+                  </div>
 
-                  <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer">
+                  <!-- El número al lado no es adorno: sin él, «ver no participa» es una casilla que
+                       no se sabe si hace algo. Con «(2)» se entiende de qué se está hablando, y con
+                       «(0)» ni se enseña. -->
+                  <label v-if="totalNoParticipa"
+                         class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer">
                     <input v-model="incluirNoParticipa" type="checkbox" class="accent-indigo-600">
-                    Ver «no participa»
+                    Ver «no participa» ({{ totalNoParticipa }})
                   </label>
                 </div>
 
@@ -1150,7 +1202,10 @@ const eliminarDocumento = async (iri?: string) => {
 
                 <div class="flex items-center justify-between mt-2">
                   <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Mostrando {{ pasajerosFiltrados.length }} de {{ file.filepasajeros.length }}
+                    Mostrando {{ pasajerosFiltrados.length }} de {{ pasajerosConsiderados.length }}
+                    <span v-if="!incluirNoParticipa && totalNoParticipa" class="text-slate-300 normal-case font-bold">
+                      · {{ totalNoParticipa }} no participa{{ totalNoParticipa > 1 ? 'n' : '' }}, fuera de la cuenta
+                    </span>
                   </p>
                   <button v-if="hayFiltros" type="button" @click="limpiarFiltros"
                           class="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
@@ -1359,7 +1414,9 @@ const eliminarDocumento = async (iri?: string) => {
                     <span v-for="g in lista" :key="g.id"
                           class="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-lg pl-3 pr-1 py-1 shadow-sm group">
                       <span class="text-[11px] font-black text-slate-700">{{ g.clave }}</span>
-                      <span class="text-[10px] font-bold text-slate-400">{{ g.totalMiembros ?? 0 }} pax</span>
+                      <!-- El conteo se calcula aquí y no se toma de `totalMiembros`: el del servidor
+                           incluye a los «no participa», que conservan grupo y reservas aéreas. -->
+                      <span class="text-[10px] font-bold text-slate-400">{{ contarEnGrupo(g) }} pax</span>
                       <button @click="borrarGrupo(g)"
                               class="w-5 h-5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
                         <i class="fas fa-times text-[10px]"></i>
