@@ -991,6 +991,22 @@ audiencia no lo lee nadie y el backend lo rechaza.
 ⚠️ El tipo del bloque era `tipo: DetalleOperativoTipo | string`, y eso **no tipaba nada**: una
 unión con `string` colapsa el tipo entero. Ahora es `audiencias: AudienciaDetalle[]`, cerrado.
 
+## 6.g.2 En tarifa GRUPAL la ficha mentía el subtotal (24/08/2026)
+
+El subtotal de la ficha de tarifa era `montoCosto × cantidad`, **sin mirar `esGrupal`**. Con una
+tarifa grupal de S/ 80 y 2 pax decía **S/ 160**, mientras la tarjeta de la lista y el cálculo que
+se guarda decían S/ 80 —los dos sí lo tienen en cuenta (`× (esGrupal ? 1 : cantidad)`)—.
+
+Se guardaba bien. El problema es que mientras editabas leías un número que no era, y no había
+forma de saber cuál de los dos mentía: el campo «Cant (Pax)» seguía enseñando el 2 en gris.
+
+Ahora en grupal el campo **enseña «1 grupo»** en vez del número. El valor se conserva en el modelo
+—volver a unitario lo recupera— pero no se muestra mientras no se usa: enseñar una cifra que el
+cálculo ignora es lo que hace parecer que algo falla.
+
+⚠️ La regla, que vale para cualquier sitio nuevo que sume tarifas:
+`montoCosto × (esGrupal ? 1 : cantidad)`. En grupal el monto **ya es el total**.
+
 ## 6.h El componente hecho A MANO, y el bucle que lo impedía (23/08/2026)
 
 Caso que lo forzó: un Full Day Paracas–Ica en el que unos amigos invitan a los pasajeros a comer

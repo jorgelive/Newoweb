@@ -1987,7 +1987,13 @@ store.$onAction(({ name, args }) => {
                          <i class="fas fa-infinity text-[8px] mr-0.5"></i> Horario Libre / Final del día
                       </span>
                     </h4>
-                    <div class="flex flex-col items-end gap-1 shrink-0">
+                    <!-- ⚠️ `pr-9` reserva el hueco de la papelera.
+                         La papelera es `absolute right-3 top-3` y estos badges van en flujo normal
+                         pegados a la derecha, así que el primero le quedaba DEBAJO: en un móvil
+                         «INCLUIDO» aparecía cortado y con el icono encima. El `pr` es el ancho del
+                         botón (28 px) más su separación; no se toca la papelera porque su posición
+                         absoluta es lo que la mantiene fija al pasar la tarjeta a columna. -->
+                    <div class="flex flex-col items-end gap-1 shrink-0 pr-9">
                       <span class="text-[10px] font-black px-2 py-1 rounded border shadow-sm whitespace-nowrap flex items-center gap-1"
                             :class="[getModoItemConfig(comp.modo).bg, getModoItemConfig(comp.modo).text, getModoItemConfig(comp.modo).border]">
                             <i class="fas text-[9px]" :class="getModoItemConfig(comp.modo).icon"></i>
@@ -2890,12 +2896,20 @@ store.$onAction(({ name, args }) => {
             <div class="grid grid-cols-3 gap-4 items-start">
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">Cant (Pax) *</label>
-                <input v-model="store.tarifaActiva.cantidad"
+                <!-- ⚠️ En grupal se enseña «1 grupo», no la cantidad.
+                     El valor se CONSERVA en el modelo —volver a unitario lo recupera— pero
+                     enseñarlo mientras no se usa es lo que hacía parecer que algo fallaba: el
+                     campo decía 2, el subtotal ya no lo multiplicaba, y no había forma de saber
+                     cuál de los dos mentía. -->
+                <input v-if="!store.tarifaActiva.esGrupal"
+                       v-model="store.tarifaActiva.cantidad"
                        type="number"
-                       :readonly="store.tarifaActiva.esGrupal"
-                       :class="store.tarifaActiva.esGrupal ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' : 'bg-white text-slate-800 border-slate-300 focus:ring-2 focus:ring-orange-500'"
-                       class="w-full rounded-xl px-4 py-2 text-sm font-bold text-center outline-none shadow-sm border">
-                <p v-if="store.tarifaActiva.esGrupal" class="text-[9px] text-orange-500 mt-1 ml-1">Precio por grupo fijo</p>
+                       class="w-full rounded-xl px-4 py-2 text-sm font-bold text-center outline-none shadow-sm border bg-white text-slate-800 border-slate-300 focus:ring-2 focus:ring-orange-500">
+                <div v-else
+                     class="w-full rounded-xl px-4 py-2 text-sm font-black text-center shadow-sm border bg-orange-50 border-orange-200 text-orange-600 flex items-center justify-center gap-1.5">
+                  <i class="fas fa-users text-xs"></i> 1 grupo
+                </div>
+                <p v-if="store.tarifaActiva.esGrupal" class="text-[9px] text-orange-500 mt-1 ml-1">Precio por grupo fijo: no se multiplica por pax.</p>
 
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1 mt-3">Comisión Propia (%)</label>
                 <input v-model.number="store.tarifaActiva.comisionOverrideSnapshot" type="number" step="0.1" placeholder="Usa la global"
@@ -2916,9 +2930,15 @@ store.$onAction(({ name, args }) => {
                     <input v-model.number="store.tarifaActiva.montoCosto" type="number" step="0.01" class="w-28 bg-slate-50 border border-slate-300 text-orange-600 rounded-xl px-3 py-2 text-lg font-black text-right focus:border-orange-500 outline-none shadow-inner">
                   </div>
                 </div>
+                <!-- ⚠️ En GRUPAL el costo NO se multiplica por los pax: el monto ya es el total.
+                     Aquí faltaba el `esGrupal` y la ficha decía S/ 160 (80 × 2) mientras la tarjeta
+                     de la lista y el cálculo que se guarda decían S/ 80 —los dos sí lo tienen en
+                     cuenta—. Se guardaba bien, pero mientras editabas leías un número que no era. -->
                 <div class="flex justify-end items-baseline gap-1.5 mt-3 pt-3 border-t border-slate-100">
                   <span class="text-[9px] text-slate-500 font-bold uppercase">Subtotal Neto:</span>
-                  <span class="text-orange-600 text-sm font-black">{{ formatMoneda(Number(store.tarifaActiva.montoCosto) * store.tarifaActiva.cantidad, store.tarifaActiva.moneda) }}</span>
+                  <span class="text-orange-600 text-sm font-black">
+                    {{ formatMoneda(Number(store.tarifaActiva.montoCosto) * (store.tarifaActiva.esGrupal ? 1 : store.tarifaActiva.cantidad), store.tarifaActiva.moneda) }}
+                  </span>
                 </div>
               </div>
             </div>
