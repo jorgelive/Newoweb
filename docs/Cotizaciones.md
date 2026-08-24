@@ -887,6 +887,31 @@ Y sólo si no hay ninguno, el primer componente con extremos. Al revés —el pr
 la línea la marcaría un ticket de bus de dos paradas en vez de la excursión entera, que es la que
 el operador está mirando.
 
+## 6.e.2 Un párrafo SIN maestro ya puede decir dónde empieza y acaba (24/08/2026)
+
+Los puntos de un servicio salen del `TravelSegmento` maestro de cada párrafo
+(`CotizacionPuntosDelServicio::modo()` / `texto()`). Un párrafo **escrito a mano** —el traslado a
+«La Olla de Juanita», que no está en ningún catálogo ni va a estarlo— no tiene maestro, así que se
+quedaba en **«sin definir» para siempre**: el único sitio donde declararlo era
+`OperacionOrdenServicioItem::$puntoRecojoConfirmado`, o sea el override de la orden **ya emitida**
+— dos capas más abajo y sólo después de confirmar.
+
+Ahora `CotizacionSegmento` tiene `inicioTexto` y `finTexto`, y el resolver los usa **sólo cuando
+no hay maestro**.
+
+⚠️ **Con maestro NO se miran, y eso es a propósito.** No es un override: una regla de precedencia
+entre el maestro y un texto local sería exactamente la «segunda superficie declarando el mismo
+hecho» que se descartó al diseñar esto (§6.e). Sin maestro no hay primera superficie, así que no
+se duplica nada — es el único sitio donde se puede decir.
+
+Los campos sólo se pintan en el Constructor de Storytelling cuando `segmentoMaestroId` es nulo.
+
+⚠️ **Texto libre, no un `TravelPunto`.** Dar de alta un punto maestro para una parada irrepetible
+cuesta más que el problema, y quien lo lee es una persona.
+
+Verificado sobre datos reales, en transacción con `rollback`: con los 7 párrafos de un servicio
+puestos a mano, los extremos pasan de `alojamiento`/heredado a `fijo` con el texto tecleado.
+
 ## 6.f Insertar un segmento ANTES de otro (22/08/2026)
 
 El modal «¿Dónde ubicar el segmento?» tenía tres opciones —al final, después de, reemplazar— y le

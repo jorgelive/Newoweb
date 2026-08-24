@@ -3355,6 +3355,31 @@ store.$onAction(({ name, args }) => {
                             </div>
                           </div>
 
+                          <!-- ⚠️ Sólo SIN maestro. Un párrafo del catálogo saca sus puntos del
+                               `TravelSegmento`, y ofrecer aquí un segundo sitio para lo mismo es
+                               justo lo que se quiso evitar. Escrito a mano no hay primera
+                               superficie: éste es el único sitio donde se puede decir, y sin él la
+                               única salida era el override de la orden YA EMITIDA. -->
+                          <div v-if="!cotSeg.segmentoMaestroId" v-show="expandirEditores"
+                               class="px-3 md:px-4 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white">
+                            <div>
+                              <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                <i class="fas fa-location-dot mr-1 text-teal-500"></i>Dónde empieza
+                              </label>
+                              <input v-model="cotSeg.inicioTexto" type="text" maxlength="180"
+                                     placeholder="Hotel del pasajero · La Olla de Juanita…"
+                                     class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-teal-500 placeholder:text-slate-300">
+                            </div>
+                            <div>
+                              <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                <i class="fas fa-flag-checkered mr-1 text-teal-500"></i>Dónde acaba
+                              </label>
+                              <input v-model="cotSeg.finTexto" type="text" maxlength="180"
+                                     placeholder="Se deja en… (vacío si no aplica)"
+                                     class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-teal-500 placeholder:text-slate-300">
+                            </div>
+                          </div>
+
                           <div v-show="expandirEditores" class="p-3 md:p-4 bg-white">
                             <WysiwygEditor
                                 :model-value="store.getI18nText(cotSeg.contenidoSnapshot, store.cotizacion?.idiomaEdicion || 'es')"

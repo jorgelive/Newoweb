@@ -350,6 +350,10 @@ export type CotSegmento = Omit<
     dia: number;
     orden: number;
     segmentoMaestroId?: string | null;
+    // Dónde empieza y acaba el párrafo, SÓLO cuando no cuelga de un maestro. Con maestro los
+    // puntos salen del `TravelSegmento` y estos ni se leen. Ver `CotizacionPuntosDelServicio`.
+    inicioTexto?: string | null;
+    finTexto?: string | null;
     nombreSnapshot?: I18nContent[];
     contenidoSnapshot?: I18nContent[];
     imagenesSnapshot?: ImagenSnapshot[];

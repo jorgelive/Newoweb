@@ -10547,8 +10547,11 @@ export interface components {
             file?: string;
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
-            subeje?: string | null;
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10570,8 +10573,11 @@ export interface components {
         "CotizacionFileGrupo-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
-            subeje?: string | null;
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10594,8 +10600,11 @@ export interface components {
             file?: components["schemas"]["CotizacionFile-file.write"];
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
-            subeje?: string | null;
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10609,8 +10618,11 @@ export interface components {
             file?: components["schemas"]["CotizacionFile-file.write"];
             /** @enum {string} */
             tipo?: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
-            subeje?: string | null;
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave?: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10628,8 +10640,11 @@ export interface components {
             file?: string;
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
-            subeje?: string | null;
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10651,8 +10666,11 @@ export interface components {
         "CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
-            subeje?: string | null;
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10679,8 +10697,11 @@ export interface components {
             file?: string;
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
-            subeje?: string | null;
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10703,8 +10724,11 @@ export interface components {
         "CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
-            subeje?: string | null;
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10731,8 +10755,11 @@ export interface components {
             file?: string;
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
-            subeje?: string | null;
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -10754,8 +10781,11 @@ export interface components {
         "CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
-            /** @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno». */
-            subeje?: string | null;
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
             /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
@@ -12286,6 +12316,9 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
+            /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
+            inicioTexto?: string | null;
+            finTexto?: string | null;
             nombreSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -12323,6 +12356,9 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
+            /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
+            inicioTexto?: string | null;
+            finTexto?: string | null;
             nombreSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -12354,6 +12390,9 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
+            /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
+            inicioTexto?: string | null;
+            finTexto?: string | null;
             nombreSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -12430,6 +12469,9 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
+            /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
+            inicioTexto?: string | null;
+            finTexto?: string | null;
             nombreSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -12467,6 +12509,9 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
+            /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
+            inicioTexto?: string | null;
+            finTexto?: string | null;
             nombreSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -12547,6 +12592,9 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
+            /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
+            inicioTexto?: string | null;
+            finTexto?: string | null;
             nombreSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -12584,6 +12632,9 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
+            /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
+            inicioTexto?: string | null;
+            finTexto?: string | null;
             nombreSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -12664,6 +12715,9 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
+            /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
+            inicioTexto?: string | null;
+            finTexto?: string | null;
             nombreSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -12701,6 +12755,9 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
+            /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
+            inicioTexto?: string | null;
+            finTexto?: string | null;
             nombreSnapshot?: {
                 [key: string]: string | null;
             }[];

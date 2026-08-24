@@ -365,16 +365,38 @@ final readonly class CotizacionPuntosDelServicio
         return $huecos;
     }
 
-    /** @param array<string, TravelSegmento> $maestros */
+    /**
+     * ⚠️ **Sin maestro, manda lo que el párrafo diga de su puño.**
+     *
+     * Un párrafo escrito a mano —el traslado a «La Olla de Juanita», que no está en ningún
+     * catálogo— no tiene `TravelSegmento` del que sacar los puntos, y antes se quedaba en
+     * `SIN_DEFINIR` para siempre: el único sitio donde declararlo era el override de la orden ya
+     * emitida, dos capas más abajo y sólo después de confirmar.
+     *
+     * **Con maestro NO se mira el texto local.** No es un override: la precedencia entre los dos
+     * sería la segunda superficie declarando el mismo hecho que este servicio existe para evitar.
+     *
+     * @param array<string, TravelSegmento> $maestros
+     */
     private function modo(?CotizacionSegmento $seg, array $maestros, string $lado): PuntoModoEnum
     {
         $maestro = $this->maestroDe($seg, $maestros);
 
         if ($maestro === null) {
-            return PuntoModoEnum::SIN_DEFINIR;
+            return $this->textoPropio($seg, $lado) !== null ? PuntoModoEnum::FIJO : PuntoModoEnum::SIN_DEFINIR;
         }
 
         return $lado === 'inicio' ? $maestro->getInicioModo() : $maestro->getFinModo();
+    }
+
+    /** Lo que el párrafo declara por su cuenta, sólo si no cuelga de un maestro. */
+    private function textoPropio(?CotizacionSegmento $seg, string $lado): ?string
+    {
+        if ($seg === null || $seg->getSegmentoMaestroId() !== null) {
+            return null;
+        }
+
+        return $lado === 'inicio' ? $seg->getInicioTexto() : $seg->getFinTexto();
     }
 
     /** @param array<string, TravelSegmento> $maestros */
@@ -389,7 +411,12 @@ final readonly class CotizacionPuntosDelServicio
         }
 
         $maestro = $this->maestroDe($seg, $maestros);
-        $punto = $lado === 'inicio' ? $maestro?->getInicioPunto() : $maestro?->getFinPunto();
+
+        if ($maestro === null) {
+            return $this->textoPropio($seg, $lado);
+        }
+
+        $punto = $lado === 'inicio' ? $maestro->getInicioPunto() : $maestro->getFinPunto();
 
         return $punto?->getNombre();
     }

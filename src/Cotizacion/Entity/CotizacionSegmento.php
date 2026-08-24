@@ -59,6 +59,34 @@ class CotizacionSegmento
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $segmentoMaestroId = null;
 
+    /**
+     * Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**.
+     *
+     * ── Por qué existe, si ya se decidió que no ─────────────────────────────
+     * Los puntos salen del `TravelSegmento` maestro, y se descartó duplicarlos aquí para no tener
+     * **dos superficies declarando el mismo hecho**. Ese argumento vale mientras haya maestro.
+     *
+     * Un párrafo escrito a mano —el traslado a «La Olla de Juanita», que no está en ningún
+     * catálogo ni va a estarlo— **no tiene maestro**, así que no hay primera superficie: no se
+     * duplica nada, es el único sitio donde se puede decir. Sin esto, el único lugar para
+     * declararlo era el override de la orden ya emitida: dos capas más abajo y sólo después de
+     * confirmar.
+     *
+     * ⚠️ **Con maestro, manda el maestro.** No es un override: si el párrafo viene del catálogo,
+     * estos campos ni se leen ni se enseñan. Una regla de precedencia entre los dos sería
+     * exactamente la segunda superficie que se quería evitar.
+     *
+     * Texto libre y no un `TravelPunto`: dar de alta un punto maestro para una parada irrepetible
+     * es más caro que el problema, y quien lo lee es una persona.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 180, nullable: true)]
+    private ?string $inicioTexto = null;
+
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 180, nullable: true)]
+    private ?string $finTexto = null;
+
     /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
@@ -153,6 +181,12 @@ class CotizacionSegmento
     {
         return $this->segmentoMaestroId;
     }
+
+    public function getInicioTexto(): ?string { return $this->inicioTexto; }
+    public function setInicioTexto(?string $v): self { $this->inicioTexto = $v !== null ? (trim($v) ?: null) : null; return $this; }
+
+    public function getFinTexto(): ?string { return $this->finTexto; }
+    public function setFinTexto(?string $v): self { $this->finTexto = $v !== null ? (trim($v) ?: null) : null; return $this; }
 
     /**
      * Establece el identificador del segmento maestro asociado.
