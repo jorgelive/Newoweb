@@ -10,6 +10,8 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Entity\Maestro\MaestroPais;
+use App\Cotizacion\Enum\AlcanceDeVistaEnum;
+use App\Cotizacion\Enum\PasajeroTipoEnum;
 use App\Enum\DocumentoTipoEnum;
 use App\Enum\SexoEnum;
 use App\Entity\Trait\IdTrait;
@@ -118,6 +120,21 @@ class CotizacionFilepasajero
     #[Groups(['file:item:read', 'file:write'])]
     #[ORM\OneToMany(mappedBy: 'pasajero', targetEntity: CotizacionPasajeroGrupo::class, cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EAGER')]
     private Collection $pertenencias;
+
+    /**
+     * Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+     *
+     * Nulo se trata como el caso más restrictivo —sólo lo suyo, y visible— porque un tipo sin
+     * poner no puede conceder nada. Ver {@see PasajeroTipoEnum}.
+     */
+    #[Groups(['file:item:read', 'file:write'])]
+    #[ORM\Column(type: 'string', length: 20, nullable: true, enumType: PasajeroTipoEnum::class)]
+    private ?PasajeroTipoEnum $tipo = null;
+
+    /** Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+    #[Groups(['file:item:read', 'file:write'])]
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $observaciones = null;
 
     public function __construct()
     {
@@ -334,15 +351,33 @@ class CotizacionFilepasajero
         )));
     }
 
-    /** ¿Lidera algún grupo? De esto cuelga que al buscarse vea también lo de su grupo. */
-    public function esJefeDeAlgunGrupo(): bool
-    {
-        foreach ($this->pertenencias as $pertenencia) {
-            if ($pertenencia->isEsJefe()) {
-                return true;
-            }
-        }
+    public function getTipo(): ?PasajeroTipoEnum { return $this->tipo; }
+    public function setTipo(?PasajeroTipoEnum $v): self { $this->tipo = $v; return $this; }
 
-        return false;
+    public function getObservaciones(): ?string { return $this->observaciones; }
+    public function setObservaciones(?string $v): self { $this->observaciones = $v !== null ? (trim($v) ?: null) : null; return $this; }
+
+    /**
+     * Hasta dónde llega lo que ve.
+     *
+     * Sin tipo, lo mínimo. Un dato que falta no puede conceder permisos — y en el padrón real hay
+     * gente sin tipo.
+     */
+    #[Groups(['file:item:read'])]
+    public function getAlcanceDeVista(): AlcanceDeVistaEnum
+    {
+        return $this->tipo?->alcance() ?? AlcanceDeVistaEnum::SOLO_YO;
+    }
+
+    /**
+     * ¿Aparece en las listas que ven los demás?
+     *
+     * Sin tipo, sí: esconder a alguien por descuido es peor que enseñarlo, porque deja huecos que
+     * nadie sabe explicar. Ocultar es una decisión, y las decisiones se escriben.
+     */
+    #[Groups(['file:item:read'])]
+    public function isExpuesto(): bool
+    {
+        return $this->tipo?->esExpuesto() ?? true;
     }
 }

@@ -221,6 +221,24 @@ class Cotizacion
     private bool $totalesOcultos = false;
 
     /**
+     * La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+     *
+     * Pensado para grupos grandes: cada familia entra con su documento y su fecha de nacimiento y
+     * ve su ficha, sus servicios y su precio. Un supervisor ve el viaje entero; un coordinador, su
+     * grupo. Lo decide {@see \App\Cotizacion\Enum\PasajeroTipoEnum}.
+     *
+     * ⚠️ **Es un flag aparte de `totalesOcultos`, y tiene que serlo.** Aquél es *presentación de
+     * precio*; éste es *acceso*. Si fueran el mismo, ocultar el total de grupo implicaría pedir el
+     * documento — y un catálogo público oculta totales sin pedir nada a nadie.
+     *
+     * ⚠️ Quien llega con **sesión de la agencia** (`ROLE_RESERVAS_SHOW`) no ve el formulario: ve
+     * todo, invitados incluidos. El colegio no tiene cuentas; el login es del personal de OpenPeru.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(name: 'acceso_identificado', type: 'boolean', options: ['default' => false])]
+    private bool $accesoIdentificado = false;
+
+    /**
      * Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
      * Experiencia Mística". Diferencia paquetes tanto en el expediente del
      * cliente como en el escaparate del catálogo.
@@ -634,4 +652,7 @@ class Cotizacion
 
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]
     public function isHistorico(): bool { return $this->estado->esHistorico(); }
+
+    public function isAccesoIdentificado(): bool { return $this->accesoIdentificado; }
+    public function setAccesoIdentificado(bool $v): self { $this->accesoIdentificado = $v; return $this; }
 }

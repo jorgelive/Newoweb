@@ -4362,6 +4362,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -4461,6 +4466,11 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
+            /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -4570,6 +4580,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -4664,6 +4679,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -4744,6 +4764,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -4821,6 +4846,11 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
+            /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -4904,6 +4934,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -4970,6 +5005,11 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
+            /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5106,6 +5146,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5206,6 +5251,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5300,6 +5350,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5377,6 +5432,11 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
+            /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5460,6 +5520,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5527,6 +5592,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5593,6 +5663,11 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
+            /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5694,6 +5769,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5788,6 +5868,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -5865,6 +5950,11 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
+            /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -5948,6 +6038,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -6015,6 +6110,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -6081,6 +6181,11 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
+            /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6182,6 +6287,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -6276,6 +6386,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -6353,6 +6468,11 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
+            /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -6436,6 +6556,11 @@ export interface components {
              */
             totalesOcultos: boolean;
             /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
+            /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
              *     cliente como en el escaparate del catálogo.
@@ -6502,6 +6627,11 @@ export interface components {
              * @default false
              */
             totalesOcultos: boolean;
+            /**
+             * @description La vista del cliente exige identificarse, y enseña **sólo lo que le toca**.
+             * @default false
+             */
+            accesoIdentificado: boolean;
             /**
              * @description Título comercial opcional de la propuesta/tour (i18n), ej. "Cusco:
              *     Experiencia Mística". Diferencia paquetes tanto en el expediente del
@@ -10992,6 +11122,13 @@ export interface components {
             file?: string;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11008,6 +11145,13 @@ export interface components {
             readonly tipopaxperurail?: number | null;
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
         };
         "CotizacionFilepasajero-file.read_file.item.read_timestamp.read": {
             nombre?: string;
@@ -11020,6 +11164,13 @@ export interface components {
             file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.read_file.item.read_timestamp.read"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -11034,6 +11185,13 @@ export interface components {
             readonly tipopaxperurail?: number | null;
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
         };
         "CotizacionFilepasajero-file.write": {
             nombre?: string;
@@ -11050,6 +11208,13 @@ export interface components {
             file?: components["schemas"]["CotizacionFile-file.write"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.write"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo-file.write"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
         };
         "CotizacionFilepasajero-file.write.jsonMergePatch": {
             nombre?: string;
@@ -11066,6 +11231,13 @@ export interface components {
             file?: components["schemas"]["CotizacionFile-file.write"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.write"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo-file.write"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
         };
         "CotizacionFilepasajero-pax_file.read": {
             nombre?: string;
@@ -11114,6 +11286,13 @@ export interface components {
             file?: string;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.html"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11130,6 +11309,13 @@ export interface components {
             readonly tipopaxperurail?: number | null;
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
         };
         "CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read": {
             nombre?: string;
@@ -11142,6 +11328,13 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-file.read_file.item.read_timestamp.read"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.html-file.read_file.item.read_timestamp.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -11156,6 +11349,13 @@ export interface components {
             readonly tipopaxperurail?: number | null;
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
         };
         "CotizacionFilepasajero.html-pax_file.read": {
             nombre?: string;
@@ -11204,6 +11404,13 @@ export interface components {
             file?: string;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.jsonld"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11220,6 +11427,13 @@ export interface components {
             readonly tipopaxperurail?: number | null;
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
         };
         "CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
@@ -11232,6 +11446,13 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-file.read_file.item.read_timestamp.read"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -11246,6 +11467,13 @@ export interface components {
             readonly tipopaxperurail?: number | null;
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
         };
         "CotizacionFilepasajero.jsonld-pax_file.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
@@ -11294,6 +11522,13 @@ export interface components {
             file?: string;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.multipart"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -11310,6 +11545,13 @@ export interface components {
             readonly tipopaxperurail?: number | null;
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
         };
         "CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read": {
             nombre?: string;
@@ -11322,6 +11564,13 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-file.read_file.item.read_timestamp.read"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.multipart-file.read_file.item.read_timestamp.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "alumno" | "padre" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -11336,6 +11585,13 @@ export interface components {
             readonly tipopaxperurail?: number | null;
             /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
             readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
         };
         "CotizacionFilepasajero.multipart-pax_file.read": {
             nombre?: string;
@@ -11376,11 +11632,6 @@ export interface components {
              * @example https://example.com/
              */
             grupo: string;
-            /**
-             * @description ¿Lidera este grupo?
-             * @default false
-             */
-            esJefe: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11389,11 +11640,6 @@ export interface components {
         };
         "CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"];
-            /**
-             * @description ¿Lidera este grupo?
-             * @default false
-             */
-            esJefe: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11402,11 +11648,6 @@ export interface components {
         };
         "CotizacionPasajeroGrupo-file.write": {
             grupo: components["schemas"]["CotizacionFileGrupo-file.write"];
-            /**
-             * @description ¿Lidera este grupo?
-             * @default false
-             */
-            esJefe: boolean;
             id?: string;
         };
         "CotizacionPasajeroGrupo.html": {
@@ -11420,11 +11661,6 @@ export interface components {
              * @example https://example.com/
              */
             grupo: string;
-            /**
-             * @description ¿Lidera este grupo?
-             * @default false
-             */
-            esJefe: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11433,11 +11669,6 @@ export interface components {
         };
         "CotizacionPasajeroGrupo.html-file.read_file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"];
-            /**
-             * @description ¿Lidera este grupo?
-             * @default false
-             */
-            esJefe: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11455,11 +11686,6 @@ export interface components {
              * @example https://example.com/
              */
             grupo: string;
-            /**
-             * @description ¿Lidera este grupo?
-             * @default false
-             */
-            esJefe: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11468,11 +11694,6 @@ export interface components {
         };
         "CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"];
-            /**
-             * @description ¿Lidera este grupo?
-             * @default false
-             */
-            esJefe: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11490,11 +11711,6 @@ export interface components {
              * @example https://example.com/
              */
             grupo: string;
-            /**
-             * @description ¿Lidera este grupo?
-             * @default false
-             */
-            esJefe: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11503,11 +11719,6 @@ export interface components {
         };
         "CotizacionPasajeroGrupo.multipart-file.read_file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"];
-            /**
-             * @description ¿Lidera este grupo?
-             * @default false
-             */
-            esJefe: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;

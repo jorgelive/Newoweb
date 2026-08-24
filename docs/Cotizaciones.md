@@ -1585,6 +1585,90 @@ Dos caminos, sin decidir:
 - **Participación contra el componente** (`pasajero ↔ cotcomponente`): da el precio exacto porque
   cada uno suma lo suyo, y es lo correcto conceptualmente. Es la relación que hoy no existe.
 
+## 6.p Quién ve a quién en un padrón (24/08/2026)
+
+### Dos ejes, y confundirlos es la fuga
+
+```
+ALCANCE     qué expediente ve        PasajeroTipoEnum::alcance()
+EXPOSICIÓN  si aparece ante otros    PasajeroTipoEnum::esExpuesto()
+```
+
+Un invitado **no es «el que menos ve»: es el que no se ve.** Eso no es un límite de alcance sino
+una propiedad de la persona, y por eso son dos preguntas y no una.
+
+| tipo | ve | le ven |
+|---|---|---|
+| Supervisor | el expediente **menos invitados** | sí |
+| Coordinador | sus grupos, menos invitados | sí |
+| Padre · Alumno · No participa | sólo su ficha | sí |
+| **Invitado** | sólo su ficha | **no** |
+| sin tipo | sólo su ficha | sí |
+
+### Por qué los invitados desaparecen para TODOS
+
+Son **gratuidades de la agencia**, acordadas fuera del contrato con el colegio —7 de 133 en Punta
+Cana, con 1 a 5 servicios cada uno—. Si el colegio los ve, pregunta por ellos, y la respuesta no
+es del colegio.
+
+⚠️ **No se filtran por rol: se caen de toda vista pública.** Filtrarlos dejaría huecos —una
+habitación con una cama de menos, una cuenta que no cuadra— y un hueco se pregunta igual que un
+nombre. Desaparecer para todos es lo único que no invita a preguntar.
+
+⚠️ **Salvo el propio invitado, que siempre se ve a sí mismo.** `esExpuesto()` habla de los DEMÁS;
+aplicarlo también a uno mismo dejaría a las siete gratuidades sin poder consultar su viaje, que es
+lo contrario de regalárselo.
+
+### La agencia entra por la puerta que ya existe
+
+`FRAMEWORK_SESION_COOKIE_DOMAIN` es `.openperu.pe` y los dos `apiClient` mandan `withCredentials`,
+así que **la sesión de `util` viaja sola** cuando `pax` llama a la API. No hace falta un segundo
+sistema de autenticación: una condición.
+
+```
+is_granted(ROLE_RESERVAS_SHOW)  →  TODO, invitados incluidos    ← la agencia
+si no                           →  documento + fecha de nacimiento, y filtro por rol
+```
+
+⚠️ Se escribe con el **rol** y no con «estar logueado». Hoy da lo mismo —sólo el personal de
+OpenPeru tiene cuenta y el colegio nunca la tendrá—, pero el rol dice lo que la regla dice de
+verdad, *es la agencia*, y no cuesta nada.
+
+En pantalla: con sesión de agencia **no se pinta el formulario**; sin ella, el formulario y debajo
+un «Login agencia» discreto que **vuelve a donde estabas** — si te deja en el panel, nadie lo usa
+dos veces.
+
+### ⚠️ `esJefe` se cayó el mismo día que nació
+
+La primera versión puso una bandera de jefatura en la pertenencia. El padrón la desmintió: hay **9
+coordinadores para 9 grupos**, uno cada uno, así que quién lidera ya lo dice el rol. Una bandera
+que no cambia nada **y que además podía abrir una puerta de acceso** es peor que no tenerla.
+
+`CotizacionPasajeroGrupo` **sigue siendo entidad** de todas formas: lleva `id` y `timestamps`, hace
+falta para la unicidad con nombre propio, y aloja `validarMismoExpediente()`.
+
+### El flag de acceso es APARTE del de precio
+
+```
+totalesOcultos       presentación de precio: unitario, sin total de grupo
+accesoIdentificado   acceso: exige documento + fecha y filtra por rol
+```
+
+Si fueran el mismo, ocultar el total implicaría pedir el documento — y un catálogo público oculta
+totales sin pedirle nada a nadie.
+
+### Comprobado con el reparto real
+
+```
+PÚBLICO   Supervisor  → 7 personas, sin el invitado
+          Coordinador → 2 (su grupo)
+          Alumno      → 1
+          Invitado    → 1 (él mismo)
+          sin tipo    → 1
+          sin identificar → 0
+AGENCIA   todos → 8, invitado incluido
+```
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -1698,6 +1782,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
 - **Guardar el estado de una cotización antes de tocarla** → botón de cámara en `FileDetalle` → `GuardarHistoricoProcessor`. ⚠️ **No es clonar**: clonar crea la versión siguiente y hace perder las órdenes. Ver §6.j.
 - **Cambiar las columnas del padrón (plantilla e importación)** → `PadronFormato`, una sola definición para generar y para leer. La plantilla se genera al vuelo desde los enums. Ver §6.n.
+- **Quién ve a quién en un padrón** → `PasajeroTipoEnum` (dos ejes: `alcance()` y `esExpuesto()`) + `AlcanceDelPadron`. ⚠️ Los invitados son gratuidades de la agencia y **desaparecen para todos**. Ver §6.p.
 - **Agrupar pasajeros (salón, grupo, habitación, reserva aérea)** → `CotizacionFileGrupo` + `CotizacionPasajeroGrupo` (§6.m). ⚠️ Ejes cruzados, no un árbol; y el `esJefe` va en la pertenencia.
 - **El DNI o el pasaporte de un pasajero, con su vencimiento** → `CotizacionPasajeroIdentificacion`, una fila por documento (§6.l). ⚠️ Sin fecha es «sin comprobar», nunca «vigente».
 - **Adjuntar un archivo a un expediente** → `CotizacionFilearchivo` (antes `…Filedocumento`, ver §6.k). ⚠️ No confundir con `CotizacionFilepasajero::$tipodocumento`, que sí es identidad.

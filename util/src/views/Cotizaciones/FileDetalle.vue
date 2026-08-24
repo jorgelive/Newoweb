@@ -17,7 +17,7 @@ import type { ApiPais } from '@/types/maestroModel';
 import {
   getArchivoLabel, ARCHIVO_TIPO_LABELS,
   getSexoLabel, SEXO_LABELS,
-  getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS, GRUPO_TIPO_LABELS,
+  getDocIdLabel, DOCUMENTO_IDENTIDAD_LABELS, GRUPO_TIPO_LABELS, PASAJERO_TIPO_CONFIG,
   type ApiFileGrupo,
   type ApiCotizacionFile,
   type ApiCotizacionFilepasajero,
@@ -327,11 +327,11 @@ const isSubmittingPax = ref(false);
 const isSubmittingDoc = ref(false);
 
 const paxForm = ref({
-  nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '',
+  nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', tipo: '', observaciones: '',
   // Una persona lleva DNI *y* pasaporte, con vencimientos distintos. Ver §6.l del doc.
   identificaciones: [] as Array<{ tipo: string; numero: string; vencimiento: string }>,
-  /** IRIs de los grupos a los que pertenece, y de cuáles es jefe. */
-  pertenencias: [] as Array<{ grupo: string; esJefe: boolean }>
+  /** IRIs de los grupos a los que pertenece. Quién lidera lo dice el TIPO, no una bandera aquí. */
+  pertenencias: [] as Array<{ grupo: string }>
 });
 
 const docForm = ref({
@@ -423,7 +423,7 @@ const abrirMotor = (cotizacion: ApiCotizacionVersion) => {
 const paxEditandoIri = ref<string | null>(null);
 const abrirPaxModal = () => {
   paxEditandoIri.value = null; // modo creación
-  paxForm.value = { nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', identificaciones: [], pertenencias: [] };
+  paxForm.value = { nombre: '', apellido: '', pais: '', sexo: '', fechanacimiento: '', tipo: '', observaciones: '', identificaciones: [], pertenencias: [] };
   showPaxModal.value = true;
 };
 
@@ -435,6 +435,8 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero) => {
     pais: typeof pax.pais === 'object' && pax.pais ? (pax.pais['@id'] || pax.pais.id || '') : (pax.pais || ''),
     sexo: pax.sexo || '',
     fechanacimiento: pax.fechanacimiento ? pax.fechanacimiento.split('T')[0] : '',
+    tipo: pax.tipo || '',
+    observaciones: pax.observaciones || '',
     // ⚠️ Sin identidad: al guardar se manda la lista entera y `orphanRemoval` reemplaza. Para
     // dos o tres filas es predecible; casar por IRI exigiría que la identificación fuese un
     // ApiResource propio, y no lo es —sólo existe colgando de su pasajero—.
@@ -447,7 +449,6 @@ const abrirEdicionPax = (pax: ApiCotizacionFilepasajero) => {
       grupo: typeof p.grupo === 'string'
         ? p.grupo
         : (p.grupo ? `/platform/sales/cotizacion_file_grupos/${extractIdStr(p.grupo.id)}` : ''),
-      esJefe: p.esJefe ?? false,
     })).filter(p => p.grupo)
   };
   showPaxModal.value = true;
@@ -480,17 +481,9 @@ const alternarPertenencia = (g: ApiFileGrupo): void => {
   const iri = iriDeGrupo(g);
   const i = paxForm.value.pertenencias.findIndex(p => p.grupo === iri);
   if (i >= 0) { paxForm.value.pertenencias.splice(i, 1); }
-  else { paxForm.value.pertenencias.push({ grupo: iri, esJefe: false }); }
+  else { paxForm.value.pertenencias.push({ grupo: iri }); }
 };
 
-/** Jefe de UN grupo, no en general: por eso el flag vive en la pertenencia. */
-const alternarJefatura = (g: ApiFileGrupo): void => {
-  const p = paxForm.value.pertenencias.find(x => x.grupo === iriDeGrupo(g));
-  if (p) { p.esJefe = !p.esJefe; }
-};
-
-const esJefeDe = (g: ApiFileGrupo): boolean =>
-  paxForm.value.pertenencias.find(p => p.grupo === iriDeGrupo(g))?.esJefe ?? false;
 
 // ── Padrón: plantilla e importación ────────────────────────────────────────
 //
@@ -1224,6 +1217,33 @@ const eliminarDocumento = async (iri?: string) => {
               </p>
             </div>
 
+            <!-- ── Qué es dentro del grupo ───────────────────────────────────
+                 De aquí cuelga qué ve al consultar su viaje Y si aparece ante los demás. Son dos
+                 ejes: el invitado no es «el que menos ve», es el que NO SE VE — sus gratuidades
+                 las paga la agencia y el colegio no las mira. Ver docs §6.p. -->
+            <div class="col-span-2">
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Rol en el grupo</label>
+              <select v-model="paxForm.tipo" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                <option value="">— sin definir (ve sólo lo suyo) —</option>
+                <option v-for="(cfg, valor) in PASAJERO_TIPO_CONFIG" :key="valor" :value="valor">{{ cfg.label }}</option>
+              </select>
+              <p v-if="paxForm.tipo" class="text-[10px] font-bold mt-1"
+                 :class="PASAJERO_TIPO_CONFIG[paxForm.tipo]?.expuesto ? 'text-slate-400' : 'text-amber-600'">
+                <i class="fas" :class="PASAJERO_TIPO_CONFIG[paxForm.tipo]?.expuesto ? 'fa-eye' : 'fa-eye-slash'"></i>
+                Ve: {{ PASAJERO_TIPO_CONFIG[paxForm.tipo]?.alcance }}.
+                <template v-if="!PASAJERO_TIPO_CONFIG[paxForm.tipo]?.expuesto">
+                  <b>No aparece para nadie</b> salvo la agencia — es una gratuidad.
+                </template>
+              </p>
+            </div>
+
+            <div class="col-span-2">
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Observaciones</label>
+              <input v-model="paxForm.observaciones" type="text" maxlength="500"
+                     placeholder="FALTA PASAPORTE · reemplaza a…"
+                     class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 placeholder:text-slate-300">
+            </div>
+
             <!-- ── A qué subgrupos pertenece ─────────────────────────────────
                  Se marcan varios de ejes distintos a la vez: alguien está en el salón B, el grupo
                  5, la habitación HA13 y dos reservas aéreas. La corona marca de cuál es JEFE, y
@@ -1240,12 +1260,6 @@ const eliminarDocumento = async (iri?: string) => {
                         :class="perteneceA(g) ? 'bg-teal-50 text-teal-700 border-teal-300' : 'bg-white text-slate-400 border-slate-200'">
                     <button type="button" @click="alternarPertenencia(g)" class="px-2.5 py-1 hover:bg-black/5">
                       {{ g.clave }}
-                    </button>
-                    <button v-if="perteneceA(g)" type="button" @click="alternarJefatura(g)"
-                            :title="esJefeDe(g) ? 'Es jefe de este grupo' : 'Marcar como jefe'"
-                            class="px-2 py-1 border-l border-teal-200 hover:bg-black/5"
-                            :class="esJefeDe(g) ? 'text-amber-500' : 'text-teal-300'">
-                      <i class="fas fa-crown text-[10px]"></i>
                     </button>
                   </span>
                 </div>

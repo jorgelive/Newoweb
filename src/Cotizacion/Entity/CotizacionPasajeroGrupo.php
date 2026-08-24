@@ -14,12 +14,17 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Que esta persona pertenece a este subgrupo.
  *
- * ## Por qué es una entidad y no un `ManyToMany`
+ * ## Por qué sigue siendo entidad y no un `ManyToMany`
  *
- * Porque lleva datos propios. `esJefe` es un atributo de **la pertenencia**, no de la persona ni
- * del grupo: alguien lidera el grupo 5 y es miembro raso del salón B. Doctrine no deja colgar
- * columnas de la tabla de unión de un `ManyToMany`, así que en cuanto hay un solo campo ahí, deja
- * de servir.
+ * ⚠️ Nació con un `esJefe`, y el padrón real lo desmintió: hay **9 coordinadores para 9 grupos**,
+ * uno cada uno, así que quién lidera ya lo dice {@see PasajeroTipoEnum} y la bandera no cambiaba
+ * nada — pero sí podía abrir una puerta de acceso. Se quitó.
+ *
+ * Se queda como entidad de todas formas: lleva su propio `id` y sus `timestamps`, hace falta para
+ * la unicidad `(pasajero, grupo)` con nombre propio, y es donde vive
+ * {@see self::validarMismoExpediente()}. Convertirla en `ManyToMany` ahora sólo cambiaría el
+ * mecanismo por otro sin ganar nada, y el día que la pertenencia necesite un dato —fecha de alta,
+ * quién la asignó— habría que deshacerlo.
  *
  * ## ⚠️ La coherencia de expediente no la impone la base
  *
@@ -50,15 +55,6 @@ class CotizacionPasajeroGrupo
     #[ORM\JoinColumn(name: 'grupo_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFileGrupo $grupo = null;
 
-    /**
-     * ¿Lidera este grupo?
-     *
-     * De aquí cuelga que, al buscarse por documento, además de lo suyo vea lo de su grupo. Va en la
-     * pertenencia y no en la persona por lo dicho arriba: se lidera **un** grupo, no en general.
-     */
-    #[Groups(['file:item:read', 'file:write'])]
-    #[ORM\Column(name: 'es_jefe', type: 'boolean', options: ['default' => false])]
-    private bool $esJefe = false;
 
     public function __construct()
     {
@@ -108,6 +104,4 @@ class CotizacionPasajeroGrupo
     public function getGrupo(): ?CotizacionFileGrupo { return $this->grupo; }
     public function setGrupo(?CotizacionFileGrupo $v): self { $this->grupo = $v; return $this; }
 
-    public function isEsJefe(): bool { return $this->esJefe; }
-    public function setEsJefe(bool $v): self { $this->esJefe = $v; return $this; }
 }

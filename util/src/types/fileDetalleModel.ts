@@ -40,6 +40,22 @@ export type ApiCotizacionFilearchivo = Omit<
 // esos campos solo llevan #[Groups(['file:item:read'])] en el entity.
 type BaseApiCotizacionFile = components['schemas']['CotizacionFile.jsonld-file.read_file.item.read_timestamp.read'];
 
+/**
+ * Espejo de `App\Cotizacion\Enum\PasajeroTipoEnum`. **Al tocar una, tocar la otra.**
+ *
+ * `alcance` es qué VE; `expuesto` es si le VEN. Son dos ejes distintos y confundirlos es la fuga:
+ * el invitado no es «el que menos ve», es el que no se ve — sus gratuidades las paga la agencia y
+ * el colegio no las mira.
+ */
+export const PASAJERO_TIPO_CONFIG: Record<string, { label: string; alcance: string; expuesto: boolean; color: string }> = {
+    supervisor:   { label: 'Supervisor',       alcance: 'Todo el expediente', expuesto: true,  color: 'indigo' },
+    coordinador:  { label: 'Coordinador',      alcance: 'Sus grupos',         expuesto: true,  color: 'teal' },
+    padre:        { label: 'Padre de familia', alcance: 'Sólo él',            expuesto: true,  color: 'sky' },
+    alumno:       { label: 'Alumno',           alcance: 'Sólo él',            expuesto: true,  color: 'slate' },
+    invitado:     { label: 'Invitado',         alcance: 'Sólo él',            expuesto: false, color: 'amber' },
+    no_participa: { label: 'No participa',     alcance: 'Sólo él',            expuesto: true,  color: 'rose' },
+};
+
 /** Un subgrupo del expediente: salón B, grupo 5, habitación HA13, reserva JA2CWN. */
 export type ApiFileGrupo = components['schemas']['CotizacionFileGrupo-file.read_file.item.read_timestamp.read'] & {
     '@id'?: string;
