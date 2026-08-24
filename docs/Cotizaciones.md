@@ -1730,6 +1730,82 @@ PÚBLICO   Supervisor  → 7 personas, sin el invitado
 AGENCIA   todos → 8, invitado incluido
 ```
 
+## 6.r El importador del padrón (24/08/2026)
+
+`PadronImportador` consume la **misma** `PadronFormato` con la que se genera la plantilla. Con dos
+definiciones, el día que alguien añada una columna la plantilla saldría con ella y el importador la
+ignoraría: sin error y con el dato perdido.
+
+`app:cotizacion:importar-padron <expediente> <archivo.xlsx> [--aplicar]`.
+
+### Idempotente, porque el archivo se sube varias veces
+
+Un padrón de colegio se corrige tres o cuatro veces antes del viaje. Las tres claves ya estaban en
+el modelo:
+
+| se casa por | qué lo garantiza |
+|---|---|
+| la **persona**, por su documento `(tipo, numero)` | los nombres se escriben distinto cada vez |
+| los **grupos**, por `(file, tipo, clave)` | único en base |
+| las **identificaciones**, por `(pasajero, tipo)` | único en base |
+
+Verificado con el padrón real: primera pasada 133 creados · segunda pasada **0 creados, 133
+actualizados, 0 grupos, 0 pertenencias**.
+
+⚠️ **Las pertenencias SÍ se sincronizan.** Si el archivo corregido dice que ya no va a Coco Bongo,
+deja de ir — es justo lo que se está corrigiendo al resubir. Probado: 4 celdas a «NO» → 4
+pertenencias quitadas y nada más movido.
+
+⚠️ **Las personas NO se borran.** A quien está en el sistema y no en el archivo se le **avisa**. Una
+fila que falta puede ser una baja o puede ser que alguien filtró el Excel antes de mandarlo, y
+borrar cuarenta personas por un filtro mal puesto no se deshace.
+
+### El ensayo escribe y deshace
+
+⚠️ La primera versión se limitaba a no hacer `flush()`, y eso hacía el ensayo **más permisivo que
+la carga**: un `NOT NULL` sólo salta al escribir. Un padrón pasó el ensayo limpio y reventó al
+aplicar por dos celdas de género vacías — que es exactamente lo que un ensayo existe para evitar.
+
+Ahora el ensayo hace `flush()` dentro de una transacción y la deshace. Lo que se enseña antes de
+aceptar es lo que va a pasar, constraints incluidas.
+
+### Lo que el padrón real enseñó, y ninguna prueba de laboratorio habría dado
+
+- **La cabecera no está en la fila 1 ni en la hoja 1.** El de Punta Cana tiene tres filas de título
+  y empieza con una hoja «Resumen». Se buscan **hoja y fila**: exigir «hoja 1, fila 1» es exigir que
+  reformateen el archivo antes de subirlo.
+- **Acaba en una fila `TOTAL "SI"`.** Sin detectarla se crea un pasajero llamado TOTAL y, peor, esa
+  fila trae recuentos en las columnas de documento que pueden casar con alguien de verdad.
+- ⚠️ **Dos personas con el mismo pasaporte.** `123343260` estaba en dos filas —una alumna y una
+  coordinadora— y sin comprobarlo la segunda casaba con la primera y **la sobrescribía**: una
+  persona desaparecía del viaje sin que nada lo dijera. Ahora se **aborta antes de tocar nada** y se
+  dicen los dos nombres.
+- **El género llegaba en 131 de 133.** La columna era `NOT NULL` porque la entidad se diseñó para
+  cotizaciones de dos personas donde se teclea todo; bloquear 133 cargas por dos celdas es
+  desproporcionado. Pasó a nulable — el tipo en PHP ya lo toleraba.
+
+### Alias sí, marcadores no
+
+Se aceptan nombres alternativos donde **no hay duda**: «Gén.» → Sexo, «F. Nacimiento», «País».
+
+⚠️ Los marcadores `#` y `+` **no tienen alias**. Sin ellos no se puede distinguir un eje de una
+columna de notas, y adivinarlo es lo que este formato existe para evitar. Una columna marcada que no
+corresponda a ningún eje —`#Bus`— se **avisa por su nombre** y se ignora, en vez de crear un grupo
+fantasma.
+
+⚠️ Una columna «Nombres y Apellidos» se acepta y se parte por convención peruana —las dos últimas
+palabras son apellidos—, **avisando de que es una conjetura**: acierta con nombres locales y falla
+con extranjeros («Todd Joseph Rouse» daría apellido «Joseph Rouse»).
+
+### Resultado con el padrón real (133 personas)
+
+```
+133 pasajeros · 262 identificaciones · 1 619 pertenencias
+106 grupos:  66 habitaciones · 21 reservas aéreas · 10 servicios · 9 grupos
+roles:  99 alumnos · 14 padres · 9 coordinadores · 7 invitados · 2 supervisores · 2 no participa
+Coco Bongo: 122 — el mismo número que sale de contar el Excel a mano
+```
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -1842,6 +1918,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
 - **Guardar el estado de una cotización antes de tocarla** → botón de cámara en `FileDetalle` → `GuardarHistoricoProcessor`. ⚠️ **No es clonar**: clonar crea la versión siguiente y hace perder las órdenes. Ver §6.j.
+- **Cargar un padrón** → `app:cotizacion:importar-padron` / `PadronImportador` (§6.r). Idempotente; sincroniza pertenencias pero **no borra personas**; el ensayo escribe y deshace.
 - **Cambiar las columnas del padrón (plantilla e importación)** → `PadronFormato`, una sola definición para generar y para leer. La plantilla se genera al vuelo desde los enums. Ver §6.n.
 - **Quién ve a quién en un padrón** → `PasajeroTipoEnum` (dos ejes: `alcance()` y `esExpuesto()`) + `AlcanceDelPadron`. ⚠️ Los invitados son gratuidades de la agencia y **desaparecen para todos**. Ver §6.p.
 - **Agrupar pasajeros (salón, grupo, habitación, reserva aérea)** → `CotizacionFileGrupo` + `CotizacionPasajeroGrupo` (§6.m). ⚠️ Ejes cruzados, no un árbol; y el `esJefe` va en la pertenencia.

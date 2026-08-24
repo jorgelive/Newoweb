@@ -154,6 +154,74 @@ final class PadronFormato
         ));
     }
 
+    /**
+     * Nombres alternativos que se aceptan para las columnas fijas.
+     *
+     * Un padrón real viene de una plantilla del colegio, no de la nuestra, y discutir por «Gén.»
+     * frente a «Sexo» es fricción sin nada detrás: el dato es el mismo y no hay ambigüedad.
+     *
+     * ⚠️ **Sólo se aceptan alias donde no hay duda.** Los marcadores `#` y `+` NO tienen alias: sin
+     * ellos no se puede distinguir un eje de una columna de notas, y adivinarlo es justo lo que
+     * este formato existe para evitar.
+     *
+     * @var array<string, string>
+     */
+    public const ALIAS = [
+        'nombre' => self::COL_NOMBRES,
+        'nombres y apellidos' => self::COL_NOMBRES,
+        'apellido' => self::COL_APELLIDOS,
+        'apellidos y nombres' => self::COL_APELLIDOS,
+        'gén.' => self::COL_SEXO,
+        'gen.' => self::COL_SEXO,
+        'genero' => self::COL_SEXO,
+        'género' => self::COL_SEXO,
+        'nacionalidad' => self::COL_NACIONALIDAD,
+        'pais' => self::COL_NACIONALIDAD,
+        'país' => self::COL_NACIONALIDAD,
+        'f. nacimiento' => self::COL_NACIMIENTO,
+        'fecha de nacimiento' => self::COL_NACIMIENTO,
+        'observacion' => self::COL_OBSERVACIONES,
+        'observaciones' => self::COL_OBSERVACIONES,
+        'notas' => self::COL_OBSERVACIONES,
+    ];
+
+    /** La columna canónica para una cabecera, o la misma si no hay alias. */
+    public static function canonica(string $cabecera): string
+    {
+        return self::ALIAS[mb_strtolower(trim($cabecera))] ?? trim($cabecera);
+    }
+
+    /**
+     * ¿Esta cabecera trae el nombre y los apellidos juntos?
+     *
+     * ⚠️ Partirla es **una conjetura**, y quien la use tiene que enterarse: por convención peruana
+     * las dos últimas palabras son los apellidos —«ALEJANDRA LUCILA VALDIVIA BERRIOS»— pero con un
+     * extranjero falla —«Todd Joseph Rouse» daría apellido «Joseph Rouse»—. Se avisa siempre.
+     */
+    public static function esNombreCompleto(string $cabecera): bool
+    {
+        return in_array(mb_strtolower(trim($cabecera)), ['nombres y apellidos', 'apellidos y nombres', 'nombre completo'], true);
+    }
+
+    /**
+     * Parte un nombre completo por la convención peruana: las dos últimas palabras son apellidos.
+     *
+     * @return array{0: string, 1: string} nombres, apellidos
+     */
+    public static function partirNombre(string $completo): array
+    {
+        $partes = preg_split('/\s+/', trim($completo)) ?: [];
+
+        if (count($partes) <= 2) {
+            return [implode(' ', array_slice($partes, 0, 1)), implode(' ', array_slice($partes, 1))];
+        }
+
+        return [
+            implode(' ', array_slice($partes, 0, count($partes) - 2)),
+            implode(' ', array_slice($partes, -2)),
+        ];
+    }
+
     /** ¿Esta cabecera es un eje con valor? */
     public static function esColumnaDeEje(string $cabecera): bool
     {

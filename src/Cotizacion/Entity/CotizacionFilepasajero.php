@@ -72,7 +72,9 @@ class CotizacionFilepasajero
 
 
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
-    #[ORM\Column(type: 'string', length: 1, enumType: SexoEnum::class)]
+    /** Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+     *  carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba. */
+    #[ORM\Column(type: 'string', length: 1, nullable: true, enumType: SexoEnum::class)]
     private ?SexoEnum $sexo = null;
 
     // 🔥 Reemplazado por Enum
