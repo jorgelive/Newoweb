@@ -369,6 +369,38 @@ const paxForm = ref({
   pertenencias: [] as Array<{ grupo: string }>
 });
 
+/**
+ * Lo que se manda al guardar un pasajero.
+ *
+ * ⚠️ El formulario usa `''` para «vacío» —es lo que devuelve un `<input>`—, pero la API espera
+ * `null`: una cadena vacía en una fecha o en un enum no es un valor que se pueda interpretar, y
+ * hasta el 24/08/2026 salía como **500** al guardar a cualquiera sin fecha de nacimiento o sin
+ * sexo. Alma Noriega, sin ir más lejos.
+ *
+ * El país es la excepción y por eso se omite en vez de anularse: su columna es `NOT NULL`, así que
+ * vaciarlo no es una intención válida —y en un PATCH, lo que no se manda se queda como estaba—.
+ */
+const payloadDePax = () => {
+  const f = paxForm.value;
+
+  return {
+    nombre: f.nombre,
+    apellido: f.apellido,
+    ...(f.pais ? { pais: f.pais } : {}),
+    sexo: f.sexo || null,
+    fechanacimiento: f.fechanacimiento || null,
+    tipo: f.tipo || null,
+    telefono: f.telefono || null,
+    observaciones: f.observaciones || null,
+    identificaciones: f.identificaciones.map(i => ({
+      tipo: i.tipo,
+      numero: i.numero,
+      vencimiento: i.vencimiento || null,
+    })),
+    pertenencias: f.pertenencias,
+  };
+};
+
 const docForm = ref({
   nombre: '', tipoArchivo: '', sobreescribirTraduccion: false, fileObject: null as File | null
 });
@@ -1283,11 +1315,11 @@ const guardarPasajero = async () => {
 
   if (paxEditandoIri.value) {
     // Modo edición
-    success = await fileStore.updatePassenger(paxEditandoIri.value, paxForm.value);
+    success = await fileStore.updatePassenger(paxEditandoIri.value, payloadDePax());
   } else {
     // Modo creación (igual que antes)
     const payload = {
-      ...paxForm.value,
+      ...payloadDePax(),
       file: `/platform/sales/cotizacion_files/${extractIdStr(file.value.id || file.value['@id'])}`
     };
     success = await fileStore.addPassenger(payload);

@@ -25,6 +25,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
 #[ApiResource(
     shortName: 'CotizacionFilepasajero',
@@ -35,7 +36,11 @@ use Symfony\Component\Serializer\Annotation\Groups;
             // pertenencia. El serializador corta con una `CircularReferenceException`, que sale
             // como 500 al guardar. Pasó el 24/08/2026 al asignarle un vuelo a un pasajero.
             normalizationContext: ['groups' => ['file:item:read', 'timestamp:read']],
-            denormalizationContext: ['groups' => ['file:write']],
+            // ⚠️ Un payload que la API no sabe leer —una fecha vacía, un enum con `''`— tiene que
+            // salir como 422 diciendo QUÉ campo, no como 500. Sin esto, la
+            // `NotNormalizableValueException` sube sin traducir y el vendedor ve «error del
+            // servidor» al guardar a alguien sin fecha de nacimiento.
+            denormalizationContext: ['groups' => ['file:write'], DenormalizerInterface::COLLECT_DENORMALIZATION_ERRORS => true],
             processor: CotizacionFilepasajeroProcessor::class,
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear pasajeros.'
@@ -53,7 +58,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
             // la que comparar—. Nadie usa este PUT (el front escribe con POST y PATCH), pero
             // dejarlo armado es dejar una trampa cargada.
             extraProperties: ['standard_put' => false],
-            denormalizationContext: ['groups' => ['file:write']],
+            denormalizationContext: ['groups' => ['file:write'], DenormalizerInterface::COLLECT_DENORMALIZATION_ERRORS => true],
             processor: CotizacionFilepasajeroProcessor::class,
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar pasajeros.'
@@ -61,7 +66,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new Patch(
             // Grupos de normalización por lo mismo que arriba: el círculo de las pertenencias.
             normalizationContext: ['groups' => ['file:item:read', 'timestamp:read']],
-            denormalizationContext: ['groups' => ['file:write']],
+            denormalizationContext: ['groups' => ['file:write'], DenormalizerInterface::COLLECT_DENORMALIZATION_ERRORS => true],
             processor: CotizacionFilepasajeroProcessor::class,
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar pasajeros.'
