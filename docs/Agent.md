@@ -377,6 +377,34 @@ WARNING   8 vueltas de herramientas sin respuesta final
 de una vez, y se combina con los demás filtros (`agrupar_por=habitacion` + `rol=coordinador` da
 las habitaciones de los coordinadores).
 
+#### ⚠️ El desglose DECLARA lo que deja fuera
+
+Un reparto miente en las dos direcciones, y callarlo produce justo la respuesta falsa y creíble
+que esta skill existe para evitar. Medido sobre el padrón real de 131 personas:
+
+```
+agrupar_por=grupo     9 valores · suma 108 · cumplen 131   ← 23 sin grupo
+agrupar_por=vuelo    23 valores · suma 250 · cumplen 131   ← 121 con dos tramos
+agrupar_por=rol       5 valores · suma 131 · cumplen 131   ← el rol es uno y sólo uno
+```
+
+Por eso la respuesta trae `sin_<eje>` y una `nota_desglose` que lo dice con palabras. Para
+notarlo por su cuenta, el modelo tendría que sumar nueve números y compararlos con otro — lo
+previsible es que presente el reparto como completo y **23 adultos queden invisibles**.
+
+⚠️ **El eje se valida contra la lista blanca ANTES de contar, no según si sale alguien.** Antes se
+devolvía «no es un eje por el que pueda agrupar» cuando el desglose salía vacío, y eso ocurre con
+un eje perfectamente válido en cuanto los filtros dejan gente que no pertenece a él: los dos
+supervisores no tienen grupo, así que `rol=supervisor` + `agrupar_por=grupo` contestaba que
+«grupo» no era un eje… **con «grupo» dentro de la lista de opciones del propio error**. El modelo
+reintenta con variantes, que es el bucle que este parámetro vino a matar.
+
+⚠️ Y las tildes se quitan con **una tabla, no con `Transliterator`**: ésa exige `ext-intl`, que
+este proyecto **no declara** en `composer.json` —sí `ext-iconv`, no `intl`—. Hoy está cargada en
+los dos entornos, pero un servidor nuevo sin ella no daría un fallback: daría `Class
+"Transliterator" not found` en **todas** las llamadas a la skill. Una dependencia oculta de una
+extensión, para quitar seis tildes.
+
 ⚠️ **La lección general, que vale para cualquier skill nueva:** si una pregunta natural obliga a
 llamarla N veces, no es que el modelo sea torpe — es que a la skill le falta esa forma. Y el
 síntoma no es un error: es una factura.

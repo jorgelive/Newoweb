@@ -62,6 +62,9 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
     /** Valores por eje al enumerar opciones tras un nombre errado. Ver `opcionesDeSubgrupo()`. */
     private const int MAX_OPCIONES_POR_EJE = 12;
 
+    /** Los ejes por los que se puede desglosar. Lista blanca: se valida ANTES de contar. */
+    private const array EJES_AGRUPABLES = ['grupo', 'habitacion', 'vuelo', 'rol', 'servicio'];
+
     public function __construct(private EntityManagerInterface $em) {}
 
     public function nombre(): string
@@ -232,17 +235,55 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
         // 188 000 tokens en un solo turno.
         $eje = $this->comparable((string) ($entrada['agrupar_por'] ?? ''));
         if ($eje !== '') {
-            $desglose = $this->desglosar($cumplen, $eje);
-
-            if ($desglose === null) {
+            // ⚠️ El eje se valida contra la lista blanca ANTES de contar, no según si sale alguien.
+            //
+            // Antes se devolvía «no es un eje por el que pueda agrupar» cuando el desglose salía
+            // vacío, y eso ocurre con un eje PERFECTAMENTE VÁLIDO en cuanto los filtros dejan a
+            // gente que no pertenece a él: los 2 supervisores no tienen grupo, así que
+            // `rol=supervisor` + `agrupar_por=grupo` contestaba que «grupo» no era un eje… con
+            // «grupo» dentro de la lista de opciones del propio error. El modelo reintenta con
+            // variantes, que es el bucle que este parámetro vino a matar.
+            if (!in_array($eje, self::EJES_AGRUPABLES, true)) {
                 return SkillResult::ok([
                     'error_de_nombre' => sprintf('«%s» no es un eje por el que pueda agrupar.', $eje),
-                    'opciones' => ['grupo', 'habitacion', 'vuelo', 'rol', 'servicio'],
+                    'opciones' => self::EJES_AGRUPABLES,
                 ]);
             }
 
+            ['desglose' => $desglose, 'sin_eje' => $sinEje, 'multiple' => $multiple]
+                = $this->desglosar($cumplen, $eje);
+
             $salida['agrupado_por'] = $eje;
             $salida['desglose'] = $desglose;
+
+            // ⚠️ La suma del desglose NO tiene por qué cuadrar con `cumplen`, y callarlo produce
+            // una respuesta falsa y creíble —la que esta skill existe para evitar—:
+            //
+            //   · por DEBAJO: quien no pertenece a ningún grupo de ese eje no sale. Medido, «por
+            //     grupo» sumaba 108 sobre 131 y las 23 personas sin grupo —acompañantes,
+            //     supervisores, invitados— quedaban invisibles.
+            //   · por ENCIMA: quien pertenece a dos del mismo eje cuenta dos veces. «Por vuelo»
+            //     sumaba 161 sobre 131, porque 30 llevan nacional e internacional.
+            //
+            // Para notarlo, el modelo tendría que sumar y comparar. Se le dice.
+            if ($sinEje > 0) {
+                $salida['sin_'.$eje] = $sinEje;
+                $salida['nota_desglose'] = sprintf(
+                    '%d de las %d personas no están en ningún «%s»: el desglose suma menos que el total.',
+                    $sinEje,
+                    count($cumplen),
+                    $eje,
+                );
+            }
+
+            if ($multiple > 0) {
+                $salida['nota_desglose'] = trim(($salida['nota_desglose'] ?? '').' '.sprintf(
+                    '%d personas pertenecen a más de un «%s», así que el desglose suma MÁS que el total: '
+                    .'no sumes las cifras para dar un número de gente.',
+                    $multiple,
+                    $eje,
+                ));
+            }
 
             return SkillResult::ok($salida);
         }
@@ -265,15 +306,17 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
     }
 
     /**
-     * Cuánta gente hay en cada valor de un eje, sobre los que ya pasaron los filtros.
+     * Cuánta gente hay en cada valor de un eje, y **cuánta se queda fuera de la cuenta**.
      *
-     * `null` si el eje no existe — se devuelven las opciones, nunca un desglose vacío: un vacío se
-     * lee como «no hay nadie», que es falso y creíble.
+     * ⚠️ Devuelve las tres cifras juntas a propósito. El desglose por sí solo miente en las dos
+     * direcciones —quien no pertenece al eje no sale, quien pertenece a dos cuenta dos veces— y
+     * quien llama tiene que poder decirlo.
      *
      * @param list<CotizacionFilepasajero> $gente
-     * @return array<string, int>|null Ordenado de más a menos, que es como se lee un reparto.
+     * @return array{desglose: array<string, int>, sin_eje: int, multiple: int} El desglose va
+     *         ordenado de más a menos, que es como se lee un reparto.
      */
-    private function desglosar(array $gente, string $eje): ?array
+    private function desglosar(array $gente, string $eje): array
     {
         if ($eje === 'rol') {
             $cuenta = [];
@@ -283,7 +326,8 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             }
             arsort($cuenta);
 
-            return $cuenta;
+            // El rol es uno y sólo uno por persona: nadie se queda fuera ni cuenta dos veces.
+            return ['desglose' => $cuenta, 'sin_eje' => 0, 'multiple' => 0];
         }
 
         // Los ejes de grupo: se compara contra la ETIQUETA del eje —«Grupo», «Habitación», «Vuelo
@@ -291,9 +335,12 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
         // se quiere preguntar.
         $esServicio = $eje === 'servicio';
         $cuenta = [];
-        $encontrado = false;
+        $sinEje = 0;
+        $multiple = 0;
 
         foreach ($gente as $p) {
+            $suyos = 0;
+
             foreach ($p->grupos() as $g) {
                 $deServicio = $g->getTipo() === GrupoTipoEnum::SERVICIO;
 
@@ -305,19 +352,21 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
                     continue;
                 }
 
-                $encontrado = true;
+                ++$suyos;
                 $clave = $esServicio ? (string) $g->getClave() : $this->rotuloDe($g);
                 $cuenta[$clave] = ($cuenta[$clave] ?? 0) + 1;
             }
-        }
 
-        if (!$encontrado) {
-            return null;
+            if ($suyos === 0) {
+                ++$sinEje;
+            } elseif ($suyos > 1) {
+                ++$multiple;
+            }
         }
 
         arsort($cuenta);
 
-        return $cuenta;
+        return ['desglose' => $cuenta, 'sin_eje' => $sinEje, 'multiple' => $multiple];
     }
 
     /**
@@ -352,12 +401,26 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
      * ⚠️ Sin quitar tildes, «habitacion HA13» no encontraba «Habitación HA13» y la skill devolvía
      * «ese subgrupo no existe» con 89 opciones. El modelo entonces reintenta con otra variante, y
      * cada reintento es una vuelta entera del bucle con el catálogo de 15 000 tokens detrás.
+     *
+     * ⚠️ **Una tabla y no `Transliterator`.** Aquélla exige `ext-intl`, que este proyecto NO
+     * declara en `composer.json` —sí `ext-iconv`, no `intl`—: hoy está cargada en los dos
+     * entornos, pero un servidor nuevo sin ella no daría un fallback, daría `Error: Class
+     * "Transliterator" not found` en **todas** las llamadas a esta skill, no sólo al agrupar.
+     * Una dependencia oculta de una extensión, para quitar seis tildes.
+     *
+     * También es determinista: `iconv('ASCII//TRANSLIT')` depende de la locale del sistema y en
+     * algunas devuelve `'a` en vez de `a`.
      */
+    private const array SIN_TILDE = [
+        'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n',
+        'à' => 'a', 'è' => 'e', 'ì' => 'i', 'ò' => 'o', 'ù' => 'u', 'ç' => 'c',
+        'Á' => 'a', 'É' => 'e', 'Í' => 'i', 'Ó' => 'o', 'Ú' => 'u', 'Ü' => 'u', 'Ñ' => 'n',
+        'À' => 'a', 'È' => 'e', 'Ì' => 'i', 'Ò' => 'o', 'Ù' => 'u', 'Ç' => 'c',
+    ];
+
     private function comparable(?string $texto): string
     {
-        $limpio = \Transliterator::create('Any-Latin; Latin-ASCII')?->transliterate((string) $texto);
-
-        return mb_strtolower(trim($limpio ?? (string) $texto));
+        return mb_strtolower(trim(strtr((string) $texto, self::SIN_TILDE)));
     }
 
     /**
