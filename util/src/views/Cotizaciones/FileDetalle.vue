@@ -1215,8 +1215,8 @@ const grupoForm = ref({ tipo: '', subeje: '', clave: '', nombre: '', detalle: ''
 const guardandoGrupo = ref(false);
 
 const editarGrupo = (g: ApiFileGrupo) => {
-    subgruposAbiertos.value = true;   // el formulario vive dentro de la sección plegable
     grupoEditando.value = iriDeGrupoPlano(g);
+    capas.abrir('grupo-edicion', () => { grupoEditando.value = null; });
     grupoForm.value = {
         tipo: String(g.tipo ?? 'grupo'),
         subeje: g.subeje ?? '',
@@ -1243,7 +1243,9 @@ const guardarGrupo = async () => {
 
     if (!ok) { alert(fileStore.error || 'No se pudo guardar el subgrupo.'); return; }
 
-    grupoEditando.value = null;
+    // Por la capa, como todos los cierres: así el «atrás» siguiente no consume una entrada
+    // fantasma. Ver `useCapasEnHistorial`.
+    capas.cerrar('grupo-edicion');
     await cargarFile();
 };
 
@@ -2113,60 +2115,6 @@ const eliminarDocumento = async (iri?: string) => {
                 </div>
               </div>
 
-              <!-- ── Corregir un subgrupo ────────────────────────────────────
-                   En línea y no en un modal: se llega aquí desde la píldora y se vuelve a ella,
-                   y lo que se corrige suele ser un campo suelto. -->
-              <div v-if="grupoEditando && subgruposAbiertos"
-                   class="mb-4 bg-indigo-50 border border-indigo-200 rounded-2xl p-3">
-                <p class="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-2">
-                  <i class="fas fa-pencil-alt mr-1"></i> Corrigiendo subgrupo
-                </p>
-                <div class="flex flex-wrap gap-2 items-end">
-                  <div>
-                    <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Eje</label>
-                    <select v-model="grupoForm.tipo" class="border rounded-lg px-2 py-2 text-sm outline-none focus:border-indigo-500">
-                      <option v-for="(cfg, valor) in GRUPO_TIPO_LABELS" :key="valor" :value="valor">{{ cfg.label }}</option>
-                    </select>
-                  </div>
-                  <div v-if="grupoForm.tipo === 'reserva_aerea'">
-                    <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tramo</label>
-                    <input v-model="grupoForm.subeje" type="text" maxlength="60" placeholder="Nacional"
-                           class="w-32 border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 placeholder:text-slate-300">
-                  </div>
-                  <div>
-                    <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clave</label>
-                    <input v-model="grupoForm.clave" type="text" maxlength="60"
-                           class="w-32 border rounded-lg px-3 py-2 text-sm font-bold uppercase outline-none focus:border-indigo-500">
-                  </div>
-                  <div class="flex-1 min-w-36">
-                    <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nombre</label>
-                    <input v-model="grupoForm.nombre" type="text" maxlength="150" placeholder="ARAJET · DOBLE"
-                           class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 placeholder:text-slate-300">
-                  </div>
-                </div>
-                <div class="mt-2">
-                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Detalle</label>
-                  <textarea v-model="grupoForm.detalle" rows="2"
-                            class="w-full border rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-500"></textarea>
-                </div>
-                <!-- ⚠️ Cambiar la clave RENOMBRA: las pertenencias apuntan al id, así que la gente
-                     se queda dentro. Pero el padrón casa por clave, así que la hoja hay que
-                     corregirla también o al reimportarla saldría un grupo nuevo. -->
-                <p class="text-[10px] font-bold text-amber-700 mt-2 leading-snug">
-                  <i class="fas fa-triangle-exclamation mr-1"></i>
-                  Cambiar la clave renombra el grupo y la gente se queda dentro, pero el padrón casa
-                  por clave: corrígela también en la hoja o al reimportarla se creará otro.
-                </p>
-                <div class="flex gap-2 mt-3">
-                  <button type="button" @click="grupoEditando = null"
-                          class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg hover:bg-white">Cancelar</button>
-                  <button type="button" @click="guardarGrupo" :disabled="guardandoGrupo || !grupoForm.clave.trim()"
-                          class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-40">
-                    <i v-if="guardandoGrupo" class="fas fa-spinner fa-spin mr-1"></i> Guardar
-                  </button>
-                </div>
-              </div>
-
               <p v-if="!file.grupos?.length" class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-3">
                 Sin subgrupos. Se crean solos al cargar el padrón, o a mano aquí arriba.
               </p>
@@ -2744,6 +2692,81 @@ const eliminarDocumento = async (iri?: string) => {
           </div>
         </form>
       </div>
+      </div>
+    </div>
+  </Teleport>
+
+  <!-- ── Corregir un subgrupo ──────────────────────────────────────────────
+       En MODAL y no en línea: la sección lista hasta 66 habitaciones, así que un formulario al
+       principio queda a media pantalla de la píldora que se tocó — se corrige a ciegas o hay que
+       subir a buscarlo. El modal sale donde está la mirada. -->
+  <Teleport to="body">
+    <div v-if="grupoEditando" class="fixed inset-0 z-1000 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
+          <h3 class="font-black text-sm uppercase tracking-widest">
+            <i class="fas fa-pencil-alt mr-2"></i> Corregir subgrupo
+          </h3>
+          <button type="button" @click="capas.cerrar('grupo-edicion')" class="text-indigo-200 hover:text-white">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="guardarGrupo" class="p-6 space-y-4 overflow-y-auto">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Eje *</label>
+              <select v-model="grupoForm.tipo" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                <option v-for="(cfg, valor) in GRUPO_TIPO_LABELS" :key="valor" :value="valor">{{ cfg.label }}</option>
+              </select>
+            </div>
+            <div v-if="grupoForm.tipo === 'reserva_aerea'">
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tramo</label>
+              <input v-model="grupoForm.subeje" type="text" maxlength="60" placeholder="Nacional · Cusco-Puno"
+                     class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 placeholder:text-slate-300">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Clave *</label>
+              <input v-model="grupoForm.clave" type="text" maxlength="60" required
+                     class="w-full border rounded-lg px-3 py-2 text-sm font-bold uppercase outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre</label>
+              <input v-model="grupoForm.nombre" type="text" maxlength="150" placeholder="ARAJET · DOBLE"
+                     class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 placeholder:text-slate-300">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+              Detalle — varias líneas, admite *negrita* y listas
+            </label>
+            <textarea v-model="grupoForm.detalle" rows="3"
+                      placeholder="* Ida DM6771 · LIM 18/09 03:00 → PUJ 09:19"
+                      class="w-full border rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-500 placeholder:text-slate-300"></textarea>
+          </div>
+
+          <!-- ⚠️ Cambiar la clave RENOMBRA: las pertenencias apuntan al id, así que la gente se
+               queda dentro. Pero el padrón casa por clave, así que la hoja hay que corregirla
+               también o al reimportarla saldría un grupo nuevo. -->
+          <p class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-snug">
+            <i class="fas fa-triangle-exclamation mr-1"></i>
+            Cambiar la clave renombra el grupo y la gente se queda dentro, pero el padrón casa por
+            clave: corrígela también en la hoja o al reimportarla se creará otro.
+          </p>
+
+          <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
+            <button type="button" @click="capas.cerrar('grupo-edicion')"
+                    class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg">Cancelar</button>
+            <button type="submit" :disabled="guardandoGrupo || !grupoForm.clave.trim()"
+                    class="px-5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-indigo-700 disabled:opacity-40 flex items-center gap-2">
+              <i v-if="guardandoGrupo" class="fas fa-spinner fa-spin"></i> Guardar
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </Teleport>

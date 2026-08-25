@@ -1651,7 +1651,11 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
   veces buscándolos. Si al guardar alguien deja de cumplir el filtro, sale del recorrido: ya no es
   uno de los que estabas repasando.
 - **Cada subgrupo se puede CORREGIR**, no sólo crear y borrar. El lápiz va siempre visible en la
-  píldora y abre un formulario en línea con eje, tramo, clave, nombre y detalle.
+  píldora y abre un **modal** con eje, tramo, clave, nombre y detalle.
+
+  ⚠️ En modal y no en línea: la sección lista hasta 66 habitaciones, así que un formulario al
+  principio queda a media pantalla de la píldora que se tocó — se corrige a ciegas o hay que subir
+  a buscarlo. Se engancha a `useCapasEnHistorial` como los demás, así que «atrás» lo cierra.
 
   ⚠️ Sin esto, una errata obligaba a **borrar**: un vuelo de Arajet cargado bajo «Vuelo Nacional»
   —pasó de verdad— sólo se arreglaba eliminando el grupo, y eso se lleva por CASCADE las
