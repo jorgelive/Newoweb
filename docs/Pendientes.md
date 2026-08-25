@@ -970,3 +970,43 @@ Lo que queda por hacer aquí:
 ⚠️ No se tocó ya porque el arreglo del síntoma no lo necesita y el componente lo usan tres
 pantallas. Al tocarlo, comprobar las tres: `FileDetalle`, `OrganizacionFormulario` (con modelo) y
 `OrganizacionesView` (SIN modelo, sólo lectura a propósito).
+
+---
+
+## Dos skills que se anuncian con la misma palabra: quién desempata — 24/08/2026
+
+Salió al llamar `vuelos` a lo que se devuelve del padrón, precisamente para **no** decir
+«itinerario» y chocar con la futura skill de itinerarios de `src/Travel/`. La pregunta de fondo
+queda abierta: cuando dos herramientas comparten un término, ¿lo resuelve **el contexto** o **la
+pregunta**?
+
+### Lo que ya hay, y hasta dónde llega
+
+`SkillRegistry::paraActor()` **ya desempata por contexto**: lo que un actor no puede usar ni se le
+menciona al modelo. Un huésped no ve la skill del padrón, así que para él «itinerario» no es
+ambiguo — sólo hay una cosa que puede ser.
+
+⚠️ **Pero el caso que duele se lo salta.** `esDelDominioDe()` no se aplica a quien
+`esDelEquipo()`, y es a propósito: quien atiende alojamiento y tours por el mismo WhatsApp interno
+necesita las dos cajas a la vez. Y es justo el operador quien va a tener **el padrón y los
+itinerarios de Travel delante al mismo tiempo**. Para él, el filtro por contexto no desempata
+nada: le llegan las dos definiciones.
+
+### Las tres salidas, en orden de coste
+
+1. **Que no compartan la palabra.** Es lo que se hizo, cuesta cero en ejecución y no falla nunca.
+   Mientras se pueda nombrar distinto, gana.
+2. **Que la que se equivoca devuelva un puntero**, no una respuesta plausible. Es el patrón que
+   esta skill ya usa para los nombres de eje: nunca lista vacía, siempre las opciones reales. Si
+   al padrón le preguntan por un itinerario que no guarda, lo correcto es que conteste qué **sí**
+   tiene y nombre la otra herramienta — no que devuelva los vuelos como si fueran eso.
+3. **Desempatar por la pregunta** — clasificar la intención antes de elegir. Es lo más caro y lo
+   menos fiable: es volver a meter un intérprete de lenguaje natural donde ya se decidió no
+   tenerlo (ver `docs/Agent.md` §5.4, «por qué los filtros son parámetros y no una frase»). Sólo
+   tendría sentido si un día hay tantas skills que la lista no cabe en el prompt.
+
+### Lo que hay que decidir cuando se escriba la skill de itinerarios
+
+Si acaba llamándose `consultar_itinerario` y el operador tiene las dos, comprobar **con una
+pregunta ambigua real** («el itinerario de Santiago») a cuál llama el modelo. Si se equivoca, la
+salida es la (2): que la equivocada lo diga. No hace falta nada más hasta verlo fallar.

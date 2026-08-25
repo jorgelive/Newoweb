@@ -62,6 +62,14 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
     /** Valores por eje al enumerar opciones tras un nombre errado. Ver `opcionesDeSubgrupo()`. */
     private const int MAX_OPCIONES_POR_EJE = 12;
 
+    /**
+     * Hasta cuánta gente se devuelven los HORARIOS de sus vuelos.
+     *
+     * Son varias líneas por vuelo y hasta dos vuelos por persona. Preguntar por alguien concreto
+     * y recibirlos es lo que se quiere; recibir los de veinte es volver a inflar el turno.
+     */
+    private const int MAX_CON_HORARIOS = 4;
+
     /** Los ejes por los que se puede desglosar. Lista blanca: se valida ANTES de contar. */
     private const array EJES_AGRUPABLES = ['grupo', 'habitacion', 'vuelo', 'rol', 'servicio'];
 
@@ -75,7 +83,9 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
     public function definicion(): SkillDefinition
     {
         return new SkillDefinition(
-            descripcion: 'Consulta el padrón (name list) de un expediente de grupo y responde '
+            descripcion: 'Consulta el padrón (name list) de un expediente de grupo. Responde por '
+                . 'UNA PERSONA —«¿quién es Fabio Latorre?», «¿en qué habitación está Susan?», «el '
+                . 'pasaporte de Santiago»— con el parámetro `persona`, y también '
                 . 'quién cumple una condición: quiénes están en un subgrupo («el grupo 6», «la '
                 . 'habitación HA13», «los de Arajet»), quiénes llevan un servicio y —muy '
                 . 'importante— quiénes NO lo llevan, quiénes tienen un rol concreto, y quiénes '
@@ -92,6 +102,14 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             parametros: [
                 SkillParameter::texto('expediente', 'Localizador exacto del expediente, tal como '
                     . 'lo devolvió buscar_expediente. Ejemplo: «5SRAJV».'),
+                SkillParameter::texto('persona', 'Nombre, apellido o número de documento de UNA '
+                    . 'persona. Úsalo cuando pregunten por alguien concreto: «¿quién es Fabio '
+                    . 'Latorre?», «el pasaporte de Santiago», «en qué habitación está Susan», «los '
+                    . 'vuelos de Santiago Gómez». Aguanta el orden cambiado, las tildes y los '
+                    . 'nombres a medias. Cuando lo usas y sale poca gente, cada uno viene con sus '
+                    . 'vuelos COMPLETOS: tramo, aerolínea, localizador y los horarios de ida y '
+                    . 'retorno.',
+                    requerido: false),
                 SkillParameter::texto('subgrupo', 'Un subgrupo concreto: «6», «Grupo 6», «HA13», '
                     . '«IFBI5Q» o el nombre de la aerolínea «Arajet». Si el mismo valor existe en '
                     . 'dos ejes te lo diré para que preguntes cuál.', requerido: false),
@@ -190,12 +208,13 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             }
         }
 
+        $persona = trim((string) ($entrada['persona'] ?? ''));
         $negar = (bool) ($entrada['negar_servicio'] ?? false);
         $rol = $this->rolPedido($entrada);
         $documentos = mb_strtolower(trim((string) ($entrada['documentos'] ?? '')));
 
         $cumplen = array_values(array_filter($gente, function (CotizacionFilepasajero $p) use (
-            $grupos, $servicio, $negar, $rol, $documentos
+            $grupos, $servicio, $negar, $rol, $documentos, $persona
         ): bool {
             if ($grupos !== null && !$this->perteneceAAlguno($p, $grupos)) {
                 return false;
@@ -212,6 +231,10 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
                 return false;
             }
 
+            if ($persona !== '' && !$this->esEstaPersona($p, $persona)) {
+                return false;
+            }
+
             return $documentos === '' || in_array($documentos, $this->estadoDocumental($p), true);
         }));
 
@@ -220,7 +243,7 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             'localizador' => $file->getLocalizadorPublico(),
             'total_considerado' => count($gente),
             'cumplen' => count($cumplen),
-            'filtro' => $this->describirFiltro($grupos, $servicio, $negar, $rol, $documentos),
+            'filtro' => $this->describirFiltro($persona, $grupos, $servicio, $negar, $rol, $documentos),
         ];
 
         if (!$incluirNoParticipa) {
@@ -295,7 +318,14 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
         usort($cumplen, static fn (CotizacionFilepasajero $a, CotizacionFilepasajero $b): int
             => strcmp((string) $a->getApellido(), (string) $b->getApellido()));
 
-        $salida['personas'] = array_map($this->describirPersona(...), array_slice($cumplen, 0, self::MAX_NOMBRES));
+        // Con `persona` la pregunta es sobre alguien concreto, así que se dan los horarios de sus
+        // vuelos enteros. Sin él es un listado y se quedan en aerolínea + localizador.
+        $conHorarios = $persona !== '' && count($cumplen) <= self::MAX_CON_HORARIOS;
+
+        $salida['personas'] = array_map(
+            fn (CotizacionFilepasajero $p): array => $this->describirPersona($p, $conHorarios),
+            array_slice($cumplen, 0, self::MAX_NOMBRES),
+        );
 
         if (count($cumplen) > self::MAX_NOMBRES) {
             $salida['y_mas'] = count($cumplen) - self::MAX_NOMBRES;
@@ -393,6 +423,36 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
         }
 
         return trim($eje.' '.$clave.' '.$nombre);
+    }
+
+    /**
+     * ¿Es esta la persona que buscan?
+     *
+     * ⚠️ Por TODAS las palabras sueltas, no por la cadena entera. «Fabio Latorre» no aparece
+     * literal en ningún sitio: el nombre guardado es «Henry Fabio Israel» y el apellido «Latorre
+     * Garcia». Buscando la cadena completa no se encuentra a nadie, que es lo que pasaba —y el
+     * modelo entonces reintenta metiendo el nombre en `subgrupo`, que devuelve «no existe» con las
+     * opciones, y vuelta a empezar: seis llamadas y ninguna respuesta.
+     *
+     * Se exige que estén TODAS las palabras, en cualquier orden y en cualquier campo. Así «Latorre
+     * Fabio» y «fabio latorre» encuentran al mismo, y «Santiago» solo devuelve los cuatro que hay
+     * —que es correcto: son cuatro, y el modelo debe preguntar cuál—.
+     */
+    private function esEstaPersona(CotizacionFilepasajero $pasajero, string $buscado): bool
+    {
+        $pajar = $this->comparable($pasajero->getNombre().' '.$pasajero->getApellido());
+
+        foreach ($pasajero->getIdentificaciones() as $doc) {
+            $pajar .= ' '.$this->comparable($doc->getNumero());
+        }
+
+        foreach (preg_split('/\s+/u', $this->comparable($buscado)) ?: [] as $palabra) {
+            if ($palabra !== '' && !str_contains($pajar, $palabra)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -531,7 +591,7 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
     }
 
     /** @return array<string, mixed> */
-    private function describirPersona(CotizacionFilepasajero $p): array
+    private function describirPersona(CotizacionFilepasajero $p, bool $conHorarios = false): array
     {
         $documentos = [];
         foreach ($p->getIdentificaciones() as $doc) {
@@ -543,11 +603,31 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             ));
         }
 
+        // Los vuelos van aparte de los demás subgrupos: son lo que más se pregunta de una persona
+        // y meterlos en la misma lista los entierra entre habitaciones y servicios.
         $subgrupos = [];
+        $vuelos = [];
         foreach ($p->grupos() as $g) {
-            if ($g->getTipo() !== GrupoTipoEnum::SERVICIO) {
-                $subgrupos[] = trim($g->getEtiquetaDeEje().' '.$g->getClave().' '.($g->getNombre() ?? ''));
+            if ($g->getTipo() === GrupoTipoEnum::SERVICIO) {
+                continue;
             }
+
+            if ($g->getTipo()?->esReservaAerea()) {
+                $vuelo = array_filter([
+                    'tramo' => trim(str_ireplace('vuelo', '', $g->getEtiquetaDeEje())) ?: 'Vuelo',
+                    'aerolinea' => $g->getNombre(),
+                    'localizador' => $g->getClave(),
+                    // ⚠️ Los HORARIOS sólo cuando preguntan por alguien concreto. Son varias líneas
+                    // por vuelo: en una lista de 40 personas son miles de tokens que nadie pidió, y
+                    // volverían a inflar el turno que tanto costó adelgazar.
+                    'horarios' => $conHorarios ? $g->getDetalle() : null,
+                ], static fn (mixed $v): bool => $v !== null && $v !== '');
+
+                $vuelos[] = $vuelo;
+                continue;
+            }
+
+            $subgrupos[] = trim($g->getEtiquetaDeEje().' '.$g->getClave().' '.($g->getNombre() ?? ''));
         }
 
         return array_filter([
@@ -556,6 +636,7 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             'edad' => $p->getEdad(),
             'telefono' => $p->getTelefono(),
             'documentos' => $documentos,
+            'vuelos' => $vuelos,
             'subgrupos' => $subgrupos,
         ], static fn (mixed $v): bool => $v !== null && $v !== '' && $v !== []);
     }
@@ -613,6 +694,7 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
 
     /** @param list<CotizacionFileGrupo>|null $grupos */
     private function describirFiltro(
+        string $persona,
         ?array $grupos,
         ?CotizacionFileGrupo $servicio,
         bool $negar,
@@ -620,6 +702,10 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
         string $documentos,
     ): string {
         $partes = [];
+
+        if ($persona !== '') {
+            $partes[] = 'persona «'.$persona.'»';
+        }
 
         if ($grupos !== null) {
             $partes[] = 'en '.implode(' o ', array_map(

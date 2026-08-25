@@ -326,7 +326,7 @@ y por dónde vive es mensajería.
 | | |
 |---|---|
 | `buscar_expediente` | Encuentra el file por localizador o nombre, y devuelve **el mapa**: los ejes que tiene, algunos valores de cada uno, y los servicios |
-| `consultar_padron` | Responde «quiénes están en el grupo 6», «quiénes NO llevan vuelo nacional», «cuántos tienen el pasaporte vencido» |
+| `consultar_padron` | Responde «quiénes están en el grupo 6», «quiénes NO llevan vuelo nacional», «cuántos tienen el pasaporte vencido», «los vuelos de Santiago Gómez» |
 
 ### Por qué son dos y no una
 
@@ -413,6 +413,49 @@ síntoma no es un error: es una factura.
 HA13», la skill devolvía «no existe» con las opciones, y el modelo reintentaba con otra variante —
 cada reintento, una vuelta entera con 15 000 tokens de catálogo detrás.
 
+### ⚠️ `persona`: buscar por nombre, y por qué el recorte lo hacía falta
+
+**Sin este parámetro, la skill no sabía buscar a nadie.** El 24/08/2026, en producción, preguntar
+por «Santiago Gómez» funcionaba y preguntar por «Fabio Latorre» contestaba que no estaba. No era
+un fallo de nombres: no había búsqueda. El modelo pedía el listado y leía los 40 nombres que
+caben en `MAX_NOMBRES`, ordenados por apellido:
+
+```
+Gomez Acuña, Santiago      posición  4 de 131   → dentro del recorte, lo encuentra
+Latorre Garcia, Henry …    posición 66 de 131   → fuera del recorte, «no está»
+```
+
+Un recorte necesario (arriba) produce, sin una forma de buscar, la peor respuesta posible: **una
+negativa rotunda sobre alguien que sí figura**. Y encima cara — cada intento es una vuelta con el
+catálogo detrás, que es lo que hacía que además fuera lento.
+
+`persona` casa **palabra por palabra contra el nombre completo y los documentos**, sin tildes y
+sin orden: `Fabio Latorre`, `latorre fabio`, `Santiago` (devuelve 6) y `24991600` encuentran. Es
+deliberadamente laxo: quien pregunta escribe el nombre como lo recuerda, y una coincidencia de más
+la desempata el modelo enseñando la lista; una de menos vuelve a ser la negativa falsa.
+
+### Los vuelos: aparte de los subgrupos, y con horarios sólo si preguntas por alguien
+
+`describirPersona()` saca las reservas aéreas de la lista plana de `subgrupos` a un array `vuelos`
+propio, con `tramo`, `aerolinea`, `localizador` y —condicionalmente— `horarios`, que es el
+`detalle` del grupo (`CotizacionFileGrupo::getDetalle()`, Markdown de varias líneas):
+
+```
+vuelos: [{tramo: Nacional,      aerolinea: JetSMART,      localizador: QYLS7T,
+          horarios: "* Ida JA7018 · CUZ 17/09 07:15 → LIM 17/09 08:55
+                     * Retorno JA7041 · LIM 24/09 18:20 → CUZ 24/09 19:40"}, …]
+```
+
+⚠️ **Los horarios sólo salen con `persona` y con `MAX_CON_HORARIOS` (4) o menos personas.** Son
+dos vuelos por cabeza y varias líneas cada uno: en un listado de 40 son miles de tokens que nadie
+pidió, y volverían a inflar el turno que `agrupar_por` acaba de adelgazar. Medido: la misma
+consulta pesa **969 bytes** para una persona con horarios y **3 800** para nueve sin ellos.
+
+⚠️ **La palabra es «vuelos» y «horarios», nunca «itinerario».** Está reservada para el itinerario
+de `src/Travel/`, que es otra cosa —los segmentos del viaje— y va a tener su propia skill. Dos
+herramientas que se anuncian con la misma palabra es un modelo eligiendo la equivocada la mitad de
+las veces.
+
 ### ⚠️ Todo lo que se devuelve va recortado, y con su total
 
 Un padrón de colegio son 133 personas, 66 habitaciones y 23 localizadores. Volcarlos es media
@@ -428,6 +471,9 @@ así que contarlos infla cualquier respuesta sobre cuánta gente va.
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
 | Añadir una herramienta nueva | `src/Agent/Skill/**` | implementar `SkillInterface`; se autolocaliza |
+| Cambiar qué se devuelve de una persona del padrón | `src/Agent/Skill/Cotizacion/ConsultarPadronSkill.php` | `describirPersona()` |
+| Cambiar cuánta gente recibe los horarios de sus vuelos | idem | `MAX_CON_HORARIOS` |
+| Cambiar cómo se casa un nombre buscado | idem | `esEstaPersona()` / `comparable()` |
 | Añadir una acción a una regla de intención | `src/Agent/Action/**` | implementar `BotActionHandlerInterface`; recibe **id + `ParametrosDeAccion`**, nunca la entidad |
 | Que una skill sólo exista para un negocio | la propia skill | `SkillDominioInterface::dominios()` — **lista vacía = sin acotar** |
 | Cambiar qué puede hacer un actor | `src/Agent/Access/AgentActor.php` | el constructor nombrado que le toque |
