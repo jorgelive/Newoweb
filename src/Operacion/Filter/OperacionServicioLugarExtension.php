@@ -29,6 +29,17 @@ use Symfony\Component\Uid\Uuid;
  *
  * Es un filtro **vivo**, no un snapshot: re-etiquetar un componente en el catálogo se refleja
  * en el siguiente clic sin re-aplicar nada. Por eso NO se cachea la resolución.
+ *
+ * ## Los componentes MANUALES traen las suyas puestas
+ *
+ * Un componente tecleado a mano no tiene maestro al que preguntarle, así que sus ubicaciones
+ * viven en `CotizacionCotcomponente::$lugaresManuales` — una lista de uuids en la propia fila.
+ * Son excluyentes con el maestro por construcción (lo garantizan los setters de la entidad),
+ * así que aquí no hay que desempatar: se preguntan las dos y se juntan con OR.
+ *
+ * Eso obliga a cruzar la columna JSON desde DQL, con `JSON_CONTAINS`/`JSON_LENGTH` registradas
+ * en `config/packages/doctrine.yaml`. Es la alternativa barata a montar una tabla de relación
+ * hacia el catálogo, que es justo lo que este módulo no quiere tener.
  */
 final class OperacionServicioLugarExtension implements QueryCollectionExtensionInterface
 {
@@ -91,34 +102,55 @@ final class OperacionServicioLugarExtension implements QueryCollectionExtensionI
                 $param = $queryNameGenerator->generateParameterName('lugarMaestroIds');
                 $condiciones[] = sprintf('%s.componenteMaestroId IN (:%s)', $joinAlias, $param);
                 $queryBuilder->setParameter($param, $maestroIds);
-            } elseif (!$quiereSinLugar) {
-                // Lugar existente pero sin ningún componente etiquetado todavía.
-                $queryBuilder->andWhere('1 = 0');
+            }
 
-                return;
+            // Y los manuales, que llevan sus uuids en la propia fila. Uno por uuid porque
+            // `JSON_CONTAINS` compara contra UN candidato: con la lista entera preguntaría por
+            // los que los tienen TODOS, y aquí varios lugares se combinan en OR.
+            foreach ($uuids as $i => $uuid) {
+                $param = $queryNameGenerator->generateParameterName('lugarManual_' . $i);
+                $condiciones[] = sprintf('JSON_CONTAINS(%s.lugaresManuales, :%s) = 1', $joinAlias, $param);
+                // El candidato viaja como JSON, no como texto pelado: `JSON_CONTAINS(x, 'abc')`
+                // es un error de sintaxis JSON, y las comillas son parte del valor.
+                $queryBuilder->setParameter($param, json_encode($uuid->toRfc4122()));
             }
         }
 
         if ($quiereSinLugar) {
             $etiquetados = $this->componentesEtiquetados();
 
+            // Un componente MANUAL con ubicaciones propias ya no es «sin etiqueta»: sale en su
+            // lugar y no aquí. Antes caían todos en este chip por no tener maestro, que era el
+            // único sitio donde mirar.
+            $manualSinEtiqueta = sprintf(
+                '(%1$s.componenteMaestroId IS NULL AND JSON_LENGTH(%1$s.lugaresManuales) = 0)',
+                $joinAlias
+            );
+
             if ($etiquetados) {
                 $param = $queryNameGenerator->generateParameterName('lugarEtiquetados');
                 $condiciones[] = sprintf(
-                    '(%1$s.componenteMaestroId IS NULL OR %1$s.componenteMaestroId NOT IN (:%2$s))',
+                    '(%1$s OR (%2$s.componenteMaestroId IS NOT NULL AND %2$s.componenteMaestroId NOT IN (:%3$s)))',
+                    $manualSinEtiqueta,
                     $joinAlias,
                     $param
                 );
                 $queryBuilder->setParameter($param, $etiquetados);
             } else {
-                // Nadie está etiquetado todavía: «sin etiqueta» es todo.
-                $condiciones[] = '1 = 1';
+                // Nadie está etiquetado en el catálogo: «sin etiqueta» es todo lo que venga de
+                // él, más los manuales que no se hayan puesto ubicación.
+                $condiciones[] = sprintf(
+                    '(%1$s OR %2$s.componenteMaestroId IS NOT NULL)',
+                    $manualSinEtiqueta,
+                    $joinAlias
+                );
             }
         }
 
-        if ($condiciones) {
-            $queryBuilder->andWhere(implode(' OR ', $condiciones));
-        }
+        // Siempre hay al menos una condición aquí: con uuids entra la rama de los manuales —una
+        // por uuid, tenga o no el catálogo algo etiquetado— y «sin etiqueta» añade la suya. El
+        // caso de quedarse sin ninguna lo corta el `1 = 0` de arriba, antes de llegar.
+        $queryBuilder->andWhere(implode(' OR ', $condiciones));
     }
 
     /**

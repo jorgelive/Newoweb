@@ -66,7 +66,7 @@
             class="px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-start justify-between gap-2"
             :class="[
             darkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-50 text-slate-700',
-            modelValue === opt.value ? (darkMode ? 'bg-orange-500/10 text-orange-400 font-black' : 'bg-orange-50 text-orange-600 font-black') : ''
+            estaSeleccionada(opt.value) ? (darkMode ? 'bg-orange-500/10 text-orange-400 font-black' : 'bg-orange-50 text-orange-600 font-black') : ''
           ]"
         >
           <span class="min-w-0 flex-1">
@@ -89,7 +89,7 @@
                         : 'bg-slate-100 text-slate-600 border-slate-200'">{{ dato }}</span>
             </span>
           </span>
-          <i v-if="modelValue === opt.value" class="fas fa-check text-[10px] mt-1 shrink-0"></i>
+          <i v-if="estaSeleccionada(opt.value)" class="fas fa-check text-[10px] mt-1 shrink-0"></i>
         </li>
         <!--
           Distinguir «aún no he buscado» de «no hay nada» importa: con el mensaje único,
@@ -119,7 +119,8 @@ import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue';
 type OpcionValor = string | number | null | undefined;
 
 const props = withDefaults(defineProps<{
-  modelValue: OpcionValor;
+  /** Un valor, o una lista de valores cuando `multiple`. */
+  modelValue: OpcionValor | OpcionValor[];
   /**
    * `sublabel` es opcional y sólo pinta una segunda línea bajo el nombre. Existe porque
    * las tarifas necesitaban meter proveedor, procedencia y edad en una sola cadena y se
@@ -147,6 +148,15 @@ const props = withDefaults(defineProps<{
    * desvincular es una operación legítima, como el insumo maestro de un componente.
    */
   limpiable?: boolean;
+  /**
+   * Selección MÚLTIPLE: `modelValue` pasa a ser una lista y cada clic añade o quita, sin cerrar
+   * la lista — elegir tres ubicaciones seguidas es el caso normal, y cerrar entre una y otra
+   * obliga a reabrir y a volver a buscar.
+   *
+   * Opt-in para no tocar las instancias que ya existen: sin esta bandera el componente se
+   * comporta exactamente igual que antes, con un valor suelto.
+   */
+  multiple?: boolean;
 }>(), {
   placeholder: '',
   darkMode: false,
@@ -155,6 +165,7 @@ const props = withDefaults(defineProps<{
   errorMessage: '',
   minCharsBusqueda: 0,
   limpiable: false,
+  multiple: false,
 });
 
 const emit = defineEmits(['update:modelValue', 'change', 'search', 'blur']);
@@ -241,7 +252,21 @@ watch(searchQuery, (newVal) => {
   }, 300);
 });
 
-const isEmpty = computed(() => props.modelValue === '' || props.modelValue === null || props.modelValue === undefined);
+/**
+ * La selección SIEMPRE como lista, sea cual sea el modo. Así el resto del componente no repite
+ * el `if (multiple)` en cada sitio, que es donde se colaba la diferencia de comportamiento.
+ */
+const seleccion = computed<OpcionValor[]>(() => {
+  if (Array.isArray(props.modelValue)) return props.modelValue;
+
+  return props.modelValue === '' || props.modelValue === null || props.modelValue === undefined
+    ? []
+    : [props.modelValue];
+});
+
+const estaSeleccionada = (valor: OpcionValor): boolean => seleccion.value.includes(valor);
+
+const isEmpty = computed(() => seleccion.value.length === 0);
 
 /**
  * Vacía la selección.
@@ -253,8 +278,9 @@ const isEmpty = computed(() => props.modelValue === '' || props.modelValue === n
  */
 const limpiar = (): void => {
   touched.value = true;
-  emit('update:modelValue', null);
-  emit('change', null);
+  const vacio = props.multiple ? [] : null;
+  emit('update:modelValue', vacio);
+  emit('change', vacio);
 };
 
 // Muestra error si: el padre lo fuerza (invalid) o es required, está vacío y ya fue tocado
@@ -280,14 +306,35 @@ const close = () => {
 };
 
 const select = (opt: { value: OpcionValor; label: string; sublabel?: string }) => {
+  touched.value = true;
+
+  // En múltiple el clic ALTERNA y la lista se queda abierta: es una selección de varias, y
+  // cerrarla tras cada una obligaría a reabrir y volver a buscar por cada ubicación.
+  if (props.multiple) {
+    const actuales = seleccion.value;
+    const nuevas = estaSeleccionada(opt.value)
+      ? actuales.filter(v => v !== opt.value)
+      : [...actuales, opt.value];
+
+    emit('update:modelValue', nuevas);
+    emit('change', nuevas);
+
+    return;
+  }
+
   emit('update:modelValue', opt.value);
   emit('change', opt.value);
-  touched.value = true;
   close();
 };
 
 const selectedLabel = computed(() => {
-  return props.options.find(o => o.value === props.modelValue)?.label || '';
+  // Los NOMBRES, no «3 seleccionadas»: el disparador es lo único que se ve con la lista
+  // cerrada, y un contador obliga a abrirla para saber qué hay dentro. Si no caben, el
+  // `truncate` del disparador los corta — verlos a medias sigue diciendo más que contarlos.
+  return seleccion.value
+    .map(v => props.options.find(o => o.value === v)?.label)
+    .filter((l): l is string => !!l)
+    .join(', ');
 });
 
 /** Se escribió algo, pero aún no lo suficiente para que el padre busque de verdad. */

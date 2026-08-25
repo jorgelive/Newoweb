@@ -16,6 +16,12 @@ doctrine:
             datetime_functions:
                 date_format: DoctrineExtensions\Query\Mysql\DateFormat
                 date: DoctrineExtensions\Query\Mysql\Date
+            # Para filtrar columnas JSON desde DQL, que no las entiende de fábrica. Lo usa
+            # `OperacionServicioLugarExtension` sobre `cotizacion_cotcomponente.lugares_manuales`:
+            # las ubicaciones de un componente manual son una lista de uuids, no una relación.
+            numeric_functions:
+                json_contains: DoctrineExtensions\Query\Mysql\JsonContains
+                json_length: DoctrineExtensions\Query\Mysql\JsonLength
         auto_generate_proxy_classes: true
         naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
         auto_mapping: true

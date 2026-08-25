@@ -1689,6 +1689,31 @@ relación con Travel, sólo el soft-link escalar `CotizacionCotcomponente::$comp
 2. **Resolver lugar → ids de componente maestro** con una consulta a Travel.
 3. **Aplicar** un `IN (...)` sobre el soft-link.
 
+#### Y una segunda fuente: los componentes MANUALES (25/08/2026)
+
+Un componente tecleado a mano no tiene maestro al que preguntarle, así que sus ubicaciones viven
+en su propia fila: `CotizacionCotcomponente::$lugaresManuales`, una lista JSON de uuids (ver
+`docs/Cotizaciones.md` §«Las ubicaciones de un componente manual»). El filtro pregunta a las dos
+y las junta con **OR**:
+
+```sql
+componente_maestro_id IN (:ids del catálogo)      -- los de catálogo
+OR JSON_CONTAINS(lugares_manuales, '"<uuid>"')    -- una por uuid pedido
+```
+
+**Una condición `JSON_CONTAINS` por uuid, no una con la lista entera**: con la lista preguntaría
+por los que los tienen **todos**, y aquí varios lugares se combinan en OR. El candidato viaja
+como JSON (`json_encode()`), no como texto pelado — `JSON_CONTAINS(x, 'abc')` es un error de
+sintaxis JSON y las comillas son parte del valor.
+
+`JSON_CONTAINS` y `JSON_LENGTH` están registradas como funciones DQL en
+`config/packages/doctrine.yaml` (`beberlei/doctrineextensions`): Doctrine no entiende columnas
+JSON de fábrica. Es la alternativa barata a montar una tabla de relación hacia el catálogo, que
+es justo lo que este módulo no quiere tener.
+
+⚠️ **No hay que desempatar entre las dos fuentes.** Son excluyentes por construcción: la entidad
+vacía las manuales al vincular un maestro, y no deja escribirlas mientras haya uno.
+
 ⚠️ **La conversión de identificadores es donde falla.** `travel_componente.id` es `BINARY(16)`
 y `componente_maestro_id` es `VARCHAR(36)` en minúsculas —tal como lo escribe `extractIdStr()`
 del store—. Según cómo vuelva la consulta, el id llega como objeto `Uuid`, como cadena o como
@@ -1699,10 +1724,17 @@ El índice `idx_cotcomponente_maestro` sobre `cotizacion_cotcomponente (componen
 no es opcional: es la columna contra la que se lanza el `IN`, y sin él cada clic en un chip
 provoca un full scan.
 
-**El chip «Sin etiqueta»** (`lugar[]=__sin_lugar__`) añade en OR los componentes cuyo
-soft-link es `NULL` o **no está en la lista de los etiquetados**. Recoge lo tecleado a mano y
-los soft-links rotos, y es la diferencia entre un filtro fiable y uno que esconde cosas: sin
-él, la suma de todos los chips no da el total y nadie sabe qué falta.
+**El chip «Sin etiqueta»** (`lugar[]=__sin_lugar__`) recoge lo que no cae en ningún lugar, y
+desde el 25/08/2026 son dos casos y no uno:
+
+- soft-link **puesto** pero fuera de la lista de los etiquetados (maestro sin etiquetar), y
+- soft-link **`NULL` Y `JSON_LENGTH(lugares_manuales) = 0`** — un manual sin ubicación puesta.
+
+⚠️ La segunda condición es la que cambió. Antes bastaba con no tener maestro, así que **todos**
+los manuales caían aquí; ahora el que tiene ubicación sale en su lugar y no en este chip.
+
+Es la diferencia entre un filtro fiable y uno que esconde cosas: sin este chip, la suma de todos
+los chips no da el total y nadie sabe qué falta.
 
 **No se cachea la resolución lugar → componentes.** La caché es justo lo que rompería el
 etiquetado vivo (`docs/Travel.md` §8): renombrar o reetiquetar tiene que verse en el
@@ -1746,6 +1778,14 @@ distintos de las filas cargadas y se hace **una sola** llamada a
 `/platform/travel/componentes?id[]=…&pagination=false`. Los `lugares` llegan como IRIs y se
 traducen a nombre contra el vocabulario que ya se cargó para los chips — una consulta por carga
 del cuadro, no una por fila.
+
+`lugaresDeServicio()` mira **dos fuentes y no las mezcla**: con maestro, las del catálogo recién
+resueltas; sin él, los uuids de `lugaresManuales` traducidos contra ese mismo vocabulario.
+
+
+⚠️ **El vocabulario se carga aunque no haya ni un componente de catálogo.** El corte por «no hay
+maestros que resolver» dejaba en blanco un cuadro entero de filas manuales que sí tenían
+ubicación: sin vocabulario no hay con qué traducir sus uuids a nombre.
 
 **Agrupación:** por día. Dentro del día manda la hora; los servicios sin hora se empujan al final
 ordenados por `prioridadOperativa` (guiado/transporte antes que tickets), porque un cuadro de
@@ -1928,6 +1968,7 @@ cotizado, no contra la venta real.
 | Cambiar cuándo una orden cuenta como saldada | `src/Operacion/Entity/OperacionOrdenServicio.php` | `isSaldada()` — derivado, **no** es un estado de `estadoOs` |
 | Cambiar cómo se filtra por centro turístico | `src/Operacion/Filter/OperacionServicioLugarExtension.php` | `applyToCollection()` |
 | Cambiar qué recoge el chip «Sin etiqueta» | `src/Operacion/Filter/OperacionServicioLugarExtension.php` | `SIN_LUGAR` |
+| Cambiar de dónde salen las ubicaciones de un componente manual | `src/Cotizacion/Entity/CotizacionCotcomponente.php` | `$lugaresManuales` — y el filtro de arriba, que las cruza |
 | Cambiar qué dispara la generación | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `onFlush()` (el `match` de estados) |
 | Cambiar qué se copia al snapshot | `src/Operacion/Service/BibliaSnapshotService.php` | `generarParaCotizacion()` |
 | **De dónde sale el expediente de la fila** (§3.7) | mismo archivo | `resolverFile()` — y la guarda de raíz en `Cotizacion::setFile()` |

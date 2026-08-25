@@ -1096,9 +1096,50 @@ tipo los pone el maestro; a mano se escriben.
 - El conmutador **no sale** si el componente vino inyectado desde un segmento: ahí no se elige
   nada, y ofrecerlo sería mentir.
 
-Los dos campos exclusivos del manual —nombre interno y Categoría Operativa— se muestran por
-`esManual`, **no** por «no tiene maestro»: en modo catálogo sin insumo todavía elegido, ofrecerlos
-sería ofrecer campos que el maestro va a pisar en cuanto se elija.
+Los tres campos exclusivos del manual —nombre interno, Categoría Operativa y **Ubicaciones**— se
+muestran por `esManual`, **no** por «no tiene maestro»: en modo catálogo sin insumo todavía
+elegido, ofrecerlos sería ofrecer campos que el maestro va a pisar en cuanto se elija.
+
+#### Las ubicaciones de un componente manual (25/08/2026)
+
+Las ubicaciones —Lima, Ica, Cusco— son de `TravelLugar` y en el catálogo cuelgan del componente
+maestro (`TravelComponente::$lugares`, tabla `travel_componente_lugar_pool`). La cotización **no
+las congelaba**: guarda `componenteMaestroId` y quien las necesita las resuelve **en vivo**
+pidiendo el maestro por id. Es deliberado —re-etiquetar en el catálogo se refleja en el siguiente
+clic—, pero dejaba a los manuales sin ninguna: no tienen a quién preguntarle, y salían en blanco
+en el cuadro de tráfico.
+
+Ahora las escriben ellos, en `CotizacionCotcomponente::$lugaresManuales`: una columna **JSON con
+uuids** de `TravelLugar` en RFC 4122 minúsculas, el mismo formato que `componenteMaestroId`.
+Columna y no relación **a propósito**: Operaciones no tiene ni una relación Doctrine hacia el
+catálogo —borrar un lugar no debe arrastrar historial— y meter la primera aquí abriría esa puerta
+por detrás.
+
+⚠️ **UNA fuente de la verdad, garantizada en la entidad y no en el formulario.** Los dos no
+conviven:
+
+| Camino | Qué pasa |
+|---|---|
+| `setComponenteMaestroId(<id>)` | **Vacía** `lugaresManuales`: a partir de ahí las pone el catálogo |
+| `setLugaresManuales([...])` con maestro puesto | Se ignora en silencio, no revienta |
+
+Los dos caminos convergen, **llegue el payload en el orden que llegue** — que es justo por lo que
+la regla vive en la entidad. Se ignora en silencio y no con un 400 porque quien manda el payload
+no está haciendo nada malo: el editor limpia el campo al vincular, y un error rompería un guardado
+entero por un dato que sobra. Verificado sobre datos reales con
+`var/probar-lugares-manuales.php` (transacción con rollback), en los dos órdenes.
+
+El setter además **normaliza**: a minúsculas, sin duplicados y descartando lo que no sea un uuid.
+Es el formato con el que compara el filtro del cuadro de tráfico, y un uuid en mayúsculas no
+casaría con nada — en silencio, que es la peor forma de no casar.
+
+En el front, `onComponenteMaestroChange()` las limpia también al vincular. No es redundante con el
+backend: es para que el operador lo **vea** en el acto y no se entere al recargar.
+
+⚠️ Desvincular el maestro **no las devuelve**: nunca fueron suyas. El editor las vuelve a pedir a
+mano, que es lo correcto.
+
+El consumidor está en Operaciones: `docs/Operacion.md` §«Etiquetas de lugar».
 
 #### El insumo se puede soltar
 
@@ -1108,6 +1149,25 @@ en cascada, y desvincular tiene que dispararlos igual que vincular—.
 
 ⚠️ Es **opt-in**. La mayoría de estos selectores son obligatorios —un servicio maestro, una
 moneda— y ahí un botón de limpiar sólo sirve para dejar el formulario inválido.
+
+#### Y se puede elegir VARIOS (25/08/2026)
+
+`SearchableSelect` gana una prop **`multiple`**, también opt-in: con ella `modelValue` es una
+**lista** y cada clic añade o quita. La usa el selector de ubicaciones.
+
+Tres decisiones que no son cosméticas:
+
+- **La lista NO se cierra al elegir.** Elegir tres ubicaciones seguidas es el caso normal, y
+  cerrarla entre una y otra obliga a reabrir y a volver a buscar.
+- **El disparador enseña los NOMBRES, no «3 seleccionadas».** Con la lista cerrada es lo único
+  que se ve; un contador obliga a abrirla para saber qué hay dentro. Si no caben, el `truncate`
+  los corta — verlos a medias sigue diciendo más que contarlos.
+- **Internamente todo es una lista**, en los dos modos (`seleccion`), y sólo `select()` y
+  `limpiar()` se bifurcan. Repetir el `if (multiple)` en cada sitio es donde se cuela la
+  diferencia de comportamiento entre uno y otro modo.
+
+Sin la bandera el componente se comporta **exactamente** como antes, con un valor suelto: las
+instancias que ya existen no se tocan.
 
 ### El nombre INTERNO, que el componente no tenía
 

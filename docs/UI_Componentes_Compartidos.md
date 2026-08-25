@@ -268,6 +268,18 @@ Detalles que no se ven leyendo el componente:
   efectos en cascada —recargar tarifas, resetear el prestador—, y desvincular tiene que dispararlos
   igual que vincular. Y el botón lleva `@click.stop`, porque el disparador entero es el que abre la
   lista: sin él, limpiar la abriría acto seguido.
+- **`multiple` — elegir varios** (2026-08-25). También opt-in: con la bandera, `modelValue` es una
+  **lista** y cada clic añade o quita. Sin ella el componente se comporta exactamente como antes,
+  con un valor suelto — las instancias existentes no se tocan. Hoy la usa el selector de
+  ubicaciones de un componente manual de cotización.
+  - **La lista NO se cierra al elegir.** Elegir tres seguidas es el caso normal, y cerrarla entre
+    una y otra obliga a reabrir y a volver a buscar.
+  - **El disparador enseña los NOMBRES, no «3 seleccionadas».** Con la lista cerrada es lo único
+    que se ve; un contador obliga a abrirla para saber qué hay dentro. Si no caben, el `truncate`
+    los corta — verlos a medias sigue diciendo más que contarlos.
+  - **Dentro, la selección es SIEMPRE una lista** (`seleccion`), en los dos modos; sólo `select()`
+    y `limpiar()` se bifurcan. Repetir el `if (multiple)` por todo el componente es donde se cuela
+    la diferencia de comportamiento entre un modo y el otro.
 - **El cierre por clic fuera escucha en `document` con `capture: true`.** Las vistas de
   calendario montan overlays a pantalla completa que se tragan el clic antes de que burbujee;
   sin la fase de captura el panel se quedaba abierto detrás de ellos.

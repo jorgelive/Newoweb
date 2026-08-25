@@ -410,6 +410,19 @@ const opcionesComponentes = computed(() => {
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
 
+/**
+ * Ubicaciones para el selector de un componente MANUAL.
+ *
+ * Del vocabulario entero de `TravelLugar`, sin filtrar por nada: quien teclea un traslado a un
+ * fundo elige la ciudad desde la que se opera, y acotar la lista a «los lugares que ya usa el
+ * catálogo» escondería justo la que hace falta.
+ */
+const opcionesLugares = computed(() =>
+    store.catalogos.lugares
+        .map(l => ({ value: l.id, label: l.nombre }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'es'))
+);
+
 const opcionesTarifas = computed(() => {
   return store.catalogos.tarifas
       .map(t => ({
@@ -2248,6 +2261,33 @@ store.$onAction(({ name, args }) => {
                 </select>
                 <p class="text-[10px] font-bold text-slate-400 mt-1.5 ml-1">
                   Decide si el componente lleva hora y si aporta punto de recojo y entrega.
+                </p>
+              </div>
+
+              <!-- ── Ubicaciones, SÓLO en modo manual ─────────────────────────
+                   Con maestro las pone el catálogo y se resuelven en vivo: re-etiquetar allí se
+                   refleja aquí sin tocar la cotización. Ofrecer el campo también en ese modo
+                   crearía una segunda respuesta a la misma pregunta, y cuál gana dependería de
+                   qué pantalla la haga — por eso vincular un insumo las borra, aquí y en el
+                   backend (`CotizacionCotcomponente::setComponenteMaestroId()`).
+
+                   De esto cuelga que la fila salga etiquetada en el cuadro de tráfico y que la
+                   encuentre el filtro por lugar. Sin ubicación cae en «Sin etiqueta», que es
+                   donde caían TODOS los manuales hasta ahora. -->
+              <div v-if="store.componenteActivo.esManual" class="mt-4">
+                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">
+                  <i class="fas fa-location-dot mr-1"></i> Ubicaciones
+                </label>
+                <SearchableSelect
+                    v-model="store.componenteActivo.lugaresManuales"
+                    :options="opcionesLugares"
+                    placeholder="Buscar ubicación..."
+                    multiple
+                    limpiable
+                />
+                <p class="text-[10px] font-bold text-slate-400 mt-1.5 ml-1">
+                  Desde dónde se opera. Etiqueta la fila en el cuadro de tráfico y la hace
+                  aparecer al filtrar por lugar.
                 </p>
               </div>
             </div>

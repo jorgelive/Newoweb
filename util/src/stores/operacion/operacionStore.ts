@@ -330,7 +330,12 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             if (maestro) ids.add(maestro);
         });
 
+        // El vocabulario hace falta aunque no haya un solo componente de catálogo: los
+        // manuales traen sus uuids en la propia fila y también hay que traducirlos a nombre.
+        // Cortar aquí por «no hay maestros» dejaba en blanco un cuadro entero de filas
+        // manuales que sí tenían ubicación.
         if (!ids.size) {
+            await fetchLugares();
             lugaresPorComponente.value = {};
             return;
         }
@@ -365,12 +370,29 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         }
     };
 
-    /** Etiquetas de una fila del cuadro, ya resueltas a nombre. */
+    /**
+     * Etiquetas de una fila del cuadro, ya resueltas a nombre.
+     *
+     * Dos fuentes, y NO se mezclan: con maestro mandan las del catálogo, resueltas en vivo;
+     * sin él, las que el operador escribió a mano en la cotización (`lugaresManuales`). Son
+     * excluyentes por construcción —la entidad vacía unas al poner el otro—, así que aquí no
+     * hay que desempatar: se mira el maestro y, si no lo hay, la lista propia.
+     */
     const lugaresDeServicio = (servicio: OperacionServicio): string[] => {
-        const maestro = (servicio.cotizacionComponente as { componenteMaestroId?: string } | undefined)
-            ?.componenteMaestroId;
+        const componente = servicio.cotizacionComponente as {
+            componenteMaestroId?: string;
+            lugaresManuales?: string[];
+        } | undefined;
 
-        return maestro ? (lugaresPorComponente.value[maestro] ?? []) : [];
+        if (componente?.componenteMaestroId) {
+            return lugaresPorComponente.value[componente.componenteMaestroId] ?? [];
+        }
+
+        const nombrePorId = new Map(lugares.value.map((l) => [l.id, l.nombre]));
+
+        return (componente?.lugaresManuales ?? [])
+            .map((id) => nombrePorId.get(id) ?? '')
+            .filter(Boolean);
     };
 
     /** Nombre interno del componente de una fila (del maestro), o `null` si no se resolvió. */

@@ -1,4 +1,5 @@
 import { components } from '@/types/api';
+import type { LugarOpcion } from '@/types/organizacionModel';
 
 export enum Language {
     De = "de",
@@ -404,6 +405,14 @@ export interface Catalogos {
     proveedorServicios: OrganizacionServicioOption[];
     tiposComponente: ComponenteTipo[];
     monedas: MaestroMoneda[];
+    /**
+     * Vocabulario de `TravelLugar` —Lima, Ica, Cusco—, para las ubicaciones de un componente
+     * MANUAL. Los de catálogo no lo usan: las suyas las pone el maestro.
+     *
+     * El tipo se importa de `organizacionModel.ts`, donde ya vivía para el selector de
+     * cobertura del proveedor: es el mismo endpoint y la misma forma.
+     */
+    lugares: LugarOpcion[];
 }
 
 

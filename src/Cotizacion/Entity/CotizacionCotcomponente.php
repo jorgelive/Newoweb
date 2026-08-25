@@ -124,6 +124,38 @@ class CotizacionCotcomponente
     private bool $esManual = false;
 
     /**
+     * Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco.
+     *
+     * Uuids de `TravelLugar` en RFC 4122 minúsculas, el mismo formato que `componenteMaestroId`.
+     * Es una columna JSON y no una relación a propósito: Operaciones no tiene ni una relación
+     * Doctrine hacia el catálogo —borrar un lugar no debe arrastrar historial— y meter la
+     * primera aquí abriría esa puerta por la puerta de atrás. Ver
+     * {@see \App\Operacion\Filter\OperacionServicioLugarExtension}.
+     *
+     * ── UNA sola fuente de la verdad ─────────────────────────────────────────
+     * Con maestro puesto, las ubicaciones son las SUYAS y se resuelven en vivo contra el
+     * catálogo: re-etiquetar allí se refleja aquí sin tocar nada. Este campo es lo que hace un
+     * componente manual, que no tiene a quién preguntarle.
+     *
+     * Los dos no conviven: {@see self::setComponenteMaestroId()} lo vacía al vincular un maestro
+     * y {@see self::setLugaresManuales()} no deja escribirlo mientras haya uno. Da igual en qué
+     * orden llegue el payload —los dos caminos acaban en el mismo sitio—, y por eso la regla
+     * vive en la entidad y no en el formulario: un componente con maestro Y ubicaciones propias
+     * es un componente que dice dos cosas distintas según quién lo lea.
+     *
+     * `operacion:item:read` está por lo mismo que `componenteMaestroId`: el cuadro de tráfico
+     * pinta con esto las etiquetas de las filas manuales, que hasta ahora salían en blanco.
+     *
+     * @var list<string>
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'operacion:item:read'])]
+    // Sin `options: ['default' => ...]`: MySQL 5.7 no admite DEFAULT en una columna JSON, y
+    // ponerlo aquí hace que cada `diff` genere un ALTER que la base rechaza. El valor inicial
+    // lo pone la propiedad.
+    #[ORM\Column(name: 'lugares_manuales', type: 'json')]
+    private array $lugaresManuales = [];
+
+    /**
      * Cómo se llama esto **para nosotros y para el proveedor**.
      *
      * El componente sólo tenía `nombreSnapshot`, que es el título **público**; el nombre interno
@@ -686,10 +718,21 @@ class CotizacionCotcomponente
     /**
      * Establece el ID del componente maestro.
      *
-     * @param string|null $componenteMaestroId
-     * @return self
+     * ⚠️ Vincular un maestro **borra las ubicaciones propias** ({@see self::$lugaresManuales}):
+     * a partir de aquí las pone el catálogo, y guardar las dos dejaría al componente diciendo
+     * una cosa en el cuadro de tráfico y otra en el filtro. Desvincular no las devuelve —no
+     * eran suyas—, y por eso el editor las vuelve a pedir a mano.
      */
-    public function setComponenteMaestroId(?string $componenteMaestroId): self { $this->componenteMaestroId = $componenteMaestroId; return $this; }
+    public function setComponenteMaestroId(?string $componenteMaestroId): self
+    {
+        $this->componenteMaestroId = $componenteMaestroId;
+
+        if ($componenteMaestroId !== null) {
+            $this->lugaresManuales = [];
+        }
+
+        return $this;
+    }
 
     public function getTipo(): ?string { return $this->tipo; }
     public function setTipo(?string $tipo): self { $this->tipo = $tipo; return $this; }
@@ -828,6 +871,46 @@ class CotizacionCotcomponente
     {
         $v = $v !== null ? trim($v) : null;
         $this->nombreInternoSnapshot = ($v === '' ? null : $v);
+
+        return $this;
+    }
+
+    /** @return list<string> */
+    public function getLugaresManuales(): array { return $this->lugaresManuales; }
+
+    /**
+     * Escribe las ubicaciones propias de un componente SIN maestro.
+     *
+     * Con maestro puesto se ignora en silencio en lugar de reventar: quien manda el payload no
+     * está haciendo nada malo —el editor limpia el campo al vincular—, y un 400 aquí rompería
+     * un guardado entero por un dato que sobra. El resultado es el mismo se escriba en el orden
+     * que se escriba, que es justo lo que se busca.
+     *
+     * Normaliza a RFC 4122 en minúsculas y quita duplicados: es el formato con el que compara
+     * el filtro del cuadro de tráfico, y un uuid en mayúsculas no casaría con nada — en
+     * silencio, que es la peor forma de no casar.
+     *
+     * @param list<string>|array<int|string, mixed> $lugares
+     */
+    public function setLugaresManuales(array $lugares): self
+    {
+        if ($this->componenteMaestroId !== null) {
+            $this->lugaresManuales = [];
+
+            return $this;
+        }
+
+        $limpios = [];
+
+        foreach ($lugares as $lugar) {
+            if (!is_string($lugar) || !Uuid::isValid($lugar)) {
+                continue;
+            }
+
+            $limpios[] = strtolower($lugar);
+        }
+
+        $this->lugaresManuales = array_values(array_unique($limpios));
 
         return $this;
     }

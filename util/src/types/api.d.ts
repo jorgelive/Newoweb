@@ -7214,6 +7214,8 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
@@ -7315,6 +7317,8 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
@@ -7411,6 +7415,8 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
@@ -7459,6 +7465,8 @@ export interface components {
         "CotizacionCotcomponente-operacion.item.read_timestamp.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -7607,6 +7615,8 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
@@ -7708,6 +7718,8 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
@@ -7760,6 +7772,8 @@ export interface components {
         "CotizacionCotcomponente.html-operacion.item.read_timestamp.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -7908,6 +7922,8 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
@@ -8010,6 +8026,8 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
@@ -8063,6 +8081,8 @@ export interface components {
         "CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -8213,6 +8233,8 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
@@ -8314,6 +8336,8 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
             detallesOperativos?: {
@@ -8366,6 +8390,8 @@ export interface components {
         "CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
             componenteMaestroId?: string | null;
+            /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
+            lugaresManuales?: string[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -10168,7 +10194,6 @@ export interface components {
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": {
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
             /**
@@ -10209,6 +10234,7 @@ export interface components {
              */
             estado: "abierto" | "cerrado" | "archivado";
             cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.read_file.item.read_timestamp.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"][];
         });
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -10570,6 +10596,32 @@ export interface components {
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
         };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo-file.item.read_timestamp.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
         "CotizacionFileGrupo-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
@@ -10663,6 +10715,32 @@ export interface components {
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
         };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.html-file.item.read_timestamp.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
         "CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read": {
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
@@ -10721,6 +10799,32 @@ export interface components {
             readonly totalMiembros?: number;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.jsonld-file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
@@ -10767,6 +10871,32 @@ export interface components {
             /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
             detalle?: string | null;
             miembros?: components["schemas"]["CotizacionPasajeroGrupo.multipart"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
+            readonly etiquetaDeEje?: string;
+            /** @description Cómo se llama esto en pantalla. */
+            readonly etiqueta?: string;
+            readonly totalMiembros?: number;
+        };
+        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
+        "CotizacionFileGrupo.multipart-file.item.read_timestamp.read": {
+            /** @enum {string} */
+            tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
+            /**
+             * @description La etiqueta que subdivide el eje: «Nacional», «Internacional», «Cusco-Puno», «Retorno».
+             * @default
+             */
+            subeje: string;
+            /** @description El valor dentro del eje: `B`, `5`, `HA13`, `JA2CWN`. */
+            clave: string;
+            /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
+            nombre?: string | null;
+            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            detalle?: string | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11265,6 +11395,12 @@ export interface components {
             fechanacimiento?: string | null;
             /**
              * Format: iri-reference
+             * @description ⚠️ Sólo de escritura: es como un POST engancha el pasajero a su expediente, pero devolverlo
+             *     no le sirve a nadie —el que lee un pasajero ya sabe de qué expediente lo sacó— y cuesta
+             *     carísimo. Al guardar uno, la respuesta se serializa con `file:item:read`; si `file` estaba
+             *     ahí dentro, el expediente ENTERO viajaba colgando del pasajero: **1,13 MB por guardado**,
+             *     medidos en producción el 24/08/2026, con el vendedor en el móvil y el front tirando ese
+             *     cuerpo a la basura porque recarga el expediente aparte.
              * @example https://example.com/
              */
             file?: string;
@@ -11303,6 +11439,51 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        "CotizacionFilepasajero-file.item.read_timestamp.read": {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais-file.item.read_timestamp.read"];
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.item.read_timestamp.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo-file.item.read_timestamp.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
+        };
         "CotizacionFilepasajero-file.read_file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -11315,7 +11496,6 @@ export interface components {
             sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
-            file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion-file.read_file.item.read_timestamp.read"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read"][];
             /**
@@ -11461,6 +11641,12 @@ export interface components {
             fechanacimiento?: string | null;
             /**
              * Format: iri-reference
+             * @description ⚠️ Sólo de escritura: es como un POST engancha el pasajero a su expediente, pero devolverlo
+             *     no le sirve a nadie —el que lee un pasajero ya sabe de qué expediente lo sacó— y cuesta
+             *     carísimo. Al guardar uno, la respuesta se serializa con `file:item:read`; si `file` estaba
+             *     ahí dentro, el expediente ENTERO viajaba colgando del pasajero: **1,13 MB por guardado**,
+             *     medidos en producción el 24/08/2026, con el vendedor en el móvil y el front tirando ese
+             *     cuerpo a la basura porque recarga el expediente aparte.
              * @example https://example.com/
              */
             file?: string;
@@ -11499,6 +11685,51 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        "CotizacionFilepasajero.html-file.item.read_timestamp.read": {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais.html-file.item.read_timestamp.read"];
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-file.item.read_timestamp.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.html-file.item.read_timestamp.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
+        };
         "CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -11511,7 +11742,6 @@ export interface components {
             sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
-            file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.html-file.read_file.item.read_timestamp.read"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.html-file.read_file.item.read_timestamp.read"][];
             /**
@@ -11599,6 +11829,12 @@ export interface components {
             fechanacimiento?: string | null;
             /**
              * Format: iri-reference
+             * @description ⚠️ Sólo de escritura: es como un POST engancha el pasajero a su expediente, pero devolverlo
+             *     no le sirve a nadie —el que lee un pasajero ya sabe de qué expediente lo sacó— y cuesta
+             *     carísimo. Al guardar uno, la respuesta se serializa con `file:item:read`; si `file` estaba
+             *     ahí dentro, el expediente ENTERO viajaba colgando del pasajero: **1,13 MB por guardado**,
+             *     medidos en producción el 24/08/2026, con el vendedor en el móvil y el front tirando ese
+             *     cuerpo a la basura porque recarga el expediente aparte.
              * @example https://example.com/
              */
             file?: string;
@@ -11637,6 +11873,51 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        "CotizacionFilepasajero.jsonld-file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais.jsonld-file.item.read_timestamp.read"];
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-file.item.read_timestamp.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.jsonld-file.item.read_timestamp.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
+        };
         "CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombre?: string;
             apellido?: string;
@@ -11649,7 +11930,6 @@ export interface components {
             sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
-            file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.jsonld-file.read_file.item.read_timestamp.read"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
             /**
@@ -11737,6 +12017,12 @@ export interface components {
             fechanacimiento?: string | null;
             /**
              * Format: iri-reference
+             * @description ⚠️ Sólo de escritura: es como un POST engancha el pasajero a su expediente, pero devolverlo
+             *     no le sirve a nadie —el que lee un pasajero ya sabe de qué expediente lo sacó— y cuesta
+             *     carísimo. Al guardar uno, la respuesta se serializa con `file:item:read`; si `file` estaba
+             *     ahí dentro, el expediente ENTERO viajaba colgando del pasajero: **1,13 MB por guardado**,
+             *     medidos en producción el 24/08/2026, con el vendedor en el móvil y el front tirando ese
+             *     cuerpo a la basura porque recarga el expediente aparte.
              * @example https://example.com/
              */
             file?: string;
@@ -11775,6 +12061,51 @@ export interface components {
             /** @description ¿Aparece en las listas que ven los demás? */
             readonly expuesto?: boolean;
         };
+        "CotizacionFilepasajero.multipart-file.item.read_timestamp.read": {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais.multipart-file.item.read_timestamp.read"];
+            /**
+             * @description Nulable: un padrón real llega con huecos —131 de 133 en el de Punta Cana— y bloquear la
+             *      carga entera por dos celdas vacías es desproporcionado. El tipo en PHP ya lo toleraba.
+             * @enum {string|null}
+             */
+            sexo?: "M" | "F" | null;
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-file.item.read_timestamp.read"][];
+            pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.multipart-file.item.read_timestamp.read"][];
+            /**
+             * @description Qué es dentro del grupo, y de ahí qué ve y quién le ve.
+             * @enum {string|null}
+             */
+            tipo?: "participante" | "acompanante" | "coordinador" | "supervisor" | "invitado" | "no_participa" | null;
+            /** @description Su teléfono, no el del expediente. */
+            telefono?: string | null;
+            /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
+            observaciones?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+            /**
+             * @description Hasta dónde llega lo que ve.
+             * @enum {string}
+             */
+            readonly alcanceDeVista?: "expediente" | "sus_grupos" | "solo_yo" | "agencia";
+            /** @description ¿Aparece en las listas que ven los demás? */
+            readonly expuesto?: boolean;
+        };
         "CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read": {
             nombre?: string;
             apellido?: string;
@@ -11787,7 +12118,6 @@ export interface components {
             sexo?: "M" | "F" | null;
             /** Format: date-time */
             fechanacimiento?: string | null;
-            file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-file.read_file.item.read_timestamp.read"][];
             pertenencias?: components["schemas"]["CotizacionPasajeroGrupo.multipart-file.read_file.item.read_timestamp.read"][];
             /**
@@ -11874,6 +12204,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionPasajeroGrupo-file.item.read_timestamp.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo-file.item.read_timestamp.read"];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionPasajeroGrupo-file.read_file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"];
             id?: string;
@@ -11897,6 +12235,14 @@ export interface components {
              * @example https://example.com/
              */
             grupo: string;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroGrupo.html-file.item.read_timestamp.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo.html-file.item.read_timestamp.read"];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11928,6 +12274,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionPasajeroGrupo.jsonld-file.item.read_timestamp.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read_timestamp.read"];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionPasajeroGrupo.jsonld-file.read_file.item.read_timestamp.read": {
             grupo: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"];
             id?: string;
@@ -11947,6 +12301,14 @@ export interface components {
              * @example https://example.com/
              */
             grupo: string;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroGrupo.multipart-file.item.read_timestamp.read": {
+            grupo: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read_timestamp.read"];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -11985,6 +12347,26 @@ export interface components {
              * @example https://example.com/
              */
             paisEmisor?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion-file.item.read_timestamp.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais-file.item.read_timestamp.read"] | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -12092,6 +12474,26 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionPasajeroIdentificacion.html-file.item.read_timestamp.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais.html-file.item.read_timestamp.read"] | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionPasajeroIdentificacion.html-file.read_file.item.read_timestamp.read": {
             /**
              * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
@@ -12172,6 +12574,26 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        "CotizacionPasajeroIdentificacion.jsonld-file.item.read_timestamp.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais.jsonld-file.item.read_timestamp.read"] | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "CotizacionPasajeroIdentificacion.jsonld-file.read_file.item.read_timestamp.read": {
             /**
              * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
@@ -12246,6 +12668,26 @@ export interface components {
              * @example https://example.com/
              */
             paisEmisor?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionPasajeroIdentificacion.multipart-file.item.read_timestamp.read": {
+            /**
+             * @description ⚠️ Único por `(pasajero, tipo)`: nadie tiene dos pasaportes vigentes en el mismo expediente,
+             *     y esa restricción es la que hace que **reimportar el padrón corregido no duplique nada**.
+             * @enum {string}
+             */
+            tipo: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            numero: string;
+            /**
+             * Format: date-time
+             * @description Nulo significa «no lo sabemos», no «no caduca».
+             */
+            vencimiento?: string | null;
+            paisEmisor?: components["schemas"]["Pais.multipart-file.item.read_timestamp.read"] | null;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -19761,6 +20203,19 @@ export interface components {
          * @description Entidad MaestroPais.
          *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
          */
+        "Pais-file.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
         "Pais-file.read_file.item.read_timestamp.read": {
             id?: string;
             nombre?: string;
@@ -19799,6 +20254,19 @@ export interface components {
         "Pais-pms_reserva.read_timestamp.read": {
             id?: string;
             nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.html-file.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -19855,6 +20323,19 @@ export interface components {
          * @description Entidad MaestroPais.
          *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
          */
+        "Pais.jsonld-file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
         "Pais.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
@@ -19893,6 +20374,19 @@ export interface components {
         "Pais.jsonld-pms_reserva.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.multipart-file.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -34052,10 +34546,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFileGrupo.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFileGrupo"];
-                    "text/html": components["schemas"]["CotizacionFileGrupo.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFileGrupo.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFileGrupo-file.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFileGrupo.html-file.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFileGrupo.multipart-file.item.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */
@@ -34148,10 +34642,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFileGrupo.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFileGrupo"];
-                    "text/html": components["schemas"]["CotizacionFileGrupo.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFileGrupo.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFileGrupo-file.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFileGrupo.html-file.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFileGrupo.multipart-file.item.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */
@@ -34392,10 +34886,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFilepasajero.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFilepasajero"];
-                    "text/html": components["schemas"]["CotizacionFilepasajero.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFilepasajero-file.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFilepasajero.html-file.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart-file.item.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */
@@ -34448,10 +34942,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFilepasajero.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFilepasajero"];
-                    "text/html": components["schemas"]["CotizacionFilepasajero.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFilepasajero-file.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFilepasajero.html-file.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart-file.item.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */
@@ -34566,10 +35060,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFilepasajero.jsonld"];
-                    "application/json": components["schemas"]["CotizacionFilepasajero"];
-                    "text/html": components["schemas"]["CotizacionFilepasajero.html"];
-                    "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart"];
+                    "application/ld+json": components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFilepasajero-file.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFilepasajero.html-file.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart-file.item.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */

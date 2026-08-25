@@ -69,7 +69,7 @@ import {
 
 import type {PuntosDeServicioCot, PuntosPorServicio} from '@/types/cotizacionEditorModel';
 import {ApiIdioma} from '@/types/maestroModel';
-import type {ProveedorWrite} from '@/types/organizacionModel';
+import type {LugarOpcion, ProveedorWrite} from '@/types/organizacionModel';
 import {components} from "@/types/api";
 
 /** Distingue el maestro completo del placeholder ("Sincronizando…") por `tipo`. */
@@ -114,7 +114,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         proveedores: [],
         proveedorServicios: [],
         tiposComponente: [],
-        monedas: []
+        monedas: [],
+        lugares: []
     });
 
     // ── Dónde recoge y dónde deja cada servicio ─────────────────────────────
@@ -1662,13 +1663,18 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const fetchCatalogos = async () => {
         try {
-            const [resTipos, resMonedas] = await Promise.all([
+            // Los lugares se traen ENTEROS y de una vez: es un vocabulario corto —las ciudades
+            // desde las que se opera— y el selector filtra en local. Pedirlos por búsqueda
+            // remota costaría un viaje por letra para una lista que cabe de sobra en memoria.
+            const [resTipos, resMonedas, resLugares] = await Promise.all([
                 apiClient.get('/tipo/user/enum/travel/componente-tipos'),
                 apiClient.get('/platform/maestro/monedas'),
+                apiClient.get('/platform/travel/lugares?pagination=false&order[nombre]=asc'),
             ]);
 
             catalogos.value.tiposComponente = resTipos.data || [];
             catalogos.value.monedas = resMonedas.data['hydra:member'] || resMonedas.data['member'] || [];
+            catalogos.value.lugares = miembrosHydra<LugarOpcion>(resLugares.data);
 
             catalogos.value.servicios = [];
             catalogos.value.proveedores = [];
@@ -2744,6 +2750,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 // Nace del catálogo: es el caso normal, y pasar a manual son dos toques en la
                 // ficha. Al revés —nacer manual— haría que el 90 % tuviera que deshacerlo.
                 esManual: false,
+                // Sólo las escribe un componente manual; con maestro las pone el catálogo.
+                lugaresManuales: [],
                 nombreInternoSnapshot: null,
                 nombreSnapshot: [],
                 tipo: 'extras',
@@ -2945,6 +2953,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         upsellSourceItemId: item.id,
                         // Sale de un ítem del catálogo, así que de manual no tiene nada.
                         esManual: false,
+                        lugaresManuales: [],
                         sobreescribirTraduccion: false,
                         snapshotItems: [],
                         cottarifas: [],
@@ -3522,6 +3531,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     cotsegmento: null,
                     // Viene de la plantilla, con su maestro detrás.
                     esManual: false,
+                    lugaresManuales: [],
                     sobreescribirTraduccion: false,
                     cottarifas: [],
                     detallesOperativos: [],
@@ -3902,6 +3912,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // Elegir un insumo cierra el modo manual: son excluyentes por definición, y dejar la
             // marca puesta escondería el buscador justo después de usarlo.
             componente.esManual = false;
+
+            // Y se lleva por delante las ubicaciones propias: a partir de aquí las pone el
+            // maestro, en vivo. Guardar las dos dejaría al componente con dos respuestas a la
+            // misma pregunta, y cuál gana dependería de qué pantalla la haga. El backend hace
+            // lo mismo en `CotizacionCotcomponente::setComponenteMaestroId()`; aquí se limpia
+            // además para que el operador lo VEA al vincular, y no se entere al recargar.
+            componente.lugaresManuales = [];
             componente.tipo = maestro.tipo || 'extras';   // 🔥 snapshot autónomo del tipo
             componente.sinHorario = sinHorarioDeTipo(maestro.tipo);   // 🔥 snapshot del flag de horario
             componente.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
