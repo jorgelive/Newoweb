@@ -165,8 +165,13 @@ class CotizacionCotcomponente
      *
      * Sin `#[AutoTranslate]` a propósito: esto no se le enseña a ningún pasajero, así que
      * traducirlo a siete idiomas es coste puro. Lo mismo que la nota al prestador.
+     *
+     * `operacion:item:read` porque en Operaciones **el componente es lo que identifica la fila**
+     * —si es un ticket o un guiado— y el nombre de los de catálogo se resuelve en vivo contra el
+     * maestro. Un manual no tiene maestro al que preguntarle: sin este campo se queda rotulado
+     * con la tarifa, que es demasiado genérica («Adulto Extranjero») para saber qué se compró.
      */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'operacion:item:read'])]
     #[ORM\Column(name: 'nombre_interno_snapshot', type: 'string', length: 255, nullable: true)]
     private ?string $nombreInternoSnapshot = null;
 

@@ -7467,6 +7467,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -7774,6 +7776,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -8083,6 +8087,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -8392,6 +8398,8 @@ export interface components {
             componenteMaestroId?: string | null;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
+            /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
+            nombreInternoSnapshot?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */

@@ -1781,11 +1781,39 @@ del cuadro, no una por fila.
 
 `lugaresDeServicio()` mira **dos fuentes y no las mezcla**: con maestro, las del catálogo recién
 resueltas; sin él, los uuids de `lugaresManuales` traducidos contra ese mismo vocabulario.
-
+`nombreComponenteDeServicio()` sigue exactamente el mismo patrón con el **nombre**: maestro en
+vivo, y `nombreInternoSnapshot` como respaldo para los manuales (§«El componente identifica la
+fila»).
 
 ⚠️ **El vocabulario se carga aunque no haya ni un componente de catálogo.** El corte por «no hay
 maestros que resolver» dejaba en blanco un cuadro entero de filas manuales que sí tenían
 ubicación: sin vocabulario no hay con qué traducir sus uuids a nombre.
+
+### El componente identifica la fila, no la tarifa (25/08/2026)
+
+Una tarifa —«Adulto Extranjero», «Americana Royal Class»— se repite en media docena de filas del
+mismo día y **no dice qué se compró**. Lo que lo dice es el componente: si eso es un ticket o un
+guiado. La regla vale en **todas** las vistas que listan servicios operativos, y se aplicaba sólo
+en la fila del cuadro:
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| Fila de La Biblia | componente + tarifa | igual |
+| Modal «Generar Orden de Servicio» | servicio + tarifa | **componente + icono de tipo**, tarifa debajo |
+| Detalle de una orden abierta | nombre para el proveedor + tarifa | **componente + icono**, y debajo lo demás |
+| Bitácora de estados | tarifa | **componente** · tarifa |
+| Ficha móvil | ya llevaba componente | igual |
+
+⚠️ **El nombre del componente puede venir `null`, y el respaldo NO es la tarifa: es la etiqueta
+del tipo.** `nombreComponenteDeServicio()` resuelve contra el lote de maestros armado con las
+**filas del cuadro**; en el detalle de una orden los servicios vienen con la orden, así que ese
+lote puede no tenerlos. `tipoComponente` viaja denormalizado en el snapshot, está siempre, y
+responde justamente la pregunta cara —ticket o guiado— sin depender del catálogo. Por eso el
+icono de tipo se pinta **siempre**, aunque el nombre falte.
+
+⚠️ Y para los componentes **manuales** el nombre sale de `nombreInternoSnapshot`, que se publicó
+en `operacion:item:read` el 25/08/2026 justo para esto: no tienen maestro al que preguntarle y se
+quedaban rotulados con la tarifa.
 
 **Agrupación:** por día. Dentro del día manda la hora; los servicios sin hora se empujan al final
 ordenados por `prioridadOperativa` (guiado/transporte antes que tickets), porque un cuadro de
@@ -1969,6 +1997,7 @@ cotizado, no contra la venta real.
 | Cambiar cómo se filtra por centro turístico | `src/Operacion/Filter/OperacionServicioLugarExtension.php` | `applyToCollection()` |
 | Cambiar qué recoge el chip «Sin etiqueta» | `src/Operacion/Filter/OperacionServicioLugarExtension.php` | `SIN_LUGAR` |
 | Cambiar de dónde salen las ubicaciones de un componente manual | `src/Cotizacion/Entity/CotizacionCotcomponente.php` | `$lugaresManuales` — y el filtro de arriba, que las cruza |
+| Cambiar cómo se rotula un servicio en cualquier lista | `util/src/stores/operacion/operacionStore.ts` | `nombreComponenteDeServicio()` — el respaldo es el tipo, nunca la tarifa |
 | Cambiar qué dispara la generación | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `onFlush()` (el `match` de estados) |
 | Cambiar qué se copia al snapshot | `src/Operacion/Service/BibliaSnapshotService.php` | `generarParaCotizacion()` |
 | **De dónde sale el expediente de la fila** (§3.7) | mismo archivo | `resolverFile()` — y la guarda de raíz en `Cotizacion::setFile()` |

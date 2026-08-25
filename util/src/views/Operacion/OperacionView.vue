@@ -3099,7 +3099,25 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                                              itinerario queda debajo: sirve para ubicarlo, no para
                                              pedirlo. Ver docs/Operacion.md §3.9 bis. -->
                                         <div class="min-w-0">
-                                            <p class="text-[11px] font-black text-slate-800 leading-snug">
+                                            <!-- El COMPONENTE encabeza, igual que en La Biblia y en
+                                                 la previsualización: es lo que dice si esto es un
+                                                 ticket o un guiado. Debajo va el nombre con el que
+                                                 lo conoce el PROVEEDOR, que es lo que se le pide.
+
+                                                 ⚠️ Aquí el nombre del maestro puede no estar
+                                                 resuelto: estos servicios vienen con la orden, no
+                                                 del cuadro, y el lote de nombres se arma con las
+                                                 filas del cuadro. Por eso el respaldo es la
+                                                 etiqueta del tipo, que viaja en el snapshot. -->
+                                            <p class="text-[11px] font-black text-slate-800 leading-snug flex items-center gap-1.5">
+                                                <i :class="[getTipoComponenteConfig(s.tipoComponente).icon,
+                                                           getTipoComponenteConfig(s.tipoComponente).text, 'text-[10px] shrink-0']"
+                                                   :title="getTipoComponenteConfig(s.tipoComponente).label"></i>
+                                                <span class="truncate">
+                                                    {{ nombreComponenteDe(s) || getTipoComponenteConfig(s.tipoComponente).label }}
+                                                </span>
+                                            </p>
+                                            <p class="text-[11px] font-bold text-slate-600 leading-snug">
                                                 {{ s.descripcionServicio }}
                                             </p>
                                             <!-- El nombre INTERNO de la tarifa, sólo cuando aporta algo.
@@ -3603,7 +3621,12 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                     <i class="fas fa-clock-rotate-left text-[#E07845]"></i>
                     <div class="min-w-0">
                         <h3 class="font-black text-sm tracking-tight leading-tight">Historial de estados</h3>
-                        <p class="text-[10px] text-slate-400 truncate">{{ bitacoraServicio.descripcionServicio }}</p>
+                        <!-- De QUÉ es este historial. Con la tarifa sola («Adulto Extranjero») no
+                             se distingue de otras cuatro filas del mismo día. -->
+                        <p class="text-[10px] text-slate-400 truncate">
+                            {{ nombreComponenteDe(bitacoraServicio) || getTipoComponenteConfig(bitacoraServicio.tipoComponente).label }}
+                            · {{ bitacoraServicio.descripcionServicio }}
+                        </p>
                     </div>
                     <button @click="cerrarModal()" class="ml-auto text-slate-400 hover:text-white shrink-0">
                         <i class="fas fa-xmark"></i>
@@ -3751,11 +3774,28 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                         <div v-for="s in serviciosSeleccionados" :key="s.id ?? ''"
                              class="flex items-start justify-between gap-2 px-3 py-2">
                             <div class="min-w-0">
-                                <p class="text-[11px] font-bold text-slate-700 leading-snug">
-                                    {{ s.contextoServicio || s.descripcionServicio }}
+                                <!-- EL COMPONENTE, primero y con su icono de tipo. Es lo único que
+                                     dice QUÉ se compró: la tarifa («Adulto Extranjero», «Americana
+                                     Royal Class») es demasiado genérica para saber si esto es un
+                                     ticket o un guiado, y con ella sola no se puede revisar una
+                                     orden antes de mandarla.
+
+                                     El icono va SIEMPRE aunque el nombre no se haya resuelto: el
+                                     tipo viaja denormalizado en el snapshot y ya responde la
+                                     pregunta cara —ticket o guiado— sin depender del catálogo. -->
+                                <p class="text-[11px] font-black text-slate-800 leading-snug flex items-center gap-1.5">
+                                    <i :class="[getTipoComponenteConfig(s.tipoComponente).icon,
+                                               getTipoComponenteConfig(s.tipoComponente).text, 'text-[10px] shrink-0']"
+                                       :title="getTipoComponenteConfig(s.tipoComponente).label"></i>
+                                    <span class="truncate">
+                                        {{ nombreComponenteDe(s) || getTipoComponenteConfig(s.tipoComponente).label }}
+                                    </span>
+                                </p>
+                                <p class="text-[11px] font-bold text-slate-500 leading-snug truncate">
+                                    <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ s.descripcionServicio }}
                                 </p>
                                 <p v-if="s.contextoServicio" class="text-[10px] text-slate-400 leading-snug truncate">
-                                    {{ s.descripcionServicio }}
+                                    {{ s.contextoServicio }}
                                 </p>
                                 <p class="text-[10px] text-slate-400">
                                     {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ nochesTexto(s.cantidadComponente, s.tipoComponente) }}{{ s.cantidadPax }} pax

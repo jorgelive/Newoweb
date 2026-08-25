@@ -395,12 +395,27 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             .filter(Boolean);
     };
 
-    /** Nombre interno del componente de una fila (del maestro), o `null` si no se resolvió. */
+    /**
+     * Cómo se llama el COMPONENTE de una fila. `null` si no hay con qué decirlo.
+     *
+     * Dos fuentes, por el mismo motivo que las etiquetas de lugar: con maestro, su nombre
+     * interno resuelto en vivo —renombrarlo en el catálogo se ve en la siguiente carga—; sin
+     * él, el `nombreInternoSnapshot` que el operador escribió en la cotización.
+     *
+     * Sin el respaldo, un componente manual se quedaba rotulado con su tarifa, y una tarifa
+     * («Adulto Extranjero») no dice si lo que se compró es un ticket o un guiado.
+     */
     const nombreComponenteDeServicio = (servicio: OperacionServicio): string | null => {
-        const maestro = (servicio.cotizacionComponente as { componenteMaestroId?: string } | undefined)
-            ?.componenteMaestroId;
+        const componente = servicio.cotizacionComponente as {
+            componenteMaestroId?: string;
+            nombreInternoSnapshot?: string | null;
+        } | undefined;
 
-        return maestro ? (nombreComponentePorMaestro.value[maestro] ?? null) : null;
+        if (componente?.componenteMaestroId) {
+            return nombreComponentePorMaestro.value[componente.componenteMaestroId] ?? null;
+        }
+
+        return componente?.nombreInternoSnapshot || null;
     };
 
     /**
