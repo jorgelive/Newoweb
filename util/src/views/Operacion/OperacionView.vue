@@ -109,6 +109,24 @@ const ordenPorHora = ref<boolean>(false);
  */
 const filtroOs = ref<'' | 'sin' | 'con'>('');
 
+// ── FILTRO POR EMPRESA (prestador o comprador) ──────────────────────────────
+//
+// Es el filtro con el que se compone una Orden de Servicio: la orden agrupa por comprador, así
+// que «enséñame todo lo de Futurismo Jonathan» es el paso previo a marcar y generar.
+//
+// ⚠️ Filtra **lo ya cargado**, como `filtroOs`, y sus opciones salen de las propias filas: son
+// las empresas que hay en el cuadro, no el catálogo entero. Un catálogo de proveedores da una
+// lista larguísima de la que la mitad no aparece en estas fechas.
+//
+// Mira los DOS papeles y los combina con OR —una fila tiene prestador y comprador, y no siempre
+// son la misma empresa—: quien busca una empresa quiere sus filas, le toque el papel que le
+// toque. Y mira el EFECTIVO, que es lo que vale (`docs/Operacion.md` §3.3.b).
+const empresasSeleccionadas = ref<string[]>([]);
+const mostrarEmpresas = ref<boolean>(!esMovil());
+
+/** Chip «Sin asignar». Sólo vive en el front: este filtro no viaja al servidor. */
+const SIN_EMPRESA = '__sin_asignar__';
+
 // Expediente / cotización
 /**
  * ¿El desplegable tiene que abrirse HACIA ARRIBA?
@@ -348,6 +366,70 @@ const alternarLugar = async (id: string) => {
     await cargarBiblia();
 };
 
+/**
+ * Las empresas que HAY en el cuadro cargado, en los dos papeles. Es la lista de chips.
+ *
+ * Sale de las filas y no del catálogo a propósito: el catálogo de proveedores es largo y la
+ * mitad no aparece en estas fechas. Aquí cada chip que se ve trae al menos una fila.
+ */
+const empresasDelCuadro = computed<{ id: string; nombre: string }[]>(() => {
+    const mapa = new Map<string, string>();
+
+    for (const s of operacionStore.servicios) {
+        const papeles: [string | null | undefined, string | null | undefined][] = [
+            [s.prestadorEfectivoMaestroId, s.prestadorEfectivoNombre],
+            [s.compradorEfectivoMaestroId, s.compradorEfectivoNombre],
+        ];
+
+        for (const [id, nombre] of papeles) {
+            if (id && nombre) mapa.set(id, nombre);
+        }
+    }
+
+    return [...mapa.entries()]
+        .map(([id, nombre]) => ({ id, nombre }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+});
+
+/** ¿Hay alguna fila sin ninguna de las dos empresas? Sólo entonces el chip «Sin asignar» dice algo. */
+const hayServiciosSinEmpresa = computed(() => operacionStore.servicios.some(
+    s => !s.prestadorEfectivoMaestroId && !s.compradorEfectivoMaestroId));
+
+const alternarEmpresa = (id: string): void => {
+    const i = empresasSeleccionadas.value.indexOf(id);
+    if (i === -1) empresasSeleccionadas.value.push(id);
+    else empresasSeleccionadas.value.splice(i, 1);
+};
+
+/**
+ * ⚠️ Se sueltan las empresas que ya no están en el cuadro.
+ *
+ * El filtro se calcula sobre lo cargado, así que al cambiar el rango o los filtros del servidor
+ * una empresa seleccionada puede desaparecer de la lista. Su chip dejaría de pintarse pero
+ * seguiría filtrando: el cuadro se quedaría vacío y **nada en pantalla diría por qué**, que es
+ * justo el fallo que el chip «Sin etiqueta» de los lugares vino a evitar. Se falla ABIERTO.
+ */
+watch(empresasDelCuadro, (empresas) => {
+    const vivas = new Set(empresas.map(e => e.id));
+
+    empresasSeleccionadas.value = empresasSeleccionadas.value.filter(
+        id => id === SIN_EMPRESA ? hayServiciosSinEmpresa.value : vivas.has(id));
+});
+
+/** ¿Esta fila entra con el filtro de empresa puesto? Los dos papeles, en OR. */
+const coincideEmpresa = (s: OperacionServicio): boolean => {
+    const elegidas = empresasSeleccionadas.value;
+    if (!elegidas.length) return true;
+
+    const prestador = s.prestadorEfectivoMaestroId ?? null;
+    const comprador = s.compradorEfectivoMaestroId ?? null;
+
+    if (elegidas.includes(SIN_EMPRESA) && !prestador && !comprador) return true;
+
+    return (prestador !== null && elegidas.includes(prestador))
+        || (comprador !== null && elegidas.includes(comprador));
+};
+
 // ── Buscador de expediente (debounce manual, sin dependencias) ──────────────
 let temporizadorBusqueda: ReturnType<typeof setTimeout> | null = null;
 
@@ -403,6 +485,9 @@ const serviciosPorDia = computed<GrupoDia[]>(() => {
         // El toggle de OS filtra AQUÍ y no en el servidor: es lectura sobre lo ya cargado.
         if (filtroOs.value === 'sin' && s.ordenServicio) continue;
         if (filtroOs.value === 'con' && !s.ordenServicio) continue;
+
+        // Empresa: también sobre lo cargado, por lo mismo que el toggle de OS.
+        if (!coincideEmpresa(s)) continue;
 
         const fecha = (s.fechaServicio ?? '').slice(0, 10) || 'sin-fecha';
         if (!mapa.has(fecha)) mapa.set(fecha, []);
@@ -2163,6 +2248,60 @@ onMounted(async () => {
                         </template>
                     </div>
 
+                    <!--
+                      EMPRESA — prestador o comprador, en OR.
+
+                      Es el filtro con el que se compone una orden: la orden agrupa por comprador,
+                      así que «todo lo de Futurismo Jonathan» es el paso previo a marcar y generar.
+                      Mismo patrón que los lugares —el rótulo es el interruptor y lleva contador—,
+                      pero **filtra lo ya cargado** y sus chips salen de las propias filas: el
+                      catálogo entero daría una lista de la que la mitad no aparece en estas
+                      fechas.
+                    -->
+                    <div v-if="empresasDelCuadro.length || hayServiciosSinEmpresa" class="mt-2 flex flex-wrap items-center gap-1.5">
+                        <button
+                            @click="mostrarEmpresas = !mostrarEmpresas"
+                            class="text-[9px] font-black uppercase tracking-widest mr-1 flex items-center gap-1 transition-colors"
+                            :class="empresasSeleccionadas.length ? 'text-[#376875]' : 'text-slate-400 hover:text-slate-600'"
+                            :title="mostrarEmpresas ? 'Ocultar empresas' : 'Mostrar empresas'"
+                        >
+                            <i class="fas fa-truck"></i>
+                            Empresa
+                            <span v-if="empresasSeleccionadas.length" class="bg-[#376875] text-white rounded-full px-1.5">
+                                {{ empresasSeleccionadas.length }}
+                            </span>
+                            <i class="fas text-[8px]" :class="mostrarEmpresas ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                        </button>
+
+                        <template v-if="mostrarEmpresas">
+                        <button
+                            v-for="e in empresasDelCuadro"
+                            :key="e.id"
+                            @click="alternarEmpresa(e.id)"
+                            :class="empresasSeleccionadas.includes(e.id) ? 'bg-[#376875] text-white border-[#376875]'
+                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
+                            class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                            title="Prestador o comprador: trae sus filas en cualquiera de los dos papeles"
+                        >
+                            {{ e.nombre }}
+                        </button>
+
+                        <!-- Las filas que nadie ha asignado son las que hay que resolver ANTES de
+                             emitir nada. Sin este chip no hay forma de pedirlas: no tienen nombre
+                             por el que buscarlas. -->
+                        <button
+                            v-if="hayServiciosSinEmpresa"
+                            @click="alternarEmpresa(SIN_EMPRESA)"
+                            :class="empresasSeleccionadas.includes(SIN_EMPRESA) ? 'bg-amber-500 text-white border-amber-500'
+                                : 'bg-white text-amber-600 border-amber-200 hover:border-amber-400'"
+                            class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                            title="Servicios sin prestador ni comprador: no se pueden pedir a nadie todavía"
+                        >
+                            <i class="fas fa-circle-question mr-1"></i>Sin asignar
+                        </button>
+                        </template>
+                    </div>
+
                     <!-- Fila 2: filtros avanzados -->
                     <!-- EXPEDIENTE, fuera de «Filtros» y en la barra fija.
                          Es lo único que permite consultar SIN rango de fechas, así que
@@ -2405,6 +2544,37 @@ onMounted(async () => {
                   diario**: los dos estados y la hora. Todo lo demás —puntos, notas, prestador,
                   proveedor, costo— vive en el formulario, a un toque de la plumita.
                 -->
+                <!--
+                  Vacío por los filtros DE LA VISTA, no por los del servidor.
+
+                  `filtroOs` y el de empresa filtran lo ya cargado, así que pueden dejar el cuadro
+                  a cero con la petición trayendo cuarenta filas: sin este bloque quedaba un hueco
+                  en blanco sin una palabra que dijera por qué. Es el mismo principio que el chip
+                  «Sin etiqueta»: un filtro que esconde en silencio no es un filtro, es un fallo.
+                -->
+                <div v-else-if="!serviciosPorDia.length" class="flex-1 flex items-center justify-center py-16 px-4">
+                    <div class="text-center max-w-sm">
+                        <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+                            <i class="fas fa-filter-circle-xmark text-2xl text-slate-300"></i>
+                        </div>
+                        <p class="font-black text-slate-500 uppercase tracking-widest text-xs mb-1">Nada con estos filtros</p>
+                        <p class="text-sm text-slate-400">
+                            Hay {{ operacionStore.servicios.length }} servicio{{ operacionStore.servicios.length !== 1 ? 's' : '' }}
+                            cargado{{ operacionStore.servicios.length !== 1 ? 's' : '' }}, pero ninguno pasa el filtro de esta pantalla.
+                        </p>
+                        <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+                            <button v-if="empresasSeleccionadas.length" @click="empresasSeleccionadas = []"
+                                    class="px-3 py-1.5 bg-white border border-slate-200 hover:border-[#376875] rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                <i class="fas fa-truck mr-1"></i>Quitar empresa ({{ empresasSeleccionadas.length }})
+                            </button>
+                            <button v-if="filtroOs" @click="filtroOs = ''"
+                                    class="px-3 py-1.5 bg-white border border-slate-200 hover:border-[#376875] rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                <i class="fas fa-file-invoice mr-1"></i>Quitar «{{ filtroOs === 'sin' ? 'sin OS' : 'en OS' }}»
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div v-else class="px-3 md:px-6 py-4 flex flex-col gap-5">
                     <div v-for="grupo in serviciosPorDia" :key="grupo.fecha">
 
@@ -2431,16 +2601,19 @@ onMounted(async () => {
                         </h2>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                            <!-- La ficha ENTERA abre el detalle: en un móvil el blanco es la mitad
-                                 de la tarjeta y apuntar a un icono de 28 px con el pulgar es la
-                                 parte incómoda. Lo que se edita en línea para `@click.stop`, o
-                                 tocar un desplegable abriría además la ficha. -->
+                            <!-- Tocar el cuerpo de la ficha MARCA para la orden, que es lo que se
+                                 hace en serie: se recorre el día marcando lo de un proveedor. El
+                                 detalle y la edición tienen cada uno su botón arriba a la derecha
+                                 —los dos iguales— porque son operaciones de una fila, no del
+                                 barrido. Lo que se edita en línea para `@click.stop`, o tocar un
+                                 desplegable marcaría además la ficha. -->
                             <article
                                 v-for="servicio in grupo.servicios"
                                 :key="servicio.id"
-                                @click="abrirFicha(servicio)"
-                                class="relative bg-white rounded-2xl border shadow-sm p-3 cursor-pointer transition-all hover:shadow-md hover:border-[#376875]/40"
+                                @click="esComprable(servicio) && alternarSeleccion(servicio.id)"
+                                class="relative bg-white rounded-2xl border shadow-sm p-3 transition-all hover:shadow-md hover:border-[#376875]/40"
                                 :class="[
+                                    esComprable(servicio) ? 'cursor-pointer' : 'cursor-default',
                                     seleccionados.includes(servicio.id ?? '') ? 'border-[#376875] ring-1 ring-[#376875]/25' : 'border-slate-200',
                                     servicio.estadoComponente === 'cancelado' || servicio.modoComponente === 'reemplazado' ? 'opacity-60' : '',
                                 ]"
@@ -2503,9 +2676,33 @@ onMounted(async () => {
                                         </p>
                                     </div>
 
-                                    <!-- EL COMPONENTE identifica la ficha; la tarifa es el detalle. -->
                                     <div class="min-w-0 flex-1">
-                                        <p class="text-sm font-black text-slate-800 leading-tight flex items-start gap-1.5">
+                                        <!-- ── LA EMPRESA, ENCIMA DE TODO ──────────────────────
+                                             Es la base para marcar: la orden agrupa por comprador,
+                                             y el barrido del día se hace buscando a quién se le
+                                             pide cada cosa. Va arriba y destacada, pero más
+                                             pequeña que el componente: manda en el vistazo, no en
+                                             la jerarquía —lo que la fila ES sigue siendo el
+                                             componente—.
+
+                                             El comprador sólo se enseña cuando NO es el prestador
+                                             (`mostrarComprador()`): repetir el mismo nombre dos
+                                             veces en cada ficha convierte el dato en ruido. -->
+                                        <p class="text-[11px] font-black uppercase tracking-wide leading-tight flex items-center gap-1 flex-wrap"
+                                           :class="servicio.prestadorEfectivoNombre ? 'text-[#376875]' : 'text-amber-600'">
+                                            <i class="fas fa-truck text-[9px] shrink-0"></i>
+                                            <span class="truncate">
+                                                {{ servicio.prestadorEfectivoNombre || (servicio.soloReferencia ? 'Referencia' : 'Sin asignar') }}
+                                            </span>
+                                            <span v-if="mostrarComprador(servicio)"
+                                                  class="text-slate-400 normal-case tracking-normal font-bold truncate"
+                                                  title="A quién se le compra: es por quien agrupa la Orden de Servicio">
+                                                · compra {{ servicio.compradorEfectivoNombre || 'sin definir' }}
+                                            </span>
+                                        </p>
+
+                                        <!-- EL COMPONENTE identifica la ficha; la tarifa es el detalle. -->
+                                        <p class="mt-0.5 text-sm font-black text-slate-800 leading-tight flex items-start gap-1.5">
                                             <i :class="[getTipoComponenteConfig(servicio.tipoComponente).icon,
                                                        getTipoComponenteConfig(servicio.tipoComponente).text, 'text-sm mt-0.5 shrink-0']"
                                                :title="getTipoComponenteConfig(servicio.tipoComponente).label"></i>
@@ -2516,15 +2713,25 @@ onMounted(async () => {
                                         </p>
                                     </div>
 
-                                    <!-- A editar. La ficha se abre LEYENDO; esto entra directo al
-                                         formulario, como la plumita del namelist. -->
-                                    <button
-                                        @click.stop="abrirFicha(servicio, true)"
-                                        title="Editar este servicio"
-                                        class="shrink-0 w-7 h-7 rounded-full bg-slate-50 text-slate-300 hover:text-[#376875] hover:bg-slate-100 flex items-center justify-center transition-colors"
-                                    >
-                                        <i class="fas fa-pencil-alt text-xs"></i>
-                                    </button>
+                                    <!-- Ver y editar, cada uno con su botón y del mismo tamaño: son
+                                         las dos operaciones sobre UNA fila, y ninguna es la del
+                                         barrido —esa es marcar, y se hace tocando la ficha—. -->
+                                    <div class="shrink-0 flex flex-col gap-1">
+                                        <button
+                                            @click.stop="abrirFicha(servicio)"
+                                            title="Ver el detalle"
+                                            class="w-7 h-7 rounded-full bg-slate-50 text-slate-300 hover:text-[#376875] hover:bg-slate-100 flex items-center justify-center transition-colors"
+                                        >
+                                            <i class="fas fa-eye text-xs"></i>
+                                        </button>
+                                        <button
+                                            @click.stop="abrirFicha(servicio, true)"
+                                            title="Editar este servicio"
+                                            class="w-7 h-7 rounded-full bg-slate-50 text-slate-300 hover:text-[#376875] hover:bg-slate-100 flex items-center justify-center transition-colors"
+                                        >
+                                            <i class="fas fa-pencil-alt text-xs"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- ── Ruta, en lectura. Editarla es cosa del formulario ──── -->
@@ -2589,9 +2796,6 @@ onMounted(async () => {
                                     </button>
                                     <span v-else><i class="fas fa-folder-open mr-1"></i>Sin expediente</span>
 
-                                    <span class="truncate">
-                                        <i class="fas fa-user mr-1"></i>{{ servicio.prestadorEfectivoNombre || (servicio.soloReferencia ? 'Referencia' : 'Por asignar') }}
-                                    </span>
                                     <span class="shrink-0"><i class="fas fa-users mr-1"></i>{{ servicio.cantidadPax }}</span>
                                     <span v-if="nombreSegmentoDe(servicio) || servicio.contextoServicio" class="truncate">
                                         <i class="fas fa-map-signs mr-1"></i>{{ nombreSegmentoDe(servicio) || servicio.contextoServicio }}

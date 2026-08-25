@@ -1819,10 +1819,32 @@ alguien acaba mandándosela al proveedor. Ahora ese input **no existe** para eso
 se lee «sin hora». Si el flag no llegara, se admite: esconder un campo que la gente usa es peor que
 enseñar uno de más, y lo segundo se ve.
 
-#### Tocar lee, la plumita edita
+#### La EMPRESA va encima de todo
 
-La ficha entera abre el **detalle en lectura**; la plumita entra al **formulario**. Recorrer
-cuarenta servicios es lo que más se hace en un día de tráfico, y en un formulario los datos están
+Arriba de la ficha, por encima del nombre del componente, va el **prestador efectivo** —y el
+comprador cuando no es el mismo—. Destacado pero más pequeño que el componente: manda en el
+vistazo, no en la jerarquía. Lo que la fila *es* sigue siendo el componente; lo que se *busca* al
+recorrer el día es a quién se le pide, porque la orden agrupa por comprador.
+
+Sin prestador sale «Sin asignar» en ámbar, que es el mismo color y el mismo criterio que su chip
+de filtro. El comprador sólo aparece si difiere del prestador o falta (`mostrarComprador()`):
+repetir el mismo nombre dos veces en cada ficha convierte el dato en ruido.
+
+#### Tres gestos, y cada uno donde toca
+
+| Gesto | Qué hace |
+|---|---|
+| Tocar el **cuerpo** de la ficha | La marca para la orden |
+| Botón 👁 | Abre el **detalle** |
+| Botón ✎ | Abre el **formulario** |
+
+Marcar es lo del barrido —se recorre el día marcando lo de un proveedor— y por eso se lleva la
+superficie grande. Ver y editar son operaciones sobre UNA fila y tienen cada una su botón, del
+mismo tamaño y juntos. Los dos van con `@click.stop`, igual que la hora y los dos desplegables de
+estado: sin eso, tocar un desplegable marcaría además la ficha.
+
+La ficha abre el **detalle en lectura** y el formulario queda a un botón. Recorrer cuarenta
+servicios es lo que más se hace en un día de tráfico, y en un formulario los datos están
 repartidos entre campos que hay que interpretar. Es el mismo reparto que el namelist del expediente
 (`docs/Cotizaciones.md`), y por el mismo motivo.
 
@@ -1854,6 +1876,35 @@ mismo que «no hay nadie».
 El costo negociado se empotra con su propio editor y **guarda al confirmarlo**, aparte del botón de
 abajo: tiene su propia confirmación y duplicarlo en el borrador daría dos formas de guardar el
 mismo importe.
+
+### El filtro por EMPRESA (25/08/2026)
+
+Chips en la barra, con el mismo patrón que los de lugar —el rótulo es el interruptor y lleva
+contador—, pero con tres diferencias que importan:
+
+- **Filtra lo ya cargado**, en el navegador, como el conmutador «sin OS / en OS». No viaja al
+  servidor. Es lo que pidió Jorge y es suficiente: el cuadro trae 200 filas como mucho.
+- **Los chips salen de las filas**, no del catálogo de proveedores. El catálogo es largo y la
+  mitad no aparece en estas fechas; así cada chip que se ve trae al menos una fila.
+- **Mira los dos papeles y los combina con OR.** Una fila tiene prestador y comprador, y no
+  siempre son la misma empresa (§3.3.b): quien busca «Futurismo Jonathan» quiere sus filas, le
+  toque el papel que le toque. Y mira el **efectivo**, no lo cotizado — filtrar por lo cotizado
+  escondería justo las filas que Operaciones acaba de reasignar.
+
+**El chip «Sin asignar»** trae las filas sin ninguna de las dos: son las que hay que resolver
+antes de emitir nada, y no tienen nombre por el que buscarlas.
+
+⚠️ **Las selecciones se sueltan solas cuando la empresa desaparece del cuadro.** Al cambiar el
+rango, una empresa elegida puede no estar en la carga nueva: su chip dejaría de pintarse pero
+seguiría filtrando, y el cuadro se quedaría vacío sin que nada dijera por qué. Se falla ABIERTO,
+igual que con el filtro de tipos.
+
+⚠️ Y por lo mismo, un cuadro vacío **por los filtros de la vista** ya no es un hueco en blanco:
+tiene su propio bloque, dice cuántas filas hay cargadas y ofrece quitar el filtro que las esconde.
+Con `filtroOs` esto ya podía pasar y no se avisaba.
+
+Por eso el filtro **no se guarda en `localStorage`**, al revés que los demás: sus valores dependen
+de lo que esté cargado, y restaurar una selección que ya no existe es la misma trampa.
 
 ### El componente identifica la fila, no la tarifa (25/08/2026)
 
@@ -2065,6 +2116,7 @@ cotizado, no contra la venta real.
 | Cambiar de dónde salen las ubicaciones de un componente manual | `src/Cotizacion/Entity/CotizacionCotcomponente.php` | `$lugaresManuales` — y el filtro de arriba, que las cruza |
 | Cambiar cómo se rotula un servicio en cualquier lista | `util/src/stores/operacion/operacionStore.ts` | `nombreComponenteDeServicio()` — el respaldo es el tipo, nunca la tarifa |
 | Cambiar qué se edita sin abrir la ficha | `util/src/views/Operacion/OperacionView.vue` | la `<article>` de la rejilla; lo demás va al formulario |
+| Cambiar cómo filtra el chip de empresa | `util/src/views/Operacion/OperacionView.vue` | `coincideEmpresa()` — los dos papeles en OR, sobre el efectivo |
 | Cambiar qué componentes llevan hora | `src/Travel/Enum/ComponenteTipoEnum.php` | `sinHorario()` — el front lo consulta por el flag, no lo replica |
 | Cambiar qué dispara la generación | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `onFlush()` (el `match` de estados) |
 | Cambiar qué se copia al snapshot | `src/Operacion/Service/BibliaSnapshotService.php` | `generarParaCotizacion()` |
