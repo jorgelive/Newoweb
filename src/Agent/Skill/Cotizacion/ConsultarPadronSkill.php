@@ -107,6 +107,13 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
                     . 'que figuran como «no participa». Por defecto false.', requerido: false),
                 SkillParameter::booleano('solo_conteo', 'true para devolver sólo cuántos son, sin '
                     . 'los nombres. Úsalo cuando la pregunta sea «cuántos».', requerido: false),
+                SkillParameter::texto('agrupar_por', 'Devuelve el DESGLOSE en una sola llamada, en '
+                    . 'vez de un solo número. Valores: «grupo», «habitacion», «vuelo», «rol» o '
+                    . '«servicio». Úsalo SIEMPRE que la pregunta sea «cuántos hay en cada…», '
+                    . '«el reparto por…», «cómo se distribuyen…»: pedir uno por uno agota mis '
+                    . 'vueltas antes de llegar a contestar. Se combina con los demás filtros: '
+                    . 'agrupar_por=habitacion con rol=coordinador da las habitaciones de los '
+                    . 'coordinadores.', requerido: false),
             ],
         );
     }
@@ -217,6 +224,29 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             $salida['nota'] = 'No se cuentan los «no participa».';
         }
 
+        // ⚠️ El desglose se resuelve AQUÍ, en una llamada.
+        //
+        // Sin esto, «cuántos hay en cada grupo» obliga al modelo a llamarme una vez por grupo: con
+        // nueve grupos son nueve vueltas, el turno topa en ocho y **se queda sin contestar** —
+        // habiendo pagado el catálogo entero ocho veces. Pasó en producción el 24/08/2026 y costó
+        // 188 000 tokens en un solo turno.
+        $eje = $this->comparable((string) ($entrada['agrupar_por'] ?? ''));
+        if ($eje !== '') {
+            $desglose = $this->desglosar($cumplen, $eje);
+
+            if ($desglose === null) {
+                return SkillResult::ok([
+                    'error_de_nombre' => sprintf('«%s» no es un eje por el que pueda agrupar.', $eje),
+                    'opciones' => ['grupo', 'habitacion', 'vuelo', 'rol', 'servicio'],
+                ]);
+            }
+
+            $salida['agrupado_por'] = $eje;
+            $salida['desglose'] = $desglose;
+
+            return SkillResult::ok($salida);
+        }
+
         if ((bool) ($entrada['solo_conteo'] ?? false)) {
             return SkillResult::ok($salida);
         }
@@ -235,6 +265,102 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
     }
 
     /**
+     * Cuánta gente hay en cada valor de un eje, sobre los que ya pasaron los filtros.
+     *
+     * `null` si el eje no existe — se devuelven las opciones, nunca un desglose vacío: un vacío se
+     * lee como «no hay nadie», que es falso y creíble.
+     *
+     * @param list<CotizacionFilepasajero> $gente
+     * @return array<string, int>|null Ordenado de más a menos, que es como se lee un reparto.
+     */
+    private function desglosar(array $gente, string $eje): ?array
+    {
+        if ($eje === 'rol') {
+            $cuenta = [];
+            foreach ($gente as $p) {
+                $clave = $p->getTipo()?->label() ?? 'sin rol';
+                $cuenta[$clave] = ($cuenta[$clave] ?? 0) + 1;
+            }
+            arsort($cuenta);
+
+            return $cuenta;
+        }
+
+        // Los ejes de grupo: se compara contra la ETIQUETA del eje —«Grupo», «Habitación», «Vuelo
+        // Nacional»— así que «vuelo» casa con los dos tramos y los desglosa juntos, que es lo que
+        // se quiere preguntar.
+        $esServicio = $eje === 'servicio';
+        $cuenta = [];
+        $encontrado = false;
+
+        foreach ($gente as $p) {
+            foreach ($p->grupos() as $g) {
+                $deServicio = $g->getTipo() === GrupoTipoEnum::SERVICIO;
+
+                if ($esServicio !== $deServicio) {
+                    continue;
+                }
+
+                if (!$esServicio && !str_contains($this->comparable($g->getEtiquetaDeEje()), $eje)) {
+                    continue;
+                }
+
+                $encontrado = true;
+                $clave = $esServicio ? (string) $g->getClave() : $this->rotuloDe($g);
+                $cuenta[$clave] = ($cuenta[$clave] ?? 0) + 1;
+            }
+        }
+
+        if (!$encontrado) {
+            return null;
+        }
+
+        arsort($cuenta);
+
+        return $cuenta;
+    }
+
+    /**
+     * Cómo se nombra un subgrupo en el desglose, sin repetirse.
+     *
+     * Concatenar eje + clave + nombre a lo bruto daba «Grupo Grupo 5»: la etiqueta del eje es
+     * «Grupo», la clave «5» y el nombre «Grupo 5». Se dice tres veces lo mismo y se paga en
+     * tokens por cada línea del desglose.
+     */
+    private function rotuloDe(CotizacionFileGrupo $g): string
+    {
+        $eje = $g->getEtiquetaDeEje();
+        $nombre = trim((string) $g->getNombre());
+        $clave = (string) $g->getClave();
+
+        // El nombre ya lo dice todo («Grupo 5»): no se le antepone nada.
+        if ($nombre !== '' && str_starts_with($this->comparable($nombre), $this->comparable($eje))) {
+            return $nombre;
+        }
+
+        // El nombre lleva la clave dentro: sobra repetirla.
+        if ($nombre !== '' && str_contains($this->comparable($nombre), $this->comparable($clave))) {
+            return trim($eje.' '.$nombre);
+        }
+
+        return trim($eje.' '.$clave.' '.$nombre);
+    }
+
+    /**
+     * Para comparar lo que escribe un modelo con lo que hay guardado.
+     *
+     * ⚠️ Sin quitar tildes, «habitacion HA13» no encontraba «Habitación HA13» y la skill devolvía
+     * «ese subgrupo no existe» con 89 opciones. El modelo entonces reintenta con otra variante, y
+     * cada reintento es una vuelta entera del bucle con el catálogo de 15 000 tokens detrás.
+     */
+    private function comparable(?string $texto): string
+    {
+        $limpio = \Transliterator::create('Any-Latin; Latin-ASCII')?->transliterate((string) $texto);
+
+        return mb_strtolower(trim($limpio ?? (string) $texto));
+    }
+
+    /**
      * Los grupos que encajan con lo que pidió el modelo.
      *
      * Devuelve una LISTA porque «6» puede ser el grupo 6 y la habitación 6 a la vez, y «Arajet»
@@ -244,7 +370,7 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
      */
     private function gruposQueEncajan(CotizacionFile $file, string $pedido): array
     {
-        $buscado = mb_strtolower($pedido);
+        $buscado = $this->comparable($pedido);
         $encajan = [];
 
         foreach ($file->getGrupos() as $g) {
@@ -253,9 +379,9 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             }
 
             $candidatos = [
-                mb_strtolower((string) $g->getClave()),
-                mb_strtolower((string) $g->getNombre()),
-                mb_strtolower(trim($g->getEtiquetaDeEje().' '.$g->getClave())),
+                $this->comparable($g->getClave()),
+                $this->comparable($g->getNombre()),
+                $this->comparable(trim($g->getEtiquetaDeEje().' '.$g->getClave())),
             ];
 
             if (in_array($buscado, array_filter($candidatos), true)) {
@@ -268,10 +394,10 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
 
     private function servicioQueEncaja(CotizacionFile $file, string $pedido): ?CotizacionFileGrupo
     {
-        $buscado = mb_strtolower($pedido);
+        $buscado = $this->comparable($pedido);
 
         foreach ($file->getGrupos() as $g) {
-            if ($g->getTipo() === GrupoTipoEnum::SERVICIO && mb_strtolower((string) $g->getClave()) === $buscado) {
+            if ($g->getTipo() === GrupoTipoEnum::SERVICIO && $this->comparable($g->getClave()) === $buscado) {
                 return $g;
             }
         }
@@ -326,14 +452,14 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
     /** @param array<string, mixed> $entrada */
     private function rolPedido(array $entrada): ?PasajeroTipoEnum
     {
-        $pedido = mb_strtolower(trim((string) ($entrada['rol'] ?? '')));
+        $pedido = $this->comparable((string) ($entrada['rol'] ?? ''));
 
         if ($pedido === '') {
             return null;
         }
 
         foreach (PasajeroTipoEnum::cases() as $caso) {
-            if ($caso->value === $pedido || mb_strtolower($caso->label()) === $pedido) {
+            if ($caso->value === $pedido || $this->comparable($caso->label()) === $pedido) {
                 return $caso;
             }
         }

@@ -355,6 +355,36 @@ trae `error_de_nombre` y las opciones reales.
 eso existe `negar_servicio`. Y vacío se lee como NO, igual que en el padrón: si nadie marcó la
 casilla, esa persona no lo lleva.
 
+### ⚠️ `agrupar_por`: el desglose en UNA llamada, y por qué existe
+
+**Costó 188 000 tokens en un solo turno descubrirlo.** El 24/08/2026, la primera versión de esta
+skill sólo sabía contestar «quiénes cumplen X». Preguntarle «¿cuántos hay en cada grupo?» obliga
+al modelo a llamarla **una vez por grupo**: con nueve grupos son nueve vueltas, el turno topa en
+las ocho de `MAX_VUELTAS` y **se queda sin contestar** — habiendo reenviado el catálogo entero
+ocho veces.
+
+Así se ve en el log, y es la forma que tiene este fallo:
+
+```
+vuelta 1  entrada 19 328   consultar_padron
+vuelta 2  entrada 19 846   consultar_padron
+…                          ← la entrada CRECE: los resultados se acumulan
+vuelta 8  entrada 31 292   consultar_padron
+WARNING   8 vueltas de herramientas sin respuesta final
+```
+
+`agrupar_por` = `grupo` | `habitacion` | `vuelo` | `rol` | `servicio` devuelve el reparto entero
+de una vez, y se combina con los demás filtros (`agrupar_por=habitacion` + `rol=coordinador` da
+las habitaciones de los coordinadores).
+
+⚠️ **La lección general, que vale para cualquier skill nueva:** si una pregunta natural obliga a
+llamarla N veces, no es que el modelo sea torpe — es que a la skill le falta esa forma. Y el
+síntoma no es un error: es una factura.
+
+⚠️ Y la comparación de nombres **quita las tildes**. «habitacion HA13» no encontraba «Habitación
+HA13», la skill devolvía «no existe» con las opciones, y el modelo reintentaba con otra variante —
+cada reintento, una vuelta entera con 15 000 tokens de catálogo detrás.
+
 ### ⚠️ Todo lo que se devuelve va recortado, y con su total
 
 Un padrón de colegio son 133 personas, 66 habitaciones y 23 localizadores. Volcarlos es media
