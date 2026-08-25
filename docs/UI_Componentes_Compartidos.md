@@ -864,8 +864,16 @@ que sólo anima; la pública decide además qué hacer con la pila. Juntándolas
 volvía a llamar al que cierra y se comía la animación o entraba en bucle.
 
 Aplicado en `FileDetalle.vue` a la ficha del pasajero, su modo edición, el modal de documento y el
-panel del expediente. ⚠️ **No está en el resto de la app**: los drawers de Tarifas y Reservas y los
-modales de chat siguen sacándote de la pantalla. Se van enganchando al tocarlos.
+panel del expediente, y en `OperacionView.vue` (25/08/2026) a la ficha del servicio, su formulario
+y los seis modales del Centro de Operaciones. ⚠️ **No está en el resto de la app**: los drawers de
+Tarifas y Reservas y los modales de chat siguen sacándote de la pantalla. Se van enganchando al
+tocarlos.
+
+⚠️ **Y no puede convivir con el `pushState` a mano.** El Centro de Operaciones tenía su propio
+mecanismo —`hayModalAbierto` + `history.pushState` + un `popstate`— que es exactamente el que este
+composable existe para reemplazar. Dos contabilidades sobre el mismo historial no se reparten el
+trabajo: se pisan. Al enganchar la ficha había que migrar **los seis modales a la vez**, no sólo lo
+nuevo.
 
 ## 3.l La versal va donde NO se edita (2026-08-24)
 

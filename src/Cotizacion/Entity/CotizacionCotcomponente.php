@@ -185,7 +185,19 @@ class CotizacionCotcomponente
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $tipo = null;
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    /**
+     * Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+     *
+     * Sale de `ComponenteTipoEnum::sinHorario()` —un ticket de horario variable o un alojamiento
+     * no tienen hora; un tren o un traslado sí— y se congela por componente porque el tipo del
+     * componente también está congelado.
+     *
+     * `operacion:item:read` para que el cuadro de tráfico consulte **el flag y no una copia de
+     * la regla**: sin él, la Biblia ofrecía escribir una hora de recojo para un ingreso al
+     * Koricancha, que es un dato que no significa nada y que alguien acaba mandándole al
+     * proveedor.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $sinHorario = false;
 

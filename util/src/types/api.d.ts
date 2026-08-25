@@ -7222,7 +7222,10 @@ export interface components {
                 [key: string]: string | null;
             }[];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -7325,7 +7328,10 @@ export interface components {
                 [key: string]: string | null;
             }[];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -7423,7 +7429,10 @@ export interface components {
                 [key: string]: string | null;
             }[];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -7469,6 +7478,11 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
+            sinHorario: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -7496,7 +7510,10 @@ export interface components {
             fechaHoraFin?: string | null;
             cottarifas?: components["schemas"]["CotizacionCottarifa-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -7538,7 +7555,10 @@ export interface components {
             fechaHoraFin?: string | null;
             cottarifas?: components["schemas"]["CotizacionCottarifa-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -7625,7 +7645,10 @@ export interface components {
                 [key: string]: string | null;
             }[];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -7728,7 +7751,10 @@ export interface components {
                 [key: string]: string | null;
             }[];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -7778,6 +7804,11 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
+            sinHorario: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -7805,7 +7836,10 @@ export interface components {
             fechaHoraFin?: string | null;
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -7847,7 +7881,10 @@ export interface components {
             fechaHoraFin?: string | null;
             cottarifas?: components["schemas"]["CotizacionCottarifa.html-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -7934,7 +7971,10 @@ export interface components {
                 [key: string]: string | null;
             }[];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -8038,7 +8078,10 @@ export interface components {
                 [key: string]: string | null;
             }[];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -8089,6 +8132,11 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
+            sinHorario: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -8117,7 +8165,10 @@ export interface components {
             fechaHoraFin?: string | null;
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -8160,7 +8211,10 @@ export interface components {
             fechaHoraFin?: string | null;
             cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -8247,7 +8301,10 @@ export interface components {
                 [key: string]: string | null;
             }[];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -8350,7 +8407,10 @@ export interface components {
                 [key: string]: string | null;
             }[];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -8400,6 +8460,11 @@ export interface components {
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
             nombreInternoSnapshot?: string | null;
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
+            sinHorario: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -8427,7 +8492,10 @@ export interface components {
             fechaHoraFin?: string | null;
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-pax_catalogo.read_pax_cotizacion.read"][];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la
@@ -8469,7 +8537,10 @@ export interface components {
             fechaHoraFin?: string | null;
             cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-pax_file.read_pax_cotizacion.read"][];
             tipo?: string | null;
-            /** @default false */
+            /**
+             * @description Este componente NO tiene hora propia: la UI no debe ofrecer selector de hora.
+             * @default false
+             */
             sinHorario: boolean;
             /**
              * @description La hora de este componente representa el horario global de toda la

@@ -1789,6 +1789,72 @@ fila»).
 maestros que resolver» dejaba en blanco un cuadro entero de filas manuales que sí tenían
 ubicación: sin vocabulario no hay con qué traducir sus uuids a nombre.
 
+### De tabla a REJILLA DE FICHAS (25/08/2026)
+
+La Biblia era **una tabla** con seis de sus nueve columnas marcadas `hidden md:table-cell`. En un
+teléfono —que es donde se usa el cuadro de tráfico— eso no se convertía en ficha: se quedaba una
+tabla a la que le faltaban columnas, con el servicio, el expediente, el prestador y el costo
+apelotonados en la única celda que sobrevivía. Ni tabla ni ficha.
+
+Ahora es **una ficha por servicio**, en rejilla de 1 / 2 / 3 columnas según el ancho. La misma
+maqueta en todos los tamaños: no hay dos renders que mantener.
+
+#### Qué se edita en la ficha y qué no
+
+| | Dónde |
+|---|---|
+| Los dos **estados** (reserva y operación) | En la propia ficha. Es lo que se mueve a diario |
+| La **hora** de recojo | En la propia ficha — **si el componente admite hora** |
+| Puntos, notas, prestador, servicio contratado, comprador, costo | En el formulario, a un toque de la plumita |
+
+La regla es «lo que se toca a diario se toca sin abrir nada». Todo lo demás vive en el formulario,
+porque un campo editable en cada ficha multiplicado por cuarenta fichas es lo que convertía el
+cuadro en un formulario gigante.
+
+⚠️ **La hora sale del FLAG, no de una copia de la regla.** `admiteHora()` mira
+`CotizacionCotcomponente::$sinHorario` (publicado en `operacion:item:read`), que sale de
+`ComponenteTipoEnum::sinHorario()`. Un ingreso al Koricancha es un `ticket_variable`: no tiene hora
+que fijar, y La Biblia ofrecía el campo igualmente — una hora escrita ahí no significa nada y
+alguien acaba mandándosela al proveedor. Ahora ese input **no existe** para esos tipos; en su sitio
+se lee «sin hora». Si el flag no llegara, se admite: esconder un campo que la gente usa es peor que
+enseñar uno de más, y lo segundo se ve.
+
+#### Tocar lee, la plumita edita
+
+La ficha entera abre el **detalle en lectura**; la plumita entra al **formulario**. Recorrer
+cuarenta servicios es lo que más se hace en un día de tráfico, y en un formulario los datos están
+repartidos entre campos que hay que interpretar. Es el mismo reparto que el namelist del expediente
+(`docs/Cotizaciones.md`), y por el mismo motivo.
+
+Las flechas de la cabecera saltan a la ficha de al lado **sin apilar capas**: es la misma capa
+cambiando de contenido. Sin eso, recorrer diez servicios dejaba diez entradas de historial detrás.
+
+#### El gesto atrás devuelve, no expulsa
+
+Detalle y formulario son **capas en el historial** (`useCapasEnHistorial`, ver
+`docs/UI_Componentes_Compartidos.md` §3.k): `?capa=servicio.servicio-edicion`. Atrás lleva del
+formulario al detalle, y del detalle a la rejilla. Guardar hace lo mismo —vuelve al detalle, no
+cierra—: lo normal es mirar lo que acabas de cambiar.
+
+⚠️ Al enganchar la ficha hubo que **migrar los seis modales de la vista a la vez**. Tenían su
+propio mecanismo con `history.pushState` a mano, que es justo el que el composable reemplaza, y dos
+contabilidades sobre el mismo historial se pisan.
+
+⚠️ **Al guardar se vuelve a apuntar la ficha por id.** `cargarBiblia()` reemplaza el array entero,
+así que la ficha quedaba apuntando a un objeto muerto y el detalle volvía enseñando los datos de
+antes de guardar.
+
+#### Prestador y proveedor: el error se dice donde se está mirando
+
+En la tabla, escribir un nombre que no estaba en el catálogo **revertía el input en silencio** y
+sacaba un aviso en una franja flotante. En el formulario, ese nombre corta el guardado y el motivo
+sale junto al botón de guardar. Sigue valiendo que **vacío = «vuelve a lo cotizado»**, que no es lo
+mismo que «no hay nadie».
+
+El costo negociado se empotra con su propio editor y **guarda al confirmarlo**, aparte del botón de
+abajo: tiene su propia confirmación y duplicarlo en el borrador daría dos formas de guardar el
+mismo importe.
+
 ### El componente identifica la fila, no la tarifa (25/08/2026)
 
 Una tarifa —«Adulto Extranjero», «Americana Royal Class»— se repite en media docena de filas del
@@ -1998,6 +2064,8 @@ cotizado, no contra la venta real.
 | Cambiar qué recoge el chip «Sin etiqueta» | `src/Operacion/Filter/OperacionServicioLugarExtension.php` | `SIN_LUGAR` |
 | Cambiar de dónde salen las ubicaciones de un componente manual | `src/Cotizacion/Entity/CotizacionCotcomponente.php` | `$lugaresManuales` — y el filtro de arriba, que las cruza |
 | Cambiar cómo se rotula un servicio en cualquier lista | `util/src/stores/operacion/operacionStore.ts` | `nombreComponenteDeServicio()` — el respaldo es el tipo, nunca la tarifa |
+| Cambiar qué se edita sin abrir la ficha | `util/src/views/Operacion/OperacionView.vue` | la `<article>` de la rejilla; lo demás va al formulario |
+| Cambiar qué componentes llevan hora | `src/Travel/Enum/ComponenteTipoEnum.php` | `sinHorario()` — el front lo consulta por el flag, no lo replica |
 | Cambiar qué dispara la generación | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `onFlush()` (el `match` de estados) |
 | Cambiar qué se copia al snapshot | `src/Operacion/Service/BibliaSnapshotService.php` | `generarParaCotizacion()` |
 | **De dónde sale el expediente de la fila** (§3.7) | mismo archivo | `resolverFile()` — y la guarda de raíz en `Cotizacion::setFile()` |

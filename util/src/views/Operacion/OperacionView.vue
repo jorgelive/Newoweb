@@ -11,8 +11,8 @@
  * eso la vista muestra tipo/modo/estado del componente y deja filtrar: primero se ve
  * qué está llegando, después se decide qué se deja de generar.
  */
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
-import { useRouter, onBeforeRouteLeave } from 'vue-router';
+import { ref, onMounted, computed, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import EditorCostoNegociado from '@/components/operacion/EditorCostoNegociado.vue';
 import { useOperacionStore, type ExpedienteOpcion, type CotizacionOpcion, type BitacoraEstado, type PagoProveedor, type ExpedienteDetalle, type ProveedorOpcion , type DocumentoDeOrden } from '@/stores/operacion/operacionStore';
@@ -37,6 +37,7 @@ import {
     type OperacionOrdenServicio,
 } from '@/types/operacionModel';
 import { useRefrescoDelAsistente } from '@/composables/useRefrescoDelAsistente';
+import { useCapasEnHistorial } from '@/composables/useCapasEnHistorial';
 
 const operacionStore = useOperacionStore();
 const router = useRouter();
@@ -508,29 +509,6 @@ const rutaDe = (servicio: OperacionServicio): string | null => {
 
 const puntosDe = (servicio: OperacionServicio) => operacionStore.puntosDerivados[servicio.id ?? ''] ?? null;
 
-const editarPunto = async (servicio: OperacionServicio, lado: 'recojo' | 'entrega', evento: Event) => {
-    const input = evento.target as HTMLInputElement;
-    const valor = input.value.trim();
-    const campo = lado === 'recojo' ? 'puntoRecojo' : 'puntoEntrega';
-
-    // Vacío = null y no cadena vacía: `''` seguiría contando como override y taparía el derivado
-    // para siempre con un valor que no dice nada. La entidad lo limpia también, por si acaso.
-    await guardarCampo(servicio, { [campo]: valor === '' ? null : valor });
-};
-
-/**
- * Lo que se le dice al proveedor: una nota por línea.
- *
- * Vacío = `null` y no `[]`, por lo mismo que en los puntos: una lista vacía guardada seguiría
- * contando como override y taparía para siempre los detalles del componente.
- */
-const editarNotasPrestador = async (servicio: OperacionServicio, evento: Event) => {
-    const area = evento.target as HTMLTextAreaElement;
-    const lineas = area.value.split('\n').map(l => l.trim()).filter(l => l !== '');
-
-    await guardarCampo(servicio, { notasPrestador: lineas.length ? lineas : null });
-};
-
 const editarHora = async (servicio: OperacionServicio, evento: Event) => {
     const input = evento.target as HTMLInputElement;
     const valor = input.value.trim();
@@ -561,59 +539,14 @@ const editarHora = async (servicio: OperacionServicio, evento: Event) => {
 const resolverEmpresa = (texto: string): ProveedorOpcion | null =>
     operacionStore.proveedores.find(p => p.nombreComercial.toLowerCase() === texto.toLowerCase()) ?? null;
 
-/** Vacío = «vuelve a lo cotizado», que es distinto de «no hay nadie». */
-const editarPapel = async (
-    servicio: OperacionServicio,
-    evento: Event,
-    campoId: 'prestadorOverrideMaestroId' | 'compradorOverrideMaestroId',
-    campoNombre: 'prestadorOverrideNombre' | 'compradorOverrideNombre',
-    efectivoActual: string,
-) => {
-    const input = evento.target as HTMLInputElement;
-    const texto = input.value.trim();
-
-    if (texto === efectivoActual) return;
-
-    if (texto === '') {
-        await guardarCampo(servicio, { [campoId]: null, [campoNombre]: null });
-        return;
-    }
-
-    const empresa = resolverEmpresa(texto);
-
-    if (!empresa) {
-        // Ni se guarda a medias ni se inventa: se devuelve lo que había y se dice por qué.
-        input.value = efectivoActual;
-        avisoPapel.value = `«${texto}» no está en el catálogo de organizaciones. Dala de alta primero.`;
-        window.setTimeout(() => { avisoPapel.value = null; }, 6000);
-        return;
-    }
-
-    await guardarCampo(servicio, { [campoId]: empresa.id, [campoNombre]: empresa.nombreComercial });
-};
-
-const avisoPapel = ref<string | null>(null);
-
-/** COMPRADOR: a quién se le manda el encargo. Es por quien agrupa la Orden de Servicio. */
-const editarProveedor = (servicio: OperacionServicio, evento: Event) =>
-    editarPapel(servicio, evento, 'compradorOverrideMaestroId', 'compradorOverrideNombre', servicio.compradorEfectivoNombre ?? '');
-
 /**
- * PRESTADOR: quién opera y dónde se recoge. Es el dato que el cuadro de tráfico lee
- * de un vistazo, y por eso manda en la celda por encima del comprador.
+ * Avisos efímeros de las ÓRDENES (actualizar, reemitir), en una franja flotante.
  *
- * En una fila de referencia es el ÚNICO de los dos que existe: el hotel que reservó
- * el pasajero. Ver docs/Operacion.md §3.3.b.
+ * Los nombres de prestador y proveedor ya no pasan por aquí: se escriben en el formulario de la
+ * ficha, y si no están en el catálogo el error sale junto al botón de guardar, que es donde se
+ * está mirando. Una franja flotante para un campo recién tocado da la noticia lejos.
  */
-const editarPrestador = (servicio: OperacionServicio, evento: Event) =>
-    editarPapel(servicio, evento, 'prestadorOverrideMaestroId', 'prestadorOverrideNombre', servicio.prestadorEfectivoNombre ?? '');
-
-/** El servicio contratado (el tipo de habitación). Texto libre: no es una empresa. */
-const editarServicioPrestador = async (servicio: OperacionServicio, evento: Event) => {
-    const valor = (evento.target as HTMLInputElement).value.trim();
-    if (valor === (servicio.prestadorServicioEfectivoNombre ?? '')) return;
-    await guardarCampo(servicio, { prestadorServicioOverrideNombre: valor || null });
-};
+const avisoPapel = ref<string | null>(null);
 
 /** Lo que dijo la cotización, para enseñarlo al lado cuando operaciones puso otra cosa. */
 const cotizadoDe = (s: OperacionServicio): string | null => {
@@ -817,6 +750,7 @@ const abrirModalOs = () => {
         compradorNombre: sel[0].compradorEfectivoNombre ?? '',
     };
     errorOs.value = null;
+    abrirComoCapa('generar-os', () => { mostrarModalOs.value = false; });
     mostrarModalOs.value = true;
     void operacionStore.fetchProveedores();   // idempotente: sólo pega la primera vez
 };
@@ -937,7 +871,9 @@ const confirmarOs = async (emitir: boolean) => {
             compradorNombre: formOs.value.compradorNombre || null,
             soloBorrador: !emitir,
         });
-        mostrarModalOs.value = false;
+        // `capas.cerrar()` y no `= false`: el cierre a mano dejaría la entrada del historial
+        // colgando, y el siguiente «atrás» se la comería sin hacer nada visible.
+        capas.cerrar('generar-os');
         confirmandoEmitir.value = false;
         seleccionados.value = [];
         await cargarBiblia();
@@ -952,18 +888,27 @@ const confirmarOs = async (emitir: boolean) => {
 
 // ══ FICHA DEL SERVICIO (móvil) ═════════════════════════════════════════════
 //
-// En el teléfono la tabla se queda en tres columnas —selector, hora y servicio— y todo lo demás
-// se edita aquí. La alternativa era comprimir nueve columnas en 360 px, que es como se llega a
-// una fila que no se puede leer ni tocar sin equivocarse.
+// ══ LA FICHA DE UN SERVICIO: LEER, Y LUEGO EDITAR ══════════════════════════
 //
-// ⚠️ **Aquí se edita sobre un BORRADOR y se guarda al confirmar**, al revés que en la tabla, donde
-// cada campo se manda al perder el foco. En un teléfono no hay sitio para poner el aviso de
-// guardado al lado del campo, así que el operador no sabía si su cambio había entrado. Con el
-// borrador, «Guardar» es la respuesta a esa pregunta.
+// El cuadro es una REJILLA DE FICHAS y la ficha es lo que se abre al tocar una. Antes esto era
+// una tabla con seis columnas ocultas por debajo de `md`: en el teléfono no se convertía en
+// ficha, se quedaba una tabla a la que le faltaban columnas y con todo apelotonado en una celda.
+//
+// ⚠️ **Tocar la ficha abre LEYENDO; la plumita entra a editar.** Recorrer cuarenta servicios es
+// lo que más se hace en un día de tráfico, y en un formulario los datos están repartidos entre
+// campos que hay que interpretar. Es el mismo reparto que el namelist del expediente.
+//
+// ⚠️ **Se edita sobre un BORRADOR y se guarda al confirmar.** En la tabla cada campo se mandaba
+// al perder el foco y no había sitio para decir si había entrado; aquí «Guardar» es la respuesta
+// a esa pregunta. Y guardar vuelve al detalle, no cierra: lo normal es mirar lo que acabas de
+// cambiar.
 
 const servicioFicha = ref<OperacionServicio | null>(null);
 const guardandoFicha = ref(false);
 const errorFicha = ref<string | null>(null);
+
+/** `true` = detalle en lectura; `false` = formulario. */
+const modoVistaFicha = ref(true);
 
 interface BorradorFicha {
     horaRecojo: string;
@@ -974,20 +919,46 @@ interface BorradorFicha {
     visibilidadRecojo: string;
     visibilidadEntrega: string;
     notasPrestador: string;
+    prestadorNombre: string;
+    prestadorServicioNombre: string;
+    compradorNombre: string;
 }
 
 const borradorFicha = ref<BorradorFicha>({
     horaRecojo: '', puntoRecojo: '', puntoEntrega: '',
     estadoReservaProveedor: '', estadoOperacion: '', visibilidadRecojo: 'auto', visibilidadEntrega: 'auto',
-    notasPrestador: '',
+    notasPrestador: '', prestadorNombre: '', prestadorServicioNombre: '', compradorNombre: '',
 });
 
-/** Se abre SÓLO en móvil: en escritorio la tabla ya es editable y abrir una ficha estorbaría. */
-const abrirFicha = (servicio: OperacionServicio) => {
-    if (!esMovil()) return;
+/**
+ * ¿Este servicio admite una hora propia?
+ *
+ * Se consulta **el flag del componente** (`CotizacionCotcomponente::$sinHorario`, que sale de
+ * `ComponenteTipoEnum::sinHorario()`), no una copia de la regla en TypeScript: un ingreso al
+ * Koricancha es un ticket de horario variable y no tiene hora que fijar, igual que un
+ * alojamiento. La Biblia ofrecía el campo igualmente, y una hora escrita ahí es un dato que no
+ * significa nada y que alguien acaba mandándole al proveedor.
+ *
+ * Si el flag no llegara —grupo de serialización caído—, se admite: esconder un campo que la
+ * gente usa es peor que enseñar uno de más, y esto último se ve.
+ */
+const admiteHora = (servicio: OperacionServicio): boolean => {
+    const componente = servicio.cotizacionComponente as { sinHorario?: boolean } | undefined;
 
-    servicioFicha.value = servicio;
-    errorFicha.value = null;
+    return componente?.sinHorario !== true;
+};
+
+/** Las fichas en el orden en que se ven, para saltar de una a otra con las flechas. */
+const serviciosPlanos = computed<OperacionServicio[]>(() =>
+    serviciosPorDia.value.flatMap(g => g.servicios));
+
+const indiceDeFicha = computed(() => {
+    const id = servicioFicha.value?.id;
+
+    return id ? serviciosPlanos.value.findIndex(s => s.id === id) : -1;
+});
+
+const sembrarBorrador = (servicio: OperacionServicio): void => {
     borradorFicha.value = {
         horaRecojo: servicio.horaRecojo ?? '',
         puntoRecojo: servicio.puntoRecojo ?? '',
@@ -997,7 +968,57 @@ const abrirFicha = (servicio: OperacionServicio) => {
         visibilidadRecojo: servicio.visibilidadRecojo ?? 'auto',
         visibilidadEntrega: servicio.visibilidadEntrega ?? 'auto',
         notasPrestador: (servicio.notasPrestador ?? []).join('\n'),
+        prestadorNombre: servicio.prestadorEfectivoNombre ?? '',
+        prestadorServicioNombre: servicio.prestadorServicioEfectivoNombre ?? '',
+        compradorNombre: servicio.compradorEfectivoNombre ?? '',
     };
+};
+
+/**
+ * Gira la ficha entre lectura y edición. **Siempre por el historial**, nunca a mano: así el
+ * gesto atrás devuelve al detalle en vez de cerrar la ficha entera.
+ */
+const girarFicha = (aVista: boolean): void => {
+    if (aVista) {
+        capas.cerrar('servicio-edicion');   // el composable dispara el `alCerrar` que vuelve a lectura
+        return;
+    }
+
+    capas.abrir('servicio-edicion', () => { modoVistaFicha.value = true; });
+    modoVistaFicha.value = false;
+};
+
+/**
+ * @param editar `true` sólo cuando se entra por la plumita. Abre las DOS capas —ficha y
+ *               edición— para que atrás lleve al detalle y el siguiente atrás a la rejilla.
+ */
+const abrirFicha = (servicio: OperacionServicio, editar = false): void => {
+    const yaAbierta = servicioFicha.value !== null;
+
+    servicioFicha.value = servicio;
+    errorFicha.value = null;
+    sembrarBorrador(servicio);
+
+    // Saltar de una ficha a otra con las flechas NO apila: es la misma capa cambiando de
+    // contenido. Sin esto, recorrer diez servicios dejaba diez entradas de historial detrás.
+    if (!yaAbierta) {
+        modoVistaFicha.value = true;
+        capas.abrir('servicio', () => { servicioFicha.value = null; modoVistaFicha.value = true; });
+    }
+
+    if (editar && modoVistaFicha.value) girarFicha(false);
+};
+
+/** Cierra la ficha RETROCEDIENDO: el cierre real lo hace el composable, como todo aquí. */
+const cerrarFicha = (): void => capas.cerrar('servicio');
+
+/** La ficha de al lado, en el orden en que se ven. Siempre en LECTURA. */
+const irAFichaAdyacente = (paso: number): void => {
+    const destino = serviciosPlanos.value[indiceDeFicha.value + paso];
+    if (!destino) return;
+
+    if (!modoVistaFicha.value) girarFicha(true);
+    abrirFicha(destino);
 };
 
 /** Sólo lo que CAMBIÓ. Mandar el resto reescribiría campos que nadie tocó. */
@@ -1018,32 +1039,101 @@ const cambiosDeFicha = (): Record<string, unknown> => {
     if (b.visibilidadRecojo !== (s.visibilidadRecojo ?? 'auto')) cambios.visibilidadRecojo = b.visibilidadRecojo;
     if (b.visibilidadEntrega !== (s.visibilidadEntrega ?? 'auto')) cambios.visibilidadEntrega = b.visibilidadEntrega;
 
+    if (texto(b.prestadorServicioNombre) !== (s.prestadorServicioEfectivoNombre ?? null)) {
+        cambios.prestadorServicioOverrideNombre = texto(b.prestadorServicioNombre);
+    }
+
     const notas = b.notasPrestador.split('\n').map(l => l.trim()).filter(l => l !== '');
     if (notas.join('\n') !== (s.notasPrestador ?? []).join('\n')) cambios.notasPrestador = notas.length ? notas : null;
 
     return cambios;
 };
 
-const hayCambiosEnFicha = computed(() => Object.keys(cambiosDeFicha()).length > 0);
+/**
+ * Prestador y comprador, que NO son texto libre: son organizaciones del catálogo.
+ *
+ * Se resuelven aparte del resto porque pueden fallar —un nombre que no está dado de alta— y eso
+ * corta el guardado entero con un motivo. En la tabla el input se revertía en silencio y nadie
+ * se enteraba de por qué su cambio no había entrado.
+ *
+ * Vacío significa «vuelve a lo cotizado», que es distinto de «no hay nadie».
+ *
+ * @returns los cambios, o `null` si algún nombre no está en el catálogo.
+ */
+const cambiosDePapeles = (): Record<string, unknown> | null => {
+    const s = servicioFicha.value;
+    if (!s) return {};
+
+    const b = borradorFicha.value;
+    const cambios: Record<string, unknown> = {};
+
+    const papeles = [
+        { texto: b.prestadorNombre.trim(), actual: s.prestadorEfectivoNombre ?? '', rotulo: 'prestador',
+          campoId: 'prestadorOverrideMaestroId', campoNombre: 'prestadorOverrideNombre' },
+        { texto: b.compradorNombre.trim(), actual: s.compradorEfectivoNombre ?? '', rotulo: 'proveedor',
+          campoId: 'compradorOverrideMaestroId', campoNombre: 'compradorOverrideNombre' },
+    ];
+
+    for (const papel of papeles) {
+        if (papel.texto === papel.actual) continue;
+
+        if (papel.texto === '') {
+            cambios[papel.campoId] = null;
+            cambios[papel.campoNombre] = null;
+            continue;
+        }
+
+        const empresa = resolverEmpresa(papel.texto);
+
+        if (!empresa) {
+            errorFicha.value = `«${papel.texto}» no está en el catálogo de organizaciones. `
+                + `Dala de alta antes de ponerla como ${papel.rotulo}.`;
+
+            return null;
+        }
+
+        cambios[papel.campoId] = empresa.id;
+        cambios[papel.campoNombre] = empresa.nombreComercial;
+    }
+
+    return cambios;
+};
+
+const hayCambiosEnFicha = computed(() =>
+    Object.keys(cambiosDeFicha()).length > 0
+    || borradorFicha.value.prestadorNombre.trim() !== (servicioFicha.value?.prestadorEfectivoNombre ?? '')
+    || borradorFicha.value.compradorNombre.trim() !== (servicioFicha.value?.compradorEfectivoNombre ?? ''));
 
 const guardarFicha = async () => {
     const s = servicioFicha.value;
-    const cambios = cambiosDeFicha();
-    if (!s?.id || Object.keys(cambios).length === 0) { servicioFicha.value = null; return; }
+    if (!s?.id) return;
 
-    // La hora, si se escribe, tiene que ser una hora. En la tabla esto revierte el input en
-    // silencio; aquí se dice, porque hay sitio para decirlo.
+    errorFicha.value = null;
+
+    const papeles = cambiosDePapeles();
+    if (papeles === null) return;   // un nombre fuera del catálogo: ya lo dijo `cambiosDePapeles()`
+
+    const cambios = { ...cambiosDeFicha(), ...papeles };
+
+    if (Object.keys(cambios).length === 0) { girarFicha(true); return; }
+
+    // La hora, si se escribe, tiene que ser una hora.
     if (typeof cambios.horaRecojo === 'string' && !PATRON_HORA.test(cambios.horaRecojo)) {
         errorFicha.value = 'La hora de recojo va en formato 24 h, por ejemplo 06:15.';
         return;
     }
 
     guardandoFicha.value = true;
-    errorFicha.value = null;
     try {
         await operacionStore.actualizarServicio(s.id, cambios);
-        servicioFicha.value = null;
         await cargarBiblia();
+
+        // Recargar reemplaza el array entero, así que la ficha apuntaba a un objeto muerto y el
+        // detalle volvía con los datos de antes de guardar. Se vuelve a apuntar por id.
+        const fresco = operacionStore.servicios.find(x => x.id === s.id);
+        if (fresco) { servicioFicha.value = fresco; sembrarBorrador(fresco); }
+
+        girarFicha(true);
     } catch (e) {
         errorFicha.value = mensajeDeErrorApi(e, 'No se pudo guardar.');
     } finally {
@@ -1413,46 +1503,33 @@ const desdeHace = (iso: string | null | undefined): string => {
 const fechaHora = (iso: string): string =>
     new Date(iso).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-// ── EL BOTÓN «ATRÁS» CIERRA EL MODAL, NO SALE DE LA VISTA ─────────────────────
+// ── EL GESTO «ATRÁS» CIERRA LA CAPA, NO SALE DE LA VISTA ─────────────────────
 //
-// Sin esto, con un modal abierto el gesto de volver del móvil disparaba la navegación del
-// router y mandaba al menú, perdiendo dónde estabas. Cada modal empuja una entrada de
-// history al abrirse; «atrás» (popstate) la consume cerrando el modal. Cerrar con la X hace
-// lo mismo por código (`history.back()`), así la entrada nunca queda colgando.
-const hayModalAbierto = computed(() => !!(
-    expedienteAbierto.value || pagosOrden.value || bitacoraServicio.value ||
-    ordenEditando.value || ordenActiva.value || mostrarModalOs.value
-));
+// Toda esta vista —fichas, modales, modo edición— cuelga de `useCapasEnHistorial`, que guarda
+// las capas abiertas en la QUERY (`?capa=servicio.servicio-edicion`).
+//
+// ⚠️ Antes se empujaban entradas con `history.pushState` a mano, y fallaba de la forma que
+// documenta el composable: vue-router lleva su propia contabilidad en `history.state`, así que
+// una entrada empujada por fuera lo desincroniza y «atrás» acababa navegando en vez de cerrar.
+// Con seis modales y ahora también la ficha, mantener dos mecanismos compitiendo por el
+// historial era garantizar ese fallo.
+const capas = useCapasEnHistorial();
 
-const cerrarTodosLosModales = (): void => {
-    expedienteAbierto.value = null;
-    pagosOrden.value = null;
-    bitacoraServicio.value = null;
-    ordenEditando.value = null;
-    ordenActiva.value = null;
-    mostrarModalOs.value = false;
+/** La capa de modal abierta ahora mismo, para que la ✕ genérica sepa cuál cerrar. */
+const capaModal = ref<string | null>(null);
+
+/**
+ * Abre un modal como capa. El cierre REAL lo hace siempre el composable —venga del gesto atrás
+ * o de la ✕—, así que el `alCerrar` es el único sitio donde se vacía el ref.
+ */
+const abrirComoCapa = (nombre: string, alCerrar: () => void): void => {
+    capaModal.value = nombre;
+    capas.abrir(nombre, () => { alCerrar(); capaModal.value = null; });
 };
 
-let modalEnHistory = false;
-
-// El watch de `hayModalAbierto` se registra en onMounted, NO aquí. Su fuente agrega refs de
-// modales que se declaran más abajo (expedienteAbierto, pagosOrden…), y `watch()` evalúa la
-// fuente al crearse: en el setup las leería antes de su declaración → TDZ («Cannot access 'xe'
-// before initialization»). En onMounted ya están todas inicializadas. Un modal no puede estar
-// abierto antes del montaje, así que no se pierde ningún disparo.
-
-/** Cierra el modal activo consumiendo su entrada de history, para que «atrás» no sobre. */
+/** Cierra el modal activo. NO vacía el ref: retrocede, y el composable hace el resto. */
 const cerrarModal = (): void => {
-    if (modalEnHistory) {
-        history.back();          // dispara popstate → cierra
-    } else {
-        cerrarTodosLosModales();
-    }
-};
-
-const onPopstateModal = (): void => {
-    modalEnHistory = false;
-    if (hayModalAbierto.value) cerrarTodosLosModales();
+    if (capaModal.value) capas.cerrar(capaModal.value);
 };
 
 // ── MODAL DE EXPEDIENTE (namelist + documentos + salto a cotización) ─────────
@@ -1491,6 +1568,7 @@ const abrirExpediente = async (servicio: OperacionServicio): Promise<void> => {
     const fileId = servicio.file?.id;
     if (!fileId) return;
 
+    abrirComoCapa('expediente', () => { expedienteAbierto.value = null; });
     expedienteAbierto.value = {
         fileId,
         fileIdParaRuta: fileId,
@@ -1573,6 +1651,7 @@ const iconoMedioPago = (id: string): string =>
     operacionStore.mediosPago.find(m => m.id === id)?.icono ?? 'fa-money-check-dollar';
 
 const abrirPagos = async (orden: OperacionOrdenServicio): Promise<void> => {
+    abrirComoCapa('pagos', () => { pagosOrden.value = null; });
     pagosOrden.value = orden;
     pagos.value = [];
     errorPago.value = null;
@@ -1661,6 +1740,7 @@ const bitacora = ref<BitacoraEstado[]>([]);
 const cargandoBitacora = ref(false);
 
 const abrirBitacora = async (servicio: OperacionServicio): Promise<void> => {
+    abrirComoCapa('bitacora', () => { bitacoraServicio.value = null; });
     bitacoraServicio.value = servicio;
     bitacora.value = [];
     const id = idDe(servicio);
@@ -1733,6 +1813,7 @@ const guardandoEdicion = ref(false);
 const errorEdicion = ref<string | null>(null);
 
 const abrirEdicion = (orden: OperacionOrdenServicio) => {
+    abrirComoCapa('orden-edicion', () => { ordenEditando.value = null; });
     ordenEditando.value = orden;
     formEdicion.value = {
         numeroOs: orden.numeroOs ?? '',
@@ -1828,7 +1909,7 @@ const guardarEdicion = async () => {
         // botones con confirmación. Emitir sigue congelando el contenido, así que el orden
         // sigue importando: primero se corrige la cabecera, después se emite.
 
-        ordenEditando.value = null;
+        capas.cerrar('orden-edicion');
         await cargarBiblia();
     } catch (e) {
         errorEdicion.value = mensajeDeErrorApi(e, 'No se pudo guardar. Comprueba que el número de OS no esté repetido.');
@@ -1840,6 +1921,7 @@ const cuerpoMensaje = ref<string>('');
 const enviandoMensaje = ref<boolean>(false);
 
 const abrirMensajes = async (orden: OperacionOrdenServicio) => {
+    abrirComoCapa('orden', () => { ordenActiva.value = null; });
     ordenActiva.value = orden;
     cuerpoMensaje.value = '';
     if (orden.id) await operacionStore.fetchMensajesPorOrden(orden.id);
@@ -1882,23 +1964,8 @@ onMounted(async () => {
     await cargarBiblia();
 });
 
-onMounted(() => {
-    // Empuja una entrada de history al abrir cualquier modal, para que «atrás» lo cierre.
-    // Aquí y no en el setup: ver la nota junto a la declaración de `hayModalAbierto`.
-    watch(hayModalAbierto, (abierto) => {
-        if (abierto && !modalEnHistory) {
-            history.pushState({ modalOperacion: true }, '');
-            modalEnHistory = true;
-        }
-    });
-});
-
-onMounted(() => window.addEventListener('popstate', onPopstateModal));
-onUnmounted(() => window.removeEventListener('popstate', onPopstateModal));
-
-// Si se navega fuera con un modal abierto (un enlace, «abrir cotización»), se limpia la
-// entrada fantasma para no dejar un «atrás» que no hace nada al volver.
-onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
+// El registro de escuchas de `popstate` y la limpieza al navegar fuera los hace ahora
+// `useCapasEnHistorial`: las capas viven en la query y las mueve el router, no nosotros.
 </script>
 
 <template>
@@ -2324,8 +2391,21 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                     </div>
                 </div>
 
-                <!-- Tabla agrupada por día -->
-                <div v-else class="px-4 md:px-6 py-4 flex flex-col gap-5">
+                <!--
+                  REJILLA DE FICHAS, agrupada por día.
+
+                  Hasta el 25/08/2026 esto era UNA tabla con seis columnas marcadas
+                  `hidden md:table-cell`. En el teléfono —que es donde se usa— no se convertía en
+                  ficha: se quedaba una tabla a la que le faltaban columnas, con el servicio, el
+                  expediente, el prestador y el costo apelotonados en una sola celda. Ni tabla ni
+                  ficha.
+
+                  Ahora es una ficha por servicio, en una o varias columnas según quepa. La ficha
+                  enseña lo que se mira de pasada y **sólo se edita en línea lo que se toca a
+                  diario**: los dos estados y la hora. Todo lo demás —puntos, notas, prestador,
+                  proveedor, costo— vive en el formulario, a un toque de la plumita.
+                -->
+                <div v-else class="px-3 md:px-6 py-4 flex flex-col gap-5">
                     <div v-for="grupo in serviciosPorDia" :key="grupo.fecha">
 
                         <h2 class="flex items-center gap-2 mb-2 px-1">
@@ -2333,495 +2413,238 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
                             <span class="text-xs font-black text-slate-700 uppercase tracking-widest">{{ etiquetaDia(grupo.fecha) }}</span>
                             <span class="text-[10px] font-bold text-slate-400">({{ grupo.servicios.length }})</span>
                             <span class="flex-1 h-px bg-slate-200"></span>
+
+                            <!-- El interruptor de orden vivía bajo la columna «Hora» de la tabla,
+                                 que ya no existe. Aquí sigue diciendo de qué va sin leerlo: está
+                                 pegado al título del día, que es lo que reordena. -->
+                            <button
+                                @click="ordenPorHora = !ordenPorHora"
+                                class="flex items-center gap-1 px-1.5 py-0.5 border rounded text-[9px] font-black uppercase tracking-wider transition-colors shrink-0"
+                                :class="ordenPorHora ? 'bg-[#376875] text-white border-[#376875]'
+                                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
+                                :title="ordenPorHora ? 'Ordenado por hora. Toca para volver al orden del itinerario.'
+                                    : 'Ordenado como el itinerario. Toca para ordenar por hora.'"
+                            >
+                                <i class="fas text-[8px]" :class="ordenPorHora ? 'fa-clock' : 'fa-list-ol'"></i>
+                                {{ ordenPorHora ? 'Hora' : 'Itin.' }}
+                            </button>
                         </h2>
 
-                        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr class="bg-slate-50 border-b border-slate-200">
-                                            <th class="px-3 py-3 w-8"></th>
-                                            <!-- El interruptor de orden vive AQUÍ, bajo el título de
-                                                 la columna que ordena. En la barra de filtros era
-                                                 un botón más entre otros diez y no se relacionaba
-                                                 con nada; aquí dice de qué va sin leerlo. -->
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest align-top">
-                                                Hora
-                                                <button
-                                                    @click="ordenPorHora = !ordenPorHora"
-                                                    class="mt-1 flex items-center gap-1 px-1.5 py-0.5 border rounded text-[9px] font-black uppercase tracking-wider transition-colors"
-                                                    :class="ordenPorHora ? 'bg-[#376875] text-white border-[#376875]'
-                                                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
-                                                    :title="ordenPorHora ? 'Ordenado por hora. Toca para volver al orden del itinerario.'
-                                                        : 'Ordenado como el itinerario. Toca para ordenar por hora.'"
-                                                >
-                                                    <i class="fas text-[8px]" :class="ordenPorHora ? 'fa-clock' : 'fa-list-ol'"></i>
-                                                    {{ ordenPorHora ? 'Hora' : 'Itin.' }}
-                                                </button>
-                                            </th>
-                                            <th class="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Servicio</th>
-                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Expediente</th>
-                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Pax</th>
-                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest" title="Quién opera el servicio y dónde se recoge. Debajo, a quién se le compra cuando no es el mismo.">Prestador</th>
-                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right" title="Cotizado (de la cotización) frente a real (lo que se pagó). El delta es el margen operativo.">Costo</th>
-                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Reserva</th>
-                                            <th class="hidden md:table-cell px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Operación</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-100">
-                                        <tr
-                                            v-for="servicio in grupo.servicios"
-                                            :key="servicio.id"
-                                            :class="[ seleccionados.includes(servicio.id ?? '') ? 'bg-[#376875]/5' : '',
-                                                servicio.estadoComponente === 'cancelado' || servicio.modoComponente === 'reemplazado' ? 'opacity-55' : '',
-                                            ]"
-                                            class="hover:bg-slate-50/80 transition-colors md:cursor-default cursor-pointer"
-                                            @click="abrirFicha(servicio)"
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                            <!-- La ficha ENTERA abre el detalle: en un móvil el blanco es la mitad
+                                 de la tarjeta y apuntar a un icono de 28 px con el pulgar es la
+                                 parte incómoda. Lo que se edita en línea para `@click.stop`, o
+                                 tocar un desplegable abriría además la ficha. -->
+                            <article
+                                v-for="servicio in grupo.servicios"
+                                :key="servicio.id"
+                                @click="abrirFicha(servicio)"
+                                class="relative bg-white rounded-2xl border shadow-sm p-3 cursor-pointer transition-all hover:shadow-md hover:border-[#376875]/40"
+                                :class="[
+                                    seleccionados.includes(servicio.id ?? '') ? 'border-[#376875] ring-1 ring-[#376875]/25' : 'border-slate-200',
+                                    servicio.estadoComponente === 'cancelado' || servicio.modoComponente === 'reemplazado' ? 'opacity-60' : '',
+                                ]"
+                            >
+                                <!-- ── Cabecera: a quién compro, cuándo, y qué es ────────── -->
+                                <div class="flex items-start gap-2.5">
+                                    <!-- Selección para la OS. Las filas de referencia no se marcan
+                                         porque no pueden ir a una orden. -->
+                                    <div class="pt-0.5 shrink-0">
+                                        <input
+                                            v-if="esComprable(servicio)"
+                                            type="checkbox"
+                                            :checked="seleccionados.includes(servicio.id ?? '')"
+                                            @change="alternarSeleccion(servicio.id)"
+                                            @click.stop
+                                            class="w-4 h-4 accent-[#376875] cursor-pointer"
+                                        />
+                                        <i
+                                            v-else
+                                            class="fas text-slate-300 text-xs block mt-1"
+                                            :class="servicio.soloReferencia ? 'fa-eye' : 'fa-ban'"
+                                            :title="servicio.soloReferencia
+                                                ? 'Sólo referencia: no se compra a ningún proveedor'
+                                                : 'Cancelado o reemplazado en la cotización: no se compra'"
+                                        ></i>
+                                    </div>
+
+                                    <!-- LA HORA, editable aquí porque es lo que más se cambia
+                                         estando de pie. Vacía = se usa la hora con la que se vendió,
+                                         y el marcador de posición la enseña.
+
+                                         ⚠️ Sólo si el componente ADMITE hora (`admiteHora()`, que
+                                         mira el flag del componente). Un ingreso al Koricancha es un
+                                         ticket de horario variable: no tiene hora que fijar, y
+                                         ofrecer el campo invitaba a inventarse una y mandársela al
+                                         proveedor. -->
+                                    <div class="shrink-0 text-center">
+                                        <input
+                                            v-if="admiteHora(servicio)"
+                                            :value="servicio.horaRecojo ?? ''"
+                                            @change="editarHora(servicio, $event)"
+                                            @click.stop
+                                            :placeholder="servicio.horaComponente || '--:--'"
+                                            maxlength="5"
+                                            class="w-[3.8rem] text-xs font-black bg-slate-100 px-1.5 py-1 rounded-lg border border-slate-200 tabular-nums text-center outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
+                                            :class="servicio.horaRecojo ? 'text-slate-900' : 'text-slate-400'"
+                                            title="Hora de recojo. Vacía = se usa la hora con la que se vendió."
+                                        />
+                                        <span
+                                            v-else
+                                            class="block w-[3.8rem] text-[9px] font-black uppercase tracking-wide text-slate-300 px-1 py-1.5 rounded-lg border border-dashed border-slate-200"
+                                            title="Este tipo de componente no lleva hora: se entra cuando se llega."
                                         >
-                                            <!-- Selección: las filas de referencia no se
-                                                 marcan porque no pueden ir a una OS. -->
-                                            <td class="px-3 py-3 align-top">
-                                                <input
-                                                    v-if="esComprable(servicio)"
-                                                    type="checkbox"
-                                                    :checked="seleccionados.includes(servicio.id ?? '')"
-                                                    @change="alternarSeleccion(servicio.id)"
-                                                    @click.stop
-                                                    class="mt-1 w-4 h-4 accent-[#376875] cursor-pointer"
-                                                />
-                                                <i
-                                                    v-else
-                                                    class="fas text-slate-300 text-xs mt-1.5 block"
-                                                    :class="servicio.soloReferencia ? 'fa-eye' : 'fa-ban'"
-                                                    :title="servicio.soloReferencia
-                                                        ? 'Sólo referencia: no se compra a ningún proveedor'
-                                                        : 'Cancelado o reemplazado en la cotización: no se compra'"
-                                                ></i>
-                                            </td>
+                                            sin hora
+                                        </span>
+                                        <p v-if="admiteHora(servicio) && servicio.horaComponente && servicio.horaRecojo && servicio.horaRecojo !== servicio.horaComponente"
+                                           class="text-[8px] font-bold text-slate-400 mt-0.5 tabular-nums"
+                                           title="Hora con la que se vendió al cliente">
+                                            vend. {{ servicio.horaComponente }}
+                                        </p>
+                                    </div>
 
-                                            <!-- Hora de RECOJO (editable) y, debajo, la vendida como
-                                                 referencia. Si no hay recojo puesto, el placeholder es
-                                                 la vendida: vale como fallback hasta que se fije otra.
-                                                 Ver docs/Operacion.md §3.15. -->
-                                            <td class="px-3 py-3 whitespace-nowrap align-top">
-                                                <input
-                                                    :value="servicio.horaRecojo ?? ''"
-                                                    @change="editarHora(servicio, $event)"
-                                                    @click.stop
-                                                    :placeholder="servicio.horaComponente || '--:--'"
-                                                    maxlength="5"
-                                                    class="w-[3.8rem] text-xs font-black text-slate-900 bg-slate-100 px-1.5 py-1 rounded-lg border border-slate-200 tabular-nums text-center outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white"
-                                                    :class="{ 'text-slate-400': !servicio.horaRecojo }"
-                                                    title="Hora de recojo. Vacía = se usa la hora con la que se vendió."
-                                                />
-                                                <p v-if="servicio.horaComponente && servicio.horaRecojo && servicio.horaRecojo !== servicio.horaComponente"
-                                                   class="text-[8px] font-bold text-slate-400 text-center mt-0.5 tabular-nums"
-                                                   title="Hora con la que se vendió al cliente">
-                                                    vend. {{ servicio.horaComponente }}
-                                                </p>
+                                    <!-- EL COMPONENTE identifica la ficha; la tarifa es el detalle. -->
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-black text-slate-800 leading-tight flex items-start gap-1.5">
+                                            <i :class="[getTipoComponenteConfig(servicio.tipoComponente).icon,
+                                                       getTipoComponenteConfig(servicio.tipoComponente).text, 'text-sm mt-0.5 shrink-0']"
+                                               :title="getTipoComponenteConfig(servicio.tipoComponente).label"></i>
+                                            <span>{{ nombreComponenteDe(servicio) || nombreSegmentoDe(servicio) || servicio.contextoServicio || getTipoComponenteConfig(servicio.tipoComponente).label }}</span>
+                                        </p>
+                                        <p v-if="servicio.descripcionServicio" class="text-[11px] font-bold text-slate-500 leading-tight mt-1">
+                                            <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ servicio.descripcionServicio }}
+                                        </p>
+                                    </div>
 
-                                                <!-- ── SÓLO MÓVIL: los estados, debajo de la hora ──
-                                                     Sus columnas se ocultan a partir de `md`, y sin
-                                                     esto el operador no vería en el teléfono si algo
-                                                     está pendiente. Debajo del reloj hay hueco muerto
-                                                     y es donde la vista ya está mirando. -->
-                                                <div class="md:hidden mt-1.5 flex flex-col items-center gap-1">
-                                                    <span class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border whitespace-nowrap"
-                                                          :class="[getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).bg,
-                                                                   getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).text,
-                                                                   getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).border]">
-                                                        {{ getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).label }}
-                                                    </span>
-                                                    <span v-if="servicio.ordenServicio"
-                                                          class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#376875] text-white"
-                                                          title="Ya está en una Orden de Servicio">
-                                                        <i class="fas fa-file-invoice"></i>
-                                                    </span>
-                                                </div>
-                                            </td>
+                                    <!-- A editar. La ficha se abre LEYENDO; esto entra directo al
+                                         formulario, como la plumita del namelist. -->
+                                    <button
+                                        @click.stop="abrirFicha(servicio, true)"
+                                        title="Editar este servicio"
+                                        class="shrink-0 w-7 h-7 rounded-full bg-slate-50 text-slate-300 hover:text-[#376875] hover:bg-slate-100 flex items-center justify-center transition-colors"
+                                    >
+                                        <i class="fas fa-pencil-alt text-xs"></i>
+                                    </button>
+                                </div>
 
-                                            <!-- Servicio -->
-                                            <td class="px-3 py-3 align-top">
-                                                <div class="flex items-start gap-2">
-                                                    <i
-                                                        :class="[getTipoComponenteConfig(servicio.tipoComponente).icon, getTipoComponenteConfig(servicio.tipoComponente).text, 'mt-0.5 text-sm w-4 text-center']"
-                                                        :title="getTipoComponenteConfig(servicio.tipoComponente).label"
-                                                    ></i>
-                                                    <div class="min-w-0">
-                                                        <!-- El SERVICIO manda y la tarifa es el detalle, no al revés.
-                                                             `descripcionServicio` es el nombre interno de la tarifa
-                                                             («Auto a Miraflores Noche»), pensado para negociar con el
-                                                             proveedor; `contextoServicio` es el nombre del servicio, que
-                                                             ubica la fila de un vistazo. En un servicio mono-segmento sin
-                                                             plantilla ese nombre es genérico («Alojamiento»): manda el
-                                                             nombre interno del segmento, resuelto en vivo. -->
-                                                        <!-- TÍTULO: el COMPONENTE identifica la fila (Guía, Transporte,
-                                                             Ingreso a Catedral…). Viene del maestro, resuelto en el mismo
-                                                             batch que los lugares. Su icono de tipo va a la izquierda.
-                                                             Fallback al nombre de contexto si aún no se resolvió. -->
-                                                        <p v-if="nombreComponenteDe(servicio) || nombreSegmentoDe(servicio) || servicio.contextoServicio"
-                                                           class="text-sm font-black text-slate-800 leading-tight">
-                                                            {{ nombreComponenteDe(servicio) || nombreSegmentoDe(servicio) || servicio.contextoServicio }}
-                                                        </p>
-                                                        <!-- La TARIFA, pegada al componente: lo que la fila IDENTIFICA (el
-                                                             componente) y lo que se NEGOCIA por ello van juntos. El servicio
-                                                             es contexto y baja más abajo, no entre estos dos. -->
-                                                        <p v-if="servicio.descripcionServicio" class="text-[11px] font-bold text-slate-500 leading-tight mt-1">
-                                                            <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ servicio.descripcionServicio }}
-                                                        </p>
-                                                        <!-- Nombre interno de la tarifa, sólo si difiere: es con el que la
-                                                             buscas en el tarifario. -->
-                                                        <p v-if="servicio.tarifaNombre && servicio.tarifaNombre !== servicio.descripcionServicio"
-                                                           class="text-[10px] font-bold text-slate-400 leading-tight mt-0.5"
-                                                           title="Nombre interno de la tarifa">
-                                                            <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ servicio.tarifaNombre }}
-                                                        </p>
+                                <!-- ── Ruta, en lectura. Editarla es cosa del formulario ──── -->
+                                <p v-if="rutaDe(servicio)"
+                                   class="mt-2 text-[10px] font-bold leading-snug flex items-start gap-1.5"
+                                   :class="puntosDe(servicio)?.efectivo?.completo ? 'text-slate-500' : 'text-amber-700'">
+                                    <i class="fas fa-route text-[9px] mt-0.5 shrink-0"
+                                       :class="puntosDe(servicio)?.efectivo?.completo ? 'text-slate-300' : 'text-amber-500'"></i>
+                                    <span>{{ rutaDe(servicio) }}</span>
+                                </p>
 
-                                                        <!-- DÓNDE RECOJO / DÓNDE DEJO.
-                                                             Editable, y vacío significa «lo que diga el catálogo»: el
-                                                             marcador de posición enseña qué saldría entonces. Sólo se
-                                                             pintan cuando el servicio recoge a alguien — un ticket o una
-                                                             comida no, y ponerles el campo invitaría a rellenarlo.
+                                <!-- Lo que se le dice al proveedor: se enseña, no se escribe aquí. -->
+                                <p v-if="(servicio.notasPrestadorEfectivas ?? []).length"
+                                   class="mt-1 text-[10px] font-medium text-slate-400 leading-snug flex items-start gap-1.5">
+                                    <i class="fas fa-comment-dots text-[9px] text-slate-300 mt-0.5 shrink-0"></i>
+                                    <span class="line-clamp-2">{{ (servicio.notasPrestadorEfectivas ?? []).join(' · ') }}</span>
+                                </p>
 
-                                                             ⚠️ Pero si YA hay override escrito, el campo sale igual —
-                                                             aunque el endpoint del derivado esté caído o el tipo no
-                                                             aplique—. Si no, ese dato seguiría mandando en la emisión
-                                                             y el operador no lo vería ni podría vaciarlo.
-                                                             Ver docs/Operacion.md §12. -->
-                                                        <!-- ── Lo que se le dice al proveedor ────────────────
-                                                             Una nota por línea. Vacío = lo que traigan los detalles
-                                                             del componente marcados para la audiencia `prestador`, y
-                                                             el placeholder los enseña, así que se ve qué se va a
-                                                             imprimir sin abrir la cotización.
+                                <!-- ── Etiquetas: sólo cuando dicen algo ─────────────────── -->
+                                <div class="flex flex-wrap gap-1 mt-2">
+                                    <span
+                                        v-for="lugar in operacionStore.lugaresDeServicio(servicio)"
+                                        :key="lugar"
+                                        class="px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border bg-sky-50 text-sky-700 border-sky-200"
+                                    >
+                                        <i class="fas fa-map-marker-alt text-[8px]"></i> {{ lugar }}
+                                    </span>
+                                    <span
+                                        v-if="servicio.soloReferencia"
+                                        class="px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border bg-indigo-50 text-indigo-600 border-indigo-200"
+                                        title="Referencia operativa: no se compra a ningún proveedor y no entra en Órdenes de Servicio"
+                                    >
+                                        <i class="fas fa-eye text-[8px]"></i> Referencia
+                                    </span>
+                                    <span
+                                        v-if="getModoComponenteConfig(servicio.modoComponente) && servicio.modoComponente !== 'incluido'"
+                                        :class="['px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border', getModoComponenteConfig(servicio.modoComponente)!.bg, getModoComponenteConfig(servicio.modoComponente)!.text, getModoComponenteConfig(servicio.modoComponente)!.border]"
+                                    >
+                                        <i :class="['fas text-[8px]', getModoComponenteConfig(servicio.modoComponente)!.icon]"></i>
+                                        {{ getModoComponenteConfig(servicio.modoComponente)!.label }}
+                                    </span>
+                                    <span
+                                        v-if="servicio.estadoComponente === 'cancelado'"
+                                        :class="['px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border', getEstadoComponenteConfig(servicio.estadoComponente)!.bg, getEstadoComponenteConfig(servicio.estadoComponente)!.text, getEstadoComponenteConfig(servicio.estadoComponente)!.border]"
+                                    >
+                                        <i :class="['fas text-[8px]', getEstadoComponenteConfig(servicio.estadoComponente)!.icon]"></i>
+                                        Cancelado en cotización
+                                    </span>
+                                    <span
+                                        v-if="servicio.ordenServicio"
+                                        class="px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border bg-[#E07845]/10 text-[#E07845] border-[#E07845]/30"
+                                    >
+                                        <i class="fas fa-file-invoice text-[8px]"></i> En OS
+                                    </span>
+                                </div>
 
-                                                             ⚠️ Sale sólo si YA hay algo que decir —del componente o
-                                                             escrito aquí—, igual que los puntos. Lo que no existe se
-                                                             escribe en la cotización, que es donde vive el dato: este
-                                                             campo es para AJUSTAR, no para redactar de cero, y ponerlo
-                                                             en todas las filas invitaría a llenar la Biblia de texto
-                                                             que la cotización no conoce. -->
-                                                        <div v-if="(servicio.notasPrestadorEfectivas ?? []).length || servicio.notasPrestador"
-                                                             class="mt-1.5 flex items-start gap-1">
-                                                            <i class="fas fa-comment-dots text-[9px] text-slate-300 w-3 text-center mt-1"
-                                                               title="Qué se le dice al proveedor"></i>
-                                                            <textarea
-                                                                :value="(servicio.notasPrestador ?? []).join('\n')"
-                                                                @change="editarNotasPrestador(servicio, $event)"
-                                                                @click.stop
-                                                                :placeholder="(servicio.notasPrestadorEfectivas ?? []).join('\n') || 'nada que indicarle'"
-                                                                rows="2"
-                                                                class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic resize-none"
-                                                                :class="servicio.notasPrestador ? 'text-slate-900' : 'text-slate-500'"
-                                                                title="Una nota por línea. Vacío = los detalles del componente."
-                                                            ></textarea>
-                                                        </div>
+                                <!-- ── Contexto: de qué viaje es esto y con quién se opera ── -->
+                                <div class="mt-2 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold text-slate-400">
+                                    <button v-if="servicio.file?.id" @click.stop="abrirExpediente(servicio)"
+                                            class="text-[#376875] hover:underline decoration-dotted max-w-full truncate">
+                                        <i class="fas fa-folder-open mr-1"></i>{{ servicio.file?.nombreGrupo || 'Sin expediente' }}
+                                    </button>
+                                    <span v-else><i class="fas fa-folder-open mr-1"></i>Sin expediente</span>
 
-                                                        <div v-if="puntosDe(servicio)?.aplica || servicio.puntoRecojo || servicio.puntoEntrega" class="mt-1.5 space-y-1">
-                                                            <div class="flex items-center gap-1">
-                                                                <i class="fas fa-location-dot text-[9px] text-slate-300 w-3 text-center"
-                                                                   title="Dónde se recoge"></i>
-                                                                <input
-                                                                    :value="servicio.puntoRecojo ?? ''"
-                                                                    @change="editarPunto(servicio, 'recojo', $event)"
-                                                                    @click.stop
-                                                                    :placeholder="puntosDe(servicio)?.recojo || 'sin declarar en el catálogo'"
-                                                                    maxlength="255"
-                                                                    class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
-                                                                    :class="servicio.puntoRecojo ? 'text-slate-900' : 'text-slate-500'"
-                                                                    title="Dónde se recoge. Vacío = lo que diga el catálogo."
-                                                                />
-                                                            </div>
-                                                            <div v-if="puntosDe(servicio)?.tieneEntrega || servicio.puntoEntrega" class="flex items-center gap-1">
-                                                                <i class="fas fa-flag-checkered text-[9px] text-slate-300 w-3 text-center"
-                                                                   title="Dónde se deja"></i>
-                                                                <input
-                                                                    :value="servicio.puntoEntrega ?? ''"
-                                                                    @change="editarPunto(servicio, 'entrega', $event)"
-                                                                    @click.stop
-                                                                    :placeholder="puntosDe(servicio)?.entrega || 'sin declarar en el catálogo'"
-                                                                    maxlength="255"
-                                                                    class="w-full text-[10px] font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
-                                                                    :class="servicio.puntoEntrega ? 'text-slate-900' : 'text-slate-500'"
-                                                                    title="Dónde se deja. Vacío = lo que diga el catálogo."
-                                                                />
-                                                            </div>
-                                                            <!-- Los avisos dicen POR QUÉ falta y dónde se arregla. Sin
-                                                                 ellos, un campo gris y vacío no distingue «no aplica» de
-                                                                 «nadie lo declaró». -->
-                                                            <p v-for="aviso in (puntosDe(servicio)?.avisos || [])" :key="aviso"
-                                                               class="text-[9px] font-bold text-amber-700 leading-tight pl-4">
-                                                                <i class="fas fa-triangle-exclamation mr-1"></i>{{ aviso }}
-                                                            </p>
-                                                        </div>
+                                    <span class="truncate">
+                                        <i class="fas fa-user mr-1"></i>{{ servicio.prestadorEfectivoNombre || (servicio.soloReferencia ? 'Referencia' : 'Por asignar') }}
+                                    </span>
+                                    <span class="shrink-0"><i class="fas fa-users mr-1"></i>{{ servicio.cantidadPax }}</span>
+                                    <span v-if="nombreSegmentoDe(servicio) || servicio.contextoServicio" class="truncate">
+                                        <i class="fas fa-map-signs mr-1"></i>{{ nombreSegmentoDe(servicio) || servicio.contextoServicio }}
+                                    </span>
+                                </div>
 
-                                                        <!-- Badges de clasificación: sólo cuando dicen algo -->
-                                                        <div class="flex flex-wrap gap-1 mt-1">
-                                                            <!-- Lugares del catálogo. Resueltos EN LOTE al cargar
-                                                                 el cuadro (una petición, no una por fila): la fila
-                                                                 no tiene relación con Travel, sólo el uuid del
-                                                                 componente maestro. -->
-                                                            <span
-                                                                v-for="lugar in operacionStore.lugaresDeServicio(servicio)"
-                                                                :key="lugar"
-                                                                class="px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border bg-sky-50 text-sky-700 border-sky-200"
-                                                            >
-                                                                <i class="fas fa-map-marker-alt text-[8px]"></i> {{ lugar }}
-                                                            </span>
+                                <!-- ── Los dos ESTADOS, en línea. Son lo que se mueve a diario ─ -->
+                                <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                    <select
+                                        :value="servicio.estadoReservaProveedor"
+                                        @change="guardarCampo(servicio, { estadoReservaProveedor: ($event.target as HTMLSelectElement).value })"
+                                        @click.stop
+                                        :disabled="guardando === servicio.id"
+                                        :class="['px-2 py-1 text-[10px] font-black rounded-lg border cursor-pointer outline-none appearance-none', getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).bg, getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).text, getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).border]"
+                                    >
+                                        <option v-for="(cfg, k) in ESTADO_RESERVA_PROVEEDOR_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+                                    </select>
+                                    <select
+                                        :value="servicio.estadoOperacion"
+                                        @change="guardarCampo(servicio, { estadoOperacion: ($event.target as HTMLSelectElement).value })"
+                                        @click.stop
+                                        :disabled="guardando === servicio.id"
+                                        :class="['px-2 py-1 text-[10px] font-black rounded-lg border cursor-pointer outline-none appearance-none', getEstadoOperacionConfig(servicio.estadoOperacion).bg, getEstadoOperacionConfig(servicio.estadoOperacion).text, getEstadoOperacionConfig(servicio.estadoOperacion).border]"
+                                    >
+                                        <option v-for="(cfg, k) in ESTADO_OPERACION_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
+                                    </select>
 
-                                                            <!-- La fila está para informar al guía y al
-                                                                 transportista, no para comprarla. Se marca en
-                                                                 vez de atenuarse: atenuarla diría lo contrario
-                                                                 de lo que se quiere — el hotel del pasajero es
-                                                                 justo lo que hay que mirar para el recojo. -->
-                                                            <span
-                                                                v-if="servicio.soloReferencia"
-                                                                class="px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border bg-indigo-50 text-indigo-600 border-indigo-200"
-                                                                title="Referencia operativa: no se compra a ningún proveedor y no entra en Órdenes de Servicio"
-                                                            >
-                                                                <i class="fas fa-eye text-[8px]"></i> Referencia
-                                                            </span>
-                                                            <span
-                                                                v-if="getModoComponenteConfig(servicio.modoComponente) && servicio.modoComponente !== 'incluido'"
-                                                                :class="['px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border', getModoComponenteConfig(servicio.modoComponente)!.bg, getModoComponenteConfig(servicio.modoComponente)!.text, getModoComponenteConfig(servicio.modoComponente)!.border]"
-                                                            >
-                                                                <i :class="['fas text-[8px]', getModoComponenteConfig(servicio.modoComponente)!.icon]"></i>
-                                                                {{ getModoComponenteConfig(servicio.modoComponente)!.label }}
-                                                            </span>
-                                                            <span
-                                                                v-if="servicio.estadoComponente === 'cancelado'"
-                                                                :class="['px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border', getEstadoComponenteConfig(servicio.estadoComponente)!.bg, getEstadoComponenteConfig(servicio.estadoComponente)!.text, getEstadoComponenteConfig(servicio.estadoComponente)!.border]"
-                                                            >
-                                                                <i :class="['fas text-[8px]', getEstadoComponenteConfig(servicio.estadoComponente)!.icon]"></i>
-                                                                Cancelado en cotización
-                                                            </span>
-                                                            <span
-                                                                v-if="servicio.ordenServicio"
-                                                                class="px-1.5 py-0.5 inline-flex items-center gap-1 text-[9px] font-black rounded border bg-[#E07845]/10 text-[#E07845] border-[#E07845]/30"
-                                                            >
-                                                                <i class="fas fa-file-invoice text-[8px]"></i> En OS
-                                                            </span>
-                                                        </div>
+                                    <button
+                                        v-if="servicio.estadoReservaProveedorDesde"
+                                        @click.stop="abrirBitacora(servicio)"
+                                        class="flex items-center gap-1 text-[9px] font-bold text-slate-400 hover:text-[#376875] transition-colors"
+                                        title="Ver el historial de estados"
+                                    >
+                                        <i class="fas fa-clock-rotate-left text-[8px]"></i>
+                                        {{ desdeHace(servicio.estadoReservaProveedorDesde) }}
+                                    </button>
 
-                                                        <!-- Servicio como CONTEXTO: de qué tour/servicio es la fila. Baja
-                                                             aquí (no entre componente y tarifa) porque es lo que ubica, no
-                                                             lo que identifica. Segmento en mono-segmento, si no el servicio. -->
-                                                        <p v-if="nombreComponenteDe(servicio) && (nombreSegmentoDe(servicio) || servicio.contextoServicio)"
-                                                           class="text-[10px] font-bold text-slate-400 leading-snug mt-1.5">
-                                                            <i class="fas fa-map-signs text-[8px] mr-1 text-slate-300"></i>{{ nombreSegmentoDe(servicio) || servicio.contextoServicio }}
-                                                        </p>
-
-                                                        <!-- Contexto compacto en móvil -->
-                                                        <p class="text-[10px] font-bold text-slate-400 mt-1 lg:hidden">
-                                                            <button v-if="servicio.file?.id" @click="abrirExpediente(servicio)" class="hover:underline decoration-dotted text-[#376875]">
-                                                                <i class="fas fa-folder-open mr-1"></i>{{ servicio.file?.nombreGrupo || 'Sin expediente' }}
-                                                            </button>
-                                                            <template v-else><i class="fas fa-folder-open mr-1"></i>Sin expediente</template>
-                                                        </p>
-                                                        <!-- En móvil la columna del prestador está oculta, así que
-                                                             el nombre se repite aquí. El TELÉFONO no: sigue vivo en
-                                                             la columna de prestador (donde es el dato del recojo) y
-                                                             aquí sólo alargaba la tarjeta. -->
-                                                        <p class="text-[10px] font-bold text-slate-400 mt-0.5 md:hidden">
-                                                            <i class="fas fa-user mr-1"></i>{{ servicio.prestadorNombre || (servicio.soloReferencia ? 'Referencia' : 'Por asignar') }}
-                                                        </p>
-
-                                                        <!-- 🔥 EL COSTO NEGOCIADO, EN MÓVIL.
-                                                             La columna «Costo» es ``: sólo
-                                                             existe a partir de 1280px, así que en el teléfono
-                                                             —la herramienta principal— este campo no se había
-                                                             podido tocar nunca. Se negocia de pie y con el móvil
-                                                             en la mano; era justo donde tenía que estar. -->
-                                                        <div v-if="!servicio.soloReferencia" class="mt-1.5 flex items-center gap-1.5 xl:hidden">
-                                                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider shrink-0">Negociado</span>
-                                                            <EditorCostoNegociado
-                                                                :ref="(el) => registrarEditor(idDe(servicio), el)"
-                                                                denso
-                                                                :costo-cotizado="servicio.costoCotizado"
-                                                                :desglose="servicio.desgloseCotizado"
-                                                                :moneda-cotizada="servicio.monedaCotizada?.id ?? ''"
-                                                                :costo-negociado="servicio.costoNegociado"
-                                                                :moneda-negociada="servicio.monedaNegociada?.id ?? null"
-                                                                :monedas="operacionStore.monedas"
-                                                                @guardar="(pl) => onGuardarCosto(servicio, pl)"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <!-- Expediente: clic → modal con namelist, documentos y
-                                                 salto a la cotización. Ver §3.17. -->
-                                            <td class="hidden md:table-cell px-3 py-3 align-top">
-                                                <button v-if="servicio.file?.id" @click="abrirExpediente(servicio)"
-                                                        class="text-left max-w-[12rem] group/exp">
-                                                    <p class="text-sm font-bold text-[#376875] truncate group-hover/exp:underline decoration-dotted">
-                                                        <i class="fas fa-folder-open text-[10px] mr-1 text-slate-300"></i>{{ servicio.file?.nombreGrupo || '—' }}
-                                                    </p>
-                                                    <p v-if="servicio.file?.pasajeroPrincipal" class="text-[10px] font-bold text-slate-400 truncate">
-                                                        {{ servicio.file.pasajeroPrincipal }}
-                                                    </p>
-                                                </button>
-                                                <span v-else class="text-sm font-bold text-slate-400">—</span>
-                                            </td>
-
-                                            <!-- Pax -->
-                                            <td class="hidden md:table-cell px-3 py-3 whitespace-nowrap align-top">
-                                                <span class="text-xs font-black text-slate-600 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
-                                                    <i class="fas fa-users text-slate-400 mr-1"></i>{{ servicio.cantidadPax }}
-                                                </span>
-                                            </td>
-
-                                            <!-- Prestador (quién opera / dónde se recoge) y, debajo, el
-                                                 proveedor comercial sólo si difiere. Ver docs/Operacion.md §3.3.b -->
-                                            <td class="hidden md:table-cell px-3 py-3 align-top">
-                                                <input
-                                                    :value="servicio.prestadorEfectivoNombre ?? ''"
-                                                    @change="editarPrestador(servicio, $event)"
-                                                    list="catalogo-organizaciones"
-                                                    :placeholder="servicio.soloReferencia ? 'Referencia' : 'Por asignar'"
-                                                    :class="[ 'w-full max-w-[11rem] text-sm font-bold bg-transparent px-2 py-1 rounded-lg border outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300 placeholder:font-medium',
-                                                        servicio.prestadorOverrideNombre
-                                                            ? 'text-[#376875] border-[#376875]/30'
-                                                            : 'text-slate-700 border-transparent hover:border-slate-200',
-                                                    ]"
-                                                />
-
-                                                <!-- Lo que dijo la cotización, informativo. Sólo cuando
-                                                     operaciones puso otra cosa: si coinciden, repetirlo
-                                                     en cada fila convierte el dato en ruido. -->
-                                                <p v-if="cotizadoDe(servicio)" class="ml-2 text-[9px] font-medium text-slate-400 italic">
-                                                    {{ cotizadoDe(servicio) }}
-                                                </p>
-
-                                                <!-- El servicio contratado: el tipo de habitación. Texto
-                                                     libre porque no es una empresa. -->
-                                                <input
-                                                    v-if="servicio.prestadorServicioEfectivoNombre || servicio.prestadorOverrideNombre"
-                                                    :value="servicio.prestadorServicioEfectivoNombre ?? ''"
-                                                    @change="editarServicioPrestador(servicio, $event)"
-                                                    placeholder="Servicio contratado"
-                                                    class="mt-0.5 ml-2 w-full max-w-[11rem] text-[10px] font-medium text-slate-500 bg-transparent px-1 py-0.5 rounded border border-transparent hover:border-slate-200 outline-none focus:ring-1 focus:ring-[#376875] focus:bg-white placeholder:text-slate-300"
-                                                />
-
-                                                <!-- Los datos del recojo: es para lo que existe la fila
-                                                     de referencia. El teléfono se marca desde aquí. -->
-                                                <a
-                                                    v-if="telefonoDe(servicio)"
-                                                    :href="telHref(telefonoDe(servicio))"
-                                                    class="mt-1 ml-2 flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-[#376875] transition-colors"
-                                                >
-                                                    <i class="fas fa-phone text-slate-300 text-[9px]"></i>
-                                                    <span class="tabular-nums">{{ telefonoDe(servicio) }}</span>
-                                                </a>
-                                                <!-- En el `title` va `?? ''` y no el valor a secas: el `v-if`
-                                                     no estrecha el tipo dentro de las demás bindings. -->
-                                                <p
-                                                    v-if="direccionDe(servicio)"
-                                                    class="mt-0.5 ml-2 flex items-start gap-1.5 text-[10px] font-medium text-slate-400 max-w-[11rem]"
-                                                    :title="direccionDe(servicio) ?? ''"
-                                                >
-                                                    <i class="fas fa-location-dot text-slate-300 text-[9px] mt-0.5 shrink-0"></i>
-                                                    <span class="truncate">{{ direccionDe(servicio) }}</span>
-                                                </p>
-
-                                                <!-- A quién se le compra. Se edita porque es lo que agrupa
-                                                     la OS: sin poder corregirlo aquí, dos filas del mismo
-                                                     proveedor escrito distinto no se pueden juntar nunca. -->
-                                                <label v-if="mostrarComprador(servicio)" class="mt-1.5 flex items-center gap-1.5">
-                                                    <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider shrink-0" title="Organizacion comercial: a quién se le compra">
-                                                        Compra
-                                                    </span>
-                                                    <input
-                                                        :value="servicio.compradorEfectivoNombre ?? ''"
-                                                        @change="editarProveedor(servicio, $event)"
-                                                        list="catalogo-organizaciones"
-                                                        placeholder="Sin definir"
-                                                        :class="[ 'w-full max-w-[8rem] text-[10px] font-bold bg-transparent px-1 py-0.5 rounded border outline-none focus:ring-1 focus:ring-[#376875] focus:bg-white focus:text-slate-700 placeholder:text-slate-300 placeholder:font-medium',
-                                                            servicio.compradorOverrideNombre
-                                                                ? 'text-[#376875] border-[#376875]/30'
-                                                                : 'text-slate-400 border-transparent hover:border-slate-200',
-                                                        ]"
-                                                    />
-                                                </label>
-                                            </td>
-
-                                            <!-- Costo: cotizado (solo lectura) vs real (editable) -->
-                                            <td class="hidden md:table-cell px-3 py-3 align-top text-right whitespace-nowrap">
-                                                <p class="text-[10px] font-bold text-slate-400 tabular-nums">
-                                                    <span class="text-slate-300 mr-1">{{ servicio.monedaCotizada?.id || '' }}</span>{{ importe(servicio.costoCotizado) }}
-                                                </p>
-
-                                                <!-- Una fila de referencia no se compra: no hay costo real que
-                                                     registrar, y ofrecer el campo invitaría a inventarlo. -->
-                                                <template v-if="!servicio.soloReferencia">
-                                                    <!-- Lo NEGOCIADO: importe y moneda, los dos editables.
-                                                         La moneda también, porque se puede cotizar en dólares
-                                                         y cerrar en soles con el mismo proveedor; heredarla
-                                                         del cotizador obligaba a que coincidieran. -->
-                                                    <div class="mt-1 flex items-center justify-end">
-                                                        <EditorCostoNegociado
-                                                            :ref="(el) => registrarEditor(idDe(servicio), el)"
-                                                            :costo-cotizado="servicio.costoCotizado"
-                                                            :desglose="servicio.desgloseCotizado"
-                                                            :moneda-cotizada="servicio.monedaCotizada?.id ?? ''"
-                                                            :costo-negociado="servicio.costoNegociado"
-                                                            :moneda-negociada="servicio.monedaNegociada?.id ?? null"
-                                                            :monedas="operacionStore.monedas"
-                                                            @guardar="(pl) => onGuardarCosto(servicio, pl)"
-                                                        />
-                                                    </div>
-                                                    <p
-                                                        v-if="deltaOperativo(servicio) !== null && deltaOperativo(servicio) !== 0"
-                                                        class="mt-0.5 text-[10px] font-black tabular-nums"
-                                                        :class="deltaOperativo(servicio)! > 0 ? 'text-rose-600' : 'text-emerald-600'"
-                                                        :title="deltaOperativo(servicio)! > 0 ? 'Costó más de lo cotizado' : 'Costó menos de lo cotizado'"
-                                                    >
-                                                        {{ deltaOperativo(servicio)! > 0 ? '+' : '−' }}{{ Math.abs(deltaOperativo(servicio)!).toFixed(2) }}
-                                                    </p>
-                                                </template>
-                                                <p v-else class="mt-1 text-[10px] font-bold text-slate-300">no se compra</p>
-                                            </td>
-
-                                            <!-- Estado reserva editable -->
-                                            <td class="hidden md:table-cell px-3 py-3 whitespace-nowrap align-top">
-                                                <select
-                                                    :value="servicio.estadoReservaProveedor"
-                                                    @change="guardarCampo(servicio, { estadoReservaProveedor: ($event.target as HTMLSelectElement).value })"
-                                                    :disabled="guardando === servicio.id"
-                                                    :class="['px-2 py-1 text-[10px] font-black rounded-lg border cursor-pointer outline-none appearance-none', getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).bg, getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).text, getEstadoReservaProveedorConfig(servicio.estadoReservaProveedor).border]"
-                                                >
-                                                    <option v-for="(cfg, k) in ESTADO_RESERVA_PROVEEDOR_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
-                                                </select>
-
-                                                <!-- Desde cuándo en ESTE estado + acceso al historial.
-                                                     El «desde» es un campo directo del servicio; la
-                                                     bitácora completa se pide al abrir. Ver §3.14. -->
-                                                <button
-                                                    v-if="servicio.estadoReservaProveedorDesde"
-                                                    @click="abrirBitacora(servicio)"
-                                                    class="mt-1 flex items-center gap-1 text-[9px] font-bold text-slate-400 hover:text-[#376875] transition-colors"
-                                                    title="Ver el historial de estados"
-                                                >
-                                                    <i class="fas fa-clock-rotate-left text-[8px]"></i>
-                                                    {{ desdeHace(servicio.estadoReservaProveedorDesde) }}
-                                                </button>
-                                            </td>
-
-                                            <!-- Estado operación editable -->
-                                            <td class="hidden md:table-cell px-3 py-3 whitespace-nowrap align-top">
-                                                <select
-                                                    :value="servicio.estadoOperacion"
-                                                    @change="guardarCampo(servicio, { estadoOperacion: ($event.target as HTMLSelectElement).value })"
-                                                    :disabled="guardando === servicio.id"
-                                                    :class="['px-2 py-1 text-[10px] font-black rounded-lg border cursor-pointer outline-none appearance-none', getEstadoOperacionConfig(servicio.estadoOperacion).bg, getEstadoOperacionConfig(servicio.estadoOperacion).text, getEstadoOperacionConfig(servicio.estadoOperacion).border]"
-                                                >
-                                                    <option v-for="(cfg, k) in ESTADO_OPERACION_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                                    <!-- El dinero, en LECTURA. Se negocia en el formulario, que es
+                                         donde está el editor con su confirmación. -->
+                                    <span v-if="!servicio.soloReferencia" class="ml-auto text-right shrink-0">
+                                        <span class="block text-[10px] font-black tabular-nums"
+                                              :class="servicio.costoNegociado ? 'text-slate-800' : 'text-slate-300'">
+                                            <span class="text-slate-300 mr-0.5">{{ (servicio.costoNegociado ? servicio.monedaNegociada?.id : servicio.monedaCotizada?.id) || '' }}</span>{{ importe(servicio.costoNegociado ?? servicio.costoCotizado) }}
+                                        </span>
+                                        <span v-if="deltaOperativo(servicio) !== null && deltaOperativo(servicio) !== 0"
+                                              class="block text-[9px] font-black tabular-nums"
+                                              :class="deltaOperativo(servicio)! > 0 ? 'text-rose-600' : 'text-emerald-600'"
+                                              :title="deltaOperativo(servicio)! > 0 ? 'Costó más de lo cotizado' : 'Costó menos de lo cotizado'">
+                                            {{ deltaOperativo(servicio)! > 0 ? '+' : '−' }}{{ Math.abs(deltaOperativo(servicio)!).toFixed(2) }}
+                                        </span>
+                                    </span>
+                                </div>
+                            </article>
                         </div>
                     </div>
                 </div>
@@ -4030,173 +3853,361 @@ onBeforeRouteLeave(() => { if (modalEnHistory) { modalEnHistory = false; } });
       </div>
     </Transition>
 
-    <!-- ══ FICHA DEL SERVICIO — sólo móvil ═════════════════════════════════════
-         A pantalla completa: en 360 px un modal centrado deja media pantalla de
-         fondo inútil y el teclado tapa el resto. Guardar y cancelar van ABAJO y
-         fijos, que es donde llega el pulgar y donde no los tapa el teclado. -->
+    <!-- ══ FICHA DEL SERVICIO: DETALLE, Y DENTRO EL FORMULARIO ═══════════════════
+         Tocar una ficha de la rejilla abre esto LEYENDO; la plumita entra a editar. Recorrer
+         cuarenta servicios es lo que más se hace en un día de tráfico, y en un formulario los
+         datos están repartidos entre campos que hay que interpretar. Es el mismo reparto que el
+         namelist del expediente, y por el mismo motivo.
+
+         Las dos son CAPAS EN EL HISTORIAL (`?capa=servicio.servicio-edicion`): el gesto atrás
+         devuelve del formulario al detalle, y del detalle a la rejilla. Nunca saca de la vista.
+
+         A pantalla completa en el teléfono —en 360 px un modal centrado deja media pantalla de
+         fondo inútil y el teclado tapa el resto— y como panel lateral a partir de `md`, para no
+         perder de vista la rejilla que hay detrás. -->
     <Transition name="fade-scale">
-      <div v-if="servicioFicha" class="fixed inset-0 z-1400 bg-white flex flex-col md:hidden">
-        <header class="bg-[#376875] text-white px-4 py-3 flex items-center gap-3 shrink-0">
-          <button @click="servicioFicha = null" class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
-            <i class="fas fa-times text-sm"></i>
-          </button>
-          <div class="min-w-0">
-            <p class="font-black text-sm truncate">{{ nombreComponenteDe(servicioFicha) || servicioFicha.contextoServicio }}</p>
-            <p class="text-[10px] font-bold text-white/70 truncate">{{ servicioFicha.descripcionServicio }}</p>
+      <div v-if="servicioFicha" class="fixed inset-0 z-1400 flex justify-end md:bg-slate-900/40"
+           @click.self="cerrarFicha()">
+        <div class="bg-white w-full md:max-w-xl flex flex-col md:shadow-2xl">
+          <header class="bg-[#376875] text-white px-3 py-3 flex items-center gap-2 shrink-0">
+            <!-- Atrás, no una ✕: la ficha es un sitio al que se ha entrado, y desde el
+                 formulario este botón devuelve al detalle igual que el gesto del sistema. -->
+            <button @click="modoVistaFicha ? cerrarFicha() : girarFicha(true)"
+                    :title="modoVistaFicha ? 'Volver a la lista' : 'Volver al detalle'"
+                    class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0">
+              <i class="fas fa-arrow-left text-sm"></i>
+            </button>
+
+            <div class="min-w-0 flex-1">
+              <p class="font-black text-sm truncate flex items-center gap-1.5">
+                <i :class="[getTipoComponenteConfig(servicioFicha.tipoComponente).icon, 'text-xs opacity-80']"></i>
+                {{ nombreComponenteDe(servicioFicha) || servicioFicha.contextoServicio || getTipoComponenteConfig(servicioFicha.tipoComponente).label }}
+              </p>
+              <p class="text-[10px] font-bold text-white/70 truncate">{{ servicioFicha.descripcionServicio }}</p>
+            </div>
+
+            <!-- Saltar de una ficha a otra sin volver a la rejilla. NO apila capas: es la misma
+                 capa cambiando de contenido. Sólo en lectura — con el formulario abierto
+                 saltarían los cambios sin guardar. -->
+            <div v-if="modoVistaFicha" class="flex items-center gap-1 shrink-0">
+              <button @click="irAFichaAdyacente(-1)" :disabled="indiceDeFicha <= 0"
+                      title="Servicio anterior"
+                      class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 disabled:opacity-30 flex items-center justify-center">
+                <i class="fas fa-chevron-up text-xs"></i>
+              </button>
+              <button @click="irAFichaAdyacente(1)" :disabled="indiceDeFicha < 0 || indiceDeFicha >= serviciosPlanos.length - 1"
+                      title="Servicio siguiente"
+                      class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 disabled:opacity-30 flex items-center justify-center">
+                <i class="fas fa-chevron-down text-xs"></i>
+              </button>
+              <button @click="girarFicha(false)" title="Editar"
+                      class="w-8 h-8 rounded-full bg-[#E07845] hover:bg-[#c96636] flex items-center justify-center">
+                <i class="fas fa-pencil-alt text-xs"></i>
+              </button>
+            </div>
+          </header>
+
+          <!-- ══ DETALLE (lectura) ══════════════════════════════════════════════ -->
+          <div v-if="modoVistaFicha" class="flex-1 overflow-y-auto p-4 space-y-4">
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5">
+              <p class="text-[11px] font-bold text-slate-500">
+                <i class="far fa-calendar w-4 text-slate-400"></i>
+                {{ servicioFicha.fechaServicio ? etiquetaDia(servicioFicha.fechaServicio.slice(0, 10)) : 'Sin fecha' }}
+                <span v-if="servicioFicha.horaRecojo" class="ml-1 tabular-nums font-black text-slate-700">· {{ servicioFicha.horaRecojo }}</span>
+                <span v-else-if="admiteHora(servicioFicha) && servicioFicha.horaComponente" class="ml-1 tabular-nums">· vendida {{ servicioFicha.horaComponente }}</span>
+                <span v-else-if="!admiteHora(servicioFicha)" class="ml-1 text-slate-400">· sin hora</span>
+              </p>
+              <p class="text-[11px] font-bold text-slate-500 truncate">
+                <i class="fas fa-folder w-4 text-slate-400"></i>
+                <button v-if="servicioFicha.file?.id" @click="abrirExpediente(servicioFicha)"
+                        class="text-[#376875] hover:underline decoration-dotted">
+                  {{ servicioFicha.file?.nombreGrupo || '—' }}
+                </button>
+                <span v-else>—</span>
+                <span class="ml-1 text-slate-400">· {{ servicioFicha.cantidadPax }} pax</span>
+              </p>
+              <p v-if="nombreSegmentoDe(servicioFicha) || servicioFicha.contextoServicio"
+                 class="text-[11px] font-bold text-slate-500 truncate">
+                <i class="fas fa-map-signs w-4 text-slate-400"></i>{{ nombreSegmentoDe(servicioFicha) || servicioFicha.contextoServicio }}
+              </p>
+              <p v-if="servicioFicha.tarifaNombre && servicioFicha.tarifaNombre !== servicioFicha.descripcionServicio"
+                 class="text-[11px] font-bold text-slate-400 truncate" title="Nombre interno de la tarifa">
+                <i class="fas fa-tag w-4 text-slate-300"></i>{{ servicioFicha.tarifaNombre }}
+              </p>
+            </div>
+
+            <!-- Con quién se opera. El teléfono se marca desde aquí: es el dato del recojo. -->
+            <div class="space-y-1.5">
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Prestador</p>
+              <p class="text-sm font-black text-slate-800">
+                {{ servicioFicha.prestadorEfectivoNombre || (servicioFicha.soloReferencia ? 'Referencia' : 'Por asignar') }}
+              </p>
+              <p v-if="servicioFicha.prestadorServicioEfectivoNombre" class="text-[11px] font-bold text-slate-500">
+                {{ servicioFicha.prestadorServicioEfectivoNombre }}
+              </p>
+              <p v-if="cotizadoDe(servicioFicha)" class="text-[10px] font-medium text-slate-400 italic">
+                {{ cotizadoDe(servicioFicha) }}
+              </p>
+              <a v-if="telefonoDe(servicioFicha)" :href="telHref(telefonoDe(servicioFicha))"
+                 class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-[#376875]">
+                <i class="fas fa-phone text-slate-300 text-[10px]"></i>
+                <span class="tabular-nums">{{ telefonoDe(servicioFicha) }}</span>
+              </a>
+              <p v-if="direccionDe(servicioFicha)" class="flex items-start gap-1.5 text-[11px] font-medium text-slate-400">
+                <i class="fas fa-location-dot text-slate-300 text-[10px] mt-0.5 shrink-0"></i>
+                <span>{{ direccionDe(servicioFicha) }}</span>
+              </p>
+              <p v-if="mostrarComprador(servicioFicha)" class="text-[11px] font-bold text-slate-500">
+                <span class="text-[9px] font-black text-slate-300 uppercase tracking-wider mr-1">Compra</span>
+                {{ servicioFicha.compradorEfectivoNombre || 'Sin definir' }}
+              </p>
+            </div>
+
+            <!-- La ruta efectiva: override incluido y hotel resuelto. En ámbar si falta algo. -->
+            <div v-if="rutaDe(servicioFicha)" class="space-y-1">
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ruta</p>
+              <p class="text-[11px] font-bold leading-snug flex items-start gap-1.5"
+                 :class="puntosDe(servicioFicha)?.efectivo?.completo ? 'text-slate-600' : 'text-amber-700'">
+                <i class="fas fa-route text-[10px] mt-0.5 shrink-0"
+                   :class="puntosDe(servicioFicha)?.efectivo?.completo ? 'text-slate-300' : 'text-amber-500'"></i>
+                <span>{{ rutaDe(servicioFicha) }}</span>
+              </p>
+              <p v-for="aviso in (puntosDe(servicioFicha)?.avisos || [])" :key="aviso"
+                 class="text-[10px] font-bold text-amber-700 leading-tight pl-5">
+                <i class="fas fa-triangle-exclamation mr-1"></i>{{ aviso }}
+              </p>
+            </div>
+
+            <div v-if="(servicioFicha.notasPrestadorEfectivas ?? []).length" class="space-y-1">
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Qué se le dice al proveedor</p>
+              <p v-for="(nota, i) in (servicioFicha.notasPrestadorEfectivas ?? [])" :key="i"
+                 class="text-[11px] font-medium text-slate-600 leading-snug flex items-start gap-1.5">
+                <i class="fas fa-comment-dots text-[10px] text-slate-300 mt-0.5 shrink-0"></i>
+                <span>{{ nota }}</span>
+              </p>
+            </div>
+
+            <div v-if="!servicioFicha.soloReferencia" class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Costo</p>
+              <div class="flex items-baseline justify-between">
+                <span class="text-[11px] font-bold text-slate-400">Cotizado</span>
+                <span class="text-[11px] font-bold text-slate-500 tabular-nums">
+                  {{ servicioFicha.monedaCotizada?.id || '' }} {{ importe(servicioFicha.costoCotizado) }}
+                </span>
+              </div>
+              <div class="flex items-baseline justify-between mt-1">
+                <span class="text-[11px] font-bold text-slate-400">Negociado</span>
+                <span class="text-sm font-black tabular-nums" :class="servicioFicha.costoNegociado ? 'text-slate-800' : 'text-slate-300'">
+                  {{ servicioFicha.monedaNegociada?.id || '' }} {{ importe(servicioFicha.costoNegociado) }}
+                </span>
+              </div>
+              <p v-if="deltaOperativo(servicioFicha) !== null && deltaOperativo(servicioFicha) !== 0"
+                 class="text-right text-[11px] font-black tabular-nums mt-0.5"
+                 :class="deltaOperativo(servicioFicha)! > 0 ? 'text-rose-600' : 'text-emerald-600'">
+                {{ deltaOperativo(servicioFicha)! > 0 ? '+' : '−' }}{{ Math.abs(deltaOperativo(servicioFicha)!).toFixed(2) }}
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded border"
+                    :class="[getEstadoReservaProveedorConfig(servicioFicha.estadoReservaProveedor).bg,
+                             getEstadoReservaProveedorConfig(servicioFicha.estadoReservaProveedor).text,
+                             getEstadoReservaProveedorConfig(servicioFicha.estadoReservaProveedor).border]">
+                {{ getEstadoReservaProveedorConfig(servicioFicha.estadoReservaProveedor).label }}
+              </span>
+              <span class="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded border"
+                    :class="[getEstadoOperacionConfig(servicioFicha.estadoOperacion).bg,
+                             getEstadoOperacionConfig(servicioFicha.estadoOperacion).text,
+                             getEstadoOperacionConfig(servicioFicha.estadoOperacion).border]">
+                {{ getEstadoOperacionConfig(servicioFicha.estadoOperacion).label }}
+              </span>
+              <button v-if="servicioFicha.estadoReservaProveedorDesde" @click="abrirBitacora(servicioFicha)"
+                      class="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-[#376875]"
+                      title="Ver el historial de estados">
+                <i class="fas fa-clock-rotate-left text-[9px]"></i>{{ desdeHace(servicioFicha.estadoReservaProveedorDesde) }}
+              </button>
+            </div>
           </div>
-        </header>
 
-        <div class="flex-1 overflow-y-auto p-4 space-y-5">
-          <!-- Contexto de sólo lectura: lo que identifica la fila y no se edita aquí. -->
-          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5">
-            <p class="text-[11px] font-bold text-slate-500">
-              <i class="far fa-calendar w-4 text-slate-400"></i>
-              {{ servicioFicha.fechaServicio ? etiquetaDia(servicioFicha.fechaServicio.slice(0, 10)) : 'Sin fecha' }}
-              <span v-if="servicioFicha.horaComponente" class="ml-1 tabular-nums">· vendida {{ servicioFicha.horaComponente }}</span>
-            </p>
-            <p class="text-[11px] font-bold text-slate-500 truncate">
-              <i class="fas fa-folder w-4 text-slate-400"></i>{{ servicioFicha.file?.nombreGrupo || '—' }}
-            </p>
-            <p class="text-[11px] font-bold text-slate-500 truncate">
-              <i class="fas fa-truck w-4 text-slate-400"></i>{{ servicioFicha.prestadorEfectivoNombre || '—' }}
-              <span class="ml-1 text-slate-400">· {{ servicioFicha.cantidadPax }} pax</span>
-            </p>
-          </div>
+          <!-- ══ FORMULARIO (edición) ═══════════════════════════════════════════ -->
+          <div v-else class="flex-1 overflow-y-auto p-4 space-y-5">
+            <!-- ⚠️ Sólo si el componente ADMITE hora. Un ticket de horario variable —el ingreso
+                 al Koricancha— no tiene hora que fijar: el campo ni siquiera aparece. Lo decide
+                 `admiteHora()`, que consulta el flag del componente y no una copia de la regla. -->
+            <div v-if="admiteHora(servicioFicha)">
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Hora de recojo</label>
+              <input
+                v-model="borradorFicha.horaRecojo"
+                :placeholder="servicioFicha.horaComponente || '--:--'"
+                maxlength="5" inputmode="numeric"
+                class="w-full text-sm font-black bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 tabular-nums outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-400 placeholder:font-bold"
+              />
+              <p class="text-[10px] font-bold text-slate-400 mt-1">Vacío = se usa la hora con la que se vendió.</p>
+            </div>
 
-          <div>
-            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Hora de recojo</label>
-            <input
-              v-model="borradorFicha.horaRecojo"
-              :placeholder="servicioFicha.horaComponente || '--:--'"
-              maxlength="5" inputmode="numeric"
-              class="w-full text-sm font-black bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 tabular-nums outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-400 placeholder:font-bold"
-            />
-            <p class="text-[10px] font-bold text-slate-400 mt-1">Vacío = se usa la hora con la que se vendió.</p>
-          </div>
+            <!-- Quién opera y a quién se le compra. NO es texto libre: son organizaciones del
+                 catálogo, y un nombre que no esté dado de alta corta el guardado con su motivo.
+                 En la tabla el campo se revertía en silencio y nadie sabía por qué. -->
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Prestador</label>
+              <input
+                v-model="borradorFicha.prestadorNombre"
+                list="catalogo-organizaciones"
+                :placeholder="servicioFicha.soloReferencia ? 'Referencia' : 'Por asignar'"
+                class="w-full text-sm font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-400"
+              />
+              <p class="text-[10px] font-bold text-slate-400 mt-1">Vacío = vuelve a lo que dijo la cotización.</p>
+            </div>
 
-          <div>
-            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Dónde se recoge</label>
-            <input
-              v-model="borradorFicha.puntoRecojo"
-              :placeholder="puntosDe(servicioFicha)?.recojo || 'sin declarar en el catálogo'"
-              maxlength="255"
-              class="w-full text-xs font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
-            />
-          </div>
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Servicio contratado</label>
+              <input
+                v-model="borradorFicha.prestadorServicioNombre"
+                placeholder="El tipo de habitación, el tramo…"
+                class="w-full text-xs font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-400"
+              />
+            </div>
 
-          <div v-if="puntosDe(servicioFicha)?.tieneEntrega || servicioFicha.puntoEntrega">
-            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Dónde se deja</label>
-            <input
-              v-model="borradorFicha.puntoEntrega"
-              :placeholder="puntosDe(servicioFicha)?.entrega || 'sin declarar en el catálogo'"
-              maxlength="255"
-              class="w-full text-xs font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
-            />
-          </div>
+            <div v-if="mostrarComprador(servicioFicha)">
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                A quién se le compra
+              </label>
+              <input
+                v-model="borradorFicha.compradorNombre"
+                list="catalogo-organizaciones"
+                placeholder="Sin definir"
+                class="w-full text-sm font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-400"
+              />
+              <p class="text-[10px] font-bold text-slate-400 mt-1">Es por quien agrupa la Orden de Servicio.</p>
+            </div>
 
-          <p class="text-[10px] font-bold text-slate-400 -mt-3">Vacío = lo que diga el catálogo.</p>
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Dónde se recoge</label>
+              <input
+                v-model="borradorFicha.puntoRecojo"
+                :placeholder="puntosDe(servicioFicha)?.recojo || 'sin declarar en el catálogo'"
+                maxlength="255"
+                class="w-full text-xs font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
+              />
+            </div>
 
-          <div>
-            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Qué se le dice al proveedor</label>
-            <textarea
-              v-model="borradorFicha.notasPrestador"
-              :placeholder="(servicioFicha.notasPrestadorEfectivas ?? []).join('\n') || 'nada que indicarle'"
-              rows="3"
-              class="w-full mt-1 text-xs font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic resize-none"
-            ></textarea>
-            <p class="text-[10px] font-bold text-slate-400 mt-1">Una por línea. Vacío = los detalles del componente.</p>
-          </div>
+            <div v-if="puntosDe(servicioFicha)?.tieneEntrega || servicioFicha.puntoEntrega">
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Dónde se deja</label>
+              <input
+                v-model="borradorFicha.puntoEntrega"
+                :placeholder="puntosDe(servicioFicha)?.entrega || 'sin declarar en el catálogo'"
+                maxlength="255"
+                class="w-full text-xs font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic"
+              />
+            </div>
 
-          <!-- Qué se le imprime al proveedor, por lado. `Auto` deja mandar la regla de cadenas:
-               varios servicios seguidos del mismo proveedor dicen sólo dónde empieza y dónde
-               acaba, porque lo de en medio es logística suya. Sobre una orden ya emitida esto
-               también se toca desde su tarjeta, que es donde se ve la cadena entera. -->
-          <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 space-y-2">
-            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Qué verá el proveedor</p>
-            <!-- ⚠️ Esto es la SEMILLA, no la decisión final. Se copia a la orden al emitirla, y a
-                 partir de ahí manda la orden. Con una orden ya emitida se ajusta desde su tarjeta
-                 —ahí sí se ve la cadena entera y si el «auto» acaba mostrando u ocultando—, que es
-                 el contexto que aquí no existe: una fila suelta no sabe con quién hará cadena. -->
-            <p class="text-[10px] font-bold text-slate-400 leading-snug">
-                Se copia a la orden al emitirla. <b class="text-slate-500">Automático</b> deja mandar la regla:
-                varios servicios seguidos del mismo proveedor dicen sólo dónde empieza y dónde acaba.
-                En una orden ya emitida esto se ajusta desde su tarjeta, donde se ve la cadena completa.
-            </p>
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] font-bold text-slate-500 w-16 shrink-0">Recojo</span>
-              <select v-model="borradorFicha.visibilidadRecojo"
-                      class="flex-1 text-[11px] font-bold bg-white px-2 py-1.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875]">
-                <option value="auto">Automático</option>
-                <option value="siempre">Mostrar siempre</option>
-                <option value="oculto">Ocultar al proveedor</option>
+            <p class="text-[10px] font-bold text-slate-400 -mt-3">Vacío = lo que diga el catálogo.</p>
+
+            <div>
+              <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Qué se le dice al proveedor</label>
+              <textarea
+                v-model="borradorFicha.notasPrestador"
+                :placeholder="(servicioFicha.notasPrestadorEfectivas ?? []).join('\n') || 'nada que indicarle'"
+                rows="3"
+                class="w-full mt-1 text-xs font-bold bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] focus:bg-white placeholder:text-slate-500 placeholder:italic resize-none"
+              ></textarea>
+              <p class="text-[10px] font-bold text-slate-400 mt-1">Una por línea. Vacío = los detalles del componente.</p>
+            </div>
+
+            <!-- Qué se le imprime al proveedor, por lado. `Auto` deja mandar la regla de cadenas:
+                 varios servicios seguidos del mismo proveedor dicen sólo dónde empieza y dónde
+                 acaba, porque lo de en medio es logística suya. -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 space-y-2">
+              <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Qué verá el proveedor</p>
+              <!-- ⚠️ Esto es la SEMILLA, no la decisión final. Se copia a la orden al emitirla, y a
+                   partir de ahí manda la orden. Con una orden ya emitida se ajusta desde su tarjeta
+                   —ahí sí se ve la cadena entera y si el «auto» acaba mostrando u ocultando—, que es
+                   el contexto que aquí no existe: una fila suelta no sabe con quién hará cadena. -->
+              <p class="text-[10px] font-bold text-slate-400 leading-snug">
+                  Se copia a la orden al emitirla. <b class="text-slate-500">Automático</b> deja mandar la regla:
+                  varios servicios seguidos del mismo proveedor dicen sólo dónde empieza y dónde acaba.
+                  En una orden ya emitida esto se ajusta desde su tarjeta, donde se ve la cadena completa.
+              </p>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-bold text-slate-500 w-16 shrink-0">Recojo</span>
+                <select v-model="borradorFicha.visibilidadRecojo"
+                        class="flex-1 text-[11px] font-bold bg-white px-2 py-1.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875]">
+                  <option value="auto">Automático</option>
+                  <option value="siempre">Mostrar siempre</option>
+                  <option value="oculto">Ocultar al proveedor</option>
+                </select>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-bold text-slate-500 w-16 shrink-0">Entrega</span>
+                <select v-model="borradorFicha.visibilidadEntrega"
+                        class="flex-1 text-[11px] font-bold bg-white px-2 py-1.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875]">
+                  <option value="auto">Automático</option>
+                  <option value="siempre">Mostrar siempre</option>
+                  <option value="oculto">Ocultar al proveedor</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Reserva con el proveedor</label>
+              <select v-model="borradorFicha.estadoReservaProveedor"
+                      class="w-full text-xs font-black px-3 py-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-[#376875]"
+                      :class="[getEstadoReservaProveedorConfig(borradorFicha.estadoReservaProveedor).bg,
+                               getEstadoReservaProveedorConfig(borradorFicha.estadoReservaProveedor).text,
+                               getEstadoReservaProveedorConfig(borradorFicha.estadoReservaProveedor).border]">
+                <option v-for="(cfg, k) in ESTADO_RESERVA_PROVEEDOR_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
               </select>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] font-bold text-slate-500 w-16 shrink-0">Entrega</span>
-              <select v-model="borradorFicha.visibilidadEntrega"
-                      class="flex-1 text-[11px] font-bold bg-white px-2 py-1.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875]">
-                <option value="auto">Automático</option>
-                <option value="siempre">Mostrar siempre</option>
-                <option value="oculto">Ocultar al proveedor</option>
+
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Operación</label>
+              <select v-model="borradorFicha.estadoOperacion"
+                      class="w-full text-xs font-black px-3 py-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-[#376875]"
+                      :class="[getEstadoOperacionConfig(borradorFicha.estadoOperacion).bg,
+                               getEstadoOperacionConfig(borradorFicha.estadoOperacion).text,
+                               getEstadoOperacionConfig(borradorFicha.estadoOperacion).border]">
+                <option v-for="(cfg, k) in ESTADO_OPERACION_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
               </select>
             </div>
+
+            <!-- El costo negociado trae su propio commit, así que se empotra tal cual en vez de
+                 duplicarlo en el borrador: dos formas de guardar el mismo importe acabarían
+                 discrepando. Guarda al confirmarlo, sin esperar al botón de abajo. Una fila de
+                 referencia no se compra y no lo enseña. -->
+            <div v-if="!servicioFicha.soloReferencia">
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Costo negociado</label>
+              <EditorCostoNegociado
+                :ref="(el) => registrarEditor(idDe(servicioFicha!), el)"
+                :costo-cotizado="servicioFicha.costoCotizado"
+                :desglose="servicioFicha.desgloseCotizado"
+                :moneda-cotizada="servicioFicha.monedaCotizada?.id ?? ''"
+                :costo-negociado="servicioFicha.costoNegociado"
+                :moneda-negociada="servicioFicha.monedaNegociada?.id ?? null"
+                :monedas="operacionStore.monedas"
+                @guardar="(pl) => onGuardarCosto(servicioFicha!, pl)"
+              />
+              <p class="text-[10px] font-bold text-slate-400 mt-1">Se guarda al confirmarlo, aparte del resto.</p>
+            </div>
+
+            <p v-if="errorFicha" class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+              <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorFicha }}
+            </p>
           </div>
 
-          <div>
-            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Reserva con el proveedor</label>
-            <select v-model="borradorFicha.estadoReservaProveedor"
-                    class="w-full text-xs font-black px-3 py-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-[#376875]"
-                    :class="[getEstadoReservaProveedorConfig(borradorFicha.estadoReservaProveedor).bg,
-                             getEstadoReservaProveedorConfig(borradorFicha.estadoReservaProveedor).text,
-                             getEstadoReservaProveedorConfig(borradorFicha.estadoReservaProveedor).border]">
-              <option v-for="(cfg, k) in ESTADO_RESERVA_PROVEEDOR_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Operación</label>
-            <select v-model="borradorFicha.estadoOperacion"
-                    class="w-full text-xs font-black px-3 py-2.5 rounded-xl border outline-none focus:ring-2 focus:ring-[#376875]"
-                    :class="[getEstadoOperacionConfig(borradorFicha.estadoOperacion).bg,
-                             getEstadoOperacionConfig(borradorFicha.estadoOperacion).text,
-                             getEstadoOperacionConfig(borradorFicha.estadoOperacion).border]">
-              <option v-for="(cfg, k) in ESTADO_OPERACION_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
-            </select>
-          </div>
-
-          <!-- El costo negociado trae su propio commit, así que se empotra tal cual en vez de
-               duplicarlo en el borrador: dos formas de guardar el mismo importe acabarían
-               discrepando. Una fila de referencia no se compra y no lo enseña. -->
-          <div v-if="!servicioFicha.soloReferencia">
-            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Costo negociado</label>
-            <EditorCostoNegociado
-              :costo-cotizado="servicioFicha.costoCotizado"
-              :desglose="servicioFicha.desgloseCotizado"
-              :moneda-cotizada="servicioFicha.monedaCotizada?.id ?? ''"
-              :costo-negociado="servicioFicha.costoNegociado"
-              :moneda-negociada="servicioFicha.monedaNegociada?.id ?? null"
-              :monedas="operacionStore.monedas"
-              @guardar="(pl) => onGuardarCosto(servicioFicha!, pl)"
-            />
-          </div>
-
-          <p v-if="errorFicha" class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
-            <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorFicha }}
-          </p>
+          <!-- Abajo y fijos: es donde llega el pulgar y donde no los tapa el teclado. Sólo en
+               edición — en lectura no hay nada que confirmar. -->
+          <footer v-if="!modoVistaFicha" class="shrink-0 border-t border-slate-200 bg-white px-4 py-3 flex items-center gap-3">
+            <button @click="girarFicha(true)" :disabled="guardandoFicha"
+                    class="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 disabled:opacity-40">
+              Cancelar
+            </button>
+            <button @click="guardarFicha" :disabled="guardandoFicha || !hayCambiosEnFicha"
+                    class="flex-1 px-4 py-3 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-40 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
+              <i v-if="guardandoFicha" class="fas fa-spinner fa-spin mr-1"></i>
+              {{ hayCambiosEnFicha ? 'Guardar cambios' : 'Sin cambios' }}
+            </button>
+          </footer>
         </div>
-
-        <!-- Abajo y fijos: es donde llega el pulgar y donde no los tapa el teclado. -->
-        <footer class="shrink-0 border-t border-slate-200 bg-white px-4 py-3 flex items-center gap-3">
-          <button @click="servicioFicha = null" :disabled="guardandoFicha"
-                  class="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 disabled:opacity-40">
-            Cancelar
-          </button>
-          <button @click="guardarFicha" :disabled="guardandoFicha || !hayCambiosEnFicha"
-                  class="flex-1 px-4 py-3 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-40 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
-            <i v-if="guardandoFicha" class="fas fa-spinner fa-spin mr-1"></i>
-            {{ hayCambiosEnFicha ? 'Guardar cambios' : 'Sin cambios' }}
-          </button>
-        </footer>
       </div>
     </Transition>
 </template>
