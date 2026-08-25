@@ -6,6 +6,7 @@ namespace App\Agent\Provider\DeepSeek;
 
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\GuardiaDeSkills;
+use App\Agent\Skill\RastroDeSkill;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use Psr\Log\LoggerInterface;
@@ -103,7 +104,12 @@ final readonly class DeepSeekSkillAdapter
 
         $usadas[] = $skill->nombre();
 
-        $this->logger->info(sprintf('Agent: %s usa la skill "%s".', $actor->etiqueta(), $skill->nombre()));
+        $this->logger->info(sprintf(
+            'Agent: %s usa la skill "%s" con %s.',
+            $actor->etiqueta(),
+            $skill->nombre(),
+            RastroDeSkill::argumentos($argumentos),
+        ));
 
         // El cierre, antes de tocar nada. El catálogo dice qué se ofrece; esto dice qué se
         // ejecuta. Ver GuardiaDeSkills.

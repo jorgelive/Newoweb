@@ -466,11 +466,95 @@ una. **El total va siempre**, que es lo que permite decir la verdad sin enseñar
 Los «no participa» quedan fuera por defecto, como en el panel: conservan grupo y reservas aéreas,
 así que contarlos infla cualquier respuesta sobre cuánta gente va.
 
+## 5.5 El bucle de herramientas: cómo se corta y cómo se diagnostica (25/08/2026)
+
+Un turno del panel gastó **208 000 tokens de entrada en ocho vueltas y no contestó nada**. Así se
+ve, y conviene reconocer la firma porque es siempre la misma:
+
+```
+vuelta 1 · entrada 20 635 · salida 33   → consultar_padron
+vuelta 2 · entrada 20 860 · salida 32   → consultar_padron
+…                                          la salida es SIEMPRE ~32 fichas: una llamada, nunca texto
+vuelta 8 · entrada 32 545 · salida 32   → consultar_padron
+WARNING  8 vueltas de herramientas sin respuesta final
+```
+
+**No era un eco.** Los saltos de entrada entre vueltas —+225, +1860, +2030, +1849, +2303, +1754,
++1889— son resultados de tamaños distintos, luego los argumentos cambiaban: el modelo probaba
+**variantes** de una pregunta que la skill no sabía expresar (buscar a una persona, antes de que
+existiera `persona`). Y cada «no existe, aquí tienes las opciones» le invitaba a la siguiente.
+
+⚠️ **No era `mode: ANY`.** No hay `toolConfig` en el motor, así que Gemini iba en AUTO. Si
+estuviera forzado harían bucle **todos** los turnos, y los de esa misma tarde contestaron a la
+primera. Vale la pena descartarlo con el log antes que con la intuición.
+
+### Las tres salvaguardas, y cuál hace qué
+
+| Salvaguarda | Dónde | Qué evita |
+|---|---|---|
+| **Cierre forzado** con `functionCallingConfig: NONE` | `GoogleAIEngine::cerrarSinHerramientas()` | Que el turno caro sea **además** mudo |
+| **Racha de fallos** (`MAX_FALLOS_SEGUIDOS = 3`) | `GoogleAIEngine::conversar()` | Que la racha llegue a ocho vueltas |
+| **Llamada repetida** (`skill + argumentos`) | idem, mapa `$servidas` | Pagar dos veces por la misma pregunta, y que una skill de escritura escriba dos veces |
+
+**El cierre forzado es el que más vale.** Antes, agotar las vueltas devolvía
+`ConversationResponse::vacia()`: el operador veía un silencio tras diez segundos y los 200 000
+tokens no compraban ni una frase. Con `NONE` el modelo tiene que sintetizar con lo que ya está en
+el hilo, que casi siempre basta para «encontré esto, me falta aquello».
+
+⚠️ **Las `tools` siguen declaradas en la petición del cierre.** Con `functionCall` y
+`functionResponse` ya dentro del hilo, quitar las declaraciones es un 400. Lo que se retira es el
+permiso de volver a llamarlas.
+
+⚠️ **En la última vuelta ya no se ejecuta nada**, como en DeepSeek: ejecutar sin poder volver a
+llamar significa que una skill de escritura escribe y su resultado se tira, porque no queda quien
+lo lea. Google lo hacía, y encima descartaba el resultado sin entregar respuesta.
+
+### Qué cuenta como fallo, sin que el motor sepa de dominios
+
+`RastroDeSkill::fueFallo()` mira **la forma de la respuesta**: `error` a secas —lo que emiten los
+propios adaptadores cuando la skill no existe o está bloqueada— y cualquier clave `error_*`, como
+`error_de_nombre`. La convención la fija el núcleo; el motor cuenta fracasos sin entender de qué
+son.
+
+⚠️ `error_de_nombre` viaja como resultado **correcto** a propósito —lleva las opciones reales para
+que el modelo pregunte—, así que `SkillResult::esError()` dice `false` sobre él. Por eso el corte
+no puede colgar de `esError()`.
+
+### El log ahora dice con qué se llamó y qué se devolvió
+
+El turno de las 208 000 fichas dejó ocho líneas `usa la skill "consultar_padron"` y **nada más**:
+ni argumentos ni respuesta. Hubo que deducir lo que pasaba restando tamaños de entrada. Ahora:
+
+```
+Agent: admin (panel) usa la skill "consultar_padron" con {"expediente":"5SRAJV","subgrupo":"Fabio"}.
+Agent: la skill "consultar_padron" devuelve error_de_nombre, opciones · 1 943 B.
+```
+
+Lo escribe `RastroDeSkill`, **una sola clase para los tres proveedores**: lo que se compara al
+diagnosticar es «Gemini llamó así y Claude asá con la misma pregunta», y dos formatos obligan a
+leer dos veces.
+
+⚠️ **Del resultado salen las CLAVES y el tamaño, nunca el contenido.** El contenido son 131
+personas con sus documentos: volcarlo sería duplicar la base de datos en un fichero de texto y
+meter datos personales donde no pintan nada. Las claves bastan para lo que se pregunta, y el
+tamaño explica cuánto crecerá la entrada de la vuelta siguiente.
+
+### Lo que queda fuera, y por qué
+
+- **Anthropic** no lleva cierre forzado: el bucle lo gobierna el `toolRunner` del SDK, no este
+  código. Si aparece la misma firma allí, hay que mirar el SDK primero.
+- **DeepSeek** ya cortaba bien —no ejecuta en la última vuelta y entrega lo que haya—, pero
+  tampoco fuerza la síntesis. Cuando se use en serio, es el mismo método portado.
+- **Presupuesto de tokens por turno** (cortar al superar ~100 000 acumulados) queda propuesto y
+  sin hacer: con el cierre forzado y la racha de tres, el techo real baja a unas cuatro vueltas.
+
 ## 6. Dónde tocar para cambiar X
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
 | Añadir una herramienta nueva | `src/Agent/Skill/**` | implementar `SkillInterface`; se autolocaliza |
+| Cambiar cuándo se corta un bucle de herramientas | `src/Agent/Provider/Google/GoogleAIEngine.php` | `MAX_VUELTAS`, `MAX_FALLOS_SEGUIDOS`, `cerrarSinHerramientas()` |
+| Cambiar qué se registra de cada llamada a skill | `src/Agent/Skill/RastroDeSkill.php` | `argumentos()`, `resultado()`, `fueFallo()` |
 | Cambiar qué se devuelve de una persona del padrón | `src/Agent/Skill/Cotizacion/ConsultarPadronSkill.php` | `describirPersona()` |
 | Cambiar cuánta gente recibe los horarios de sus vuelos | idem | `MAX_CON_HORARIOS` |
 | Cambiar cómo se casa un nombre buscado | idem | `esEstaPersona()` / `comparable()` |

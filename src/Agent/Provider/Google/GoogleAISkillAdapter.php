@@ -6,6 +6,7 @@ namespace App\Agent\Provider\Google;
 
 use App\Agent\Access\GuardiaDeSkills;
 use App\Agent\Access\ActorInterface;
+use App\Agent\Skill\RastroDeSkill;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use Psr\Log\LoggerInterface;
@@ -96,9 +97,10 @@ final readonly class GoogleAISkillAdapter
         $usadas[] = $skill->nombre();
 
         $this->logger->info(sprintf(
-            'Agent: %s usa la skill "%s".',
+            'Agent: %s usa la skill "%s" con %s.',
             $actor->etiqueta(),
-            $skill->nombre()
+            $skill->nombre(),
+            RastroDeSkill::argumentos($entrada)
         ));
 
         // El cierre, antes de tocar nada. El catálogo dice qué se ofrece; esto dice qué se
@@ -139,9 +141,19 @@ final readonly class GoogleAISkillAdapter
         // porque `functionResponse.response` tiene que ser un OBJETO JSON. Una skill que
         // devuelva una lista (`[...]`) o un array vacío (`[]` al serializar) daría un 400, así
         // que se envuelve bajo una clave.
-        return $resultado->datos === [] || array_is_list($resultado->datos)
+        $respuesta = $resultado->datos === [] || array_is_list($resultado->datos)
             ? ['resultado' => $resultado->datos]
             : $resultado->datos;
+
+        // Qué se le devolvió, por claves y tamaño. Es la otra mitad del rastro: sin ella no se
+        // distingue «reintenta porque le contestaste que no existe» de «reintenta porque sí».
+        $this->logger->info(sprintf(
+            'Agent: la skill "%s" devuelve %s.',
+            $skill->nombre(),
+            RastroDeSkill::resultado($respuesta)
+        ));
+
+        return $respuesta;
     }
 
     /**

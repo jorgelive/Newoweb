@@ -7,6 +7,7 @@ namespace App\Agent\Provider\Anthropic;
 use App\Agent\Access\GuardiaDeSkills;
 use Anthropic\Lib\Tools\BetaRunnableTool;
 use App\Agent\Access\ActorInterface;
+use App\Agent\Skill\RastroDeSkill;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use Psr\Log\LoggerInterface;
@@ -80,9 +81,10 @@ final readonly class AnthropicSkillAdapter
                     $usadas[] = $skill->nombre();
 
                     $this->logger->info(sprintf(
-                        'Agent: %s usa la skill "%s".',
+                        'Agent: %s usa la skill "%s" con %s.',
                         $actor->etiqueta(),
-                        $skill->nombre()
+                        $skill->nombre(),
+                        RastroDeSkill::argumentos($entrada)
                     ));
 
                     // El cierre, antes de tocar nada. El catálogo dice qué se ofrece; esto

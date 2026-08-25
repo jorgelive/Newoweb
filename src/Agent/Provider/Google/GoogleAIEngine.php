@@ -7,6 +7,7 @@ namespace App\Agent\Provider\Google;
 use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
+use App\Agent\Skill\RastroDeSkill;
 use App\Agent\Skill\SkillRegistry;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -45,6 +46,21 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
      * misma skill deja el turno girando y quemando dinero hasta el timeout de PHP.
      */
     private const int MAX_VUELTAS = 8;
+
+    /**
+     * Vueltas seguidas de FALLO antes de cortar por lo sano.
+     *
+     * ⚠️ Nace de un turno real: 24/08/2026, ocho vueltas a `consultar_padron`, 208 000 tokens de
+     * entrada, cero respuesta. El modelo no estaba atascado en un eco —los argumentos cambiaban
+     * en cada vuelta—: estaba **probando variantes** de algo que la skill no sabía contestar, y
+     * cada «no existe, aquí tienes las opciones» le invitaba a otra. Sin este tope, la única
+     * frontera era `MAX_VUELTAS`, y ocho vueltas con 20 000 tokens de catálogo detrás son un
+     * turno de 200 000 que además termina en silencio.
+     *
+     * Tres, no dos: la segunda llamada con otro nombre es corrección legítima —así se diseñó la
+     * respuesta con opciones— y cortarla estropearía el caso que sí funciona.
+     */
+    private const int MAX_FALLOS_SEGUIDOS = 3;
 
     /** Desenlaces en los que Gemini corta por sus propios filtros, no por falta de respuesta. */
     private const array FIN_RECHAZADO = ['SAFETY', 'RECITATION', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII'];
@@ -124,6 +140,11 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
             'generationConfig' => $generacion,
         ];
 
+        // Vueltas seguidas en las que TODO lo que se ejecutó devolvió un fallo, y las llamadas
+        // ya servidas (`skill + argumentos`) para no pagar dos veces por la misma pregunta.
+        $fallosSeguidos = 0;
+        $servidas = [];
+
         for ($vuelta = 0; $vuelta < self::MAX_VUELTAS; $vuelta++) {
             $cronometro = microtime(true);
             $datos = $this->google->generarContenido($modelo, [...$base, 'contents' => $contenidos]);
@@ -184,37 +205,155 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
                 return $this->desenlace($texto, $usadas);
             }
 
+            // ⚠️ En la ÚLTIMA vuelta no se ejecuta nada, igual que en DeepSeek: ejecutar sin
+            // poder volver a llamar significa que una skill de escritura escribe y su resultado
+            // se tira, porque ya no hay quien lo lea. Se cierra con lo acumulado.
+            if ($vuelta === self::MAX_VUELTAS - 1) {
+                return $this->cerrarSinHerramientas(
+                    $modelo,
+                    $base,
+                    $contenidos,
+                    $peticion,
+                    $usadas,
+                    sprintf('tope de %d vueltas de herramientas', self::MAX_VUELTAS)
+                );
+            }
+
             // (1) El turno del modelo. Casi tal cual vino: ver `devolverParte()`.
             $contenidos[] = ['role' => 'model', 'parts' => array_map($this->devolverParte(...), $partes)];
 
             // (2) Los resultados, en el mismo orden. Gemini puede pedir varias skills a la vez.
             $resultados = [];
+            $todasFallaron = true;
+
             foreach ($llamadas as $llamada) {
                 $nombre = (string) ($llamada['name'] ?? '');
                 $argumentos = is_array($llamada['args'] ?? null) ? $llamada['args'] : [];
+                $huella = $nombre.'|'.RastroDeSkill::argumentos($argumentos);
 
-                $resultados[] = ['functionResponse' => [
-                    'name' => $nombre,
-                    'response' => $this->adaptador->ejecutar(
-                        $skills,
+                // La MISMA skill con los MISMOS argumentos no se vuelve a ejecutar. El resultado
+                // sería idéntico —ya está en el hilo, unas líneas más arriba— y si la skill
+                // escribe, repetirla escribe dos veces. Se le dice que ya está contestado, que
+                // es lo único que puede sacarle del bucle.
+                if (isset($servidas[$huella])) {
+                    $this->logger->warning(sprintf(
+                        'Agent (google): %s repite la llamada a "%s" con %s; no se ejecuta.',
+                        $peticion->actor->etiqueta(),
                         $nombre,
-                        $argumentos,
-                        $peticion->actor,
-                        $usadas
-                    ),
-                ]];
+                        RastroDeSkill::argumentos($argumentos)
+                    ));
+
+                    $resultados[] = ['functionResponse' => [
+                        'name' => $nombre,
+                        'response' => ['error_repetida' => 'Ya llamaste a esta herramienta con '
+                            .'estos mismos datos y su respuesta está más arriba. No la repitas: '
+                            .'contesta con lo que tienes o pregúntale al operador qué falta.'],
+                    ]];
+
+                    continue;
+                }
+
+                $servidas[$huella] = true;
+
+                $respuesta = $this->adaptador->ejecutar(
+                    $skills,
+                    $nombre,
+                    $argumentos,
+                    $peticion->actor,
+                    $usadas
+                );
+
+                $todasFallaron = $todasFallaron && RastroDeSkill::fueFallo($respuesta);
+                $resultados[] = ['functionResponse' => ['name' => $nombre, 'response' => $respuesta]];
             }
 
             $contenidos[] = ['role' => 'user', 'parts' => $resultados];
+
+            // Una vuelta en la que algo salió bien reinicia la cuenta: lo que se persigue es la
+            // RACHA de fallos, no el fallo suelto, que es normal y se corrige solo.
+            $fallosSeguidos = $todasFallaron ? $fallosSeguidos + 1 : 0;
+
+            if ($fallosSeguidos >= self::MAX_FALLOS_SEGUIDOS) {
+                return $this->cerrarSinHerramientas(
+                    $modelo,
+                    $base,
+                    $contenidos,
+                    $peticion,
+                    $usadas,
+                    sprintf('%d vueltas seguidas sin que ninguna herramienta contestara', $fallosSeguidos)
+                );
+            }
         }
 
+        // Inalcanzable: la última vuelta cierra siempre por arriba. Se queda por si alguien
+        // cambia el tope y el `for` vuelve a poder agotarse.
+        return ConversationResponse::vacia();
+    }
+
+    /**
+     * Le pide al modelo la respuesta final PROHIBIÉNDOLE llamar a nada más.
+     *
+     * Es la diferencia entre un turno caro y un turno caro **y además inútil**. Antes, agotar las
+     * vueltas devolvía `ConversationResponse::vacia()`: el operador veía un silencio después de
+     * diez segundos, y los 200 000 tokens que habían costado las ocho consultas no compraban ni
+     * una frase. Con `mode: NONE` el modelo tiene que sintetizar con lo que ya tiene en el hilo —
+     * que suele bastar para decir «encontré esto y me falta aquello».
+     *
+     * ⚠️ Las `tools` siguen DECLARADAS. Quitarlas de la petición con `functionCall` y
+     * `functionResponse` ya dentro del hilo es un 400: lo que se retira es el permiso de volver a
+     * llamarlas, no su definición.
+     *
+     * @param array<string, mixed> $base
+     * @param list<array<string, mixed>> $contenidos
+     * @param list<string> $usadas
+     */
+    private function cerrarSinHerramientas(
+        string $modelo,
+        array $base,
+        array $contenidos,
+        ConversationRequest $peticion,
+        array $usadas,
+        string $motivo,
+    ): ConversationResponse {
         $this->logger->warning(sprintf(
-            'Agent (google): %d vueltas de herramientas sin respuesta final para %s.',
-            self::MAX_VUELTAS,
-            $peticion->actor->etiqueta()
+            'Agent (google): cierre forzado para %s (%s); se le pide la respuesta SIN herramientas.',
+            $peticion->actor->etiqueta(),
+            $motivo
         ));
 
-        return ConversationResponse::vacia();
+        $base['toolConfig'] = ['functionCallingConfig' => ['mode' => 'NONE']];
+
+        try {
+            $datos = $this->google->generarContenido($modelo, [...$base, 'contents' => $contenidos]);
+        } catch (Throwable $e) {
+            $this->logger->error(sprintf(
+                'Agent (google): el cierre forzado falló para %s: %s',
+                $peticion->actor->etiqueta(),
+                $e->getMessage()
+            ));
+
+            return ConversationResponse::vacia();
+        }
+
+        $uso = is_array($datos['usageMetadata'] ?? null) ? $datos['usageMetadata'] : [];
+        $this->logger->info(sprintf(
+            'Agent (google): cierre forzado · entrada %d · salida %d tokens.',
+            (int) ($uso['promptTokenCount'] ?? 0),
+            (int) ($uso['candidatesTokenCount'] ?? 0)
+        ));
+
+        $partes = is_array($datos['candidates'][0]['content']['parts'] ?? null)
+            ? $datos['candidates'][0]['content']['parts']
+            : [];
+
+        $texto = '';
+        foreach ($partes as $parte) {
+            if (is_array($parte) && is_string($parte['text'] ?? null)) {
+                $texto .= $parte['text'];
+            }
+        }
+
+        return $this->desenlace($texto, $usadas);
     }
 
     public function turnoDirecto(ConversationRequest $peticion, ?array $esquema = null): ?string
