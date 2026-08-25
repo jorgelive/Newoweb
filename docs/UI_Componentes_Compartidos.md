@@ -796,6 +796,23 @@ trabajo a medias y sin forma de volver a donde estabas.
 `util/src/composables/useCapasEnHistorial.ts` lo resuelve para cualquier capa: un modal, una ficha,
 un modo de edición.
 
+### ⚠️ Las capas viven en la QUERY, no en `history.pushState`
+
+La primera versión empujaba entradas con `history.pushState` directamente. Funcionaba a medias y
+fallaba de una forma desconcertante: **cerrar el modal te sacaba al listado de expedientes**.
+
+vue-router lleva su propia contabilidad dentro de `history.state` —`back`, `current`, `forward`,
+`position`— y escucha `popstate` para navegar. Una entrada empujada por fuera copia ese estado sin
+actualizar `position`, así que al retroceder el router cree que ha vuelto atrás en SU historia y
+navega a la ruta anterior. No se arregla sin reimplementar sus interioridades.
+
+Ahora las capas van en la query (`?capa=pax.pax-edicion`): el router las empuja y las quita como
+cualquier navegación, no hay nada que desincronizar, y de regalo la URL dice qué hay abierto —
+recargar o compartir el enlace deja de mentir.
+
+⚠️ `cerrar()` usa `router.go(-n)`, **nunca un `push` con la query recortada**: empujando quedaría
+una entrada más y el «atrás» siguiente volvería a ABRIR el modal.
+
 ```ts
 const capas = useCapasEnHistorial();
 

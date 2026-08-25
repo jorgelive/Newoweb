@@ -18,13 +18,19 @@ export interface PasajeroPayload {
     nombre?: string;
     apellido?: string;
     pais?: string;
-    sexo?: string;
-    tipo?: string;
-    telefono?: string;
-    observaciones?: string;
+    // ⚠️ `null` y no sólo `undefined`, y la diferencia importa: `undefined` se cae del JSON y el
+    // backend no se entera, así que vaciar un campo sería imposible. `null` viaja y borra. El
+    // formulario manda `f.sexo || null` justo por eso, y el tipo se había quedado atrás — el
+    // payload era correcto y lo que no compilaba era la promesa.
+    sexo?: string | null;
+    tipo?: string | null;
+    telefono?: string | null;
+    observaciones?: string | null;
     /** Espejo de `CotizacionPasajeroIdentificacion`: una persona lleva DNI *y* pasaporte. */
     identificaciones?: Array<{ tipo: string; numero: string; vencimiento?: string | null }>;
-    fechanacimiento?: string;
+    /** A qué subgrupos pertenece. Se manda la lista ENTERA: `orphanRemoval` reemplaza. */
+    pertenencias?: Array<{ grupo: string }>;
+    fechanacimiento?: string | null;
     file?: string;
 }
 

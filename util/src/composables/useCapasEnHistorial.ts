@@ -1,76 +1,93 @@
-import { onMounted, onUnmounted } from 'vue';
+import { computed, onUnmounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 /**
  * Capas —modales, fichas, modos de edición— que el gesto «atrás» CIERRA en vez de sacarte de la
  * pantalla.
  *
  * ── El problema ─────────────────────────────────────────────────────────────
- * En un móvil, «atrás» es el gesto que se usa para cerrar cualquier cosa: es el botón del sistema
- * y el deslizar desde el borde. Con un modal abierto no cerraba el modal, **navegaba**: estabas
+ * En un móvil, «atrás» es el gesto con el que se cierra cualquier cosa: el botón del sistema y el
+ * deslizar desde el borde. Con un modal abierto no cerraba el modal, **navegaba**: estabas
  * revisando la ficha de un pasajero, deslizabas para volver a la lista, y aparecías en el Home.
- * Con el trabajo a medias y sin forma de regresar a donde estabas.
  *
- * ── Cómo ────────────────────────────────────────────────────────────────────
- * Al abrir una capa se empuja una entrada en el historial marcada con su nombre. El `popstate`
- * cierra la de arriba. Y **el cierre programático —la ✕, «Cancelar», la tecla Esc— NO cierra
- * directamente: llama a `history.back()`**, así que el cierre real ocurre siempre en el mismo
- * sitio, venga del gesto o del botón.
+ * ── ⚠️ Por qué NO se usa `history.pushState` ────────────────────────────────
+ * La primera versión empujaba entradas con `history.pushState` directamente. Funcionaba a medias y
+ * fallaba de una forma desconcertante: **cerrar el modal te sacaba al listado de expedientes**.
  *
- * ⚠️ Esa asimetría es deliberada. Cerrando a mano *y* dejando la entrada en el historial, el
- * siguiente «atrás» consumía una entrada fantasma y no hacía nada visible: había que pulsar dos
- * veces para salir de la pantalla, y nadie relaciona eso con el modal que cerró antes.
+ * La causa es que vue-router lleva su propia contabilidad en `history.state` —`back`, `current`,
+ * `forward`, `position`— y escucha `popstate` para navegar. Una entrada empujada por fuera copia
+ * ese estado sin actualizar `position`, así que al volver el router cree que ha retrocedido en SU
+ * historia y navega a la ruta anterior. No hay forma de arreglarlo sin reimplementar sus
+ * interioridades.
  *
- * Las capas se anidan: la ficha abierta es una, y pasar a editarla es otra encima. «Atrás» dentro
- * de la edición vuelve a la lectura, y el siguiente sale de la ficha — que es exactamente el
- * camino por el que se entró.
+ * Aquí las capas viven en la QUERY (`?capa=pax.pax-edicion`). El router las empuja y las quita
+ * como cualquier navegación, así que nunca se desincroniza — y de regalo la URL dice qué hay
+ * abierto, que es lo que hace que recargar o compartir el enlace no mienta.
  *
  * ── Uso ─────────────────────────────────────────────────────────────────────
  * ```ts
  * const capas = useCapasEnHistorial();
- * const abrirFicha = () => { showModal.value = true; capas.abrir('ficha', () => showModal.value = false); }
- * const cerrarFicha = () => capas.cerrar('ficha');
+ * const abrirFicha = () => { showModal.value = true; capas.abrir('pax', () => showModal.value = false); }
+ * const cerrarFicha = () => capas.cerrar('pax');
  * ```
+ *
+ * ⚠️ **El cierre programático NO cierra: retrocede.** La ✕, «Cancelar» y el guardado pasan todos
+ * por `cerrar()`, así que el cierre real ocurre siempre en el mismo sitio —el `watch` de la
+ * query— venga del gesto o del botón. Cerrando a mano *y* dejando la entrada, el siguiente
+ * «atrás» consumía una entrada fantasma y no hacía nada visible: había que pulsar dos veces para
+ * salir, y nadie relaciona eso con el modal que cerró antes.
+ *
+ * Las capas se anidan: la ficha abierta es una, y pasar a editarla es otra encima.
  */
 export function useCapasEnHistorial() {
-    /** La pila de capas abiertas, de abajo a arriba. */
-    let pila: Array<{ nombre: string; alCerrar: () => void }> = [];
+    const router = useRouter();
+    const route = useRoute();
 
-    /**
-     * `popstate` también salta al navegar de verdad. Se distingue por el estado al que se llega:
-     * si ya no lleva nuestra marca, la capa que había arriba se cierra igual —el usuario está
-     * saliendo— pero sin volver a tocar el historial.
-     */
-    const alVolver = (): void => {
-        const capa = pila.pop();
-        if (capa) capa.alCerrar();
-    };
+    /** Qué cerrar cuando una capa desaparece de la ruta. */
+    const cierres = new Map<string, () => void>();
+
+    /** El punto es el separador: no aparece en los nombres, que son identificadores nuestros. */
+    const capasDeLaRuta = computed<string[]>(() =>
+        String(route.query.capa ?? '').split('.').filter(Boolean));
 
     const abrir = (nombre: string, alCerrar: () => void): void => {
-        pila.push({ nombre, alCerrar });
-        history.pushState({ ...(history.state as Record<string, unknown> | null), capa: nombre }, '');
+        cierres.set(nombre, alCerrar);
+
+        void router.push({
+            query: { ...route.query, capa: [...capasDeLaRuta.value, nombre].join('.') },
+        });
     };
 
     /**
-     * Cierra una capa por su nombre, y las que tenga encima.
+     * Cierra una capa y las que tenga encima, retrocediendo tantas entradas como haga falta.
      *
-     * Se hace retrocediendo el historial tantas veces como capas haya que quitar, para no dejar
-     * entradas fantasma. Cada retroceso dispara `alVolver()`, que es quien cierra de verdad.
+     * `router.go()` y no un `push` con la query recortada: empujando quedaría una entrada más en
+     * el historial y el «atrás» siguiente volvería a ABRIR el modal, que es lo contrario de lo que
+     * espera cualquiera.
      */
     const cerrar = (nombre: string): void => {
-        const desde = pila.findIndex(c => c.nombre === nombre);
+        const desde = capasDeLaRuta.value.indexOf(nombre);
         if (desde === -1) return;
 
-        history.go(-(pila.length - desde));
+        router.go(-(capasDeLaRuta.value.length - desde));
     };
 
-    /** ¿Hay alguna capa abierta? Útil para decidir si un atajo de teclado le pertenece. */
-    const hayCapas = (): boolean => pila.length > 0;
+    const hayCapas = (): boolean => capasDeLaRuta.value.length > 0;
 
-    onMounted(() => window.addEventListener('popstate', alVolver));
-    onUnmounted(() => {
-        window.removeEventListener('popstate', alVolver);
-        pila = [];
+    // El cierre real ocurre AQUÍ y sólo aquí, venga del gesto atrás o de un botón. Se recorren las
+    // que ya no están, de arriba abajo: cerrar la ficha tiene que cerrar antes su modo edición.
+    watch(capasDeLaRuta, (ahora, antes) => {
+        for (const nombre of [...(antes ?? [])].reverse()) {
+            if (!ahora.includes(nombre)) {
+                cierres.get(nombre)?.();
+                cierres.delete(nombre);
+            }
+        }
     });
+
+    // ⚠️ Al desmontar la vista se limpian los cierres pero NO se toca la ruta: quien navega fuera
+    // ya está saliendo, y un `router.go()` aquí competiría con la navegación en curso.
+    onUnmounted(() => cierres.clear());
 
     return { abrir, cerrar, hayCapas };
 }
