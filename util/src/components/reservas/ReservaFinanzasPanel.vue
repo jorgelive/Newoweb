@@ -642,25 +642,37 @@ const gruposCargos = computed<GrupoCargos[]>(() => {
     const porEvento = new Map(estancias.map(e => [e.eventoId, e]));
     const grupos = new Map<string, GrupoCargos>();
 
+    const nuevoGrupo = (clave: string): GrupoCargos => {
+        const est = porEvento.get(clave);
+
+        return {
+            clave,
+            titulo: est?.unidad ?? (clave === CLAVE_SIN_ESTANCIA ? 'Cargos de la reserva' : 'Estancia'),
+            subtitulo: est ? `${fechaLegible(est.inicio)} → ${fechaLegible(est.fin)}` : null,
+            canal: est?.canal ?? null,
+            costoTeorico: est?.costoTeorico ?? null,
+            cargos: [],
+            subtotales: [],
+        };
+    };
+
+    // Los grupos se siembran desde las ESTANCIAS, no desde los cargos, y ése es el orden que
+    // importa: el `costoTeorico` de una directa se calcula del tarifario y llega siempre, tenga
+    // cargos o no. Recorriendo sólo los cargos, una estancia sin ninguno no generaba cabecera
+    // —y el tooltip de la referencia vive en la cabecera—, así que la referencia desaparecía
+    // justo cuando sirve: antes de que nadie haya puesto precio.
+    for (const e of estancias) {
+        grupos.set(e.eventoId, nuevoGrupo(e.eventoId));
+    }
+
     for (const c of cargos) {
         const clave = claveEstancia(c, porBooking);
 
         if (!grupos.has(clave)) {
-            const est = porEvento.get(clave);
-            grupos.set(clave, {
-                clave,
-                titulo: est?.unidad ?? (clave === CLAVE_SIN_ESTANCIA ? 'Cargos de la reserva' : 'Estancia'),
-                subtitulo: est ? `${fechaLegible(est.inicio)} → ${fechaLegible(est.fin)}` : null,
-                canal: est?.canal ?? null,
-                costoTeorico: est?.costoTeorico ?? null,
-                cargos: [],
-                subtotales: [],
-            });
+            grupos.set(clave, nuevoGrupo(clave));
         }
 
-        const g = grupos.get(clave)!;
-        g.cargos.push(c);
-
+        grupos.get(clave)!.cargos.push(c);
     }
 
     // El subtotal se calcula al final y POR MONEDA: una estancia puede tener el alojamiento en
@@ -1863,7 +1875,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         </InfoTooltip>
                     </div>
 
-                    <p v-if="!finanzas.info.cargos?.length && !cargoNuevoAbierto" class="px-4 py-3 text-xs font-bold text-slate-400">
+                    <p v-if="!gruposCargos.length && !cargoNuevoAbierto" class="px-4 py-3 text-xs font-bold text-slate-400">
                         Sin cargos registrados.
                     </p>
 
@@ -2172,6 +2184,13 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         </div>
                         </div>
                     </div>
+
+                    <!-- Una estancia sin cargos ya no desaparece: su cabecera es donde vive el
+                         costo teórico del tarifario, que es justo lo que hace falta ver ANTES de
+                         teclear el primer importe. -->
+                    <p v-if="!g.cargos.length" class="pl-6 pr-4 py-3 text-xs font-bold text-slate-400 border-b border-slate-50 last:border-0">
+                        Sin cargos en esta estancia.
+                    </p>
                     </template>
 
                     <!-- Alta de un cargo manual (reservas directas).

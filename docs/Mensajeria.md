@@ -2740,8 +2740,8 @@ Cubre tres casos reales del parque, que hasta ahora sólo se hacían desde el ca
 
 Horas del establecimiento, disponibilidad, estados maestros y el **canal DIRECTO** los resuelve un
 servicio único. El canal es el que más silenciosamente rompe: sin él,
-`PmsCargosAutomaticosService::aplica()` no abre ninguna línea y la estancia nace gratis sin que nada lo
-diga. `crear_reserva` lo hacía por dentro; ahora las dos pasan por el mismo sitio, que es lo que
+`PmsCargosAutomaticosService::aplica()` deja de reconocerla como venta y la estancia se queda sin
+el coste teórico del tarifario en el panel, sin que nada lo diga. `crear_reserva` lo hacía por dentro; ahora las dos pasan por el mismo sitio, que es lo que
 pedía el propio docblock del servicio.
 
 ##### Lo que la previsualización enseña y no es evidente
@@ -3380,7 +3380,7 @@ Es la skill de mayor alcance del catálogo. Escribe dos filas y provoca, **sin o
 | # | Qué pasa | Quién lo hace |
 |---|---|---|
 | 1 | Se abre la cabecera financiera | `PmsInformacionFinancieraCoherenciaListener` (auto-provisión) |
-| 2 | Se abre **una línea en 0.00** y la skill escribe encima los importes aprobados | `PmsCargosAutomaticosService::generarParaEvento()` + `escribirAprobados()` |
+| 2 | La skill escribe los importes que el operador aprobó | `PmsCargosAutomaticosService::escribirAprobados()` — la estancia nace sin cargos desde el 25/08/2026 |
 
 ⚠️ Desde el 16/08/2026 `consultar_cuenta` devuelve **`por_moneda`** (una entrada por moneda, con
 el saldo ya restado) en vez de `total_cargos`/`saldo_pendiente` escalares, más un bloque `cuadre`
@@ -5443,9 +5443,9 @@ los dos caminos.
 `PmsCargosAutomaticosService::estimarAlojamiento()` tenía **su propia** consulta de rangos con
 `createQueryBuilder()->setParameter('unidad', $unidad)` — la trampa del UUID binario— así que
 devolvía cero rangos sin fallar y **todas las estancias se cobraban a la tarifa base**. No era
-sólo del agente: `generarParaEvento()` lo llama desde
-`PmsInformacionFinancieraCoherenciaListener`, o sea que afectaba a los cargos de toda reserva
-directa, creada desde el panel o desde el chat.
+sólo del agente: entonces el listener financiero generaba cargos con esa cifra, o sea que afectaba
+a toda reserva directa, creada desde el panel o desde el chat. (Desde el 25/08/2026 ese camino ya
+no existe: una directa nace sin cargos y el tarifario sólo se **enseña**.)
 
 ```
 Casita 1 · 10→19 agosto (9 noches)
@@ -5474,9 +5474,10 @@ El desglose día a día sigue siendo cosa de `consultar_tarifas`.
 
 #### 👥 El suplemento también al COBRAR, como cargo aparte
 
-`crear_reserva`, `crear_estancia` y el panel pasan todos por `generarParaEvento()`, así que el
-suplemento se aplica en los tres sin tocar el Vue —que no calcula precios, sólo crea la reserva
-y deja que el backend genere los cargos—.
+`crear_reserva` y `crear_estancia` lo incluyen en las líneas que aprueba el operador, y el panel
+lo enseña dentro del coste teórico. El Vue sigue sin calcular precios. (Cuando se escribió esto
+los tres caminos pasaban por `generarParaEvento()`, que generaba los cargos solo; ese camino se
+retiró el 25/08/2026.)
 
 Va como **cargo separado** y no sumado al alojamiento: el huésped tiene derecho a ver por qué
 paga más que la tarifa anunciada, y metido dentro falsearía el precio por noche de cualquier

@@ -59,9 +59,6 @@ final class PmsInformacionFinancieraCoherenciaListener
     /** @var array<string, true> IDs (string) de cabeceras a recalcular tras el flush. */
     private array $informacionIds = [];
 
-    /** @var array<string, true> IDs de estancias directas nuevas a las que generar cargos. */
-    private array $eventosParaCargos = [];
-
     /**
      * Cargos manuales que hay que llevarse porque su estancia se está borrando.
      *
@@ -78,11 +75,10 @@ final class PmsInformacionFinancieraCoherenciaListener
      * Estancias cuya casilla de horario extra (entrada temprana / salida tardía)
      * cambió en este flush, indexadas por `spl_object_id`.
      *
-     * Se guarda la ENTIDAD y no su id, a diferencia de `eventosParaCargos`: allí
-     * los eventos acaban de insertarse y `find()` los resuelve del identity map,
-     * pero aquí son filas ya existentes y `find()` con el uuid en STRING revienta
-     * al bindear el parámetro («Invalid UUID»: el tipo espera el objeto `Uuid`).
-     * Con la entidad en mano no hay que volver a buscar nada.
+     * Se guarda la ENTIDAD y no su id: son filas ya existentes y `find()` con el
+     * uuid en STRING revienta al bindear el parámetro («Invalid UUID»: el tipo
+     * espera el objeto `Uuid`). Con la entidad en mano no hay que volver a buscar
+     * nada.
      *
      * @var array<int,PmsEventoCalendario>
      */
@@ -177,20 +173,9 @@ final class PmsInformacionFinancieraCoherenciaListener
             }
         }
 
-        // 5. CARGOS AUTOMÁTICOS — se anotan las estancias directas nuevas; los cargos se
-        //    crean en postFlush, no aquí: calcularlos exige consultar el tarifario, y hacer
-        //    esa lectura en mitad del flush es justo lo que Doctrine desaconseja.
-        foreach ($uow->getScheduledEntityInsertions() as $entity) {
-            if ($entity instanceof PmsEventoCalendario && $this->cargosAutomaticos->aplica($entity)) {
-                $this->eventosParaCargos[(string) $entity->getId()] = true;
-            }
-        }
-
-        // 5.b HORARIO EXTRA (entrada temprana / salida tardía) — las casillas se
-        //     marcan EDITANDO una estancia que ya existe, así que este caso no lo
-        //     cubre el barrido de inserciones de arriba. Se anota y se resuelve en
-        //     postFlush, en los dos sentidos: al marcar nace el cargo, al desmarcar
-        //     se retira.
+        // 5. HORARIO EXTRA (entrada temprana / salida tardía) — las casillas se marcan
+        //    EDITANDO una estancia que ya existe. Se anota y se resuelve en postFlush,
+        //    en los dos sentidos: al marcar nace el cargo, al desmarcar se retira.
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
             if (!$entity instanceof PmsEventoCalendario) {
                 continue;
@@ -341,7 +326,6 @@ final class PmsInformacionFinancieraCoherenciaListener
     {
         if ($this->isFlushing
             || ($this->informacionIds === []
-                && $this->eventosParaCargos === []
                 && $this->eventosHorarioExtra === []
                 && $this->cargosDeEstanciasBorradas === [])
         ) {
@@ -349,11 +333,9 @@ final class PmsInformacionFinancieraCoherenciaListener
         }
 
         $ids = array_keys($this->informacionIds);
-        $eventoIds = array_keys($this->eventosParaCargos);
         $horarioExtraEventos = array_values($this->eventosHorarioExtra);
         $cargosHuerfanos = array_keys($this->cargosDeEstanciasBorradas);
         $this->informacionIds = [];
-        $this->eventosParaCargos = [];
         $this->eventosHorarioExtra = [];
         $this->cargosDeEstanciasBorradas = [];
 
@@ -394,10 +376,9 @@ final class PmsInformacionFinancieraCoherenciaListener
             /** @var EntityManagerInterface $em */
             $em = $args->getObjectManager();
 
-            // Los cargos automáticos van ANTES del recálculo, para que el saldo ya los incluya.
+            // El horario extra va ANTES del recálculo, para que el saldo ya lo incluya.
             $ids = array_unique([
                 ...$ids,
-                ...$this->generarCargosAutomaticos($eventoIds, $em),
                 ...$this->sincronizarHorariosExtra($horarioExtraEventos, $em),
             ]);
 
@@ -498,45 +479,6 @@ final class PmsInformacionFinancieraCoherenciaListener
             . 'fijarlo a mano de todas formas, abre el candado del panel: el sistema dejará de '
             . 'cuadrarlo hasta que lo devuelvas al automático.'
         );
-    }
-
-    /**
-     * Crea los cargos de las estancias directas recién insertadas.
-     *
-     * @param string[] $eventoIds
-     * @return string[] IDs de las cabeceras tocadas, para incluirlas en el recálculo.
-     */
-    private function generarCargosAutomaticos(array $eventoIds, EntityManagerInterface $em): array
-    {
-        if ($eventoIds === []) {
-            return [];
-        }
-
-        $cabeceras = [];
-
-        foreach ($eventoIds as $eventoId) {
-            $evento = $em->find(PmsEventoCalendario::class, $eventoId);
-            $reserva = $evento?->getReserva();
-            if (!$evento || !$reserva) {
-                continue;
-            }
-
-            $info = $em->getRepository(PmsInformacionFinanciera::class)->findOneBy(['reserva' => $reserva]);
-            if (!$info instanceof PmsInformacionFinanciera) {
-                continue;
-            }
-
-            $this->cargosAutomaticos->generarParaEvento($evento, $info);
-            $cabeceras[] = (string) $info->getId();
-        }
-
-        if ($cabeceras !== []) {
-            // Este flush vuelve a disparar onFlush, pero `isFlushing` lo corta: por eso el
-            // recálculo de estas cabeceras se hace explícito al volver.
-            $em->flush();
-        }
-
-        return $cabeceras;
     }
 
     /**

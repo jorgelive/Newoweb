@@ -353,9 +353,8 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
      * operador haya cerrado un precio.
      *
      * ⚠️ **Estas líneas ya no son sólo una previsualización: son los cargos que se escriben.**
-     * Desde el 15/08/2026 `PmsCargosAutomaticosService::generarParaEvento()` sólo abre una
-     * línea en cero —el precio de una venta directa lo pone quien vende, y el panel no lo
-     * inventa—, así que aquí ya no hay nada generado que corregir. Lo escribe
+     * Una estancia directa nace SIN cargos —el precio de una venta directa lo pone quien vende,
+     * y el sistema no lo inventa—, así que aquí no hay nada generado que corregir. Lo escribe
      * {@see self::escribirCargos()} a partir de este mismo cálculo.
      *
      * Y así es más honesto que antes: la previsualización que el operador aprueba y lo que
@@ -399,10 +398,9 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
 
         // 👥 EL SUPLEMENTO POR PERSONA, que SÍ se cobra y aquí no se enseñaba.
         //
-        // `PmsCargosAutomaticosService::generarParaEvento()` crea este cargo, así que la
-        // previsualización que el operador aprueba salía por debajo de lo que luego aparecía
-        // en la cuenta. Con 7 personas donde la tarifa cubre 5 y 3 noches, eran 36.00 que
-        // nadie había visto antes de confirmar.
+        // Se cobra siempre y aquí no se enseñaba, así que la previsualización que el operador
+        // aprueba salía por debajo de lo que luego aparecía en la cuenta. Con 7 personas donde
+        // la tarifa cubre 5 y 3 noches, eran 36.00 que nadie había visto antes de confirmar.
         // ⚠️ A DÍA, no con las horas dentro. La estancia va de las 14:00 a las 10:00 y un
         // `diff()` crudo de dos noches devuelve «1 día y 20 horas» → 1. Es la misma trampa que
         // documenta `PmsCargosAutomaticosService`, y caer en ella aquí cotizaba la mitad del
@@ -575,8 +573,8 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
         $this->em->flush();
 
         // Los cargos los escribe la skill, con EXACTAMENTE las líneas que el operador aprobó.
-        // Ya no hay nada generado que corregir: `generarParaEvento()` sólo abre una línea en
-        // cero (ver su cabecera), porque el precio de una venta directa no lo pone el sistema.
+        // No hay nada generado que corregir: una estancia directa nace sin cargos (ver la
+        // cabecera de `PmsCargosAutomaticosService`), porque el precio no lo pone el sistema.
         $ajustes = $this->escribirCargos($reserva, $evento, $entrada, $unidad, $inicio, $fin, $adultos + $ninos);
 
         return SkillResult::ok($resumen + [
@@ -598,13 +596,13 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
      * Escribe en la cuenta las líneas que el operador aprobó.
      *
      * ── Por qué las escribe la skill y no el generador automático ───────────────
-     * `PmsCargosAutomaticosService::generarParaEvento()` deja una sola línea en cero: en una
-     * venta directa el precio se cierra hablando, y un importe sugerido por el sistema se acaba
-     * cobrando sin que nadie lo haya acordado. Aquí sí hay un acuerdo — el operador vio el
-     * desglose en `cargosPrevistos()` y dijo que sí—, así que aquí sí se escriben importes.
+     * Una estancia directa nace sin cargos: el precio se cierra hablando, y un importe sugerido
+     * por el sistema se acaba cobrando sin que nadie lo haya acordado. Aquí sí hay un acuerdo
+     * —el operador vio el desglose en `cargosPrevistos()` y dijo que sí—, así que aquí sí se
+     * escriben importes.
      *
-     * Escribir es cosa de `PmsCargosAutomaticosService::escribirAprobados()`, que retira la
-     * línea en cero y pone las aprobadas. Aquí sólo se decide QUÉ se aprueba.
+     * Escribir es cosa de `PmsCargosAutomaticosService::escribirAprobados()`. Aquí sólo se
+     * decide QUÉ se aprueba.
      *
      * ⚠️ Sale del MISMO `cargosPrevistos()` que se le enseñó, recalculado sobre los mismos
      * argumentos. No es una segunda fórmula: si lo fuera, volvería a pasar lo del suplemento

@@ -18,32 +18,36 @@ use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
- * Genera los cargos de una estancia DIRECTA a partir del tarifario.
+ * Lo que el tarifario dice de una estancia DIRECTA, y los cargos que sí nacen solos.
  *
  * Una reserva OTA recibe sus importes de Beds24 (§11); una directa no recibe nada.
  *
- * ── Se crea UNA línea, y en cero ─────────────────────────────────────────────
- * Hasta el 15/08/2026 este servicio estrenaba tres cargos con importe: alojamiento sacado del
- * tarifario, suplemento por persona y limpieza. **El precio de una venta directa no lo pone el
- * tarifario, lo pone quien vende**: se cierra por teléfono o por WhatsApp, con descuento por
- * estancia larga, con el desayuno dentro, o al precio de siempre para un repetidor. El
- * resultado era que había que borrar tres líneas y teclear la real, y peor: si alguien no las
- * borraba, la reserva quedaba con un precio que nadie había acordado.
+ * ── Una estancia directa nueva NACE SIN CARGOS ──────────────────────────────
+ * Hasta el 15/08/2026 este servicio estrenaba tres cargos con importe —alojamiento del
+ * tarifario, suplemento por persona y limpieza—; después, una sola línea de LIMPIEZA en 0.00.
+ * Desde el 25/08/2026 no se crea ninguna.
  *
- * Ahora se crea **una sola línea, de LIMPIEZA, en 0.00**, imputada a la estancia. Es el mismo
- * criterio que ya se seguía con el horario extra {@see self::sincronizarExtras()}: el sistema
- * abre el hueco y **no inventa la cifra**, porque un importe sugerido se acaba cobrando.
+ * El motivo es el mismo que retiró los importes: **el precio de una venta directa no lo pone el
+ * tarifario, lo pone quien vende**. La línea en cero tampoco resolvía eso —era un hueco que
+ * había que rellenar o borrar—, y encima llegaba etiquetada como LIMPIEZA a una estancia cuyo
+ * primer cargo casi nunca es la limpieza.
  *
  * ── El tarifario no se pierde: se enseña ────────────────────────────────────
- * Lo que antes se cobraba a ciegas ahora se ofrece como referencia en {@see self::costoTeorico()},
- * que el panel financiero pinta en un tooltip junto al cargo. Quien vende ve lo que «debería»
- * costar —noches, personas de más y limpieza, desglosado— y decide. La diferencia entre
- * sugerir y cobrar es toda la diferencia.
+ * Lo que antes se cobraba a ciegas se ofrece como referencia en {@see self::costoTeorico()},
+ * que el panel financiero pinta en un tooltip en la cabecera de la estancia. **No depende de
+ * que exista ningún cargo**: se calcula del tarifario y de la ficha de la casita, y viaja
+ * siempre. Quien vende ve lo que «debería» costar —noches, personas de más y limpieza,
+ * desglosado— y decide. La diferencia entre sugerir y cobrar es toda la diferencia.
+ *
+ * ── Lo que SÍ sigue naciendo solo ───────────────────────────────────────────
+ * El horario extra ({@see self::sincronizarExtras()}), porque ahí el cargo no es un precio que
+ * nadie ha acordado sino la consecuencia de una noche bloqueada; y los importes que una PERSONA
+ * ha aprobado ({@see self::escribirAprobados()}), que es la vía de las skills del agente.
  *
  * SERVICIO sigue sin generarse: en las reservas directas se exonera.
  *
- * El cargo queda MANUAL (sin `beds24ItemId`), así que el operador lo corrige o lo borra sin
- * pelearse con la sincronización.
+ * Los cargos que este servicio escribe quedan MANUALES (sin `beds24ItemId`), así que el operador
+ * los corrige o los borra sin pelearse con la sincronización.
  */
 final class PmsCargosAutomaticosService
 {
@@ -90,47 +94,20 @@ final class PmsCargosAutomaticosService
     }
 
     /**
-     * Crea los cargos de la estancia. NO hace flush: lo hace quien llama.
+     * Escribe importes que una PERSONA ha aprobado.
      *
-     * Es idempotente por estancia: si ya tiene cargos imputados, no añade nada. Así un
-     * segundo guardado del drawer no duplica el alojamiento.
-     */
-    public function generarParaEvento(PmsEventoCalendario $evento, PmsInformacionFinanciera $info): void
-    {
-        if (!$this->aplica($evento) || $this->yaTieneCargos($evento, $info)) {
-            return;
-        }
-
-        // La casita va en la descripción porque una reserva puede tener DOS estancias directas:
-        // sin ella, el panel mostraría dos líneas idénticas en cero y no se sabría cuál se está
-        // valorando. Mismo motivo que en los cargos de horario extra.
-        $casita = $evento->getPmsUnidad()?->getNombre();
-
-        // En CERO y a propósito. El desglose del tarifario viaja aparte, en `costoTeorico()`,
-        // y se enseña; no se cobra. Ver la cabecera de la clase.
-        $this->crearCargo(
-            info: $info,
-            evento: $evento,
-            tipo: PmsTipoCargo::LIMPIEZA,
-            descripcion: 'Estancia directa' . ($casita ? ' · ' . $casita : ''),
-            importe: '0.00',
-            moneda: $info->getMoneda() ?? $this->monedaResolver->resolve(null),
-        );
-    }
-
-    /**
-     * Escribe importes que una PERSONA ha aprobado, en lugar del hueco en cero.
-     *
-     * Es la contrapartida de {@see self::generarParaEvento()}: allí el sistema no pone precio
-     * porque nadie lo ha acordado; aquí sí, porque el operador ha visto el desglose y ha dicho
-     * que sí. Lo usan las skills del agente (`crear_reserva`, `crear_estancia`), que son las
-     * únicas vías con un paso de aprobación explícito.
+     * Es la excepción a que una estancia directa nazca sin cargos: aquí el sistema sí pone
+     * precio, porque el operador ha visto el desglose y ha dicho que sí. Lo usan las skills del
+     * agente (`crear_reserva`, `crear_estancia`), que son las únicas vías con un paso de
+     * aprobación explícito.
      *
      * Vive aquí y no en cada skill para que haya UNA forma de escribir cargos de una estancia
      * directa. Con una copia por skill, la primera corrección se quedaría en una de las dos.
      *
-     * Retira antes la línea en cero de esta estancia — y **sólo si sigue en cero**: con importe
-     * es dinero que alguien valoró, y eso no se pisa. NO hace flush: lo hace quien llama.
+     * Retira antes las líneas en cero de esta estancia — y **sólo si siguen en cero**: con
+     * importe es dinero que alguien valoró, y eso no se pisa. Ya no las crea nadie, pero las
+     * reservas anteriores al 25/08/2026 arrastran la suya y escribir encima dejaría el hueco
+     * viejo debajo del importe nuevo. NO hace flush: lo hace quien llama.
      *
      * @param list<array{concepto: string, importe: string, origen?: string, tipo: PmsTipoCargo}> $lineas
      *
@@ -183,8 +160,9 @@ final class PmsCargosAutomaticosService
      *
      * Es una referencia para quien vende, no un importe a cobrar: sale desglosado para poder
      * discutirlo —«tres noches a 24, dos personas de más, la limpieza»— en vez de un total
-     * redondo que no se sabe de dónde viene. Lo pinta el panel financiero en un tooltip junto
-     * al cargo en cero que crea {@see self::generarParaEvento()}.
+     * redondo que no se sabe de dónde viene. Lo pinta el panel financiero en un tooltip en la
+     * cabecera de la estancia, y **no cuelga de ningún cargo**: se calcula aquí, viaja siempre
+     * y se ve antes de que nadie haya tecleado el primer importe, que es cuando sirve.
      *
      * Devuelve `null` cuando no hay nada que estimar (sin casita, sin fechas, o una estancia que
      * no es una venta). Y **`alojamiento` puede venir a `null` con el resto relleno**: si al
@@ -365,18 +343,6 @@ final class PmsCargosAutomaticosService
         }
 
         return null;
-    }
-
-    /** ¿Ya se le generaron cargos a esta estancia? */
-    private function yaTieneCargos(PmsEventoCalendario $evento, PmsInformacionFinanciera $info): bool
-    {
-        foreach ($info->getCargos() as $cargo) {
-            if ($cargo->getEvento() === $evento) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

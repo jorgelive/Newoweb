@@ -33,8 +33,10 @@ use InvalidArgumentException;
  * ### El canal es DIRECTO aunque la reserva sea de una OTA
  *
  * Una estancia añadida a mano es una venta directa: la OTA no sabe nada de ella. Marcarla así
- * es además lo que hace que `PmsCargosAutomaticosService::aplica()` le genere los cargos del
- * tarifario — con el canal de la OTA se quedaría sin ninguno, en silencio.
+ * es además lo que hace que `PmsCargosAutomaticosService::aplica()` la reconozca como venta y
+ * el panel le enseñe el costo teórico del tarifario — con el canal de la OTA se quedaría sin
+ * esa referencia, en silencio. Cargos no se le generan ninguno: el precio de una directa lo
+ * pone quien vende.
  *
  * Ver docs/Mensajeria.md §11.
  */

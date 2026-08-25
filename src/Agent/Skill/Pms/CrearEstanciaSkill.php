@@ -258,9 +258,8 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
         $limpieza = $unidad->costoLimpieza($noches, $alojamiento + $suplemento);
 
         // ⚠️ Estas líneas NO son sólo una previsualización: son los cargos que se escriben.
-        // `PmsCargosAutomaticosService::generarParaEvento()` sólo abre una línea en cero —el
-        // precio de una venta directa lo pone quien vende—, así que lo que el operador aprueba
-        // aquí es literalmente lo que va a la cuenta. Se calcula una vez y se usa para las dos
+        // Una estancia directa nace sin cargos —el precio de una venta directa lo pone quien
+        // vende—, así que lo que el operador aprueba aquí es literalmente lo que va a la cuenta. Se calcula una vez y se usa para las dos
         // cosas: enseñarlo y escribirlo. Con dos cálculos ya se separaron una vez.
         $lineas = array_values(array_filter([
             [

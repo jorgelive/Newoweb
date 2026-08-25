@@ -880,7 +880,7 @@ repasar al añadir cualquier vista nueva de eventos:
 | Estancias del drawer (SPA) | `ReservaEditDrawer`, filtro al mapear `detalles` |
 | Buscador de reservas | `PmsReservaBuscarController` |
 | **Rollup de la reserva** | `PmsReservaRecalculoService`: `AND e.estado_id != 'extension'` en el `WHERE` |
-| Cargos automáticos | `PmsCargosAutomaticosService::aplica()` la descarta, como a los bloqueos |
+| Coste teórico del panel | `PmsCargosAutomaticosService::aplica()` la descarta, como a los bloqueos |
 
 > ⚠️ **El rollup es el que más duele si se olvida.** Sin ese filtro, `fecha_salida` de la reserva
 > se va al día siguiente y la cabecera dice que el huésped se marcha el 06 cuando se va el 05.
@@ -1864,28 +1864,39 @@ y totales en cero.
 
 ### 12.0.1 Cargos automáticos de una estancia directa
 
-Tener la cabecera (§12.0) resuelve *dónde* colgar los importes. Lo que se cuelga cambió el
-**15/08/2026**, y el cambio es de criterio, no de fórmula.
+Tener la cabecera (§12.0) resuelve *dónde* colgar los importes. Lo que se cuelga cambió dos veces,
+y las dos por el mismo motivo.
 
-#### Qué se crea hoy: UNA línea, y en cero
+#### Qué se crea hoy: NADA
 
-`PmsCargosAutomaticosService::generarParaEvento()` crea **un solo cargo**, de tipo `LIMPIEZA`,
-con importe `0.00`, imputado a la estancia y descrito como `Estancia directa · <casita>`.
+**Desde el 25/08/2026 una estancia directa nueva nace sin ningún cargo.** No hay
+`generarParaEvento()`: se retiró junto con el paso 5 del `onFlush` que recolectaba las estancias
+directas insertadas.
 
-Ni alojamiento, ni suplemento por persona, ni servicio.
+La historia en dos saltos:
 
-**Por qué.** Hasta esa fecha se creaban tres cargos **con importe**: el alojamiento sacado del
-tarifario noche a noche, el suplemento por persona y la limpieza de la unidad. Y el precio de una
-venta directa **no lo pone el tarifario, lo pone quien vende**: se cierra por teléfono o por
-WhatsApp, con descuento por estancia larga, con el desayuno dentro, o al precio de siempre para
-un repetidor. El resultado práctico era que había que borrar tres líneas y teclear la real —y,
-peor, que si alguien no las borraba la reserva quedaba con un precio que nadie había acordado.
+| Hasta | Qué estrenaba una estancia directa |
+|---|---|
+| 15/08/2026 | Tres cargos **con importe**: alojamiento del tarifario noche a noche, suplemento por persona y limpieza de la unidad |
+| 25/08/2026 | **Una** línea de `LIMPIEZA` en `0.00`, descrita `Estancia directa · <casita>` |
+| hoy | Ninguna |
 
-Es el mismo criterio que ya seguían los cargos de horario extra (§12.5.4): **el sistema abre el
-hueco y no inventa la cifra**, porque un importe sugerido se acaba cobrando.
+**Por qué se fueron los importes.** El precio de una venta directa **no lo pone el tarifario, lo
+pone quien vende**: se cierra por teléfono o por WhatsApp, con descuento por estancia larga, con
+el desayuno dentro, o al precio de siempre para un repetidor. Había que borrar tres líneas y
+teclear la real —y, peor, si alguien no las borraba la reserva quedaba con un precio que nadie
+había acordado.
+
+**Por qué se fue también la línea en cero.** No resolvía eso: era un hueco que igualmente había
+que rellenar o borrar, y encima llegaba etiquetada como `LIMPIEZA` a una estancia cuyo primer
+cargo casi nunca es la limpieza.
+
+⚠️ **Esto NO alcanza a los cargos de horario extra** (§12.5.4), que siguen naciendo a `0.00`.
+Ahí el cargo no es un precio inventado: es la consecuencia de una noche que se bloqueó, y el
+sistema sí sabe que existe aunque no sepa cuánto vale.
 
 ⚠️ **No es «se dejó de calcular el tarifario».** Se dejó de *cobrarlo solo*. El cálculo sigue
-entero y ahora se **enseña**, que es lo siguiente.
+entero y se **enseña**, que es lo siguiente.
 
 #### El coste teórico: se enseña, no se cobra
 
@@ -1903,6 +1914,13 @@ El panel financiero lo pinta en un **tooltip tras un icono `i`**, en la cabecera
 (`ReservaFinanzasPanel.vue`). Va en la cabecera y no pegado a un cargo concreto **a propósito**:
 es de la estancia entera, y colgado de una línea desaparecería en cuanto alguien borrara esa
 línea.
+
+⚠️ **Y la cabecera no depende de que haya cargos** (25/08/2026). `gruposCargos` se siembra desde
+`info.estancias` y los cargos se reparten encima; antes se armaba recorriendo **sólo los cargos**,
+así que una estancia sin ninguno no generaba cabecera y el tooltip desaparecía. Mientras existió
+la línea en cero eso no se notaba —siempre había un cargo—, y al retirarla la referencia se
+habría perdido justo cuando sirve: **antes** de que nadie teclee el primer importe. Una estancia
+sin cargos pinta su cabecera con «Sin cargos en esta estancia» debajo.
 
 Dos honestidades que no son adorno:
 
@@ -1931,9 +1949,13 @@ Las skills del agente (`crear_reserva`, `crear_estancia`) tienen algo que el pan
 **paso de aprobación explícito**. El operador ve el desglose y dice que sí. Ahí sí se escriben
 importes, por una sola puerta:
 
-`PmsCargosAutomaticosService::escribirAprobados()` retira la línea en cero de esa estancia —**y
-sólo si sigue en cero**: con importe es dinero que alguien valoró, y eso no se pisa— y escribe las
-líneas aprobadas.
+`PmsCargosAutomaticosService::escribirAprobados()` retira las líneas en cero de esa estancia —**y
+sólo si siguen en cero**: con importe es dinero que alguien valoró, y eso no se pisa— y escribe
+las líneas aprobadas.
+
+⚠️ Esa limpieza previa **ya no la genera nadie**, y se queda como defensa: las reservas anteriores
+al 25/08/2026 arrastran su línea en cero, y escribir encima sin retirarla dejaría el hueco viejo
+debajo del importe nuevo.
 
 ⚠️ **Vive en el servicio, no en cada skill.** Con una copia por skill, la primera corrección se
 quedaría en una de las dos. Y las líneas salen del **mismo** `cargosPrevistos()` que se le enseñó
@@ -1972,39 +1994,43 @@ ahí dos defensas:
 10:00, así que un `diff()` crudo de dos noches daría "1 día y 20 horas" → 1 (§12.5.5). El
 flattener trunca a medianoche y aquí se cuenta igual (`aDia()`).
 
-**Cuándo aplica** (`PmsCargosAutomaticosService::aplica()`):
+**Cuándo aplica** (`PmsCargosAutomaticosService::aplica()`). Ya no decide qué cargos nacen —no
+nace ninguno—, sino **a qué estancias se les enseña el coste teórico**:
 
-- Sólo estancias de **canal directo**. Una OTA recibe sus cargos del canal; duplicarlos falsearía
-  el saldo.
+- Sólo estancias de **canal directo**. Una OTA recibe sus importes del canal, y ofrecerle una
+  referencia del tarifario no significaría nada.
 - Nunca sobre un **bloqueo** ni sobre una **extensión** (`esExtension()`): no son ventas.
 - Requiere unidad + fechas.
+
+⚠️ De ahí que `PmsEstanciaCreator` marque **canal directo** una estancia añadida a mano dentro de
+una reserva de OTA: con el canal de la OTA se quedaría sin esa referencia, en silencio.
 
 **Nunca se rompe el guardado por el tarifario.** Si el motor de precios revienta, se registra en
 el log y se sigue sin estimación. Un tooltip vacío es mucho más barato que una reserva que no se
 puede guardar.
 
-**Verificado** (2026-08-15) sobre las **24 estancias directas** reales de la base
-(`var/probar-cargo-directo-cero.php`, sin flush en ningún punto): las 24 estrenan exactamente
-**1 cargo**, tipo `LIMPIEZA`, importe `0.00`; y las 24 devuelven su desglose de coste teórico.
-Contrastado a mano con `var/probar-costo-teorico.php` — p. ej. Casita 4, 6 noches, 14 pax:
-`33.00 × 6 N = 198.00`, `6.00 × 11 P × 6 N = 396.00`, limpieza `15.00`, total `609.00 USD`.
+**Verificado en su día** (2026-08-15) sobre las 24 estancias directas reales de la base: las 24
+devolvían su desglose de coste teórico, contrastado a mano con `var/probar-costo-teorico.php` —
+p. ej. Casita 4, 6 noches, 14 pax: `33.00 × 6 N = 198.00`, `6.00 × 11 P × 6 N = 396.00`, limpieza
+`15.00`, total `609.00 USD`. Esa parte sigue igual; la que comprobaba el cargo en cero
+(`var/probar-cargo-directo-cero.php`) ya no describe lo que pasa.
 
-**El cargo nace MANUAL** (sin `beds24ItemId`, §12.4.1): el operador lo corrige o lo borra sin
-pelearse con la sincronización. Y es **idempotente por estancia** — `yaTieneCargos()` mira si ya
-hay cargos imputados a ese evento —, así que un segundo guardado del drawer no duplica nada.
+**Lo que escriba `escribirAprobados()` nace MANUAL** (sin `beds24ItemId`, §12.4.1): el operador lo
+corrige o lo borra sin pelearse con la sincronización.
 
-**Orden dentro del flush (gotcha):**
+**Orden dentro del flush (gotcha).** El paso que recolectaba las estancias directas insertadas
+para generarles cargos **ya no existe**; lo que queda en `postFlush` es el horario extra, y el
+orden sigue importando por lo mismo:
 
 ```
-onFlush   → paso 5: recolecta los PmsEventoCalendario INSERTADOS que pasan `aplica()`
-postFlush → generarCargosAutomaticos()  ← PRIMERO: crea el cargo y hace su propio flush
+postFlush → sincronizarHorariosExtra()  ← PRIMERO: crea o retira el cargo y hace su propio flush
             recalcular($ids)            ← DESPUÉS, con los IDs de cabecera que devolvió
 ```
 
-El orden importa: si el rollup corriera antes, el saldo recién creado saldría en cero hasta el
-siguiente guardado. Ese `flush()` interno vuelve a disparar `onFlush`, pero el guardia
-`isFlushing` lo corta — por eso `generarCargosAutomaticos()` **devuelve** las cabeceras tocadas
-en vez de confiar en que el listener las recolecte sola.
+Si el rollup corriera antes, el saldo saldría sin ese cargo hasta el siguiente guardado. Ese
+`flush()` interno vuelve a disparar `onFlush`, pero el guardia `isFlushing` lo corta — por eso
+`sincronizarHorariosExtra()` **devuelve** las cabeceras tocadas en vez de confiar en que el
+listener las recolecte sola.
 
 ### 12.0.1.1 La barra de estancia del panel financiero
 
@@ -3047,8 +3073,8 @@ editarlos. Se identifican por su `notas` para poder revertirlos en el `down()`.
 **El panel se refresca al guardar el drawer, no sólo al abrirlo.** El store ya recargaba tras
 cada movimiento hecho *dentro* del panel (`finanzasStore.recargar()` en cada create/patch/delete),
 pero el panel entero sólo cargaba al cambiar `props.reservaId` — y guardar las **estancias**
-también mueve las finanzas en el backend: los cargos automáticos de una estancia directa nueva
-(§12.0.1), el cargo de un horario extra (§7.1.b) y el reajuste del depósito de la OTA (§12.4.5).
+también mueve las finanzas en el backend: el cargo de un horario extra (§7.1.b) y el reajuste del
+depósito de la OTA (§12.4.5).
 Resultado: los totales parecían congelados («no es información viva») hasta cerrar y reabrir la
 reserva. Ahora `ReservaFinanzasPanel` expone `refrescar()` —recarga datos SIN resetear acordeones,
 candado ni moneda de vista, al contrario que `cargar()`— y `ReservaEditDrawer.guardar()` lo llama
@@ -4404,7 +4430,7 @@ sobre una reserva con contenido habría dado la misma falsa tranquilidad.
 | Cambiar cuándo se auto-crea la cabecera financiera (§12.0) | `PmsInformacionFinancieraCoherenciaListener` | `crearCabeceraPara()` |
 | Permitir/impedir borrar un cargo (§12.4.1) | `PmsInformacionFinancieraCoherenciaListener` | `assertCargoBorrable()` |
 | Cambiar los valores por defecto de un cargo manual (§12.4.1) | `PmsCargoFinanciero` | `aplicarDefectosDeCargoManual()` |
-| Cambiar qué se crea al insertar una directa (hoy 1 cargo en 0.00, §12.0.1) | `PmsCargosAutomaticosService` | `generarParaEvento()` |
+| Volver a crear cargos al insertar una directa (hoy NINGUNO, §12.0.1) | `PmsInformacionFinancieraCoherenciaListener` | `onFlush()` — habría que recolectar las inserciones otra vez |
 | Cambiar de qué día sale el TC que se sella al crear un registro (§12.4.1b) | `PmsTipoCambioSnapshotListener` | `sellarCargo()` / `sellarPago()` / `sellarFicha()` — los dos primeros son espejo del criterio de `PmsCompletarTipoCambioCommand` |
 | Cambiar quién limpia por defecto en las estancias nuevas | Panel → **Usuarios** | Casilla «Limpia por defecto» (`User::$esLimpiezaPorDefecto`) — es un DATO, no hay ningún nombre en el código |
 | Cambiar hasta cuándo se puede corregir la moneda de un cargo (§12.4) | `PmsInformacionFinancieraCoherenciaListener` | `importeAnteriorEnCero()` + espejo `puedeCambiarMoneda()` en `ReservaFinanzasPanel.vue` |
@@ -4420,11 +4446,11 @@ sobre una reserva con contenido habría dado la misma falsa tranquilidad.
 | Cambiar el desglose del tooltip de coste teórico (§12.0.1) | `PmsCargosAutomaticosService` | `costoTeorico()` + `ReservaFinanzasPanel.vue` |
 | Cambiar cómo se escriben los cargos que el operador aprueba (§12.0.1) | `PmsCargosAutomaticosService` | `escribirAprobados()` |
 | Cambiar la tarifa de limpieza de las directas | `PmsUnidad` | `precioLimpieza` / `limpiezaEsPorcentaje` (ficha de la casita) |
-| Empezar a cobrar el servicio en las directas (§12.0.1) | `PmsCargosAutomaticosService` | `generarParaEvento()` — hoy no crea ningún importe a propósito |
+| Empezar a cobrar el servicio en las directas (§12.0.1) | `PmsCargosAutomaticosService` | `escribirAprobados()` — es la única puerta que escribe importes, y exige aprobación |
 | Cambiar qué estancias estrenan cargos automáticos (§12.0.1) | `PmsCargosAutomaticosService` | `aplica()` (hoy: directas, sin bloqueos) |
 | Cambiar cómo se calcula el alojamiento por noche (§12.0.1) | `PmsCargosAutomaticosService` | `preciosDeNoches()` → `TarifaPricingEngine::buildDailyPricesForIntervalWithFallback()` |
 | Cambiar el relleno de días sin tarifa (§12.0.1) | `PmsCargosAutomaticosService` | `fallbackProvider` (hoy: tarifa base de la unidad) |
-| Cambiar el orden cargos-automáticos ↔ rollup (§12.0.1) | `PmsInformacionFinancieraCoherenciaListener` | `postFlush()` / `generarCargosAutomaticos()` |
+| Cambiar el orden horario-extra ↔ rollup (§12.0.1) | `PmsInformacionFinancieraCoherenciaListener` | `postFlush()` / `sincronizarHorariosExtra()` |
 | Cambiar el desglose de importes por tipo (§12.0.2) | `PmsInformacionFinanciera` + `PmsInformacionFinancieraRecalculoService` | `getTotalPorTipo()` (es **espejo** del SQL: tocar los dos) |
 | Añadir una variable financiera a las plantillas (§12.0.3) | `PmsMessageDataResolver` | `getMessageVariables()` **y** `getPreviewMessageVariables()` (Meta exige el `example`) |
 | Cambiar el total que ve el motor de reglas del chat (§12.0.3) | `PmsReservaMessageContext` | `getFinancialTotal()` / `isFinancialCleared()` |
