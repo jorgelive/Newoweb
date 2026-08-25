@@ -1650,6 +1650,17 @@ Es un invariante que **no se rompe nunca a mano y que un importador rompe en lot
   útil: filtras «Copa internacional» y repasas a esos 18 seguidos en vez de abrir y cerrar 18
   veces buscándolos. Si al guardar alguien deja de cumplir el filtro, sale del recorrido: ya no es
   uno de los que estabas repasando.
+- **Cada subgrupo se puede CORREGIR**, no sólo crear y borrar. El lápiz va siempre visible en la
+  píldora y abre un formulario en línea con eje, tramo, clave, nombre y detalle.
+
+  ⚠️ Sin esto, una errata obligaba a **borrar**: un vuelo de Arajet cargado bajo «Vuelo Nacional»
+  —pasó de verdad— sólo se arreglaba eliminando el grupo, y eso se lleva por CASCADE las
+  pertenencias de todos los que iban dentro. El `Patch` de la API ya existía; lo que faltaba era
+  la pantalla.
+
+  ⚠️ **Cambiar la clave RENOMBRA, no duplica**: las pertenencias apuntan al `id`, así que la gente
+  se queda dentro. Pero el padrón casa **por clave**, de modo que un .xlsx con la clave vieja
+  crearía un grupo nuevo al reimportarlo. El formulario lo avisa: hay que corregir también la hoja.
 - ⚠️ **La papelera de cada subgrupo va detrás de un interruptor** («Borrar subgrupos»). Con 66
   habitaciones había 66 botones de borrar al alcance del pulgar, en la misma píldora que se toca
   para leer el conteo; un roce se llevaba un subgrupo con sus pertenencias. Y las listas de más de

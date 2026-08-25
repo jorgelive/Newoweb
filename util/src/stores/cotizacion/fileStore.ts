@@ -197,6 +197,29 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Corrige un subgrupo ya creado: su tramo, su clave, su rótulo o su itinerario.
+     *
+     * ⚠️ Cambiar la CLAVE renombra el grupo, no crea otro: las pertenencias apuntan a su `id`, así
+     * que la gente se queda dentro. Pero el padrón casa por clave, de modo que un .xlsx con la
+     * clave vieja crearía un grupo nuevo al reimportarlo — hay que corregirla también en la hoja.
+     */
+    const actualizarGrupo = async (
+        iri: string,
+        payload: { tipo?: string; subeje?: string; clave?: string; nombre?: string | null; detalle?: string | null }
+    ): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.patch(iri, payload, {
+                headers: { 'Content-Type': 'application/merge-patch+json' },
+            });
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo guardar el subgrupo. ¿Ya existe otro con esa clave?');
+            return false;
+        }
+    };
+
     const eliminarGrupo = async (iri: string): Promise<boolean> => {
         error.value = null;
         try {
@@ -491,6 +514,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         cloneCotizacion,
         guardarHistorico,
         crearGrupo,
+        actualizarGrupo,
         cargarPadron,
         eliminarGrupo,
         planificarOperacion,

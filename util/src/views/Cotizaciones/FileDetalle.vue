@@ -1203,6 +1203,50 @@ const detallesDe = (lista: ApiFileGrupo[]): ApiFileGrupo[] =>
 /** El borrado de subgrupos, apagado por defecto. Ver el comentario de la sección. */
 const modoGestionGrupos = ref(false);
 
+/**
+ * El subgrupo que se está corrigiendo, si hay alguno.
+ *
+ * ⚠️ Hasta ahora sólo se podía AÑADIR y BORRAR, y eso convertía cualquier errata en un borrado:
+ * un vuelo de Arajet cargado bajo «Vuelo Nacional» —pasó— obligaba a eliminar el grupo, y con él
+ * las pertenencias de todos los que iban dentro. Corregirlo es un `PATCH` que la API ya ofrecía.
+ */
+const grupoEditando = ref<string | null>(null);
+const grupoForm = ref({ tipo: '', subeje: '', clave: '', nombre: '', detalle: '' });
+const guardandoGrupo = ref(false);
+
+const editarGrupo = (g: ApiFileGrupo) => {
+    subgruposAbiertos.value = true;   // el formulario vive dentro de la sección plegable
+    grupoEditando.value = iriDeGrupoPlano(g);
+    grupoForm.value = {
+        tipo: String(g.tipo ?? 'grupo'),
+        subeje: g.subeje ?? '',
+        clave: g.clave ?? '',
+        nombre: g.nombre ?? '',
+        detalle: g.detalle ?? '',
+    };
+};
+
+const guardarGrupo = async () => {
+    if (!grupoEditando.value || !grupoForm.value.clave.trim()) return;
+
+    guardandoGrupo.value = true;
+    const ok = await fileStore.actualizarGrupo(grupoEditando.value, {
+        tipo: grupoForm.value.tipo,
+        subeje: grupoForm.value.subeje,
+        clave: grupoForm.value.clave,
+        // Vacío se manda como `null` y no como '': es lo que BORRA el rótulo. Con '' el backend
+        // lo normaliza igual, pero `null` dice la intención.
+        nombre: grupoForm.value.nombre || null,
+        detalle: grupoForm.value.detalle || null,
+    });
+    guardandoGrupo.value = false;
+
+    if (!ok) { alert(fileStore.error || 'No se pudo guardar el subgrupo.'); return; }
+
+    grupoEditando.value = null;
+    await cargarFile();
+};
+
 const subgruposAbiertos = ref(false);
 
 /** «9 grupos · 66 habitaciones · 23 reservas · 10 servicios», para no tener que abrir. */
@@ -2069,6 +2113,60 @@ const eliminarDocumento = async (iri?: string) => {
                 </div>
               </div>
 
+              <!-- ── Corregir un subgrupo ────────────────────────────────────
+                   En línea y no en un modal: se llega aquí desde la píldora y se vuelve a ella,
+                   y lo que se corrige suele ser un campo suelto. -->
+              <div v-if="grupoEditando && subgruposAbiertos"
+                   class="mb-4 bg-indigo-50 border border-indigo-200 rounded-2xl p-3">
+                <p class="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-2">
+                  <i class="fas fa-pencil-alt mr-1"></i> Corrigiendo subgrupo
+                </p>
+                <div class="flex flex-wrap gap-2 items-end">
+                  <div>
+                    <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Eje</label>
+                    <select v-model="grupoForm.tipo" class="border rounded-lg px-2 py-2 text-sm outline-none focus:border-indigo-500">
+                      <option v-for="(cfg, valor) in GRUPO_TIPO_LABELS" :key="valor" :value="valor">{{ cfg.label }}</option>
+                    </select>
+                  </div>
+                  <div v-if="grupoForm.tipo === 'reserva_aerea'">
+                    <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tramo</label>
+                    <input v-model="grupoForm.subeje" type="text" maxlength="60" placeholder="Nacional"
+                           class="w-32 border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 placeholder:text-slate-300">
+                  </div>
+                  <div>
+                    <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clave</label>
+                    <input v-model="grupoForm.clave" type="text" maxlength="60"
+                           class="w-32 border rounded-lg px-3 py-2 text-sm font-bold uppercase outline-none focus:border-indigo-500">
+                  </div>
+                  <div class="flex-1 min-w-36">
+                    <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nombre</label>
+                    <input v-model="grupoForm.nombre" type="text" maxlength="150" placeholder="ARAJET · DOBLE"
+                           class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 placeholder:text-slate-300">
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Detalle</label>
+                  <textarea v-model="grupoForm.detalle" rows="2"
+                            class="w-full border rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-500"></textarea>
+                </div>
+                <!-- ⚠️ Cambiar la clave RENOMBRA: las pertenencias apuntan al id, así que la gente
+                     se queda dentro. Pero el padrón casa por clave, así que la hoja hay que
+                     corregirla también o al reimportarla saldría un grupo nuevo. -->
+                <p class="text-[10px] font-bold text-amber-700 mt-2 leading-snug">
+                  <i class="fas fa-triangle-exclamation mr-1"></i>
+                  Cambiar la clave renombra el grupo y la gente se queda dentro, pero el padrón casa
+                  por clave: corrígela también en la hoja o al reimportarla se creará otro.
+                </p>
+                <div class="flex gap-2 mt-3">
+                  <button type="button" @click="grupoEditando = null"
+                          class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg hover:bg-white">Cancelar</button>
+                  <button type="button" @click="guardarGrupo" :disabled="guardandoGrupo || !grupoForm.clave.trim()"
+                          class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-40">
+                    <i v-if="guardandoGrupo" class="fas fa-spinner fa-spin mr-1"></i> Guardar
+                  </button>
+                </div>
+              </div>
+
               <p v-if="!file.grupos?.length" class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-3">
                 Sin subgrupos. Se crean solos al cargar el padrón, o a mano aquí arriba.
               </p>
@@ -2101,12 +2199,20 @@ const eliminarDocumento = async (iri?: string) => {
                   <div class="flex flex-wrap gap-2">
                     <span v-for="g in (ejeEstaAbierto(`lista-${sec.clave}`, sec.lista.length) ? sec.lista : sec.lista.slice(0, TOPE_PILDORAS))" :key="g.id"
                           class="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-lg pl-3 py-1 shadow-sm"
-                          :class="modoGestionGrupos ? 'pr-1 border-red-200' : 'pr-3'">
+                          :class="modoGestionGrupos ? 'pr-1 border-red-200' : 'pr-1'">
                       <span class="text-[11px] font-black text-slate-700">{{ g.clave }}</span>
                       <span v-if="g.nombre" class="text-[10px] font-medium text-slate-400">{{ g.nombre }}</span>
                       <!-- El conteo se calcula aquí y no se toma de `totalMiembros`: el del servidor
                            incluye a los «no participa», que conservan grupo y reservas aéreas. -->
                       <span class="text-[10px] font-bold text-slate-400">{{ contarEnGrupo(g) }} pax</span>
+                      <!-- ⚠️ El lápiz va SIEMPRE, la papelera sólo en modo gestión. Corregir una
+                           errata es lo corriente —un vuelo cargado en el tramo que no era— y
+                           antes obligaba a BORRAR el grupo, llevándose las pertenencias de todos
+                           los que iban dentro. Borrar sigue detrás del interruptor; editar no. -->
+                      <button type="button" @click="editarGrupo(g)" title="Corregir este subgrupo"
+                              class="w-5 h-5 rounded text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                        <i class="fas fa-pencil-alt text-[9px]"></i>
+                      </button>
                       <button v-if="modoGestionGrupos" @click="borrarGrupo(g)"
                               class="w-5 h-5 rounded text-red-300 hover:text-red-600 hover:bg-red-50 transition-colors">
                         <i class="fas fa-times text-[10px]"></i>
