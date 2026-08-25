@@ -813,6 +813,19 @@ recargar o compartir el enlace deja de mentir.
 ⚠️ `cerrar()` usa `router.go(-n)`, **nunca un `push` con la query recortada**: empujando quedaría
 una entrada más y el «atrás» siguiente volvería a ABRIR el modal.
 
+⚠️ **La pila es un `ref` propio, no se deriva de la query.** `router.push()` es asíncrono, así que
+componer la segunda capa leyendo la ruta la calcula con la ruta todavía sin actualizar:
+
+```
+abrir('pax')          push  ?capa=pax          ← aún no ha llegado
+abrir('pax-edicion')  lee la ruta: vacía   →   push ?capa=pax-edicion   ← «pax» PERDIDA
+cerrar('pax')         no la encuentra      →   retrocede de menos       ← sales al listado
+```
+
+Con la pila propia, `abrir()` es síncrono y la query se ESCRIBE desde ella. La ruta se sigue
+leyendo, pero sólo para detectar que el usuario ha retrocedido: si trae menos capas de las que
+creemos abiertas, se cierran las que faltan.
+
 ```ts
 const capas = useCapasEnHistorial();
 
