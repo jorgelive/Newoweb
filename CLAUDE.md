@@ -173,9 +173,24 @@ Dos trampas que ya costaron caro, porque **no fallan al compilar**:
 
 `util/src/types/api.d.ts` sale de `npm run gen:api` (exporta el OpenAPI de API Platform y lo
 pasa por `openapi-typescript`). **Al añadir o cambiar un campo expuesto por la API, se
-regenera**, en la misma sesión. No se declara el campo a mano en un `*Model.ts`: un tipo
-escrito a mano que se queda corto **no falla al compilar**, miente — y el día que alguien sí
-regenere, la intersección de las dos formas revienta lejos de aquí.
+regenera**, en la misma sesión.
+
+⚠️ **`cache:clear` NO invalida los grupos de serialización, y el fallo es mudo.** El script usaba
+`cache:clear --quiet` y el export salía con la foto ANTERIOR: el campo recién publicado no
+aparecía en `api.d.ts`, el front lo leía como `undefined` y no fallaba nada — ni el typecheck, que
+sólo sabe lo que dice el `.d.ts`. Costaba una segunda pasada a ciegas darse cuenta.
+
+La metadata vive en pools de caché que `cache:clear` no toca. Medido el 25/08/2026, añadiendo
+`operacion:item:read` a un campo: `cache:clear` + export → **no aparece**; `rm -rf var/cache/dev`
++ export → aparece; `cache:pool:clear --all` + export → aparece. El script usa desde entonces
+`cache:pool:clear --all`, que es lo mismo sin borrar directorios a mano.
+
+Si publicas un campo y no lo ves en `api.d.ts`, **no es que el grupo esté mal**: comprueba
+primero que el export no venga de caché.
+
+No se declara el campo a mano en un `*Model.ts`: un tipo escrito a mano que se queda corto **no
+falla al compilar**, miente — y el día que alguien sí regenere, la intersección de las dos formas
+revienta lejos de aquí.
 
 Los `*Model.ts` (`pmsReservaModel.ts`, `pmsFinanzasModel.ts`…) derivan del esquema
 (`components['schemas'][…]`, `Pick<>`, `[number]`) y añaden lo que el esquema no puede decir:
