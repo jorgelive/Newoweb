@@ -774,6 +774,51 @@ Con el flag apagado la skill **no existe en el catálogo** —`SkillConmutableIn
 `docs/Mensajeria.md` §11— y `enlacesPagables()` devuelve vacío, así que la app del pax no pinta
 ningún botón. Comprobado en local en los dos sentidos.
 
+### El enlace se emite SOLO cuando la reserva estrena importes
+
+`PmsPrepagoEnlaceService::emitirPorCambioDeCargos()`, enganchado en el `postFlush` de
+`PmsInformacionFinancieraCoherenciaListener`, justo detrás del estado de pago.
+
+⚠️ **Y no al crear la reserva, aunque sea lo intuitivo.** La cabecera financiera nace **vacía**
+—la auto-provisiona ese mismo listener—, y con base cero el calculador no pide nada. Los
+importes llegan después, por el webhook de invoiceItems o por el cron de facturas: ese es el
+momento en que el total deja de ser cero, y es donde se engancha.
+
+**No hay ni una regla de negocio nueva.** Las decide `pendiente()`, como los otros cuatro
+consumidores: `null` para los canales que ya cobraron (Airbnb, VRBO), `null` con base cero —un
+inquiry (§11.2.b de PmsBeds24ReservasSync), una cancelada—, `null` sin política y `null` en
+cuanto hay cualquier pago registrado.
+
+#### Síncrono, y por qué
+
+Emitir **no toca la red**: `crear()` es una consulta al calculador, un `persist` y un `flush`. A
+la pasarela no se le habla hasta que el cliente abre la página
+(`CulqiClient::configuracionPago()`). Sacarlo a Messenger no acortaría ninguna espera —el
+disparador ya corre en un worker— y rompería la simetría con los dos pasos que tiene al lado en
+ese mismo `postFlush`: el depósito de la OTA también **persiste** una entidad ahí.
+
+> Si algún día crear un enlace exigiera pedirle un token a la pasarela —Izipay lo pide para su
+> formulario—, entonces sí va a Messenger: eso ya es I/O externo en mitad de un flush.
+
+🔒 **No lanza nunca.** Los cargos ya están persistidos y son la verdad contable; un enlace que no
+sale no puede tumbarlos. Y no hace falta cola de reintentos: cualquier movimiento posterior de
+esa reserva vuelve a pasar por el mismo recálculo.
+
+#### Sin caducidad, y anulando el anterior
+
+**`vigenciaDias: 0`.** Un enlace automático no lo mira nadie: si caducara a los 7 días moriría en
+silencio y el huésped se quedaría sin poder pagar sin que nadie se entere. El emitido **a mano**
+conserva su vigencia por defecto, porque ahí hay una persona detrás.
+
+⚠️ **Y al emitir por un importe distinto se ANULA el vivo anterior** (`anularVigentes()`). Sin
+eso, un cargo extra dejaba dos enlaces pagables por cantidades distintas y el huésped podía pagar
+el que no toca. Con emisión manual casi no pasaba —hay alguien mirando—; automatizado pasa solo.
+Se anula, no se borra: el enlace que se mandó existió.
+
+Verificado con `var/probar-prepago-automatico.php` (transacción con rollback): estrena un enlace
+sin caducidad y sin autor, un movimiento que no cambia el importe **no** emite otro, y al cambiar
+el adelanto queda uno vivo y el anterior en `anulado`.
+
 ### La reutilización, y por qué mira el importe
 
 `emitir()` devuelve un enlace **vigente por el mismo importe** en vez de emitir otro. Sin eso,
@@ -1033,6 +1078,7 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Depurar "no se confirmó un cobro" | tabla `fin_pasarela_webhook_audit` | `payload_raw`, `estado`, `error_mensaje` |
 | Cambiar CUÁNTO se pide de prepago | `src/Pms/Enum/PmsPoliticaPrepago.php` | `fraccion()`, `soloAlojamiento()` |
 | Cambiar CUÁNDO deja de pedirse | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `pendiente()` (§8) |
+| Cambiar CUÁNDO se emite solo el enlace | `PmsInformacionFinancieraCoherenciaListener::postFlush()` | La llamada a `emitirPrepagos()`, al final de la cadena. La decisión de *si procede* sigue en `pendiente()` |
 | Cambiar qué dice el aviso de cobro (§11 ter) | `src/Finanzas/Service/Aviso/FinAvisoDeCobro.php` | `redactar()` dentro de ventana, `variables()` fuera. Si añades una variable, tiene que llegar SIEMPRE con valor y en una línea |
 | Añadir un dato a la ficha de un cobro (§11 bis.2) | `FinEnlacePagoSerializer::aArray()` **y** `util/src/types/finEnlacePagoModel.ts` | Son espejo: el serializador lo cita. Si el dato es del DOCUMENTO y no del enlace, va en `FinCajaApiController::origenDe()` |
 | Cambiar qué sabe el módulo de su documento | el resolver del dominio (`*OrigenCobroResolver::resolver()`) | Devuelve el `FinOrigenCobroDto`. Añadir un campo ahí lo hace visible en la ficha de TODOS los módulos |

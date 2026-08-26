@@ -10,6 +10,7 @@ use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Finanzas\PmsPrepagoEnlaceService;
 use App\Pms\Service\Finance\MonedaBaseRebaseContext;
 use App\Pms\Service\Finance\PmsCargosAutomaticosService;
 use App\Pms\Service\Reserva\PmsExtensionEstanciaService;
@@ -94,6 +95,8 @@ final class PmsInformacionFinancieraCoherenciaListener
         private readonly MonedaBaseRebaseContext $rebaseContext,
         private readonly PmsPagoOtaAutomaticoService $pagoOta,
         private readonly PmsEstadoPagoEventosService $estadoPagoService,
+        // Emite el enlace del adelanto en cuanto la reserva tiene importes. No lanza.
+        private readonly PmsPrepagoEnlaceService $prepagoEnlaces,
     ) {}
 
     public function onFlush(OnFlushEventArgs $args): void
@@ -395,8 +398,45 @@ final class PmsInformacionFinancieraCoherenciaListener
             // Va el ÚLTIMO a propósito: lee `total_cargos`/`total_pagos`, así que
             // cualquier paso que los mueva tiene que haber terminado antes (§12.9).
             $this->estadoPagoService->sincronizar($ids, $em);
+
+            // 🔗 Y el enlace del adelanto, ahora que la reserva tiene importes de verdad.
+            //
+            // Éste es el momento y no la creación de la reserva: la cabecera nace VACÍA
+            // (auto-provisión, arriba), y con base cero el calculador no pide nada. Los
+            // importes llegan después, por el webhook de invoiceItems o por el cron.
+            //
+            // Síncrono a propósito, como el depósito de la OTA de tres líneas más arriba:
+            // emitir no toca la red —a la pasarela no se le habla hasta que el cliente
+            // paga— así que es una consulta y un insert. Si algún día hiciera falta pedirle
+            // un token a la pasarela para crear el enlace, entonces sí habría que sacarlo a
+            // Messenger: eso ya sería I/O externo en mitad de un flush.
+            //
+            // No hace falta cola de reintentos: si falla, cualquier movimiento posterior de
+            // esa reserva vuelve a pasar por aquí. El propio ciclo es el reintento.
+            $this->emitirPrepagos($ids, $em);
         } finally {
             $this->isFlushing = false;
+        }
+    }
+
+    /**
+     * Emite el enlace de adelanto de las cabeceras que acaban de moverse.
+     *
+     * Todas las reglas —canal que ya cobró, base cero, sin política, ya pagó— las decide
+     * `PmsPrepagoEnlaceService::emitirPorCambioDeCargos()`, que además **no lanza nunca**:
+     * los cargos ya están persistidos y son la verdad contable; un enlace que no sale no
+     * puede tumbarlos.
+     *
+     * @param string[] $ids
+     */
+    private function emitirPrepagos(array $ids, EntityManagerInterface $em): void
+    {
+        foreach ($ids as $id) {
+            $info = $em->getRepository(PmsInformacionFinanciera::class)->find($id);
+
+            if ($info instanceof PmsInformacionFinanciera) {
+                $this->prepagoEnlaces->emitirPorCambioDeCargos($info);
+            }
         }
     }
 

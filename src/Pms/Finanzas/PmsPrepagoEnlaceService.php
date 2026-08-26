@@ -9,6 +9,9 @@ use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Enum\FinOrigenCobro;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
 use App\Finanzas\Service\FinEnlacePagoService;
+use Psr\Log\LoggerInterface;
+use Throwable;
+use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use DomainException;
@@ -62,6 +65,7 @@ final readonly class PmsPrepagoEnlaceService
 {
     public function __construct(
         private PmsPrepagoCalculador $calculador,
+        private LoggerInterface $logger,
         private FinEnlacePagoService $enlaces,
         private FinEnlacePagoRepository $repositorio,
         #[Autowire('%finanzas.enlaces_prepago_activos%')]
@@ -174,6 +178,17 @@ final readonly class PmsPrepagoEnlaceService
             return $this->respuesta($existente, $prepago, reutilizado: true);
         }
 
+        // ⚠️ El importe CAMBIÓ: se anula el enlace vivo por la cantidad vieja antes de emitir.
+        //
+        // Sin esto el huésped acaba con DOS enlaces vivos por importes distintos —el de antes
+        // del cargo extra y el de después— y puede pagar el que no toca. Con emisión manual
+        // casi no pasa, porque hay una persona mirando; en cuanto la emisión es automática
+        // (ver `emitirPorCambioDeCargos()`) pasa solo.
+        //
+        // Se anula, no se borra: el enlace que se mandó existió y su rastro es parte de lo que
+        // se le dijo a esa persona.
+        $this->anularVigentes($id);
+
         $enlace = $this->enlaces->crear(
             origenTipo: FinOrigenCobro::PMS_RESERVA,
             origenId: $id,
@@ -186,6 +201,102 @@ final readonly class PmsPrepagoEnlaceService
         );
 
         return $this->respuesta($enlace, $prepago, reutilizado: false);
+    }
+
+    /**
+     * Emite el enlace del adelanto SOLO, en cuanto la reserva tiene importes de verdad.
+     *
+     * ### Por qué aquí y no al crear la reserva
+     *
+     * Porque al nacer la reserva su cabecera financiera está **vacía**: la auto-provisiona
+     * `PmsInformacionFinancieraCoherenciaListener` con cero cargos, y con base cero el
+     * calculador devuelve `null`. Los importes llegan después, por el webhook de invoiceItems
+     * o por el cron de facturas. Este método se llama tras el RECÁLCULO, que es el momento en
+     * que el total deja de ser cero.
+     *
+     * ### Todas las reglas ya estaban escritas
+     *
+     * No hay ni una condición de negocio nueva: `pendiente()` devuelve `null` para los canales
+     * que ya cobraron (Airbnb, VRBO), para una base de cero —un inquiry, una cancelada—, para
+     * un establecimiento sin política y en cuanto hay cualquier pago registrado. Aquí sólo se
+     * pregunta.
+     *
+     * ### ⚠️ Sin caducidad, a propósito
+     *
+     * `vigenciaDias: 0`. Un enlace automático no lo mira nadie: si caducara a los 7 días
+     * moriría en silencio y el huésped se quedaría sin poder pagar sin que nadie se entere.
+     * El emitido a mano conserva su vigencia por defecto, porque ahí hay una persona detrás.
+     *
+     * ### 🔒 NUNCA lanza
+     *
+     * Se ejecuta dentro del `postFlush` que acaba de persistir los cargos. Esos cargos son la
+     * verdad contable y ya llegaron; que no se pueda emitir un enlace no puede tumbarlos. Y no
+     * hace falta cola de reintentos: cualquier movimiento posterior de esa reserva vuelve a
+     * pasar por el mismo recálculo y lo intenta otra vez.
+     *
+     * @return FinEnlacePago|null El enlace emitido, o null si no procedía o falló.
+     */
+    public function emitirPorCambioDeCargos(PmsInformacionFinanciera $info): ?FinEnlacePago
+    {
+        if (!$this->activo) {
+            return null;
+        }
+
+        try {
+            $reserva = $info->getReserva();
+            $id = $reserva?->getId();
+
+            if ($reserva === null || $id === null) {
+                return null;
+            }
+
+            $prepago = $this->calculador->pendiente($info);
+
+            if ($prepago === null) {
+                return null;
+            }
+
+            // Ya hay uno vivo por ese importe: nada que hacer. Es lo que evita emitir un
+            // enlace nuevo en cada recálculo.
+            if ($this->vigentePorImporte($id, $prepago['monto']) !== null) {
+                return null;
+            }
+
+            $this->anularVigentes($id);
+
+            return $this->enlaces->crear(
+                origenTipo: FinOrigenCobro::PMS_RESERVA,
+                origenId: $id,
+                montoNeto: $prepago['monto'],
+                conRecargo: true,
+                concepto: $this->concepto($reserva),
+                // Sin persona detrás: el enlace queda sin `creadoPorNombre`, que es la verdad.
+                creadoPor: null,
+                vigenciaDias: 0,
+            );
+        } catch (Throwable $e) {
+            $this->logger->error('[prepago] no se pudo emitir el enlace automático; los cargos NO se ven afectados.', [
+                'reserva' => (string) $info->getReserva()?->getId(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Anula los enlaces de prepago vivos de esa reserva.
+     *
+     * Se llama justo antes de emitir uno por un importe distinto, para que no queden dos
+     * pagables a la vez. Un enlace ya PAGADO no está vigente, así que no entra aquí.
+     */
+    private function anularVigentes(Uuid $reservaId): void
+    {
+        foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
+            if ($enlace->estaVigente()) {
+                $this->enlaces->anular($enlace);
+            }
+        }
     }
 
     /**
