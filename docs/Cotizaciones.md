@@ -1313,14 +1313,26 @@ responder una pregunta concreta —«¿cuánto habíamos cotizado antes?»— y 
 había que **abrirlas una a una** y comparar de memoria. Con las cifras delante la pregunta se
 contesta desde la lista y sólo se abre la que interesa.
 
-Mismos campos y mismo formato que la tarjeta de la versión viva de arriba (`numPax`,
-`totalCosto`, `totalVenta`, con `monedaGlobal` en pequeño): dos cifras que se leen distinto no se
-pueden comparar, y comparar es justo para lo que está esa lista.
+**Las mismas tres cifras que la tarjeta de la versión viva y en el mismo orden**: `numPax`,
+`totalVenta` y `ganancia`, con `monedaGlobal` en pequeño. Dos cifras que se leen distinto no se
+pueden comparar, y comparar es justo para lo que está esa lista. El **idioma** no se repite porque
+es de la versión, no de la foto.
 
-⚠️ Tres columnas y no cuatro, que es lo que cabe en un teléfono sin que los importes se partan
-—que es donde se mira—. El **idioma** no se repite porque es de la versión, no de la foto; y la
-**ganancia** no está porque se deduce de las otras dos, mientras que la compra no se deduce de
-nada. En `FileDetalle.vue`, bloque `historicosDe(cot)`.
+**Y cada una lleva su DIFERENCIA con la vigente**, que es lo que convierte la lista en una
+respuesta: sin ella hay que restar de cabeza tres pares de números por cada foto, que es
+exactamente el trabajo que la fila viene a quitar.
+
+| Regla | Por qué |
+|---|---|
+| Signo = **histórico − vigente** | Se lee «esta foto tenía tanto de más o de menos que lo que está en vigor» |
+| Verde arriba, rojo abajo | Es una **dirección, no un juicio**: que una foto vendiera menos no está mal, es que se subió el precio después |
+| Diferencia cero → **no se pinta** | Un «+0.00» en cada columna enseña a no mirar la columna. Sólo se enseña lo que cambió |
+| Por debajo de **medio céntimo** → no se pinta | Eso es redondeo, no un cambio |
+| Pax sin decimales; importes con dos | «+1 pax» y «+110.64» |
+| Falta el dato en alguno de los dos → no se pinta | Inventar un cero sería decir «no cambió» sin saberlo |
+
+El menos es **U+2212** y no un guion: a 9 px un `-` se confunde con un separador.
+`diferenciaConVigente()` y `formatoDiferencia()` en `FileDetalle.vue`, junto a `historicosDe()`.
 
 ### El histórico NO consume número de versión
 

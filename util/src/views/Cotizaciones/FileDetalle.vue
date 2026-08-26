@@ -198,6 +198,32 @@ const historicosDe = (cot: ApiCotizacionVersion): ApiCotizacionVersion[] => {
   );
 };
 
+/**
+ * Cuánto se apartó una cifra del histórico respecto a la versión VIGENTE.
+ *
+ * `null` cuando no se puede comparar o cuando la diferencia es cero: un «+0.00» al lado de cada
+ * columna es ruido que enseña a no mirar la columna. Sólo se pinta lo que cambió.
+ *
+ * ⚠️ El signo es **histórico − vigente**, o sea «cuánto tenía esta foto de más o de menos que lo
+ * que está en vigor». Verde arriba, rojo abajo. Es una dirección, no un juicio: que una foto
+ * vendiera menos no está mal, es que se subió el precio después.
+ */
+const diferenciaConVigente = (delHistorico?: string | number | null, delVigente?: string | number | null): number | null => {
+  const a = Number(delHistorico ?? Number.NaN);
+  const b = Number(delVigente ?? Number.NaN);
+
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+
+  const d = a - b;
+
+  // Medio céntimo: por debajo de eso es redondeo, no un cambio.
+  return Math.abs(d) < 0.005 ? null : d;
+};
+
+/** «+50.00» / «−20.00». El menos es U+2212, que a este tamaño no se confunde con un guion. */
+const formatoDiferencia = (d: number, decimales = 2): string =>
+  `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(decimales)}`;
+
 const historicosAbiertos = ref<Set<string>>(new Set());
 
 const alternarHistoricos = (id: string): void => {
@@ -2348,30 +2374,52 @@ const eliminarDocumento = async (iri?: string) => {
                       </button>
                     </div>
 
-                    <!-- Tres columnas y no cuatro: cabe en un teléfono sin que los importes se
-                         partan, que es donde se mira esto. El idioma no se repite —es de la
-                         versión, no de la foto— y la ganancia se deduce de las otras dos. -->
+                    <!-- Mismas tres cifras que la tarjeta de la versión viva —pax, venta y
+                         ganancia— y en el mismo orden: si se leen distinto no se pueden comparar,
+                         y comparar es para lo único que está esta lista. El idioma no se repite,
+                         que es de la versión y no de la foto.
+
+                         Cada una lleva su DIFERENCIA con la vigente cuando la hay. Sin ella hay
+                         que restar de cabeza tres pares de números por cada foto, que es
+                         exactamente el trabajo que esta fila viene a quitar. -->
                     <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-violet-100">
                       <div class="flex flex-col min-w-0">
                         <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
                           <i class="fas fa-users mr-1"></i>Pax
                         </span>
-                        <span class="text-[11px] font-black text-violet-900 tabular-nums">{{ h.numPax ?? '—' }}</span>
-                      </div>
-                      <div class="flex flex-col min-w-0 border-l border-violet-100 pl-2">
-                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
-                          <i class="fas fa-cart-shopping mr-1"></i>Compra
-                        </span>
-                        <span class="text-[11px] font-black text-violet-900 tabular-nums truncate">
-                          <span class="text-[9px] font-bold text-violet-400 mr-0.5">{{ h.monedaGlobal }}</span>{{ h.totalCosto ?? '0.00' }}
+                        <span class="text-[11px] font-black text-violet-900 tabular-nums">
+                          {{ h.numPax ?? '—' }}
+                          <span v-if="diferenciaConVigente(h.numPax, cot.numPax) !== null"
+                                :class="(diferenciaConVigente(h.numPax, cot.numPax) ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-600'"
+                                class="text-[9px] font-black ml-0.5">
+                            {{ formatoDiferencia(diferenciaConVigente(h.numPax, cot.numPax) ?? 0, 0) }}
+                          </span>
                         </span>
                       </div>
                       <div class="flex flex-col min-w-0 border-l border-violet-100 pl-2">
                         <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
                           <i class="fas fa-money-bill mr-1"></i>Venta
                         </span>
-                        <span class="text-[11px] font-black text-violet-900 tabular-nums truncate">
+                        <span class="text-[11px] font-black text-violet-900 tabular-nums">
                           <span class="text-[9px] font-bold text-violet-400 mr-0.5">{{ h.monedaGlobal }}</span>{{ h.totalVenta ?? '0.00' }}
+                          <span v-if="diferenciaConVigente(h.totalVenta, cot.totalVenta) !== null"
+                                :class="(diferenciaConVigente(h.totalVenta, cot.totalVenta) ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-600'"
+                                class="block text-[9px] font-black">
+                            {{ formatoDiferencia(diferenciaConVigente(h.totalVenta, cot.totalVenta) ?? 0) }}
+                          </span>
+                        </span>
+                      </div>
+                      <div class="flex flex-col min-w-0 border-l border-violet-100 pl-2">
+                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
+                          <i class="fas fa-chart-line mr-1"></i>Ganancia
+                        </span>
+                        <span class="text-[11px] font-black text-violet-900 tabular-nums">
+                          <span class="text-[9px] font-bold text-violet-400 mr-0.5">{{ h.monedaGlobal }}</span>{{ h.ganancia ?? '0.00' }}
+                          <span v-if="diferenciaConVigente(h.ganancia, cot.ganancia) !== null"
+                                :class="(diferenciaConVigente(h.ganancia, cot.ganancia) ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-600'"
+                                class="block text-[9px] font-black">
+                            {{ formatoDiferencia(diferenciaConVigente(h.ganancia, cot.ganancia) ?? 0) }}
+                          </span>
                         </span>
                       </div>
                     </div>
