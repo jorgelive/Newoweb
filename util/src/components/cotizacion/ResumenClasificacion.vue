@@ -1,7 +1,10 @@
 <script setup lang="ts">
 // ============================================================================
 // Reporte financiero interno V3
-//  · Mobile: paddings responsivos + tablas con overflow-x-auto (no rompen el layout)
+//  · Mobile: el detalle por clase de pasajero son FICHAS, no tabla. La tabla pedía
+//    560 px mínimos y obligaba a arrastrar de lado para ver la venta por pax —y
+//    arrastrar de lado es peor que no mostrar el dato: no se sabe que está ahí.
+//    El resumen general sigue en tabla: son tres cifras cortas y ahí sí cabe.
 //  · Clase de pasajero: header del acordeón con menos padding en móvil
 //  · Inclusiones: UN SOLO acordeón para todo el reporte (no uno por servicio).
 //    Ya no muestra precio (vive en la clasificación por clase de pasajero).
@@ -193,61 +196,67 @@ const totalesInclusiones = computed(() => {
         </button>
 
         <div v-show="isOpen('clase:' + clase.tipo)" class="border-t border-slate-100">
-          <div class="overflow-x-auto">
-            <table class="w-full text-[13px] min-w-[560px]">
-              <thead>
-              <tr class="text-[10px] font-black text-slate-400 uppercase tracking-wide border-b border-slate-100">
-                <th class="text-left px-2.5 sm:px-3 py-2 w-24 sm:w-28">Monto Cotizado</th>
-                <th class="text-left px-2.5 sm:px-3 py-2">Detalle</th>
-                <th class="text-right px-2.5 sm:px-3 py-2 w-20 sm:w-24">Venta/pax</th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr v-for="(d, i) in clase.detalle" :key="i"
-                  class="border-b border-slate-50 odd:bg-slate-50/50 tabular-nums align-top"
-                  :class="d.rol === 'operativo' ? 'opacity-50' : ''">
+          <!-- ── FICHAS, NO TABLA ────────────────────────────────────────
+               La tabla pedía 560 px mínimos y en un teléfono había que arrastrar
+               de lado para leer la tercera columna. Arrastrar de lado es peor que
+               no mostrar el dato: no se sabe que está ahí. Y una fila de tabla
+               obliga a que todo entre en tres celdas del mismo ancho, cuando lo
+               que hay es un texto largo (el servicio), unas etiquetas y dos
+               importes que se leen en dos golpes distintos.
 
-                <!-- Celda única: badges arriba, monto neutro debajo -->
-                <td class="px-2.5 sm:px-3 py-2">
-                  <div class="flex flex-wrap gap-1 mb-0.5">
-                      <span class="text-[8px] font-black px-1.5 py-0.5 rounded border uppercase" :class="MODO_UI[d.modo].badge">
-                        {{ MODO_UI[d.modo].label }}
-                      </span>
-                    <span class="text-[8px] font-black px-1.5 py-0.5 rounded border uppercase bg-slate-50 text-slate-500 border-slate-200"
-                          :title="d.esGrupal ? 'Prorrateado (costo por grupo)' : 'Unitario (costo por pax)'">
-                        {{ d.esGrupal ? 'Prorrateado' : 'Unitario' }}
-                      </span>
-                    <span v-if="d.rol === 'operativo'" class="text-[8px] font-black px-1.5 py-0.5 rounded border uppercase bg-slate-100 text-slate-400 border-slate-200">
-                        <i class="fas fa-wrench"></i> Op
-                      </span>
-                  </div>
-                  <span class="font-black text-slate-800">{{ montoLinea(d) }}</span>
-                  <span class="text-[10px] font-bold text-slate-400 ml-1">{{ d.moneda === 'PEN' ? 'S/.' : 'US$' }}</span>
-                </td>
+               Cada línea es ahora una ficha: el servicio manda arriba, la venta
+               por pax a la derecha —que es la cifra que se busca—, y el monto
+               cotizado con sus etiquetas abajo. Una columna en móvil, dos desde
+               `sm`. Mismo criterio que ya se aplicó a La Biblia. -->
+          <div class="p-2.5 sm:p-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
+            <article v-for="(d, i) in clase.detalle" :key="i"
+                     class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm tabular-nums"
+                     :class="d.rol === 'operativo' ? 'opacity-60' : ''">
 
-                <!-- Celda única: servicio (azul acero) arriba, componente (gris) debajo -->
-                <td class="px-2.5 sm:px-3 py-2">
-                  <p class="text-[11px] font-black uppercase tracking-tight" style="color:#376875">
-                    {{ store.getI18nText(d.servicioNombre, lang) }}
-                  </p>
-                  <p class="text-slate-500 font-medium leading-snug">
-                    {{ store.getI18nText(d.componenteNombre, lang) }}
-                    <span v-if="labelTarifa(d)" class="text-slate-400">({{ labelTarifa(d) }})</span>
-                  </p>
-                  <p v-if="badgesClasif(d).length || d.comisionOverride" class="flex flex-wrap items-center gap-1 mt-1">
-                    <span v-for="b in badgesClasif(d)" :key="b.type"
-                          class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
-                          :class="badgeClase(b.type)">
-                      {{ b.icon }} {{ b.label }}
-                    </span>
-                    <span v-if="d.comisionOverride" class="text-[10px] font-bold text-purple-600">com. {{ d.comisionOverride }}%</span>
-                  </p>
-                </td>
+              <!-- Servicio + venta/pax: lo primero que se busca, arriba y en los extremos -->
+              <div class="flex items-start justify-between gap-3">
+                <p class="text-[11px] font-black uppercase tracking-tight leading-snug min-w-0" style="color:#376875">
+                  {{ store.getI18nText(d.servicioNombre, lang) }}
+                </p>
+                <span class="text-right shrink-0">
+                  <span class="block text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Venta/pax</span>
+                  <span class="text-[13px] font-black text-slate-800">{{ mv(d.ventaSoles, d.ventaDolares) }}</span>
+                </span>
+              </div>
 
-                <td class="text-right px-2.5 sm:px-3 py-2 font-black text-slate-800">{{ mv(d.ventaSoles, d.ventaDolares) }}</td>
-              </tr>
-              </tbody>
-            </table>
+              <p class="text-[13px] text-slate-500 font-medium leading-snug mt-0.5">
+                {{ store.getI18nText(d.componenteNombre, lang) }}
+                <span v-if="labelTarifa(d)" class="text-slate-400">({{ labelTarifa(d) }})</span>
+              </p>
+
+              <p v-if="badgesClasif(d).length || d.comisionOverride" class="flex flex-wrap items-center gap-1 mt-1.5">
+                <span v-for="b in badgesClasif(d)" :key="b.type"
+                      class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"
+                      :class="badgeClase(b.type)">
+                  {{ b.icon }} {{ b.label }}
+                </span>
+                <span v-if="d.comisionOverride" class="text-[10px] font-bold text-purple-600">com. {{ d.comisionOverride }}%</span>
+              </p>
+
+              <!-- El cotizado abajo, con sus etiquetas: es el detalle que se consulta
+                   cuando la venta de arriba no cuadra, no lo que se mira de entrada. -->
+              <div class="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-slate-100">
+                <span class="text-[8px] font-black px-1.5 py-0.5 rounded border uppercase" :class="MODO_UI[d.modo].badge">
+                  {{ MODO_UI[d.modo].label }}
+                </span>
+                <span class="text-[8px] font-black px-1.5 py-0.5 rounded border uppercase bg-slate-50 text-slate-500 border-slate-200"
+                      :title="d.esGrupal ? 'Prorrateado (costo por grupo)' : 'Unitario (costo por pax)'">
+                  {{ d.esGrupal ? 'Prorrateado' : 'Unitario' }}
+                </span>
+                <span v-if="d.rol === 'operativo'" class="text-[8px] font-black px-1.5 py-0.5 rounded border uppercase bg-slate-100 text-slate-400 border-slate-200">
+                  <i class="fas fa-wrench"></i> Op
+                </span>
+                <span class="ml-auto text-[12px] font-black text-slate-700">
+                  {{ montoLinea(d) }}
+                  <span class="text-[9px] font-bold text-slate-400 ml-0.5">{{ d.moneda === 'PEN' ? 'S/.' : 'US$' }}</span>
+                </span>
+              </div>
+            </article>
           </div>
 
           <!-- Subtotales por modo (POR PAX) -->

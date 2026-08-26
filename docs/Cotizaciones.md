@@ -1306,6 +1306,22 @@ distingue lo que obliga a reemitir de lo que sólo hay que completar.
 | **Nueva propuesta** (`/clonar`) | adelante: la copia es v+1 | antes de vender, el cliente elige | se pierden: hay que reemitir |
 | **Guardar histórico** (`/historico`) | atrás: la copia es el pasado | después de confirmar | **no se mueven** |
 
+### El reporte financiero son FICHAS, no tabla (26/08/2026)
+
+El detalle por clase de pasajero era una `<table class="min-w-[560px]">`. En un teléfono había que
+**arrastrar de lado** para llegar a la venta por pax — y arrastrar de lado es peor que no enseñar
+el dato: no se sabe que está ahí. Además una fila obliga a que todo entre en tres celdas del mismo
+ancho, cuando lo que hay es un texto largo (el servicio), unas etiquetas y **dos importes que se
+leen en golpes distintos**.
+
+Cada línea es ahora una ficha: el servicio manda arriba, la **venta por pax a la derecha** —que es
+la cifra que se busca— y el monto cotizado con sus etiquetas abajo, tras un separador. Una columna
+en móvil, dos desde `lg`. Mismo criterio que ya se aplicó a La Biblia al pasar de tabla a rejilla.
+
+⚠️ **El «Resumen general» sigue siendo tabla, y está bien.** Son tres columnas numéricas cortas
+—costo, venta, ganancia— que caben sin scroll. La regla no es «nunca tablas»: es que una tabla que
+necesita `min-w` mayor que el teléfono ya no es una tabla, es un cajón con el dato escondido.
+
 ### Cómo se lee un histórico en la lista (26/08/2026)
 
 La fila enseña **pax, compra y venta**, no sólo su fecha. Una foto del pasado se consulta para
