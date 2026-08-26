@@ -3060,9 +3060,27 @@ Antes de perseguirlo en nuestro código, esto ya se descartó: la URL de edició
 el panel, en el mismo cuadro de «Push a Meta», como casilla **«Recrear en vez de editar»**
 (`WhatsappMetaClient::deleteTemplateDefinition()` + el `pushTemplateDefinition()` de siempre).
 
-⚠️ **No se deshace, y por eso no es el camino por defecto**: la versión borrada pierde su
-historial y sus métricas de entrega en Meta. Se marca a propósito y **idioma por idioma**. Para
-corregir un texto, editar; recrear es sólo para los marcadores.
+🔴 **Y NO es «borrar y crear» en un paso, aunque lo parezca.** Meta acepta el DELETE y luego
+rechaza el POST:
+
+```
+Invalid parameter | No es posible añadir contenido nuevo en Portuguese (BR) mientras se
+está eliminando el contenido existente. Vuelve a intentarlo dentro de 4 weeks.
+```
+
+Reserva el par **nombre + idioma durante cuatro semanas**, así que el resultado real de marcar
+la casilla es **el idioma se queda sin plantilla hasta que pase el plazo**. Medido el 26/08/2026
+sobre `aviso_escalado_interno`: los cinco idiomas se borraron y ninguno se recreó.
+
+No se intenta esquivar porque el plazo es de Meta. Lo único que puede hacer el código es
+contarlo antes (el aviso del panel) y decir la verdad después: el resultado distingue
+`RECREATED` de **`DELETED_PENDING`** — «se borró y NO se pudo recrear»—, que es lo que evita
+leer un fallo como «no pasó nada».
+
+⚠️ Además, la versión borrada pierde su historial y sus métricas de entrega. Se marca a
+propósito y **idioma por idioma**, mirando antes los envíos de ese idioma en el inventario. Para
+corregir un texto, **editar**; recrear es sólo para los marcadores, y sabiendo que ese idioma
+queda un mes fuera.
 
 ⚠️ **`hsm_id` es lo que acota el borrado a un idioma.** `DELETE …/message_templates?name=X`
 se lleva **todos** los idiomas; con `name` + `hsm_id` se borra sólo esa versión. Por eso el
@@ -5698,7 +5716,7 @@ arreglar** — ver el aviso al final de esta sección.
 | Cambiar cómo se encuentra el hilo interno del operador | `AvisoAlEquipoService::conversacionStaff()` | Busca por TELÉFONO antes que por contexto: es lo que sobrevive a fusionar hilos |
 | Cambiar el aviso de escalado **fuera** de la ventana de 24 h | plantilla `aviso_escalado_interno` | El cuerpo se edita en el panel; los parámetros los pone `EscalarAlEquipoSkill::variablesDelAviso()`. Si añades uno, tiene que llegar SIEMPRE con valor o el envío revienta |
 | Que la plantilla del escalado empiece a salir de verdad | Meta + `app:whatsapp:sync-templates` | Está insertada como `PENDING`: hasta que Meta la apruebe, el encolador la rechaza |
-| Cambiar el NOMBRE de un marcador de una plantilla aprobada | Panel → Push a Meta → casilla **«Recrear en vez de editar»** | Meta no deja renombrarlos: hay que borrar y crear. Pierde el historial de esa versión, así que idioma por idioma |
+| Cambiar el NOMBRE de un marcador de una plantilla aprobada | Panel → Push a Meta → casilla **«Recrear en vez de editar»** | Meta no deja renombrarlos. 🔴 Borra hoy y **no deja recrear hasta 4 semanas después**: ese idioma se queda sin plantilla. Sólo si no tiene tráfico |
 | Mandar una plantilla con datos que NO están en el contexto | `Message::setVariablesPlantilla()` | Se fusionan pisando a las del resolver en `WhatsappMetaSendMappingStrategy` |
 | Cambiar cuándo un número «es» de una reserva | `PmsReservaRepository` | `findVivasByTelefono()` + `DIAS_GRACIA_TRAS_SALIDA` / `DIAS_ANTICIPACION` |
 | Cambiar qué estados dan derecho a consultar la propia reserva | `PmsEventoEstado` | `IDENTIFICAN_HUESPED` — **no** reutilizar `OCUPAN_UNIDAD`, ver su docblock |
