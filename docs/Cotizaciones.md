@@ -1306,6 +1306,22 @@ distingue lo que obliga a reemitir de lo que sólo hay que completar.
 | **Nueva propuesta** (`/clonar`) | adelante: la copia es v+1 | antes de vender, el cliente elige | se pierden: hay que reemitir |
 | **Guardar histórico** (`/historico`) | atrás: la copia es el pasado | después de confirmar | **no se mueven** |
 
+### Cómo se lee un histórico en la lista (26/08/2026)
+
+La fila enseña **pax, compra y venta**, no sólo su fecha. Una foto del pasado se consulta para
+responder una pregunta concreta —«¿cuánto habíamos cotizado antes?»— y con sólo «V1 · 11 jul»
+había que **abrirlas una a una** y comparar de memoria. Con las cifras delante la pregunta se
+contesta desde la lista y sólo se abre la que interesa.
+
+Mismos campos y mismo formato que la tarjeta de la versión viva de arriba (`numPax`,
+`totalCosto`, `totalVenta`, con `monedaGlobal` en pequeño): dos cifras que se leen distinto no se
+pueden comparar, y comparar es justo para lo que está esa lista.
+
+⚠️ Tres columnas y no cuatro, que es lo que cabe en un teléfono sin que los importes se partan
+—que es donde se mira—. El **idioma** no se repite porque es de la versión, no de la foto; y la
+**ganancia** no está porque se deduce de las otras dos, mientras que la compra no se deduce de
+nada. En `FileDetalle.vue`, bloque `historicosDe(cot)`.
+
 ### El histórico NO consume número de versión
 
 El histórico de la v1 sigue siendo **v1**, distinguido por su `createdAt`. Gastar un número haría

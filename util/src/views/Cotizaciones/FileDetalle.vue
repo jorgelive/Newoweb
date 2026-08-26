@@ -2328,16 +2328,53 @@ const eliminarDocumento = async (iri?: string) => {
                 </button>
 
                 <div v-if="historicosAbiertos.has(extractIdStr(cot.id || cot['@id']) || '')" class="mt-2 space-y-1.5">
+                  <!-- ⚠️ El histórico enseña sus CIFRAS, no sólo su fecha.
+                       Una foto del pasado se consulta para responder «¿cuánto habíamos cotizado
+                       antes?», y con sólo «V1 · 11 jul» había que abrirla para saberlo — una por
+                       una, y comparando de memoria. Con compra, venta y pax delante, la pregunta
+                       se contesta desde la lista y sólo se abre la que interesa.
+                       Mismos campos y mismo formato que la tarjeta de la versión viva de arriba:
+                       si se leen distinto, no se pueden comparar. -->
                   <div v-for="h in historicosDe(cot)" :key="h.id"
-                       class="flex items-center justify-between gap-3 bg-violet-50/60 border border-violet-100 rounded-lg px-3 py-2">
-                    <span class="text-[11px] font-bold text-violet-800 min-w-0 truncate">
-                      <i class="fas fa-clock-rotate-left text-[9px] mr-1.5 text-violet-400"></i>
-                      V{{ h.version }} · {{ h.createdAt ? new Date(h.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }) : 'sin fecha' }}
-                    </span>
-                    <button @click="abrirMotor(h)"
-                            class="text-[10px] font-black text-violet-600 hover:text-violet-900 underline underline-offset-2 shrink-0">
-                      Ver
-                    </button>
+                       class="bg-violet-50/60 border border-violet-100 rounded-lg px-3 py-2">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="text-[11px] font-bold text-violet-800 min-w-0 truncate">
+                        <i class="fas fa-clock-rotate-left text-[9px] mr-1.5 text-violet-400"></i>
+                        V{{ h.version }} · {{ h.createdAt ? new Date(h.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }) : 'sin fecha' }}
+                      </span>
+                      <button @click="abrirMotor(h)"
+                              class="text-[10px] font-black text-violet-600 hover:text-violet-900 underline underline-offset-2 shrink-0">
+                        Ver
+                      </button>
+                    </div>
+
+                    <!-- Tres columnas y no cuatro: cabe en un teléfono sin que los importes se
+                         partan, que es donde se mira esto. El idioma no se repite —es de la
+                         versión, no de la foto— y la ganancia se deduce de las otras dos. -->
+                    <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-violet-100">
+                      <div class="flex flex-col min-w-0">
+                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
+                          <i class="fas fa-users mr-1"></i>Pax
+                        </span>
+                        <span class="text-[11px] font-black text-violet-900 tabular-nums">{{ h.numPax ?? '—' }}</span>
+                      </div>
+                      <div class="flex flex-col min-w-0 border-l border-violet-100 pl-2">
+                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
+                          <i class="fas fa-cart-shopping mr-1"></i>Compra
+                        </span>
+                        <span class="text-[11px] font-black text-violet-900 tabular-nums truncate">
+                          <span class="text-[9px] font-bold text-violet-400 mr-0.5">{{ h.monedaGlobal }}</span>{{ h.totalCosto ?? '0.00' }}
+                        </span>
+                      </div>
+                      <div class="flex flex-col min-w-0 border-l border-violet-100 pl-2">
+                        <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
+                          <i class="fas fa-money-bill mr-1"></i>Venta
+                        </span>
+                        <span class="text-[11px] font-black text-violet-900 tabular-nums truncate">
+                          <span class="text-[9px] font-bold text-violet-400 mr-0.5">{{ h.monedaGlobal }}</span>{{ h.totalVenta ?? '0.00' }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
