@@ -71,24 +71,27 @@ const hasta = ref<string>(`${sumarDias(hoyIso(), 6)}T00:00`);
 const tiposSeleccionados = ref<string[]>([]);
 const lugaresSeleccionados = ref<string[]>([]);
 
-/** Ancho de teléfono. Se lee una vez al arrancar: no se reacciona al giro, no hace falta. */
-const esMovil = (): boolean => typeof window !== 'undefined' && window.innerWidth < 768;
 const filtroEstadoReservaProveedor = ref<string>('');
 const filtroEstadoOperacion = ref<string>('');
-const mostrarFiltrosAvanzados = ref<boolean>(false);
 
 /**
- * Los chips de lugar, plegables — **cerrados por defecto en móvil**.
+ * Qué grupo de filtros está desplegado. **Uno como mucho.**
  *
- * Son trece y ocupan cuatro líneas: en una pantalla de teléfono se comen media vista antes de
- * llegar al primer servicio, que es lo que se viene a mirar. En escritorio caben en una línea y no
- * estorban, así que ahí siguen abiertos.
+ * Los cuatro ejes —lugar, organización, tipo, estado— comparten UNA fila de rótulos y sólo el
+ * abierto pinta sus opciones debajo. Antes cada uno tenía su franja propia siempre visible: entre
+ * trece chips de lugar, los de organización y catorce de tipo, la barra se comía la pantalla de un
+ * teléfono entera y el primer servicio —que es lo que se viene a mirar— quedaba bajo el pliegue.
  *
- * ⚠️ Si HAY lugares filtrados se abre igual, esté como esté el interruptor. Un filtro activo
- * escondido es la forma de leer un cuadro recortado creyéndolo entero — el mismo fallo que ya
- * costó las filas de tipo `contacto`.
+ * ⚠️ El rótulo lleva CONTADOR cuando su eje tiene algo puesto, y por eso es seguro arrancar con
+ * todos cerrados. Un filtro activo escondido y sin contador es la forma de leer un cuadro
+ * recortado creyéndolo entero — el fallo que ya costó las filas de tipo `contacto`.
  */
-const mostrarLugares = ref<boolean>(!esMovil());
+type GrupoFiltro = 'lugar' | 'organizacion' | 'tipo' | 'estado';
+const grupoAbierto = ref<GrupoFiltro | null>(null);
+
+const alternarGrupo = (g: GrupoFiltro): void => {
+    grupoAbierto.value = grupoAbierto.value === g ? null : g;
+};
 
 /**
  * Cómo se ordena el día: por ITINERARIO o por reloj.
@@ -115,17 +118,16 @@ const filtroOs = ref<'' | 'sin' | 'con'>('');
 // que «enséñame todo lo de Futurismo Jonathan» es el paso previo a marcar y generar.
 //
 // ⚠️ Filtra **lo ya cargado**, como `filtroOs`, y sus opciones salen de las propias filas: son
-// las empresas que hay en el cuadro, no el catálogo entero. Un catálogo de proveedores da una
+// las organizaciones que hay en el cuadro, no el catálogo entero. Un catálogo de proveedores da una
 // lista larguísima de la que la mitad no aparece en estas fechas.
 //
 // Mira los DOS papeles y los combina con OR —una fila tiene prestador y comprador, y no siempre
-// son la misma empresa—: quien busca una empresa quiere sus filas, le toque el papel que le
+// son la misma—: quien busca una organización quiere sus filas, le toque el papel que le
 // toque. Y mira el EFECTIVO, que es lo que vale (`docs/Operacion.md` §3.3.b).
-const empresasSeleccionadas = ref<string[]>([]);
-const mostrarEmpresas = ref<boolean>(!esMovil());
+const organizacionesSeleccionadas = ref<string[]>([]);
 
 /** Chip «Sin asignar». Sólo vive en el front: este filtro no viaja al servidor. */
-const SIN_EMPRESA = '__sin_asignar__';
+const SIN_ORGANIZACION = '__sin_asignar__';
 
 // Expediente / cotización
 /**
@@ -246,12 +248,31 @@ const hayServiciosOcultos = computed(() =>
     operacionStore.totalServicios > operacionStore.servicios.length
 );
 
-const hayFiltrosExtra = computed(() =>
+/**
+ * ¿Hay algo puesto en cualquiera de los cuatro ejes?
+ *
+ * Cubre TODOS, no sólo los del antiguo panel «Filtros»: es lo que decide si se ofrece «Limpiar»,
+ * y un eje que no se contara aquí quedaría sin forma de vaciarse de un gesto.
+ */
+const hayFiltrosPuestos = computed(() =>
     tiposSeleccionados.value.length > 0
+    || lugaresSeleccionados.value.length > 0
+    || organizacionesSeleccionadas.value.length > 0
     || !!filtroEstadoReservaProveedor.value
     || !!filtroEstadoOperacion.value
+    || !!filtroOs.value
     || !!expedienteSeleccionado.value
 );
+
+/** Cuántos filtros lleva puestos cada eje. Es el contador del rótulo con el grupo cerrado. */
+const conteoPorGrupo = computed<Record<GrupoFiltro, number>>(() => ({
+    lugar: lugaresSeleccionados.value.length,
+    organizacion: organizacionesSeleccionadas.value.length,
+    tipo: tiposSeleccionados.value.length,
+    estado: (filtroOs.value ? 1 : 0)
+        + (filtroEstadoReservaProveedor.value ? 1 : 0)
+        + (filtroEstadoOperacion.value ? 1 : 0),
+}));
 
 // ============================================================================
 // CARGA
@@ -317,31 +338,44 @@ const cargarOrdenes = async () => {
     await operacionStore.fetchOrdenesServicio();
 };
 
+/**
+ * Recargar, desde la cabecera y para la pestaña que se esté mirando.
+ *
+ * Estaba duplicado —uno en la barra de filtros de La Biblia y otro en la de Órdenes—, y en la de
+ * La Biblia se comía el ancho donde ahora vive el buscador de expediente. Arriba está siempre en
+ * el mismo sitio, que es lo que se busca a ciegas en un teléfono.
+ */
+const refrescar = async () => {
+    if (activeTab.value === 'biblia') await cargarBiblia();
+    else await cargarOrdenes();
+};
+
 const cambiarTab = async (tab: 'biblia' | 'ordenes') => {
     activeTab.value = tab;
     if (tab === 'biblia') await cargarBiblia();
     else await cargarOrdenes();
 };
 
-const aplicarPreset = async (preset: 'hoy' | 'manana' | 'semana') => {
-    const base = hoyIso();
-    if (preset === 'hoy') {
-        desde.value = `${base}T00:00`;
-        hasta.value = `${base}T00:00`;
-    } else if (preset === 'manana') {
-        const m = sumarDias(base, 1);
-        desde.value = `${m}T00:00`;
-        hasta.value = `${m}T00:00`;
-    } else {
-        desde.value = `${base}T00:00`;
-        hasta.value = `${sumarDias(base, 6)}T00:00`;
-    }
+/**
+ * Sólo «Hoy» y «Mañana»: los dos saltos que de verdad se piden desde un teléfono.
+ *
+ * El de «7 días» se retiró porque devolvía exactamente al rango de arranque —la vista ya nace con
+ * la semana puesta—, y un botón que no lleva a ninguna parte nueva ocupa el sitio del expediente.
+ */
+const aplicarPreset = async (preset: 'hoy' | 'manana') => {
+    const base = preset === 'hoy' ? hoyIso() : sumarDias(hoyIso(), 1);
+    desde.value = `${base}T00:00`;
+    hasta.value = `${base}T00:00`;
     await cargarBiblia();
 };
 
 const limpiarFiltros = async () => {
     tiposSeleccionados.value = [];
     lugaresSeleccionados.value = [];
+    // Los dos que filtran EN LOCAL entran aquí igual: si «Limpiar» los dejaba puestos, el cuadro
+    // seguía recortado después de limpiar y no había nada en pantalla que lo explicara.
+    organizacionesSeleccionadas.value = [];
+    filtroOs.value = '';
     filtroEstadoReservaProveedor.value = '';
     filtroEstadoOperacion.value = '';
     expedienteSeleccionado.value = null;
@@ -367,12 +401,12 @@ const alternarLugar = async (id: string) => {
 };
 
 /**
- * Las empresas que HAY en el cuadro cargado, en los dos papeles. Es la lista de chips.
+ * Las organizaciones que HAY en el cuadro cargado, en los dos papeles. Es la lista de chips.
  *
  * Sale de las filas y no del catálogo a propósito: el catálogo de proveedores es largo y la
  * mitad no aparece en estas fechas. Aquí cada chip que se ve trae al menos una fila.
  */
-const empresasDelCuadro = computed<{ id: string; nombre: string }[]>(() => {
+const organizacionesDelCuadro = computed<{ id: string; nombre: string }[]>(() => {
     const mapa = new Map<string, string>();
 
     for (const s of operacionStore.servicios) {
@@ -391,40 +425,68 @@ const empresasDelCuadro = computed<{ id: string; nombre: string }[]>(() => {
         .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 });
 
-/** ¿Hay alguna fila sin ninguna de las dos empresas? Sólo entonces el chip «Sin asignar» dice algo. */
-const hayServiciosSinEmpresa = computed(() => operacionStore.servicios.some(
+/** ¿Hay alguna fila sin ninguna de las dos organizaciones? Sólo entonces el chip «Sin asignar» dice algo. */
+const hayServiciosSinOrganizacion = computed(() => operacionStore.servicios.some(
     s => !s.prestadorEfectivoMaestroId && !s.compradorEfectivoMaestroId));
 
-const alternarEmpresa = (id: string): void => {
-    const i = empresasSeleccionadas.value.indexOf(id);
-    if (i === -1) empresasSeleccionadas.value.push(id);
-    else empresasSeleccionadas.value.splice(i, 1);
+/**
+ * Los rótulos de la fila de ejes, en orden.
+ *
+ * ⚠️ LUGAR y ORGANIZACIÓN se esconden cuando no tienen nada que ofrecer. Un rótulo que abre a una
+ * lista vacía se lee como una avería —«el filtro no carga»— cuando lo que pasa es que no hay de
+ * qué filtrar: los lugares vienen del catálogo y las organizaciones, de las filas ya cargadas.
+ * TIPO y ESTADO son enums del código y siempre tienen opciones.
+ */
+const gruposVisibles = computed<{ k: GrupoFiltro; label: string; icon: string }[]>(() => [
+    ...(operacionStore.lugares.length
+        ? [{ k: 'lugar' as const, label: 'Lugar', icon: 'fas fa-map-marker-alt' }] : []),
+    ...(organizacionesDelCuadro.value.length || hayServiciosSinOrganizacion.value
+        ? [{ k: 'organizacion' as const, label: 'Organización', icon: 'fas fa-truck' }] : []),
+    { k: 'tipo', label: 'Tipo', icon: 'fas fa-layer-group' },
+    { k: 'estado', label: 'Estado', icon: 'fas fa-flag' },
+]);
+
+/**
+ * ⚠️ Si el eje abierto deja de existir, se cierra.
+ *
+ * Cambiar el rango puede vaciar la lista de organizaciones y llevarse su rótulo por delante. Con
+ * el grupo abierto quedaba un bloque de opciones colgando sin rótulo que lo cerrara: había que
+ * recargar para salir de ahí.
+ */
+watch(gruposVisibles, (grupos) => {
+    if (grupoAbierto.value && !grupos.some(g => g.k === grupoAbierto.value)) grupoAbierto.value = null;
+});
+
+const alternarOrganizacion = (id: string): void => {
+    const i = organizacionesSeleccionadas.value.indexOf(id);
+    if (i === -1) organizacionesSeleccionadas.value.push(id);
+    else organizacionesSeleccionadas.value.splice(i, 1);
 };
 
 /**
- * ⚠️ Se sueltan las empresas que ya no están en el cuadro.
+ * ⚠️ Se sueltan las organizaciones que ya no están en el cuadro.
  *
  * El filtro se calcula sobre lo cargado, así que al cambiar el rango o los filtros del servidor
- * una empresa seleccionada puede desaparecer de la lista. Su chip dejaría de pintarse pero
+ * una organización seleccionada puede desaparecer de la lista. Su chip dejaría de pintarse pero
  * seguiría filtrando: el cuadro se quedaría vacío y **nada en pantalla diría por qué**, que es
  * justo el fallo que el chip «Sin etiqueta» de los lugares vino a evitar. Se falla ABIERTO.
  */
-watch(empresasDelCuadro, (empresas) => {
-    const vivas = new Set(empresas.map(e => e.id));
+watch(organizacionesDelCuadro, (organizaciones) => {
+    const vivas = new Set(organizaciones.map(e => e.id));
 
-    empresasSeleccionadas.value = empresasSeleccionadas.value.filter(
-        id => id === SIN_EMPRESA ? hayServiciosSinEmpresa.value : vivas.has(id));
+    organizacionesSeleccionadas.value = organizacionesSeleccionadas.value.filter(
+        id => id === SIN_ORGANIZACION ? hayServiciosSinOrganizacion.value : vivas.has(id));
 });
 
-/** ¿Esta fila entra con el filtro de empresa puesto? Los dos papeles, en OR. */
-const coincideEmpresa = (s: OperacionServicio): boolean => {
-    const elegidas = empresasSeleccionadas.value;
+/** ¿Esta fila entra con el filtro de organización puesto? Los dos papeles, en OR. */
+const coincideOrganizacion = (s: OperacionServicio): boolean => {
+    const elegidas = organizacionesSeleccionadas.value;
     if (!elegidas.length) return true;
 
     const prestador = s.prestadorEfectivoMaestroId ?? null;
     const comprador = s.compradorEfectivoMaestroId ?? null;
 
-    if (elegidas.includes(SIN_EMPRESA) && !prestador && !comprador) return true;
+    if (elegidas.includes(SIN_ORGANIZACION) && !prestador && !comprador) return true;
 
     return (prestador !== null && elegidas.includes(prestador))
         || (comprador !== null && elegidas.includes(comprador));
@@ -486,8 +548,8 @@ const serviciosPorDia = computed<GrupoDia[]>(() => {
         if (filtroOs.value === 'sin' && s.ordenServicio) continue;
         if (filtroOs.value === 'con' && !s.ordenServicio) continue;
 
-        // Empresa: también sobre lo cargado, por lo mismo que el toggle de OS.
-        if (!coincideEmpresa(s)) continue;
+        // Organización: también sobre lo cargado, por lo mismo que el toggle de OS.
+        if (!coincideOrganizacion(s)) continue;
 
         const fecha = (s.fechaServicio ?? '').slice(0, 10) || 'sin-fecha';
         if (!mapa.has(fecha)) mapa.set(fecha, []);
@@ -618,10 +680,10 @@ const editarHora = async (servicio: OperacionServicio, evento: Event) => {
  *
  * ⚠️ **Se guarda id + nombre, no el texto tecleado.** La Orden de Servicio agrupa por
  * comprador: «Futurismo» y «Futurismo Jonathan» serían dos órdenes distintas. Por eso el input
- * va contra un `<datalist>` del catálogo y, si lo escrito no casa con ninguna empresa, se
+ * va contra un `<datalist>` del catálogo y, si lo escrito no casa con ninguna organización, se
  * revierte en vez de guardar un nombre suelto.
  */
-const resolverEmpresa = (texto: string): ProveedorOpcion | null =>
+const resolverOrganizacion = (texto: string): ProveedorOpcion | null =>
     operacionStore.proveedores.find(p => p.nombreComercial.toLowerCase() === texto.toLowerCase()) ?? null;
 
 /**
@@ -829,7 +891,7 @@ const abrirModalOs = () => {
         // Sugerencia: numeroOs es unique y no tiene generador en el backend.
         numeroOs: `OS-${hoy}-${String(Math.floor(Math.random() * 900) + 100)}`,
         // El EFECTIVO, que es por el que agrupa `conflictoSeleccion`. Con el cotizado, una
-        // fila con override proponía la empresa de la cotización mientras la comprobación de
+        // fila con override proponía la organización de la cotización mientras la comprobación de
         // «todos el mismo comprador» miraba otra: el modal se contradecía consigo mismo.
         compradorMaestroId: sel[0].compradorEfectivoMaestroId ?? '',
         compradorNombre: sel[0].compradorEfectivoNombre ?? '',
@@ -1168,17 +1230,17 @@ const cambiosDePapeles = (): Record<string, unknown> | null => {
             continue;
         }
 
-        const empresa = resolverEmpresa(papel.texto);
+        const organizacion = resolverOrganizacion(papel.texto);
 
-        if (!empresa) {
+        if (!organizacion) {
             errorFicha.value = `«${papel.texto}» no está en el catálogo de organizaciones. `
                 + `Dala de alta antes de ponerla como ${papel.rotulo}.`;
 
             return null;
         }
 
-        cambios[papel.campoId] = empresa.id;
-        cambios[papel.campoNombre] = empresa.nombreComercial;
+        cambios[papel.campoId] = organizacion.id;
+        cambios[papel.campoNombre] = organizacion.nombreComercial;
     }
 
     return cambios;
@@ -2091,23 +2153,35 @@ onMounted(async () => {
                 </div>
             </div>
 
-            <!-- Tabs como segmented control -->
-            <div class="flex items-center bg-slate-800 rounded-lg p-1 gap-1 shrink-0 self-start md:self-auto">
+            <!-- Pestañas + recargar. El botón vive aquí y no en cada barra de filtros: es
+                 el mismo gesto en las dos pestañas y así no se mueve de sitio al cambiar. -->
+            <div class="flex items-center gap-2 shrink-0 self-start md:self-auto">
+                <div class="flex items-center bg-slate-800 rounded-lg p-1 gap-1">
+                    <button
+                        @click="cambiarTab('biblia')"
+                        :class="activeTab === 'biblia' ? 'bg-[#376875] text-white shadow' : 'text-slate-400 hover:text-white'"
+                        class="px-3 md:px-4 py-1.5 rounded text-[10px] md:text-xs font-black tracking-widest transition-all whitespace-nowrap"
+                    >
+                        <i class="fas fa-car-side mr-1"></i>
+                        <span class="hidden sm:inline">La </span>Biblia
+                    </button>
+                    <button
+                        @click="cambiarTab('ordenes')"
+                        :class="activeTab === 'ordenes' ? 'bg-[#E07845] text-white shadow' : 'text-slate-400 hover:text-white'"
+                        class="px-3 md:px-4 py-1.5 rounded text-[10px] md:text-xs font-black tracking-widest transition-all whitespace-nowrap"
+                    >
+                        <i class="fas fa-file-invoice mr-1"></i>
+                        Órdenes
+                    </button>
+                </div>
+
                 <button
-                    @click="cambiarTab('biblia')"
-                    :class="activeTab === 'biblia' ? 'bg-[#376875] text-white shadow' : 'text-slate-400 hover:text-white'"
-                    class="px-3 md:px-4 py-1.5 rounded text-[10px] md:text-xs font-black tracking-widest transition-all whitespace-nowrap"
+                    @click="refrescar"
+                    :disabled="operacionStore.isLoading"
+                    class="flex items-center justify-center w-9 h-9 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-lg transition-colors shadow-sm"
+                    title="Recargar"
                 >
-                    <i class="fas fa-car-side mr-1"></i>
-                    <span class="hidden sm:inline">La </span>Biblia
-                </button>
-                <button
-                    @click="cambiarTab('ordenes')"
-                    :class="activeTab === 'ordenes' ? 'bg-[#E07845] text-white shadow' : 'text-slate-400 hover:text-white'"
-                    class="px-3 md:px-4 py-1.5 rounded text-[10px] md:text-xs font-black tracking-widest transition-all whitespace-nowrap"
-                >
-                    <i class="fas fa-file-invoice mr-1"></i>
-                    Órdenes
+                    <i class="fas fa-rotate" :class="{ 'fa-spin': operacionStore.isLoading }"></i>
                 </button>
             </div>
         </header>
@@ -2123,301 +2197,237 @@ onMounted(async () => {
                 <!-- Barra de filtros pegajosa -->
                 <div class="sticky top-0 z-10 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200 px-3 md:px-6 py-2 md:py-3 shrink-0">
 
-                    <!-- Fila 1: rango + presets + acciones -->
-                    <div class="flex flex-wrap items-center gap-2">
-                        <!-- Las dos SIEMPRE en la misma fila: son un rango, y partido en dos
-                             renglones deja de leerse como tal. Caben de sobra. -->
-                        <div class="grid grid-cols-2 gap-2 flex-1 min-w-[15rem] md:flex-none md:w-[23rem]">
-                            <label class="flex flex-col gap-0.5">
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</span>
-                                <FechaHoraPicker
-                                    :model-value="desde"
-                                    solo-fecha
-                                    @update:model-value="onCambiarDesde"
-                                />
-                            </label>
-                            <label class="flex flex-col gap-0.5">
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hasta</span>
-                                <FechaHoraPicker
-                                    :model-value="hasta"
-                                    solo-fecha
-                                    :min-date="desde"
-                                    @update:model-value="(v: string) => { hasta = v; cargarBiblia(); }"
-                                />
-                            </label>
-                        </div>
+                    <!--
+                      BARRA DE FILTROS — cuatro ejes plegados tras UNA fila de rótulos.
 
-                        <div class="flex items-center gap-1 self-end">
-                            <button
-                                v-for="p in [{ k: 'hoy', l: 'Hoy' }, { k: 'manana', l: 'Mañana' }, { k: 'semana', l: '7 días' }]"
-                                :key="p.k"
-                                @click="aplicarPreset(p.k as 'hoy' | 'manana' | 'semana')"
-                                class="px-2.5 py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 transition-colors shadow-sm"
-                            >
-                                {{ p.l }}
-                            </button>
-                        </div>
+                      Mobile first, y la restricción manda: en un teléfono de 360 px lo que se
+                      viene a ver es el cuadro, no los filtros. Antes cada eje tenía su franja
+                      propia siempre desplegada —trece chips de lugar, los de organización, catorce
+                      de tipo— y el primer servicio caía bajo el pliegue. Ahora la barra ocupa tres
+                      líneas fijas (rango · atajos + expediente · ejes) y las opciones de un eje
+                      sólo existen mientras ese eje está abierto.
 
-                        <div class="flex items-center gap-2 ml-auto self-end">
-                            <!-- El contador vive aquí y no en su propia franja: una línea sólo
-                                 para «0 servicios» es cuadro de tráfico que no se ve. -->
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest tabular-nums hidden sm:inline">
-                                {{ operacionStore.servicios.length }}
-                            </span>
-                            <button
-                                @click="mostrarFiltrosAvanzados = !mostrarFiltrosAvanzados"
-                                :class="hayFiltrosExtra ? 'bg-[#376875] text-white border-[#376875]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'"
-                                class="flex items-center gap-2 px-3 py-2 border rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
-                            >
-                                <i class="fas fa-filter"></i>
-                                <span class="hidden sm:inline">Filtros</span>
-                                <span v-if="hayFiltrosExtra" class="bg-white/25 px-1.5 rounded">•</span>
-                            </button>
-                            <button
-                                @click="cargarBiblia"
-                                :disabled="operacionStore.isLoading"
-                                class="flex items-center gap-2 px-4 py-2 bg-[#376875] hover:bg-[#2d5660] disabled:opacity-50 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
-                            >
-                                <i class="fas fa-rotate" :class="{ 'fa-spin': operacionStore.isLoading }"></i>
-                                <span class="hidden sm:inline">Actualizar</span>
-                            </button>
-                        </div>
+                      Los ejes son cuatro y ninguno es «avanzado»: LUGAR y ORGANIZACIÓN acotan a
+                      quién y dónde, TIPO qué clase de servicio, ESTADO en qué punto está. El
+                      antiguo botón «Filtros» desapareció con el panel que abría: escondía tipo y
+                      estado un toque más adentro sin que fueran menos de diario que los otros dos.
+                    -->
+
+                    <!-- Fila 1 — el rango. Las dos fechas SIEMPRE en la misma línea: son un
+                         rango, y partido en dos renglones deja de leerse como tal. -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex flex-col gap-0.5">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</span>
+                            <FechaHoraPicker
+                                :model-value="desde"
+                                solo-fecha
+                                @update:model-value="onCambiarDesde"
+                            />
+                        </label>
+                        <label class="flex flex-col gap-0.5">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hasta</span>
+                            <FechaHoraPicker
+                                :model-value="hasta"
+                                solo-fecha
+                                :min-date="desde"
+                                @update:model-value="(v: string) => { hasta = v; cargarBiblia(); }"
+                            />
+                        </label>
                     </div>
 
                     <!--
-                        Fila 1.5: lugares / centros de operación.
+                      Fila 2 — atajos de fecha + expediente, compartiendo línea.
 
-                        FUERA del panel plegable a propósito. El operador ajusta el rango de
-                        fechas y aprieta «Lima» de un clic; si estuviera dentro de "Filtros"
-                        habría que abrir el panel antes de cada uso, que es justo el paso que
-                        este filtro existe para eliminar.
+                      El expediente ocupa justo el hueco que dejaron «7 días» (que devolvía al
+                      rango de arranque, o sea a ninguna parte) y «Actualizar» (que se subió a la
+                      cabecera). Se gana un renglón y el buscador queda en la barra fija, que es
+                      donde tiene que estar: es lo único que consulta SIN rango de fechas, así que
+                      esconderlo tras un desplegable era esconder la salida.
                     -->
-                    <div v-if="operacionStore.lugares.length" class="mt-2 flex flex-wrap items-center gap-1.5">
-
-                        <!-- El rótulo ES el interruptor: un botón aparte para plegar cuatro
-                             líneas de chips sería un control más que explicar. El contador dice
-                             cuántos hay activos cuando está cerrado, que es lo único que no se
-                             puede ver de un vistazo. -->
+                    <div class="mt-2 flex items-center gap-1.5">
                         <button
-                            @click="mostrarLugares = !mostrarLugares"
-                            class="text-[9px] font-black uppercase tracking-widest mr-1 flex items-center gap-1 transition-colors"
-                            :class="lugaresSeleccionados.length ? 'text-[#376875]' : 'text-slate-400 hover:text-slate-600'"
-                            :title="mostrarLugares ? 'Ocultar lugares' : 'Mostrar lugares'"
+                            v-for="p in [{ k: 'hoy', l: 'Hoy' }, { k: 'manana', l: 'Mañana' }]"
+                            :key="p.k"
+                            @click="aplicarPreset(p.k as 'hoy' | 'manana')"
+                            class="shrink-0 px-2.5 py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 transition-colors shadow-sm"
                         >
-                            <i class="fas fa-map-marker-alt"></i>
-                            Lugar
-                            <span v-if="lugaresSeleccionados.length" class="bg-[#376875] text-white rounded-full px-1.5">
-                                {{ lugaresSeleccionados.length }}
-                            </span>
-                            <i class="fas text-[8px]" :class="mostrarLugares ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                            {{ p.l }}
                         </button>
 
-                        <!-- El interruptor MANDA, aunque haya filtros activos.
-                             La primera versión forzaba abrir si había alguno, para que un filtro
-                             activo no quedara escondido — el fallo que ya costó las filas de tipo
-                             `contacto`. Pero eso lo dejaba clavado abierto justo cuando más
-                             estorba, y el riesgo ya lo cubre el contador del rótulo: cerrado, la
-                             pastilla dice cuántos hay puestos. -->
-                        <template v-if="mostrarLugares">
-                        <button
-                            v-for="l in operacionStore.lugares"
-                            :key="l.id"
-                            @click="alternarLugar(l.id)"
-                            :class="lugaresSeleccionados.includes(l.id) ? 'bg-[#376875] text-white border-[#376875]'
-                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
-                            class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
-                        >
-                            {{ l.nombre }}
-                        </button>
-
-                        <!--
-                            Los componentes tecleados a mano en la cotización no tienen maestro,
-                            así que nunca llevan etiqueta. Sin este chip desaparecerían del cuadro
-                            al filtrar por lugar sin ningún aviso — y con ellos, de la orden de
-                            servicio. Ver docs/Operacion.md.
-                        -->
-                        <button
-                            @click="alternarLugar(SIN_LUGAR)"
-                            :class="lugaresSeleccionados.includes(SIN_LUGAR) ? 'bg-amber-500 text-white border-amber-500'
-                                : 'bg-white text-amber-600 border-amber-200 hover:border-amber-400'"
-                            class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
-                            title="Servicios sin etiqueta de lugar (componentes manuales o sin catalogar)"
-                        >
-                            <i class="fas fa-circle-question mr-1"></i>Sin etiqueta
-                        </button>
-                        </template>
-                    </div>
-
-                    <!--
-                      EMPRESA — prestador o comprador, en OR.
-
-                      Es el filtro con el que se compone una orden: la orden agrupa por comprador,
-                      así que «todo lo de Futurismo Jonathan» es el paso previo a marcar y generar.
-                      Mismo patrón que los lugares —el rótulo es el interruptor y lleva contador—,
-                      pero **filtra lo ya cargado** y sus chips salen de las propias filas: el
-                      catálogo entero daría una lista de la que la mitad no aparece en estas
-                      fechas.
-                    -->
-                    <div v-if="empresasDelCuadro.length || hayServiciosSinEmpresa" class="mt-2 flex flex-wrap items-center gap-1.5">
-                        <button
-                            @click="mostrarEmpresas = !mostrarEmpresas"
-                            class="text-[9px] font-black uppercase tracking-widest mr-1 flex items-center gap-1 transition-colors"
-                            :class="empresasSeleccionadas.length ? 'text-[#376875]' : 'text-slate-400 hover:text-slate-600'"
-                            :title="mostrarEmpresas ? 'Ocultar empresas' : 'Mostrar empresas'"
-                        >
-                            <i class="fas fa-truck"></i>
-                            Empresa
-                            <span v-if="empresasSeleccionadas.length" class="bg-[#376875] text-white rounded-full px-1.5">
-                                {{ empresasSeleccionadas.length }}
-                            </span>
-                            <i class="fas text-[8px]" :class="mostrarEmpresas ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                        </button>
-
-                        <template v-if="mostrarEmpresas">
-                        <button
-                            v-for="e in empresasDelCuadro"
-                            :key="e.id"
-                            @click="alternarEmpresa(e.id)"
-                            :class="empresasSeleccionadas.includes(e.id) ? 'bg-[#376875] text-white border-[#376875]'
-                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
-                            class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
-                            title="Prestador o comprador: trae sus filas en cualquiera de los dos papeles"
-                        >
-                            {{ e.nombre }}
-                        </button>
-
-                        <!-- Las filas que nadie ha asignado son las que hay que resolver ANTES de
-                             emitir nada. Sin este chip no hay forma de pedirlas: no tienen nombre
-                             por el que buscarlas. -->
-                        <button
-                            v-if="hayServiciosSinEmpresa"
-                            @click="alternarEmpresa(SIN_EMPRESA)"
-                            :class="empresasSeleccionadas.includes(SIN_EMPRESA) ? 'bg-amber-500 text-white border-amber-500'
-                                : 'bg-white text-amber-600 border-amber-200 hover:border-amber-400'"
-                            class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
-                            title="Servicios sin prestador ni comprador: no se pueden pedir a nadie todavía"
-                        >
-                            <i class="fas fa-circle-question mr-1"></i>Sin asignar
-                        </button>
-                        </template>
-                    </div>
-
-                    <!-- Fila 2: filtros avanzados -->
-                    <!-- EXPEDIENTE, fuera de «Filtros» y en la barra fija.
-                         Es lo único que permite consultar SIN rango de fechas, así que
-                         esconderlo tras un desplegable era esconder la salida. -->
-                    <div class="mt-1.5 flex flex-wrap items-center gap-2">
-                            <div class="relative flex flex-col gap-1 flex-1 min-w-[11rem]">
-
-                                <div v-if="expedienteSeleccionado" class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
-                                    <i class="fas fa-folder-open text-[#376875] text-xs"></i>
-                                    <span class="text-sm font-bold text-slate-700 truncate">{{ expedienteSeleccionado.nombreGrupo }}</span>
-                                    <button @click="quitarExpediente" class="ml-auto text-slate-400 hover:text-rose-600">
-                                        <i class="fas fa-xmark"></i>
-                                    </button>
-                                </div>
-
-                                <template v-else>
-                                    <input
-                                        ref="inputExpediente"
-                                        v-model="terminoExpediente"
-                                        type="text"
-                                        placeholder="Expediente…"
-                                        class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
-                                    />
-                                    <div
-                                        v-if="resultadosExpediente.length || buscandoExpediente"
-                                        class="absolute left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-20 max-h-56 overflow-y-auto"
-                                        :class="expedienteArriba ? 'bottom-full mb-1' : 'top-full mt-1'"
-                                    >
-                                        <p v-if="buscandoExpediente" class="px-3 py-2 text-xs text-slate-400">
-                                            <i class="fas fa-spinner fa-spin mr-1"></i> Buscando…
-                                        </p>
-                                        <button
-                                            v-for="exp in resultadosExpediente"
-                                            :key="exp.id"
-                                            @click="elegirExpediente(exp)"
-                                            class="w-full text-left px-3 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-0"
-                                        >
-                                            <p class="text-sm font-bold text-slate-700">{{ exp.nombreGrupo }}</p>
-                                            <p v-if="exp.pasajeroPrincipal" class="text-[10px] text-slate-400">{{ exp.pasajeroPrincipal }}</p>
-                                        </button>
-                                    </div>
-                                </template>
+                        <div class="relative flex-1 min-w-0">
+                            <div v-if="expedienteSeleccionado" class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
+                                <i class="fas fa-folder-open text-[#376875] text-xs shrink-0"></i>
+                                <span class="text-sm font-bold text-slate-700 truncate">{{ expedienteSeleccionado.nombreGrupo }}</span>
+                                <button @click="quitarExpediente" class="ml-auto shrink-0 text-slate-400 hover:text-rose-600">
+                                    <i class="fas fa-xmark"></i>
+                                </button>
                             </div>
 
-                        <!-- Ya está / falta por encargar. En local sobre lo cargado.
-                             Comparte fila con el expediente: en móvil cada bloque suelto de la
-                             barra es una franja menos de cuadro, que es lo que se viene a ver. -->
-                        <div class="flex items-center gap-0.5 shrink-0 bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm">
-                            <button v-for="o in [{ k: '', l: 'Todas' }, { k: 'sin', l: 'Sin OS' }, { k: 'con', l: 'En OS' }]"
-                                    :key="o.k"
-                                    @click="filtroOs = o.k as '' | 'sin' | 'con'"
-                                    :class="filtroOs === o.k ? 'bg-[#376875] text-white' : 'text-slate-500 hover:bg-slate-100'"
-                                    class="px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest transition-colors whitespace-nowrap">
-                                {{ o.l }}
-                            </button>
+                            <template v-else>
+                                <input
+                                    ref="inputExpediente"
+                                    v-model="terminoExpediente"
+                                    type="text"
+                                    placeholder="Expediente…"
+                                    class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
+                                />
+                                <div
+                                    v-if="resultadosExpediente.length || buscandoExpediente"
+                                    class="absolute left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-20 max-h-56 overflow-y-auto"
+                                    :class="expedienteArriba ? 'bottom-full mb-1' : 'top-full mt-1'"
+                                >
+                                    <p v-if="buscandoExpediente" class="px-3 py-2 text-xs text-slate-400">
+                                        <i class="fas fa-spinner fa-spin mr-1"></i> Buscando…
+                                    </p>
+                                    <button
+                                        v-for="exp in resultadosExpediente"
+                                        :key="exp.id"
+                                        @click="elegirExpediente(exp)"
+                                        class="w-full text-left px-3 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-0"
+                                    >
+                                        <p class="text-sm font-bold text-slate-700">{{ exp.nombreGrupo }}</p>
+                                        <p v-if="exp.pasajeroPrincipal" class="text-[10px] text-slate-400">{{ exp.pasajeroPrincipal }}</p>
+                                    </button>
+                                </div>
+                            </template>
                         </div>
                     </div>
 
-                    <!-- Sin rango y sin expediente no se consulta: sería la operación entera. -->
-                    <p v-if="faltaAcotar" class="mt-1.5 text-[10px] font-bold text-amber-700 flex items-center gap-1.5">
-                        <i class="fas fa-triangle-exclamation"></i>
-                        Pon fechas, o elige un expediente para verlo entero sin ellas.
-                    </p>
+                    <!-- La versión de la cotización cuelga del expediente, así que sale pegada a
+                         él y sólo cuando hay alguna. Suelta en un panel de filtros no se entendía
+                         de qué era versión. -->
+                    <label v-if="cotizacionesDelExpediente.length" class="mt-2 flex items-center gap-2">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0">Versión</span>
+                        <select
+                            v-model="cotizacionSeleccionada"
+                            @change="cargarBiblia"
+                            class="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
+                        >
+                            <option value="">Todas las versiones</option>
+                            <option v-for="c in cotizacionesDelExpediente" :key="c.id" :value="c.id">
+                                v{{ c.version ?? '?' }} · {{ c.titulo || 'Sin título' }} ({{ c.estado }})
+                            </option>
+                        </select>
+                    </label>
 
-                    <div v-if="mostrarFiltrosAvanzados" class="mt-3 pt-3 border-t border-slate-200 flex flex-col gap-3">
+                    <!--
+                      Fila 3 — los cuatro ejes.
 
-                        <!-- Expediente y cotización -->
-                        <div class="flex flex-wrap items-end gap-2">
-                            <label v-if="cotizacionesDelExpediente.length" class="flex flex-col gap-1 min-w-[14rem]">
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cotización</span>
-                                <select
-                                    v-model="cotizacionSeleccionada"
-                                    @change="cargarBiblia"
-                                    class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
-                                >
-                                    <option value="">Todas las versiones</option>
-                                    <option v-for="c in cotizacionesDelExpediente" :key="c.id" :value="c.id">
-                                        v{{ c.version ?? '?' }} · {{ c.titulo || 'Sin título' }} ({{ c.estado }})
-                                    </option>
-                                </select>
-                            </label>
+                      El rótulo ES el interruptor y lleva CONTADOR: es lo que hace seguro tenerlos
+                      todos cerrados de arranque. Un filtro activo escondido y sin contador es la
+                      forma de leer un cuadro recortado creyéndolo entero, que es el fallo que ya
+                      costó las filas de tipo `contacto`.
 
-                            <label class="flex flex-col gap-1">
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reserva</span>
-                                <select
-                                    v-model="filtroEstadoReservaProveedor"
-                                    @change="cargarBiblia"
-                                    class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
-                                >
-                                    <option value="">Cualquiera</option>
-                                    <option v-for="(cfg, k) in ESTADO_RESERVA_PROVEEDOR_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
-                                </select>
-                            </label>
+                      LUGAR y ORGANIZACIÓN sólo salen si hay de qué: un rótulo que abre a una lista
+                      vacía es una promesa incumplida. Los de LUGAR vienen del catálogo; los de
+                      ORGANIZACIÓN, de las propias filas cargadas.
+                    -->
+                    <div class="mt-2 flex flex-wrap items-center gap-1">
+                        <button
+                            v-for="g in gruposVisibles"
+                            :key="g.k"
+                            @click="alternarGrupo(g.k)"
+                            :class="grupoAbierto === g.k ? 'bg-[#376875] text-white border-[#376875]'
+                                : conteoPorGrupo[g.k] ? 'bg-white text-[#376875] border-[#376875]'
+                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
+                            class="flex items-center gap-1 px-2 py-1.5 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors shadow-sm"
+                        >
+                            <i :class="g.icon"></i>
+                            {{ g.label }}
+                            <span
+                                v-if="conteoPorGrupo[g.k]"
+                                :class="grupoAbierto === g.k ? 'bg-white/25' : 'bg-[#376875] text-white'"
+                                class="rounded-full px-1.5"
+                            >{{ conteoPorGrupo[g.k] }}</span>
+                            <i class="fas text-[8px]" :class="grupoAbierto === g.k ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                        </button>
 
-                            <label class="flex flex-col gap-1">
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Operación</span>
-                                <select
-                                    v-model="filtroEstadoOperacion"
-                                    @change="cargarBiblia"
-                                    class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
-                                >
-                                    <option value="">Cualquiera</option>
-                                    <option v-for="(cfg, k) in ESTADO_OPERACION_CONFIG" :key="k" :value="k">{{ cfg.label }}</option>
-                                </select>
-                            </label>
+                        <!-- El recuento vive aquí y no en su propia franja: una línea sólo para
+                             «40 servicios» es cuadro de tráfico que no se ve. -->
+                        <span class="ml-auto text-[10px] font-black text-slate-400 uppercase tracking-widest tabular-nums">
+                            {{ operacionStore.servicios.length }}
+                        </span>
 
+                        <button
+                            v-if="hayFiltrosPuestos"
+                            @click="limpiarFiltros"
+                            class="px-2 py-1.5 text-[9px] font-black uppercase tracking-wider text-slate-400 hover:text-rose-600 transition-colors"
+                        >
+                            Limpiar
+                        </button>
+                    </div>
+
+                    <!-- Las opciones del eje abierto. Uno como mucho, y sólo mientras está
+                         abierto: es lo que devuelve la pantalla al cuadro. -->
+                    <div v-if="grupoAbierto" class="mt-2 flex flex-wrap gap-1.5">
+
+                        <template v-if="grupoAbierto === 'lugar'">
                             <button
-                                @click="limpiarFiltros"
-                                class="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-rose-600 transition-colors"
+                                v-for="l in operacionStore.lugares"
+                                :key="l.id"
+                                @click="alternarLugar(l.id)"
+                                :class="lugaresSeleccionados.includes(l.id) ? 'bg-[#376875] text-white border-[#376875]'
+                                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
+                                class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
                             >
-                                Limpiar
+                                {{ l.nombre }}
                             </button>
-                        </div>
 
-                        <!-- Chips de tipo -->
-                        <div class="flex flex-wrap gap-1.5">
+                            <!--
+                                Los componentes tecleados a mano en la cotización no tienen maestro,
+                                así que nunca llevan etiqueta. Sin este chip desaparecerían del cuadro
+                                al filtrar por lugar sin ningún aviso — y con ellos, de la orden de
+                                servicio. Ver docs/Operacion.md.
+                            -->
+                            <button
+                                @click="alternarLugar(SIN_LUGAR)"
+                                :class="lugaresSeleccionados.includes(SIN_LUGAR) ? 'bg-amber-500 text-white border-amber-500'
+                                    : 'bg-white text-amber-600 border-amber-200 hover:border-amber-400'"
+                                class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                                title="Servicios sin etiqueta de lugar (componentes manuales o sin catalogar)"
+                            >
+                                <i class="fas fa-circle-question mr-1"></i>Sin etiqueta
+                            </button>
+                        </template>
+
+                        <!--
+                          ORGANIZACIÓN — prestador o comprador, en OR.
+
+                          Es el eje con el que se compone una orden: la orden agrupa por comprador,
+                          así que «todo lo de Futurismo Jonathan» es el paso previo a marcar y
+                          generar. **Filtra lo ya cargado** y sus chips salen de las propias filas:
+                          el catálogo entero daría una lista de la que la mitad no aparece en estas
+                          fechas.
+                        -->
+                        <template v-else-if="grupoAbierto === 'organizacion'">
+                            <button
+                                v-for="e in organizacionesDelCuadro"
+                                :key="e.id"
+                                @click="alternarOrganizacion(e.id)"
+                                :class="organizacionesSeleccionadas.includes(e.id) ? 'bg-[#376875] text-white border-[#376875]'
+                                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
+                                class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                                title="Prestador o comprador: trae sus filas en cualquiera de los dos papeles"
+                            >
+                                {{ e.nombre }}
+                            </button>
+
+                            <!-- Las filas que nadie ha asignado son las que hay que resolver ANTES
+                                 de emitir nada. Sin este chip no hay forma de pedirlas: no tienen
+                                 nombre por el que buscarlas. -->
+                            <button
+                                v-if="hayServiciosSinOrganizacion"
+                                @click="alternarOrganizacion(SIN_ORGANIZACION)"
+                                :class="organizacionesSeleccionadas.includes(SIN_ORGANIZACION) ? 'bg-amber-500 text-white border-amber-500'
+                                    : 'bg-white text-amber-600 border-amber-200 hover:border-amber-400'"
+                                class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                                title="Servicios sin prestador ni comprador: no se pueden pedir a nadie todavía"
+                            >
+                                <i class="fas fa-circle-question mr-1"></i>Sin asignar
+                            </button>
+                        </template>
+
+                        <template v-else-if="grupoAbierto === 'tipo'">
                             <button
                                 v-for="t in TIPOS_COMPONENTE"
                                 :key="t.value"
@@ -2429,24 +2439,61 @@ onMounted(async () => {
                                 <i :class="[t.icon, 'text-[10px]']"></i>
                                 {{ t.label }}
                             </button>
-                        </div>
+                        </template>
+
+                        <!--
+                          ESTADO — los tres cortes «en qué punto está», juntos porque se leen
+                          juntos: si ya está encargado (OS), qué dijo el proveedor (reserva) y
+                          cómo va en la calle (operación). Estaban repartidos entre la barra fija
+                          y el panel «Filtros», y nada decía que fueran la misma pregunta.
+                        -->
+                        <template v-else>
+                            <div class="flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm">
+                                <button v-for="o in [{ k: '', l: 'Todas' }, { k: 'sin', l: 'Sin OS' }, { k: 'con', l: 'En OS' }]"
+                                        :key="o.k"
+                                        @click="filtroOs = o.k as '' | 'sin' | 'con'"
+                                        :class="filtroOs === o.k ? 'bg-[#376875] text-white' : 'text-slate-500 hover:bg-slate-100'"
+                                        class="px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest transition-colors whitespace-nowrap">
+                                    {{ o.l }}
+                                </button>
+                            </div>
+
+                            <select
+                                v-model="filtroEstadoReservaProveedor"
+                                @change="cargarBiblia"
+                                class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
+                            >
+                                <option value="">Reserva: cualquiera</option>
+                                <option v-for="(cfg, k) in ESTADO_RESERVA_PROVEEDOR_CONFIG" :key="k" :value="k">Reserva: {{ cfg.label }}</option>
+                            </select>
+
+                            <select
+                                v-model="filtroEstadoOperacion"
+                                @change="cargarBiblia"
+                                class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm"
+                            >
+                                <option value="">Operación: cualquiera</option>
+                                <option v-for="(cfg, k) in ESTADO_OPERACION_CONFIG" :key="k" :value="k">Operación: {{ cfg.label }}</option>
+                            </select>
+                        </template>
                     </div>
+
+                    <!-- Sin rango y sin expediente no se consulta: sería la operación entera. -->
+                    <p v-if="faltaAcotar" class="mt-1.5 text-[10px] font-bold text-amber-700 flex items-center gap-1.5">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        Pon fechas, o elige un expediente para verlo entero sin ellas.
+                    </p>
 
                     <!-- Fila 3: sólo si hay algo que decir. Con el cuadro vacío y sin
                          seleccionar, esta franja era espacio en blanco fijo. -->
                     <div v-if="seleccionados.length || hayServiciosOcultos" class="mt-2 flex items-center gap-3">
-                        <!-- Los dos contadores APILADOS, no en fila. En un teléfono ocupaban dos
-                             tercios del ancho y empujaban los botones fuera de la pantalla: el de
-                             «agregar a orden» no llegaba a verse. Uno sobre otro caben en una
-                             columna estrecha y dejan el resto para lo que se pulsa. -->
-                        <div class="flex flex-col leading-tight shrink-0">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest sm:hidden">
-                                {{ operacionStore.servicios.length }} servicio{{ operacionStore.servicios.length !== 1 ? 's' : '' }}
-                            </span>
-                            <span v-if="seleccionados.length" class="text-[10px] font-black text-[#376875] uppercase tracking-widest">
-                                {{ seleccionados.length }} sel.
-                            </span>
-                        </div>
+                        <!-- El recuento de servicios se quedó en la fila de ejes, que está
+                             siempre visible. Aquí sólo lo seleccionado: en un teléfono los dos
+                             juntos ocupaban dos tercios del ancho y empujaban «agregar a orden»
+                             fuera de la pantalla. -->
+                        <span v-if="seleccionados.length" class="shrink-0 text-[10px] font-black text-[#376875] uppercase tracking-widest">
+                            {{ seleccionados.length }} sel.
+                        </span>
 
                         <!-- La página trae 200 como mucho y aquí no se pagina. Sin este
                              aviso, un rango amplio recortaba el cuadro en silencio: el
@@ -2547,7 +2594,7 @@ onMounted(async () => {
                 <!--
                   Vacío por los filtros DE LA VISTA, no por los del servidor.
 
-                  `filtroOs` y el de empresa filtran lo ya cargado, así que pueden dejar el cuadro
+                  `filtroOs` y el de organización filtran lo ya cargado, así que pueden dejar el cuadro
                   a cero con la petición trayendo cuarenta filas: sin este bloque quedaba un hueco
                   en blanco sin una palabra que dijera por qué. Es el mismo principio que el chip
                   «Sin etiqueta»: un filtro que esconde en silencio no es un filtro, es un fallo.
@@ -2563,9 +2610,9 @@ onMounted(async () => {
                             cargado{{ operacionStore.servicios.length !== 1 ? 's' : '' }}, pero ninguno pasa el filtro de esta pantalla.
                         </p>
                         <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-                            <button v-if="empresasSeleccionadas.length" @click="empresasSeleccionadas = []"
+                            <button v-if="organizacionesSeleccionadas.length" @click="organizacionesSeleccionadas = []"
                                     class="px-3 py-1.5 bg-white border border-slate-200 hover:border-[#376875] rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                <i class="fas fa-truck mr-1"></i>Quitar empresa ({{ empresasSeleccionadas.length }})
+                                <i class="fas fa-truck mr-1"></i>Quitar organización ({{ organizacionesSeleccionadas.length }})
                             </button>
                             <button v-if="filtroOs" @click="filtroOs = ''"
                                     class="px-3 py-1.5 bg-white border border-slate-200 hover:border-[#376875] rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -2860,16 +2907,8 @@ onMounted(async () => {
                 <div class="sticky top-0 z-10 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200 px-4 md:px-6 py-3 flex items-center gap-3 shrink-0">
                     <div class="flex items-center gap-2">
                         <i class="fas fa-list-check text-[#E07845]"></i>
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:inline">Órdenes Vigentes</span>
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Órdenes Vigentes</span>
                     </div>
-                    <button
-                        @click="cargarOrdenes"
-                        :disabled="operacionStore.isLoading"
-                        class="ml-auto flex items-center gap-2 px-4 py-2 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
-                    >
-                        <i class="fas fa-rotate" :class="{ 'fa-spin': operacionStore.isLoading }"></i>
-                        <span class="hidden sm:inline">Actualizar</span>
-                    </button>
                 </div>
 
                 <div v-if="operacionStore.isLoading" class="flex-1 flex items-center justify-center py-16">

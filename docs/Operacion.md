@@ -468,7 +468,7 @@ la Orden.
 
 Ahora los dos salen del mismo sitio: `contactoDeOrganizacion(maestroId)` en el store, con
 `contactoDePrestador()` y `contactoDeComprador()` encima. **Por el id EFECTIVO**: si operaciones
-cambió el prestador, el teléfono que hace falta es el de la empresa nueva. Corregir un número en
+cambió el prestador, el teléfono que hace falta es el de la organización nueva. Corregir un número en
 la ficha lo corrige en todas las filas — justo lo que una copia por fila impedía
 (`Version20260820200000`).
 
@@ -476,7 +476,7 @@ la ficha lo corrige en todas las filas — justo lo que una copia por fila imped
 
 El input va contra un `<datalist>` del catálogo, uno solo para todo el cuadro: con un selector
 por fila el DOM crecería a 99 opciones × cientos de filas. Si lo escrito no casa con ninguna
-empresa **se revierte y se avisa**, en vez de guardar un nombre suelto que rompería la agrupación
+organización (`resolverOrganizacion()`) **se revierte y se avisa**, en vez de guardar un nombre suelto que rompería la agrupación
 de la Orden.
 
 Cuando operaciones cambió algo, el campo se pinta en color y debajo aparece «Cotizado: …» como
@@ -1761,17 +1761,59 @@ de serialización sobre el árbol de cotizaciones.
 
 `util/src/views/Operacion/OperacionView.vue`, ruta `/operacion`.
 
-**Filtros:** rango de fechas —arranca en **hoy → +6 días**, no en un solo día (§3.bis)— con
-presets Hoy / Mañana / 7 días, expediente por autocompletado,
-cotización (versiones del expediente elegido), chips de tipo de componente, y estados de reserva y
-operación. `construirParamsBiblia()` en `operacionModel.ts` es el único sitio donde viven los
-nombres de los parámetros de query.
+**Filtros:** rango de fechas —arranca en **hoy → +6 días**, no en un solo día (§3.bis)—, atajos
+Hoy / Mañana, expediente por autocompletado, versión de la cotización (del expediente elegido) y
+cuatro ejes plegables: lugar, organización, tipo y estado. `construirParamsBiblia()` en
+`operacionModel.ts` es el único sitio donde viven los nombres de los parámetros de query.
 
-**Los chips de lugar van en fila propia, siempre visible**, y eso no es cosmético: el objetivo
-declarado era apretar «Lima» y ver de un clic todo lo que se opera desde ahí. Metidos en el
-panel plegable de filtros avanzados —donde viven los chips de tipo— habría que abrirlo antes de
-cada clic, que es exactamente el paso que se quería quitar. Llevan color distinto al de los
-chips de tipo porque son dos taxonomías distintas y no deben leerse como la misma.
+### 7.0 La barra de filtros: cuatro ejes tras una fila de rótulos (25/08/2026)
+
+La barra ocupa **tres líneas fijas** y nada más:
+
+```
+┌──────────────────────────────────────────────┐
+│ DESDE [ 18/08/2026 ]   HASTA [ 10/09/2026 ]  │  rango
+├──────────────────────────────────────────────┤
+│ [Hoy] [Mañana]  [ Expediente…            ]   │  atajos + búsqueda
+├──────────────────────────────────────────────┤
+│ 📍Lugar ▾  🚚Organización① ▾  Tipo ▾  Estado ▾   40  │  ejes
+└──────────────────────────────────────────────┘
+        ↓ sólo el eje abierto pinta sus opciones
+   [ Cusco ] [ Lima ] [ Puno ] [ ? Sin etiqueta ]
+```
+
+**Mobile first, y la restricción manda.** Cada eje tenía antes su propia franja desplegada: trece
+chips de lugar, los de organización y catorce de tipo. En un teléfono de 360 px la barra se comía
+la pantalla entera y **el primer servicio caía bajo el pliegue** — que es justo lo que se viene a
+mirar. Ahora sólo hay un eje abierto a la vez y al abrir uno se cierra el anterior
+(`grupoAbierto`, `alternarGrupo()`).
+
+**El rótulo ES el interruptor y lleva contador.** Es lo que hace seguro arrancar con todos
+cerrados: un filtro activo escondido *y sin contador* es la forma de leer un cuadro recortado
+creyéndolo entero — el fallo que ya costó las filas de tipo `contacto`. `conteoPorGrupo` es quien
+lo calcula, y tiene que cubrir los cuatro ejes.
+
+⚠️ **LUGAR y ORGANIZACIÓN se esconden cuando no tienen nada que ofrecer** (`gruposVisibles`). Un
+rótulo que abre a una lista vacía se lee como avería —«el filtro no carga»— cuando lo que pasa es
+que no hay de qué filtrar. Y si el eje abierto desaparece, un `watch` lo cierra: si no, quedaba un
+bloque de opciones colgando sin rótulo con el que cerrarlo, y había que recargar para salir.
+
+**Qué desapareció y por qué:**
+
+| Antes | Ahora | Motivo |
+|---|---|---|
+| Botón «Filtros» + panel plegable | — | Sólo escondía tipo y estado un toque más adentro, y no son menos de diario que lugar u organización |
+| Preset «7 días» | — | Devolvía al rango de arranque, o sea a ninguna parte: la vista ya nace con la semana puesta |
+| Botón «Actualizar» en cada barra | Uno en la cabecera (`refrescar()`) | Estaba duplicado en las dos pestañas y en La Biblia se comía el ancho donde ahora vive el expediente |
+| Chips de tipo y estados repartidos | Ejes «Tipo» y «Estado» | Los tres cortes de estado —OS, reserva, operación— se leen juntos y nada decía que fueran la misma pregunta |
+
+**El expediente se queda en la barra fija**, en el hueco que dejaron «7 días» y «Actualizar». Es
+lo único que consulta SIN rango de fechas: esconderlo tras un desplegable era esconder la salida.
+La **versión de la cotización** cuelga de él y sólo sale cuando hay expediente elegido — suelta en
+un panel de filtros no se entendía de qué era versión.
+
+Los chips de lugar llevan color distinto al de los de tipo porque son dos taxonomías distintas y
+no deben leerse como la misma.
 
 Los badges de lugar por fila se resuelven **en lote**: se juntan los `componenteMaestroId`
 distintos de las filas cargadas y se hace **una sola** llamada a
@@ -1877,9 +1919,16 @@ El costo negociado se empotra con su propio editor y **guarda al confirmarlo**, 
 abajo: tiene su propia confirmación y duplicarlo en el borrador daría dos formas de guardar el
 mismo importe.
 
-### El filtro por EMPRESA (25/08/2026)
+### El eje ORGANIZACIÓN (25/08/2026)
 
-Chips en la barra, con el mismo patrón que los de lugar —el rótulo es el interruptor y lleva
+Se llamaba «Empresa» y pasó a **Organización** el mismo día: es el nombre que ya usa el dominio
+(`TravelOrganizacion`) y el que lleva el catálogo contra el que se validan prestador y comprador
+(`resolverOrganizacion()`). Dos nombres para la misma cosa obligan a traducir mentalmente en cada
+pantalla. El renombrado alcanzó a los identificadores del front —`organizacionesSeleccionadas`,
+`organizacionesDelCuadro`, `coincideOrganizacion()`, `SIN_ORGANIZACION`—; no toca la API, porque
+este filtro no viaja al servidor.
+
+Chips en el eje, con el mismo patrón que los de lugar —el rótulo es el interruptor y lleva
 contador—, pero con tres diferencias que importan:
 
 - **Filtra lo ya cargado**, en el navegador, como el conmutador «sin OS / en OS». No viaja al
@@ -1887,15 +1936,15 @@ contador—, pero con tres diferencias que importan:
 - **Los chips salen de las filas**, no del catálogo de proveedores. El catálogo es largo y la
   mitad no aparece en estas fechas; así cada chip que se ve trae al menos una fila.
 - **Mira los dos papeles y los combina con OR.** Una fila tiene prestador y comprador, y no
-  siempre son la misma empresa (§3.3.b): quien busca «Futurismo Jonathan» quiere sus filas, le
+  siempre son la misma (§3.3.b): quien busca «Futurismo Jonathan» quiere sus filas, le
   toque el papel que le toque. Y mira el **efectivo**, no lo cotizado — filtrar por lo cotizado
   escondería justo las filas que Operaciones acaba de reasignar.
 
 **El chip «Sin asignar»** trae las filas sin ninguna de las dos: son las que hay que resolver
 antes de emitir nada, y no tienen nombre por el que buscarlas.
 
-⚠️ **Las selecciones se sueltan solas cuando la empresa desaparece del cuadro.** Al cambiar el
-rango, una empresa elegida puede no estar en la carga nueva: su chip dejaría de pintarse pero
+⚠️ **Las selecciones se sueltan solas cuando la organización desaparece del cuadro.** Al cambiar
+el rango, una organización elegida puede no estar en la carga nueva: su chip dejaría de pintarse pero
 seguiría filtrando, y el cuadro se quedaría vacío sin que nada dijera por qué. Se falla ABIERTO,
 igual que con el filtro de tipos.
 
@@ -2116,7 +2165,11 @@ cotizado, no contra la venta real.
 | Cambiar de dónde salen las ubicaciones de un componente manual | `src/Cotizacion/Entity/CotizacionCotcomponente.php` | `$lugaresManuales` — y el filtro de arriba, que las cruza |
 | Cambiar cómo se rotula un servicio en cualquier lista | `util/src/stores/operacion/operacionStore.ts` | `nombreComponenteDeServicio()` — el respaldo es el tipo, nunca la tarifa |
 | Cambiar qué se edita sin abrir la ficha | `util/src/views/Operacion/OperacionView.vue` | la `<article>` de la rejilla; lo demás va al formulario |
-| Cambiar cómo filtra el chip de empresa | `util/src/views/Operacion/OperacionView.vue` | `coincideEmpresa()` — los dos papeles en OR, sobre el efectivo |
+| Cambiar cómo filtra el chip de organización | `util/src/views/Operacion/OperacionView.vue` | `coincideOrganizacion()` — los dos papeles en OR, sobre el efectivo |
+| **Añadir o quitar un eje de filtro** (§7.0) | `util/src/views/Operacion/OperacionView.vue` | `GrupoFiltro` + `gruposVisibles` + `conteoPorGrupo` — **los tres**: sin contador, el eje filtra en silencio |
+| Cambiar cuándo se esconde un eje | mismo archivo | `gruposVisibles` — y el `watch` que cierra el eje que desaparece |
+| Cambiar qué vacía «Limpiar» | mismo archivo | `limpiarFiltros()` — incluidos los que filtran en local (`filtroOs`, organización) |
+| Cambiar los atajos de fecha | mismo archivo | `aplicarPreset()` — el rango de arranque está aparte, en los `ref` de `desde`/`hasta` |
 | Cambiar qué componentes llevan hora | `src/Travel/Enum/ComponenteTipoEnum.php` | `sinHorario()` — el front lo consulta por el flag, no lo replica |
 | Cambiar qué dispara la generación | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `onFlush()` (el `match` de estados) |
 | Cambiar qué se copia al snapshot | `src/Operacion/Service/BibliaSnapshotService.php` | `generarParaCotizacion()` |
