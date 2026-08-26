@@ -3336,6 +3336,18 @@ onMounted(async () => {
                                                 <i class="fas fa-route text-[8px] mr-1"
                                                    :class="puntosDe(s)?.efectivo?.completo ? 'text-slate-300' : 'text-amber-500'"></i>{{ rutaDe(s) }}
                                             </p>
+
+                                            <!-- ⚠️ La información operativa: «Delta LATAM LA-2695
+                                                 Aterriza 22:00». Faltaba en este panel, así que se
+                                                 veía en La Biblia y desaparecía justo en la
+                                                 pantalla desde la que se manda la orden — sin ella
+                                                 no se puede repasar lo que el proveedor va a
+                                                 recibir. En un borrador se leen EN VIVO
+                                                 (`…Efectivas`); al emitir se congelan en el ítem. -->
+                                            <p v-for="nota in (s.notasPrestadorEfectivas ?? [])" :key="nota"
+                                               class="text-[10px] font-bold text-slate-600 leading-snug mt-0.5">
+                                                <i class="fas fa-comment-dots text-[8px] mr-1 text-slate-300"></i>{{ nota }}
+                                            </p>
                                             <p class="text-[10px] text-slate-400 leading-snug">
                                                 {{ (s.fechaServicio ?? '').slice(0, 10) }} · {{ nochesTexto(s.cantidadComponente, s.tipoComponente) }}{{ s.cantidadPax }} pax
                                             </p>

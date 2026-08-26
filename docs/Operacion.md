@@ -2124,6 +2124,23 @@ podría recuperar de ninguna otra parte.
 
 ## 8. Gotchas
 
+**La información operativa —el vuelo— no llegaba al proveedor.** «Delta LATAM LA-2695 Aterriza
+22:00» vive en `notasPrestador`, y es el dato con el que un chófer decide a qué hora sale de casa.
+Se veía en La Biblia y en la página pública, pero faltaba en **los dos sitios que importan**:
+
+- **El mensaje** (`OperacionOrdenDocumento`) no lo incluía en absoluto. O sea que por WhatsApp o
+  correo —que es por donde el proveedor lo recibe de verdad— se le pedía recoger a alguien en un
+  aeropuerto **sin decirle el vuelo**.
+- **El panel del borrador** tampoco: se veía en el cuadro y desaparecía justo en la pantalla desde
+  la que se manda, así que no había forma de repasar antes de emitir lo que él va a recibir.
+
+Y detrás del segundo, otra vez el mismo agujero: `getNotasPrestadorEfectivas()` estaba sólo en
+`operacion:item:read`. Ver más abajo la regla del grupo `operacion:read`.
+
+⚠️ En un **borrador** las notas se leen EN VIVO (`…Efectivas`); al emitir se congelan en el ítem
+(`notasPrestador`). Son dos campos distintos a propósito: lo que el proveedor tiene en la mano es
+lo congelado, y si cambia, la orden lo denuncia y hay que reemitir.
+
 **El formato del documento es distinto en cada medio, y no por capricho.** La misma orden sale por
 tres sitios y cada uno aguanta cosas distintas:
 

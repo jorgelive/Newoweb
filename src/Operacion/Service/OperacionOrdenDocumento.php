@@ -140,6 +140,21 @@ final readonly class OperacionOrdenDocumento
 
         // El pin va en su propio renglón, alineado bajo el reloj: es una dirección larga y metida
         // en la ristra sepulta la hora y los pax. Ver el comentario de arriba.
-        return $ruta === null ? $linea : $linea . "\n📍 " . $ruta;
+        if ($ruta !== null) {
+            $linea .= "\n📍 " . $ruta;
+        }
+
+        // ── LO QUE HAY QUE SABER PARA OPERARLO ──────────────────────────────
+        //
+        // ⚠️ **Faltaba entero.** Aquí vive «Delta LATAM LA-2695 Aterriza 22:00», que es el dato
+        // con el que un chófer decide a qué hora sale de casa. Estaba en La Biblia y en la página
+        // pública, pero NO en el mensaje — o sea que por WhatsApp o correo, que es por donde el
+        // proveedor lo recibe de verdad, se le pedía recoger en un aeropuerto sin decirle el
+        // vuelo. Una línea por nota, porque son frases y encadenadas no se leen.
+        foreach ($item->getNotasPrestador() as $nota) {
+            $linea .= "\n📝 " . $nota;
+        }
+
+        return $linea;
     }
 }

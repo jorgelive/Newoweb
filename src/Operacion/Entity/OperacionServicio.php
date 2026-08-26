@@ -1064,7 +1064,12 @@ class OperacionServicio
      *
      * @return list<string>
      */
-    #[Groups(['operacion:item:read'])]
+    // ⚠️ TAMBIÉN en `operacion:read`, que es el grupo de los servicios anidados dentro de una
+    // Orden de Servicio. Aquí vive la información operativa —«Delta LATAM LA-2695 Aterriza
+    // 22:00»—, que es lo primero que necesita quien va a recoger a alguien en un aeropuerto.
+    // Sin este grupo no llegaba al panel de la orden: se veía en La Biblia y desaparecía justo
+    // en la pantalla desde la que se le manda.
+    #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getNotasPrestadorEfectivas(): array
     {
         return $this->notasPrestador

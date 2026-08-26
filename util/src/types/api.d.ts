@@ -17674,6 +17674,8 @@ export interface components {
             }[];
             /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
             readonly ordenItinerario?: number | null;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
         };
         "OperacionServicio-operacion.write": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio-operacion.write"] | null;
@@ -18061,6 +18063,8 @@ export interface components {
             }[];
             /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
             readonly ordenItinerario?: number | null;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
         };
         "OperacionServicio.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.jsonld-operacion.item.read_timestamp.read"] | null;
@@ -18266,6 +18270,8 @@ export interface components {
             }[];
             /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
             readonly ordenItinerario?: number | null;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
         };
         "OperacionServicio.multipart-operacion.item.read_timestamp.read": {
             ordenServicio?: components["schemas"]["OperacionOrdenServicio.multipart-operacion.item.read_timestamp.read"] | null;
@@ -18471,6 +18477,8 @@ export interface components {
             }[];
             /** @description La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural. */
             readonly ordenItinerario?: number | null;
+            /** @description Lo que de verdad se le imprime al proveedor: su redacción si la hay, si no la del componente. */
+            readonly notasPrestadorEfectivas?: string[];
         };
         /** @description ⚠️ **Aquí NO se declara `id`, y cuesta explicarlo pero importa.** */
         Organizacion: {
