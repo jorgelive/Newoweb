@@ -921,7 +921,20 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             comisionOverride: (t.comisionOverrideSnapshot === '' || t.comisionOverrideSnapshot == null)
                                 ? null : String(t.comisionOverrideSnapshot),
                             tarifaMaestraId: t.tarifaMaestraId ? extractIdStr(t.tarifaMaestraId) : null,
-                            nombreInterno: t.nombreInternoSnapshot || null
+                            nombreInterno: t.nombreInternoSnapshot || null,
+                            // ── QUIÉN LO OPERA Y A QUIÉN SE LE COMPRA ────────────
+                            //
+                            // Van en el reporte financiero, que es INTERNO. ⚠️ El comprador no
+                            // tiene cara pública a propósito —a quién le encargaste la compra no
+                            // es asunto del cliente, ver `CotizacionCotcomponente`—, así que este
+                            // par no debe acabar en la vista del pasajero ni en el PDF de venta.
+                            //
+                            // El comprador se guarda **sólo si es propio**. Cuando nadie lo
+                            // encargó, la regla de negocio es que se le compra a quien opera, y
+                            // repetir el mismo nombre en dos etiquetas enseña a no leer ninguna.
+                            // Mismo criterio que La Biblia con `mostrarComprador()`.
+                            prestadorNombre: resolverPrestador(componente)?.nombre || null,
+                            compradorNombre: (componente.compradorNombreSnapshot || '').trim() || null
                         }
                     });
                 });

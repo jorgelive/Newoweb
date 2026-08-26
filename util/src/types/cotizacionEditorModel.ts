@@ -718,6 +718,21 @@ export interface LineaDetalleClaseInterna extends LineaDetalleClaseCliente {
     comisionOverride: string | null;
     tarifaMaestraId: string | null;
     nombreInterno: string | null;
+
+    /**
+     * Quién lo opera y a quién se le compra. **Internos los dos, y el comprador especialmente.**
+     *
+     * ⚠️ Van AQUÍ y no en `LineaDetalleClaseCliente` por lo mismo que `montoCosto`: la base es el
+     * contrato del cliente, así que lo que se declare allí **sale publicado salvo que alguien se
+     * acuerde de quitarlo**. Y a quién le encargaste la compra no es asunto del cliente — ver el
+     * bloque de comprador en `CotizacionCotcomponente`, que ni siquiera le da grupo `pax_*`.
+     *
+     * `compradorNombre` es `null` cuando el componente no encarga la compra a nadie distinto: la
+     * regla es que entonces se le compra a quien opera, y repetir el mismo nombre en dos etiquetas
+     * enseña a no leer ninguna.
+     */
+    prestadorNombre: string | null;
+    compradorNombre: string | null;
 }
 
 // ── Clases de pasajero ───────────────────────────────────────────────────────

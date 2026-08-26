@@ -229,6 +229,25 @@ const totalesInclusiones = computed(() => {
                 <span v-if="labelTarifa(d)" class="text-slate-400">({{ labelTarifa(d) }})</span>
               </p>
 
+              <!-- ⚠️ Quién opera y a quién se le compra. Sólo aquí: el reporte es INTERNO.
+                   A quién le encargaste la compra no es asunto del cliente, y por eso
+                   `expurgarParaCliente()` no copia ninguno de los dos.
+
+                   El COMPRADOR sale sólo si el componente encarga la compra a alguien
+                   distinto. Cuando no, la regla es que se le compra a quien opera, y pintar
+                   el mismo nombre dos veces enseña a no leer ninguna de las dos etiquetas. -->
+              <p v-if="d.prestadorNombre || d.compradorNombre"
+                 class="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-[10px] font-bold text-slate-500">
+                <span v-if="d.prestadorNombre" class="inline-flex items-center gap-1 min-w-0">
+                  <i class="fas fa-truck text-[9px] text-slate-300 shrink-0" title="Lo opera"></i>
+                  <span class="truncate">{{ d.prestadorNombre }}</span>
+                </span>
+                <span v-if="d.compradorNombre" class="inline-flex items-center gap-1 min-w-0 text-violet-600">
+                  <i class="fas fa-cart-shopping text-[9px] text-violet-300 shrink-0" title="Se le compra a"></i>
+                  <span class="truncate">{{ d.compradorNombre }}</span>
+                </span>
+              </p>
+
               <p v-if="badgesClasif(d).length || d.comisionOverride" class="flex flex-wrap items-center gap-1 mt-1.5">
                 <span v-for="b in badgesClasif(d)" :key="b.type"
                       class="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded border uppercase"

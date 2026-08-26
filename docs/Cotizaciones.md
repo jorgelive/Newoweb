@@ -1318,6 +1318,22 @@ Cada línea es ahora una ficha: el servicio manda arriba, la **venta por pax a l
 la cifra que se busca— y el monto cotizado con sus etiquetas abajo, tras un separador. Una columna
 en móvil, dos desde `lg`. Mismo criterio que ya se aplicó a La Biblia al pasar de tabla a rejilla.
 
+**Cada ficha dice quién lo opera y a quién se le compra.** Es el dato que convierte el reporte en
+algo accionable: «el tren lo opera PeruRail pero se lo compramos a Xtreme Tourbulencia».
+
+- **Prestador** (🚚): quien lo opera, de `resolverPrestador()`.
+- **Comprador** (🛒, violeta): sólo si el componente **encarga la compra a alguien distinto**.
+  Cuando está vacío, la regla de negocio es que se le compra a quien opera, y pintar el mismo
+  nombre en dos etiquetas enseña a no leer ninguna. Mismo criterio que `mostrarComprador()` en
+  La Biblia.
+
+⚠️ **Los dos son INTERNOS, y el comprador especialmente: a quién le encargaste la compra no es
+asunto del cliente.** Por eso van declarados en `LineaDetalleClaseInterna` y no en la base — la
+base ES el contrato del cliente, así que lo que se declare allí sale publicado salvo que alguien
+se acuerde de quitarlo, que es exactamente cómo el costo de proveedor acabó una vez en el JSON del
+huésped. `expurgarParaCliente()` es lista blanca y no los copia; si algún día se convierte en lista
+negra, esto se publica solo.
+
 ⚠️ **El «Resumen general» sigue siendo tabla, y está bien.** Son tres columnas numéricas cortas
 —costo, venta, ganancia— que caben sin scroll. La regla no es «nunca tablas»: es que una tabla que
 necesita `min-w` mayor que el teléfono ya no es una tabla, es un cajón con el dato escondido.
