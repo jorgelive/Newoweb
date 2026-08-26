@@ -6,6 +6,7 @@ namespace App\Pms\Service\Exchange\Tasks\InvoiceReceive;
 
 use App\Entity\Maestro\MaestroMoneda;
 use App\Pms\Dto\Beds24InvoiceItemDto;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsCargoFinanciero;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoCalendario;
@@ -118,11 +119,42 @@ readonly class Beds24InvoiceReceivePersister
                 continue;
             }
 
+            // 🚫 UN INQUIRY NO ES UNA VENTA: no estrena línea financiera.
+            //
+            // Beds24 manda invoiceItems también para las pre-reservas de Airbnb, siempre en
+            // 0.00 y con la descripción sin resolver (`[ROOMNAME1] [FIRSTNIGHT] - …`). Eso
+            // dejaba en el panel un cargo que no informa de nada y hacía parecer que la
+            // reserva ya tenía contabilidad.
+            //
+            // Sólo `abierto`, que es exactamente `inquiry` y nada más. En particular NO se
+            // excluye `cancelada`, aunque la intuición diga lo contrario: las
+            // PENALIZACIONES llegan justo sobre reservas ya canceladas y son lo único que
+            // sigue contando cuando la cabecera se marca inactiva (§12.7). Excluirla
+            // rompería el cobro de penalizaciones.
+            //
+            // Se salta la CREACIÓN, no la actualización: un cargo que ya existe se sigue
+            // manteniendo al día pase lo que pase con el estado.
+            //
+            // Y no hace falta un disparador para «cuando pase a estado real»: el webhook de
+            // Beds24 trae SIEMPRE los invoiceItems (1.739 de 1.739 auditados) y
+            // `ProcessBeds24WebhookDispatchHandler` procesa `booking` ANTES que
+            // `invoiceItems`, así que en el mismo aviso de la conversión la estancia ya
+            // tiene su estado nuevo y el cargo entra con su importe real. El barrido de
+            // `Beds24InvoiceReceiveJob` —que tampoco filtra por estado— es la red.
+            $eventoDelCargo = $eventosPorBookId[$dto->bookingId ?? ''] ?? null;
+
+            // Sin estancia resuelta se crea igual: no saber en qué estado está no es razón
+            // para tirar un importe que puede ser real (sync a medias).
+            if ($eventoDelCargo?->getEstado()?->getId() === PmsEventoEstado::CODIGO_ABIERTO) {
+                $stats['skipped']++;
+                continue;
+            }
+
             // NUEVO CONCEPTO
             $cargo = new PmsCargoFinanciero($extId);
             $this->hidratar($cargo, $dto, $monedaUsd, $tcVenta);
             $cargo->setEsAutomatico($esEspejoDeCanal);
-            $cargo->setEvento($eventosPorBookId[$dto->bookingId ?? ''] ?? null);
+            $cargo->setEvento($eventoDelCargo);
             $info->addCargo($cargo);
             $this->em->persist($cargo);
 

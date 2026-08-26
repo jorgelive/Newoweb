@@ -1496,6 +1496,48 @@ ProcessBeds24WebhookDispatchHandler            Beds24InvoiceReceiveJob (cron 'be
      4. info.recalcularTotales() + lastSyncedAt; flush
 ```
 
+### 11.2.b Un INQUIRY no estrena línea financiera
+
+Beds24 manda `invoiceItems` también para las pre-reservas de Airbnb: siempre en **0.00** y con
+la descripción sin resolver (`[ROOMNAME1] [FIRSTNIGHT] - [LEAVINGDAY]`). El panel de la reserva
+enseñaba «Cargos (1)» y una línea de US$ 0.00 que no informa de nada y que hace parecer que una
+pre-reserva ya tiene contabilidad.
+
+`upsertCargos()` salta la **creación** —no la actualización— cuando la estancia del ítem está en
+`abierto`, que es exactamente `inquiry` y nada más (ver el mapeo de
+`pms_evento_estado.codigo_beds24`).
+
+Encaja con lo que el sistema ya creía: `abierto` **no** está en `IMPIDEN_VENTA` —un inquiry no
+bloquea la venta— y `resolveEstadoPagoInicial()` ya lo forzaba a nacer sin pago. Esta era la
+única pieza que seguía tratándolo como una venta.
+
+⚠️ **`cancelada` NO se excluye, aunque la intuición diga lo contrario.** Las **penalizaciones**
+llegan justo sobre reservas ya canceladas y son lo único que sigue contando cuando la cabecera
+se marca inactiva (§12.7). En producción, al hacer el cambio: 20 penalizaciones por 129.38 sobre
+estancias `cancelada`. Excluirla habría roto el cobro de penalizaciones. `bloqueo` no necesita
+regla: no es una reserva y no tiene facturas.
+
+#### No hace falta un disparador para «cuando pase a estado real»
+
+Es la pregunta obvia, y la contestan dos hechos:
+
+1. **El webhook trae SIEMPRE los importes.** 1.739 de 1.739 avisos auditados desde el 04/06/2026
+   incluyen el nodo `invoiceItems`: Beds24 no manda «sólo el cambio de estado», manda la reserva
+   entera.
+2. **`ProcessBeds24WebhookDispatchHandler` procesa `booking` ANTES que `invoiceItems`.** Cuando
+   el persister mira la estancia para decidir si la salta, ya la ve en su estado nuevo. En el
+   mismo aviso de la conversión entran los cargos con su importe real.
+
+Y `Beds24InvoiceReceiveJob` es la red: barre las estancias del periodo **sin filtrar por
+estado**, que es justo para lo que existe (el webhook de Beds24 no reintenta).
+
+Si la estancia no se resuelve (sync a medias), el cargo **se crea igual**: no saber en qué estado
+está no es motivo para tirar un importe que puede ser real.
+
+Los tres cargos de 0.00 que ya existían los retiró `Version20260826180000`, acotada a
+`abierto` + `beds24_item_id IS NOT NULL` + `total_linea = 0` — las tres condiciones juntas son
+lo que la hace inerte: no mueve ningún total.
+
 ### 11.3 Gotchas
 
 - **`data` del endpoint on-demand NO es plano.** A diferencia de mensajes (cuyo `data` ya es la
@@ -4352,6 +4394,7 @@ sobre una reserva con contenido habría dado la misma falsa tranquilidad.
 | Cambiar el mensaje del veto o los campos vetados (§12.4.5) | `PmsInformacionFinancieraCoherenciaListener` | `assertPagoAutomaticoNoEditable()` → `$camposBloqueados` |
 | Cambiar cómo se abre el candado del depósito en el panel (§12.4.5) | `util/src/components/reservas/ReservaFinanzasPanel.vue` | `pagosDesbloqueados` / `puedeEditarPago()` / `devolverPagoAlAutomatico()` |
 | Cambiar lógica de estado OTA | `BookingPullPersister` | `resolveEstado()` |
+| Cambiar en qué estados NO se crean cargos del canal (§11.2.b) | `Beds24InvoiceReceivePersister` | `upsertCargos()` → la guarda de `CODIGO_ABIERTO`. ⚠️ No añadas `cancelada`: ahí llegan las penalizaciones |
 | Cambiar estado de pago inicial | `BookingPullPersister` | `resolveEstadoPagoInicial()` |
 | Cambiar cómo el saldo deriva el estado de pago de las estancias (§12.9) | `PmsEstadoPagoEventosService` | `sincronizar()` — las dos sentencias |
 | Cambiar a qué número se llama (§12.10) | `PmsReserva` **y** `util/src/types/pmsReservaModel.ts` | `getTelefonoContacto()` / `telefonoContactoDe()` — son espejo, hay que tocar **los dos** |
