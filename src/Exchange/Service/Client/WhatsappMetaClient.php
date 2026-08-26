@@ -199,6 +199,63 @@ final class WhatsappMetaClient implements ExchangeClientInterface
      * EDITAR DEFINICIÓN: Actualiza los componentes de un idioma existente directamente por su ID.
      * A diferencia del Push, aquí Meta solo permite enviar la llave 'components'.
      */
+    /**
+     * Borra UNA versión de idioma de una plantilla en Meta.
+     *
+     * ### Por qué hace falta, si ya existe editar
+     *
+     * Porque Meta **no deja renombrar los marcadores** de una plantilla aprobada. Cambiar el
+     * texto de alrededor sí; convertir `{{guest}}` en `{{huesped}}` no, porque para Meta los
+     * marcadores son el contrato con la API y no palabras. El intento se rechaza con
+     * *«Invalid parameter | No se puede cambiar el estado de esta plantilla de mensaje. Sólo
+     * puedes eliminar o añadir plantillas»* — un mensaje que despista, porque no habla del
+     * `status` sino de qué operaciones admite la plantilla.
+     *
+     * La salida es la que nombra el propio error: borrar esa versión y volver a crearla.
+     *
+     * ### ⚠️ `hsm_id` es lo que acota el borrado a UN idioma
+     *
+     * `DELETE {wabaId}/message_templates?name=X` borra **todos** los idiomas de esa plantilla.
+     * Pasando además `hsm_id` (el id de la versión concreta) se borra sólo ése. Los dos
+     * parámetros son obligatorios juntos: con `hsm_id` a secas, Meta ignora el filtro y se
+     * lleva el grupo entero. Aquí `hsm_id` no es opcional por eso mismo — un borrado de más no
+     * se deshace, y las versiones con tráfico se llevarían por delante sus métricas.
+     *
+     * @param string $templateName Nombre en Meta (`meta_template_name`).
+     * @param string $hsmId        Id de la versión de idioma, el que devuelve `fetchTemplates()`.
+     * @return array<string, mixed> Respuesta cruda de Meta.
+     */
+    public function deleteTemplateDefinition(MetaConfig $config, ExchangeEndpoint $endpoint, string $templateName, string $hsmId): array
+    {
+        $apiKey = $config->getCredential('apiKey') ?? $config->getApiKey();
+        $wabaId = $config->getCredential('wabaId') ?? $config->getWabaId();
+
+        if (!$apiKey || !$wabaId) {
+            throw new \RuntimeException(sprintf('La configuración de Meta [%s] no tiene API Key o WABA ID para borrar.', $config->getNombre()));
+        }
+
+        // Mismo path que crear —{wabaId}/message_templates—, cambia el verbo y los filtros.
+        $dynamicPath = str_replace('{wabaId}', (string) $wabaId, (string) $endpoint->getEndpoint());
+        $url = sprintf('%s/%s', rtrim((string) $config->getBaseUrlRaw(), '/'), ltrim($dynamicPath, '/'));
+
+        $response = $this->httpClient->request('DELETE', $url, [
+            'headers' => ['Authorization' => 'Bearer ' . $apiKey],
+            'query' => ['name' => $templateName, 'hsm_id' => $hsmId],
+        ]);
+
+        $content = $response->getContent(false);
+        $decoded = json_decode($content, true);
+
+        if ($response->getStatusCode() >= 400) {
+            $baseError = $decoded['error']['message'] ?? 'Error desconocido';
+            $userMsg = $decoded['error']['error_user_msg'] ?? '';
+
+            throw new \RuntimeException('Error BORRANDO en Meta API: ' . $baseError . ($userMsg ? ' | ' . $userMsg : ''));
+        }
+
+        return $decoded ?? [];
+    }
+
     public function editTemplateDefinition(MetaConfig $config, string $templateId, array $componentsPayload): array
     {
         $apiKey = $config->getCredential('apiKey') ?? $config->getApiKey();

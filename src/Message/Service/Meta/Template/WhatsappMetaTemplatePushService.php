@@ -46,7 +46,7 @@ final readonly class WhatsappMetaTemplatePushService
      * @param list<string> $soloIdiomas
      * @return array<string, mixed> Resumen de lo empujado, por idioma.
      */
-    public function pushTemplateToMeta(MessageTemplate $template, array $soloIdiomas = []): array
+    public function pushTemplateToMeta(MessageTemplate $template, array $soloIdiomas = [], bool $recrear = false): array
     {
         // 🔥 PROTECCIÓN CONTRA TIMEOUT: Damos 2 minutos de vida al script
         // Meta tarda mucho en procesar múltiples idiomas consecutivamente.
@@ -140,7 +140,21 @@ final readonly class WhatsappMetaTemplatePushService
 
                 $existingId = $this->findExistingTemplateId($existingTemplates, $templateName, $metaLangCode);
 
-                if ($existingId) {
+                if ($existingId && $recrear) {
+                    // --- MODO RECREAR: borrar y volver a crear ---
+                    //
+                    // Existe porque Meta **no deja renombrar los marcadores** de una plantilla
+                    // aprobada: editar el texto de alrededor sí, convertir `{{guest}}` en
+                    // `{{huesped}}` no. Rechaza con «sólo puedes eliminar o añadir plantillas»,
+                    // y esto es hacerle caso.
+                    //
+                    // ⚠️ Borrar una versión de idioma se lleva su historial y sus métricas en
+                    // Meta, y no se deshace. Por eso NO es el camino por defecto: se pide a
+                    // propósito, idioma por idioma, desde el panel.
+                    $this->metaClient->deleteTemplateDefinition($config, $pushEndpoint, $templateName, $existingId);
+                    $response = $this->metaClient->pushTemplateDefinition($config, $pushEndpoint, $payload);
+                    $results[$localLang] = ['status' => 'success', 'action' => 'RECREATED', 'meta_id' => $response['id'] ?? null];
+                } elseif ($existingId) {
                     // --- MODO EDICIÓN ---
                     $this->metaClient->editTemplateDefinition($config, $existingId, $payload['components']);
                     $results[$localLang] = ['status' => 'success', 'action' => 'EDITED', 'meta_id' => $existingId];

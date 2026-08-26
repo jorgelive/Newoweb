@@ -503,9 +503,17 @@ class MessageTemplateCrudController extends BaseCrudController
             return $this->redirect($adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
         }
 
+        // ⚠️ RECREAR = borrar en Meta y volver a crear, y NO se deshace: esa versión pierde su
+        // historial y sus métricas. Se pide a propósito con una casilla, nunca por defecto.
+        //
+        // Hace falta porque Meta no deja renombrar los marcadores de una plantilla aprobada
+        // —`{{guest}}` → `{{huesped}}` se rechaza con «sólo puedes eliminar o añadir
+        // plantillas»—, y editar el texto de alrededor no arregla eso.
+        $recrear = $peticion->request->getBoolean('recrear');
+
         try {
             // Solo los idiomas marcados; el resto conserva su estado en Meta.
-            $results = $pushService->pushTemplateToMeta($template, $idiomas);
+            $results = $pushService->pushTemplateToMeta($template, $idiomas, $recrear);
 
             if (empty($results)) {
                 $this->addFlash('warning', 'La plantilla local no tiene un JSON de WhatsApp Meta válido o no contiene idiomas configurados.');
@@ -514,9 +522,15 @@ class MessageTemplateCrudController extends BaseCrudController
                 $errorMessages = [];
 
                 // Analizamos los resultados por idioma
+                $recreados = 0;
+
                 foreach ($results as $lang => $result) {
                     if ($result['status'] === 'success') {
                         $successCount++;
+
+                        if (($result['action'] ?? null) === 'RECREATED') {
+                            $recreados++;
+                        }
                     } else {
                         $errorMessages[] = strtoupper($lang) . ': ' . $result['message'];
                     }
@@ -524,7 +538,16 @@ class MessageTemplateCrudController extends BaseCrudController
 
                 // Generamos el feedback al usuario
                 if ($successCount > 0) {
-                    $this->addFlash('success', sprintf('✅ Se enviaron a revisión en Meta %d idiomas exitosamente.', $successCount));
+                    // Se dice cuántos se RECREARON, no sólo cuántos salieron bien: borrar y
+                    // volver a crear pierde el historial de esa versión, y quien lo hizo tiene
+                    // que verlo confirmado y no deducirlo.
+                    $this->addFlash('success', $recreados > 0
+                        ? sprintf(
+                            '✅ Se enviaron a revisión en Meta %d idiomas (%d recreados: se borraron y se crearon de nuevo).',
+                            $successCount,
+                            $recreados
+                        )
+                        : sprintf('✅ Se enviaron a revisión en Meta %d idiomas exitosamente.', $successCount));
                 }
 
                 if (!empty($errorMessages)) {

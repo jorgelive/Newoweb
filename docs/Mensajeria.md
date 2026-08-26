@@ -3036,6 +3036,38 @@ a mano:
 porque el botón de Meta ya lleva el dominio y sólo admite el sufijo; `chat_url` es el absoluto
 que usa el respaldo en texto libre.
 
+###### 🔥 Meta NO deja renombrar un marcador: hay que recrear la plantilla
+
+Editar el **texto** de una plantilla aprobada se puede. Cambiar el **nombre de un marcador**
+—`{{guest}}` → `{{huesped}}`— no, y el rechazo despista mucho:
+
+```
+Invalid parameter | No se puede cambiar el estado de esta plantilla de mensaje.
+Solo puedes eliminar o añadir plantillas.
+```
+
+No habla del `status`: habla de **qué operaciones admite** la plantilla. Para Meta los
+marcadores son su contrato con la API, no palabras, así que renombrarlos es un cambio
+estructural. Comprobado el 26/08/2026 intentando arreglar los cinco idiomas que el traductor
+había estropeado: los cinco fallaron, con la plantilla en `APPROVED` y editable.
+
+Antes de perseguirlo en nuestro código, esto ya se descartó: la URL de edición es correcta
+(`POST {baseUrl}/{templateId}`, igual que la de creación), `findExistingTemplateId()` casa por
+**nombre + idioma** —cada versión de idioma tiene su propio id— y el cuerpo que viaja es sólo
+`{"components": …}`, que es lo que Meta documenta. **Quien rechaza es Meta.**
+
+**La salida es la que nombra el propio error**: borrar esa versión y volver a crearla. Está en
+el panel, en el mismo cuadro de «Push a Meta», como casilla **«Recrear en vez de editar»**
+(`WhatsappMetaClient::deleteTemplateDefinition()` + el `pushTemplateDefinition()` de siempre).
+
+⚠️ **No se deshace, y por eso no es el camino por defecto**: la versión borrada pierde su
+historial y sus métricas de entrega en Meta. Se marca a propósito y **idioma por idioma**. Para
+corregir un texto, editar; recrear es sólo para los marcadores.
+
+⚠️ **`hsm_id` es lo que acota el borrado a un idioma.** `DELETE …/message_templates?name=X`
+se lleva **todos** los idiomas; con `name` + `hsm_id` se borra sólo esa versión. Por eso el
+método pide los dos y ninguno es opcional.
+
 ###### 🔥 El encolado falla en silencio, así que se comprueba después del flush
 
 `MessageDispatcher::dispatch()` **no propaga** las excepciones de los encoladores: las atrapa por
@@ -5666,6 +5698,7 @@ arreglar** — ver el aviso al final de esta sección.
 | Cambiar cómo se encuentra el hilo interno del operador | `AvisoAlEquipoService::conversacionStaff()` | Busca por TELÉFONO antes que por contexto: es lo que sobrevive a fusionar hilos |
 | Cambiar el aviso de escalado **fuera** de la ventana de 24 h | plantilla `aviso_escalado_interno` | El cuerpo se edita en el panel; los parámetros los pone `EscalarAlEquipoSkill::variablesDelAviso()`. Si añades uno, tiene que llegar SIEMPRE con valor o el envío revienta |
 | Que la plantilla del escalado empiece a salir de verdad | Meta + `app:whatsapp:sync-templates` | Está insertada como `PENDING`: hasta que Meta la apruebe, el encolador la rechaza |
+| Cambiar el NOMBRE de un marcador de una plantilla aprobada | Panel → Push a Meta → casilla **«Recrear en vez de editar»** | Meta no deja renombrarlos: hay que borrar y crear. Pierde el historial de esa versión, así que idioma por idioma |
 | Mandar una plantilla con datos que NO están en el contexto | `Message::setVariablesPlantilla()` | Se fusionan pisando a las del resolver en `WhatsappMetaSendMappingStrategy` |
 | Cambiar cuándo un número «es» de una reserva | `PmsReservaRepository` | `findVivasByTelefono()` + `DIAS_GRACIA_TRAS_SALIDA` / `DIAS_ANTICIPACION` |
 | Cambiar qué estados dan derecho a consultar la propia reserva | `PmsEventoEstado` | `IDENTIFICAN_HUESPED` — **no** reutilizar `OCUPAN_UNIDAD`, ver su docblock |

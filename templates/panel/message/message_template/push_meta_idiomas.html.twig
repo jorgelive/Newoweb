@@ -66,6 +66,28 @@
                                 </tbody>
                             </table>
 
+                            {# Recrear = borrar en Meta y volver a crear. Va aquí, pegado al
+                               botón, y no arriba: es la última decisión antes de pulsar y la
+                               única de esta pantalla que NO se deshace. #}
+                            <div class="alert alert-danger mt-4 mb-0 py-2">
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="recrear" name="recrear" value="1">
+                                    <label class="form-check-label" for="recrear">
+                                        <strong>Recrear en vez de editar</strong> — borra en Meta los idiomas
+                                        marcados y los vuelve a crear.
+                                    </label>
+                                </div>
+                                <small class="d-block mt-1">
+                                    Hace falta cuando cambia el <strong>nombre de un marcador</strong>
+                                    (<code>{{ '{{guest}}' }}</code> → <code>{{ '{{huesped}}' }}</code>): Meta no deja
+                                    renombrarlos en una plantilla aprobada y responde
+                                    <em>«sólo puedes eliminar o añadir plantillas»</em>.
+                                    <strong>No se deshace:</strong> esa versión pierde su historial y sus
+                                    métricas de entrega. No lo marques para corregir un texto.
+                                </small>
+                            </div>
+
                             <div class="d-flex justify-content-between mt-4">
                                 <a href="{{ urlVolver }}" class="btn btn-secondary">Cancelar</a>
                                 <button type="submit" class="btn btn-warning text-dark">
