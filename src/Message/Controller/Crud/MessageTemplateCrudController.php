@@ -215,6 +215,9 @@ class MessageTemplateCrudController extends BaseCrudController
 
                 $color = [
                     'APPROVED' => 'badge-success',
+                    // Borrada en Meta: ni aprobada ni pendiente. Existe el texto aquí, pero
+                    // allí no hay nada — y hasta 4 semanas después no se puede volver a crear.
+                    'DELETED' => 'badge-dark',
                     'PENDING' => 'badge-warning',
                     'REJECTED' => 'badge-danger',
                     'SIN ENVIAR' => 'badge-secondary',
@@ -463,6 +466,58 @@ class MessageTemplateCrudController extends BaseCrudController
      * @return Response Redirección a la vista previa.
      *
      */
+    /**
+     * Borra en Meta los idiomas marcados. **No los vuelve a crear, y no puede.**
+     *
+     * Meta reserva el par nombre+idioma **cuatro semanas** tras un borrado: el POST siguiente
+     * se rechaza con «no es posible añadir contenido nuevo mientras se está eliminando el
+     * existente». Por eso esto no promete una recreación — pasado el plazo, volver a crearlas
+     * es el push normal, que al no encontrarlas en Meta entra por el camino de creación.
+     *
+     * @param list<string>                 $idiomas
+     * @param AdminContext<MessageTemplate> $context
+     */
+    private function borrarIdiomasDeMeta(
+        MessageTemplate $template,
+        array $idiomas,
+        WhatsappMetaTemplatePushService $pushService,
+        AdminUrlGenerator $adminUrlGenerator,
+        AdminContext $context
+    ): Response {
+        try {
+            $resultados = $pushService->borrarIdiomasEnMeta($template, $idiomas);
+            $ok = [];
+            $fallos = [];
+
+            foreach ($resultados as $lang => $r) {
+                if ($r['status'] === 'success') {
+                    $ok[] = strtoupper($lang);
+                } else {
+                    $fallos[] = strtoupper($lang) . ': ' . ($r['message'] ?? '');
+                }
+            }
+
+            if ($ok !== []) {
+                // El plazo se repite AQUÍ, no sólo en el cuadro previo: es lo que hay que
+                // recordar dentro de un mes, y para entonces nadie se acuerda del aviso.
+                $this->addFlash('warning', sprintf(
+                    '🗑️ Borrados en Meta y marcados como inexistentes: %s. ⚠️ Meta no deja volver a '
+                    . 'crearlos hasta dentro de 4 SEMANAS; pasado el plazo, vuelve a darle a «Push a Meta».',
+                    implode(', ', $ok)
+                ));
+            }
+
+            if ($fallos !== []) {
+                $this->addFlash('danger', '❌ No se pudieron borrar: <br>' . implode('<br>', $fallos));
+            }
+        } catch (Throwable $e) {
+            $this->addFlash('danger', 'Error borrando en Meta: ' . $e->getMessage());
+        }
+
+        return $this->redirect($context->getReferrer()
+            ?? $adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
+    }
+
     public function executePushToMeta(
         AdminContext $context,
         WhatsappMetaTemplatePushService $pushService,
@@ -503,17 +558,17 @@ class MessageTemplateCrudController extends BaseCrudController
             return $this->redirect($adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
         }
 
-        // ⚠️ RECREAR = borrar en Meta y volver a crear, y NO se deshace: esa versión pierde su
-        // historial y sus métricas. Se pide a propósito con una casilla, nunca por defecto.
-        //
-        // Hace falta porque Meta no deja renombrar los marcadores de una plantilla aprobada
-        // —`{{guest}}` → `{{huesped}}` se rechaza con «sólo puedes eliminar o añadir
-        // plantillas»—, y editar el texto de alrededor no arregla eso.
-        $recrear = $peticion->request->getBoolean('recrear');
+        // BORRAR es su propia acción, no un modo del push, porque «borrar y volver a crear»
+        // no es una operación: Meta reserva el par nombre+idioma CUATRO SEMANAS. Presentarlo
+        // como «recrear» prometía algo que la API no puede cumplir — y el día que se intentó
+        // dejó cinco idiomas borrados y ninguno recreado.
+        if ($peticion->request->get('accion') === 'borrar') {
+            return $this->borrarIdiomasDeMeta($template, $idiomas, $pushService, $adminUrlGenerator, $context);
+        }
 
         try {
             // Solo los idiomas marcados; el resto conserva su estado en Meta.
-            $results = $pushService->pushTemplateToMeta($template, $idiomas, $recrear);
+            $results = $pushService->pushTemplateToMeta($template, $idiomas);
 
             if (empty($results)) {
                 $this->addFlash('warning', 'La plantilla local no tiene un JSON de WhatsApp Meta válido o no contiene idiomas configurados.');
@@ -522,15 +577,9 @@ class MessageTemplateCrudController extends BaseCrudController
                 $errorMessages = [];
 
                 // Analizamos los resultados por idioma
-                $recreados = 0;
-
                 foreach ($results as $lang => $result) {
                     if ($result['status'] === 'success') {
                         $successCount++;
-
-                        if (($result['action'] ?? null) === 'RECREATED') {
-                            $recreados++;
-                        }
                     } else {
                         $errorMessages[] = strtoupper($lang) . ': ' . $result['message'];
                     }
@@ -538,16 +587,7 @@ class MessageTemplateCrudController extends BaseCrudController
 
                 // Generamos el feedback al usuario
                 if ($successCount > 0) {
-                    // Se dice cuántos se RECREARON, no sólo cuántos salieron bien: borrar y
-                    // volver a crear pierde el historial de esa versión, y quien lo hizo tiene
-                    // que verlo confirmado y no deducirlo.
-                    $this->addFlash('success', $recreados > 0
-                        ? sprintf(
-                            '✅ Se enviaron a revisión en Meta %d idiomas (%d recreados: se borraron y se crearon de nuevo).',
-                            $successCount,
-                            $recreados
-                        )
-                        : sprintf('✅ Se enviaron a revisión en Meta %d idiomas exitosamente.', $successCount));
+                    $this->addFlash('success', sprintf('✅ Se enviaron a revisión en Meta %d idiomas exitosamente.', $successCount));
                 }
 
                 if (!empty($errorMessages)) {

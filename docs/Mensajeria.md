@@ -3060,31 +3060,30 @@ Antes de perseguirlo en nuestro código, esto ya se descartó: la URL de edició
 el panel, en el mismo cuadro de «Push a Meta», como casilla **«Recrear en vez de editar»**
 (`WhatsappMetaClient::deleteTemplateDefinition()` + el `pushTemplateDefinition()` de siempre).
 
-🔴 **Y NO es «borrar y crear» en un paso, aunque lo parezca.** Meta acepta el DELETE y luego
-rechaza el POST:
+🔴 **Y NO existe «recrear»: son dos actos con un mes de por medio.** Meta acepta el DELETE y
+después rechaza el POST:
 
 ```
 Invalid parameter | No es posible añadir contenido nuevo en Portuguese (BR) mientras se
 está eliminando el contenido existente. Vuelve a intentarlo dentro de 4 weeks.
 ```
 
-Reserva el par **nombre + idioma durante cuatro semanas**, así que el resultado real de marcar
-la casilla es **el idioma se queda sin plantilla hasta que pase el plazo**. Medido el 26/08/2026
-sobre `aviso_escalado_interno`: los cinco idiomas se borraron y ninguno se recreó.
+Reserva el par **nombre + idioma cuatro semanas**. Se intentó como un solo paso el 26/08/2026
+sobre `aviso_escalado_interno` y salió lo peor: **cinco idiomas borrados, ninguno recreado**, con
+un error que parecía decir que no había pasado nada.
 
-No se intenta esquivar porque el plazo es de Meta. Lo único que puede hacer el código es
-contarlo antes (el aviso del panel) y decir la verdad después: el resultado distingue
-`RECREATED` de **`DELETED_PENDING`** — «se borró y NO se pudo recrear»—, que es lo que evita
-leer un fallo como «no pasó nada».
+Por eso el panel tiene **dos botones**, no una casilla: «Subir los marcados» y **«Borrar en
+Meta»**. Borrar se llama por su nombre y avisa del plazo antes y después. Pasadas las cuatro
+semanas, recrearlas es el push de siempre: al no existir en Meta, entra por CREACIÓN.
 
-⚠️ Además, la versión borrada pierde su historial y sus métricas de entrega. Se marca a
-propósito y **idioma por idioma**, mirando antes los envíos de ese idioma en el inventario. Para
-corregir un texto, **editar**; recrear es sólo para los marcadores, y sabiendo que ese idioma
-queda un mes fuera.
+⚠️ **Y lo borrado se marca `DELETED` en nuestra copia.** Sin eso seguiría diciendo `APPROVED` de
+algo que no existe, y **el sincronizador no lo corrige**: sólo crea o actualiza lo que Meta
+devuelve, y lo borrado no vuelve en esa lista. El bloque del idioma se conserva —su TEXTO es lo
+que se volverá a subir— pero deja de decir que está aprobado.
 
-⚠️ **`hsm_id` es lo que acota el borrado a un idioma.** `DELETE …/message_templates?name=X`
-se lleva **todos** los idiomas; con `name` + `hsm_id` se borra sólo esa versión. Por eso el
-método pide los dos y ninguno es opcional.
+⚠️ Borrar además se lleva el historial y las métricas de esa versión. Mira los **envíos** del
+idioma en el inventario antes de tocarlo: si tiene tráfico, no compensa. Para corregir un texto,
+**editar**; borrar es sólo para los marcadores.
 
 ###### 🔥 El encolado falla en silencio, así que se comprueba después del flush
 
@@ -5716,7 +5715,7 @@ arreglar** — ver el aviso al final de esta sección.
 | Cambiar cómo se encuentra el hilo interno del operador | `AvisoAlEquipoService::conversacionStaff()` | Busca por TELÉFONO antes que por contexto: es lo que sobrevive a fusionar hilos |
 | Cambiar el aviso de escalado **fuera** de la ventana de 24 h | plantilla `aviso_escalado_interno` | El cuerpo se edita en el panel; los parámetros los pone `EscalarAlEquipoSkill::variablesDelAviso()`. Si añades uno, tiene que llegar SIEMPRE con valor o el envío revienta |
 | Que la plantilla del escalado empiece a salir de verdad | Meta + `app:whatsapp:sync-templates` | Está insertada como `PENDING`: hasta que Meta la apruebe, el encolador la rechaza |
-| Cambiar el NOMBRE de un marcador de una plantilla aprobada | Panel → Push a Meta → casilla **«Recrear en vez de editar»** | Meta no deja renombrarlos. 🔴 Borra hoy y **no deja recrear hasta 4 semanas después**: ese idioma se queda sin plantilla. Sólo si no tiene tráfico |
+| Cambiar el NOMBRE de un marcador de una plantilla aprobada | Panel → Push a Meta → botón **«Borrar en Meta»**, y volver a subir 4 SEMANAS después | Meta no deja renombrarlos ni recrear antes del plazo. Lo borrado se marca `DELETED` aquí. Sólo si ese idioma no tiene tráfico |
 | Mandar una plantilla con datos que NO están en el contexto | `Message::setVariablesPlantilla()` | Se fusionan pisando a las del resolver en `WhatsappMetaSendMappingStrategy` |
 | Cambiar cuándo un número «es» de una reserva | `PmsReservaRepository` | `findVivasByTelefono()` + `DIAS_GRACIA_TRAS_SALIDA` / `DIAS_ANTICIPACION` |
 | Cambiar qué estados dan derecho a consultar la propia reserva | `PmsEventoEstado` | `IDENTIFICAN_HUESPED` — **no** reutilizar `OCUPAN_UNIDAD`, ver su docblock |

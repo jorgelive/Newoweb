@@ -46,7 +46,7 @@ final readonly class WhatsappMetaTemplatePushService
      * @param list<string> $soloIdiomas
      * @return array<string, mixed> Resumen de lo empujado, por idioma.
      */
-    public function pushTemplateToMeta(MessageTemplate $template, array $soloIdiomas = [], bool $recrear = false): array
+    public function pushTemplateToMeta(MessageTemplate $template, array $soloIdiomas = []): array
     {
         // 🔥 PROTECCIÓN CONTRA TIMEOUT: Damos 2 minutos de vida al script
         // Meta tarda mucho en procesar múltiples idiomas consecutivamente.
@@ -140,48 +140,7 @@ final readonly class WhatsappMetaTemplatePushService
 
                 $existingId = $this->findExistingTemplateId($existingTemplates, $templateName, $metaLangCode);
 
-                if ($existingId && $recrear) {
-                    // --- MODO RECREAR: borrar y volver a crear ---
-                    //
-                    // Existe porque Meta **no deja renombrar los marcadores** de una plantilla
-                    // aprobada: editar el texto de alrededor sí, convertir `{{guest}}` en
-                    // `{{huesped}}` no. Rechaza con «sólo puedes eliminar o añadir plantillas»,
-                    // y esto es hacerle caso.
-                    //
-                    // 🔴 OJO: NO es «borrar y crear» en un paso, aunque lo parezca.
-                    //
-                    // Meta acepta el DELETE y luego rechaza el POST: «no es posible añadir
-                    // contenido nuevo en <idioma> mientras se está eliminando el existente.
-                    // Vuelve a intentarlo dentro de 4 weeks». Reserva el par nombre+idioma
-                    // durante cuatro semanas, así que el resultado real de marcar esta casilla
-                    // es **el idioma se queda sin plantilla hasta que pase el plazo**.
-                    //
-                    // Medido el 26/08/2026 sobre `aviso_escalado_interno`: los cinco idiomas
-                    // se borraron y ninguno se recreó.
-                    //
-                    // Se deja así, y no se intenta esquivar, porque el plazo es de Meta y no
-                    // hay vuelta: lo único que puede hacer el código es contarlo antes (el
-                    // aviso del panel) y decir la verdad después (el resumen distingue
-                    // RECREATED de DELETED_PENDING).
-                    //
-                    // Borrar además se lleva el historial y las métricas de esa versión.
-                    $this->metaClient->deleteTemplateDefinition($config, $pushEndpoint, $templateName, $existingId);
-
-                    try {
-                        $response = $this->metaClient->pushTemplateDefinition($config, $pushEndpoint, $payload);
-                        $results[$localLang] = ['status' => 'success', 'action' => 'RECREATED', 'meta_id' => $response['id'] ?? null];
-                    } catch (Throwable $e) {
-                        // El borrado YA entró. Decirlo con todas las letras importa: quien lo
-                        // pulsó tiene que saber que ese idioma se quedó sin plantilla, no que
-                        // «falló y todo sigue igual».
-                        $results[$localLang] = [
-                            'status' => 'error',
-                            'action' => 'DELETED_PENDING',
-                            'message' => 'BORRADA en Meta, pero NO se pudo recrear: ' . $e->getMessage()
-                                . ' — ese idioma se queda sin plantilla hasta que Meta libere el nombre.',
-                        ];
-                    }
-                } elseif ($existingId) {
+                if ($existingId) {
                     // --- MODO EDICIÓN ---
                     $this->metaClient->editTemplateDefinition($config, $existingId, $payload['components']);
                     $results[$localLang] = ['status' => 'success', 'action' => 'EDITED', 'meta_id' => $existingId];
@@ -210,6 +169,120 @@ final readonly class WhatsappMetaTemplatePushService
      * Busca el ID de una plantilla existente en el pool de Meta.
      *
      * @param list<array<string, mixed>> $metaTemplates Lo que devuelve el listado de plantillas de Meta.
+     */
+    /**
+     * Borra en Meta las versiones de idioma indicadas y las marca como inexistentes aquí.
+     *
+     * ### Por qué borrar es su PROPIA acción y no un modo del push
+     *
+     * Porque «borrar y volver a crear» **no es una operación**: son dos, con un mes de por
+     * medio. Meta acepta el DELETE y luego rechaza el POST —*«no es posible añadir contenido
+     * nuevo en <idioma> mientras se está eliminando el existente. Vuelve a intentarlo dentro de
+     * 4 weeks»*— porque reserva el par nombre+idioma cuatro semanas.
+     *
+     * Se intentó como un solo paso el 26/08/2026 sobre `aviso_escalado_interno` y el resultado
+     * fue el peor posible: cinco idiomas borrados, ninguno recreado, y un error que parecía
+     * decir que no había pasado nada. Presentarlo como «recrear» prometía algo que la API no
+     * puede cumplir.
+     *
+     * Ahora se llama por su nombre. Cuando pasen las cuatro semanas, volver a crearlas es el
+     * push de siempre: al no existir en Meta, entra por el camino de CREACIÓN.
+     *
+     * ### Y se marca lo que se borró
+     *
+     * El `status` local de esos idiomas pasa a `DELETED`. Sin eso la copia seguiría diciendo
+     * `APPROVED` de algo que ya no existe, y **el sincronizador no lo corrige**: sólo crea o
+     * actualiza lo que Meta devuelve, y lo borrado no vuelve en la lista.
+     *
+     * @param list<string> $idiomas Códigos locales ('pt', 'fr'…). Vacío = ninguno, no todos.
+     * @return array<string, array{status: string, message?: string}> Resultado por idioma.
+     */
+    public function borrarIdiomasEnMeta(MessageTemplate $template, array $idiomas): array
+    {
+        if ($idiomas === []) {
+            return [];
+        }
+
+        $config = $this->em->getRepository(MetaConfig::class)->findOneBy(['activo' => true]);
+        $endpoint = $this->em->getRepository(ExchangeEndpoint::class)->findOneBy([
+            'accion' => 'PUSH_META_TEMPLATE',
+            'activo' => true,
+        ]);
+
+        if (!$config || !$endpoint) {
+            throw new RuntimeException('Falta la configuración de Meta o el endpoint de plantillas.');
+        }
+
+        $metaTmpl = $template->getWhatsappMetaTmpl();
+        $templateName = $metaTmpl['meta_template_name'] ?? null;
+
+        if (!is_array($metaTmpl) || !is_string($templateName) || $templateName === '') {
+            throw new RuntimeException('La plantilla no tiene nombre de Meta.');
+        }
+
+        try {
+            $existentes = $this->metaClient->fetchTemplates($config, $endpoint)['data'] ?? [];
+        } catch (Throwable $e) {
+            throw new RuntimeException('No se pudo consultar el inventario de Meta: ' . $e->getMessage());
+        }
+
+        $resultados = [];
+        $borrados = [];
+
+        foreach ($idiomas as $lang) {
+            $metaLang = $this->mapLanguageToMeta($lang);
+            $id = $this->findExistingTemplateId($existentes, $templateName, $metaLang);
+
+            if ($id === null) {
+                // Ya no está en Meta: se marca igual, que es la verdad.
+                $resultados[$lang] = ['status' => 'success', 'message' => 'No existía en Meta; marcada como borrada.'];
+                $borrados[] = $lang;
+
+                continue;
+            }
+
+            try {
+                $this->metaClient->deleteTemplateDefinition($config, $endpoint, $templateName, $id);
+                $resultados[$lang] = ['status' => 'success', 'message' => 'Borrada en Meta.'];
+                $borrados[] = $lang;
+            } catch (Throwable $e) {
+                $resultados[$lang] = ['status' => 'error', 'message' => $e->getMessage()];
+            }
+        }
+
+        if ($borrados !== []) {
+            $this->marcarBorrados($template, $borrados);
+        }
+
+        return $resultados;
+    }
+
+    /**
+     * Deja el `status` local en `DELETED` para los idiomas que ya no están en Meta.
+     *
+     * No se borra el bloque del idioma: su TEXTO es lo que se volverá a subir dentro de cuatro
+     * semanas. Lo que cambia es que deja de decir que está aprobado.
+     *
+     * @param list<string> $idiomas
+     */
+    private function marcarBorrados(MessageTemplate $template, array $idiomas): void
+    {
+        $metaTmpl = $template->getWhatsappMetaTmpl();
+
+        foreach (($metaTmpl['body'] ?? []) as $i => $bloque) {
+            if (in_array((string) ($bloque['language'] ?? ''), $idiomas, true)) {
+                $metaTmpl['body'][$i]['status'] = 'DELETED';
+            }
+        }
+
+        $template->setWhatsappMetaTmpl($metaTmpl);
+        $this->em->flush();
+    }
+
+    /**
+     * El id de la versión de idioma concreta, que es lo que Meta necesita para editar o borrar.
+     *
+     * @param list<array<string, mixed>> $metaTemplates Lo que devuelve `fetchTemplates()`.
      */
     private function findExistingTemplateId(array $metaTemplates, string $name, string $langCode): ?string
     {

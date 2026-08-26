@@ -57,7 +57,8 @@
                                         </td>
                                         <td>
                                             <span class="badge {{ idioma.estado == 'APPROVED' ? 'badge-success'
-                                                : (idioma.estado == 'REJECTED' ? 'badge-danger' : 'badge-warning') }}">
+                                                : (idioma.estado == 'REJECTED' ? 'badge-danger'
+                                                : (idioma.estado == 'DELETED' ? 'badge-dark' : 'badge-warning')) }}">
                                                 {{ idioma.estado }}
                                             </span>
                                         </td>
@@ -66,44 +67,35 @@
                                 </tbody>
                             </table>
 
-                            {# Recrear = borrar en Meta y volver a crear. Va aquí, pegado al
-                               botón, y no arriba: es la última decisión antes de pulsar y la
-                               única de esta pantalla que NO se deshace. #}
+                            {# Dos acciones distintas, no una con casilla: «borrar y recrear»
+                               NO es una operación —Meta reserva el nombre+idioma cuatro
+                               semanas—, y presentarlo como una prometía algo que la API no
+                               puede cumplir. #}
                             <div class="alert alert-danger mt-4 mb-0 py-2">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input" type="checkbox"
-                                           id="recrear" name="recrear" value="1">
-                                    <label class="form-check-label" for="recrear">
-                                        <strong>Recrear en vez de editar</strong> — borra en Meta los idiomas
-                                        marcados y los vuelve a crear.
-                                    </label>
-                                </div>
-                                <small class="d-block mt-1">
-                                    Hace falta cuando cambia el <strong>nombre de un marcador</strong>
-                                    (<code>{{ '{{guest}}' }}</code> → <code>{{ '{{huesped}}' }}</code>): Meta no deja
-                                    renombrarlos en una plantilla aprobada y responde
-                                    <em>«sólo puedes eliminar o añadir plantillas»</em>.
-                                </small>
+                                <strong>Borrar en Meta</strong> sirve para lo único que no se puede
+                                editar: el <strong>nombre de un marcador</strong>
+                                (<code>{{ '{{guest}}' }}</code> → <code>{{ '{{huesped}}' }}</code>). Meta lo
+                                rechaza con <em>«sólo puedes eliminar o añadir plantillas»</em>.
                                 <small class="d-block mt-2">
-                                    🔴 <strong>Meta bloquea ese idioma durante 4 SEMANAS.</strong> El borrado
-                                    entra, pero la creación falla con <em>«no es posible añadir contenido nuevo
-                                    mientras se está eliminando el existente»</em>, y el idioma queda
-                                    <strong>sin plantilla</strong> hasta que pase el plazo. No es «borrar y
-                                    volver a crear» en el mismo clic: es <strong>borrar hoy y recrear dentro de
-                                    un mes</strong>.
-                                </small>
-                                <small class="d-block mt-2">
-                                    Antes de marcarlo, mira los <strong>envíos</strong> de ese idioma en el
-                                    inventario de Meta: si tiene tráfico, no compensa. No lo marques nunca para
-                                    corregir un texto — para eso basta con editar.
+                                    🔴 <strong>Meta NO deja volver a crear ese idioma hasta 4 SEMANAS
+                                    después.</strong> No es «borrar y recrear»: es <strong>borrar hoy y
+                                    recrear dentro de un mes</strong>, y mientras tanto ese idioma se queda
+                                    sin plantilla. Mira antes sus <strong>envíos</strong> en el inventario de
+                                    Meta: si tiene tráfico, no compensa.
                                 </small>
                             </div>
 
                             <div class="d-flex justify-content-between mt-4">
                                 <a href="{{ urlVolver }}" class="btn btn-secondary">Cancelar</a>
-                                <button type="submit" class="btn btn-warning text-dark">
-                                    <i class="fa-solid fa-cloud-arrow-up me-1"></i> Subir los marcados
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" name="accion" value="borrar" class="btn btn-outline-danger"
+                                            onclick="return confirm('Se BORRARÁN en Meta los idiomas marcados. Meta no deja volver a crearlos hasta dentro de 4 semanas. ¿Seguro?');">
+                                        <i class="fa-solid fa-trash me-1"></i> Borrar en Meta
+                                    </button>
+                                    <button type="submit" name="accion" value="subir" class="btn btn-warning text-dark">
+                                        <i class="fa-solid fa-cloud-arrow-up me-1"></i> Subir los marcados
+                                    </button>
+                                </div>
                             </div>
                         </form>
 
