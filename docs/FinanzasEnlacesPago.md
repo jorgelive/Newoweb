@@ -878,6 +878,43 @@ sin que nadie los sincronice.
 
 ---
 
+### 11 bis.2 La ficha de un cobro
+
+La tabla de **Cobros** contesta «qué pasó con mis enlaces». No contestaba «qué es exactamente
+**este** cobro», y en un cobro **manual** eso dolía: el correo, el teléfono, la referencia libre
+y las notas se tecleaban al crearlo, se guardaban… y no se volvían a ver nunca.
+
+Ahora la fila abre una ficha lateral con cuatro bloques: el **documento de origen**, el
+**cliente**, **el cobro** (módulo, pasarela, emisión, quién lo emitió, caducidad, notas) y **el
+pago**, este último sólo si lo hubo — fecha, medio, código de autorización y `ordenId`, que son
+los cuatro que se cotejan contra el extracto de la pasarela.
+
+**Panel lateral y no fila desplegable**, porque en un móvil la tabla ya se corta: lo que queda
+fuera de pantalla es precisamente Concepto, Documento e Importe.
+
+#### Por qué el origen va en su propio endpoint
+
+`GET /finanzas/caja/cobros/{id}` devuelve `{cobro, origen}`. El `origen` no viaja en el listado
+y es deliberado: resolverlo es **preguntarle a su dominio**
+(`FinOrigenCobroRegistry::resolver()`), o sea al menos una consulta por fila. En un listado de
+hasta 500 serían 500 consultas para pintar algo que casi nunca se mira. Se paga una vez, y sólo
+al abrir la ficha.
+
+Qué trae según de dónde venga el cobro:
+
+| Origen | `origen` | Por qué |
+|---|---|---|
+| **Manual** | `null` | No hay documento. Lo que se tecleó al crearlo ES todo lo que hay, y ya viaja en el propio enlace |
+| **PMS / Cotizaciones** | descripción, referencia y **saldo pendiente HOY** | Es lo que no se puede deducir mirando el enlace |
+
+⚠️ El **saldo pendiente es el de hoy**, no el del momento en que se emitió el enlace. Es el dato
+por el que se abre esta ficha después de cobrar: saber si aquel cobro dejó el documento saldado.
+
+Si el documento se borró o su módulo no lo reconoce, `origen` sale `null` y se responde **200
+igualmente**: el cobro existió y hay que poder verlo. La ficha lo dice en vez de dejar el hueco.
+
+---
+
 ### 11 ter. El aviso de cobro al equipo
 
 Hasta ahora **un cobro no avisaba a nadie**: se enteraba quien mirase el panel de la reserva —el
@@ -997,6 +1034,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar CUÁNTO se pide de prepago | `src/Pms/Enum/PmsPoliticaPrepago.php` | `fraccion()`, `soloAlojamiento()` |
 | Cambiar CUÁNDO deja de pedirse | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `pendiente()` (§8) |
 | Cambiar qué dice el aviso de cobro (§11 ter) | `src/Finanzas/Service/Aviso/FinAvisoDeCobro.php` | `redactar()` dentro de ventana, `variables()` fuera. Si añades una variable, tiene que llegar SIEMPRE con valor y en una línea |
+| Añadir un dato a la ficha de un cobro (§11 bis.2) | `FinEnlacePagoSerializer::aArray()` **y** `util/src/types/finEnlacePagoModel.ts` | Son espejo: el serializador lo cita. Si el dato es del DOCUMENTO y no del enlace, va en `FinCajaApiController::origenDe()` |
+| Cambiar qué sabe el módulo de su documento | el resolver del dominio (`*OrigenCobroResolver::resolver()`) | Devuelve el `FinOrigenCobroDto`. Añadir un campo ahí lo hace visible en la ficha de TODOS los módulos |
 | Dejar de avisar de los cobros, o avisar de otra cosa | `FinEnlacePagoService::confirmarPago()` | La llamada a `avisoDeCobro->notificar()`, al final y fuera de la transacción |
 | Cambiar cómo lo ve el huésped | `pax/src/views/huesped/PmsReservaView.vue` | bloque «Prepago pendiente» |
 | Cambiar cómo lo ve el operador | `util/src/components/reservas/ReservaFinanzasPanel.vue` | fila «Prepago pendiente» del resumen |

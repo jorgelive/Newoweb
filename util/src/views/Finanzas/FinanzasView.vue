@@ -24,6 +24,7 @@ import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import { useCajaStore } from '@/stores/finanzas/cajaStore';
 import {
     clasesEstadoEnlace,
+    type FinCobroOrigen,
     type FinEnlacePago,
     type FinOrigenCobro,
 } from '@/types/finEnlacePagoModel';
@@ -181,6 +182,72 @@ const iconoMedio = (movimiento: FinMovimiento): string => {
 };
 
 onMounted(cargar);
+
+// ============================================================================
+// FICHA DE UN COBRO
+//
+// La tabla contesta «qué pasó con mis enlaces»; para «qué es EXACTAMENTE este cobro» no
+// había nada. En un cobro MANUAL, además, lo que se tecleó al crearlo —email, teléfono,
+// referencia, notas— se guardaba y no se volvía a ver nunca.
+//
+// Va en panel lateral y no en fila desplegable porque la tabla ya no cabe en un móvil: en
+// pantalla estrecha se cortan Concepto, Documento e Importe, que es justo lo que se busca.
+// ============================================================================
+const fichaAbierta = ref(false);
+const fichaCargando = ref(false);
+const fichaCobro = ref<FinEnlacePago | null>(null);
+const fichaOrigen = ref<FinCobroOrigen | null>(null);
+const fichaError = ref<string | null>(null);
+
+/**
+ * Descarta la respuesta de una ficha que ya no está en pantalla: pulsando dos filas
+ * seguidas, la lenta de la primera pintaría sus datos bajo el título de la segunda.
+ */
+let peticionFicha = 0;
+
+async function abrirFicha(cobro: FinEnlacePago): Promise<void> {
+    const mia = ++peticionFicha;
+
+    // Se pinta YA lo que la fila ya tenía; el viaje sólo añade el origen y los datos del
+    // cliente. Así la ficha nunca aparece vacía.
+    fichaCobro.value = cobro;
+    fichaOrigen.value = null;
+    fichaError.value = null;
+    fichaAbierta.value = true;
+    fichaCargando.value = true;
+
+    try {
+        const detalle = await store.fetchCobroDetalle(cobro.id);
+        if (mia !== peticionFicha) return;
+
+        fichaCobro.value = detalle.cobro;
+        fichaOrigen.value = detalle.origen;
+    } catch {
+        if (mia !== peticionFicha) return;
+        // El cobro que ya se pintó sigue siendo válido: lo que falta es el origen.
+        fichaError.value = 'No se pudo cargar el documento de origen.';
+    } finally {
+        if (mia === peticionFicha) fichaCargando.value = false;
+    }
+}
+
+function cerrarFicha(): void {
+    fichaAbierta.value = false;
+    peticionFicha++;
+    fichaCobro.value = null;
+    fichaOrigen.value = null;
+    fichaError.value = null;
+}
+
+/** Fecha con hora: en una ficha sí importa a qué hora se emitió o se pagó. */
+function fechaLarga(iso?: string | null): string {
+    if (!iso) return '—';
+
+    return new Date(iso).toLocaleString('es-PE', {
+        day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit',
+    });
+}
+
 </script>
 
 <template>
@@ -442,7 +509,9 @@ onMounted(cargar);
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            <tr v-for="c in store.cobros" :key="c.id" class="hover:bg-slate-50">
+                            <tr v-for="c in store.cobros" :key="c.id"
+                                @click="abrirFicha(c)"
+                                class="hover:bg-slate-50 cursor-pointer">
                                 <td class="px-3 py-2 whitespace-nowrap text-slate-500">{{ fechaCorta(c.createdAt) }}</td>
                                 <td class="px-3 py-2">
                                     <span class="px-2 py-0.5 rounded border text-[10px] font-black uppercase"
@@ -457,7 +526,7 @@ onMounted(cargar);
                                 </td>
                                 <td class="px-3 py-2 max-w-[18rem] truncate" :title="c.concepto">{{ c.concepto }}</td>
                                 <td class="px-3 py-2 whitespace-nowrap">
-                                    <button type="button" @click="irAlOrigen(c.origenTipo, c.origenId)"
+                                    <button type="button" @click.stop="irAlOrigen(c.origenTipo, c.origenId)"
                                         class="font-black text-[#376875] hover:underline">
                                         {{ c.origenReferencia || '—' }}
                                     </button>
@@ -472,7 +541,7 @@ onMounted(cargar);
                                     </span>
                                 </td>
                                 <td class="px-3 py-2 text-right whitespace-nowrap">
-                                    <button v-if="c.vigente" type="button" @click="copiar(c)"
+                                    <button v-if="c.vigente" type="button" @click.stop="copiar(c)"
                                         class="px-2 py-1 border border-slate-200 rounded text-[10px] font-black text-slate-500 hover:text-[#376875]">
                                         <i class="fas fa-copy"></i>
                                     </button>
@@ -531,5 +600,170 @@ onMounted(cargar);
                 </div>
             </section>
         </main>
+        <!-- ================= FICHA DE UN COBRO =================
+             Panel lateral, no fila desplegable: en un móvil la tabla ya se corta y lo que
+             queda fuera —concepto, documento e importe— es justo lo que se viene a ver. -->
+        <div v-if="fichaAbierta" class="fixed inset-0 z-40 bg-slate-900/40" @click="cerrarFicha"></div>
+
+        <aside v-if="fichaAbierta && fichaCobro"
+            class="fixed inset-y-0 right-0 z-50 w-full sm:w-[26rem] bg-white shadow-2xl flex flex-col">
+
+            <header class="px-4 py-3 bg-[#376875] text-white flex items-start justify-between gap-3 shrink-0">
+                <div class="min-w-0">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-white/60">Cobro</p>
+                    <p class="text-sm font-black truncate">{{ fichaCobro.concepto }}</p>
+                </div>
+                <button type="button" @click="cerrarFicha"
+                    class="shrink-0 w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </header>
+
+            <div class="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-5 text-xs">
+
+                <!-- Estado e importe: lo que se mira primero. -->
+                <div class="flex items-center justify-between gap-3">
+                    <span class="px-2 py-0.5 rounded border text-[10px] font-black uppercase"
+                        :class="clasesEstadoEnlace(fichaCobro.estado)">{{ fichaCobro.estadoEtiqueta }}</span>
+                    <div class="text-right">
+                        <p class="text-lg font-black text-slate-800">
+                            {{ fichaCobro.monedaSimbolo }} {{ fichaCobro.montoTotal }}
+                        </p>
+                        <!-- El desglose sólo cuando hay recargo: si no, repetir el mismo número
+                             tres veces sólo confunde. -->
+                        <p v-if="Number(fichaCobro.montoRecargo) > 0.005" class="text-[10px] text-slate-400">
+                            neto {{ fichaCobro.montoNeto }} · recargo {{ fichaCobro.montoRecargo }}
+                            ({{ fichaCobro.recargoPorcentaje }}%)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- ── EL DOCUMENTO DE ORIGEN ──────────────────────────────
+                     Lo que el módulo dueño sabe de su reserva o expediente. En un cobro
+                     manual no hay ninguno, y se dice en vez de dejar el hueco. -->
+                <section>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                        {{ fichaOrigen ? fichaOrigen.tipoEtiqueta : 'Origen' }}
+                    </h3>
+
+                    <p v-if="fichaCargando && !fichaOrigen" class="text-slate-400 italic">
+                        <i class="fas fa-circle-notch fa-spin mr-1"></i> Consultando el documento…
+                    </p>
+
+                    <div v-else-if="fichaOrigen" class="rounded-xl border border-slate-200 p-3 flex flex-col gap-2">
+                        <button type="button" @click="irAlOrigen(fichaCobro.origenTipo, fichaCobro.origenId)"
+                            class="text-left font-black text-[#376875] hover:underline">
+                            {{ fichaOrigen.referencia }} <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                        </button>
+                        <p class="text-slate-600 leading-snug">{{ fichaOrigen.descripcion }}</p>
+                        <!-- Lo que debe HOY, no lo que debía al emitir el enlace. Es el dato
+                             por el que se abre esta ficha después de cobrar. -->
+                        <p class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-slate-400 font-bold">Saldo pendiente hoy</span>
+                            <span class="font-black"
+                                :class="Number(fichaOrigen.saldoPendiente) > 0.005 ? 'text-amber-600' : 'text-emerald-600'">
+                                {{ fichaOrigen.moneda }} {{ fichaOrigen.saldoPendiente }}
+                            </span>
+                        </p>
+                    </div>
+
+                    <p v-else-if="fichaCobro.esManual" class="text-slate-400 leading-snug">
+                        Cobro manual: no cuelga de ninguna reserva ni expediente. Todo lo que se
+                        sabe de él es lo que se tecleó al crearlo.
+                    </p>
+
+                    <p v-else class="text-amber-600 leading-snug">
+                        <i class="fas fa-triangle-exclamation mr-1"></i>
+                        {{ fichaError ?? 'El documento de origen ya no existe.' }}
+                    </p>
+                </section>
+
+                <!-- ── CLIENTE ─────────────────────────────────────────────
+                     En un manual esto ES el cliente: no hay ficha detrás de la que sacarlo. -->
+                <section v-if="fichaCobro.clienteNombre || fichaCobro.clienteEmail || fichaCobro.clienteTelefono">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Cliente</h3>
+                    <dl class="flex flex-col gap-1.5">
+                        <div v-if="fichaCobro.clienteNombre" class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold shrink-0">Nombre</dt>
+                            <dd class="font-bold text-slate-700 text-right break-words">{{ fichaCobro.clienteNombre }}</dd>
+                        </div>
+                        <div v-if="fichaCobro.clienteEmail" class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold shrink-0">Correo</dt>
+                            <dd class="font-bold text-slate-700 text-right break-all">{{ fichaCobro.clienteEmail }}</dd>
+                        </div>
+                        <div v-if="fichaCobro.clienteTelefono" class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold shrink-0">Teléfono</dt>
+                            <dd class="font-bold text-slate-700 text-right">{{ fichaCobro.clienteTelefono }}</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <!-- ── EL COBRO ────────────────────────────────────────── -->
+                <section>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">El cobro</h3>
+                    <dl class="flex flex-col gap-1.5">
+                        <div class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold">Módulo</dt>
+                            <dd class="font-bold text-slate-700">{{ fichaCobro.moduloEtiqueta }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold">Pasarela</dt>
+                            <dd class="font-bold text-slate-700">{{ fichaCobro.pasarelaEtiqueta }}</dd>
+                        </div>
+                        <div v-if="fichaCobro.origenReferencia" class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold shrink-0">Referencia</dt>
+                            <dd class="font-bold text-slate-700 text-right break-all">{{ fichaCobro.origenReferencia }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold">Emitido</dt>
+                            <dd class="font-bold text-slate-700">{{ fechaLarga(fichaCobro.createdAt) }}</dd>
+                        </div>
+                        <div v-if="fichaCobro.creadoPorNombre" class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold">Lo emitió</dt>
+                            <dd class="font-bold text-slate-700 text-right">{{ fichaCobro.creadoPorNombre }}</dd>
+                        </div>
+                        <div v-if="fichaCobro.expiraEn" class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold">Caduca</dt>
+                            <dd class="font-bold text-slate-700">{{ fechaLarga(fichaCobro.expiraEn) }}</dd>
+                        </div>
+                    </dl>
+                    <p v-if="fichaCobro.notas" class="mt-2 p-2 rounded-lg bg-slate-50 text-slate-600 leading-snug">
+                        {{ fichaCobro.notas }}
+                    </p>
+                </section>
+
+                <!-- ── EL PAGO, sólo si lo hubo ────────────────────────────
+                     Estos cuatro son los que se cotejan contra el extracto de la pasarela. -->
+                <section v-if="fichaCobro.pagadoEn">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">El pago</h3>
+                    <dl class="flex flex-col gap-1.5">
+                        <div class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold">Pagado</dt>
+                            <dd class="font-bold text-emerald-600">{{ fechaLarga(fichaCobro.pagadoEn) }}</dd>
+                        </div>
+                        <div v-if="fichaCobro.medioDetalle" class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold">Medio</dt>
+                            <dd class="font-bold text-slate-700 text-right">{{ fichaCobro.medioDetalle }}</dd>
+                        </div>
+                        <div v-if="fichaCobro.autorizacionCodigo" class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold">Autorización</dt>
+                            <dd class="font-bold text-slate-700 text-right break-all">{{ fichaCobro.autorizacionCodigo }}</dd>
+                        </div>
+                        <div v-if="fichaCobro.ordenId" class="flex justify-between gap-3">
+                            <dt class="text-slate-400 font-bold shrink-0">Orden</dt>
+                            <dd class="font-bold text-slate-700 text-right break-all">{{ fichaCobro.ordenId }}</dd>
+                        </div>
+                    </dl>
+                </section>
+            </div>
+
+            <!-- Copiar el enlace sigue siendo la acción más usada; aquí también. -->
+            <footer v-if="fichaCobro.vigente" class="shrink-0 px-4 py-3 border-t border-slate-100 bg-slate-50">
+                <button type="button" @click="copiar(fichaCobro)"
+                    class="w-full py-2 rounded-xl bg-[#376875] hover:bg-[#2d5660] text-white text-xs font-black">
+                    <i class="fas fa-copy mr-1"></i> Copiar enlace de pago
+                </button>
+            </footer>
+        </aside>
     </div>
 </template>

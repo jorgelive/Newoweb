@@ -17,6 +17,7 @@ import type {
     FinEnlacePagoManualCreate,
     FinCobrosRespuesta,
     FinTotalCobro,
+    FinCobroDetalle,
 } from '@/types/finEnlacePagoModel';
 import type {
     FinCajaFiltros,
@@ -104,6 +105,22 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
         }
     };
 
+    /**
+     * La ficha de UN cobro, con los datos de su documento de origen.
+     *
+     * Va en su propia petición y no en el listado a propósito: resolver el origen es
+     * preguntarle a su módulo, o sea una consulta por fila, y en un listado de hasta 500 serían
+     * 500 consultas para pintar algo que casi nunca se mira. Ver `FinCajaApiController`.
+     *
+     * No toca el estado del store: devuelve y se va, para que abrir una ficha no altere la
+     * lista que hay detrás.
+     */
+    const fetchCobroDetalle = async (id: string): Promise<FinCobroDetalle> => {
+        const { data } = await apiClient.get<FinCobroDetalle>(`/finanzas/caja/cobros/${id}`);
+
+        return data;
+    };
+
     /** El backend responde `{error: "..."}` plano, no hydra. */
     const mensajeDeError = (err: unknown): string => {
         const data = (err as { response?: { data?: { error?: string } } })?.response?.data;
@@ -121,6 +138,7 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
         cajaTruncado,
         medios,
         fetchCobros,
+        fetchCobroDetalle,
         fetchMovimientos,
         crearManual,
     };

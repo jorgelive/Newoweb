@@ -119,6 +119,13 @@ export interface FinEnlacePago {
     origenReferencia: string | null;
     clienteNombre: string | null;
     /**
+     * Los tres datos del cliente que se tecleaban al crear un cobro MANUAL y no se volvían a
+     * ver. En un manual no hay documento detrás del que sacarlos: esto es todo lo que hay.
+     */
+    clienteEmail: string | null;
+    clienteTelefono: string | null;
+    notas: string | null;
+    /**
      * Id del `PmsPagoFinanciero` que generó este enlace al cobrarse.
      *
      * Es el hilo que ata enlace y pago. Lo usa el panel para marcar ese pago como "vino de
@@ -177,3 +184,32 @@ export const clasesEstadoEnlace = (estado: FinEnlacePagoEstado): string => {
         default: return 'bg-slate-100 text-slate-500 border-slate-200';
     }
 };
+
+
+/**
+ * El documento al que pertenece un cobro, tal como lo cuenta SU módulo.
+ *
+ * Espejo de `FinCajaApiController::origenDe()`, que lo arma desde el `FinOrigenCobroDto` que
+ * devuelve el resolver del dominio. `null` en un cobro manual —no hay documento— y también
+ * cuando el documento se borró.
+ */
+export interface FinCobroOrigen {
+    tipo: FinOrigenCobro;
+    tipoEtiqueta: string;
+    /** Lo que el cliente vio como concepto en la pasarela («Estancia Casita 7, 12-15 ago»). */
+    descripcion: string;
+    /** Identificador legible: el localizador de la reserva, el código del expediente. */
+    referencia: string;
+    /** Lo que ese documento debe HOY, no cuando se emitió el enlace. */
+    saldoPendiente: string;
+    moneda: string;
+    clienteNombre: string | null;
+    clienteEmail: string | null;
+    clienteTelefono: string | null;
+}
+
+/** Respuesta de `GET /finanzas/caja/cobros/{id}`. */
+export interface FinCobroDetalle {
+    cobro: FinEnlacePago;
+    origen: FinCobroOrigen | null;
+}

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Finanzas\Controller\Api;
 
+use Symfony\Component\Uid\Uuid;
+use App\Finanzas\Service\FinOrigenCobroRegistry;
 use App\Finanzas\Dto\FinMovimientoFiltro;
 use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Enum\FinEnlacePagoEstado;
@@ -52,6 +54,8 @@ final class FinCajaApiController extends AbstractController
         private readonly FinEnlacePagoSerializer $serializador,
         private readonly FinEnlacePagoService $servicio,
         private readonly FinMovimientoRegistry $movimientos,
+        // Para el detalle: quien sabe qué es una reserva o un expediente es su dominio.
+        private readonly FinOrigenCobroRegistry $origenes,
     ) {}
 
     /**
@@ -78,6 +82,83 @@ final class FinCajaApiController extends AbstractController
             'estados' => FinEnlacePagoEstado::opciones(),
             'truncado' => count($enlaces) >= self::LIMITE,
         ]);
+    }
+
+    /**
+     * El detalle de UN cobro, con los datos de su documento de origen.
+     *
+     * ### Por qué un endpoint aparte y no más campos en el listado
+     *
+     * Resolver el origen es preguntarle a su dominio (`FinOrigenCobroRegistry::resolver()`),
+     * y eso es al menos una consulta por fila. En un listado de hasta 500 serían 500
+     * consultas para pintar datos que casi nunca se miran. Aquí se paga una sola vez, y sólo
+     * cuando el operador abre la ficha.
+     *
+     * ### Qué devuelve según de dónde venga el cobro
+     *
+     * - **Manual**: `origen` es null y no falta nada — en un cobro suelto lo que se tecleó al
+     *   crearlo (concepto, cliente, importe, referencia libre) ES todo lo que hay, y ya viaja
+     *   en el propio enlace.
+     * - **PMS / Cotizaciones**: `origen` trae lo que sabe ese módulo de su documento —la
+     *   descripción de la estancia o el expediente, el localizador y **cuánto sigue
+     *   debiendo**—, que es justo lo que no se puede deducir mirando el enlace.
+     *
+     * `origen` también sale null si el documento se borró o el módulo no lo reconoce: se
+     * responde 200 con el cobro igualmente, porque el cobro existió y hay que poder verlo.
+     */
+    #[Route('/cobros/{id}', name: 'cobro_detalle', methods: ['GET'])]
+    #[IsGranted(Roles::RESERVAS_SHOW, message: 'No tienes permiso para ver los cobros.')]
+    public function cobroDetalle(string $id): JsonResponse
+    {
+        if (!Uuid::isValid($id)) {
+            return $this->json(['error' => 'Identificador de cobro inválido.'], 400);
+        }
+
+        $enlace = $this->enlaces->find(Uuid::fromString($id));
+
+        if (!$enlace instanceof FinEnlacePago) {
+            return $this->json(['error' => 'Ese cobro no existe.'], 404);
+        }
+
+        return $this->json([
+            'cobro' => $this->serializador->aArray($enlace),
+            'origen' => $this->origenDe($enlace),
+        ]);
+    }
+
+    /**
+     * Los datos del documento al que pertenece el cobro, preguntándoselo a su módulo.
+     *
+     * @return array<string, string|null>|null
+     */
+    private function origenDe(FinEnlacePago $enlace): ?array
+    {
+        $tipo = $enlace->getOrigenTipo();
+        $origenId = $enlace->getOrigenId();
+
+        if ($tipo === null || $origenId === null || !$this->origenes->soporta($tipo)) {
+            return null;
+        }
+
+        $dto = $this->origenes->resolver($tipo, $origenId, $enlace->getMonedaCodigo());
+
+        if ($dto === null) {
+            return null;
+        }
+
+        return [
+            'tipo' => $tipo->value,
+            'tipoEtiqueta' => $tipo->etiqueta(),
+            'descripcion' => $dto->descripcion,
+            'referencia' => $dto->referencia,
+            // Lo que el documento sigue debiendo HOY, no cuando se emitió el enlace: es el
+            // dato por el que se abre esta ficha después de cobrar.
+            'saldoPendiente' => $dto->saldoPendiente,
+            'moneda' => $dto->moneda,
+            'clienteNombre' => $dto->clienteNombre,
+            'clienteEmail' => $dto->clienteEmail,
+            'clienteTelefono' => $dto->clienteTelefono,
+        ];
     }
 
     /**

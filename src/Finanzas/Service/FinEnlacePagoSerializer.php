@@ -60,6 +60,12 @@ final class FinEnlacePagoSerializer
             'origenId' => (string) $enlace->getOrigenId(),
             'origenReferencia' => $enlace->getOrigenReferencia(),
             'clienteNombre' => $enlace->getClienteNombre(),
+            // Los tres datos del cliente van juntos: en un cobro MANUAL son lo único que se
+            // guardó de quién paga —no hay documento detrás del que sacarlos— y hasta ahora
+            // se tecleaban al crear el enlace y no se volvían a ver nunca.
+            'clienteEmail' => $enlace->getClienteEmail(),
+            'clienteTelefono' => $enlace->getClienteTelefono(),
+            'notas' => $enlace->getNotas(),
             // Id del registro que el módulo de origen creó al cobrarse (el PmsPagoFinanciero).
             // Es lo que permite a la UI marcar ESE pago como "vino de un enlace" y explicar
             // por qué su importe no coincide con el del enlace: el pago es el NETO y el
