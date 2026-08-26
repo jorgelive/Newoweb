@@ -105,6 +105,19 @@ export interface PaxCotComponente {
     fechaHoraFin?: string | null;
     sinHorario?: boolean;
     tipo?: string | null;
+
+    /**
+     * Dónde va este componente dentro de su jornada al CONTAR el viaje.
+     *
+     * ⚠️ Lo decide `ComponenteTipoEnum::ordenNarrativo()` en PHP, no el front. `util/` y `pax/`
+     * son dos aplicaciones que no comparten código: poner los números aquí sería escribirlos dos
+     * veces, y dos copias de una regla discrepan el día que alguien toca una.
+     *
+     * Sirve para que el alojamiento cierre su día en vez de caer en medio —el backend sirve los
+     * componentes por `fechaHoraInicio` y el check-in de un hotel es a media tarde—.
+     */
+    ordenNarrativo?: number;
+
     cotsegmento?: PaxCotSegmento | null;
     cottarifas: PaxCottarifa[];
     detallesParaCliente: PaxDetalleCliente[];

@@ -70,7 +70,19 @@ const porDia = (detalle: LineaDetalleClaseInterna[]): { fecha: string; etiqueta:
       if (b === '') return -1;
       return a.localeCompare(b);
     })
-    .map(([fecha, lineas]) => ({ fecha, etiqueta: etiquetaDia(fecha), lineas }));
+    .map(([fecha, lineas]) => ({
+      fecha,
+      etiqueta: etiquetaDia(fecha),
+      // ⚠️ Dentro del día, ORDEN NARRATIVO: se llega, se hace lo del día, se come y se duerme.
+      // El backend sirve por hora de inicio y el check-in de un hotel es a media tarde, así que
+      // el alojamiento caía en medio. Y hay que ordenar AQUÍ, no dentro de cada servicio: un día
+      // junta líneas de varios servicios —el hotel es uno y el traslado otro—, así que ordenar
+      // por dentro no cambia nada al mezclarlos. El número lo decide `ComponenteTipoEnum` en PHP.
+      lineas: [...lineas].sort((a, b) =>
+        a.ordenNarrativo !== b.ordenNarrativo
+          ? a.ordenNarrativo - b.ordenNarrativo
+          : (a.fecha || '').localeCompare(b.fecha || '')),
+    }));
 };
 
 const monedaVista = ref<'PEN' | 'USD'>('USD');

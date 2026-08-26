@@ -733,6 +733,16 @@ export interface LineaDetalleClaseInterna extends LineaDetalleClaseCliente {
      */
     prestadorNombre: string | null;
     compradorNombre: string | null;
+
+    /**
+     * Dónde va dentro de su jornada al contarla. Lo decide `ComponenteTipoEnum::ordenNarrativo()`
+     * en PHP; aquí sólo viaja para poder ordenar el día.
+     *
+     * ⚠️ Hace falta EN LA LÍNEA y no basta con ordenar los componentes de cada servicio: un día
+     * del reporte junta líneas de **varios servicios** —el hotel es un servicio y el traslado
+     * otro—, así que ordenar dentro de cada uno no cambia nada al mezclarlos.
+     */
+    ordenNarrativo: number;
 }
 
 // ── Clases de pasajero ───────────────────────────────────────────────────────

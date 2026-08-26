@@ -7,6 +7,8 @@ import { useMaestroStore } from '../maestroStore';
 import type {
     PaxCotizacionFile,
     PaxCotizacion,
+    PaxCotServicio,
+    PaxCotComponente,
     I18n,
     PaxDiaItinerario,
     PaxSegmentoConServicio,
@@ -133,6 +135,43 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
      * @param {string} localizador Código localizador del expediente.
      * @param {number} version Número de versión de la propuesta.
      */
+/**
+ * Reordena los componentes de cada servicio para CONTAR el viaje.
+ *
+ * ⚠️ El backend los sirve por `fechaHoraInicio`, y como el check-in de un hotel es a media tarde,
+ * el alojamiento caía **en medio del día** en vez de cerrarlo. Nadie cuenta un día así: se llega,
+ * se hace lo del día, se come y se duerme.
+ *
+ * ⚠️ **El criterio no se escribe aquí**: cada componente trae `ordenNarrativo`, que lo decide
+ * `ComponenteTipoEnum::ordenNarrativo()` en PHP. Ésta es la mitad `pax/` de un par —la otra está
+ * en `util/src/stores/cotizacion/cotizacionEditorStore.ts`— y por eso ninguna de las dos lleva los
+ * números: son dos apps que no comparten código, y dos copias de una regla acaban discrepando.
+ *
+ * Se ordena por DÍA primero: un servicio puede cruzar jornadas y el relato es por día. A igual día
+ * y rango, manda la hora real.
+ */
+const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
+    // La versión completa sólo viene cuando la URL lleva /{version}; en la portada no hay nada
+    // que ordenar y el `?.` se encarga.
+    [data?.cotizacionParaCliente].forEach((cot: PaxCotizacion | null | undefined) => {
+        cot?.cotservicios?.forEach((servicio: PaxCotServicio) => {
+            servicio.cotcomponentes?.sort((a: PaxCotComponente, b: PaxCotComponente) => {
+                const diaA = (a.fechaHoraInicio ?? '').slice(0, 10);
+                const diaB = (b.fechaHoraInicio ?? '').slice(0, 10);
+
+                if (diaA !== diaB) return diaA.localeCompare(diaB);
+
+                const rangoA = a.ordenNarrativo ?? 30;
+                const rangoB = b.ordenNarrativo ?? 30;
+
+                if (rangoA !== rangoB) return rangoA - rangoB;
+
+                return String(a.fechaHoraInicio ?? '').localeCompare(String(b.fechaHoraInicio ?? ''));
+            });
+        });
+    });
+};
+
     const cargarVersion = async (localizador: string, version: number): Promise<void> => {
         const ahora = Date.now();
         const hayInternet = navigator.onLine;
@@ -154,6 +193,7 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
                 await asegurarMaestro();
                 const data = await paxCotizacionService.getFileVersion(localizador, version);
 
+                ordenarComponentesPorRelato(data);
                 detalle.value = data;
                 currentLocalizador.value = localizador;
                 currentVersion.value = version;

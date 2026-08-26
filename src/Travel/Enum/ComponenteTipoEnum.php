@@ -175,4 +175,35 @@ enum ComponenteTipoEnum: string
             default => 5,
         };
     }
+
+    /**
+     * Dónde va este tipo dentro de su JORNADA cuando se cuenta el viaje.
+     *
+     * ⚠️ **El orden cronológico no es el orden narrativo, y ése era el problema.** Los componentes
+     * salían por `fechaHoraInicio`, y como el check-in de un hotel es a media tarde, el alojamiento
+     * aterrizaba **en medio del día** —entre el traslado de la mañana y la excursión— en todas las
+     * vistas a la vez. Nadie cuenta un día así: se llega, se hace lo del día, se come y se duerme.
+     *
+     * Números con hueco (10, 20, 30…) para poder intercalar sin renumerar lo que ya existe.
+     *
+     * ⚠️ **Es sólo para LEER.** No cambia horas ni fechas, no toca la base y no decide nada de
+     * operación: el tráfico sigue mandándose por hora real. Ver `docs/Cotizaciones.md`.
+     */
+    public function ordenNarrativo(): int
+    {
+        return match ($this) {
+            // Llegar y moverse abre la jornada: es lo que pasa primero de verdad.
+            self::VUELO, self::TREN, self::TRANSPORTE => 10,
+            // El contacto es de la llegada: quien recibe, recibe al principio.
+            self::CONTACTO => 20,
+            // El cuerpo del día.
+            self::EXCURSION_POOL, self::EXCURSION_PRIVADA, self::GUIADO => 30,
+            self::TICKET_HORARIO_FIJO, self::TICKET_HORARIO_VAR => 40,
+            self::ALIMENTACION_HORARIO_FIJO, self::ALIMENTACION_HORARIO_VAR => 50,
+            // Lo accesorio, antes de cerrar.
+            self::PERSONAL_EXTRA, self::EXTRAS => 60,
+            // Dormir CIERRA el día. Es la razón de existir de este método.
+            self::ALOJAMIENTO => 90,
+        };
+    }
 }

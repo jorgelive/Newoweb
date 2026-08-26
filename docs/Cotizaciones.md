@@ -1318,6 +1318,33 @@ Cada línea es ahora una ficha: el servicio manda arriba, la **venta por pax a l
 la cifra que se busca— y el monto cotizado con sus etiquetas abajo, tras un separador. Una columna
 en móvil, dos desde `lg`. Mismo criterio que ya se aplicó a La Biblia al pasar de tabla a rejilla.
 
+### Orden narrativo: por qué el cronológico no sirve (26/08/2026)
+
+Los componentes se sirven por `fechaHoraInicio` (`#[ORM\OrderBy]` en `CotizacionCotservicio`). Como
+el **check-in de un hotel es a media tarde**, el alojamiento aterrizaba **en medio del día** —entre
+el traslado de la mañana y la excursión— en el editor, en el reporte y en la vista del cliente a la
+vez. Nadie cuenta un día así: se llega, se hace lo del día, se come y se duerme.
+
+`ComponenteTipoEnum::ordenNarrativo()` da un rango por tipo (10 llegar/moverse · 20 contacto ·
+30 excursiones · 40 tickets · 50 comidas · 60 extras · **90 alojamiento**). Números con hueco para
+intercalar sin renumerar. Se expone como `CotizacionCotcomponente::getOrdenNarrativo()`.
+
+⚠️ **La regla vive en PHP, y ése es todo el motivo del getter.** `util/` y `pax/` son dos apps Vue
+que **no comparten código**: escribir los números en el front sería escribirlos dos veces, y dos
+copias de una regla discrepan el día que alguien toca una. El front sólo ordena por el número, que
+no es una regla sino un `sort`. PHPStan valida que el `match` es exhaustivo: si mañana se añade un
+tipo, salta.
+
+⚠️ **Ordenar los componentes DENTRO de cada servicio no basta, y fue el primer intento fallido.**
+Un día del reporte junta líneas de **varios servicios** —el hotel es un servicio y el traslado
+otro—, así que ordenar por dentro no cambia nada al mezclarlos. El rango tiene que viajar **en la
+línea** (`LineaDetalleClaseInterna.ordenNarrativo`) y ordenarse **al agrupar por día**.
+
+⚠️ **El `dia`/`orden` de `CotizacionSegmento` NO sirve para esto.** Son relativos a **cada
+servicio**: un tour de dos días tiene `dia` 1–2 y `orden` 1–11 *dentro de él*, así que tres
+servicios distintos del mismo día natural tienen todos `dia: 1, orden: 1`. Ordenan el relato
+**dentro de un servicio**, no entre servicios de una jornada. Verificado en datos reales.
+
 **Las fichas van partidas por JORNADA**, con el día encabezando las suyas y el número de líneas a
 la derecha. Cuarenta fichas seguidas no dicen de cuántos días son ni dónde empieza cada uno: hay
 que leerlas todas para situarse, y un viaje se piensa por días —«el miércoles cuánto sale»—. El

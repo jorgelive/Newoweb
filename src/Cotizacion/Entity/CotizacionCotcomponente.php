@@ -18,6 +18,7 @@ use App\Travel\Enum\ComponenteModoEnum;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use App\Travel\Enum\ComponenteTipoEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
@@ -753,6 +754,26 @@ class CotizacionCotcomponente
 
     public function getTipo(): ?string { return $this->tipo; }
     public function setTipo(?string $tipo): self { $this->tipo = $tipo; return $this; }
+
+    /**
+     * Dónde va este componente dentro de su jornada al CONTAR el viaje.
+     *
+     * ⚠️ **La regla vive aquí y no en el front**, y ése es todo el motivo de que exista este
+     * getter. Las vistas son dos aplicaciones Vue distintas —`util/` y `pax/`— que no comparten
+     * código: escribir el orden allí sería escribirlo dos veces, y dos copias de una regla
+     * terminan discrepando el día que alguien toca una. Aquí se decide el número; el front sólo
+     * ordena por él, que no es una regla, es un `sort`.
+     *
+     * Un tipo desconocido o vacío cae en 30 —el cuerpo del día— y no al final: lo que no sabemos
+     * qué es no debería ganarle el sitio a la cama, que sí sabemos que cierra.
+     *
+     * El detalle de por qué el orden cronológico no sirve está en `ComponenteTipoEnum`.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
+    public function getOrdenNarrativo(): int
+    {
+        return (ComponenteTipoEnum::tryFrom((string) $this->tipo)?->ordenNarrativo()) ?? 30;
+    }
 
     public function isSinHorario(): bool { return $this->sinHorario; }
     public function setSinHorario(bool $sinHorario): self { $this->sinHorario = $sinHorario; return $this; }

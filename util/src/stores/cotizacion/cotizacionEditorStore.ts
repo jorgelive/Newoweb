@@ -933,6 +933,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             // encargó, la regla de negocio es que se le compra a quien opera, y
                             // repetir el mismo nombre en dos etiquetas enseña a no leer ninguna.
                             // Mismo criterio que La Biblia con `mostrarComprador()`.
+                            // Para ordenar el día al contarlo. Lo decide `ComponenteTipoEnum` en
+                            // PHP; aquí sólo viaja. Ver `porDia()` en `ResumenClasificacion.vue`.
+                            ordenNarrativo: componente.ordenNarrativo ?? 30,
                             prestadorNombre: resolverPrestador(componente)?.nombre || null,
                             compradorNombre: (componente.compradorNombreSnapshot || '').trim() || null
                         }
@@ -1285,6 +1288,43 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             maestroId: componente.prestadorMaestroId ?? null,
             nombre: componente.prestadorNombreSnapshot ?? null
         };
+    };
+
+    /**
+     * Reordena los componentes de cada servicio para CONTAR el viaje, no para operarlo.
+     *
+     * ⚠️ El backend los sirve por `fechaHoraInicio` (ver el `#[ORM\OrderBy]` de
+     * `CotizacionCotservicio`). Como el check-in de un hotel es a media tarde, el alojamiento
+     * caía **en medio del día** —entre el traslado de la mañana y la excursión— en el editor, en
+     * el reporte y en la vista del cliente a la vez. Nadie cuenta un día así.
+     *
+     * ⚠️ **El criterio no se escribe aquí**: cada componente trae `ordenNarrativo`, que lo decide
+     * `ComponenteTipoEnum::ordenNarrativo()` en PHP. `util/` y `pax/` son dos aplicaciones que no
+     * comparten código, así que poner los números en el front sería escribirlos dos veces — y dos
+     * copias de una regla discrepan el día que alguien toca una. Aquí sólo se ordena por ellos.
+     *
+     * Se ordena por DÍA primero: un servicio puede cruzar varias jornadas, y el relato es por día.
+     * A igual día y rango, manda la hora real, que es el desempate natural.
+     *
+     * Se hace una vez al cargar y no en cada vista, para que editor, reporte y cualquier pantalla
+     * nueva lean lo mismo sin acordarse de nada.
+     */
+    const ordenarComponentesPorRelato = (data: Cotizacion | null): void => {
+        data?.cotservicios?.forEach((servicio: CotServicio) => {
+            servicio.cotcomponentes?.sort((a: ComponenteCompleto, b: ComponenteCompleto) => {
+                const diaA = getFechaLimpia(a.fechaHoraInicio);
+                const diaB = getFechaLimpia(b.fechaHoraInicio);
+
+                if (diaA !== diaB) return diaA.localeCompare(diaB);
+
+                const rangoA = a.ordenNarrativo ?? 30;
+                const rangoB = b.ordenNarrativo ?? 30;
+
+                if (rangoA !== rangoB) return rangoA - rangoB;
+
+                return String(a.fechaHoraInicio ?? '').localeCompare(String(b.fechaHoraInicio ?? ''));
+            });
+        });
     };
 
     const construirInclusiones = (advertencias: string[]): InclusionServicio[] => {
@@ -1995,6 +2035,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             await Promise.all(fetchPromises);
 
             data.idiomaEdicion = 'es';
+            ordenarComponentesPorRelato(data);
             cotizacion.value = data;
             estadoPersistido.value = String(data?.estado ?? '');
 

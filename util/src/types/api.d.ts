@@ -7272,6 +7272,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
@@ -7373,6 +7375,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         "CotizacionCotcomponente-cotizacion.write": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.write"] | null;
@@ -7532,6 +7536,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         "CotizacionCotcomponente-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"] | null;
@@ -7577,6 +7583,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.html": {
@@ -7695,6 +7703,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
@@ -7796,6 +7806,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         "CotizacionCotcomponente.html-operacion.item.read_timestamp.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
@@ -7858,6 +7870,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         "CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"] | null;
@@ -7903,6 +7917,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -8021,6 +8037,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -8123,6 +8141,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -8187,6 +8207,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -8233,6 +8255,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.multipart": {
@@ -8351,6 +8375,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
@@ -8452,6 +8478,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         "CotizacionCotcomponente.multipart-operacion.item.read_timestamp.read": {
             /** @description Obtiene el ID del componente maestro si lo hubiera. */
@@ -8514,6 +8542,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         "CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"] | null;
@@ -8559,6 +8589,8 @@ export interface components {
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /** @description Dónde va este componente dentro de su jornada al CONTAR el viaje. */
+            readonly ordenNarrativo?: number;
         };
         CotizacionCotservicio: {
             /**
