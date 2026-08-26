@@ -1795,7 +1795,15 @@ lo calcula, y tiene que cubrir los cuatro ejes.
 
 ⚠️ **LUGAR y ORGANIZACIÓN se esconden cuando no tienen nada que ofrecer** (`gruposVisibles`). Un
 rótulo que abre a una lista vacía se lee como avería —«el filtro no carga»— cuando lo que pasa es
-que no hay de qué filtrar. Y si el eje abierto desaparece, un `watch` lo cierra: si no, quedaba un
+que no hay de qué filtrar.
+
+⚠️ **Pero LUGAR sale igual si hay lugares FILTRADOS, aunque el catálogo esté vacío.** Los lugares
+elegidos se restauran de `localStorage` antes de que cargue el catálogo y viajan **al servidor**;
+si `fetchLugares()` falla —su `catch` se traga el error y deja la lista vacía—, esconder el rótulo
+dejaba un filtro activo **sin contador y sin chips que quitar**: cuadro recortado que se lee como
+«no hay nada». Es el mismo fallo que costó las filas de tipo `contacto`, reintroducido por la
+puerta de atrás. ORGANIZACIÓN no lo necesita porque su `watch` de poda suelta lo que desaparece, y
+TIPO descarta el filtro guardado si el catálogo cambió. Y si el eje abierto desaparece, un `watch` lo cierra: si no, quedaba un
 bloque de opciones colgando sin rótulo con el que cerrarlo, y había que recargar para salir.
 
 **Qué desapareció y por qué:**
@@ -2116,6 +2124,18 @@ podría recuperar de ninguna otra parte.
 
 ## 8. Gotchas
 
+**Una acción que cambia DOS registros tiene que sincronizar los dos.** Reemitir anula la orden
+anterior y crea la sucesora **en la misma transacción**, pero `emitirOrdenServicio()` sólo hacía
+`unshift` de la sucesora: la copia local de la anulada seguía diciendo «confirmada». El operador
+veía como vigente la orden que acababa de anular, y sólo al volver a entrar aparecía cancelada
+—que fue como se detectó—. Un estado que **se inventa el navegador** es de lo peor que puede pasar
+en esta pantalla: mirando eso se decide si hay que llamar al proveedor.
+
+No hace falta pedir nada: la respuesta trae la anterior ya anulada en `reemplazaA`, porque es la
+misma entidad gestionada, serializada después del `flush`. La regla general: **si el servidor tocó
+más de un registro, la respuesta dice cómo quedaron todos — úsala, o vuelve a preguntar; lo que no
+vale es dejar el estado viejo en pantalla.**
+
 **Los iconos de Font Awesome necesitan el prefijo de familia.** Las configs guardan
 `icon: 'fa-check'`, así que la plantilla tiene que escribir `class="fas"` además del icono. Si se
 pasa sólo `cfg.icon`, el `<i>` no renderiza nada; combinado con un label oculto por breakpoint
@@ -2197,6 +2217,10 @@ cotizado, no contra la venta real.
 | Cambiar cómo se rotula un servicio en cualquier lista | `util/src/stores/operacion/operacionStore.ts` | `nombreComponenteDeServicio()` — el respaldo es el tipo, nunca la tarifa |
 | Cambiar qué se edita sin abrir la ficha | `util/src/views/Operacion/OperacionView.vue` | la `<article>` de la rejilla; lo demás va al formulario |
 | Cambiar cómo filtra el chip de organización | `util/src/views/Operacion/OperacionView.vue` | `coincideOrganizacion()` — los dos papeles en OR, sobre el efectivo |
+| Cambiar a qué órdenes se puede agregar | `util/src/views/Operacion/OperacionView.vue` | `ordenesParaAgregar` — y `fetchBorradoresDeFile()` en el store, que es quien las trae |
+| Cambiar cuándo se refrescan los borradores de «Agregar a OS» | `util/src/stores/operacion/operacionStore.ts` | `fileDeBorradores = null` en emitir / agregar / cambiar estado / eliminar |
+| Filtrar la colección de órdenes por algo nuevo | `src/Operacion/Entity/OperacionOrdenServicio.php` | `SearchFilter` si es texto, `UuidRelacionFilter` si es relación — y regenerar `api.d.ts` |
+| **Filtrar por una relación en cualquier recurso** | `src/Api/Filter/UuidRelacionFilter.php` | declararla ahí, **nunca** en `SearchFilter`: con uuid binario devuelve cero en silencio |
 | Cambiar qué organización se marca como capaz de recibir órdenes | `util/src/views/Operacion/OperacionView.vue` | `organizacionesDelCuadro` (`recibeOrdenes`) — y `esComprable()`, espejo del PHP |
 | Cambiar qué se puede meter en una Orden de Servicio | `src/Operacion/Entity/OperacionServicio.php` **y** `util/src/views/Operacion/OperacionView.vue` | `esComprable()` (espejo, se tocan los dos) |
 | **Añadir o quitar un eje de filtro** (§7.0) | `util/src/views/Operacion/OperacionView.vue` | `GrupoFiltro` + `gruposVisibles` + `conteoPorGrupo` — **los tres**: sin contador, el eje filtra en silencio |
@@ -2494,6 +2518,115 @@ error, sin hueco, sin nada.
 
 Se normaliza con `idDeRecurso()`, que acepta las tres formas —objeto con `id`, IRI y uuid pelado—.
 La regla: **antes de comparar dos relaciones de la API, extrae el id de las dos**.
+
+#### 🐛 …y volvía a no aparecer, por DOS motivos más (25/08/2026)
+
+Arreglada la comparación, el botón seguía sin salir. Al depurarlo con datos reales aparecieron dos
+causas independientes, y ninguna da error.
+
+**Causa 2 — `idDeRecurso()` no cubría la forma que llega de verdad.** La sección de arriba dice
+que la función acepta «objeto con `id`, IRI y uuid pelado». Falta una cuarta: **un objeto cuyo
+único identificador es `@id`**. Y es justo la que llega:
+
+| Recurso | Claves de su `file` |
+|---|---|
+| `OperacionServicio` | `@id`, `@type`, `nombreGrupo`, `pasajeroPrincipal`, **`id`**, … |
+| `OperacionOrdenServicio` | `@id`, `@type`, `createdAt`, `updatedAt` — **sin `id`** |
+
+La orden serializa su `file` sin el grupo que publica `id`, así que `idDeRecurso(orden.file)`
+devolvía `null` y la comparación era `null === '019ec…'`: **falsa siempre**, otra vez. La regla de
+arriba seguía siendo buena; lo que estaba mal era creer que la función ya cubría todos los casos.
+
+**Causa 3 — `SearchFilter` no sabe filtrar por una relación, y lo hace en silencio.**
+Se intentó pedir los borradores del expediente al servidor. Devolvía cero. Medido en DQL:
+
+```
+COUNT sin WHERE                          → 6
+WHERE o.file = :f   (string)             → 0
+WHERE o.file = :f   (objeto Uuid)        → 0
+WHERE o.file = :f   con el tipo 'uuid'   → 6   ← toda la diferencia
+```
+
+`SearchFilter::addWhereByStrategy()` ata el valor con `setParameter($p, $v)` **sin declarar su
+tipo**, así que compara la cadena de 36 caracteres contra la columna `binary(16)` del uuid. No casa
+nunca: **200 con la colección vacía**, sin excepción y sin nada en el log.
+
+⚠️ **No era exclusivo de las órdenes: afectaba a TODOS los filtros de relación.** El más caro:
+`operacion_servicios?file=<uuid>` —el filtro por expediente de La Biblia— devolvía **0** con 42
+filas de ese mismo expediente cargadas. O sea que **elegir un expediente dejaba el cuadro vacío**.
+El problema ya estaba diagnosticado en `TravelOrganizacionServicio`, donde se esquivó con un
+controlador a medida; van tres veces.
+
+**Arreglado de raíz con `App\Api\Filter\UuidRelacionFilter`** (25/08/2026), que hace lo único
+que faltaba: `setParameter($p, $uuid, 'uuid')`. Acepta uuid pelado o IRI, admite listas
+(`?file[]=…`) y navega propiedades anidadas. Se declara **como mapa**, no como lista:
+`isPropertyEnabled()` hace `array_key_exists()`, así que con `['file']` la clave sería `0` y el
+filtro se ignoraría entero — devolviendo la colección **sin filtrar**, que es el fallo al revés y
+peor.
+
+⚠️ **Un valor ilegible corta con `1 = 0`, no se ignora** — y basta **uno** en una lista para
+cortar entera. Ignorarlo devuelve la colección completa, y quien pidió «lo de este expediente» se
+llevaría lo de todos creyendo que es lo suyo. Enseñar de menos se nota; enseñar de más, no. La
+primera versión descartaba el valor malo y seguía con los buenos: con un solo valor cortaba y con
+uno bueno y uno malo colaba, que es lo peor de los dos mundos porque nadie sabe qué le tocó.
+
+⚠️ **La forma multivalor va con un parámetro por valor unidos con OR, NO con un `IN`.** La primera
+versión ataba la lista con el tipo `'uuid[]'`, **que no existe**: DBAL sólo expande los
+`ArrayParameterType::*` y cualquier otro nombre acaba en `Type::getType('uuid[]')`, que lanza.
+Con UN elemento la lista colapsaba a la rama de uno y pasaba; con DOS reventaba con
+`Unknown column type "uuid[]" requested` — un **500**. Y peor que un fallo cualquiera, porque
+`getDescription()` publica `?file[]` en el esquema y en `api.d.ts`: se ofrecía un contrato que sólo
+funcionaba con un valor. Probar la forma de lista con un solo elemento **no prueba nada**.
+
+Propiedades migradas de `SearchFilter` a `UuidRelacionFilter`:
+
+| Entidad | Propiedades |
+|---|---|
+| `OperacionServicio` | `ordenServicio`, `file`, `cotizacionServicio.cotizacion` |
+| `OperacionOrdenServicio` | `file` (recuperado; `estadoOs` se queda en `SearchFilter`) |
+| `OperacionMensaje` | `ordenServicio` |
+| `OperacionEstadoBitacora` | `operacionServicio` (`campo` se queda) |
+| `OperacionPago` | `ordenServicio` |
+| `PmsTarifaRango` | `unidad` (`moneda` se queda: su id es texto, `'PEN'`) |
+
+**La regla, corta: relación → `UuidRelacionFilter`; columna de texto → `SearchFilter`.**
+
+Queda pendiente retirar los apaños de Travel (`TravelOrganizacionServicioPorOrganizacionExtension`
+y su controlador de opciones), que ahora podrían ser una línea de `#[ApiFilter]`.
+
+**Cómo quedó:**
+
+- `fetchBorradoresDeFile(fileId)` filtra **en el servidor** por `estadoOs` y por `file`, con
+  `itemsPerPage` explícito: con la paginación por defecto (30) un borrador en la página 2 vuelve a
+  ser un botón que no sale.
+- Se piden al marcar la primera fila, no al arrancar. El `watch` vigila **dos** fuentes:
+  `fileDeLaSeleccion` y `fileDeBorradores`. Con sólo la primera quedaba un hueco: se emite un
+  borrador desde la pestaña de Órdenes, se vuelve a La Biblia con lo mismo marcado, la selección no
+  cambió y **nada recargaba** — el botón seguía ofreciendo una orden ya emitida.
+- `invalidarBorradores()` **vacía la lista**, no sólo marca el expediente como sucio. Dejar el
+  contenido viejo esperando un refetch que quizá no llegue es lo que producía ese mismo síntoma.
+- ⚠️ `ordenesParaAgregar` **vuelve a comprobar el expediente en el navegador**, aunque el servidor
+  ya lo filtre. No es redundancia: entre marcar una fila del expediente A y otra del B salen dos
+  peticiones sin cancelar la primera, y si la de A llega la última la lista es de A con la
+  selección en B. Filtrando sólo por comprador —el mismo proveedor está en dos expedientes muy a
+  menudo— el botón ofrecía agregar filas de B a una orden de A. `idDeRecurso()` con la rama `@id`
+  es lo que lo hace posible (causa 2).
+
+⚠️ **La invalidación vive en el store, no en la vista.** Emitir, agregar, cambiar de estado o
+borrar ponen `fileDeBorradores = null`. Si dependiera de que cada vista se acordase de refrescar,
+la segunda vista no se acuerda — es el mismo motivo por el que `ordenesServicio` ya se sincroniza
+ahí.
+
+**Verificado contra el backend de pruebas** (25/08/2026):
+
+- Se genera una orden con una fila de Americana, se marca otra fila de Americana y aparece
+  «Agregar a OS (1)» —el (1) es correcto: de los 5 borradores del expediente sólo casa el de
+  Americana—; al confirmarlo la orden pasa de 1 a 2 líneas.
+- El filtro por expediente de La Biblia pasa de **0 a 42** filas (todas las del expediente).
+- Ejercitando el filtro directamente: por uuid → 2, por IRI → 2, lista de **dos** → 2, lista con
+  un repetido → 2, uuid inexistente → 0, valor ilegible → **0 y no 42**, lista mixta
+  (bueno + basura) → **0**, lista vacía → 0, sin parámetro → 42. El anidado
+  `cotizacionServicio.cotizacion` → 42 con la cotización real y 0 con una inexistente.
 
 ### Crear y emitir son dos decisiones, y sólo una es reversible
 

@@ -476,7 +476,12 @@ const hayServiciosSinOrganizacion = computed(() => operacionStore.servicios.some
  * TIPO y ESTADO son enums del código y siempre tienen opciones.
  */
 const gruposVisibles = computed<{ k: GrupoFiltro; label: string; icon: string }[]>(() => [
-    ...(operacionStore.lugares.length
+    // ⚠️ El `|| lugaresSeleccionados.length` NO sobra. Los lugares elegidos se restauran de
+    // `localStorage` antes de que cargue el catálogo, y viajan AL SERVIDOR. Si `fetchLugares()`
+    // falla —su `catch` se traga el error y deja la lista vacía—, el rótulo desaparecía con el
+    // filtro puesto: cuadro recortado, sin contador y sin chips que quitar. Es exactamente el
+    // fallo que costó las filas de tipo `contacto`, y aquí lo reintroducía esconder el rótulo.
+    ...(operacionStore.lugares.length || lugaresSeleccionados.value.length
         ? [{ k: 'lugar' as const, label: 'Lugar', icon: 'fas fa-map-marker-alt' }] : []),
     ...(organizacionesDelCuadro.value.length || hayServiciosSinOrganizacion.value
         ? [{ k: 'organizacion' as const, label: 'Organización', icon: 'fas fa-truck' }] : []),
@@ -967,15 +972,56 @@ const ordenesParaAgregar = computed(() => {
     // servicio y como IRI en la orden, así que un `===` entre los dos no coincidía NUNCA y el
     // botón no aparecía jamás — con la orden compatible delante. Es la clase de fallo que no da
     // error: una condición que siempre es falsa se ve igual que «no hay nada que ofrecer».
-    const fileId = idDeRecurso(sel[0].file);
     const comprador = sel[0].compradorEfectivoMaestroId ?? sel[0].compradorMaestroId ?? null;
 
-    return operacionStore.ordenesServicio.filter((o) =>
-        o.estadoOs === 'borrador'
-        && idDeRecurso(o.file) === fileId
-        && (o.compradorMaestroId ?? null) === comprador
+    // Sale de `borradoresDelFile`, que el servidor ya devuelve acotados por estado y expediente
+    // (`fetchBorradoresDeFile()`).
+    //
+    // ⚠️ **Se vuelve a comprobar el expediente AQUÍ, aunque el servidor ya lo filtre.** No es
+    // redundancia inútil: entre marcar una fila del expediente A y otra del B salen dos peticiones
+    // sin cancelar la primera, y si la de A llega la última, la lista es de A con la selección en
+    // B. Filtrando sólo por comprador —que es el mismo proveedor en dos expedientes muy a menudo—
+    // el botón ofrecía agregar filas de B a una orden de A. Lo paraba el 422 del servidor, pero
+    // ofrecer algo imposible es la pantalla mintiendo. Esta línea cuesta nada y lo cierra. Antes se buscaba dentro de `ordenesServicio` —la primera página de la pestaña de
+    // Órdenes—, así que el botón dependía de que el borrador cayera en esos 30 y de que alguien
+    // hubiera abierto esa pestaña: recién entrado a La Biblia la lista estaba VACÍA y el botón
+    // no aparecía nunca. Ver `fetchBorradoresDeFile()`.
+    const fileId = fileDeLaSeleccion.value;
+
+    return operacionStore.borradoresDelFile.filter(
+        (o) => (o.compradorMaestroId ?? null) === comprador
+            && idDeRecurso(o.file) === fileId
     );
 });
+
+/**
+ * El expediente de lo seleccionado. Es la clave con la que se piden los borradores.
+ *
+ * `conflictoSeleccion` ya garantiza que la selección es de UN solo expediente, así que basta
+ * mirar la primera fila.
+ */
+const fileDeLaSeleccion = computed<string | null>(() => {
+    const sel = serviciosSeleccionados.value;
+
+    return sel.length ? idDeRecurso(sel[0].file) : null;
+});
+
+// Se piden al marcar la primera fila, no al arrancar: quien sólo viene a mirar el cuadro no
+// gasta una petición en ello. `fetchBorradoresDeFile` no repite si ya tiene los de ese
+// expediente, así que marcar diez filas del mismo file es UNA llamada.
+//
+// ⚠️ Se vigila TAMBIÉN `fileDeBorradores`, no sólo la selección. Emitir o cancelar una orden
+// invalida la caché desde el store, y si el único disparador fuera un cambio de selección, ese
+// hueco no se rellenaba nunca: se emite un borrador desde la pestaña de Órdenes, se vuelve a La
+// Biblia con lo mismo marcado y la selección no cambió. Con las dos fuentes, el refetch entra
+// solo. No hay bucle: `fetchBorradoresDeFile` corta en seco si ya tiene los de ese expediente.
+watch(
+    [fileDeLaSeleccion, () => operacionStore.fileDeBorradores],
+    ([fileId, cargado]) => {
+        if (fileId && fileId !== cargado) void operacionStore.fetchBorradoresDeFile(fileId);
+    },
+    { immediate: true },
+);
 
 /**
  * El id de un recurso venga como venga: objeto con `id`, IRI («/platform/…/uuid») o el uuid pelado.
@@ -985,7 +1031,21 @@ const ordenesParaAgregar = computed(() => {
  */
 const idDeRecurso = (v: unknown): string | null => {
     if (typeof v === 'string') return v.split('/').pop() || null;
-    if (v && typeof v === 'object' && 'id' in v) return String((v as { id?: unknown }).id ?? '') || null;
+
+    if (v && typeof v === 'object') {
+        const o = v as { id?: unknown; '@id'?: unknown };
+
+        if (o.id !== undefined && o.id !== null) return String(o.id) || null;
+
+        // ⚠️ CUARTA forma, y la que volvió a dejar el botón muerto: un objeto cuyo único
+        // identificador es `@id`. Pasa cuando el recurso se serializa SIN el grupo que publica
+        // `id`: el `file` de un OperacionServicio trae `id`, el de una OperacionOrdenServicio
+        // no —sólo `@id`, `@type` y los timestamps—. Sin esta rama la función devolvía `null`
+        // para las órdenes y `idDeRecurso(orden.file) === idDeRecurso(servicio.file)` era
+        // `null === '019ec…'`: falso SIEMPRE, que es indistinguible de «no hay nada que ofrecer».
+        if (typeof o['@id'] === 'string') return o['@id'].split('/').pop() || null;
+    }
+
     return null;
 };
 
@@ -2358,6 +2418,10 @@ onMounted(async () => {
                       vacía es una promesa incumplida. Los de LUGAR vienen del catálogo; los de
                       ORGANIZACIÓN, de las propias filas cargadas.
                     -->
+                    <!-- ⚠️ Los rótulos van APRETADOS (`px-1.5`, `gap-0.5`, `tracking-normal`) y no
+                         es cosmética: con el espaciado normal sumaban 386 px y en un teléfono de
+                         390 px sólo hay 366 útiles, así que ESTADO caía a una segunda línea. Medido
+                         en el navegador, no estimado. Si se añade un quinto eje, vuelve a medir. -->
                     <div class="mt-2 flex flex-wrap items-center gap-1">
                         <button
                             v-for="g in gruposVisibles"
@@ -2366,7 +2430,7 @@ onMounted(async () => {
                             :class="grupoAbierto === g.k ? 'bg-[#376875] text-white border-[#376875]'
                                 : conteoPorGrupo[g.k] ? 'bg-white text-[#376875] border-[#376875]'
                                 : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
-                            class="flex items-center gap-1 px-2 py-1.5 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors shadow-sm"
+                            class="flex items-center gap-0.5 px-1.5 py-1.5 border rounded-lg text-[9px] font-black uppercase tracking-normal transition-colors shadow-sm"
                         >
                             <i :class="g.icon"></i>
                             {{ g.label }}

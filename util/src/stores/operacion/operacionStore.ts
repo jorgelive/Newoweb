@@ -174,6 +174,19 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     // Panel de Reservas: listado de órdenes agrupadas
     const ordenesServicio = ref<OperacionOrdenServicio[]>([]);
 
+    /**
+     * Los BORRADORES de un expediente, para «Agregar a OS». Lista aparte de `ordenesServicio`.
+     *
+     * No se reutiliza aquélla porque son dos preguntas distintas: la pestaña de Órdenes enseña la
+     * primera página de todo, y esto necesita **todos los borradores de UN expediente**. Con la
+     * lista de la pestaña, el botón dependía de que el borrador cayera en esos 30 primeros —y de
+     * que alguien hubiera abierto la pestaña alguna vez, porque si no estaba vacía—.
+     */
+    const borradoresDelFile = ref<OperacionOrdenServicio[]>([]);
+
+    /** De qué expediente son los borradores cargados. `null` = no hay nada pedido todavía. */
+    const fileDeBorradores = ref<string | null>(null);
+
     // Bitácora de comunicación de la OS activa
     const mensajesActivos = ref<OperacionMensaje[]>([]);
 
@@ -733,6 +746,58 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     /**
+     * Trae los borradores de un expediente. Es lo que alimenta «Agregar a OS».
+     *
+     * Filtra EN EL SERVIDOR (`estadoOs` + `file`, ver los `#[ApiFilter]` de la entidad) porque
+     * son pocos y tienen que estar TODOS: un borrador que no llega es un botón que no aparece, y
+     * eso se lee igual que «no hay ninguna orden a la que agregar».
+     *
+     * Se salta la llamada si ya están los de ese expediente, salvo `forzar` — que es lo que hay
+     * que pasar después de crear o tocar un borrador.
+     */
+    const fetchBorradoresDeFile = async (fileId: string, forzar = false): Promise<void> => {
+        if (!forzar && fileDeBorradores.value === fileId) return;
+
+        try {
+            // Los dos filtros van al SERVIDOR: `estadoOs` por `SearchFilter` (es texto) y `file`
+            // por `UuidRelacionFilter`, que ata el uuid con su tipo Doctrine.
+            //
+            // ⚠️ Con `SearchFilter`, el `file` devolvía CERO siempre —compara texto contra una
+            // columna `binary(16)`— y eso dejaba el botón «Agregar a OS» invisible sin un solo
+            // error. Si algún día vuelve a salir vacío, mira primero que la propiedad siga
+            // declarada en `UuidRelacionFilter` y no en `SearchFilter`.
+            const { data } = await apiClient.get('/platform/ops/operacion_orden_servicios', {
+                // ⚠️ `itemsPerPage` explícito: sin él manda la paginación por defecto (30) y con
+                // más borradores en un expediente volvería el bug original en miniatura — un
+                // borrador en la página 2 es un botón que no sale.
+                params: { estadoOs: 'borrador', file: fileId, itemsPerPage: 200 },
+            });
+
+            borradoresDelFile.value = data['hydra:member'] || data['member'] || [];
+            fileDeBorradores.value = fileId;
+        } catch (error) {
+            // Se deja la lista vacía y se anota el expediente igualmente: reintentar en cada
+            // clic de selección convertiría un fallo de red en una tormenta de peticiones.
+            console.error('Error al cargar los borradores del expediente:', error);
+            borradoresDelFile.value = [];
+            fileDeBorradores.value = fileId;
+        }
+    };
+
+    /**
+     * Tira la lista de borradores. Tras crear o tocar uno.
+     *
+     * ⚠️ Vacía **el contenido**, no sólo la marca de expediente. Dejar la lista vieja esperando un
+     * refetch que quizá no llegue —el disparador es un cambio de selección, y cambiar de pestaña
+     * no la cambia— hace que la vista ofrezca un borrador que ya se emitió. Vaciar falla del lado
+     * seguro: como mucho el botón tarda un instante en volver.
+     */
+    const invalidarBorradores = (): void => {
+        borradoresDelFile.value = [];
+        fileDeBorradores.value = null;
+    };
+
+    /**
      * Emite una Orden de Servicio entera **en una sola llamada**.
      *
      * Antes esto se orquestaba aquí: un `POST` para la cabecera y luego un `PATCH` por cada
@@ -753,8 +818,36 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     }): Promise<OperacionOrdenServicio> => {
         isLoading.value = true;
         try {
-            const { data } = await apiClient.post('/platform/ops/orden-servicios/emitir', datos);
+            const { data } = await apiClient.post<OperacionOrdenServicio>('/platform/ops/orden-servicios/emitir', datos);
             ordenesServicio.value.unshift(data);
+
+            // ⚠️ Al REEMITIR, la anterior queda anulada en el servidor dentro de la misma
+            // transacción — pero su copia local seguía diciendo «confirmada». La vista sólo
+            // añadía la sucesora, así que el operador veía como vigente la orden que acababa de
+            // anular, y sólo al volver a entrar aparecía cancelada. Un estado que se inventa el
+            // navegador es de lo peor que puede pasar aquí: la decisión de si hay que llamar al
+            // proveedor se toma mirando eso.
+            //
+            // No hace falta pedir nada: la respuesta trae la anterior YA anulada en `reemplazaA`,
+            // porque es la misma entidad gestionada que se serializa después del flush.
+            if (datos.reemplazaAId) {
+                const i = ordenesServicio.value.findIndex(o => o.id === datos.reemplazaAId);
+                const anterior = data.reemplazaA;
+
+                if (i >= 0 && anterior && typeof anterior === 'object') {
+                    ordenesServicio.value[i] = anterior;
+                } else if (i >= 0) {
+                    // Sin la anterior en la respuesta NO se deja el estado viejo en pantalla: se
+                    // pide de nuevo. Es una llamada de más en un caso que no debería darse,
+                    // frente a enseñar como vigente algo anulado.
+                    await fetchOrdenesServicio();
+                }
+            }
+
+            // Reemitir deja una sucesora EN BORRADOR, que es justo un destino nuevo para
+            // «Agregar a OS»; y emitir del tirón puede consumir uno. En los dos casos la lista
+            // cacheada deja de valer.
+            invalidarBorradores();
 
             return data;
         } finally {
@@ -783,6 +876,12 @@ export const useOperacionStore = defineStore('operacionStore', () => {
 
             const i = ordenesServicio.value.findIndex((o: OperacionOrdenServicio) => o.id === ordenId);
             if (i !== -1) ordenesServicio.value[i] = data;
+
+            // Cualquier cosa que cambie un borrador invalida la lista de «Agregar a OS». Va
+            // AQUÍ y no en la vista por lo mismo que ya se sincroniza `ordenesServicio` en el
+            // store: cada vista que llame a esto tendría que acordarse, y la segunda no se
+            // acuerda.
+            invalidarBorradores();
 
             return data;
         } finally {
@@ -848,6 +947,12 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             const { data } = await apiClient.post(`/platform/ops/orden-servicios/${id}/estado`, { estado, motivo: motivo ?? null });
             const i = ordenesServicio.value.findIndex(o => o.id === id);
             if (i >= 0) ordenesServicio.value[i] = data;
+
+            // Cualquier cosa que cambie un borrador invalida la lista de «Agregar a OS». Va
+            // AQUÍ y no en la vista por lo mismo que ya se sincroniza `ordenesServicio` en el
+            // store: cada vista que llame a esto tendría que acordarse, y la segunda no se
+            // acuerda.
+            invalidarBorradores();
 
             return data;
         } finally {
@@ -1029,6 +1134,12 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             // sabe: la orden que se acaba de borrar no está.
             ordenesServicio.value = ordenesServicio.value.filter(o => o.id !== id);
 
+            // Cualquier cosa que cambie un borrador invalida la lista de «Agregar a OS». Va
+            // AQUÍ y no en la vista por lo mismo que ya se sincroniza `ordenesServicio` en el
+            // store: cada vista que llame a esto tendría que acordarse, y la segunda no se
+            // acuerda.
+            invalidarBorradores();
+
             return null;
         } catch (error) {
             return mensajeDeErrorApi(error, 'No se pudo eliminar la orden.');
@@ -1111,7 +1222,9 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         isLoading,
         servicios,
         totalServicios,
-        ordenesServicio,
+        // `fileDeBorradores` se expone porque la vista lo VIGILA: es lo que le avisa de que la
+        // caché se invalidó desde el store y hay que volver a pedir.
+        ordenesServicio, borradoresDelFile, fileDeBorradores,
         mensajesActivos,
         lugares,
         lugaresPorComponente,
@@ -1140,7 +1253,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         buscarExpedientes,
         fetchCotizacionesDeExpediente,
         actualizarServicio,
-        fetchOrdenesServicio,
+        fetchOrdenesServicio, fetchBorradoresDeFile, invalidarBorradores,
         emitirOrdenServicio, agregarAOrden, ajustarRutas,
         cambiarEstadoOrden,
         eliminarOrdenServicio,
