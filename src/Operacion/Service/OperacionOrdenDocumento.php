@@ -40,7 +40,11 @@ final readonly class OperacionOrdenDocumento
         // quien ve todas sus líneas. Ver `OperacionOrdenServicio::getRutasVisibles()`.
         $rutas = $orden->getRutasVisibles();
 
-        foreach ($orden->getItems() as $item) {
+        // ⚠️ ORDENADOS, y por la misma vía que `getRutasVisibles()`. Iterando la colección cruda
+        // se imprimía en el orden en que se marcaron las filas: las fechas salían a saltos y —peor—
+        // la regla del recojo, que sí mira la lista ordenada, dejaba sin «Recoge en…» a líneas que
+        // debían llevarlo. Dos listas distintas para el mismo documento no pueden coincidir.
+        foreach ($orden->getItemsOrdenados() as $item) {
             $lineas[] = $this->linea($item, $rutas);
         }
 

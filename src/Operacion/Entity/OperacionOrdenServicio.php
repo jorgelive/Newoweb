@@ -863,7 +863,7 @@ class OperacionOrdenServicio
     #[ApiProperty(openapiContext: ['type' => 'object', 'additionalProperties' => ['type' => 'string']])]
     public function getRutasVisibles(): array
     {
-        $items = $this->itemsOrdenados();
+        $items = $this->getItemsOrdenados();
         $visibles = [];
 
         foreach ($this->cadenasDe($items) as $cadena) {
@@ -937,7 +937,7 @@ class OperacionOrdenServicio
     {
         $mapa = [];
 
-        foreach ($this->cadenasDe($this->itemsOrdenados()) as $cadena) {
+        foreach ($this->cadenasDe($this->getItemsOrdenados()) as $cadena) {
             $primero = $cadena[0];
             $ultimo = $cadena[count($cadena) - 1];
 
@@ -973,7 +973,7 @@ class OperacionOrdenServicio
     {
         $avisos = [];
 
-        foreach ($this->cadenasDe($this->itemsOrdenados()) as $cadena) {
+        foreach ($this->cadenasDe($this->getItemsOrdenados()) as $cadena) {
             $primero = $cadena[0];
             $ultimo = $cadena[count($cadena) - 1];
             $dia = $primero->getFechaServicio()?->format('d/m/Y') ?? 'sin fecha';
@@ -997,12 +997,22 @@ class OperacionOrdenServicio
     }
 
     /**
-     * Los ítems por fecha y hora. Compartido por la regla y por sus avisos, para que las dos
-     * miren exactamente las mismas cadenas.
+     * Los ítems por fecha y hora. **El único orden en que se lee una orden.**
+     *
+     * ⚠️ Era privado y sólo lo usaba `getRutasVisibles()`. El resultado: las rutas se decidían
+     * sobre la lista ORDENADA y las líneas se imprimían sobre la CRUDA, que es el orden en que se
+     * marcaron las filas. Además de salir las fechas a saltos (31/08, 02/09, 04/09, 02/09), la
+     * regla de «el recojo se enseña una vez al día salvo que cambie» se aplicaba a unas líneas y
+     * se comía el de otras: dos traslados distintos del mismo día se quedaron sin su «Recoge en…»
+     * en el documento que ve el proveedor.
+     *
+     * Lo usan el texto que se le manda ({@see \App\Operacion\Service\OperacionOrdenDocumento}),
+     * la página pública y el PDF (`orden_publica.html.twig`). Si aparece una cuarta superficie,
+     * que lea de aquí: el orden no puede depender de quién pinte.
      *
      * @return list<OperacionOrdenServicioItem>
      */
-    private function itemsOrdenados(): array
+    public function getItemsOrdenados(): array
     {
         /** @var list<OperacionOrdenServicioItem> $items */
         $items = $this->items->toArray();

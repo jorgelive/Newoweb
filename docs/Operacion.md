@@ -2141,6 +2141,17 @@ proveedor organiza su semana.
 ordenar en una sola las deja discrepando entre sí. Y ordenar la colección viva no basta: el
 documento del proveedor lee la congelada.
 
+⚠️ **El mapeo tampoco basta por sí solo, y ése fue el fallo de verdad.** `#[ORM\OrderBy]` sólo
+actúa al CARGAR la colección de la base; si los ítems se acaban de crear en la misma petición
+—previsualizar justo después de emitir— la colección está en memoria y sale en orden de inserción.
+Por eso el orden vive en `getItemsOrdenados()`, y las tres superficies leen de ahí.
+
+Era `private` y sólo lo usaba `getRutasVisibles()`. El resultado era peor que un desorden: **las
+rutas se decidían sobre la lista ordenada y las líneas se imprimían sobre la cruda**. Además de
+las fechas a saltos, la regla de «el recojo se enseña una vez al día salvo que cambie» se aplicaba
+a unas líneas y se comía el «Recoge en…» de otras — en el documento que ve el proveedor. Dos
+listas distintas para el mismo documento no pueden coincidir.
+
 Las órdenes ya emitidas también salen ordenadas, y no rompe nada: el orden es de lectura, no está
 congelado en el contenido, así que no reescribe nada de lo pactado.
 

@@ -54,7 +54,9 @@
             </tr>
             </thead>
             <tbody>
-            {% for item in orden.items %}
+            {# Por fecha y hora, igual que el texto que se le manda y que la regla del recojo.
+               Con `orden.items` a pelo salía en el orden en que se marcaron las filas. #}
+            {% for item in orden.itemsOrdenados %}
                 <tr>
                     <td class="fecha">{{ item.fechaServicio ? item.fechaServicio|date('d/m/Y') : '—' }}</td>
                     <td class="fecha">{{ item.hora|default('—') }}</td>
