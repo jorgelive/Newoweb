@@ -198,6 +198,42 @@ class OperacionOrdenServicioItem
     public function getDescripcion(): string { return $this->descripcion; }
     public function setDescripcion(string $v): self { $this->descripcion = $v; return $this; }
 
+    /** @var list<string> */
+    private const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+    /** @var list<string> */
+    private const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+    /**
+     * «Mié 2 sep» — la etiqueta con la que se agrupan las líneas por jornada.
+     *
+     * Lleva el nombre del día y no sólo el número porque el proveedor cuadra su semana por días:
+     * «el miércoles» le dice de un vistazo lo que «02/09/2026» le obliga a calcular. Sin año —una
+     * orden no cruza de año— para que quepa en la pantalla de un teléfono.
+     *
+     * ⚠️ **Vive aquí y no en cada plantilla.** La componen el texto que se le manda
+     * ({@see \App\Operacion\Service\OperacionOrdenDocumento}), la página pública y el PDF; con
+     * el mapa copiado en Twig, el día que alguien corrija «mié» quedaría corregido en una sola.
+     *
+     * Los nombres van a mano y no con `IntlDateFormatter`, que es lo que ya decidió `PmsFrentes`:
+     * traer intl para doce cadenas cuesta más de lo que ahorra.
+     */
+    public function getEtiquetaDia(): string
+    {
+        $fecha = $this->fechaServicio;
+
+        if ($fecha === null) {
+            return 'Sin fecha';
+        }
+
+        return sprintf(
+            '%s %d %s',
+            ucfirst(self::DIAS[(int) $fecha->format('w')]),
+            (int) $fecha->format('j'),
+            self::MESES[(int) $fecha->format('n') - 1],
+        );
+    }
+
     public function getFechaServicio(): ?DateTimeInterface { return $this->fechaServicio; }
     public function setFechaServicio(?DateTimeInterface $v): self { $this->fechaServicio = $v; return $this; }
 

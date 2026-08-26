@@ -28,6 +28,13 @@
              color: #94a3b8; border-bottom: 1px solid #e2e8f0; padding: 6px 8px; }
         td { padding: 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
         .fecha { white-space: nowrap; font-weight: bold; }
+        /* El día que encabeza sus líneas. Fondo y color, que dompdf sí entiende; nada de emoji
+           —no tiene fuente de color y salen como cuadros— ni de iconos web. La «marca» es la
+           barra de color de la izquierda, que es sólo un borde. */
+        .dia td { background: #f1f5f9; border-left: 3px solid #376875; color: #376875;
+                  font-weight: bold; font-size: 11px; text-transform: uppercase;
+                  letter-spacing: .06em; padding: 7px 8px; border-bottom: 1px solid #e2e8f0; }
+        .servicio { font-weight: bold; }
         .pax { white-space: nowrap; text-align: right; color: #475569; }
         .pie { color: #64748b; font-size: 11px; margin-top: 18px; }
         .boton { display: inline-block; padding: 10px 18px; background: #376875; color: #fff;
@@ -46,8 +53,10 @@
     {% if orden.items|length %}
         <table>
             <thead>
+            {# Sin columna «Fecha»: la lleva el renglón que encabeza cada día. Repetirla en
+               todas las filas gastaba una columna entera en un dato que no cambia dentro del
+               bloque, y en el PDF ese ancho hace falta para la dirección del recojo. #}
             <tr>
-                <th>Fecha</th>
                 <th>Hora</th>
                 <th>Servicio</th>
                 <th style="text-align:right">Pax</th>
@@ -56,12 +65,19 @@
             <tbody>
             {# Por fecha y hora, igual que el texto que se le manda y que la regla del recojo.
                Con `orden.items` a pelo salía en el orden en que se marcaron las filas. #}
+            {% set diaAnterior = null %}
             {% for item in orden.itemsOrdenados %}
+                {# La etiqueta la compone el ÍTEM, que es de donde la toma también el mensaje al
+                   proveedor. Con el mapa de días copiado aquí, corregir «mié» arreglaría una
+                   superficie y dejaría la otra como estaba. #}
+                {% if item.etiquetaDia != diaAnterior %}
+                    <tr class="dia"><td colspan="3">{{ item.etiquetaDia }}</td></tr>
+                    {% set diaAnterior = item.etiquetaDia %}
+                {% endif %}
                 <tr>
-                    <td class="fecha">{{ item.fechaServicio ? item.fechaServicio|date('d/m/Y') : '—' }}</td>
                     <td class="fecha">{{ item.hora|default('—') }}</td>
                     <td>
-                        {{ item.descripcion }}
+                        <span class="servicio">{{ item.descripcion }}</span>
                         {# El recojo sólo si DIFIERE de la hora: en los datos reales coinciden casi
                            siempre, y repetirlo enseña a no leerlo. #}
                         {% if item.horaRecojoConfirmada and item.horaRecojoConfirmada != item.hora %}

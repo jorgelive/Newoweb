@@ -2124,6 +2124,30 @@ podría recuperar de ninguna otra parte.
 
 ## 8. Gotchas
 
+**El formato del documento es distinto en cada medio, y no por capricho.** La misma orden sale por
+tres sitios y cada uno aguanta cosas distintas:
+
+| Superficie | Qué admite | Qué se usa |
+|---|---|---|
+| Mensaje al proveedor (WhatsApp / correo) | Texto plano | `*negrita*` de WhatsApp en el encabezado de día, y **emoji** 🕐 📍 |
+| Página pública | HTML de navegador | Color, negrita, espaciado |
+| PDF | **Dompdf**, que es CSS 2.1 | Color, negrita, espaciado — **nada más** |
+
+⚠️ **En el PDF no van ni emoji ni iconos web.** Dompdf no lleva fuente de color, así que un emoji
+sale como un cuadro vacío, y Font Awesome no existe salvo que se embeba la fuente. La «marca» de
+cada día es una **barra de color a la izquierda**, que es sólo un `border-left`: se ve igual en el
+navegador y en el PDF. Tampoco hay flex ni grid — el documento es una `<table>` a propósito.
+
+**Las dos van agrupadas por DÍA**, con el día encabezando sus líneas en vez de repetir la fecha en
+cada renglón. El proveedor cuadra su semana por jornadas —«el miércoles tengo tres»—, y con la
+fecha repetida hay que leer los cinco renglones para saber cuántos días son. En la tabla eso
+además libera una columna entera, que en el PDF hace falta para la dirección del recojo.
+
+⚠️ La etiqueta del día (`Mié 2 sep`) la compone **`OperacionOrdenServicioItem::getEtiquetaDia()`**,
+y las tres superficies leen de ahí. Con el mapa de nombres copiado en Twig, corregir «mié»
+arreglaría una y dejaría las otras como estaban. Los nombres van a mano y no con
+`IntlDateFormatter`, por lo mismo que ya decidió `PmsFrentes`.
+
 **Las líneas de una orden van ordenadas por FECHA, y eso se declara en el mapeo.** Una orden se
 compone marcando filas del cuadro a saltos —primero el traslado que uno recuerda, luego el del día
 anterior—, así que el orden natural de la colección es el de marcado. Salía `31/08, 02/09, 04/09,

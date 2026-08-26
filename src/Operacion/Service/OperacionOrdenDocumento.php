@@ -34,8 +34,6 @@ final readonly class OperacionOrdenDocumento
      */
     public function para(OperacionOrdenServicio $orden): array
     {
-        $lineas = [];
-
         // Qué ítems enseñan el recojo: uno al día, salvo que cambie — lo decide la orden, que es
         // quien ve todas sus líneas. Ver `OperacionOrdenServicio::getRutasVisibles()`.
         $rutas = $orden->getRutasVisibles();
@@ -44,23 +42,44 @@ final readonly class OperacionOrdenDocumento
         // se imprimía en el orden en que se marcaron las filas: las fechas salían a saltos y —peor—
         // la regla del recojo, que sí mira la lista ordenada, dejaba sin «Recoge en…» a líneas que
         // debían llevarlo. Dos listas distintas para el mismo documento no pueden coincidir.
+        //
+        // ── AGRUPADO POR DÍA ────────────────────────────────────────────────
+        // Antes cada línea repetía su fecha y todas iban seguidas: un bloque de cinco renglones
+        // idénticos en el que hay que leerlo entero para saber cuántos días son. El proveedor
+        // organiza por jornada —«el miércoles tengo tres»—, así que el día encabeza y las suyas
+        // van debajo. Es la misma información con la mitad de esfuerzo.
+        $porDia = [];
+        $bloques = 0;
+
         foreach ($orden->getItemsOrdenados() as $item) {
-            $lineas[] = $this->linea($item, $rutas);
+            $clave = $item->getFechaServicio()?->format('Y-m-d') ?? '';
+            $porDia[$clave]['etiqueta'] ??= $item->getEtiquetaDia();
+            $porDia[$clave]['lineas'][] = $this->linea($item, $rutas);
+            ++$bloques;
+        }
+
+        $partesCuerpo = [];
+
+        foreach ($porDia as $dia) {
+            // Los asteriscos son la negrita de WhatsApp. En un correo de texto plano se ven como
+            // asteriscos —feo pero legible—; el formato de verdad va en la página y el PDF.
+            $partesCuerpo[] = sprintf("*%s*\n%s", $dia['etiqueta'], implode("\n", $dia['lineas']));
         }
 
         $cuerpo = sprintf(
-            "Orden de Servicio %s\n\n%s\n\n%s",
+            "*Orden de Servicio %s*\n\n%s\n\n%s",
             $orden->getNumeroOs(),
-            $lineas === []
+            $partesCuerpo === []
                 ? '(sin líneas: la orden todavía no se ha emitido)'
-                : implode("\n", $lineas),
+                : implode("\n\n", $partesCuerpo),
             'Por favor confirmar recepción y disponibilidad.'
         );
+
 
         return [
             'asunto' => sprintf('Orden de Servicio %s', $orden->getNumeroOs()),
             'cuerpo' => $cuerpo,
-            'lineas' => count($lineas),
+            'lineas' => $bloques,
         ];
     }
 
@@ -74,11 +93,9 @@ final readonly class OperacionOrdenDocumento
     /** @param array<string, string> $rutas id de ítem → línea de recojo, si le toca enseñarla */
     private function linea(OperacionOrdenServicioItem $item, array $rutas): string
     {
+        // ⚠️ La fecha YA NO va en la línea: la lleva el encabezado del día. Repetirla en cada
+        // renglón era la mitad del ancho gastado en un dato que no cambia dentro del bloque.
         $partes = [];
-
-        if (($fecha = $item->getFechaServicio()) !== null) {
-            $partes[] = $fecha->format('d/m/Y');
-        }
 
         $hora = trim((string) $item->getHora());
 
@@ -117,8 +134,12 @@ final readonly class OperacionOrdenDocumento
             $partes[] = sprintf('opera %s', $prestador);
         }
 
-        $linea = '· ' . implode('  ·  ', $partes);
+        // El reloj marca dónde empieza cada servicio, que es lo que se busca al repasar el día.
+        // Un icono y no un guion porque en una lista de cinco el ojo salta a la forma, no al signo.
+        $linea = '🕐 ' . implode('  ·  ', $partes);
 
-        return $ruta === null ? $linea : $linea . "\n    " . $ruta;
+        // El pin va en su propio renglón, alineado bajo el reloj: es una dirección larga y metida
+        // en la ristra sepulta la hora y los pax. Ver el comentario de arriba.
+        return $ruta === null ? $linea : $linea . "\n📍 " . $ruta;
     }
 }
