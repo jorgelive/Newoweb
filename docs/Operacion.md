@@ -1943,6 +1943,37 @@ contador—, pero con tres diferencias que importan:
 **El chip «Sin asignar»** trae las filas sin ninguna de las dos: son las que hay que resolver
 antes de emitir nada, y no tienen nombre por el que buscarlas.
 
+#### Quién puede recibir una orden, y por qué se marca (25/08/2026)
+
+Los dos papeles caen en el mismo saco de chips, y ahí se perdía la diferencia que más importa:
+**la Orden de Servicio agrupa por comprador**, así que una organización que en este cuadro sólo
+aparece como *prestador* no va a recibir ninguna — su orden se la lleva quien le compra. Con la
+lista en puro orden alfabético las dos clases se leían igual, y se elegía un prestador esperando
+poder emitirle.
+
+Ahora `organizacionesDelCuadro` devuelve `{ id, nombre, recibeOrdenes }` y:
+
+- **Van primero las que reciben órdenes**, y dentro de cada bloque, alfabético.
+- **Llevan marca**: el mismo `fa-file-invoice` naranja (`#E07845`) de «Generar OS» y de la pestaña
+  de Órdenes. Si el signo quiere decir «esto acaba en una orden», tiene que ser el mismo en toda
+  la pantalla.
+- Las demás quedan en gris más claro: siguen filtrando igual, pero se leen como referencia.
+
+⚠️ **`recibeOrdenes` exige además que la fila sea COMPRABLE** (`esComprable()`, espejo de
+`OperacionServicio::esComprable()`). Si todo lo que esa organización compra en este rango es
+referencia o está cancelado, la orden no llegaría a existir y la marca prometería algo que no se
+cumple.
+
+⚠️ **`esComprable()` va declarado ARRIBA en el `<script setup>`**, antes de
+`organizacionesDelCuadro`, y no junto a `conflictoSeleccion()`, que es su otro consumidor. El
+`watch` sobre ese computed lo evalúa **durante el `setup`**, así que con la declaración más abajo
+la vista revienta con un `ReferenceError` — y ni `vue-tsc` ni ESLint lo ven: para TypeScript una
+función usada antes de declararse dentro de un closure es legal.
+
+La leyenda de la marca sólo sale cuando conviven las dos clases (`hayMezclaDePapeles`). En un
+teléfono no hay `title` que leer, así que sin ella el icono naranja sería un signo sin explicar;
+y con todas iguales explicaría una distinción que no se ve.
+
 ⚠️ **Las selecciones se sueltan solas cuando la organización desaparece del cuadro.** Al cambiar
 el rango, una organización elegida puede no estar en la carga nueva: su chip dejaría de pintarse pero
 seguiría filtrando, y el cuadro se quedaría vacío sin que nada dijera por qué. Se falla ABIERTO,
@@ -2166,6 +2197,8 @@ cotizado, no contra la venta real.
 | Cambiar cómo se rotula un servicio en cualquier lista | `util/src/stores/operacion/operacionStore.ts` | `nombreComponenteDeServicio()` — el respaldo es el tipo, nunca la tarifa |
 | Cambiar qué se edita sin abrir la ficha | `util/src/views/Operacion/OperacionView.vue` | la `<article>` de la rejilla; lo demás va al formulario |
 | Cambiar cómo filtra el chip de organización | `util/src/views/Operacion/OperacionView.vue` | `coincideOrganizacion()` — los dos papeles en OR, sobre el efectivo |
+| Cambiar qué organización se marca como capaz de recibir órdenes | `util/src/views/Operacion/OperacionView.vue` | `organizacionesDelCuadro` (`recibeOrdenes`) — y `esComprable()`, espejo del PHP |
+| Cambiar qué se puede meter en una Orden de Servicio | `src/Operacion/Entity/OperacionServicio.php` **y** `util/src/views/Operacion/OperacionView.vue` | `esComprable()` (espejo, se tocan los dos) |
 | **Añadir o quitar un eje de filtro** (§7.0) | `util/src/views/Operacion/OperacionView.vue` | `GrupoFiltro` + `gruposVisibles` + `conteoPorGrupo` — **los tres**: sin contador, el eje filtra en silencio |
 | Cambiar cuándo se esconde un eje | mismo archivo | `gruposVisibles` — y el `watch` que cierra el eje que desaparece |
 | Cambiar qué vacía «Limpiar» | mismo archivo | `limpiarFiltros()` — incluidos los que filtran en local (`filtroOs`, organización) |

@@ -401,13 +401,44 @@ const alternarLugar = async (id: string) => {
 };
 
 /**
+ * ¿Se le puede pedir a un proveedor? **Espejo de `OperacionServicio::esComprable()` (PHP).**
+ * Si cambia allá, cambia aquí.
+ *
+ * Es más estrecho que `!soloReferencia`: excluye también lo cancelado y lo reemplazado, que
+ * conservan tarifa y por tanto pasaban todas las demás comprobaciones. La entidad lo vuelve a
+ * validar al asignar la OS; esto sólo evita ofrecer en pantalla algo que acabaría en un 422.
+ *
+ * ⚠️ Va declarado AQUÍ, antes de `organizacionesDelCuadro`, y no junto a `conflictoSeleccion`,
+ * que es su otro consumidor. El `watch` sobre ese computed lo evalúa durante el `setup`, así que
+ * con la declaración más abajo reventaba con un `ReferenceError` — y el typecheck no lo ve.
+ *
+ * `conflictoSeleccion()` enumera estas tres condiciones por separado a propósito: necesita decir
+ * CUÁL falla para explicárselo al operador, y un booleano no lo dice.
+ */
+const esComprable = (s: OperacionServicio): boolean =>
+    !s.soloReferencia
+    && s.estadoComponente !== 'cancelado'
+    && s.modoComponente !== 'reemplazado';
+
+/**
  * Las organizaciones que HAY en el cuadro cargado, en los dos papeles. Es la lista de chips.
  *
  * Sale de las filas y no del catálogo a propósito: el catálogo de proveedores es largo y la
  * mitad no aparece en estas fechas. Aquí cada chip que se ve trae al menos una fila.
+ *
+ * ⚠️ **Primero las que pueden RECIBIR una orden, y marcadas.** La Orden de Servicio agrupa por
+ * comprador (`conflictoSeleccion`, `abrirModalOs`), así que una organización que en este cuadro
+ * sólo aparece como prestador no va a recibir ninguna: su orden se la lleva quien le compra. Las
+ * dos clases se leían igual en la lista y no había forma de distinguirlas —los dos papeles caen
+ * en el mismo saco—, así que se elegía un prestador esperando poder emitirle y no salía nada.
+ *
+ * `recibeOrdenes` pide además que la fila sea COMPRABLE: si todo lo que compra esa organización
+ * en este rango es referencia o está cancelado, la orden no llegaría a existir y la marca estaría
+ * prometiendo algo que no se cumple.
  */
-const organizacionesDelCuadro = computed<{ id: string; nombre: string }[]>(() => {
-    const mapa = new Map<string, string>();
+const organizacionesDelCuadro = computed<{ id: string; nombre: string; recibeOrdenes: boolean }[]>(() => {
+    const nombres = new Map<string, string>();
+    const compradoresConCompra = new Set<string>();
 
     for (const s of operacionStore.servicios) {
         const papeles: [string | null | undefined, string | null | undefined][] = [
@@ -416,13 +447,20 @@ const organizacionesDelCuadro = computed<{ id: string; nombre: string }[]>(() =>
         ];
 
         for (const [id, nombre] of papeles) {
-            if (id && nombre) mapa.set(id, nombre);
+            if (id && nombre) nombres.set(id, nombre);
+        }
+
+        if (s.compradorEfectivoMaestroId && esComprable(s)) {
+            compradoresConCompra.add(s.compradorEfectivoMaestroId);
         }
     }
 
-    return [...mapa.entries()]
-        .map(([id, nombre]) => ({ id, nombre }))
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    return [...nombres.entries()]
+        .map(([id, nombre]) => ({ id, nombre, recibeOrdenes: compradoresConCompra.has(id) }))
+        // Las que reciben órdenes arriba; dentro de cada bloque, alfabético. Ordenar sólo por
+        // nombre mezclaba las dos clases y la marca había que ir a buscarla chip por chip.
+        .sort((a, b) => Number(b.recibeOrdenes) - Number(a.recibeOrdenes)
+            || a.nombre.localeCompare(b.nombre, 'es'));
 });
 
 /** ¿Hay alguna fila sin ninguna de las dos organizaciones? Sólo entonces el chip «Sin asignar» dice algo. */
@@ -456,6 +494,16 @@ const gruposVisibles = computed<{ k: GrupoFiltro; label: string; icon: string }[
 watch(gruposVisibles, (grupos) => {
     if (grupoAbierto.value && !grupos.some(g => g.k === grupoAbierto.value)) grupoAbierto.value = null;
 });
+
+/**
+ * ¿Conviven en el cuadro organizaciones que reciben órdenes con otras que no?
+ *
+ * Sólo entonces la leyenda de la marca dice algo: con todas iguales explicaría una distinción
+ * que no se ve, que es ruido en la única franja que le queda al cuadro.
+ */
+const hayMezclaDePapeles = computed(() =>
+    organizacionesDelCuadro.value.some(o => o.recibeOrdenes)
+    && organizacionesDelCuadro.value.some(o => !o.recibeOrdenes));
 
 const alternarOrganizacion = (id: string): void => {
     const i = organizacionesSeleccionadas.value.indexOf(id);
@@ -787,18 +835,6 @@ const alternarSeleccion = (id?: string | null) => {
 const serviciosSeleccionados = computed(() =>
     operacionStore.servicios.filter(s => s.id && seleccionados.value.includes(s.id))
 );
-
-/**
- * ¿Se le puede pedir a un proveedor? Espejo de `OperacionServicio::esComprable()`.
- *
- * Es más estrecho que `!soloReferencia`: excluye también lo cancelado y lo reemplazado,
- * que conservan tarifa y por tanto pasaban todas las demás comprobaciones. La entidad
- * lo vuelve a validar al asignar la OS; esto sólo evita ofrecer la casilla.
- */
-const esComprable = (s: OperacionServicio): boolean =>
-    !s.soloReferencia
-    && s.estadoComponente !== 'cancelado'
-    && s.modoComponente !== 'reemplazado';
 
 /**
  * Una OS es una solicitud a UN proveedor sobre UN expediente: agrupar servicios de
@@ -2400,15 +2436,37 @@ onMounted(async () => {
                           fechas.
                         -->
                         <template v-else-if="grupoAbierto === 'organizacion'">
+                            <!-- La leyenda no es adorno: en un teléfono no hay `title` que leer,
+                                 y sin ella la marca naranja es un icono sin explicación. Sólo sale
+                                 si hay de las dos clases; con una sola no hay nada que distinguir. -->
+                            <p
+                                v-if="hayMezclaDePapeles"
+                                class="w-full text-[9px] font-bold text-slate-400 leading-snug"
+                            >
+                                <i class="fas fa-file-invoice text-[#E07845] mr-1"></i>
+                                Reciben la orden. Las demás sólo prestan en este cuadro: su orden se la lleva quien les compra.
+                            </p>
+
                             <button
                                 v-for="e in organizacionesDelCuadro"
                                 :key="e.id"
                                 @click="alternarOrganizacion(e.id)"
                                 :class="organizacionesSeleccionadas.includes(e.id) ? 'bg-[#376875] text-white border-[#376875]'
-                                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'"
-                                class="px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
-                                title="Prestador o comprador: trae sus filas en cualquiera de los dos papeles"
+                                    : e.recibeOrdenes ? 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
+                                    : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400'"
+                                class="flex items-center gap-1.5 px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                                :title="e.recibeOrdenes
+                                    ? 'Compra en este cuadro: puede recibir una Orden de Servicio'
+                                    : 'Sólo presta en este cuadro: sirve de referencia, la orden va a quien le compra'"
                             >
+                                <!-- Mismo icono y mismo naranja que «Generar OS» y la pestaña de
+                                     Órdenes: si marca «esto acaba en una orden», tiene que ser el
+                                     mismo signo en toda la pantalla. -->
+                                <i
+                                    v-if="e.recibeOrdenes"
+                                    class="fas fa-file-invoice text-[9px]"
+                                    :class="organizacionesSeleccionadas.includes(e.id) ? 'text-white/80' : 'text-[#E07845]'"
+                                ></i>
                                 {{ e.nombre }}
                             </button>
 

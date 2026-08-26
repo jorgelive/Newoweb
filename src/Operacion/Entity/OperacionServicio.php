@@ -547,6 +547,10 @@ class OperacionServicio
      * comprobaciones anteriores y podía colarse en una Orden de Servicio junto al resto
      * del día — la vista los atenúa, pero atenuar no impide marcar la casilla. El
      * resultado era pedirle y pagarle a un proveedor un servicio que nadie va a usar.
+     *
+     * ⚠️ **Tiene espejo en TypeScript**: `esComprable()` en
+     * `util/src/views/Operacion/OperacionView.vue`, que decide qué casilla se ofrece y qué
+     * organización se marca como capaz de recibir una orden. Se tocan los DOS.
      */
     public function esComprable(): bool
     {
