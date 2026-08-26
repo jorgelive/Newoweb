@@ -2876,6 +2876,66 @@ Quiere salir a las 14:00 en vez de las 10:00 el sábado
 El enlace usa `?id=`, el mismo formato que el push de Mercure, para que la SPA auto-seleccione la
 conversación: el operador toca y está dentro.
 
+##### 🔌 El mecanismo de avisar vive fuera: `AvisoAlEquipoService`
+
+Hacer sonar el teléfono de la guardia **ya no es cosa del escalado**. Estaba dentro de
+`EscalarAlEquipoSkill` y salió a `src/Message/Service/Aviso/` en cuanto apareció el segundo
+interesado (los cobros por pasarela). No se copió, y esa es la decisión: lo que había dentro
+eran **cinco reglas ya pagadas en producción**, y una copia nueva se habría dejado alguna sin
+que nada fallara.
+
+| | La regla | Qué pasa si se copia mal |
+|---|---|---|
+| 1 | El hilo del operador se busca **por teléfono** antes que por contexto | Si alguien del equipo es además huésped, su hilo deja de ser `staff` al fusionarse y se crea uno nuevo **en cada aviso**, partiéndole el historial |
+| 2 | La plantilla se adjunta **sólo fuera de la ventana de 24 h** | Dentro se cambia el mensaje bueno (multilínea) por el pobre: Meta prohíbe saltos de línea en los parámetros |
+| 3 | `SENDER_SYSTEM`, nunca `SENDER_HOST` | El segundo silencia al autoresponder 30 min y deja al huésped sin respuesta justo después |
+| 4 | Un destinatario que falla no impide avisar al resto | Un móvil mal puesto deja a toda la guardia sin aviso |
+| 5 | El fallo se mira **después del flush**, leyendo el estado del mensaje | `MessageDispatcher` no lanza: deja el mensaje en `FAILED`. Sin mirarlo se promete un aviso que no salió — que es justo lo que pasa mientras una plantilla no está aprobada por Meta |
+
+**El servicio no sabe de qué avisa.** Recibe un {@see AvisoAlEquipo} con el texto ya redactado,
+la plantilla ya elegida y las variables ya resueltas; no hay un `tipo` que mire con un `match`.
+Quien conoce las consecuencias es el dominio, y es él quien las escribe.
+
+Lo que **se quedó** en el escalado, porque es suyo y de nadie más: el enfriamiento de 30 minutos,
+la columna `escaladoDe`, el resumen IA dentro de `{{motivo}}`, los márgenes de ocupación y dejar
+la conversación sin leer.
+
+⚠️ **La deduplicación NO está en el servicio, y es deliberado.** Cada aviso decide qué significa
+«ya avisé de esto»: el escalado lo mide por conversación y media hora, un cobro es único y no lo
+necesita. Meterlo dentro obligaría a inventar una clave genérica para todos.
+
+Para un aviso nuevo hace falta: el texto, una plantilla aprobada por Meta para fuera de ventana
+(o `null`, y entonces fuera de ventana no saldrá y el resultado lo dirá), y el rol destinatario.
+
+⚠️ Y si el aviso necesita marcar el mensaje con algo suyo —como hace el escalado con
+`escaladoDe`—, va por `ajustarMensaje`, un `Closure(Message): void`. Existe para que ese dato no
+entre en el contrato y acabe siendo un campo que los demás avisos arrastran sin usar.
+
+##### 🔥 El traductor automático también traduce los NOMBRES de las variables
+
+Y entonces la plantilla deja de hidratarse. Pasó en `aviso_escalado_interno`: el código manda
+`['huesped' => …, 'motivo' => …]`, pero los cuerpos traducidos pedían otra cosa.
+
+| Idioma | Pedía | Manda el código |
+|---|---|---|
+| es, en | `{{huesped}}`, `{{motivo}}` | ✅ |
+| pt, fr, it, de | `{{guest}}`, `{{reason}}` | ❌ |
+| nl | `{{gast}}`, `{{reden}}` | ❌ |
+
+En esos cinco la variable llega **vacía** y `WhatsappMetaSendMappingStrategy` lanza: el aviso no
+sale. Estuvo dormido porque `AvisoAlEquipoService::conversacionStaff()` crea el hilo del operador
+en **español**, así que en la práctica sólo se usaban `es` y `en` —y el inglés se salvó de
+casualidad—. El día que alguien pusiera en portugués el idioma de un operador, sus escalados
+dejaban de llegar **en silencio**.
+
+Corregido en `Version20260825160100`, junto al pie francés que decía *«Notification automatique
+du syndrome prémenstruel»* — el traductor leyó las siglas del sistema como las del síndrome.
+
+⚠️ **Al crear o regenerar una plantilla, comprueba que los `{{marcadores}}` son idénticos en los
+siete idiomas.** Lo que se traduce es el texto de alrededor, nunca el nombre del hueco.
+⚠️ Y ojo: **esto no cambia lo que Meta tiene aprobado.** El cuerpo que ve el destinatario lo
+renderiza Meta desde SU copia; arreglar la nuestra sirve para volver a someterla y para el sync.
+
 ##### 🗓️ El aviso trae los márgenes de la estancia
 
 Cuando llega «quiere salir a las 14:00», la primera pregunta del operador es siempre la misma:
@@ -5601,6 +5661,9 @@ arreglar** — ver el aviso al final de esta sección.
 | Registrar el móvil de alguien del equipo | `User::$telefono` + CRUD de usuarios | Se normaliza solo (`UserIntegrityListener`); §12.9.b del doc de sync |
 | **Quién recibe los avisos del asistente** | CRUD de usuarios | Rol «🆘 Atención al cliente» (`ROLE_CUSTOMER_SUPPORT`) **+ móvil**. Las dos cosas o no llega nada |
 | Cambiar qué se escribe en el aviso de escalado | `EscalarAlEquipoSkill` | `redactar()` |
+| **Avisar al equipo de algo nuevo** (un cobro, una avería…) | `AvisoAlEquipoService::notificar()` | Compón un `AvisoAlEquipo` desde TU dominio: texto, plantilla para fuera de ventana, rol. El servicio no debe aprender qué es lo que avisas |
+| Cambiar a quién llegan los avisos | quien construye el `AvisoAlEquipo` | Es el campo `rol`. Reciben los que lo tengan **y** móvil registrado (`destinatarios()`) |
+| Cambiar cómo se encuentra el hilo interno del operador | `AvisoAlEquipoService::conversacionStaff()` | Busca por TELÉFONO antes que por contexto: es lo que sobrevive a fusionar hilos |
 | Cambiar el aviso de escalado **fuera** de la ventana de 24 h | plantilla `aviso_escalado_interno` | El cuerpo se edita en el panel; los parámetros los pone `EscalarAlEquipoSkill::variablesDelAviso()`. Si añades uno, tiene que llegar SIEMPRE con valor o el envío revienta |
 | Que la plantilla del escalado empiece a salir de verdad | Meta + `app:whatsapp:sync-templates` | Está insertada como `PENDING`: hasta que Meta la apruebe, el encolador la rechaza |
 | Mandar una plantilla con datos que NO están en el contexto | `Message::setVariablesPlantilla()` | Se fusionan pisando a las del resolver en `WhatsappMetaSendMappingStrategy` |

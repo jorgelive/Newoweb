@@ -12,16 +12,12 @@ use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
-use App\Entity\Maestro\MaestroIdioma;
-use App\Entity\User;
 use App\Message\Entity\Message;
-use App\Message\Enum\IdentidadTipo;
-use App\Message\Service\Conversacion\ResolutorDeHilo;
 use App\Message\Entity\MessageConversation;
-use App\Message\Entity\MessageTemplate;
+use App\Message\Service\Aviso\AvisoAlEquipo;
+use App\Message\Service\Aviso\AvisoAlEquipoService;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
-use App\Repository\UserRepository;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -74,19 +70,23 @@ use Throwable;
  * Si la plantilla todavía no está aprobada por Meta, el encolado falla y la marca de no leído es
  * la que garantiza que el caso no se pierde. Eso NO se da por bueno: el fallo se detecta después
  * del flush leyendo el estado del mensaje y el operador aparece en `no_avisados`.
+ *
+ * ### 🔌 Aquí se decide QUÉ se dice; el cómo lo hace {@see AvisoAlEquipoService}
+ *
+ * Encontrar el hilo del operador, elegir entre texto libre y plantilla según la ventana, no
+ * dejar que un destinatario roto tape a los demás y comprobar el encolado tras el flush **ya no
+ * viven en esta clase**: salieron a `src/Message/Service/Aviso/` cuando apareció el segundo
+ * interesado en avisar a la guardia (los cobros por pasarela). La tabla de arriba sigue siendo
+ * verdad, pero quien la aplica es el servicio.
+ *
+ * Lo que se quedó aquí es lo que es del escalado y de nadie más: el enfriamiento, la columna
+ * `escaladoDe`, el resumen IA dentro de `{{motivo}}`, los márgenes de ocupación y dejar la
+ * conversación sin leer.
  */
 final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDominioInterface
 {
     /** Techo del motivo. Es un aviso para leer en el móvil, no un informe. */
     private const int MAX_MOTIVO = 400;
-
-    /**
-     * Tipo de contexto de las conversaciones internas con el equipo.
-     *
-     * No se reutiliza `manual` —el walk-in de un desconocido— porque son cosas distintas y
-     * quien filtre la bandeja tiene que poder separarlas: esto no es un huésped.
-     */
-    private const string CONTEXTO_STAFF = 'staff';
 
     /**
      * La plantilla oficial del aviso interno, para cuando la ventana de 24 h está cerrada.
@@ -108,13 +108,12 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
 
     public function __construct(
         private EntityManagerInterface $em,
-        private UserRepository $usuarios,
         private ParameterBagInterface $params,
         private PmsDisponibilidadService $disponibilidad,
         private LoggerInterface $logger,
         private ConocimientoGenerico $conocimiento,
-        // Para encontrar el hilo del operador por su teléfono, que sobrevive a la fusión.
-        private ResolutorDeHilo $resolutor,
+        // Quién hace sonar los teléfonos. Aquí sólo se decide QUÉ se dice y CUÁNDO callar.
+        private AvisoAlEquipoService $avisos,
     ) {}
 
     public function nombre(): string
@@ -278,9 +277,31 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
             ], static fn ($v) => $v !== null && $v !== false));
         }
 
-        $guardia = $this->guardia();
+        // El aviso: QUÉ se dice lo decide esta skill; a quién y por dónde, el servicio.
+        //
+        // `escaladoDe` viaja por el ajuste y no dentro de AvisoAlEquipo a propósito: es un dato
+        // del escalado —de qué conversación de huésped viene— y meterlo en el contrato
+        // obligaría a los demás avisos a cargar con un campo que no significa nada para ellos.
+        // Va en COLUMNA además de en metadata porque el JSON no se consulta sin atar el código
+        // a la versión de MySQL, y el enfriamiento de arriba necesita consultarlo.
+        $resultado = $this->avisos->notificar(new AvisoAlEquipo(
+            rol: Roles::CUSTOMER_SUPPORT,
+            texto: $this->redactar($conversacion, $motivo),
+            plantillaCodigo: self::PLANTILLA_AVISO,
+            variables: $this->variablesDelAviso($conversacion, $motivo),
+            metadata: [
+                'aviso_escalado' => true,
+                'escalado_de' => (string) $conversacion->getId(),
+                // De QUÉ se avisó, sin releer el texto: es lo que falta cuando el enfriamiento
+                // silencia un aviso y alguien pregunta después qué se calló.
+                'motivo_escalado' => $motivo,
+            ],
+            ajustarMensaje: static function (Message $mensaje) use ($conversacion): void {
+                $mensaje->setEscaladoDe((string) $conversacion->getId());
+            },
+        ));
 
-        if ($guardia === []) {
+        if ($resultado->sinDestinatarios) {
             // No es un error de la skill: es que nadie está de guardia. Se dice, porque el
             // modelo no debe prometerle al huésped un aviso que no ha salido.
             $this->logger->warning('Escalado sin guardia: nadie con ROLE_CUSTOMER_SUPPORT y móvil.', [
@@ -299,59 +320,13 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
             ]);
         }
 
-        $texto = $this->redactar($conversacion, $motivo);
-        $variables = $this->variablesDelAviso($conversacion, $motivo);
-        $plantilla = $this->em->getRepository(MessageTemplate::class)
-            ->findOneBy(['code' => self::PLANTILLA_AVISO]);
-
-        /** @var array<string, Message> $enviados nombre del operador => mensaje encolado */
-        $enviados = [];
-        $fallos = [];
-
-        foreach ($guardia as $operador) {
-            $nombre = $operador->getFullname() ?: $operador->getUserIdentifier();
-
-            try {
-                $enviados[$nombre] = $this->avisar($operador, $texto, $variables, $plantilla, $conversacion, $motivo);
-            } catch (Throwable $e) {
-                // Un operador que falla no puede impedir que se avise al resto.
-                $fallos[] = $nombre;
-                $this->logger->error('Escalado: no se pudo avisar a un operador.', [
-                    'operador' => $operador->getUserIdentifier(),
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        $this->em->flush();
-
-        // ⚠️ El encolado NO lanza excepción cuando falla: `MessageDispatcher::dispatch()` las
-        // atrapa por canal, deja el mensaje en FAILED y anota el motivo en la metadata. Sin
-        // mirar aquí el estado diríamos «ya está avisado» de un aviso que se quedó en el sitio
-        // —que es justo lo que pasa mientras la plantilla no esté aprobada por Meta—.
-        $avisados = [];
-
-        foreach ($enviados as $nombre => $mensaje) {
-            if ($mensaje->getStatus() !== Message::STATUS_FAILED) {
-                $avisados[] = $nombre;
-
-                continue;
-            }
-
-            $fallos[] = $nombre;
-            $this->logger->error('Escalado: el aviso no se pudo encolar.', [
-                'operador' => $nombre,
-                'errores' => $mensaje->getMetadata()['dispatch_errors'] ?? [],
-            ]);
-        }
-
         return SkillResult::ok(array_filter([
             'marcada_pendiente' => true,
             'respuesta_ya_escrita' => $sugerencia,
-            'avisados' => $avisados,
-            'no_avisados' => $fallos !== [] ? $fallos : null,
-            'aviso_encolado' => $avisados !== [],
-            'mensaje' => $avisados !== []
+            'avisados' => $resultado->avisados,
+            'no_avisados' => $resultado->noAvisados !== [] ? $resultado->noAvisados : null,
+            'aviso_encolado' => $resultado->alguienFueAvisado(),
+            'mensaje' => $resultado->alguienFueAvisado()
                 ? 'Ya está avisado el equipo. Dile al huésped que su consulta pasó a una persona '
                     . 'y que le responderán; no le des un plazo concreto, que no lo sabes.'
                 : 'La conversación queda marcada como pendiente aunque el aviso no salió. Dile '
@@ -389,25 +364,6 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         $id = trim((string) ($entrada['conversacion_id'] ?? ''));
 
         return $id !== '' && Uuid::isValid($id) ? $repo->find($id) : null;
-    }
-
-    /**
-     * Quién está de guardia: rol de atención **y** móvil registrado.
-     *
-     * Las dos condiciones, no una: el rol sin teléfono no recibe nada —y creer que sí es peor
-     * que saber que no—, y un teléfono sin el rol es alguien que no está de turno.
-     *
-     * Se mira la columna literal de roles (`findByRole`), no la jerarquía: la guardia se asigna
-     * a dedo, no se hereda por ser admin.
-     *
-     * @return list<User>
-     */
-    private function guardia(): array
-    {
-        return array_values(array_filter(
-            $this->usuarios->findByRole(Roles::CUSTOMER_SUPPORT),
-            static fn (User $u): bool => trim((string) $u->getTelefono()) !== ''
-        ));
     }
 
     /**
@@ -489,55 +445,6 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
             ->getSingleScalarResult() > 0;
     }
 
-    private function avisar(
-        User $operador,
-        string $texto,
-        array $variables,
-        ?MessageTemplate $plantilla,
-        MessageConversation $origen,
-        string $motivo
-    ): Message {
-        $conversacion = $this->conversacionStaff($operador);
-
-        $mensaje = new Message();
-        $mensaje->setConversation($conversacion);
-        $mensaje->setDirection(Message::DIRECTION_OUTGOING);
-        // SENDER_SYSTEM y no SENDER_HOST: lo manda el sistema, y además SENDER_HOST silencia
-        // al autoresponder 30 minutos — un efecto que aquí no pinta nada.
-        $mensaje->setSenderType(Message::SENDER_SYSTEM);
-        $mensaje->setStatus(Message::STATUS_PENDING);
-        $mensaje->setTransientChannels(['whatsapp_meta']);
-        $mensaje->setContentLocal($texto);
-        $mensaje->setContentExternal($texto);
-        $mensaje->setLanguageCode($conversacion->getIdioma()?->getId() ?? 'es');
-        $mensaje->addMetadata('aviso_escalado', true);
-        // De qué conversación de huésped viene. Sin esto no se puede saber si a este caso ya se
-        // le hizo sonar el teléfono hace un rato, que es lo que evita el enfriamiento.
-        //
-        // En COLUMNA además de en metadata: el JSON no se consulta sin atar el código a la
-        // versión de MySQL, y esa limitación obligaba a acotar la búsqueda por `contextType`.
-        // La metadata se conserva porque la lee quien inspecciona un mensaje a mano.
-        $mensaje->addMetadata('escalado_de', (string) $origen->getId());
-        $mensaje->setEscaladoDe((string) $origen->getId());
-        // Para saber DE QUÉ se avisó sin releer el texto: es lo que falta cuando el enfriamiento
-        // silencia un aviso y alguien pregunta después qué se calló.
-        $mensaje->addMetadata('motivo_escalado', $motivo);
-
-        // La plantilla SÓLO fuera de ventana. Dentro, el texto libre gana: lleva los márgenes de
-        // ocupación en varias líneas, y la plantilla no puede —Meta prohíbe los saltos de línea
-        // en los parámetros—. Adjuntarla siempre cambiaría el mensaje bueno por el pobre en el
-        // único caso en el que no hacía falta.
-        if ($plantilla !== null && !$conversacion->isWhatsappSessionActive()) {
-            $mensaje->setTemplate($plantilla);
-            $mensaje->setVariablesPlantilla($variables);
-        }
-
-        $conversacion->addMessage($mensaje);
-        $this->em->persist($mensaje);
-
-        return $mensaje;
-    }
-
     /**
      * Lo que la plantilla necesita para hidratarse, y en el formato que Meta acepta.
      *
@@ -602,52 +509,6 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         $limpio = trim((string) preg_replace('/\s+/u', ' ', $valor));
 
         return $limpio !== '' ? $limpio : '—';
-    }
-
-    /** La conversación interna con un operador, creándola la primera vez. */
-    private function conversacionStaff(User $operador): MessageConversation
-    {
-        $repo = $this->em->getRepository(MessageConversation::class);
-
-        // Por el TELÉFONO primero: es lo que sobrevive a fusionar el hilo. Si alguien del
-        // equipo es además huésped, su hilo puede haber dejado de ser `staff` — y buscarlo por
-        // ahí crearía uno nuevo en cada aviso, partiendo su historial otra vez.
-        $telefono = (string) $operador->getTelefono();
-        $conversacion = $telefono !== ''
-            ? $this->resolutor->porIdentidad(IdentidadTipo::TELEFONO, $telefono)
-            : null;
-
-        $conversacion ??= $repo->findOneBy([
-            'contextType' => self::CONTEXTO_STAFF,
-            'contextId' => (string) $operador->getId(),
-        ]);
-
-        if ($conversacion !== null) {
-            // El móvil pudo cambiar desde la última vez: se refresca, o los avisos seguirían
-            // yendo al número viejo.
-            $conversacion->setGuestPhone((string) $operador->getTelefono());
-
-            return $conversacion;
-        }
-
-        $conversacion = new MessageConversation(self::CONTEXTO_STAFF, (string) $operador->getId());
-        $conversacion->setContextOrigin('interno');
-        $conversacion->setGuestPhone((string) $operador->getTelefono());
-        $conversacion->setGuestName($operador->getFullname() ?: $operador->getUserIdentifier());
-        $conversacion->setStatus(MessageConversation::STATUS_OPEN);
-
-        $repoIdioma = $this->em->getRepository(MaestroIdioma::class);
-        $idioma = $repoIdioma->find('es') ?? $repoIdioma->findOneBy([]);
-
-        if ($idioma !== null) {
-            $conversacion->setIdioma($idioma);
-        }
-
-        $this->resolutor->vincular($conversacion, IdentidadTipo::TELEFONO, $telefono, 'staff');
-
-        $this->em->persist($conversacion);
-
-        return $conversacion;
     }
 
     /**

@@ -261,12 +261,6 @@ parameters:
 			path: src/Agent/Skill/Pms/EnviarmePlantillaSkill.php
 
 		-
-			message: '#^Method App\\Agent\\Skill\\Pms\\EscalarAlEquipoSkill\:\:avisar\(\) has parameter \$variables with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Agent/Skill/Pms/EscalarAlEquipoSkill.php
-
-		-
 			message: '#^Method App\\Agent\\Skill\\Pms\\EscalarAlEquipoSkill\:\:conversacionDe\(\) has parameter \$entrada with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -275,12 +269,6 @@ parameters:
 		-
 			message: '#^Strict comparison using \!\=\= between ''Al equipo YA se le…''\|array\{hay_respuesta_escrita\: true, contenido\: string, aviso\: ''Esto ya estaba…''\}\|true and false will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: src/Agent/Skill/Pms/EscalarAlEquipoSkill.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: src/Agent/Skill/Pms/EscalarAlEquipoSkill.php
 

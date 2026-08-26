@@ -6,6 +6,7 @@ namespace App\Finanzas\Service;
 
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\User;
+use App\Finanzas\Service\Aviso\FinAvisoDeCobro;
 use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Enum\FinEnlacePagoEstado;
 use App\Finanzas\Enum\FinOrigenCobro;
@@ -35,6 +36,8 @@ final class FinEnlacePagoService
         private readonly FinOrigenCobroRegistry $registry,
         private readonly FinPasarelaRegistry $pasarelas,
         private readonly LoggerInterface $logger,
+        // Quién le cuenta al equipo que entró dinero. No lanza: ver `confirmarPago()`.
+        private readonly FinAvisoDeCobro $avisoDeCobro,
         #[Autowire('%pax_host_url%')]
         private readonly string $paxHostUrl,
         #[Autowire('%finanzas.recargo_tarjeta_porcentaje%')]
@@ -263,6 +266,18 @@ final class FinEnlacePagoService
         );
 
         $this->em->flush();
+
+        // 🔔 Y recién ahora, con el cobro cerrado y persistido, se avisa al equipo.
+        //
+        // DESPUÉS del flush a propósito, y no antes: avisar de un pago que todavía podría no
+        // guardarse es peor que no avisar. Y el aviso no puede volverse contra el cobro —el
+        // cliente ya pagó—, así que `notificar()` no lanza nunca; lo que falle queda en el log.
+        //
+        // Va aquí, en el embudo, y no en cada camino: por `confirmarPago()` pasan los tres
+        // (el navegador del cliente y los webhooks de las dos pasarelas), y la guarda de
+        // idempotencia de arriba ya devolvió antes si el enlace estaba pagado — así que un IPN
+        // repetido no vuelve a hacer sonar los teléfonos.
+        $this->avisoDeCobro->notificar($enlace);
     }
 
     /** Marca el intento fallido sin cerrar el enlace: el cliente puede reintentar. */

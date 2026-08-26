@@ -878,6 +878,45 @@ sin que nadie los sincronice.
 
 ---
 
+### 11 ter. El aviso de cobro al equipo
+
+Hasta ahora **un cobro no avisaba a nadie**: se enteraba quien mirase el panel de la reserva —el
+saldo baja solo— o la caja. Mientras cobraba un operador desde el panel daba igual, porque ya
+estaba delante. Deja de dar igual con los enlaces de prepago (§11 bis): el huésped paga por su
+cuenta, a cualquier hora, y nadie se entera hasta que alguien abre la reserva.
+
+`FinAvisoDeCobro` redacta el aviso y se lo pasa a `AvisoAlEquipoService`, el mismo que usa el
+escalado del agente (ver `docs/Mensajeria.md`, *El mecanismo de avisar vive fuera*). Aquí sólo se
+decide **qué se dice**; a quién y por dónde ya estaba resuelto.
+
+**Se engancha en `FinEnlacePagoService::confirmarPago()`**, y ese sitio no es casual: por ese
+embudo pasan los TRES caminos de cobro —el navegador del cliente y los webhooks de las dos
+pasarelas—, así que enganchar ahí cubre todos sin repetir código. Y como la guarda de
+idempotencia devuelve antes cuando el enlace ya estaba pagado, **un IPN repetido no vuelve a
+hacer sonar los teléfonos**.
+
+⚠️ **Va DESPUÉS del flush, y no lanza nunca.** Las dos cosas por el mismo motivo: el cliente ya
+pagó. Avisar antes de persistir contaría un pago que aún podría no guardarse, y dejar que el
+aviso propague una excepción convertiría un problema de mensajería —Meta caída, plantilla sin
+aprobar, un móvil mal escrito— en un cobro reventado. `notificar()` se traga el error y lo deja
+en el log.
+
+| Dónde cae | Qué sale |
+|---|---|
+| **Dentro** de la ventana de 24 h | Texto libre, multilínea: cliente, importe, concepto, origen con su referencia, medio de pago y enlace a Finanzas |
+| **Fuera** | Plantilla `aviso_cobro_interno` con `cliente`, `importe` y `concepto` (el origen entra DENTRO de `concepto`, para no pedirle a Meta un parámetro más) |
+
+**No deduplica, y es deliberado.** Cada cobro es un hecho único, al contrario que el escalado
+—donde el mismo huésped insistiendo tres veces son tres avisos por lo mismo, y por eso allí hay
+enfriamiento—.
+
+Verificado con `var/probar-aviso-cobro.php`, que compone el aviso de tres casos (reserva, venta
+suelta sin origen, y sin nombre de cliente) y comprueba las dos reglas que Meta impone y que
+revientan el envío: **ninguna variable vacía ni multilínea**. ⚠️ Ese guion **no envía nada** a
+propósito: hacerlo haría sonar el móvil de toda la guardia (ver `docs/Mensajeria.md` §16.7).
+
+---
+
 ## 12. Despliegue: por qué no basta con `git pull`
 
 Dos pasos que **no se hacen solos** y cuyos fallos no se parecen a su causa. Los dos
@@ -957,6 +996,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Depurar "no se confirmó un cobro" | tabla `fin_pasarela_webhook_audit` | `payload_raw`, `estado`, `error_mensaje` |
 | Cambiar CUÁNTO se pide de prepago | `src/Pms/Enum/PmsPoliticaPrepago.php` | `fraccion()`, `soloAlojamiento()` |
 | Cambiar CUÁNDO deja de pedirse | `src/Pms/Service/Finance/PmsPrepagoCalculador.php` | `pendiente()` (§8) |
+| Cambiar qué dice el aviso de cobro (§11 ter) | `src/Finanzas/Service/Aviso/FinAvisoDeCobro.php` | `redactar()` dentro de ventana, `variables()` fuera. Si añades una variable, tiene que llegar SIEMPRE con valor y en una línea |
+| Dejar de avisar de los cobros, o avisar de otra cosa | `FinEnlacePagoService::confirmarPago()` | La llamada a `avisoDeCobro->notificar()`, al final y fuera de la transacción |
 | Cambiar cómo lo ve el huésped | `pax/src/views/huesped/PmsReservaView.vue` | bloque «Prepago pendiente» |
 | Cambiar cómo lo ve el operador | `util/src/components/reservas/ReservaFinanzasPanel.vue` | fila «Prepago pendiente» del resumen |
 | Cambiar qué sabe el agente del prepago | `src/Agent/Skill/Pms/ConsultarCuentaSkill.php` | `prepago()` |
