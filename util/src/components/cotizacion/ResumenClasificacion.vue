@@ -17,6 +17,7 @@
 // ============================================================================
 import { ref, computed } from 'vue';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
+import { fmtNaive } from '@/utils/naiveDate';
 import {
   filasResumenGeneral,
   LineaDetalleClaseInterna, InclusionLinea,
@@ -29,6 +30,49 @@ const fin = computed(() => store.resumenFinanciero);
 const lang = computed(() => store.cotizacion?.idiomaEdicion || 'es');
 
 // ── Switch global de moneda ──────────────────────────────────────────────────
+/**
+ * «Mié 2 sep» — el día que encabeza sus líneas.
+ *
+ * Con `fmtNaive` y no con `new Date(...).toLocaleDateString()`: la fecha viene naive
+ * («2026-09-02») y construir un `Date` con ella la interpreta en UTC, así que en Lima —UTC−5—
+ * el día se corría al anterior. Un reporte que dice «1 sep» de lo que pasa el 2 no es un detalle
+ * de formato: es un dato equivocado. Ver `utils/naiveDate.ts`.
+ */
+const etiquetaDia = (ymd: string): string =>
+  ymd ? fmtNaive(`${ymd}T12:00:00`, { weekday: 'short', day: 'numeric', month: 'short' }) : 'Sin fecha';
+
+/**
+ * Las líneas de una clase, partidas por jornada.
+ *
+ * Sin partir, cuarenta fichas seguidas no dicen de cuántos días son ni dónde empieza cada uno: hay
+ * que leerlas todas para situarse. Un viaje se piensa por días —«el miércoles cuánto sale»—, así
+ * que el día encabeza y lo suyo va debajo.
+ *
+ * ⚠️ Las **sin fecha van al final**, no al principio. Ordenando la clave a secas, la cadena vacía
+ * gana a cualquier fecha y el bloque «Sin fecha» abriría el reporte: lo primero que se ve sería lo
+ * que menos se sabe.
+ */
+const porDia = (detalle: LineaDetalleClaseInterna[]): { fecha: string; etiqueta: string; lineas: LineaDetalleClaseInterna[] }[] => {
+  const grupos = new Map<string, LineaDetalleClaseInterna[]>();
+
+  detalle.forEach((d) => {
+    const clave = (d.fecha || '').slice(0, 10);
+    const actual = grupos.get(clave);
+
+    if (actual) actual.push(d);
+    else grupos.set(clave, [d]);
+  });
+
+  return [...grupos.entries()]
+    .sort(([a], [b]) => {
+      if (a === b) return 0;
+      if (a === '') return 1;
+      if (b === '') return -1;
+      return a.localeCompare(b);
+    })
+    .map(([fecha, lineas]) => ({ fecha, etiqueta: etiquetaDia(fecha), lineas }));
+};
+
 const monedaVista = ref<'PEN' | 'USD'>('USD');
 const n2 = (v: number) => (Math.round(v * 100) / 100).toFixed(2);
 /** Elige soles o dólares según el switch y formatea */
@@ -208,8 +252,20 @@ const totalesInclusiones = computed(() => {
                por pax a la derecha —que es la cifra que se busca—, y el monto
                cotizado con sus etiquetas abajo. Una columna en móvil, dos desde
                `sm`. Mismo criterio que ya se aplicó a La Biblia. -->
-          <div class="p-2.5 sm:p-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
-            <article v-for="(d, i) in clase.detalle" :key="i"
+          <div v-for="dia in porDia(clase.detalle)" :key="dia.fecha">
+            <!-- El día que encabeza sus líneas. Pegajoso dentro del panel: con veinte fichas
+                 abiertas, al desplazar se pierde de vista de qué jornada se está leyendo. -->
+            <p class="sticky top-0 z-10 bg-slate-100/95 backdrop-blur-sm border-y border-slate-200 px-3 py-1.5
+                      text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+              <i class="fas fa-calendar-day text-[9px] text-slate-400"></i>
+              {{ dia.etiqueta }}
+              <span class="ml-auto font-bold text-slate-400 normal-case tracking-normal">
+                {{ dia.lineas.length }} línea{{ dia.lineas.length === 1 ? '' : 's' }}
+              </span>
+            </p>
+
+            <div class="p-2.5 sm:p-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
+            <article v-for="(d, i) in dia.lineas" :key="i"
                      class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm tabular-nums"
                      :class="d.rol === 'operativo' ? 'opacity-60' : ''">
 
@@ -276,6 +332,7 @@ const totalesInclusiones = computed(() => {
                 </span>
               </div>
             </article>
+            </div>
           </div>
 
           <!-- Subtotales por modo (POR PAX) -->

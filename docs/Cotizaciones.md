@@ -1318,6 +1318,21 @@ Cada línea es ahora una ficha: el servicio manda arriba, la **venta por pax a l
 la cifra que se busca— y el monto cotizado con sus etiquetas abajo, tras un separador. Una columna
 en móvil, dos desde `lg`. Mismo criterio que ya se aplicó a La Biblia al pasar de tabla a rejilla.
 
+**Las fichas van partidas por JORNADA**, con el día encabezando las suyas y el número de líneas a
+la derecha. Cuarenta fichas seguidas no dicen de cuántos días son ni dónde empieza cada uno: hay
+que leerlas todas para situarse, y un viaje se piensa por días —«el miércoles cuánto sale»—. El
+encabezado es pegajoso dentro del panel: al desplazar con veinte fichas abiertas se pierde de
+vista de qué jornada se está leyendo.
+
+⚠️ **La etiqueta se compone con `fmtNaive()`, no con `new Date(ymd).toLocaleDateString()`.** La
+fecha viene naive (`2026-09-02`) y construir un `Date` con ella la interpreta en UTC: en Lima
+—UTC−5— el día se corría al anterior. Un reporte que dice «1 sep» de lo que pasa el 2 no es un
+detalle de formato, es un dato equivocado. Ver `utils/naiveDate.ts`.
+
+⚠️ **Las líneas sin fecha van al FINAL.** Ordenando la clave a secas, la cadena vacía gana a
+cualquier fecha y el bloque «Sin fecha» abriría el reporte: lo primero que se vería sería lo que
+menos se sabe.
+
 **Cada ficha dice quién lo opera y a quién se le compra.** Es el dato que convierte el reporte en
 algo accionable: «el tren lo opera PeruRail pero se lo compramos a Xtreme Tourbulencia».
 
