@@ -2124,6 +2124,33 @@ podría recuperar de ninguna otra parte.
 
 ## 8. Gotchas
 
+**Para los grupos de WhatsApp se copia y se pega, y no es un apaño.** El modal de envío lleva un
+botón **Copiar** que se lleva el cuerpo **más el enlace**, con el formato de WhatsApp ya puesto.
+
+El motivo está en los límites de Meta, comprobados el 26/08/2026:
+
+| Límite de la Groups API | Consecuencia |
+|---|---|
+| **No hay endpoint para añadir participantes**: se entra por enlace de invitación que la persona acepta | **Un grupo que ya existe no se puede adoptar.** El número de empresa no puede entrar en él |
+| Sólo grupos creados por el propio número vía API, y un solo negocio por grupo | Habría que rehacer cada grupo e invitar a todos otra vez |
+| **Máximo 8 participantes** | Un grupo de proveedor con más gente no cabe |
+| Requiere Official Business Account; no vale la app de WhatsApp Business | Depende de cómo esté dado de alta el número |
+
+O sea que sí existe una API de grupos, pero **no sirve para los grupos que ya tienes**. Por eso el
+camino es pegar a mano, y lo que hay que cuidar es que el texto copiado sea **idéntico** al que
+manda la API: `textoParaWhatsapp` es espejo de `OperacionOrdenEnvio::enviar()`, que compone
+`cuerpo + "\n\n" + enlace`. Si allá cambia la forma de pegarlos, aquí también — o el proveedor del
+grupo recibe una versión y el del chat otra.
+
+⚠️ **No se le añaden marcas al copiar.** El cuerpo ya viene con `*negrita*` y emoji desde PHP; un
+segundo juego encima del primero es lo que convierte el mensaje en una ristra de asteriscos.
+
+⚠️ El copiado va en **tres intentos**: `navigator.clipboard` → `execCommand('copy')` → y si las dos
+fallan, se selecciona el bloque para copiarlo con el teclado. La API moderna se niega en más casos
+de los que uno espera —sin foco en el documento, sin gesto del usuario, sin contexto seguro— y
+falla **lanzando**, no devolviendo `false`. Un botón que a veces copia es peor que no tenerlo: el
+operador cree que lo lleva y pega lo que hubiera antes, que puede ser el mensaje de otro proveedor.
+
 **La información operativa —el vuelo— no llegaba al proveedor.** «Delta LATAM LA-2695 Aterriza
 22:00» vive en `notasPrestador`, y es el dato con el que un chófer decide a qué hora sale de casa.
 Se veía en La Biblia y en la página pública, pero faltaba en **los dos sitios que importan**:

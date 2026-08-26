@@ -1398,6 +1398,101 @@ const guardarFicha = async () => {
 // proveedor perdió el correo o cambió de contacto.
 const ordenAEnviar = ref<OperacionOrdenServicio | null>(null);
 const documento = ref<DocumentoDeOrden | null>(null);
+
+/**
+ * El texto listo para pegar en WhatsApp, tal cual saldría por la API.
+ *
+ * 🪞 Espejo de `OperacionOrdenEnvio::enviar()`, que compone `cuerpo + "\n\n" + enlace`. Si allá
+ * cambia la forma de pegarlos, aquí también: lo que se copia tiene que ser **lo mismo** que se
+ * manda, o el proveedor del grupo recibe una versión y el del chat otra.
+ *
+ * ⚠️ Ya lleva el formato de WhatsApp puesto —`*negrita*` y los emoji— porque el cuerpo se compone
+ * así en PHP. No se le añade nada aquí: un segundo juego de marcas encima del primero es lo que
+ * convierte un mensaje en una ristra de asteriscos.
+ */
+const textoParaWhatsapp = computed<string>(() => {
+    const doc = documento.value;
+
+    if (doc === null) return '';
+
+    return doc.enlace ? `${doc.cuerpo}\n\n${doc.enlace}` : doc.cuerpo;
+});
+
+/** Se apaga solo: un «copiado» que se queda fijo deja de significar «acaba de pasar». */
+const copiado = ref<boolean>(false);
+let temporizadorCopiado: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Copiar para pegarlo a mano en un grupo.
+ *
+ * ⚠️ **No es un capricho: la API de Meta no puede escribir en los grupos que ya existen.** Desde
+ * 2026 hay Groups API, pero sólo sobre grupos que crea el propio número por API, con invitación
+ * —no se puede meter a nadie— y con un tope de 8 participantes. Un grupo que ya está montado con
+ * un proveedor no se puede adoptar. Así que para ésos el camino es copiar y pegar, y lo que hay
+ * que hacer bien es que el texto salga idéntico al que manda la API.
+ */
+/**
+ * Escribe en el portapapeles por la vía que funcione. `true` si alguna lo consiguió.
+ *
+ * La segunda es `execCommand('copy')`, que está deprecada y sigue siendo la que funciona cuando
+ * la moderna se niega: es síncrona y le basta el gesto del usuario. El `<textarea>` va fuera de
+ * pantalla y no `display:none`, porque lo que no se pinta no se puede seleccionar.
+ */
+const escribirEnPortapapeles = async (texto: string): Promise<boolean> => {
+    try {
+        await navigator.clipboard.writeText(texto);
+
+        return true;
+    } catch { /* se prueba la siguiente */ }
+
+    try {
+        const caja = document.createElement('textarea');
+        caja.value = texto;
+        caja.setAttribute('readonly', '');
+        caja.style.position = 'fixed';
+        caja.style.left = '-9999px';
+        document.body.appendChild(caja);
+        caja.select();
+
+        const bien = document.execCommand('copy');
+        document.body.removeChild(caja);
+
+        return bien;
+    } catch {
+        return false;
+    }
+};
+
+const copiarParaWhatsapp = async (): Promise<void> => {
+    const texto = textoParaWhatsapp.value;
+
+    if (texto === '') return;
+
+    // ⚠️ **Tres intentos, y no sobra ninguno.** `navigator.clipboard` es la vía buena pero se
+    // niega en más casos de los que uno espera —sin contexto seguro, sin foco en el documento, o
+    // sin gesto del usuario— y falla lanzando, no devolviendo `false`. Medido aquí mismo: con la
+    // ventana sin foco tira `NotAllowedError` aunque el clic sea real.
+    //
+    // Un botón de copiar que a veces copia es peor que no tenerlo: el operador cree que lo lleva
+    // y pega lo que hubiera antes en el portapapeles, que es un mensaje de otro proveedor.
+    copiado.value = await escribirEnPortapapeles(texto);
+
+    if (!copiado.value) {
+        // Último recurso: se selecciona el bloque para que lo copie con el teclado. Peor que un
+        // clic, mejor que un botón que no hace nada y no dice por qué.
+        const bloque = document.getElementById('cuerpo-del-mensaje');
+
+        if (bloque !== null) {
+            const rango = document.createRange();
+            rango.selectNodeContents(bloque);
+            window.getSelection()?.removeAllRanges();
+            window.getSelection()?.addRange(rango);
+        }
+    }
+
+    if (temporizadorCopiado !== null) clearTimeout(temporizadorCopiado);
+    temporizadorCopiado = setTimeout(() => { copiado.value = false; }, 2500);
+};
 const canalElegido = ref<string>('');
 const cargandoDocumento = ref(false);
 const enviandoOrden = ref(false);
@@ -3634,13 +3729,30 @@ onMounted(async () => {
                         </div>
 
                         <div>
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                Lo que se le manda · {{ documento.lineas }} línea(s)
-                            </p>
-                            <pre class="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-3 whitespace-pre-wrap font-sans leading-relaxed">{{ documento.cuerpo }}</pre>
+                            <div class="flex items-center gap-2 mb-1">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    Lo que se le manda · {{ documento.lineas }} línea(s)
+                                </p>
+                                <!-- Para los grupos: Meta NO deja escribir en un grupo que ya
+                                     existe —la Groups API sólo sirve para los que crea el propio
+                                     número, por invitación y con ocho participantes—. Así que ahí
+                                     se pega a mano, y lo que se copia incluye el enlace, igual que
+                                     lo que manda la API. -->
+                                <button
+                                    @click="copiarParaWhatsapp"
+                                    :class="copiado ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-[#376875] hover:text-[#376875]'"
+                                    class="ml-auto shrink-0 flex items-center gap-1.5 px-2.5 py-1 border rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
+                                    title="Copia el texto con el formato de WhatsApp, para pegarlo en un grupo"
+                                >
+                                    <i :class="copiado ? 'fas fa-check' : 'fas fa-copy'" class="text-[10px]"></i>
+                                    {{ copiado ? 'Copiado' : 'Copiar' }}
+                                </button>
+                            </div>
+                            <pre id="cuerpo-del-mensaje" class="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-3 whitespace-pre-wrap font-sans leading-relaxed">{{ documento.cuerpo }}</pre>
                             <p class="text-[10px] text-slate-400 mt-1 leading-snug">
                                 Sale de las líneas congeladas al emitir, y no lleva importes: lo que se paga
-                                se lleva aparte.
+                                se lleva aparte. <b>Copiar</b> se lleva también el enlace, con el formato de
+                                WhatsApp puesto.
                             </p>
                         </div>
 
