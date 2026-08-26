@@ -2127,18 +2127,32 @@ podría recuperar de ninguna otra parte.
 **Para los grupos de WhatsApp se copia y se pega, y no es un apaño.** El modal de envío lleva un
 botón **Copiar** que se lleva el cuerpo **más el enlace**, con el formato de WhatsApp ya puesto.
 
-El motivo está en los límites de Meta, comprobados el 26/08/2026:
+⚠️ **La pregunta que hay que hacerse no es «¿puedo mandar a un grupo?» sino «¿puede mi número
+entrar en el grupo?». Y la respuesta es NO: la dirección de la Groups API está invertida.**
 
-| Límite de la Groups API | Consecuencia |
+Repasada la lista entera de endpoints el 26/08/2026, la API sólo opera sobre grupos que **ella
+misma creó**:
+
+| Lo que existe | Lo que NO existe |
 |---|---|
-| **No hay endpoint para añadir participantes**: se entra por enlace de invitación que la persona acepta | **Un grupo que ya existe no se puede adoptar.** El número de empresa no puede entrar en él |
-| Sólo grupos creados por el propio número vía API, y un solo negocio por grupo | Habría que rehacer cada grupo e invitar a todos otra vez |
-| **Máximo 8 participantes** | Un grupo de proveedor con más gente no cabe |
-| Requiere Official Business Account; no vale la app de WhatsApp Business | Depende de cómo esté dado de alta el número |
+| `POST /<PHONE_ID>/groups` — crear grupo y generar su enlace | ningún `join` ni `accept_invite` |
+| `GET/POST /<GROUP_ID>/invite_link` | entrar en un grupo ajeno, ni con el enlace en la mano |
+| `GET/POST/DELETE /<GROUP_ID>/join_requests` — aprobar quién entra | |
+| `DELETE /<GROUP_ID>/participants` — **sacar** gente | ninguno para **meter** gente |
+| `GET /<PHONE_ID>/groups` — listar los **propios** | ver grupos que no creó |
 
-O sea que sí existe una API de grupos, pero **no sirve para los grupos que ya tienes**. Por eso el
-camino es pegar a mano, y lo que hay que cuidar es que el texto copiado sea **idéntico** al que
-manda la API: `textoParaWhatsapp` es espejo de `OperacionOrdenEnvio::enviar()`, que compone
+Y un segundo candado: **los grupos no están disponibles para números de la app de WhatsApp
+Business**, que suele ser justo el número que ya está metido en los grupos con proveedores. Un
+número no puede estar a la vez en la app y en la Cloud API: migrarlo lo saca de la app.
+
+Los otros límites, por si algún día se evalúa: **máximo 8 participantes**, requiere **Official
+Business Account**, y **cada mensaje se factura por destinatario** —un grupo de seis cuesta como
+seis mensajes—.
+
+**Conclusión: los grupos que ya existen no se migran, se sustituirían.** Tendría que crearlos el
+número de API e invitar a cada proveedor a entrar. Para lo que ya está montado, el camino es pegar
+a mano — y lo que hay que cuidar es que el texto copiado sea **idéntico** al que manda la API:
+`textoParaWhatsapp` es espejo de `OperacionOrdenEnvio::enviar()`, que compone
 `cuerpo + "\n\n" + enlace`. Si allá cambia la forma de pegarlos, aquí también — o el proveedor del
 grupo recibe una versión y el del chat otra.
 
