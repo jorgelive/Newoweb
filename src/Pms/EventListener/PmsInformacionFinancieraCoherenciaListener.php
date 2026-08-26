@@ -19,11 +19,13 @@ use App\Pms\Service\Finance\PmsPagoOtaAutomaticoService;
 use App\Pms\Service\Finance\PmsInformacionFinancieraRecalculoService;
 use App\Pms\Service\Finance\MonedaResolver;
 use DomainException;
+use Throwable;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Event\PostFlushEventArgs;
 use Doctrine\ORM\Events;
+use Psr\Log\LoggerInterface;
 
 /**
  * Listener PmsInformacionFinancieraCoherenciaListener.
@@ -97,6 +99,7 @@ final class PmsInformacionFinancieraCoherenciaListener
         private readonly PmsEstadoPagoEventosService $estadoPagoService,
         // Emite el enlace del adelanto en cuanto la reserva tiene importes. No lanza.
         private readonly PmsPrepagoEnlaceService $prepagoEnlaces,
+        private readonly LoggerInterface $logger,
     ) {}
 
     public function onFlush(OnFlushEventArgs $args): void
@@ -431,12 +434,25 @@ final class PmsInformacionFinancieraCoherenciaListener
      */
     private function emitirPrepagos(array $ids, EntityManagerInterface $em): void
     {
-        foreach ($ids as $id) {
-            $info = $em->getRepository(PmsInformacionFinanciera::class)->find($id);
+        // ⚠️ El try/catch envuelve el BUCLE, no sólo la emisión.
+        //
+        // `emitirPorCambioDeCargos()` ya se traga lo suyo, pero si su flush interno falla a
+        // nivel de base de datos Doctrine CIERRA el EntityManager — y entonces el `find()` de
+        // la vuelta siguiente lanza `EntityManagerClosed` desde aquí, fuera de aquella
+        // protección. Escaparía del `postFlush` y el llamante vería fallar un guardado que ya
+        // está commiteado, que es exactamente lo que este método existe para evitar.
+        try {
+            foreach ($ids as $id) {
+                $info = $em->getRepository(PmsInformacionFinanciera::class)->find($id);
 
-            if ($info instanceof PmsInformacionFinanciera) {
-                $this->prepagoEnlaces->emitirPorCambioDeCargos($info);
+                if ($info instanceof PmsInformacionFinanciera) {
+                    $this->prepagoEnlaces->emitirPorCambioDeCargos($info);
+                }
             }
+        } catch (Throwable $e) {
+            $this->logger->error('[prepago] el ciclo de emisión se cortó; los cargos ya están guardados.', [
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

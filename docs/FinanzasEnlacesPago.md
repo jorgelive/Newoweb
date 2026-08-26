@@ -815,9 +815,34 @@ eso, un cargo extra dejaba dos enlaces pagables por cantidades distintas y el hu
 el que no toca. Con emisión manual casi no pasaba —hay alguien mirando—; automatizado pasa solo.
 Se anula, no se borra: el enlace que se mandó existió.
 
+⚠️ **Y la moneda se DICE, no se deduce.** `pendiente()` devuelve el importe en la moneda de la
+**cabecera** (`base()` lo convierte), pero `crear()` sin el parámetro `moneda` se lo pregunta al
+resolver, que responde «la de mayor saldo». En una reserva con cargos en soles y cabecera en
+dólares son monedas distintas: el enlace habría cobrado **46.42 PEN donde el cálculo decía 46.42
+USD**, cuatro veces menos. Pasa en los dos caminos —el automático y el manual— y en el manual
+llevaba tiempo ahí, tapado porque había una persona delante.
+
+⚠️ **Cuando el adelanto deja de proceder, el enlace se ANULA.** `pendiente()` a `null` —lo pagó
+por transferencia, cambió la política— o cabecera inactiva: en los dos casos se retiran los
+enlaces automáticos vivos. Sin esto, la ausencia de caducidad —correcta mientras el cobro
+procede— se convierte en un enlace pagable **para siempre** en el WhatsApp de alguien que ya
+pagó. Sólo los automáticos: uno emitido a mano es la decisión de una persona.
+
+⚠️ **Una cancelada NO basta con `pendiente()`.** Con la cabecera inactiva sus cargos dejan de
+sumar pero la **PENALIZACIÓN sigue contando** (§12.7), así que la base no es cero y el calculador
+devolvería una fracción de la penalidad: se emitiría un «Adelanto de reserva» sobre una reserva
+cancelada. Por eso hay una guarda explícita de `isActiva()`.
+
+⚠️ **Y queda una carrera conocida.** `vigentePorImporte()` → `anularVigentes()` → `crear()` es
+leer-y-escribir sin bloqueo, y el disparador corre en workers concurrentes (webhook y cron). Dos
+procesos sobre la misma reserva pueden emitir **dos enlaces vivos**. MySQL no admite índices
+únicos parciales, así que la solución sería un `GET_LOCK('prepago:'.$reservaId)` alrededor del
+bloque. No está puesto: decisión pendiente.
+
 Verificado con `var/probar-prepago-automatico.php` (transacción con rollback): estrena un enlace
-sin caducidad y sin autor, un movimiento que no cambia el importe **no** emite otro, y al cambiar
-el adelanto queda uno vivo y el anterior en `anulado`.
+sin caducidad, sin autor y **en la moneda de la cabecera**; un movimiento que no cambia el importe
+**no** emite otro; al cambiar el adelanto queda uno vivo con el anterior en `anulado`; y al anular
+la reserva no queda ninguno vivo.
 
 ### La reutilización, y por qué mira el importe
 

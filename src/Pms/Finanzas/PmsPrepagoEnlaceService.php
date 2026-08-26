@@ -197,6 +197,10 @@ final readonly class PmsPrepagoEnlaceService
             // comisión de la pasarela no la absorbe la casa por ser un adelanto.
             conRecargo: true,
             concepto: $this->concepto($reserva),
+            // Ver la nota de `emitirPorCambioDeCargos()`: el importe viene en la moneda de la
+            // cabecera y hay que decirlo. El fallo era el mismo aquí, sólo que con una persona
+            // delante que podía notarlo.
+            moneda: $info->getMoneda()?->getId(),
             creadoPor: $creadoPor,
         );
 
@@ -250,9 +254,30 @@ final readonly class PmsPrepagoEnlaceService
                 return null;
             }
 
+            // ⚠️ Cabecera ANULADA (todas las estancias canceladas): aquí no se pide adelanto.
+            //
+            // No basta con `pendiente()`: con la cabecera inactiva sus cargos dejan de sumar
+            // PERO la PENALIZACIÓN sigue contando (§12.7), así que la base no es cero y el
+            // calculador devolvería una fracción de la penalidad. Emitir un «Adelanto de
+            // reserva» sobre una reserva cancelada no tiene ningún sentido.
+            if (!$info->isActiva()) {
+                $this->anularAutomaticosVigentes($id);
+
+                return null;
+            }
+
             $prepago = $this->calculador->pendiente($info);
 
             if ($prepago === null) {
+                // 🔴 Ya no procede pedir adelanto —lo pagó por transferencia, se canceló sin
+                // penalización, cambió la política—, así que el enlace vivo tiene que MORIR.
+                //
+                // Sin esto, y como los automáticos se emiten SIN caducidad, quedaría un enlace
+                // pagable para siempre en el WhatsApp de alguien que ya pagó. La ausencia de
+                // caducidad, que es lo correcto mientras el cobro procede, se vuelve una trampa
+                // en cuanto deja de proceder.
+                $this->anularAutomaticosVigentes($id);
+
                 return null;
             }
 
@@ -270,6 +295,12 @@ final readonly class PmsPrepagoEnlaceService
                 montoNeto: $prepago['monto'],
                 conRecargo: true,
                 concepto: $this->concepto($reserva),
+                // ⚠️ La moneda se DICE, no se deduce. `pendiente()` devuelve el importe en la
+                // moneda de la CABECERA (`base()` lo convierte), pero `crear()` sin este
+                // parámetro se lo pregunta al resolver, que responde «la de mayor saldo». En
+                // una reserva con cargos en soles y cabecera en dólares son monedas distintas:
+                // el enlace habría cobrado 46.42 PEN donde el cálculo decía 46.42 USD.
+                moneda: $info->getMoneda()?->getId(),
                 // Sin persona detrás: el enlace queda sin `creadoPorNombre`, que es la verdad.
                 creadoPor: null,
                 vigenciaDias: 0,
@@ -281,6 +312,22 @@ final readonly class PmsPrepagoEnlaceService
             ]);
 
             return null;
+        }
+    }
+
+    /**
+     * Anula sólo los enlaces vivos que emitió el SISTEMA (sin autor).
+     *
+     * Se usa cuando el adelanto deja de proceder. Acotado a los automáticos a propósito: uno
+     * emitido a mano es la decisión de una persona —puede estar cobrando otra cosa, o queriendo
+     * cobrar igual— y retirárselo sin avisar sería peor que dejarlo.
+     */
+    private function anularAutomaticosVigentes(Uuid $reservaId): void
+    {
+        foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
+            if ($enlace->estaVigente() && $enlace->getCreadoPor() === null) {
+                $this->enlaces->anular($enlace);
+            }
         }
     }
 
