@@ -2124,6 +2124,26 @@ podría recuperar de ninguna otra parte.
 
 ## 8. Gotchas
 
+**Las líneas de una orden van ordenadas por FECHA, y eso se declara en el mapeo.** Una orden se
+compone marcando filas del cuadro a saltos —primero el traslado que uno recuerda, luego el del día
+anterior—, así que el orden natural de la colección es el de marcado. Salía `31/08, 02/09, 04/09,
+02/09, 02/09`: nadie puede seguir un itinerario que va y viene, y es la lista con la que el
+proveedor organiza su semana.
+
+`#[ORM\OrderBy]` en **las dos** colecciones de `OperacionOrdenServicio`:
+
+| Colección | Orden | Quién la consume |
+|---|---|---|
+| `$operacionServicios` (viva) | `fechaServicio`, `horaRecojo` | El panel de un borrador — y `OperacionOrdenEmision::emitir()`, que construye los ítems recorriéndola, así que el documento **nace** ordenado |
+| `$items` (congelada) | `fechaServicio`, `hora` | Las órdenes ya emitidas y `OperacionOrdenDocumento`, que arma el texto que se manda al proveedor |
+
+⚠️ Se ordena **en el mapeo y no al pintar**: hay tres superficies —panel, documento y PDF— y
+ordenar en una sola las deja discrepando entre sí. Y ordenar la colección viva no basta: el
+documento del proveedor lee la congelada.
+
+Las órdenes ya emitidas también salen ordenadas, y no rompe nada: el orden es de lectura, no está
+congelado en el contenido, así que no reescribe nada de lo pactado.
+
 **Un campo sin el grupo `operacion:read` desaparece del ANIDADO, y el front cae al respaldo sin
 decir nada.** El panel de una Orden de Servicio pintaba todas sus líneas como «Sin tipo» con el
 icono de interrogación. La causa: `OperacionServicio::$tipoComponente` sólo estaba en

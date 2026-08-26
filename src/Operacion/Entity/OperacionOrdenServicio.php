@@ -241,6 +241,14 @@ class OperacionOrdenServicio
     /** @var Collection<int, OperacionServicio> */
     #[Groups(['operacion:read'])]
     #[ORM\OneToMany(mappedBy: 'ordenServicio', targetEntity: OperacionServicio::class)]
+    // ⚠️ Por FECHA y hora, y no por el orden en que se marcaron. Una orden se compone marcando
+    // filas del cuadro a saltos —primero el traslado que uno recuerda, luego el del día anterior—,
+    // y sin esto la orden salía 31/08, 02/09, 04/09, 02/09, 02/09. Quien la lee no puede seguir un
+    // itinerario que va y viene, y es la lista con la que el proveedor organiza su semana.
+    //
+    // Ordena también los ÍTEMS congelados: `OperacionOrdenEmision::emitir()` los construye
+    // recorriendo esta colección, así que el documento nace ya en orden.
+    #[ORM\OrderBy(['fechaServicio' => 'ASC', 'horaRecojo' => 'ASC'])]
     private Collection $operacionServicios;
 
     /**
@@ -250,6 +258,13 @@ class OperacionOrdenServicio
      */
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\OneToMany(mappedBy: 'orden', targetEntity: OperacionOrdenServicioItem::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    // Mismo orden que la colección viva, y aquí importa más: `OperacionOrdenDocumento` recorre
+    // ESTA lista para armar el texto que se le manda al proveedor. Se ordena en el mapeo y no al
+    // pintar, para que las tres superficies —panel, documento y PDF— no puedan discrepar.
+    //
+    // Las órdenes YA emitidas también se benefician: el orden es de lectura, no está congelado en
+    // el contenido, así que no reescribe nada de lo pactado.
+    #[ORM\OrderBy(['fechaServicio' => 'ASC', 'hora' => 'ASC'])]
     private Collection $items;
 
     /**
