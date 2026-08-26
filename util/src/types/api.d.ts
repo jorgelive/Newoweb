@@ -17618,6 +17618,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
             /**
@@ -18003,6 +18005,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
             /**
@@ -18206,6 +18210,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
             /**
@@ -18409,6 +18415,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
+            tipoComponente?: string | null;
             /** @default 1 */
             cantidadPax: number;
             /**

@@ -404,8 +404,15 @@ class OperacionServicio
      * Se guarda como string suelto y no como enumType porque el origen también lo es
      * (?string): tipos legacy o vacíos no deben reventar la generación de La Biblia.
      * Es lo que permite distinguir un traslado de un desayuno sin volver a la cotización.
+     *
+     * ⚠️ Va TAMBIÉN en `operacion:read`, que es el grupo con el que se serializan los servicios
+     * **anidados dentro de una Orden de Servicio**. Sin él, el panel de la orden pintaba las cinco
+     * líneas como «Sin tipo» con el icono de interrogación: el respaldo de
+     * `getTipoComponenteConfig()` entra cuando el campo llega `undefined`, así que no había error
+     * ni hueco — sólo un cuadro que decía que no sabía qué era cada cosa. En La Biblia se veía
+     * bien porque la colección usa `operacion:item:read`, y eso es lo que despistaba.
      */
-    #[Groups(['operacion:item:read', 'operacion:write'])]
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $tipoComponente = null;
 

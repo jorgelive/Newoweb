@@ -2124,6 +2124,22 @@ podría recuperar de ninguna otra parte.
 
 ## 8. Gotchas
 
+**Un campo sin el grupo `operacion:read` desaparece del ANIDADO, y el front cae al respaldo sin
+decir nada.** El panel de una Orden de Servicio pintaba todas sus líneas como «Sin tipo» con el
+icono de interrogación. La causa: `OperacionServicio::$tipoComponente` sólo estaba en
+`operacion:item:read`, y los servicios **anidados dentro de una orden** se serializan con
+`operacion:read`. Llegaba `undefined`, y `getTipoComponenteConfig()` tiene un respaldo para
+valores desconocidos, así que no había error ni hueco — sólo un cuadro diciendo que no sabía qué
+era cada cosa.
+
+Lo que lo hacía difícil de ver: **en La Biblia se veía bien**, porque esa colección usa
+`operacion:item:read`. El mismo campo, la misma entidad y el mismo componente de UI, bien en una
+pantalla y mal en la otra.
+
+⚠️ La regla al añadir o arreglar un campo que el front lea **dentro de una orden**: comprobar que
+esté en `operacion:read`, no sólo en `operacion:item:read`. Y regenerar `api.d.ts` — que tampoco
+avisa, porque un campo que falta se lee como `undefined`, no como error de tipos.
+
 **Una acción que cambia DOS registros tiene que sincronizar los dos.** Reemitir anula la orden
 anterior y crea la sucesora **en la misma transacción**, pero `emitirOrdenServicio()` sólo hacía
 `unshift` de la sucesora: la copia local de la anulada seguía diciendo «confirmada». El operador
