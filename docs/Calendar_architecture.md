@@ -889,6 +889,13 @@ DELETE /platform/pms/pms_tarifa_rangos/{id}
 POST   /platform/pms/pms_tarifa_rangos/generar-masivo
 ```
 
+⚠️ **El filtro `unidad` estuvo devolviendo CERO en silencio** hasta el 25/08/2026. Iba por
+`SearchFilter`, que ata el uuid sin declarar su tipo y lo compara contra una columna `binary(16)`:
+respuesta 200 con la colección vacía, sin error. Ahora va por
+`App\Api\Filter\UuidRelacionFilter`. `moneda` se queda en `SearchFilter` porque su id es texto
+(`'PEN'`, `'USD'`). **La regla: relación → `UuidRelacionFilter`; columna de texto → `SearchFilter`.**
+El porqué completo, con la medición en DQL, está en `docs/Operacion.md` §8.
+
 Puntos que costaron y conviene no re-descubrir:
 
 - **Los compactados no son filas de la tabla.** Son segmentos calculados a partir de

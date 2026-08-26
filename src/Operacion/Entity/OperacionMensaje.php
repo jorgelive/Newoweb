@@ -10,7 +10,7 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use App\Api\Filter\UuidRelacionFilter;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
@@ -39,7 +39,8 @@ use Symfony\Component\Uid\Uuid;
     normalizationContext: ['groups' => ['operacion:mensaje:read', 'timestamp:read']],
     denormalizationContext: ['groups' => ['operacion:write']]
 )]
-#[ApiFilter(SearchFilter::class, properties: ['ordenServicio' => 'exact'])]
+// Relación: va por `UuidRelacionFilter`. Con `SearchFilter` devolvía cero siempre.
+#[ApiFilter(UuidRelacionFilter::class, properties: ['ordenServicio' => 'exact'])]
 #[ORM\Entity]
 #[ORM\Table(name: 'operacion_mensaje')]
 #[ORM\HasLifecycleCallbacks]

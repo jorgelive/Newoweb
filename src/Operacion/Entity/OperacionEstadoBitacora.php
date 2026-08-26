@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use App\Api\Filter\UuidRelacionFilter;
 use App\Entity\Trait\IdTrait;
 use App\Security\Roles;
 use Doctrine\ORM\Mapping as ORM;
@@ -43,7 +44,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
     order: ['createdAt' => 'DESC'],
     paginationEnabled: false,
 )]
-#[ApiFilter(SearchFilter::class, properties: ['operacionServicio' => 'exact', 'campo' => 'exact'])]
+// `operacionServicio` es una relación y con `SearchFilter` no casaba nunca; `campo` es texto
+// y ahí `SearchFilter` va bien. Ver el docblock de `UuidRelacionFilter`.
+#[ApiFilter(UuidRelacionFilter::class, properties: ['operacionServicio' => 'exact'])]
+#[ApiFilter(SearchFilter::class, properties: ['campo' => 'exact'])]
 #[ApiFilter(OrderFilter::class, properties: ['createdAt'])]
 #[ORM\Entity]
 #[ORM\Table(name: 'operacion_estado_bitacora')]

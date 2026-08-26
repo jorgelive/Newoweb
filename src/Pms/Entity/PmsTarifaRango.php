@@ -8,6 +8,7 @@ use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use App\Api\Filter\UuidRelacionFilter;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
@@ -85,7 +86,10 @@ use Symfony\Component\Validator\Constraints as Assert;
     denormalizationContext: ['groups' => ['pms_tarifa:write']],
     order: ['fechaInicio' => 'ASC'],
 )]
-#[ApiFilter(SearchFilter::class, properties: ['unidad' => 'exact', 'moneda' => 'exact'])]
+// `unidad` es una relación con id uuid: con `SearchFilter` devolvía cero siempre. `moneda`
+// se queda donde estaba porque su id es texto ('PEN', 'USD') y ahí sí casa.
+#[ApiFilter(UuidRelacionFilter::class, properties: ['unidad' => 'exact'])]
+#[ApiFilter(SearchFilter::class, properties: ['moneda' => 'exact'])]
 #[ApiFilter(BooleanFilter::class, properties: ['activo', 'importante'])]
 #[ApiFilter(DateFilter::class, properties: ['fechaInicio', 'fechaFin'])]
 #[ApiFilter(OrderFilter::class, properties: ['fechaInicio', 'fechaFin', 'precio', 'prioridad'])]

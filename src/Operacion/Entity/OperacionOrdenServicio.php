@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Operacion\Entity;
 
 use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use App\Api\Filter\UuidRelacionFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -131,6 +134,20 @@ use Symfony\Component\Uid\Uuid;
     normalizationContext: ['groups' => ['operacion:read', 'timestamp:read']],
     denormalizationContext: ['groups' => ['operacion:write']]
 )]
+// Para poder pedir LOS BORRADORES y no la primera página de todo.
+//
+// La colección salía sin filtrar y con la paginación por defecto (30). La vista se traía esa
+// página y buscaba dentro los borradores compatibles con lo seleccionado: si el borrador estaba
+// en la página 2 —o si nadie había abierto la pestaña de Órdenes y la lista estaba vacía— el
+// botón «Agregar a OS» sencillamente no salía. Sin error y sin hueco: se lee igual que «no hay
+// ninguna orden a la que agregar».
+//
+// ⚠️ **En `SearchFilter` sólo van columnas de TEXTO.** Una relación ahí compara la cadena de 36
+// caracteres contra la columna `binary(16)` del uuid y **no casa nunca**: 200 con la colección
+// vacía, sin un solo error. Por eso `file` va en `UuidRelacionFilter`, que ata el parámetro con
+// su tipo. Ver el docblock de ese filtro y `docs/Operacion.md` §8.
+#[ApiFilter(SearchFilter::class, properties: ['estadoOs' => 'exact'])]
+#[ApiFilter(UuidRelacionFilter::class, properties: ['file' => 'exact'])]
 #[ORM\Entity]
 #[ORM\Table(name: 'operacion_orden_servicio')]
 // ⚠️ El índice se nombra AQUÍ y no con `unique: true` en la columna: aquello hace que Doctrine

@@ -10,7 +10,7 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use App\Api\Filter\UuidRelacionFilter;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
@@ -61,7 +61,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
     order: ['fecha' => 'DESC'],
     paginationEnabled: false,
 )]
-#[ApiFilter(SearchFilter::class, properties: ['ordenServicio' => 'exact'])]
+// Relación: va por `UuidRelacionFilter`. Con `SearchFilter` devolvía cero siempre.
+#[ApiFilter(UuidRelacionFilter::class, properties: ['ordenServicio' => 'exact'])]
 #[ApiFilter(OrderFilter::class, properties: ['fecha'])]
 #[ORM\Entity]
 // ⚠️ Sin `HasLifecycleCallbacks` el `#[PrePersist]` de `TimestampTrait` NO corre, y el INSERT

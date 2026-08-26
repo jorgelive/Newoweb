@@ -17,6 +17,7 @@ use ApiPlatform\Metadata\Put;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use App\Api\Filter\UuidRelacionFilter;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Enum\AudienciaDetalleEnum;
 use App\Cotizacion\Entity\CotizacionCotservicio;
@@ -70,11 +71,18 @@ use Symfony\Component\Uid\Uuid;
     paginationClientItemsPerPage: true,
     paginationItemsPerPage: 100
 )]
-#[ApiFilter(SearchFilter::class, properties: [
+// ⚠️ Las RELACIONES no van aquí: `SearchFilter` las compara como texto contra columnas
+// `binary(16)` y devuelven cero en silencio. `ordenServicio`, `file` y
+// `cotizacionServicio.cotizacion` se mudaron a `UuidRelacionFilter` — con `file` en
+// `SearchFilter`, **elegir un expediente en La Biblia dejaba el cuadro vacío**. Ver el docblock
+// de ese filtro y `docs/Operacion.md` §8.
+#[ApiFilter(UuidRelacionFilter::class, properties: [
     'ordenServicio'                 => 'exact',
     'file'                          => 'exact',
     // Filtro por cotización: navega la asociación cotservicio → cotizacion.
     'cotizacionServicio.cotizacion' => 'exact',
+])]
+#[ApiFilter(SearchFilter::class, properties: [
     'estadoReservaProveedor'                 => 'exact',
     'estadoOperacion'               => 'exact',
     'compradorMaestroId'            => 'exact',

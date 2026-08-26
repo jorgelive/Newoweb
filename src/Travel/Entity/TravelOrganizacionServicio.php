@@ -39,6 +39,13 @@ use Symfony\Component\Uid\Uuid;
  * funcionara. Para eso está
  * {@see \App\Api\Controller\Travel\TravelOrganizacionServicioOpcionesController}, que
  * resuelve el UUID en PHP.
+ *
+ * ✅ **Desde el 25/08/2026 hay solución general**: {@see \App\Api\Filter\UuidRelacionFilter}
+ * ata el parámetro con su tipo Doctrine y filtra bien por relación. Este apaño y su extension
+ * hermana (`TravelOrganizacionServicioPorOrganizacionExtension`) se pueden retirar y sustituir por
+ * `#[ApiFilter(UuidRelacionFilter::class, properties: ['organizacion' => 'exact'])]`. No se hizo
+ * en el mismo cambio para no mezclar el arreglo de Operaciones con un refactor de Travel, que
+ * tiene sus propios consumidores.
  */
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial'

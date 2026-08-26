@@ -36615,7 +36615,9 @@ export interface operations {
     api_opsoperacion_estado_bitacoras_get_collection: {
         parameters: {
             query?: {
+                /** @description Identificador (uuid o IRI) del recurso relacionado. */
                 operacionServicio?: string;
+                /** @description Varios identificadores (uuid o IRI) del recurso relacionado. */
                 "operacionServicio[]"?: string[];
                 campo?: string;
                 "campo[]"?: string[];
@@ -36659,7 +36661,9 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
+                /** @description Identificador (uuid o IRI) del recurso relacionado. */
                 ordenServicio?: string;
+                /** @description Varios identificadores (uuid o IRI) del recurso relacionado. */
                 "ordenServicio[]"?: string[];
             };
             header?: never;
@@ -36844,6 +36848,12 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
+                estadoOs?: string;
+                "estadoOs[]"?: string[];
+                /** @description Identificador (uuid o IRI) del recurso relacionado. */
+                file?: string;
+                /** @description Varios identificadores (uuid o IRI) del recurso relacionado. */
+                "file[]"?: string[];
             };
             header?: never;
             path?: never;
@@ -37510,7 +37520,9 @@ export interface operations {
     api_opsoperacion_pagos_get_collection: {
         parameters: {
             query?: {
+                /** @description Identificador (uuid o IRI) del recurso relacionado. */
                 ordenServicio?: string;
+                /** @description Varios identificadores (uuid o IRI) del recurso relacionado. */
                 "ordenServicio[]"?: string[];
                 "order[fecha]"?: "asc" | "desc";
             };
@@ -37650,11 +37662,17 @@ export interface operations {
                 page?: number;
                 /** @description The number of items per page */
                 itemsPerPage?: number;
+                /** @description Identificador (uuid o IRI) del recurso relacionado. */
                 ordenServicio?: string;
+                /** @description Varios identificadores (uuid o IRI) del recurso relacionado. */
                 "ordenServicio[]"?: string[];
+                /** @description Identificador (uuid o IRI) del recurso relacionado. */
                 file?: string;
+                /** @description Varios identificadores (uuid o IRI) del recurso relacionado. */
                 "file[]"?: string[];
+                /** @description Identificador (uuid o IRI) del recurso relacionado. */
                 "cotizacionServicio.cotizacion"?: string;
+                /** @description Varios identificadores (uuid o IRI) del recurso relacionado. */
                 "cotizacionServicio.cotizacion[]"?: string[];
                 estadoReservaProveedor?: string;
                 "estadoReservaProveedor[]"?: string[];
@@ -40477,7 +40495,9 @@ export interface operations {
             query?: {
                 /** @description The collection page number */
                 page?: number;
+                /** @description Identificador (uuid o IRI) del recurso relacionado. */
                 unidad?: string;
+                /** @description Varios identificadores (uuid o IRI) del recurso relacionado. */
                 "unidad[]"?: string[];
                 moneda?: string;
                 "moneda[]"?: string[];
