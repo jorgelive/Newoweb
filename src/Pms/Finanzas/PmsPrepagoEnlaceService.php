@@ -11,6 +11,7 @@ use App\Finanzas\Repository\FinEnlacePagoRepository;
 use App\Finanzas\Service\FinEnlacePagoService;
 use Psr\Log\LoggerInterface;
 use Throwable;
+use Doctrine\ORM\EntityManagerInterface;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
@@ -65,6 +66,8 @@ final readonly class PmsPrepagoEnlaceService
 {
     public function __construct(
         private PmsPrepagoCalculador $calculador,
+        // Para el turno (GET_LOCK) y para releer la cabecera ya bloqueada.
+        private EntityManagerInterface $em,
         private LoggerInterface $logger,
         private FinEnlacePagoService $enlaces,
         private FinEnlacePagoRepository $repositorio,
@@ -254,6 +257,44 @@ final readonly class PmsPrepagoEnlaceService
                 return null;
             }
 
+            // 🔒 EL TURNO. Comprobar → bloquear → volver a comprobar.
+            //
+            // Sin esto, dos workers concurrentes sobre la misma reserva —el del webhook de
+            // Beds24 y el del cron de facturas— pasan los dos por `vigentePorImporte()` sin
+            // encontrar nada y emiten DOS enlaces vivos. Un doble cobro.
+            //
+            // Mismo patrón que `ProcessInboundIntentDispatchHandler::tomarElTurno()`, incluido
+            // el prefijo con el nombre de la base: `GET_LOCK` no sabe de bases y su espacio de
+            // nombres es el SERVIDOR entero, así que un clon de staging en la misma máquina
+            // bloquearía a producción para el mismo UUID.
+            if (!$this->tomarElTurno($id)) {
+                return null;
+            }
+
+            try {
+                // Re-leer YA con el turno tomado: entre la comprobación de arriba y esta línea
+                // el otro worker ha podido emitirlo y soltar. Es el tercer paso de la regla.
+                $this->em->refresh($info);
+
+                return $this->emitirConTurno($info, $reserva, $id);
+            } finally {
+                $this->soltarElTurno($id);
+            }
+        } catch (Throwable $e) {
+            $this->logger->error('[prepago] no se pudo emitir el enlace automático; los cargos NO se ven afectados.', [
+                'reserva' => (string) $info->getReserva()?->getId(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * El cuerpo de la emisión, ya con el turno tomado. Ver `emitirPorCambioDeCargos()`.
+     */
+    private function emitirConTurno(PmsInformacionFinanciera $info, PmsReserva $reserva, Uuid $id): ?FinEnlacePago
+    {
             // ⚠️ Cabecera ANULADA (todas las estancias canceladas): aquí no se pide adelanto.
             //
             // No basta con `pendiente()`: con la cabecera inactiva sus cargos dejan de sumar
@@ -305,14 +346,77 @@ final readonly class PmsPrepagoEnlaceService
                 creadoPor: null,
                 vigenciaDias: 0,
             );
+    }
+
+    /**
+     * ¿Soy el único emitiendo el adelanto de esta reserva?
+     *
+     * ⚠️ El lock vive en la SESIÓN de MySQL, no en la transacción: **no se suelta al hacer
+     * commit**, sólo con `RELEASE_LOCK` o al caerse la conexión. Por eso el `finally` de arriba
+     * no es opcional — sin él, una excepción dejaría el turno retenido lo que viva el worker,
+     * que con supervisor son días.
+     *
+     * Eso sí, soltar funciona **aunque Doctrine haya cerrado el EntityManager**: cerrar el EM no
+     * cierra la conexión DBAL, que es quien tiene el lock.
+     *
+     * ⚠️ Y aquí, ante la duda, se RETIRA — al revés que en el turno del agente, donde no
+     * contestar es peor que contestar dos veces. Un enlace de cobro es al contrario: emitir dos
+     * es un doble cobro, y no emitir no se pierde, porque cualquier movimiento posterior de esa
+     * reserva vuelve a pasar por el mismo `postFlush`.
+     */
+    private function tomarElTurno(Uuid $reservaId): bool
+    {
+        try {
+            // 3 segundos: `crear()` es un persist y un flush, milisegundos. Esperar ese poco
+            // casi siempre gana el turno, y es preferible a retirarse y dejar el enlace con el
+            // importe viejo hasta el siguiente movimiento.
+            $resultado = $this->em->getConnection()
+                ->fetchOne('SELECT GET_LOCK(?, 3)', [$this->nombreDelLock($reservaId)]);
         } catch (Throwable $e) {
-            $this->logger->error('[prepago] no se pudo emitir el enlace automático; los cargos NO se ven afectados.', [
-                'reserva' => (string) $info->getReserva()?->getId(),
+            $this->logger->error('[prepago] no se pudo pedir el turno; me retiro.', [
+                'reserva' => (string) $reservaId,
                 'error' => $e->getMessage(),
             ]);
 
-            return null;
+            return false;
         }
+
+        // `GET_LOCK` devuelve NULL en error interno, SIN lanzar. Se trata igual: retirarse.
+        if ($resultado === null || (int) $resultado !== 1) {
+            $this->logger->info('[prepago] el turno lo tiene otro worker; me retiro.', [
+                'reserva' => (string) $reservaId,
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private function soltarElTurno(Uuid $reservaId): void
+    {
+        try {
+            $this->em->getConnection()
+                ->executeStatement('SELECT RELEASE_LOCK(?)', [$this->nombreDelLock($reservaId)]);
+        } catch (Throwable $e) {
+            // Que no se pueda soltar no puede tumbar nada: MySQL lo libera al cerrar la sesión.
+            // Pero se anota: si esto sale a menudo, hay algo raro con la conexión.
+            $this->logger->warning('[prepago] no se pudo soltar el turno.', [
+                'reserva' => (string) $reservaId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * El nombre lleva la BASE DE DATOS delante, por lo mismo que el turno del agente:
+     * `GET_LOCK` no sabe de bases y su espacio de nombres es el SERVIDOR entero. Con un clon en
+     * la misma máquina, un worker de pruebas bloquearía al de producción para la misma reserva
+     * — y el síntoma sería un retiro silencioso, de los más difíciles de atribuir.
+     */
+    private function nombreDelLock(Uuid $reservaId): string
+    {
+        return substr('prepago-' . $this->em->getConnection()->getDatabase() . '-' . $reservaId, 0, 64);
     }
 
     /**

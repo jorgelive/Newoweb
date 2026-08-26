@@ -833,16 +833,46 @@ sumar pero la **PENALIZACIÓN sigue contando** (§12.7), así que la base no es 
 devolvería una fracción de la penalidad: se emitiría un «Adelanto de reserva» sobre una reserva
 cancelada. Por eso hay una guarda explícita de `isActiva()`.
 
-⚠️ **Y queda una carrera conocida.** `vigentePorImporte()` → `anularVigentes()` → `crear()` es
-leer-y-escribir sin bloqueo, y el disparador corre en workers concurrentes (webhook y cron). Dos
-procesos sobre la misma reserva pueden emitir **dos enlaces vivos**. MySQL no admite índices
-únicos parciales, así que la solución sería un `GET_LOCK('prepago:'.$reservaId)` alrededor del
-bloque. No está puesto: decisión pendiente.
+#### 🔒 El turno: por qué hay un `GET_LOCK` y no un índice único
+
+`vigentePorImporte()` → `anularVigentes()` → `crear()` es leer-y-escribir, y el disparador corre
+en **workers concurrentes** (el del webhook de Beds24 y el del cron de facturas). Sin bloqueo,
+los dos pasan sin encontrar enlace y emiten **dos vivos**: un doble cobro.
+
+Se resuelve con el mismo patrón que ya usaba `ProcessInboundIntentDispatchHandler::tomarElTurno()`
+—comprobar → bloquear → **volver a comprobar**—, incluido el prefijo con el nombre de la base:
+`GET_LOCK` no sabe de bases y su espacio de nombres es el **servidor entero**, así que un clon de
+staging en la misma máquina bloquearía a producción para la misma reserva.
+
+⚠️ **El lock vive en la SESIÓN, no en la transacción: no se suelta al hacer commit.** De ahí que
+el `finally` no sea opcional — sin él, una excepción dejaría el turno retenido lo que viva el
+worker, y con supervisor eso son días. Dos atenuantes que conviene conocer: cerrar el
+EntityManager **no** cierra la conexión DBAL, así que soltar funciona igual; y si la conexión se
+cae de verdad, MySQL libera el lock al desconectar.
+
+⚠️ **Ante la duda, se RETIRA** — al revés que el turno del agente, donde no contestar es peor que
+contestar dos veces. Aquí es al contrario: emitir dos enlaces es un doble cobro, y no emitir no
+se pierde, porque cualquier movimiento posterior de esa reserva vuelve a pasar por el mismo
+`postFlush`. Por eso un `GET_LOCK` que devuelve `NULL` (error interno, sin lanzar) también
+significa retirarse.
+
+**Timeout de 3 segundos.** `crear()` es un persist y un flush, milisegundos: esperar ese poco casi
+siempre gana el turno, y es preferible a retirarse dejando el enlace con el importe viejo hasta
+el siguiente movimiento.
+
+Se descartaron: **`symfony/lock`** —no está instalado, y la decisión de no meterlo ya está escrita
+en `ProcessInboundIntentDispatchHandler`; su `DoctrineDbalStore` usa `GET_LOCK` por debajo—;
+**`SELECT … FOR UPDATE`** —en `postFlush` no hay transacción abierta ni fila que bloquear, el
+enlace aún no existe—; y el **índice único sobre columna generada**, porque «vigente» depende de
+`NOW()` (la caducidad) y no es expresable como columna determinista, y además rompería los
+enlaces manuales que sí pueden convivir.
 
 Verificado con `var/probar-prepago-automatico.php` (transacción con rollback): estrena un enlace
 sin caducidad, sin autor y **en la moneda de la cabecera**; un movimiento que no cambia el importe
-**no** emite otro; al cambiar el adelanto queda uno vivo con el anterior en `anulado`; y al anular
-la reserva no queda ninguno vivo.
+**no** emite otro; al cambiar el adelanto queda uno vivo con el anterior en `anulado`; al anular
+la reserva no queda ninguno vivo; y **con el turno tomado desde otra conexión, el emisor se
+retira en vez de emitir** —lo único que no se puede comprobar con una sola conexión, porque
+`GET_LOCK` es reentrante para la sesión que ya lo tiene—.
 
 ### La reutilización, y por qué mira el importe
 
