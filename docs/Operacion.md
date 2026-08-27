@@ -1169,25 +1169,37 @@ operativo del maestro → interno propio, que sólo tienen los manuales → púb
 refuerzo para las filas anteriores al campo, y la deriva la denuncia la reconciliación, que ya lo
 tiene en `ETIQUETAS`.
 
-##### ⚠️ Los nombres genéricos, y el flag que falta (pendiente)
+##### ⚠️ Los dos nombres SIEMPRE, y por qué no hay un flag
 
-Algunos componentes de catálogo se llaman en genérico a propósito: **«Ticket aereo»**,
-**«Transporte»**, **«Alojamiento»**. Son plantillas reutilizables, y lo que dice *cuál* es esta vez
-no está en el componente sino en el **itinerario / segmento**: «Vuelo desde la ciudad de Lima a la
-ciudad de Cusco».
+Algunos componentes de catálogo se llaman en genérico a propósito: **«Ticket aereo»**, **«Contacto
+con el cliente»**. Son plantillas reutilizables, y lo que dice *cuál* es esta vez lo lleva el
+segmento: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». Con el itinerario al pie y en gris,
+la ficha del ticket aéreo no decía qué vuelo era en ninguna parte legible. Por eso el itinerario
+subió pegado al título y dejó de ir atenuado.
 
-Con el nombre grande genérico y el itinerario al pie y en gris, la ficha del ticket aéreo no decía
-qué vuelo era en ninguna parte legible.
+**Alternativa descartada: un flag en el maestro** que declarase el componente como «de nombre
+genérico» y dejara mandar al nombre de la plantilla en la ranura grande. Se descartó el 27/08/2026,
+y el motivo es del modelo de datos, no de gusto:
 
-**Lo que corresponde** es un flag en el maestro (`TravelComponente`) que declare el componente como
-de nombre genérico; con él puesto, la fila usaría el nombre de la plantilla en la ranura grande y
-el componente pasaría a segundo plano. Eso lo decide quien mantiene el catálogo, que es quien sabe
-cuáles son plantillas.
+> Se puede crear un segmento llamado «Vuelo Cusco a Lima» —es un tramo del itinerario—, pero **no
+> se puede crear un segmento «Walking Sticks en Vinicunca»**: los bastones son un extra colgado de
+> una excursión, no una etapa del viaje.
 
-**Lo que hay hoy** es un apaño: el itinerario sube pegado al título y deja de ir atenuado, para
-todas las filas (`itinerarioDeFila()` en `OperacionView.vue`). Cuesta una línea en las que no lo
-necesitan y salva las que sí — que es la mitad barata del error. En cuanto exista el flag, esto se
-condiciona a él.
+O sea: **no existe un campo único capaz de cargar el «qué» y el «dónde» para todos los
+componentes.** En el vuelo el segmento nombra la fila; en los bastones el segmento es la excursión
+a la que van pegados y el componente sigue siendo el que dice qué son. Sustituir uno por otro
+funciona en el primer caso y pierde información en el segundo — y el segundo no se nota, que es lo
+caro.
+
+De ahí la regla, que es la misma de todo este apartado y ahora por una razón más: **se ven los dos,
+siempre.** Uno grande y otro pequeño, sin desempatar. Lo único que se calla es la repetición
+literal (`itinerarioDeFila()` en `OperacionView.vue`), que es el caso de los traslados sueltos,
+donde el día se llama igual que el servicio.
+
+⚠️ Y de paso: **«sin lugar» tampoco vale como señal de «nombre genérico».** De 226 componentes hay
+10 sin lugar, y entre ellos están «Ticket aereo» (genérico) pero también «Box Lunch» y «Walking
+Sticks», que se nombran perfectamente solos. Al revés, «Transporte Aeropuerto Cusco - Hotel Cusco»
+sí tiene lugar y es específico.
 
 ##### Las tres superficies leen lo mismo
 

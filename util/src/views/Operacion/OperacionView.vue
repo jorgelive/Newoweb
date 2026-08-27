@@ -3120,12 +3120,14 @@ onMounted(async () => {
                                              entonces lo único que dice qué vuelo es está al pie y
                                              atenuado. Aquí manda el caso peor.
 
-                                             ⚠️ Esto es un apaño consciente: lo que corresponde es
-                                             un flag en el maestro que declare el componente como
-                                             de nombre genérico, y que entonces mande el nombre de
-                                             la plantilla. Mientras no exista, se sube para todos
-                                             —cuesta una línea en los que no lo necesitan, y ésa es
-                                             la mitad barata del error—. Ver docs/Operacion.md. -->
+                                             ⚠️ Y se ven LOS DOS: se descartó el flag que habría
+                                             dejado a la plantilla ocupar la ranura grande. Cabe un
+                                             segmento «Vuelo Cusco a Lima», pero no uno «Walking
+                                             Sticks en Vinicunca» —los bastones son un extra, no un
+                                             tramo—, así que ningún campo único carga el «qué» y el
+                                             «dónde» de todos los componentes. Sustituir uno por
+                                             otro acierta en el vuelo y pierde en los bastones, y
+                                             eso último no se nota. Ver docs/Operacion.md. -->
                                         <p v-if="itinerarioDeFila(servicio)" class="text-[11px] font-bold text-slate-600 leading-tight mt-1">
                                             <i class="fas fa-map-signs text-[9px] mr-1 text-slate-400"></i>{{ itinerarioDeFila(servicio) }}
                                         </p>
