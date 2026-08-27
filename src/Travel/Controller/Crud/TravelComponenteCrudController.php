@@ -45,7 +45,7 @@ class TravelComponenteCrudController extends BaseCrudController
             ->showEntityActionsInlined()
             ->setEntityLabelInSingular('Componente Logístico')
             ->setEntityLabelInPlural('Componentes Logísticos')
-            ->setSearchFields(['id', 'nombre', 'tipo'])
+            ->setSearchFields(['id', 'nombreInterno', 'tipo'])
             ->setDefaultSort(['createdAt' => 'DESC']);
     }
 
@@ -136,7 +136,7 @@ class TravelComponenteCrudController extends BaseCrudController
     {
         yield FormField::addPanel('Identidad del Componente')->setIcon('fa fa-box');
 
-        yield TextField::new('nombre', 'Nombre Interno (Administrativo)')
+        yield TextField::new('nombreInterno', 'Nombre Interno (Administrativo)')
             ->setColumns(6)
             ->setHelp('Ej: BTI - Boleto Turístico Integral');
 

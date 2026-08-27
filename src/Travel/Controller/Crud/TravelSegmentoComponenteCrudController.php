@@ -51,7 +51,7 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
             'nombreInterno'
         )
             ->setColumns('col-12 col-md-6')
-            ->setFormTypeOption('choice_label', 'nombre');
+            ->setFormTypeOption('choice_label', 'nombreInterno');
 
         yield AssociationField::new('itinerarioContexto', 'Condicionado a Plantilla')
             ->setColumns('col-12 col-md-6')

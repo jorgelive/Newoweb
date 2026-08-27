@@ -519,7 +519,7 @@ class BibliaSnapshotService
      * ── El orden, que es lo único que importa aquí ──────────────────────────────
      * ```
      * 1. nombreInternoSnapshot  lo que el operador ESCRIBIÓ en esta cotización
-     * 2. maestro->getNombre()   el nombre operativo del catálogo
+     * 2. maestro->getNombreInterno()  el nombre operativo del catálogo
      * 3. tituloSnapshot (es)    el título público, como último recurso
      * ```
      *

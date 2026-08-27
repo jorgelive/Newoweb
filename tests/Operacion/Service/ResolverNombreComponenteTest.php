@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Operacion\Service;
 
 use App\Cotizacion\Entity\CotizacionCotcomponente;
+use App\Travel\Entity\TravelComponente;
+use Doctrine\Persistence\ObjectRepository;
 use App\Operacion\Service\BibliaSnapshotService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -81,6 +83,73 @@ final class ResolverNombreComponenteTest extends TestCase
         self::assertSame(
             'Ticket aereo',
             $this->servicio($this->emProhibido())->resolverNombreComponente($componente)
+        );
+    }
+
+    /**
+     * Un EntityManager que devuelve ESE maestro para `TravelComponente`.
+     *
+     * @param TravelComponente|null $maestro null simula un maestro borrado del catálogo
+     */
+    private function emConMaestro(?TravelComponente $maestro): EntityManagerInterface
+    {
+        // La INTERFAZ y no `EntityRepository`: simular la clase concreta está deprecado en
+        // PHPUnit 13, y aquí sólo hace falta `find()`. `getRepository()` no declara tipo de
+        // retorno en `EntityManagerInterface`, así que la interfaz encaja.
+        // `createStub` y no `createMock`: aquí no se verifica ninguna llamada, sólo se le da al
+        // resolutor un catálogo del que tirar. PHPUnit 13 avisa —y con `failOnNotice` hace
+        // FALLAR— si se usa un mock sin expectativas. `emProhibido()` sí es un mock, porque su
+        // `expects($this->never())` es justamente la expectativa que da valor a aquel caso.
+        $repo = $this->createStub(ObjectRepository::class);
+        $repo->method('find')->willReturn($maestro);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repo);
+
+        return $em;
+    }
+
+    public function testSinManualMandaElNombreOperativoDelMaestro(): void
+    {
+        // ⚠️ Ésta es la rama que el renombrado de agosto tocó de verdad —`getNombre()` pasó a
+        // `getNombreInterno()`— y era la única que ningún caso ejecutaba: todos pasaban un EM que
+        // estallaba si lo tocaban. PHPStan la cubría porque el método existe; que devuelva el
+        // valor correcto no lo comprobaba nadie.
+        $maestro = (new TravelComponente())->setNombreInterno('Transporte Aeropuerto Cusco - Hotel Cusco');
+
+        $componente = (new CotizacionCotcomponente())
+            ->setComponenteMaestroId('01a04375-6bd2-7b02-86f8-097e45cb37bd')
+            // El público es genérico: si ganara, la ficha diría «Transporte» a secas.
+            ->setTituloSnapshot([['language' => 'es', 'content' => 'Transporte']]);
+
+        self::assertSame(
+            'Transporte Aeropuerto Cusco - Hotel Cusco',
+            $this->servicio($this->emConMaestro($maestro))->resolverNombreComponente($componente)
+        );
+    }
+
+    public function testMaestroBorradoCaeAlTituloYNoDejaLaFilaSinNombre(): void
+    {
+        $componente = (new CotizacionCotcomponente())
+            ->setComponenteMaestroId('01a04375-6bd2-7b02-86f8-097e45cb37bd')
+            ->setTituloSnapshot([['language' => 'es', 'content' => 'Ticket aereo']]);
+
+        self::assertSame(
+            'Ticket aereo',
+            $this->servicio($this->emConMaestro(null))->resolverNombreComponente($componente)
+        );
+    }
+
+    public function testMaestroSinNombreTampocoGana(): void
+    {
+        // Un maestro a medio crear no debe secuestrar la fila con una cadena vacía.
+        $componente = (new CotizacionCotcomponente())
+            ->setComponenteMaestroId('01a04375-6bd2-7b02-86f8-097e45cb37bd')
+            ->setTituloSnapshot([['language' => 'es', 'content' => 'Ticket aereo']]);
+
+        self::assertSame(
+            'Ticket aereo',
+            $this->servicio($this->emConMaestro(new TravelComponente()))->resolverNombreComponente($componente)
         );
     }
 
