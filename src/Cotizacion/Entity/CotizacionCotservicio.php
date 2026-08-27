@@ -42,18 +42,21 @@ class CotizacionCotservicio
     /**
      * El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas».
      *
-     * ⚠️ Los tres niveles del árbol tienen un campo llamado `nombreSnapshot` y **no son lo
-     * mismo**. De arriba abajo:
+     * 🔴 **OJO: aquí `nombreSnapshot` es el INTERNO**, al revés que en `CotizacionCotcomponente` y
+     * `CotizacionSegmento`, donde el mismo nombre de campo guarda el público. El público de ESTE
+     * servicio vive aparte, en `$nombrePublicoSnapshot`:
      *
      * ```
-     * CotizacionCotservicio   ← ESTE.  el DÍA          «Full Day Paracas y Huacachina»
-     *   CotizacionSegmento             el TRAMO        «Vuelo de la ciudad de Lima a Cusco»
-     *   CotizacionCotcomponente        lo que se COMPRA «Ticket aereo», «Transporte»
+     * nombreSnapshot         «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)»   ← interno, y va a La Biblia
+     * nombrePublicoSnapshot  «Excursión a Huayna Picchu de 1 día»         ← al huésped
      * ```
      *
-     * Éste es el que La Biblia congela como `contextoServicio` y enseña en pequeño bajo el
-     * nombre del componente. **No sale en la app del huésped**: es el único de los tres sin
-     * `pax_cotizacion:read`.
+     * Quien lea `->getNombreSnapshot()` sin mirar sobre qué entidad está acierta o se equivoca
+     * según dónde caiga, y en ambos casos se lleva un texto que se lee bien. Ver
+     * `docs/Cotizaciones.md` §2.b.
+     *
+     * Éste es el que La Biblia congela como `contextoServicio` y enseña en pequeño bajo el nombre
+     * del componente.
      *
      * @var list<array{language?: string, content?: string|null}>
      */

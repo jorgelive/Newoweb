@@ -285,12 +285,29 @@ hizo que La Biblia enseñara el itinerario en el sitio del servicio.
 
 ```
 Cotizacion
-└── CotizacionCotservicio      nombreSnapshot  →  el DÍA        «Full Day Paracas y Huacachina»
-    ├── CotizacionSegmento     nombreSnapshot  →  el TRAMO      «Vuelo de la ciudad de Lima a Cusco»
-    └── CotizacionCotcomponente
-            nombreInternoSnapshot  →  OPERATIVO, siempre a mano  «Traslado a la Huacachina»
-            nombreSnapshot         →  PÚBLICO, casi siempre copia «Ticket aereo»
+└── CotizacionCotservicio   el DÍA
+        nombreSnapshot          → INTERNO   «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)»
+        nombrePublicoSnapshot   → PÚBLICO   «Excursión a Huayna Picchu de 1 día»
+    ├── CotizacionSegmento   el TRAMO
+    │       nombreSnapshot          → PÚBLICO   «Vuelo desde la ciudad de Lima a Cusco»
+    └── CotizacionCotcomponente   lo que se COMPRA
+            nombreInternoSnapshot   → INTERNO   «Traslado a la Huacachina»
+            nombreSnapshot          → PÚBLICO   «Ticket aereo»
 ```
+
+🔴 **`nombreSnapshot` significa LO CONTRARIO según la entidad.** En componente y segmento es el
+**público**; en cotservicio es el **interno**, y el público vive aparte en `nombrePublicoSnapshot`.
+No es una sutileza de matiz: son textos distintos —«Full Day HUAYNA: MAPI OLLA CUZ (bimodal)»
+frente a «Excursión a Huayna Picchu de 1 día»— y uno de ellos va al cliente.
+
+Quien lea `->getNombreSnapshot()` sin saber sobre qué entidad está, acierta o se equivoca según
+dónde caiga, y en los dos casos obtiene un texto que se lee bien. Es el mismo patrón que ya costó
+caro dos veces esta semana: **no falla, devuelve otra cosa plausible.**
+
+⚠️ Y el nombre correcto **ya existe en el propio código**: `CotizacionCottarifa` tiene el par bien
+puesto, `$tituloSnapshot` + `$nombreInternoSnapshot`. Si algún día se unifica, ése es el molde —
+`tituloSnapshot` en componente y segmento, `nombreInternoSnapshot` en cotservicio— y no hay que
+inventar vocabulario nuevo.
 
 ### De dónde sale cada uno
 
@@ -347,7 +364,8 @@ Es la misma regla de la tabla «migración vs. comando» de `CLAUDE.md`, aplicad
 
 | Campo | La Biblia / Órdenes | Editor (`util`) | Huésped (`pax`) |
 |---|---|---|---|
-| **Cotservicio**`.nombreSnapshot` | sí → se congela como `contextoServicio`, el renglón pequeño | sí | **no** — es el único sin `pax_cotizacion:read` |
+| **Cotservicio**`.nombreSnapshot` (interno) | sí → se congela como `contextoServicio`, el renglón pequeño | sí | no |
+| **Cotservicio**`.nombrePublicoSnapshot` | no | sí | **sí** |
 | **Segmento**`.nombreSnapshot` | **no** (ver aviso) | sí | sí — `PaxCotizacionGuiaView` |
 | **Cotcomponente**`.nombreSnapshot` | sólo como último recurso del nombre | sí | sí |
 | **Cotcomponente**`.nombreInternoSnapshot` | **sí, y manda sobre todo** | sí | no |
