@@ -1584,6 +1584,44 @@ diciendo lo anterior.
 ⚠️ **Falta url e imágenes en ambas.** La tarjeta pública sale con el nombre y la clase, pero sin
 foto ni enlace, al contrario que los hoteles. Es trabajo de catálogo y va por el panel.
 
+### El trío viaja en la TARIFA, no en el componente
+
+La tarifa maestra lleva **prestador + servicio del prestador + comprador**, y el editor los copia
+al componente al elegirla. Puesto ahí se propaga solo: quien cotice un tren no tiene que acordarse
+de nada.
+
+```
+travel_tarifa «PR Vistadome Adulto»
+    prestador          PeruRail
+    prestadorServicio  Vistadome           ← la clase, que es lo que el pasajero pregunta
+    comprador          OpenPeru Tickets
+```
+
+Alta y relleno: `app:travel:vincular-servicio-ferroviario`, que mapea por el prefijo del nombre
+(`PR` / `IR`) y **comprueba que la empresa cuadre** antes de enlazar: si alguien renombra una
+tarifa mal, se salta en vez de colgar la clase de otra compañía.
+
+⚠️ **Tres tarifas de tren van SIN prestador a propósito** y no hay que «arreglarlas»:
+
+| Tarifa | Por qué |
+|---|---|
+| `Guía` | Es el billete de tren **del guía**. Caso especial: va en blanco |
+| `No necesario` | Marcador de que ese tramo no lleva tren |
+| `Local` | Sin empresa asignada todavía — probablemente el tren Local de PeruRail |
+
+### Una grafía por clase
+
+`IR 360` e `IR T360` convivieron: la misma clase escrita distinta según qué día se cargó cada
+componente —la primera en las rutas de Poroy, la segunda en las de Ollantaytambo—, y los títulos
+públicos habían derivado igual, unos con `°` y otros sin. Se unificó con
+`app:travel:unificar-360-incarail`.
+
+⚠️ **No fue un descuido de nadie: es lo que un catálogo grande produce solo.** Quien da de alta una
+tarifa ve esa tarifa, no el conjunto, y no tiene forma de saber que la misma clase ya existe con
+otro nombre tres componentes más allá. Conviene barrer de vez en cuando agrupando por nombre
+normalizado (sin mayúsculas, acentos ni símbolos) y por título público repetido; el barrido del
+27/08/2026 encontró además once tarifas con el mismo nombre y títulos distintos.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
