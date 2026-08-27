@@ -1169,6 +1169,26 @@ operativo del maestro → interno propio, que sólo tienen los manuales → púb
 refuerzo para las filas anteriores al campo, y la deriva la denuncia la reconciliación, que ya lo
 tiene en `ETIQUETAS`.
 
+##### ⚠️ Los nombres genéricos, y el flag que falta (pendiente)
+
+Algunos componentes de catálogo se llaman en genérico a propósito: **«Ticket aereo»**,
+**«Transporte»**, **«Alojamiento»**. Son plantillas reutilizables, y lo que dice *cuál* es esta vez
+no está en el componente sino en el **itinerario / segmento**: «Vuelo desde la ciudad de Lima a la
+ciudad de Cusco».
+
+Con el nombre grande genérico y el itinerario al pie y en gris, la ficha del ticket aéreo no decía
+qué vuelo era en ninguna parte legible.
+
+**Lo que corresponde** es un flag en el maestro (`TravelComponente`) que declare el componente como
+de nombre genérico; con él puesto, la fila usaría el nombre de la plantilla en la ranura grande y
+el componente pasaría a segundo plano. Eso lo decide quien mantiene el catálogo, que es quien sabe
+cuáles son plantillas.
+
+**Lo que hay hoy** es un apaño: el itinerario sube pegado al título y deja de ir atenuado, para
+todas las filas (`itinerarioDeFila()` en `OperacionView.vue`). Cuesta una línea en las que no lo
+necesitan y salva las que sí — que es la mitad barata del error. En cuanto exista el flag, esto se
+condiciona a él.
+
 ##### Las tres superficies leen lo mismo
 
 `OperacionOrdenServicioItem::getTituloParaProveedor()` y `getVarianteParaProveedor()` las usan la
