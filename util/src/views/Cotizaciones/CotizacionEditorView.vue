@@ -3,6 +3,8 @@ import { ref, onMounted, computed, watch, onUnmounted, type DirectiveBinding } f
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 import { useCotizacionEditorStore } from '@/stores/cotizacion/cotizacionEditorStore';
+import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
+import type { InformeCoherencia } from '@/types/operacionModel';
 import { getUrls } from '@/services/apiClient';
 import { thumbUrl } from '@/services/imageThumb';
 import SearchableSelect from '@/components/SearchableSelect.vue';
@@ -77,6 +79,7 @@ const route = useRoute();
 const router = useRouter();
 const volverAtras = useVolverAtras();
 const store = useCotizacionEditorStore();
+const fileStore = useCotizacionFileStore();
 
 // ============================================================================
 // REVISAR CAMBIOS DE OPERACIÓN
@@ -88,6 +91,32 @@ const store = useCotizacionEditorStore();
 // lo aprobado. Ver docs/Operacion.md §3.5.
 // ============================================================================
 const planOperacionId = ref<string | null>(null);
+
+/**
+ * Chequeo de coherencia de ESTA cotización: ids puestos con su nombre vacío y demás huecos que
+ * ninguna acción del editor produce.
+ *
+ * Va aquí y no sólo en un cron porque el momento en que aparecen es **al cargar catálogo**, y quien
+ * lo carga está en esta pantalla.
+ *
+ * Dos pasos deliberados —mirar y luego decidir— en vez de un botón que repare de una: reparar
+ * escribe en una cotización que puede estar enviada, y enseñar antes qué se va a tocar es lo que
+ * convierte eso en una decisión en vez de en una sorpresa.
+ */
+const informeCoherencia = ref<InformeCoherencia | null>(null);
+const revisandoCoherencia = ref(false);
+
+const revisarCoherencia = async (reparar = false): Promise<void> => {
+  const id = store.cotizacion?.id;
+  if (!id || revisandoCoherencia.value) return;
+
+  revisandoCoherencia.value = true;
+  try {
+    informeCoherencia.value = await fileStore.revisarCoherencia(id, reparar);
+  } finally {
+    revisandoCoherencia.value = false;
+  }
+};
 
 const abrirPlanOperacion = () => {
   const id = String(store.cotizacion?.id ?? '').split('/').pop();
@@ -1774,6 +1803,67 @@ store.$onAction(({ name, args }) => {
                     apruebes. Guarda primero: se compara con lo que hay en la base de datos,
                     no con lo que ves en pantalla.
                   </p>
+                </div>
+
+                <!-- ── Coherencia: los huecos que no dan error ──────────────────
+                     Un id puesto con su nombre vacío no rompe nada: sólo deja de aparecer algo, y
+                     eso es indistinguible de «este componente no tiene proveedor». Por eso se
+                     busca a propósito en vez de esperar a notarlo. -->
+                <div v-if="!store.modoCatalogo && store.cotizacion.id" class="col-span-2">
+                  <button type="button" @click="revisarCoherencia(false)" :disabled="revisandoCoherencia"
+                          class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-xl text-[11px] font-black uppercase tracking-wide transition-colors disabled:opacity-50">
+                    <i :class="revisandoCoherencia ? 'fas fa-circle-notch fa-spin' : 'fas fa-stethoscope'"></i>
+                    {{ revisandoCoherencia ? 'Revisando…' : 'Revisar coherencia de datos' }}
+                  </button>
+
+                  <p v-if="!informeCoherencia" class="text-[10px] text-slate-400 mt-1.5 leading-snug">
+                    Busca datos a medias —un hotel asignado sin su nombre, una habitación sin
+                    título— que no dan error pero dejan huecos en la Orden o en la vista del cliente.
+                  </p>
+
+                  <template v-else>
+                    <!-- Cuando no hay nada, se dice. Un panel que sólo habla ante problemas deja
+                         la duda de si llegó a mirar. -->
+                    <p v-if="!informeCoherencia.reparables.length && !informeCoherencia.avisos.length"
+                       class="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">
+                      <i class="fas fa-circle-check"></i>
+                      {{ informeCoherencia.reparado ? 'Reparado: ya está todo coherente.' : 'Todo coherente en esta cotización.' }}
+                    </p>
+
+                    <div v-if="informeCoherencia.reparables.length" class="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                      <p class="text-[10px] font-black text-amber-700 uppercase tracking-wide">
+                        {{ informeCoherencia.reparado ? 'Reparado' : 'Se puede reparar' }}
+                      </p>
+                      <ul class="mt-1.5 space-y-1.5">
+                        <li v-for="h in informeCoherencia.reparables" :key="h.clave">
+                          <span class="text-[11px] font-black text-amber-800">{{ h.filas }}</span>
+                          <span class="text-[11px] font-bold text-amber-800 ml-1">{{ h.titulo }}</span>
+                          <span class="block text-[10px] text-amber-600 leading-snug">{{ h.detalle }}</span>
+                        </li>
+                      </ul>
+                      <!-- El botón de reparar sólo aparece DESPUÉS de enseñar qué se va a tocar. -->
+                      <button v-if="!informeCoherencia.reparado" type="button"
+                              @click="revisarCoherencia(true)" :disabled="revisandoCoherencia"
+                              class="mt-2.5 w-full flex items-center justify-center gap-2 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-black uppercase tracking-wide transition-colors disabled:opacity-50">
+                        <i class="fas fa-wrench"></i> Reparar
+                      </button>
+                      <p v-if="informeCoherencia.reparado" class="text-[10px] text-amber-600 mt-1.5 leading-snug">
+                        Recarga la cotización para verlo: la pantalla sigue con los datos de antes.
+                      </p>
+                    </div>
+
+                    <!-- Lo que es una decisión de alguien: se enseña y NO se ofrece arreglar. -->
+                    <div v-if="informeCoherencia.avisos.length" class="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p class="text-[10px] font-black text-slate-500 uppercase tracking-wide">Para mirar a mano</p>
+                      <ul class="mt-1.5 space-y-1.5">
+                        <li v-for="h in informeCoherencia.avisos" :key="h.clave">
+                          <span class="text-[11px] font-black text-slate-700">{{ h.filas }}</span>
+                          <span class="text-[11px] font-bold text-slate-700 ml-1">{{ h.titulo }}</span>
+                          <span class="block text-[10px] text-slate-500 leading-snug">{{ h.detalle }}</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </template>
                 </div>
               </div>
               <div>

@@ -348,3 +348,25 @@ export interface PuntosDerivadosServicio {
 }
 
 export type PuntosDerivadosPorServicio = Record<string, PuntosDerivadosServicio>;
+
+// ── Chequeo de coherencia ────────────────────────────────────────────────────
+// Espejo de `App\Cotizacion\ApiPlatform\Dto\InformeCoherencia`. A mano y no del esquema porque
+// el output de una operación custom con `output:` no entra en la introspección de API Platform:
+// es el caso que `CLAUDE.md` reconoce para escribirlos, no una excepción cómoda.
+
+export interface HallazgoCoherencia {
+    clave: string;
+    titulo: string;
+    /** Qué se rompe por esto. No es prosa: es lo que decide si urge. */
+    detalle: string;
+    filas: number;
+}
+
+export interface InformeCoherencia {
+    /** Tiene una sola respuesta posible: el botón de reparar puede con ello. */
+    reparables: HallazgoCoherencia[];
+    /** Es una decisión de alguien. Se enseña y no se toca. */
+    avisos: HallazgoCoherencia[];
+    reparado: boolean;
+}
+

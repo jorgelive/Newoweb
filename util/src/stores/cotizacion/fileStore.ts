@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { extractApiErrorMessage, esErrorSilencioso } from '@/services/apiError';
 import {ApiCotizacionFile, ApiCotizacionFileWrite, I18nContent} from '@/types/fileDetalleModel.ts';
-import type { PlanReconciliacion, AplicarPlanPayload, ResultadoAplicacion } from '@/types/operacionModel';
+import type { PlanReconciliacion, AplicarPlanPayload, ResultadoAplicacion, InformeCoherencia } from '@/types/operacionModel';
 
 // ============================================================================
 // TIPOS AUTOGENERADOS Y EXTENDIDOS (HÍBRIDOS)
@@ -291,6 +291,29 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * El backend responde 422 si la cotización no está confirmada o es de catálogo;
      * ese mensaje ya está escrito para el operador, así que se propaga tal cual.
      */
+    /**
+     * Busca configuraciones a medias en ESTA cotización: ids puestos con su nombre vacío y demás.
+     *
+     * `reparar` va como endpoint distinto, no como parámetro: mirar lo puede hacer quien sólo
+     * consulta, y escribir no. Ver `CoherenciaCatalogoChecker` para qué se repara y qué se avisa.
+     */
+    const revisarCoherencia = async (iriOrId: string, reparar = false): Promise<InformeCoherencia | null> => {
+        // Mismo desmenuzado que `planificarOperacion`: acepta el IRI o el uuid pelado.
+        const id = String(iriOrId).includes('/') ? String(iriOrId).split('/').pop() : iriOrId;
+        if (!id) return null;
+
+        try {
+            const ruta = reparar ? 'coherencia/reparar' : 'coherencia';
+            const { data } = await apiClient.post<InformeCoherencia>(`/platform/sales/cotizacions/${id}/${ruta}`, {});
+
+            return data;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'No se pudo revisar la coherencia.');
+
+            return null;
+        }
+    };
+
     const planificarOperacion = async (iriOrId: string): Promise<PlanReconciliacion | null> => {
         error.value = null;
         const id = String(iriOrId).includes('/') ? String(iriOrId).split('/').pop() : iriOrId;
@@ -518,6 +541,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         cargarPadron,
         eliminarGrupo,
         planificarOperacion,
+        revisarCoherencia,
         aplicarPlanOperacion
     };
 });

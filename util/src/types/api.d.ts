@@ -384,6 +384,46 @@ export interface paths {
         patch: operations["api_salescotizacions_id_patch"];
         trace?: never;
     };
+    "/platform/sales/cotizacions/{id}/coherencia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a Cotizacion resource.
+         * @description Creates a Cotizacion resource.
+         */
+        post: operations["api_salescotizacions_idcoherencia_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacions/{id}/coherencia/reparar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a Cotizacion resource.
+         * @description Creates a Cotizacion resource.
+         */
+        post: operations["api_salescotizacions_idcoherenciareparar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/sales/cotizacions/{id}/operacion/aplicar": {
         parameters: {
             query?: never;
@@ -4978,6 +5018,30 @@ export interface components {
             aprobados?: {
                 [key: string]: string[];
             };
+        };
+        "Cotizacion.InformeCoherencia-coherencia.read": {
+            reparables?: components["schemas"]["HallazgoCoherencia-coherencia.read"][];
+            avisos?: components["schemas"]["HallazgoCoherencia-coherencia.read"][];
+            /** @description Si esta llamada ya reparó, para que la pantalla no ofrezca hacerlo otra vez. */
+            reparado?: boolean;
+        };
+        "Cotizacion.InformeCoherencia.html-coherencia.read": {
+            reparables?: components["schemas"]["HallazgoCoherencia.html-coherencia.read"][];
+            avisos?: components["schemas"]["HallazgoCoherencia.html-coherencia.read"][];
+            /** @description Si esta llamada ya reparó, para que la pantalla no ofrezca hacerlo otra vez. */
+            reparado?: boolean;
+        };
+        "Cotizacion.InformeCoherencia.jsonld-coherencia.read": components["schemas"]["HydraItemBaseSchema"] & {
+            reparables?: components["schemas"]["HallazgoCoherencia.jsonld-coherencia.read"][];
+            avisos?: components["schemas"]["HallazgoCoherencia.jsonld-coherencia.read"][];
+            /** @description Si esta llamada ya reparó, para que la pantalla no ofrezca hacerlo otra vez. */
+            reparado?: boolean;
+        };
+        "Cotizacion.InformeCoherencia.multipart-coherencia.read": {
+            reparables?: components["schemas"]["HallazgoCoherencia.multipart-coherencia.read"][];
+            avisos?: components["schemas"]["HallazgoCoherencia.multipart-coherencia.read"][];
+            /** @description Si esta llamada ya reparó, para que la pantalla no ofrezca hacerlo otra vez. */
+            reparado?: boolean;
         };
         "Cotizacion.PlanReconciliacion-operacion.plan.read": {
             firma?: string;
@@ -13949,6 +14013,34 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        "HallazgoCoherencia-coherencia.read": {
+            clave?: string;
+            titulo?: string;
+            /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
+            detalle?: string;
+            filas?: number;
+        };
+        "HallazgoCoherencia.html-coherencia.read": {
+            clave?: string;
+            titulo?: string;
+            /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
+            detalle?: string;
+            filas?: number;
+        };
+        "HallazgoCoherencia.jsonld-coherencia.read": {
+            clave?: string;
+            titulo?: string;
+            /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
+            detalle?: string;
+            filas?: number;
+        };
+        "HallazgoCoherencia.multipart-coherencia.read": {
+            clave?: string;
+            titulo?: string;
+            /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
+            detalle?: string;
+            filas?: number;
         };
         HydraCollectionBaseSchema: components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
             /**
@@ -33532,6 +33624,140 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacions_idcoherencia_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "application/json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "text/html": components["schemas"]["Cotizacion-cotizacion.write"];
+                "multipart/form-data": components["schemas"]["Cotizacion-cotizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.InformeCoherencia.jsonld-coherencia.read"];
+                    "application/json": components["schemas"]["Cotizacion.InformeCoherencia-coherencia.read"];
+                    "text/html": components["schemas"]["Cotizacion.InformeCoherencia.html-coherencia.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.InformeCoherencia.multipart-coherencia.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacions_idcoherenciareparar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "application/json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "text/html": components["schemas"]["Cotizacion-cotizacion.write"];
+                "multipart/form-data": components["schemas"]["Cotizacion-cotizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.InformeCoherencia.jsonld-coherencia.read"];
+                    "application/json": components["schemas"]["Cotizacion.InformeCoherencia-coherencia.read"];
+                    "text/html": components["schemas"]["Cotizacion.InformeCoherencia.html-coherencia.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.InformeCoherencia.multipart-coherencia.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

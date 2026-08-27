@@ -533,6 +533,23 @@ nunca encuentra nada es peor que no tenerlo.
 
 Devuelve código 1 si queda algo por mirar, para poder encadenarlo en un cron.
 
+### El botón, en el editor
+
+Debajo de «Revisar cambios de operación» hay **«Revisar coherencia de datos»**, acotado a la
+cotización abierta. Dos endpoints y no un parámetro: `POST …/coherencia` mira y lo puede lanzar
+quien sólo consulta; `POST …/coherencia/reparar` escribe y exige permiso de escritura. Un
+`?reparar=1` acaba disparándose desde un enlace copiado.
+
+⚠️ **Dos pasos deliberados**: el botón de reparar sólo aparece **después** de enseñar qué se va a
+tocar. Reparar escribe en una cotización que puede estar ya enviada, y ver antes la lista es lo que
+convierte eso en una decisión en vez de en una sorpresa.
+
+⚠️ Y cuando no hay nada, **lo dice**. Un panel que sólo habla ante problemas deja la duda de si
+llegó a mirar.
+
+Está en el editor y no sólo en el cron porque **el momento en que estos huecos aparecen es al
+cargar catálogo**, y quien lo carga está en esa pantalla.
+
 ## 3. Tarifas (`CotizacionCottarifa` / `TarifaSnapshot`)
 
 Campos que mandan (todos `*Snapshot`):

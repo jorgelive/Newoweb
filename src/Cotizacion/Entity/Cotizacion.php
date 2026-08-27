@@ -12,7 +12,9 @@ use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
 use App\Attribute\AutoTranslate;
+use App\Cotizacion\ApiPlatform\Dto\InformeCoherencia;
 use App\Cotizacion\ApiPlatform\State\CloneCotizacionProcessor;
+use App\Cotizacion\ApiPlatform\State\RevisarCoherenciaProcessor;
 use App\Cotizacion\ApiPlatform\State\GuardarHistoricoProcessor;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
@@ -95,6 +97,31 @@ use Symfony\Component\Uid\Uuid;
             securityMessage: 'No tienes permiso para aplicar cambios a la operación.',
             read: false,
             processor: AplicarPlanOperacionProcessor::class
+        ),
+        // Coherencia: encuentra ids sin su nombre y demás configuraciones a medias de ESTA
+        // cotización. Mirar y reparar son dos operaciones porque merecen permisos distintos:
+        // la primera la puede lanzar quien sólo consulta.
+        new Post(
+            uriTemplate: '/cotizacions/{id}/coherencia',
+            normalizationContext: ['groups' => ['coherencia:read']],
+            output: InformeCoherencia::class,
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')",
+            securityMessage: 'No tienes permiso para revisar esta cotización.',
+            read: true,
+            deserialize: false,
+            validate: false,
+            processor: RevisarCoherenciaProcessor::class
+        ),
+        new Post(
+            uriTemplate: '/cotizacions/{id}/coherencia/reparar',
+            normalizationContext: ['groups' => ['coherencia:read']],
+            output: InformeCoherencia::class,
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para reparar datos de cotizaciones.',
+            read: true,
+            deserialize: false,
+            validate: false,
+            processor: 'coherencia.processor.reparar'
         ),
         new Put(
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",

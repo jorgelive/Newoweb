@@ -23,6 +23,16 @@ services:
         tags:
           - 'controller.service_arguments'
 
+    # ── Chequeo de coherencia ────────────────────────────────────────────────
+    # Mirar y reparar son la MISMA lógica con distinto permiso para escribir. Van como dos
+    # servicios y no como un parámetro de la petición: un `?reparar=1` acaba disparándose desde
+    # un enlace copiado, y esto escribe en cotizaciones ajenas.
+    App\Cotizacion\ApiPlatform\State\RevisarCoherenciaProcessor:
+        arguments:
+            $reparar: false
 
-
+    coherencia.processor.reparar:
+        class: App\Cotizacion\ApiPlatform\State\RevisarCoherenciaProcessor
+        arguments:
+            $reparar: true
 
