@@ -2198,6 +2198,37 @@ Y detrás del segundo, otra vez el mismo agujero: `getNotasPrestadorEfectivas()`
 (`notasPrestador`). Son dos campos distintos a propósito: lo que el proveedor tiene en la mano es
 lo congelado, y si cambia, la orden lo denuncia y hay que reemitir.
 
+**El mensaje abre con un saludo y cierra presentando el enlace.** Un texto que empieza con
+«*Orden de Servicio OS-…*» y termina con una URL suelta se lee como un volcado de sistema: al otro
+lado hay una persona y esto es una petición de trabajo, no un ticket. Una URL sin presentar se lee
+como firma automática y no se pulsa.
+
+```
+Estimado equipo de Futurismo:
+
+*Orden de Servicio OS-20260825-159*
+…
+Por favor confirmar recepción y disponibilidad.
+
+Puede consultar la orden de servicio en el siguiente enlace:
+https://pax.openperu.pe/orden/…
+```
+
+Se saluda con la **razón social** del catálogo —es como se llama la empresa en lo que se firma y se
+factura— con cascada a `compradorNombre` si no la tiene, y a «nuestro proveedor» si el destinatario
+no está en el catálogo. Se lee **en vivo**: si la empresa cambió de razón social, se la saluda como
+se llama hoy. Lo congelado es el contenido de la orden, que es lo pactado; el saludo no lo es.
+
+⚠️ **El enlace se compone DENTRO del cuerpo, y eso mató un espejo.** Antes lo pegaba
+`OperacionOrdenEnvio::enviar()` **y** lo repetía por su cuenta el botón «Copiar» del front: dos
+sitios armando el mismo texto, o sea que el proveedor de un grupo podía recibir una versión y el
+del chat otra. Ahora `OperacionOrdenDocumento::para($orden, $enlace)` lo compone una vez; `enviar()`
+usa `cuerpo` tal cual y el front copia `cuerpo` tal cual. **Si hay que añadirle algo al mensaje, va
+en PHP.**
+
+⚠️ Un **borrador no tiene enlace** —la llave se sella al emitir—, así que el bloque no sale y el
+texto termina limpio en «Por favor confirmar…». Nada de rótulos colgando sin URL.
+
 **El formato del documento es distinto en cada medio, y no por capricho.** La misma orden sale por
 tres sitios y cada uno aguanta cosas distintas:
 

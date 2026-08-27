@@ -6,6 +6,9 @@ namespace App\Operacion\Service;
 
 use App\Operacion\Entity\OperacionOrdenServicio;
 use App\Operacion\Entity\OperacionOrdenServicioItem;
+use App\Travel\Entity\TravelOrganizacion;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * El texto que se le manda al proveedor: **qué operar**, no cuánto cuesta.
@@ -29,10 +32,16 @@ use App\Operacion\Entity\OperacionOrdenServicioItem;
  */
 final readonly class OperacionOrdenDocumento
 {
+    public function __construct(private EntityManagerInterface $em)
+    {
+    }
+
     /**
+     * @param string|null $enlace El enlace público de la orden, si ya la tiene.
+     *
      * @return array{asunto: string, cuerpo: string, lineas: int}
      */
-    public function para(OperacionOrdenServicio $orden): array
+    public function para(OperacionOrdenServicio $orden, ?string $enlace = null): array
     {
         // Qué ítems enseñan el recojo: uno al día, salvo que cambie — lo decide la orden, que es
         // quien ve todas sus líneas. Ver `OperacionOrdenServicio::getRutasVisibles()`.
@@ -66,14 +75,36 @@ final readonly class OperacionOrdenDocumento
             $partesCuerpo[] = sprintf("*%s*\n%s", $dia['etiqueta'], implode("\n", $dia['lineas']));
         }
 
-        $cuerpo = sprintf(
-            "*Orden de Servicio %s*\n\n%s\n\n%s",
-            $orden->getNumeroOs(),
+        // ── EL SALUDO ───────────────────────────────────────────────────────
+        //
+        // Un mensaje que abre con «*Orden de Servicio OS-…*» se lee como un volcado de sistema.
+        // Al otro lado hay una persona y esto es una petición de trabajo, no un ticket.
+        //
+        // Con la RAZÓN SOCIAL y no el nombre comercial: es como se llama la empresa en lo que se
+        // firma y se factura, y es lo que espera ver quien recibe un encargo formal. Si no la
+        // tiene —o el destinatario no está en el catálogo—, cae al nombre con el que se le conoce
+        // antes que a un saludo genérico.
+        $partes = array_filter([
+            sprintf('Estimado equipo de %s:', $this->tratamientoDelDestinatario($orden)),
+            sprintf('*Orden de Servicio %s*', $orden->getNumeroOs()),
             $partesCuerpo === []
                 ? '(sin líneas: la orden todavía no se ha emitido)'
                 : implode("\n\n", $partesCuerpo),
-            'Por favor confirmar recepción y disponibilidad.'
-        );
+            'Por favor confirmar recepción y disponibilidad.',
+            // ── EL ENLACE, PRESENTADO ───────────────────────────────────────
+            //
+            // Una URL suelta al final de un mensaje se lee como una firma automática y no se
+            // pulsa. Con una línea que diga qué hay al otro lado, se pulsa.
+            //
+            // ⚠️ Va DENTRO del cuerpo y no lo pega quien envía. Antes lo concatenaba
+            // `OperacionOrdenEnvio::enviar()` y el botón «Copiar» del front lo repetía por su
+            // cuenta: dos sitios componiendo el mismo texto, y el del grupo podía recibir una
+            // versión distinta del que lo recibe por chat. Ahora se compone una vez, aquí.
+            $enlace === null ? null : "Puede consultar la orden de servicio en el siguiente enlace:\n" . $enlace,
+            // El único que puede faltar es el enlace: un borrador todavía no tiene llave pública.
+        ], static fn (?string $p): bool => $p !== null);
+
+        $cuerpo = implode("\n\n", $partes);
 
 
         return [
@@ -81,6 +112,36 @@ final readonly class OperacionOrdenDocumento
             'cuerpo' => $cuerpo,
             'lineas' => $bloques,
         ];
+    }
+
+    /**
+     * Cómo se le llama al destinatario en el saludo.
+     *
+     * Cascada corta: **razón social del catálogo → nombre congelado en la orden**. La primera es
+     * como se llama la empresa en lo que se firma; la segunda es con la que la conoce el equipo,
+     * y sirve igual para saludar.
+     *
+     * ⚠️ Se lee del catálogo EN VIVO y no del snapshot: si la empresa cambió de razón social, lo
+     * correcto es saludarla como se llama hoy. Lo que sí queda congelado es el contenido de la
+     * orden, que es lo que se pactó — el saludo no es parte del pacto.
+     */
+    private function tratamientoDelDestinatario(OperacionOrdenServicio $orden): string
+    {
+        $id = $orden->getCompradorMaestroId();
+
+        if ($id !== null && Uuid::isValid($id)) {
+            $organizacion = $this->em->find(TravelOrganizacion::class, Uuid::fromString($id));
+
+            if ($organizacion instanceof TravelOrganizacion) {
+                $razon = trim((string) $organizacion->getRazonSocial());
+
+                if ($razon !== '') {
+                    return $razon;
+                }
+            }
+        }
+
+        return trim((string) $orden->getCompradorNombre()) ?: 'nuestro proveedor';
     }
 
     /**

@@ -1404,21 +1404,14 @@ const documento = ref<DocumentoDeOrden | null>(null);
 /**
  * El texto listo para pegar en WhatsApp, tal cual saldría por la API.
  *
- * 🪞 Espejo de `OperacionOrdenEnvio::enviar()`, que compone `cuerpo + "\n\n" + enlace`. Si allá
- * cambia la forma de pegarlos, aquí también: lo que se copia tiene que ser **lo mismo** que se
- * manda, o el proveedor del grupo recibe una versión y el del chat otra.
+ * ⚠️ **Ya no compone nada: es el cuerpo, y punto.** Antes pegaba aquí el enlace —espejo de
+ * `OperacionOrdenEnvio::enviar()`— y eso eran dos sitios armando el mismo texto: el proveedor de
+ * un grupo podía recibir una versión y el del chat otra. Ahora `OperacionOrdenDocumento` compone
+ * el mensaje entero, saludo y enlace presentado incluidos, y aquí sólo se copia.
  *
- * ⚠️ Ya lleva el formato de WhatsApp puesto —`*negrita*` y los emoji— porque el cuerpo se compone
- * así en PHP. No se le añade nada aquí: un segundo juego de marcas encima del primero es lo que
- * convierte un mensaje en una ristra de asteriscos.
+ * Si algún día hace falta añadirle algo al texto copiado, va **en PHP**, no aquí.
  */
-const textoParaWhatsapp = computed<string>(() => {
-    const doc = documento.value;
-
-    if (doc === null) return '';
-
-    return doc.enlace ? `${doc.cuerpo}\n\n${doc.enlace}` : doc.cuerpo;
-});
+const textoParaWhatsapp = computed<string>(() => documento.value?.cuerpo ?? '');
 
 /** Se apaga solo: un «copiado» que se queda fijo deja de significar «acaba de pasar». */
 const copiado = ref<boolean>(false);

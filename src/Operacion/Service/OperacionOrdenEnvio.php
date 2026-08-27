@@ -98,7 +98,10 @@ final readonly class OperacionOrdenEnvio
      */
     public function previsualizar(OperacionOrdenServicio $orden): array
     {
-        $doc = $this->documento->para($orden);
+        // El enlace se le pasa al documento para que lo componga DENTRO del cuerpo, presentado.
+        // Lo que se previsualiza tiene que ser exactamente lo que se manda: si aquí faltara, el
+        // operador aprobaría un texto y saldría otro.
+        $doc = $this->documento->para($orden, $this->enlace($orden));
         $hilo = $this->hiloDelProveedor($orden);
 
         return $doc + [
@@ -128,7 +131,7 @@ final readonly class OperacionOrdenEnvio
             throw new DomainException('Esta orden está anulada: no se le manda al proveedor. Emite la que la reemplaza.');
         }
 
-        $doc = $this->documento->para($orden);
+        $doc = $this->documento->para($orden, $this->enlace($orden));
 
         if ($doc['lineas'] === 0) {
             throw new DomainException('La orden no tiene líneas que enviar.');
@@ -163,8 +166,12 @@ final readonly class OperacionOrdenEnvio
         $mensaje->setTransientChannels([$canal]);
         // El enlace va SIEMPRE que exista, no sólo en WhatsApp: en correo también sirve —el
         // proveedor archiva el PDF— y evita que el cuerpo tenga dos formas según el canal.
-        $enlace = $this->enlace($orden);
-        $cuerpo = $enlace === null ? $doc['cuerpo'] : $doc['cuerpo'] . "\n\n" . $enlace;
+        //
+        // ⚠️ Ya viene DENTRO del cuerpo, presentado por `OperacionOrdenDocumento`. Antes se pegaba
+        // aquí y el botón «Copiar» del front lo repetía por su cuenta: dos sitios componiendo el
+        // mismo texto es cómo el proveedor de un grupo acaba recibiendo una versión distinta del
+        // que lo recibe por chat.
+        $cuerpo = $doc['cuerpo'];
 
         $mensaje->setContentExternal($cuerpo);
         $mensaje->setLanguageCode('es');
