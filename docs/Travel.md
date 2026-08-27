@@ -1561,6 +1561,29 @@ Las cotizaciones que ya usan el genérico **no se repuntan**: dos de ellas son v
 `confirmado` e `historico`, y cambiarles el componente de origen reescribe lo que se vendió. El
 cambio vale hacia adelante; para leerlas, el cuadro ya enseña la ruta desde el segmento.
 
+## 11.ter Las ferroviarias y sus clases de servicio (27/08/2026)
+
+PeruRail e IncaRail se muestran al cliente (§«A quién se nombra» en `docs/Cotizaciones.md`), y en
+un tren **el «servicio» es la clase**: no es lo mismo un Expedition que un Hiram Bingham, y es
+justo lo que el pasajero quiere saber.
+
+| Empresa | Clases |
+|---|---|
+| PeruRail | Local · Expedition · Vistadome · Vistadome Observatory · Hiram Bingham |
+| IncaRail | Voyager · The 360° · Prime · First Class |
+
+Alta: `app:travel:crear-servicios-ferroviarios` (idempotente por empresa+nombre, con `--dry-run`).
+El comando corrige además el título público si viene mal escrito — IncaRail lo tenía como
+«incaRail», y eso lo lee el cliente.
+
+⚠️ **Va por comando y no por SQL**: `TravelOrganizacionServicio::$titulo` y `$descripcion` llevan
+`#[AutoTranslate]`. Un `INSERT` directo deja las fichas sólo en español sin denunciarlo, y la
+errata del título tendría el mismo problema: arreglada en español y las otras seis lenguas
+diciendo lo anterior.
+
+⚠️ **Falta url e imágenes en ambas.** La tarjeta pública sale con el nombre y la clase, pero sin
+foto ni enlace, al contrario que los hoteles. Es trabajo de catálogo y va por el panel.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
