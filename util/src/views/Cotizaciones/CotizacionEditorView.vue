@@ -1369,7 +1369,7 @@ store.$onAction(({ name, args }) => {
                     <!-- Los tres nombres, ordenados por a quién sirven:
                          1) OPERATIVO (nombreInternoSnapshot) grande — el que tú usas y editas.
                          2) CLIENTE (tituloSnapshot) debajo — lo que ve el pasajero.
-                         3) PLANTILLA (itinerarioNombreSnapshot) como etiqueta de procedencia. -->
+                         3) PLANTILLA (itinerarioNombreInternoSnapshot) como etiqueta de procedencia. -->
                     <!-- Mono-segmento sin plantilla: el nombre del servicio es genérico y su público
                          se descarta en la vista del cliente; el segmento es el que dice qué cosa es. -->
                     <div class="font-black text-lg text-slate-900 leading-tight">
@@ -1389,8 +1389,8 @@ store.$onAction(({ name, args }) => {
                       <i class="fas fa-user mr-1 text-slate-300"></i> Cliente: {{ store.getI18nText(servicio.tituloSnapshot, store.cotizacion.idiomaEdicion) }}
                     </p>
 
-                    <p class="text-[11px] font-bold text-slate-500 mt-1" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
-                      <i class="fas fa-map-signs mr-1 text-slate-300"></i> Plantilla: {{ store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                    <p class="text-[11px] font-bold text-slate-500 mt-1" v-if="store.getI18nText(servicio.itinerarioNombreInternoSnapshot, 'es') !== 'Sin plantilla'">
+                      <i class="fas fa-map-signs mr-1 text-slate-300"></i> Plantilla: {{ store.getI18nText(servicio.itinerarioNombreInternoSnapshot, store.cotizacion.idiomaEdicion) }}
                     </p>
                     <p class="text-[11px] font-bold text-slate-500 mt-1" v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0">
                       <i class="fas fa-layer-group mr-1 text-slate-300"></i> Storytelling a medida ({{ servicio.cotsegmentos.length }} párrafos)
@@ -1970,7 +1970,7 @@ store.$onAction(({ name, args }) => {
               <div class="flex items-start justify-between gap-2 mb-2">
                 <div>
                   <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest"><i class="fas fa-align-left mr-1"></i> Storytelling</h3>
-                  <p class="text-[10px] text-teal-500 mt-1 font-medium">{{ store.getI18nText(store.servicioActivo.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
+                  <p class="text-[10px] text-teal-500 mt-1 font-medium">{{ store.getI18nText(store.servicioActivo.itinerarioNombreInternoSnapshot, store.cotizacion.idiomaEdicion) }}</p>
                 </div>
                 <button @click="store.servicioActivo.servicioMaestroId && store.abrirEditorSegmentos()"
                         :disabled="!store.servicioActivo.servicioMaestroId"

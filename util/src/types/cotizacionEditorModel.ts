@@ -60,13 +60,13 @@ type CotServicioBase = components["schemas"]["CotizacionCotservicio-cotizacion.r
 export type CotServicio = Omit<
     CotServicioBase,
     'nombreInternoSnapshot' |
-    'itinerarioNombreSnapshot' |
+    'itinerarioNombreInternoSnapshot' |
     'tituloSnapshot' |
     'cotcomponentes' |
     'cotsegmentos'
 > & {
     nombreInternoSnapshot: I18nContent[];
-    itinerarioNombreSnapshot: I18nContent[];
+    itinerarioNombreInternoSnapshot: I18nContent[];
     /** Id del maestro TravelItinerario desde el que se armó el servicio (re-sync exacto de flags). */
     itinerarioMaestroId?: string | null;
     tituloSnapshot: I18nContent[];

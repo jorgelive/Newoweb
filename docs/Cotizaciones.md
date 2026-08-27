@@ -318,7 +318,7 @@ Qué copia cada nivel al añadirlo desde el catálogo. Lo hace el **editor**; PH
 
 | Nivel | Maestro | `tituloSnapshot` ← | `nombreInternoSnapshot` ← | Otros |
 |---|---|---|---|---|
-| **Servicio** | `TravelServicio` o `TravelItinerario` | `.titulo` | **`.nombreInterno`** | `itinerarioNombreSnapshot` ← `.titulo` de la plantilla |
+| **Servicio** | `TravelServicio` o `TravelItinerario` | `.titulo` | **`.nombreInterno`** | `itinerarioNombreInternoSnapshot` ← **`.nombreInterno`** de la plantilla |
 | **Itinerario** | — | *no tiene snapshot propio: se aplana en el servicio* | | `itinerarioMaestroId` |
 | **Segmento** | `TravelSegmento` | `.titulo` | **no se copia** | `contenido`, `notas`, `imagenes` |
 | **Componente** | `TravelComponente` | `.titulo` | **no se copia** | — |
@@ -334,6 +334,34 @@ de una consulta que puede volver vacía.
 ⚠️ En el componente, `nombreInternoSnapshot` es **el único de los cuatro que escribe una persona**,
 no una copia. Nace `null` y sólo existe si el operador lo teclea. Es lo que le da su precedencia:
 es una decisión sobre ESE expediente, no una foto del catálogo.
+
+#### El rastro de la plantilla congela el nombre, no el título (27/08/2026)
+
+`CotizacionCotservicio::$itinerarioNombreInternoSnapshot` guarda **cómo se llamaba la plantilla el
+día que se aplicó**. Existe aparte de `$nombreInternoSnapshot` porque aquél se edita libremente y
+éste no: su única función es decir de dónde salió el servicio.
+
+Guardaba el **título** y se llamaba `itinerarioNombreSnapshot`, que no aclaraba cuál de los dos
+nombres era. Ahora congela el **operativo**, que es el que sirve: el campo **no está en
+`pax_cotizacion:read`** —el cliente no lo ve nunca— y quien lo lee busca la plantilla en el
+catálogo.
+
+```
+antes   «Excursión de día completo a Paracas y la Huacachina»   ← título, para el cliente
+ahora   «Full Day Paracas y Huacachina»                          ← operativo, para nosotros
+```
+
+⚠️ **Y se le retiró `#[AutoTranslate]`, junto con `$nombreInternoSnapshot`.** Los dos son internos
+y estaban traduciéndose a siete idiomas —`itinerarioNombre` en el 100% de las filas,
+`nombreInterno` en 49 de 79—, contradiciendo el docblock del helper que los rellena, que ya decía
+«como es operativo va en un solo idioma». Es la regla de arriba aplicada: **si está traducido es
+para el cliente; si no, es para nosotros.** Los idiomas ya guardados se dejan: son inertes y
+borrarlos sería arriesgar por pulcritud.
+
+⚠️ Gotcha de la migración: `itinerario_maestro_id` es `varchar(36)` **con guiones** y
+`travel_itinerario.id` es `binary(16)`. Comparados en crudo **no casa ninguno y no da error** —da
+cero filas—. Es la misma trampa que documenta `App\Api\Filter\UuidRelacionFilter`, y aquí volvió
+a morder: la primera consulta dijo «0 maestros vivos» cuando eran 33.
 
 #### El campo se edita en TODOS los componentes (27/08/2026)
 

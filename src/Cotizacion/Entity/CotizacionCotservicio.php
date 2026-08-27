@@ -59,15 +59,34 @@ class CotizacionCotservicio
      * @var list<array{language?: string, content?: string|null}>
      */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
-    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $nombreInternoSnapshot = [];
 
     /** @var list<array{language?: string, content?: string|null}> */
+    /**
+     * Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura.
+     *
+     * Su única función es dejar constancia del origen: el operador edita libremente
+     * `$nombreInternoSnapshot`, y esto sigue diciendo de dónde salió el servicio. Por eso son dos
+     * campos y no uno, aunque nazcan iguales.
+     *
+     * ⚠️ Congela el **nombre interno** de la plantilla, no su título. Hasta el 27/08/2026 guardaba
+     * el título —«Excursión de día completo a Paracas y la Huacachina»— y se llamaba
+     * `itinerarioNombreSnapshot`, que no decía cuál de los dos era. Lo que sirve aquí es el
+     * operativo, «Full Day Paracas y Huacachina»: esto no lo ve el cliente (no está en
+     * `pax_cotizacion:read`) y quien lo lee busca la plantilla en el catálogo.
+     *
+     * ⚠️ Y por eso **no lleva `#[AutoTranslate]`**: traducir a siete idiomas un nombre que sólo
+     * leemos nosotros es trabajo tirado. Regla en `docs/Cotizaciones.md` §2.b — si está traducido
+     * es para el cliente; si no, es para nosotros.
+     *
+     * `[{language:'es', content:'Sin plantilla'}]` cuando el servicio no viene de ninguna.
+     *
+     * @var list<array{language?: string, content?: string|null}>
+     */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
-    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
-    private array $itinerarioNombreSnapshot = [];
+    private array $itinerarioNombreInternoSnapshot = [];
 
     /**
      * Id del maestro TravelItinerario (plantilla) desde el que se armó este
@@ -188,11 +207,11 @@ class CotizacionCotservicio
     /**
      * @return list<array{language?: string, content?: string|null}>
      */
-    public function getItinerarioNombreSnapshot(): array { return $this->itinerarioNombreSnapshot; }
+    public function getItinerarioNombreInternoSnapshot(): array { return $this->itinerarioNombreInternoSnapshot; }
     /**
-     * @param list<array{language?: string, content?: string|null}> $itinerarioNombreSnapshot
+     * @param list<array{language?: string, content?: string|null}> $itinerarioNombreInternoSnapshot
      */
-    public function setItinerarioNombreSnapshot(array $itinerarioNombreSnapshot): self { $this->itinerarioNombreSnapshot = $itinerarioNombreSnapshot; return $this; }
+    public function setItinerarioNombreInternoSnapshot(array $itinerarioNombreInternoSnapshot): self { $this->itinerarioNombreInternoSnapshot = $itinerarioNombreInternoSnapshot; return $this; }
 
     public function getItinerarioMaestroId(): ?string { return $this->itinerarioMaestroId; }
     public function setItinerarioMaestroId(?string $itinerarioMaestroId): self { $this->itinerarioMaestroId = $itinerarioMaestroId; return $this; }

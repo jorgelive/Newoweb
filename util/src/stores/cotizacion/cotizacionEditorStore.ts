@@ -2703,7 +2703,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             id: crypto.randomUUID(),
             servicioMaestroId: null,
             nombreInternoSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
-            itinerarioNombreSnapshot: [{ language: 'es', content: 'Sin plantilla' }],
+            itinerarioNombreInternoSnapshot: [{ language: 'es', content: 'Sin plantilla' }],
             tituloSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             fechaInicioAbsoluta: fechaBase,
             cotsegmentos: [],
@@ -3639,7 +3639,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const plantillaProfunda = response.data as ItinerarioProfundo;
             if (!servicio) return;
 
-            servicio.itinerarioNombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda)));
+            // El NOMBRE INTERNO de la plantilla, no su título: esto no lo ve el cliente y quien
+            // lo lee la busca en el catálogo. Congelado, para que siga diciendo de dónde salió el
+            // servicio aunque después se renombre el suyo.
+            servicio.itinerarioNombreInternoSnapshot = nombreOperativoComoI18n(
+                (plantillaProfunda as { nombreInterno?: string }).nombreInterno
+            );
             // El NOMBRE operativo se transforma en el de la plantilla (más específica que el
             // servicio). El título público sigue su propia vía, más abajo.
             servicio.nombreInternoSnapshot = nombreOperativoComoI18n(
