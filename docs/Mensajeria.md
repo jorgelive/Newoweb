@@ -526,6 +526,23 @@ php bin/console app:message:recalcular-no-leidos --marcar-leidas-antes-de=2026-0
 Quién lee este contador: el badge del icono de la PWA y los contadores del portal,
 vía `UnreadSummaryController`. Ver [`PwaNotificaciones.md`](PwaNotificaciones.md).
 
+##### 🔗 El enlace de pago se LEE en `consultar_cuenta`, no se emite
+
+Emitir un enlace es escribir un cobro: lo hace `generar_enlace_prepago`, que exige
+`RESERVAS_WRITE` y **no existe en el chat del huésped**. Ese candado se queda donde está.
+
+Pero leer el que **ya existe** es otra cosa, y `consultar_cuenta` lo devuelve en
+`enlace_de_pago` (url, importe con recargo, moneda). El huésped ya lo tiene delante en su app
+con el botón «Pagar ahora»: enseñárselo también por el chat no le da acceso a nada nuevo.
+
+Sin eso quedaba un hueco raro con el flag encendido: `consultar_medios_pago` decía «sí hay
+enlace de tarjeta», `consultar_cuenta` daba el importe con recargo… y **la URL no estaba en
+ninguna parte**. El modelo podía confirmar que se puede pagar con tarjeta sin forma de hacérselo
+llegar — y con la URL ausente, el riesgo real es que se la invente.
+
+⚠️ Sólo si `estaVigente()`. Un enlace anulado o caducado no se le pasa a nadie: pagar por él es
+imposible y ofrecerlo es prometer algo que va a fallar.
+
 #### Quién consume el resumen
 
 Cuatro sitios, todos leyendo el mismo campo:

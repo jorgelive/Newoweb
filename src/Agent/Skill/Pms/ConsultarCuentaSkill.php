@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Agent\Skill\Pms;
 
+use App\Finanzas\Service\FinEnlacePagoService;
+use App\Finanzas\Repository\FinEnlacePagoRepository;
+use App\Finanzas\Enum\FinOrigenCobro;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
@@ -62,6 +65,9 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
     public function __construct(
         private EntityManagerInterface $em,
         private PmsPrepagoCalculador $prepagoCalculador,
+        // Para LEER el enlace que ya existe. Ojo: leer, no emitir — ver `enlaceDePago()`.
+        private FinEnlacePagoRepository $enlaces,
+        private FinEnlacePagoService $enlacesServicio,
         private PmsProcedenciaHuesped $procedencia,
         private LoggerInterface $logger,
     ) {}
@@ -240,6 +246,8 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             // saldo total y el prepago responden a preguntas distintas —«cuánto debes» y
             // «cuánto hay que adelantar ahora»— y confundirlos es cobrar de más.
             'prepago_pendiente' => $this->prepago($info, $moneda),
+            // El enlace que YA existe, para poder pasárselo en el chat. Ver `enlaceDePago()`.
+            'enlace_de_pago' => $this->enlaceDePago($info),
             // Cuánto PIDE la política, aunque ya esté pagado. Responde «¿cuánto es la primera
             // noche?», que `prepago_pendiente` deja sin contestar en cuanto hay un pago.
             'adelanto_de_la_politica' => $this->adelantoDeLaPolitica($info, $moneda),
@@ -321,6 +329,59 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
      *
      * @return array<string, mixed>|null
      */
+    /**
+     * El enlace de pago **que ya existe**, para que el modelo pueda dárselo al huésped.
+     *
+     * ### Leer no es emitir, y ésa es toda la diferencia
+     *
+     * Emitir un enlace es escribir un cobro: lo hace `generar_enlace_prepago`, que exige
+     * `RESERVAS_WRITE` y por eso **no existe en el chat del huésped**. Ese candado se queda
+     * donde está. Esto es otra cosa: el enlace ya fue emitido —a mano por un operador, o solo
+     * al estrenar importes la reserva (§11 bis de docs/FinanzasEnlacesPago.md)— y **el huésped
+     * ya lo tiene delante en su app**, con su botón «Pagar ahora». Enseñárselo también por el
+     * chat no le da acceso a nada nuevo.
+     *
+     * Sin esto quedaba un hueco raro: con el flag encendido, `consultar_medios_pago` le dice al
+     * modelo «sí hay enlace de tarjeta» y `consultar_cuenta` le da el importe con recargo… pero
+     * la URL no estaba en ninguna parte. El modelo podía confirmar que se puede pagar con
+     * tarjeta y no tenía forma de hacérselo llegar — justo la fricción que la emisión
+     * automática venía a quitar. Y con la URL ausente, el riesgo real es que se la invente.
+     *
+     * ⚠️ Sólo si `estaVigente()`. Un enlace anulado o caducado no se le pasa a nadie: pagar por
+     * él es imposible y ofrecerlo es prometer algo que va a fallar.
+     *
+     * @return array{url: string, monto_total: string, moneda: string, nota: string}|null
+     */
+    private function enlaceDePago(PmsInformacionFinanciera $info): ?array
+    {
+        $reservaId = $info->getReserva()?->getId();
+
+        if ($reservaId === null) {
+            return null;
+        }
+
+        foreach ($this->enlaces->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
+            if (!$enlace->estaVigente()) {
+                continue;
+            }
+
+            return [
+                'url' => $this->enlacesServicio->urlPublica($enlace),
+                // El TOTAL, que es lo que se le cobra a la tarjeta: el neto más el recargo de
+                // la pasarela. Va junto a la URL para que el modelo no mezcle esta cifra con el
+                // saldo ni con el prepago, que son otras dos y no coinciden.
+                'monto_total' => $enlace->getMontoTotal(),
+                'moneda' => $enlace->getMonedaCodigo() ?? '',
+                'nota' => 'Es un enlace REAL y ya emitido: pásaselo tal cual si pregunta cómo '
+                    . 'pagar con tarjeta. NO inventes ninguna otra URL ni la modifiques. El '
+                    . 'importe es el que se le cobra a la tarjeta, con el recargo incluido.',
+            ];
+        }
+
+        return null;
+    }
+
+    /** @return array<string, string>|null */
     private function prepago(PmsInformacionFinanciera $info, string $moneda): ?array
     {
         $prepago = $this->prepagoCalculador->pendiente($info);
