@@ -312,6 +312,41 @@ leemos nosotros, no el huésped. Y por qué el título llega a `pax`: para eso e
 ⚠️ **Escribir un `tituloSnapshot` por SQL lo deja sólo en español**, porque `AutoTranslate` cuelga
 de `prePersist`/`preUpdate`. En los internos da igual.
 
+### Maestro → snapshot, campo por campo
+
+Qué copia cada nivel al añadirlo desde el catálogo. Lo hace el **editor**; PHP no compone ninguno.
+
+| Nivel | Maestro | `tituloSnapshot` ← | `nombreInternoSnapshot` ← | Otros |
+|---|---|---|---|---|
+| **Servicio** | `TravelServicio` o `TravelItinerario` | `.titulo` | **`.nombreInterno`** | `itinerarioNombreSnapshot` ← `.titulo` de la plantilla |
+| **Itinerario** | — | *no tiene snapshot propio: se aplana en el servicio* | | `itinerarioMaestroId` |
+| **Segmento** | `TravelSegmento` | `.titulo` | **no se copia** | `contenido`, `notas`, `imagenes` |
+| **Componente** | `TravelComponente` | `.titulo` | **no se copia** | — |
+| **Tarifa** | `TravelTarifa` | `.titulo` | **`.nombreInterno`** | `nombreParaProveedor`, modalidad, categoría, procedencia, rol, edades, capacidades |
+
+Al aplicar una plantilla, **ésta pisa al servicio**: es más específica.
+
+⚠️ **El `nombreInterno` sólo baja en dos de los cinco.** Servicio y tarifa lo copian; **segmento y
+componente no**. Por eso el nombre operativo de esos dos se resuelve contra el catálogo vivo, y por
+eso `OperacionServicio::$nombreComponente` existe: para que la Orden —que promete algo— no dependa
+de una consulta que puede volver vacía.
+
+⚠️ En el componente, `nombreInternoSnapshot` es **el único de los cuatro que escribe una persona**,
+no una copia. Nace `null` y sólo existe si el operador lo teclea. Es lo que le da su precedencia:
+es una decisión sobre ESE expediente, no una foto del catálogo.
+
+#### El campo se edita en TODOS los componentes (27/08/2026)
+
+Estuvo limitado a los manuales —«los de catálogo ya tienen el del maestro»—, y era cierto pero
+insuficiente: **no había forma de ajustar el nombre operativo en un expediente concreto**. La única
+salida era renombrar el maestro, que cambia el catálogo entero por un caso puntual y encima **no
+llega solo a La Biblia**: queda como divergencia y hay que aprobarlo por reconciliación
+(`BibliaReconciliacionService::ETIQUETAS['nombreComponente']`).
+
+Ahora: **vacío = manda el maestro; escrito = manda lo escrito.** El `placeholder` del campo enseña
+el nombre del catálogo para que se vea qué saldrá si se deja en blanco — de `placeholder` y no de
+`value`, porque rellenarlo convertiría una herencia viva en una copia congelada.
+
 ### De dónde sale cada uno
 
 **Lo compone el EDITOR, y PHP no lo toca nunca.** No hay ningún `setTituloSnapshot()` llamado desde

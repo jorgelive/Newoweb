@@ -401,6 +401,24 @@ const opcionesServicios = computed(() => {
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
 
+/**
+ * El nombre operativo que trae el MAESTRO del componente activo, si lo hay.
+ *
+ * Sólo para enseñarlo como pista bajo el campo de nombre interno: es lo que saldrá en la orden y
+ * en La Biblia mientras ese campo siga en blanco. No se escribe en el snapshot —eso convertiría
+ * una herencia viva en una copia congelada— y por eso va de `placeholder` y no de `value`.
+ */
+const nombreMaestroDelComponenteActivo = computed<string | null>(() => {
+  const comp = store.componenteActivo;
+  if (!comp?.componenteMaestroId) return null;
+
+  const maestroId = store.extractIdStr(comp.componenteMaestroId);
+  const maestro = store.catalogos.allComponentes.find(c => store.extractIdStr(c) === maestroId);
+  const nombre = maestro?.nombreInterno ?? '';
+
+  return nombre && nombre !== 'Sincronizando...' ? nombre : null;
+});
+
 const opcionesComponentes = computed(() => {
   return store.catalogos.componentes
       .map(c => ({
@@ -2294,21 +2312,33 @@ store.$onAction(({ name, args }) => {
 
             <div class="grid grid-cols-2 gap-4">
 
-              <!-- ── El nombre INTERNO, sólo en modo manual ──────────────────
-                   Los componentes de catálogo ya tienen nombre interno: el del maestro. Los
-                   manuales no tenían ninguno —el componente sólo guarda el título público— y La
-                   Biblia acababa rotulando la fila con el texto del cliente, o con «Servicio sin
-                   nombre». Éste gana en la orden y en el cuadro de tráfico; el de abajo es lo
-                   único que ve el pasajero. -->
-              <div v-if="store.componenteActivo.esManual" class="col-span-2">
+              <!-- ── El nombre INTERNO, en TODOS los componentes ─────────────
+                   Éste es el que mandan la orden y el cuadro de tráfico; el de abajo es lo único
+                   que ve el pasajero.
+
+                   ⚠️ Estuvo limitado a los manuales, con el argumento de que «los de catálogo ya
+                   tienen el del maestro». Es cierto y no basta: dejaba **sin forma de ajustar el
+                   nombre operativo en ESTE expediente**. La única salida era renombrar el maestro,
+                   que cambia el catálogo entero por un caso puntual — y encima ese cambio no llega
+                   solo a La Biblia: hay que aprobarlo por reconciliación.
+
+                   Vacío = manda el maestro. Escrito = manda lo escrito. La precedencia vive en
+                   `BibliaSnapshotService::resolverNombreComponente()` y su test; aquí sólo se
+                   habilita el campo. Ver docs/Cotizaciones.md §2.b. -->
+              <div class="col-span-2">
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
                   Nombre interno <span class="text-slate-400 normal-case font-bold">— para la orden y La Biblia</span>
                 </label>
                 <input :value="store.componenteActivo.nombreInternoSnapshot ?? ''"
                        @input="e => { if (store.componenteActivo) store.componenteActivo.nombreInternoSnapshot = (e.target as HTMLInputElement).value || null }"
                        type="text" maxlength="255"
-                       placeholder="Traslado a La Olla de Juanita (ida)"
+                       :placeholder="nombreMaestroDelComponenteActivo || 'Traslado a La Olla de Juanita (ida)'"
                        class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500 placeholder:text-slate-300 placeholder:font-medium">
+                <!-- El placeholder enseña el nombre del maestro: así se ve qué va a salir si se
+                     deja en blanco, sin escribirlo y sin fingir que el campo está relleno. -->
+                <p v-if="nombreMaestroDelComponenteActivo" class="text-[10px] text-slate-400 font-bold mt-1 ml-1">
+                  En blanco usa el del catálogo: «{{ nombreMaestroDelComponenteActivo }}»
+                </p>
               </div>
 
               <div class="col-span-2">
