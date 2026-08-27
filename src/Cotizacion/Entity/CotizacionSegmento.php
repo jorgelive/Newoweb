@@ -105,6 +105,23 @@ class CotizacionSegmento
     #[ORM\Column(type: 'json')]
     private array $tituloSnapshot = [];
 
+    /**
+     * El nombre OPERATIVO del tramo: «Transporte Aeropuerto Cusco - Hotel Cusco».
+     *
+     * Copiado del maestro al añadirlo, igual que el título. Hasta el 27/08/2026 no existía y La
+     * Biblia lo resolvía **en vivo** contra `travel_segmento.nombre_interno` — una consulta que
+     * podía volver vacía y dejaba la fila enseñando otra cosa plausible. Ahora la ruta es única:
+     * el nombre vive en el snapshot, como en servicio, componente y tarifa.
+     *
+     * ⚠️ Sin `#[AutoTranslate]` y sin `pax_cotizacion:read`: es interno, lo lee el tráfico. El que
+     * ve el pasajero es `$tituloSnapshot`.
+     *
+     * @var list<array{language?: string, content?: string|null}>
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'json')]
+    private array $nombreInternoSnapshot = [];
+
     /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
@@ -211,6 +228,12 @@ class CotizacionSegmento
         $this->segmentoMaestroId = $segmentoMaestroId;
         return $this;
     }
+
+    /** @return list<array{language?: string, content?: string|null}> */
+    public function getNombreInternoSnapshot(): array { return $this->nombreInternoSnapshot; }
+
+    /** @param list<array{language?: string, content?: string|null}> $v */
+    public function setNombreInternoSnapshot(array $v): self { $this->nombreInternoSnapshot = $v; return $this; }
 
     /**
      * @return list<array{language?: string, content?: string|null}>

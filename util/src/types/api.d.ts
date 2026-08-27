@@ -8619,7 +8619,8 @@ export interface components {
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
-            itinerarioNombreSnapshot?: {
+            /** @description Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura. */
+            itinerarioNombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8659,7 +8660,8 @@ export interface components {
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
-            itinerarioNombreSnapshot?: {
+            /** @description Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura. */
+            itinerarioNombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8694,7 +8696,8 @@ export interface components {
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
-            itinerarioNombreSnapshot?: {
+            /** @description Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura. */
+            itinerarioNombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8756,7 +8759,8 @@ export interface components {
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
-            itinerarioNombreSnapshot?: {
+            /** @description Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura. */
+            itinerarioNombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8796,7 +8800,8 @@ export interface components {
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
-            itinerarioNombreSnapshot?: {
+            /** @description Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura. */
+            itinerarioNombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8862,7 +8867,8 @@ export interface components {
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
-            itinerarioNombreSnapshot?: {
+            /** @description Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura. */
+            itinerarioNombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8902,7 +8908,8 @@ export interface components {
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
-            itinerarioNombreSnapshot?: {
+            /** @description Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura. */
+            itinerarioNombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8968,7 +8975,8 @@ export interface components {
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
-            itinerarioNombreSnapshot?: {
+            /** @description Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura. */
+            itinerarioNombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -9008,7 +9016,8 @@ export interface components {
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
-            itinerarioNombreSnapshot?: {
+            /** @description Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura. */
+            itinerarioNombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -12902,6 +12911,10 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
+            /** @description El nombre OPERATIVO del tramo: «Transporte Aeropuerto Cusco - Hotel Cusco». */
+            nombreInternoSnapshot?: {
+                [key: string]: string | null;
+            }[];
             contenidoSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -12943,6 +12956,10 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
+            /** @description El nombre OPERATIVO del tramo: «Transporte Aeropuerto Cusco - Hotel Cusco». */
+            nombreInternoSnapshot?: {
+                [key: string]: string | null;
+            }[];
             contenidoSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -12976,6 +12993,10 @@ export interface components {
             finTexto?: string | null;
             /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
             tituloSnapshot?: {
+                [key: string]: string | null;
+            }[];
+            /** @description El nombre OPERATIVO del tramo: «Transporte Aeropuerto Cusco - Hotel Cusco». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13060,6 +13081,10 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
+            /** @description El nombre OPERATIVO del tramo: «Transporte Aeropuerto Cusco - Hotel Cusco». */
+            nombreInternoSnapshot?: {
+                [key: string]: string | null;
+            }[];
             contenidoSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -13099,6 +13124,10 @@ export interface components {
             finTexto?: string | null;
             /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
             tituloSnapshot?: {
+                [key: string]: string | null;
+            }[];
+            /** @description El nombre OPERATIVO del tramo: «Transporte Aeropuerto Cusco - Hotel Cusco». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13187,6 +13216,10 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
+            /** @description El nombre OPERATIVO del tramo: «Transporte Aeropuerto Cusco - Hotel Cusco». */
+            nombreInternoSnapshot?: {
+                [key: string]: string | null;
+            }[];
             contenidoSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -13226,6 +13259,10 @@ export interface components {
             finTexto?: string | null;
             /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
             tituloSnapshot?: {
+                [key: string]: string | null;
+            }[];
+            /** @description El nombre OPERATIVO del tramo: «Transporte Aeropuerto Cusco - Hotel Cusco». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13314,6 +13351,10 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
+            /** @description El nombre OPERATIVO del tramo: «Transporte Aeropuerto Cusco - Hotel Cusco». */
+            nombreInternoSnapshot?: {
+                [key: string]: string | null;
+            }[];
             contenidoSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -13353,6 +13394,10 @@ export interface components {
             finTexto?: string | null;
             /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
             tituloSnapshot?: {
+                [key: string]: string | null;
+            }[];
+            /** @description El nombre OPERATIVO del tramo: «Transporte Aeropuerto Cusco - Hotel Cusco». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -17707,6 +17752,8 @@ export interface components {
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
             nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -17807,6 +17854,8 @@ export interface components {
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
             nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @default 1 */
@@ -17915,6 +17964,8 @@ export interface components {
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
             nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -18008,6 +18059,8 @@ export interface components {
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
             nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -18104,6 +18157,8 @@ export interface components {
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
             nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -18204,6 +18259,8 @@ export interface components {
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
             nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @default 1 */
@@ -18315,6 +18372,8 @@ export interface components {
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
             nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -18415,6 +18474,8 @@ export interface components {
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
             nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @default 1 */
@@ -18526,6 +18587,8 @@ export interface components {
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
             nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -18626,6 +18689,8 @@ export interface components {
             contextoServicio?: string | null;
             /** @description QUÉ es esta fila: el nombre público del componente, en español. */
             nombreComponente?: string | null;
+            /** @description El nombre OPERATIVO del tramo al que pertenece la fila, congelado. */
+            nombreSegmento?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @default 1 */

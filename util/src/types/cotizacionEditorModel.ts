@@ -341,6 +341,7 @@ export type CotSegmento = Omit<
     'fechaAbsoluta' |
     'sobreescribirTraduccion' |
     'tituloSnapshot' |       // <-- Agrégalo aquí
+    'nombreInternoSnapshot' |
     'contenidoSnapshot' |    // <-- Agrégalo aquí
     'imagenesSnapshot' |     // <-- Agrégalo aquí
     'notasSnapshot'          // <-- Agrégalo aquí
@@ -356,6 +357,8 @@ export type CotSegmento = Omit<
     inicioTexto?: string | null;
     finTexto?: string | null;
     tituloSnapshot?: I18nContent[];
+    /** El operativo del tramo, congelado del maestro. Interno: no viaja a `pax`. */
+    nombreInternoSnapshot?: I18nContent[];
     contenidoSnapshot?: I18nContent[];
     imagenesSnapshot?: ImagenSnapshot[];
     notasSnapshot?: NotaSnapshot[];

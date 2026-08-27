@@ -5,160 +5,86 @@ declare(strict_types=1);
 namespace App\Tests\Operacion\Service;
 
 use App\Cotizacion\Entity\CotizacionCotcomponente;
-use App\Travel\Entity\TravelComponente;
-use Doctrine\Persistence\ObjectRepository;
 use App\Operacion\Service\BibliaSnapshotService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
- * De quién es el nombre que ve el tráfico: del operador, del catálogo o de la copia congelada.
+ * De dónde sale el nombre que ve el tráfico. **Del snapshot, y de ningún otro sitio.**
  *
- * ── Por qué existe este test ────────────────────────────────────────────────
- * La precedencia estuvo invertida —el maestro por delante de lo escrito a mano— y **no lo detectó
- * nada**: ningún componente en producción tenía todavía el nombre manual relleno, así que el
- * backfill recalculó las 47 filas y cambió cero. El fallo era latente y habría mordido la primera
- * vez que alguien renombrara un componente a mano, enseñando el nombre de la plantilla en su
- * lugar. Y como ese nombre se lee perfectamente bien, nadie lo habría echado de menos.
+ * ── Por qué existe ──────────────────────────────────────────────────────────
+ * El nombre operativo del componente se resolvía **en vivo** contra el catálogo, en el mismo lote
+ * que las etiquetas de lugar — un lote cuyo `catch` lo vacía entero porque «los badges son
+ * decoración». Cuando esa petición fallaba, la ficha caía al respaldo y **enseñaba el nombre del
+ * itinerario como si fuera el servicio**. No dejaba un hueco: dejaba otro nombre, y se leía
+ * plausible, que es la peor forma de perder un dato.
  *
- * O sea: es una regla que los datos de hoy no pueden verificar. Por eso se fija aquí.
+ * Desde el 27/08/2026 el operativo se copia al snapshot al añadir el componente —igual que ya
+ * hacían servicio y tarifa— y aquí sólo se lee. Estos casos fijan las dos mitades de eso: qué gana
+ * a qué, y que **el catálogo no se toca**.
  *
- * ⚠️ El caso 1 pasa un EntityManager que **estalla si lo tocan**. No es rebuscado: es la única
- * forma de comprobar que lo escrito a mano gana de verdad y no «gana porque el maestro resultó
- * estar vacío». Si alguien reordena las ramas, este test falla en vez de pasar por casualidad.
+ * ⚠️ Todos pasan un EntityManager que **estalla si alguien lo usa**. No es adorno: es la única
+ * forma de comprobar que la ruta es de verdad única. Sin él, reintroducir una consulta al maestro
+ * pasaría los tests sin despeinarse.
  */
 final class ResolverNombreComponenteTest extends TestCase
 {
-    private function servicio(EntityManagerInterface $em): BibliaSnapshotService
+    private function servicio(): BibliaSnapshotService
     {
-        return new BibliaSnapshotService($em);
+        return new BibliaSnapshotService($this->emProhibido());
     }
 
-    /** Un EntityManager que no debería usarse nunca en este camino. */
+    /** Un EntityManager que no debe usarse: la resolución no consulta el catálogo. */
     private function emProhibido(): EntityManagerInterface
     {
         $em = $this->createMock(EntityManagerInterface::class);
-        $em->expects($this->never())
-            ->method('getRepository');
+        $em->expects($this->never())->method('getRepository');
 
         return $em;
     }
 
-    public function testLoEscritoAManoGanaAlMaestro(): void
+    public function testMandaElNombreOperativoDelSnapshot(): void
     {
         $componente = (new CotizacionCotcomponente())
-            ->setNombreInternoSnapshot('Traslado a la Olla de Juanita')
-            // Hay maestro, y aun así no debe consultarse: la decisión ya está tomada.
+            ->setNombreInternoSnapshot('Transporte Aeropuerto Cusco - Hotel Cusco')
+            // Tiene maestro, y da igual: no se va a preguntar.
             ->setComponenteMaestroId('01a04375-6bd2-7b02-86f8-097e45cb37bd')
+            // Y el público es genérico: si ganara, la ficha diría «Transporte» a secas.
             ->setTituloSnapshot([['language' => 'es', 'content' => 'Transporte']]);
 
         self::assertSame(
-            'Traslado a la Olla de Juanita',
-            $this->servicio($this->emProhibido())->resolverNombreComponente($componente)
+            'Transporte Aeropuerto Cusco - Hotel Cusco',
+            $this->servicio()->resolverNombreComponente($componente)
         );
     }
 
-    public function testElManualEnBlancoNoCuentaComoDecision(): void
-    {
-        // Espacios sueltos son un campo vacío, no un nombre. Sin el `trim` la fila se quedaría
-        // llamándose «   » y el maestro no llegaría a consultarse nunca.
-        $componente = (new CotizacionCotcomponente())
-            ->setNombreInternoSnapshot('   ')
-            ->setTituloSnapshot([['language' => 'es', 'content' => 'Ticket aereo']]);
-
-        self::assertSame(
-            'Ticket aereo',
-            $this->servicio($this->emProhibido())->resolverNombreComponente($componente)
-        );
-    }
-
-    public function testSinManualNiMaestroCaeALaCopiaCongelada(): void
+    public function testSinOperativoCaeAlTituloYNoDejaLaFilaSinNombre(): void
     {
         $componente = (new CotizacionCotcomponente())
+            ->setComponenteMaestroId('01a04375-6bd2-7b02-86f8-097e45cb37bd')
             ->setTituloSnapshot([
                 ['language' => 'en', 'content' => 'Flight'],
                 ['language' => 'es', 'content' => 'Ticket aereo'],
             ]);
 
-        self::assertSame(
-            'Ticket aereo',
-            $this->servicio($this->emProhibido())->resolverNombreComponente($componente)
-        );
+        self::assertSame('Ticket aereo', $this->servicio()->resolverNombreComponente($componente));
     }
 
-    /**
-     * Un EntityManager que devuelve ESE maestro para `TravelComponente`.
-     *
-     * @param TravelComponente|null $maestro null simula un maestro borrado del catálogo
-     */
-    private function emConMaestro(?TravelComponente $maestro): EntityManagerInterface
+    public function testElOperativoEnBlancoNoCuentaComoDecision(): void
     {
-        // La INTERFAZ y no `EntityRepository`: simular la clase concreta está deprecado en
-        // PHPUnit 13, y aquí sólo hace falta `find()`. `getRepository()` no declara tipo de
-        // retorno en `EntityManagerInterface`, así que la interfaz encaja.
-        // `createStub` y no `createMock`: aquí no se verifica ninguna llamada, sólo se le da al
-        // resolutor un catálogo del que tirar. PHPUnit 13 avisa —y con `failOnNotice` hace
-        // FALLAR— si se usa un mock sin expectativas. `emProhibido()` sí es un mock, porque su
-        // `expects($this->never())` es justamente la expectativa que da valor a aquel caso.
-        $repo = $this->createStub(ObjectRepository::class);
-        $repo->method('find')->willReturn($maestro);
-
-        $em = $this->createStub(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repo);
-
-        return $em;
-    }
-
-    public function testSinManualMandaElNombreOperativoDelMaestro(): void
-    {
-        // ⚠️ Ésta es la rama que el renombrado de agosto tocó de verdad —`getNombre()` pasó a
-        // `getNombreInterno()`— y era la única que ningún caso ejecutaba: todos pasaban un EM que
-        // estallaba si lo tocaban. PHPStan la cubría porque el método existe; que devuelva el
-        // valor correcto no lo comprobaba nadie.
-        $maestro = (new TravelComponente())->setNombreInterno('Transporte Aeropuerto Cusco - Hotel Cusco');
-
+        // Espacios sueltos son un campo vacío, no un nombre. Sin el `trim` la fila se quedaría
+        // llamándose «   » y el título no llegaría a mirarse nunca.
         $componente = (new CotizacionCotcomponente())
-            ->setComponenteMaestroId('01a04375-6bd2-7b02-86f8-097e45cb37bd')
-            // El público es genérico: si ganara, la ficha diría «Transporte» a secas.
-            ->setTituloSnapshot([['language' => 'es', 'content' => 'Transporte']]);
-
-        self::assertSame(
-            'Transporte Aeropuerto Cusco - Hotel Cusco',
-            $this->servicio($this->emConMaestro($maestro))->resolverNombreComponente($componente)
-        );
-    }
-
-    public function testMaestroBorradoCaeAlTituloYNoDejaLaFilaSinNombre(): void
-    {
-        $componente = (new CotizacionCotcomponente())
-            ->setComponenteMaestroId('01a04375-6bd2-7b02-86f8-097e45cb37bd')
+            ->setNombreInternoSnapshot('   ')
             ->setTituloSnapshot([['language' => 'es', 'content' => 'Ticket aereo']]);
 
-        self::assertSame(
-            'Ticket aereo',
-            $this->servicio($this->emConMaestro(null))->resolverNombreComponente($componente)
-        );
-    }
-
-    public function testMaestroSinNombreTampocoGana(): void
-    {
-        // Un maestro a medio crear no debe secuestrar la fila con una cadena vacía.
-        $componente = (new CotizacionCotcomponente())
-            ->setComponenteMaestroId('01a04375-6bd2-7b02-86f8-097e45cb37bd')
-            ->setTituloSnapshot([['language' => 'es', 'content' => 'Ticket aereo']]);
-
-        self::assertSame(
-            'Ticket aereo',
-            $this->servicio($this->emConMaestro(new TravelComponente()))->resolverNombreComponente($componente)
-        );
+        self::assertSame('Ticket aereo', $this->servicio()->resolverNombreComponente($componente));
     }
 
     public function testSinNadaDevuelveNullYNoInventa(): void
     {
-        // Que devuelva null y no un genérico: quien llama decide qué poner —el tipo, en el cuadro—
-        // y aquí inventarse un texto lo dejaría sin saber que no había nombre.
-        self::assertNull(
-            $this->servicio($this->emProhibido())->resolverNombreComponente(new CotizacionCotcomponente())
-        );
+        // Null y no un genérico: quien llama decide qué poner —el tipo, en el cuadro— y aquí
+        // inventarse un texto lo dejaría sin saber que no había nombre.
+        self::assertNull($this->servicio()->resolverNombreComponente(new CotizacionCotcomponente()));
     }
 }

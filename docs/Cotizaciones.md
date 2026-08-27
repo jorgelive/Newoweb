@@ -320,16 +320,22 @@ Qué copia cada nivel al añadirlo desde el catálogo. Lo hace el **editor**; PH
 |---|---|---|---|---|
 | **Servicio** | `TravelServicio` o `TravelItinerario` | `.titulo` | **`.nombreInterno`** | `itinerarioNombreInternoSnapshot` ← **`.nombreInterno`** de la plantilla |
 | **Itinerario** | — | *no tiene snapshot propio: se aplana en el servicio* | | `itinerarioMaestroId` |
-| **Segmento** | `TravelSegmento` | `.titulo` | **no se copia** | `contenido`, `notas`, `imagenes` |
-| **Componente** | `TravelComponente` | `.titulo` | **no se copia** | — |
+| **Segmento** | `TravelSegmento` | `.titulo` | **`.nombreInterno`** | `contenido`, `notas`, `imagenes` |
+| **Componente** | `TravelComponente` | `.titulo` | **`.nombreInterno`** | — |
 | **Tarifa** | `TravelTarifa` | `.titulo` | **`.nombreInterno`** | `nombreParaProveedor`, modalidad, categoría, procedencia, rol, edades, capacidades |
 
 Al aplicar una plantilla, **ésta pisa al servicio**: es más específica.
 
-⚠️ **El `nombreInterno` sólo baja en dos de los cinco.** Servicio y tarifa lo copian; **segmento y
-componente no**. Por eso el nombre operativo de esos dos se resuelve contra el catálogo vivo, y por
-eso `OperacionServicio::$nombreComponente` existe: para que la Orden —que promete algo— no dependa
-de una consulta que puede volver vacía.
+✅ **Los cinco niveles copian su `nombreInterno`** desde el 27/08/2026. Segmento y componente eran
+los dos que faltaban: se resolvían **en vivo** contra el catálogo desde el navegador, en el mismo
+lote que las etiquetas de lugar — un lote cuyo `catch` lo vacía entero porque «los badges son
+decoración». Cuando esa petición fallaba, la ficha caía al respaldo y enseñaba el nombre del
+itinerario como si fuera el servicio: **no un hueco, otro nombre plausible.**
+
+Ahora la ruta es una sola —maestro → snapshot al añadirlo → La Biblia → Orden— y la deriva del
+catálogo la denuncia la reconciliación en vez de aplicarse a escondidas. `resolverNombreComponente()`
+ya no recibe consultas al maestro, y su test lo fija con un EntityManager que **estalla si alguien
+lo usa**: sin eso, reintroducir la consulta pasaría los tests sin despeinarse.
 
 ⚠️ En el componente, `nombreInternoSnapshot` es **el único de los cuatro que escribe una persona**,
 no una copia. Nace `null` y sólo existe si el operador lo teclea. Es lo que le da su precedencia:

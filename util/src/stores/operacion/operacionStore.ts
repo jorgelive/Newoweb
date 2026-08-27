@@ -159,17 +159,10 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * catálogo, así que resolverlo por fila serían N peticiones cruzando de módulo.
      */
     const lugaresPorComponente = ref<Record<string, string[]>>({});
-    // Nombre interno del componente maestro (id → nombre), del MISMO batch que los lugares.
-    // El nombre del componente no vive en el snapshot: viene del maestro, como sus lugares.
-    const nombreComponentePorMaestro = ref<Record<string, string>>({});
 
     // Contacto vivo de los proveedores del cuadro, por uuid de maestro. Lo llena
     // `resolverContactoDeProveedores()` en cada carga; ver su docblock.
     const contactoPorProveedor = ref<Record<string, ContactoProveedor>>({});
-    // Nombre interno (operativo) del segmento maestro, resuelto en vivo por su id. Para
-    // servicios mono-segmento sin plantilla: la fila muestra el nombre del segmento en vez
-    // del genérico del servicio. Se llena en cada carga, como los contactos de proveedor.
-    const nombreSegmentoPorMaestro = ref<Record<string, string>>({});
 
     // Panel de Reservas: listado de órdenes agrupadas
     const ordenesServicio = ref<OperacionOrdenServicio[]>([]);
@@ -226,7 +219,6 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             await Promise.all([
                 resolverLugaresDeServicios(),
                 resolverContactoDeProveedores(),
-                resolverNombresDeSegmento(),
                 resolverPuntosDeServicios(),
             ]);
         } catch (error) {
@@ -362,24 +354,20 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             const miembros = res.data['hydra:member'] || res.data['member'] || [];
 
             const mapa: Record<string, string[]> = {};
-            const mapaNombres: Record<string, string> = {};
 
             miembros.forEach((c: Record<string, unknown>) => {
                 const id = String(c.id ?? String(c['@id'] ?? '').split('/').pop() ?? '');
                 const iris = Array.isArray(c.lugares) ? (c.lugares as string[]) : [];
                 if (id) {
                     mapa[id] = iris.map((iri) => nombrePorIri.get(iri) ?? '').filter(Boolean);
-                    if (c.nombre) mapaNombres[id] = String(c.nombre);
                 }
             });
 
             lugaresPorComponente.value = mapa;
-            nombreComponentePorMaestro.value = mapaNombres;
         } catch (error) {
             // Los badges son decoración: si el catálogo falla, el cuadro sigue siendo usable.
             console.error('No se pudieron resolver las etiquetas de lugar:', error);
             lugaresPorComponente.value = {};
-            nombreComponentePorMaestro.value = {};
         }
     };
 
@@ -419,48 +407,24 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * («Adulto Extranjero») no dice si lo que se compró es un ticket o un guiado.
      */
     /**
-     * QUÉ es esta fila. Del SNAPSHOT primero, del maestro sólo como refuerzo.
+     * QUÉ es esta fila. **Del snapshot y de nada más.**
      *
-     * ⚠️ **Antes salía sólo del maestro, y por eso se perdía sin dejar rastro.** Se resolvía por
-     * `componenteMaestroId` contra `nombreComponentePorMaestro`, que se llena en el mismo lote que
-     * las etiquetas de lugar — y ese lote tiene un `catch` que lo vacía entero porque «los badges
-     * son decoración». En cuanto esa petición fallaba, esto devolvía `null`, la ficha caía al
-     * respaldo y **enseñaba el nombre del ITINERARIO como si fuera el servicio**: al que sólo hace
-     * el traslado Ollantaytambo→Cusco se le leía «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)».
+     * ⚠️ Salía del catálogo vivo, resuelto por `componenteMaestroId` en el mismo lote que las
+     * etiquetas de lugar — y ese lote tiene un `catch` que lo vacía entero porque «los badges son
+     * decoración». Cuando fallaba, esto devolvía `null`, la ficha caía al respaldo y **enseñaba el
+     * nombre del ITINERARIO como si fuera el servicio**. No dejaba un hueco: dejaba otro nombre, y
+     * se leía plausible.
      *
-     * No se nota porque no deja un hueco: deja otro nombre, y se lee plausible.
-     *
-     * Ahora el nombre viaja congelado en el snapshot (`OperacionServicio::$nombreComponente`), que
-     * es además lo que promete la Orden. El maestro queda para las filas emitidas antes de que el
-     * campo existiera. Si el catálogo se renombra, lo denuncia la reconciliación.
+     * Desde el 27/08/2026 el operativo se copia al snapshot al añadir el componente, igual que en
+     * servicio y tarifa, así que aquí sólo hay que leerlo. La deriva del catálogo la denuncia la
+     * reconciliación en vez de aplicarse a escondidas.
      */
-    const nombreComponenteDeServicio = (servicio: OperacionServicio): string | null => {
-        if (servicio.nombreComponente) {
-            return servicio.nombreComponente;
-        }
+    const nombreComponenteDeServicio = (servicio: OperacionServicio): string | null =>
+        servicio.nombreComponente || null;
 
-        const componente = servicio.cotizacionComponente as {
-            componenteMaestroId?: string;
-            nombreInternoSnapshot?: string | null;
-        } | undefined;
-
-        // ⚠️ El orden es ESPEJO de `BibliaSnapshotService::resolverNombreComponente()`: lo que
-        // escribió el operador manda sobre el maestro, no al revés. Una edición manual es una
-        // decisión sobre este expediente; el maestro es una plantilla, y si pudiera pisarla,
-        // corregir un nombre en la cotización no serviría de nada y el cambio desaparecería sin
-        // avisar. Estaba al revés hasta el 27/08/2026.
-        const manual = (componente?.nombreInternoSnapshot ?? '').trim();
-
-        if (manual !== '') {
-            return manual;
-        }
-
-        if (componente?.componenteMaestroId) {
-            return nombreComponentePorMaestro.value[componente.componenteMaestroId] ?? null;
-        }
-
-        return null;
-    };
+    /** DÓNDE encaja: el tramo, congelado igual que el componente y por el mismo motivo. */
+    const nombreSegmentoDeServicio = (servicio: OperacionServicio): string | null =>
+        servicio.nombreSegmento || null;
 
     /**
      * Teléfono y dirección de los proveedores del cuadro, EN UNA SOLA petición.
@@ -525,12 +489,6 @@ export const useOperacionStore = defineStore('operacionStore', () => {
     };
 
     /**
-     * Resuelve EN VIVO el nombre interno del segmento para las filas mono-segmento sin
-     * plantilla (las que el backend marca con `segmentoUnicoMaestroId`). Mismo patrón que los
-     * contactos de proveedor: batch por id contra el maestro, sin snapshot. El nombre interno
-     * homogeneizado (= nombre real del segmento) reemplaza al genérico del servicio en la fila.
-     */
-    /**
      * Lo que dice el CATÁLOGO sobre dónde recoge y deja cada servicio.
      *
      * Vive aparte de la fila porque es derivado, no del documento: corregir un segmento del
@@ -582,35 +540,6 @@ export const useOperacionStore = defineStore('operacionStore', () => {
         }
     };
 
-    const resolverNombresDeSegmento = async (): Promise<void> => {
-        const ids = new Set<string>();
-        servicios.value.forEach((s) => {
-            if (s.segmentoUnicoMaestroId) ids.add(s.segmentoUnicoMaestroId);
-        });
-
-        if (!ids.size) {
-            nombreSegmentoPorMaestro.value = {};
-            return;
-        }
-
-        try {
-            const query = Array.from(ids).map((id) => `id[]=${id}`).join('&');
-            const res = await apiClient.get(`/platform/travel/segmentos?${query}&pagination=false`);
-            const miembros = res.data['hydra:member'] || res.data['member'] || [];
-
-            const mapa: Record<string, string> = {};
-            miembros.forEach((sg: Record<string, unknown>) => {
-                const id = String(sg.id ?? String(sg['@id'] ?? '').split('/').pop() ?? '');
-                if (id && sg.nombreInterno) mapa[id] = String(sg.nombreInterno);
-            });
-
-            nombreSegmentoPorMaestro.value = mapa;
-        } catch (error) {
-            // Sin resolver, la fila se cae al nombre del servicio (contextoServicio): usable.
-            console.error('No se pudo resolver el nombre de los segmentos:', error);
-            nombreSegmentoPorMaestro.value = {};
-        }
-    };
 
     /**
      * El contacto de una organización, **siempre vivo desde el catálogo**.
@@ -652,10 +581,6 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * aplica (tiene plantilla, o 0/varios segmentos → manda el nombre del servicio). La vista
      * lo usa como título de la fila en vez del genérico.
      */
-    const nombreSegmentoDeServicio = (servicio: OperacionServicio): string | null => {
-        const id = servicio.segmentoUnicoMaestroId;
-        return id ? (nombreSegmentoPorMaestro.value[id] ?? null) : null;
-    };
 
     /**
      * Busca expedientes por nombre para el selector de filtros.

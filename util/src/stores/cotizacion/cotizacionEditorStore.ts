@@ -3000,6 +3000,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         id: nuevoId,
                         componenteMaestroId: compMaestro.id || compMaestro['@id'],
                         tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
+                        // El operativo viaja con el título: la ruta del nombre es una sola y no
+                        // depende de volver a preguntarle al catálogo. Ver docs/Cotizaciones.md §2.b.
+                        nombreInternoSnapshot: compMaestro.nombreInterno || null,
                         tipo: compMaestro.tipo || 'extras',
                         sinHorario: sinHorarioDeTipo(compMaestro.tipo),
                         cantidad: componentePadre.cantidad,
@@ -3576,6 +3579,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     id: crypto.randomUUID(),
                     componenteMaestroId: extractIdStr(compMaestro) || null,
                     tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
+                    // El operativo viaja con el título: la ruta del nombre es una sola y no
+                    // depende de volver a preguntarle al catálogo. Ver docs/Cotizaciones.md §2.b.
+                    nombreInternoSnapshot: compMaestro.nombreInterno || null,
                     tipo: tipoComp,
                     sinHorario,
                     // Propaga la promoción de la plantilla Travel: la hora de este
@@ -3694,6 +3700,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         orden: ordenMaximo,
                         fechaAbsoluta: fechaCalculada,
                         tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(seg))),
+                        nombreInternoSnapshot: nombreOperativoComoI18n(seg.nombreInterno),
                         contenidoSnapshot: JSON.parse(JSON.stringify(seg.contenido || [])),
                         notasSnapshot: extraerNotasSnapshot(seg),
                         imagenesSnapshot: extraerImagenesSnapshot(seg),
@@ -3735,6 +3742,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             orden: ordenNuevo,
             fechaAbsoluta: fechaCalculada,
             tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro))),
+            nombreInternoSnapshot: nombreOperativoComoI18n(segmentoMaestro.nombreInterno),
             contenidoSnapshot: JSON.parse(JSON.stringify(segmentoMaestro.contenido || [])),
             notasSnapshot: extraerNotasSnapshot(segmentoMaestro),
             imagenesSnapshot: extraerImagenesSnapshot(segmentoMaestro),
@@ -3832,6 +3840,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             segAfectado.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro)));
+            segAfectado.nombreInternoSnapshot = nombreOperativoComoI18n(segmentoMaestro.nombreInterno);
             segAfectado.contenidoSnapshot = JSON.parse(JSON.stringify(segmentoMaestro.contenido || []));
             segAfectado.notasSnapshot = extraerNotasSnapshot(segmentoMaestro);
             segAfectado.imagenesSnapshot = extraerImagenesSnapshot(segmentoMaestro);
@@ -3856,6 +3865,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 orden: 0,
                 fechaAbsoluta: fechaCalculada,
                 tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro))),
+                nombreInternoSnapshot: nombreOperativoComoI18n(segmentoMaestro.nombreInterno),
                 contenidoSnapshot: JSON.parse(JSON.stringify(segmentoMaestro.contenido || [])),
                 notasSnapshot: extraerNotasSnapshot(segmentoMaestro),
                 imagenesSnapshot: extraerImagenesSnapshot(segmentoMaestro),
@@ -3990,6 +4000,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             componente.tipo = maestro.tipo || 'extras';   // 🔥 snapshot autónomo del tipo
             componente.sinHorario = sinHorarioDeTipo(maestro.tipo);   // 🔥 snapshot del flag de horario
             componente.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+            componente.nombreInternoSnapshot = maestro.nombreInterno || null;
 
             const reqHora = !componente.sinHorario;
             const fechaDate = componente.fechaHoraInicio.split('T')[0];
@@ -4513,6 +4524,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const maestro = cotSeg.segmentoMaestroId ? mapaMaestros.get(cotSeg.segmentoMaestroId) : undefined;
                 if (maestro) {
                     cotSeg.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+                    cotSeg.nombreInternoSnapshot = nombreOperativoComoI18n(maestro.nombreInterno);
                     cotSeg.contenidoSnapshot = JSON.parse(JSON.stringify(maestro.contenido || []));
                     cotSeg.notasSnapshot = extraerNotasSnapshot(maestro);
                     cotSeg.imagenesSnapshot = extraerImagenesSnapshot(maestro);

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Operacion\Service;
 
-use App\Travel\Entity\TravelComponente;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionCotservicio;
@@ -224,6 +223,9 @@ class BibliaSnapshotService
             // QUÉ es la fila, aparte del itinerario donde encaja. Los dos a la vez y sin
             // desempatar: uno grande y otro pequeño. Ver `resolverNombreComponente()`.
             'nombreComponente'      => $this->resolverNombreComponente($cotcomponente),
+            // El tramo, congelado igual que el componente. Antes lo resolvía el navegador en
+            // vivo contra `travel_segmento.nombre_interno`, por `segmentoUnicoMaestroId`.
+            'nombreSegmento'        => $this->textoEspanol($cotcomponente->getCotsegmento()?->getNombreInternoSnapshot() ?? []),
             // Clasificación del componente: hoy no filtra nada — entra todo a La Biblia —
             // pero viaja en el snapshot para que la vista pueda agrupar, priorizar y
             // filtrar, y para poder definir después qué tipos son realmente despachables.
@@ -295,6 +297,10 @@ class BibliaSnapshotService
         }
         if ($aplica('nombreComponente')) {
             $ops->setNombreComponente($this->comoTexto($valores['nombreComponente']));
+        }
+
+        if ($aplica('nombreSegmento')) {
+            $ops->setNombreSegmento($this->comoTexto($valores['nombreSegmento']));
         }
 
         if ($aplica('contextoServicio')) {
@@ -514,58 +520,31 @@ class BibliaSnapshotService
     }
 
     /**
-     * El nombre OPERATIVO del componente: con el que lo llamamos nosotros al despacharlo.
+     * El nombre OPERATIVO del componente. **Todo sale del snapshot; el maestro no se consulta.**
      *
-     * ── El orden, que es lo único que importa aquí ──────────────────────────────
      * ```
-     * 1. nombreInternoSnapshot  lo que el operador ESCRIBIÓ en esta cotización
-     * 2. maestro->getNombreInterno()  el nombre operativo del catálogo
-     * 3. tituloSnapshot (es)    el título público, como último recurso
+     * 1. nombreInternoSnapshot  el operativo, copiado del maestro al añadirlo o escrito a mano
+     * 2. tituloSnapshot (es)    el público, último recurso para que la fila nunca quede sin nombre
      * ```
      *
-     * ⚠️ **Lo escrito a mano manda sobre el maestro, y no al revés.** Una edición manual es una
-     * decisión sobre ESTE expediente; el maestro es una plantilla. Si el catálogo pudiera pisarla,
-     * corregir un nombre en la cotización no serviría de nada y —peor— el cambio desaparecería sin
-     * avisar, porque la ficha seguiría enseñando algo plausible.
+     * ⚠️ **Hasta el 27/08/2026 el paso 1 iba al catálogo vivo.** Funcionaba, pero hacía que el
+     * nombre de la fila dependiera de una consulta que puede volver vacía —y cuando volvía vacía
+     * no dejaba un hueco, dejaba otro nombre plausible—. Ahora el operativo se copia al snapshot
+     * al añadir el componente, como ya hacían servicio y tarifa: **una sola ruta**, y la deriva
+     * del catálogo la denuncia la reconciliación en vez de aplicarse a escondidas.
      *
-     * ⚠️ **Pero los dos campos «snapshot» NO son la misma cosa**, y confundirlos cuesta caro:
-     *
-     * - `nombreInternoSnapshot` lo **escribe una persona**. Es una decisión, y por eso gana.
-     * - `tituloSnapshot` es una **copia del maestro** tomada el día que se cotizó. No es una
-     *   decisión de nadie: es una foto que envejece. Si ganara, un componente cuyo maestro se
-     *   renombró seguiría enseñando el nombre viejo para siempre — que es exactamente el caso del
-     *   vuelo genérico: su copia dice «Ticket aereo» y el maestro ya dice «Vuelo Lima Cusco».
-     *
-     * Por eso el manual va PRIMERO y la copia va ÚLTIMA, con el maestro en medio.
-     *
-     * ── Y no comparte cadena con `resolverDescripcion()` ────────────────────────
-     * Aquélla resuelve **cómo llama el proveedor a lo que le compras**, y en los componentes de
-     * catálogo se queda en la variante de tarifa («Auto», «Adulto extranjero»). Esto resuelve
-     * **qué es**. Los dos hacen falta a la vez, igual que `tarifaNombre`.
+     * No comparte cadena con `resolverDescripcion()`, que resuelve **cómo llama el proveedor a lo
+     * que le compras** y en los de catálogo se queda en la variante de tarifa («Auto»). Esto
+     * resuelve **qué es**. Los dos hacen falta a la vez.
      */
     public function resolverNombreComponente(CotizacionCotcomponente $componente): ?string
     {
-        // 1. Lo que escribió el operador para ESTE expediente. Manda sobre todo lo demás.
-        $manual = trim($componente->getNombreInternoSnapshot() ?? '');
+        $operativo = trim($componente->getNombreInternoSnapshot() ?? '');
 
-        if ($manual !== '') {
-            return $manual;
+        if ($operativo !== '') {
+            return $operativo;
         }
 
-        // 2. El catálogo, que es el vocabulario compartido y está vivo.
-        $maestroId = trim($componente->getComponenteMaestroId() ?? '');
-
-        if ($maestroId !== '') {
-            $maestro   = $this->em->getRepository(TravelComponente::class)->find($maestroId);
-            $operativo = trim($maestro?->getNombreInterno() ?? '');
-
-            if ($operativo !== '') {
-                return $operativo;
-            }
-        }
-
-        // 3. La copia congelada del título público. Último recurso: envejece, pero es mejor que
-        //    dejar la fila sin nombre.
         return $this->textoEspanol($componente->getTituloSnapshot());
     }
 

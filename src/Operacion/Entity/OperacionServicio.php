@@ -424,6 +424,22 @@ class OperacionServicio
     private ?string $nombreComponente = null;
 
     /**
+     * El nombre OPERATIVO del tramo al que pertenece la fila, congelado.
+     *
+     * «Transporte Aeropuerto Cusco - Hotel Cusco». Es lo que se enseña en pequeño bajo el nombre
+     * del componente, y lo único que dice de qué vuelo o traslado concreto se habla cuando el
+     * componente se llama en genérico («Ticket aereo»).
+     *
+     * ⚠️ Antes lo resolvía el navegador **en vivo** contra el maestro, por
+     * `getSegmentoUnicoMaestroId()`, y con el mismo `catch` que ya borró el nombre del componente.
+     * Ahora viaja congelado desde `CotizacionSegmento::$nombreInternoSnapshot`: una sola ruta para
+     * los dos nombres.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $nombreSegmento = null;
+
+    /**
      * Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum).
      *
      * Se guarda como string suelto y no como enumType porque el origen también lo es
@@ -1007,6 +1023,9 @@ class OperacionServicio
 
     public function getNombreComponente(): ?string { return $this->nombreComponente; }
     public function setNombreComponente(?string $v): self { $this->nombreComponente = $v; return $this; }
+
+    public function getNombreSegmento(): ?string { return $this->nombreSegmento; }
+    public function setNombreSegmento(?string $v): self { $this->nombreSegmento = $v; return $this; }
 
     public function getTipoComponente(): ?string { return $this->tipoComponente; }
     public function setTipoComponente(?string $tipoComponente): self { $this->tipoComponente = $tipoComponente; return $this; }
