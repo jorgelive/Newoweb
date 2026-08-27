@@ -1127,10 +1127,22 @@ referencias ni cancelados, y nada que ya esté en otra orden.
 La ficha y la orden enseñan **dos nombres a la vez**, y son datos distintos:
 
 ```
-GRANDE   nombreComponente    QUÉ hay que hacer   «Transporte desde Estación de Ollantaytambo a Cusco»
+GRANDE   nombreComponente    QUÉ hay que hacer   «Transporte Aeropuerto Cusco - Hotel Cusco»
 al lado  descripcionServicio la VARIANTE          «Auto»  (tarifa: auto / van / bus)
-pequeño  contextoServicio    DÓNDE encaja         «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)»
+pequeño  contextoServicio    DÓNDE encaja         «Transporte en Cusco» / «Full Day HUAYNA…»
 ```
+
+⚠️ **El nombre grande es el OPERATIVO del maestro (`TravelComponente::$nombre`), no el público.**
+Son tres nombres distintos y es fácil coger el que no es:
+
+| | ejemplo | para qué |
+|---|---|---|
+| operativo (maestro) | «Transporte Aeropuerto Cusco - Hotel Cusco» | **el que va en grande**: con el que despachamos |
+| público (`nombreSnapshot`) | «Transporte» | prosa de cliente, y **a veces genérico** |
+| del segmento | «Transporte desde el Aeropuerto de Cusco al hotel en Cusco» | el itinerario, va en pequeño |
+
+El público parece buen candidato porque en muchos componentes es descriptivo, pero en éste es
+«Transporte» a secas — y con él la ficha decía «Transporte» sin más. La regla es el operativo.
 
 ⚠️ **Ninguno es respaldo del otro.** Que el itinerario pudiera subir a la ranura grande cuando
 faltaba el componente es el fallo entero: un traslado de Ollantaytambo a Cusco se anunciaba como
@@ -1153,7 +1165,7 @@ manda al proveedor sólo tenía la variante de tarifa. Le llegaron órdenes que 
 «Hotel 4 estrellas por grupo» como encargo completo.
 
 Ahora se congela en `OperacionServicio::$nombreComponente` (`BibliaSnapshotService::resolverNombreComponente()`:
-nombre público en español → nombre interno) y se copia a la línea al emitir. El maestro queda como
+operativo del maestro → interno propio, que sólo tienen los manuales → público como último recurso) y se copia a la línea al emitir. El maestro queda como
 refuerzo para las filas anteriores al campo, y la deriva la denuncia la reconciliación, que ya lo
 tiene en `ETIQUETAS`.
 
@@ -1172,7 +1184,10 @@ que respondiera además a *«qué es esto»*, que es otra pregunta. En los compo
 campo trae la variante («Auto», «Adulto extranjero», «Extranjero») porque nombra la línea de
 precio, no el servicio.
 
-Backfill: `app:operacion:backfill-nombre-componente` (idempotente, con `--dry-run`).
+Backfill: `app:operacion:backfill-nombre-componente` (idempotente, con `--dry-run` y
+`--rehacer`). **Calcula con el mismo resolutor, no con SQL propio**: la primera versión
+repetía la regla en SQL y se equivocó de nombre — cogía el público. Una regla escrita dos
+veces se arregla una vez y se queda mal en la otra.
 
 #### La suma se calcula en el servidor, no en la pantalla
 

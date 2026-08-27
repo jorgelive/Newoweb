@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\Service;
 
+use App\Travel\Entity\TravelComponente;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionCotservicio;
@@ -513,24 +514,42 @@ class BibliaSnapshotService
     }
 
     /**
-     * El nombre PÚBLICO del componente, que es el que dice qué se hace.
+     * El nombre OPERATIVO del componente: con el que lo llamamos nosotros al despacharlo.
      *
-     * No comparte cadena con `resolverDescripcion()` y no es su respaldo: aquélla resuelve
-     * **cómo llama el proveedor a lo que le compras** —y en los componentes de catálogo se queda
-     * en la variante de tarifa: «Auto», «Adulto extranjero», «Extranjero»—, mientras que esto
-     * resuelve **qué es**. Los dos hacen falta a la vez, igual que `tarifaNombre`.
+     * «Transporte Aeropuerto Cusco - Hotel Cusco». **No el público** —«Transporte desde el
+     * Aeropuerto de Cusco al hotel en Cusco»—, que es prosa para el cliente y además a veces es
+     * genérico: ese mismo componente tiene «Transporte» a secas de nombre público, y con él la
+     * ficha decía «Transporte» sin más.
      *
-     * Primero el nombre público y después el interno: el interno sólo lo tienen los componentes
-     * manuales, y el documento que sale de aquí lo lee el proveedor, no nosotros.
+     * No comparte cadena con `resolverDescripcion()` ni es su respaldo: aquélla resuelve **cómo
+     * llama el proveedor a lo que le compras** y en los componentes de catálogo se queda en la
+     * variante de tarifa («Auto», «Adulto extranjero»). Esto resuelve **qué es**. Los dos hacen
+     * falta a la vez, igual que `tarifaNombre`.
+     *
+     * El orden es el del despacho: el maestro manda porque es el vocabulario compartido del
+     * catálogo; el interno propio sólo lo tienen los manuales; y el público es el último recurso,
+     * para que la fila nunca se quede sin nombre.
      */
     public function resolverNombreComponente(CotizacionCotcomponente $componente): ?string
     {
-        $publico = $this->textoEspanol($componente->getNombreSnapshot());
-        if ($publico !== null && $publico !== '') {
-            return $publico;
+        $maestroId = trim($componente->getComponenteMaestroId() ?? '');
+
+        if ($maestroId !== '') {
+            $maestro = $this->em->getRepository(TravelComponente::class)->find($maestroId);
+            $operativo = trim($maestro?->getNombre() ?? '');
+
+            if ($operativo !== '') {
+                return $operativo;
+            }
         }
 
-        return trim($componente->getNombreInternoSnapshot() ?? '') ?: null;
+        $propio = trim($componente->getNombreInternoSnapshot() ?? '');
+
+        if ($propio !== '') {
+            return $propio;
+        }
+
+        return $this->textoEspanol($componente->getNombreSnapshot());
     }
 
     /**
