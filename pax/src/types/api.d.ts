@@ -7399,6 +7399,7 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
+            id?: string;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -7440,6 +7441,7 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
+            id?: string;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -7723,6 +7725,7 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
+            id?: string;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -7764,6 +7767,7 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
+            id?: string;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8050,6 +8054,7 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
+            id?: string;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8092,6 +8097,7 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
+            id?: string;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8375,6 +8381,7 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
+            id?: string;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8416,6 +8423,7 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
+            id?: string;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;

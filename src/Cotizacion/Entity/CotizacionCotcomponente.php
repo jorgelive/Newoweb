@@ -381,7 +381,20 @@ class CotizacionCotcomponente
         }
     }
 
-    #[Groups(['cotizacion:read', 'cotizacion:item:read'])]
+    /**
+     * ⚠️ **`pax_cotizacion:read` hace falta y no estaba.** La guía del huésped une cada línea de
+     * inclusión con su componente vivo para pintar la tarjeta del hotel, y el puente es este id
+     * (`proveedorPorComponente` en `PaxCotizacionGuiaView`). Sin él, el mapa se construía entero
+     * bajo la clave `undefined` y la búsqueda no acertaba nunca: **la tarjeta del prestador no se
+     * ha mostrado jamás**, por mucho que el backend la inyectara correctamente.
+     *
+     * No fallaba nada — ni un error, ni un hueco raro: simplemente no salía el bloque, que es
+     * indistinguible de «este componente no tiene proveedor que enseñar».
+     *
+     * `CotizacionSegmento` y `CotizacionCotservicio` sí lo declaraban; éste era el que faltaba.
+     * Y no expone nada nuevo: el `@id` de JSON-LD ya lleva el mismo uuid.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     public function getId(): ?Uuid { return $this->id; }
 
     #[Groups(['cotizacion:write'])]
