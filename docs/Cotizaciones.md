@@ -50,15 +50,15 @@ CotizacionFile (expediente)
 También: `Cotizacion.catalogo` (ManyToOne `CotizacionCatalogo`, modo catálogo de tours), `CotizacionFiledocumento`, `CotizacionFilepasajero`.
 
 ### Concepto clave: "snapshots"
-Cada nodo guarda **copias congeladas** (`*Snapshot`) tomadas de los **maestros** del catálogo al momento de agregarlo. Ej: `nombreSnapshot`, `tituloSnapshot`, `montoCosto`, `modalidadSnapshot`. Editar el maestro luego **no** cambia lo ya cotizado (salvo re-sincronización explícita).
+Cada nodo guarda **copias congeladas** (`*Snapshot`) tomadas de los **maestros** del catálogo al momento de agregarlo. Ej: `tituloSnapshot`, `nombreInternoSnapshot`, `montoCosto`, `modalidadSnapshot`. Editar el maestro luego **no** cambia lo ya cotizado (salvo re-sincronización explícita).
 
-- El **nombre interno** de un componente **no** está en su snapshot: viene del **maestro** (`componenteMaestroId` → `catalogos.allComponentes[].nombre`). Siempre existe.
-- `nombreSnapshot` del componente = **título público** (opcional; para el cliente). Un componente sin `nombreSnapshot` es un "contenedor solo-ítems" (`isComponenteSoloItems`).
+- El **nombre interno** de un componente **no** está en su snapshot: viene del **maestro** (`componenteMaestroId` → `catalogos.allComponentes[].nombreInterno`). Siempre existe.
+- `tituloSnapshot` del componente = **título público** (opcional; para el cliente). Un componente sin `tituloSnapshot` es un "contenedor solo-ítems" (`isComponenteSoloItems`).
 
 ### El nombre de un SEGMENTO: un solo campo, y por qué no se contamina (2026-08-17)
 
 A diferencia del servicio —que tiene tres nombres (código, operativo, comercial)—, un
-`CotizacionSegmento` tiene **uno solo**: `nombreSnapshot`. No hay `nombrePublicoSnapshot`
+`CotizacionSegmento` tiene **uno solo**: `tituloSnapshot`. No tiene nombre interno propio
 separado. El motivo es semántico: un segmento es **narrativa para el pasajero** (storytelling),
 no algo que se le pida a un proveedor. No tiene un «lado interno» distinto del público.
 
@@ -67,7 +67,7 @@ no algo que se le pida a un proveedor. No tiene un «lado interno» distinto del
 Chinchero»). El snapshot toma `getTituloSafe(seg)` = el **título**. Por eso NO está
 contaminado con el código: éste se queda en el catálogo, igual que el slug del itinerario.
 
-El título se copia a `nombreSnapshot` en **cuatro** puntos del store, que son todas las formas
+El título se copia a `tituloSnapshot` en **cuatro** puntos del store, que son todas las formas
 de meter un segmento en el servicio:
 
 | Función | Cuándo |
@@ -77,14 +77,14 @@ de meter un segmento en el servicio:
 | `procesarInsercionSegmento()` (replace) | sustituir un segmento por otro |
 | `procesarInsercionSegmento()` (insert/append) | insertar o encolar un segmento |
 
-**Quién lo lee:** el `nombreSnapshot` del segmento está en `pax_cotizacion:read` —el cliente
+**Quién lo lee:** el `tituloSnapshot` del segmento está en `pax_cotizacion:read` —el cliente
 SÍ lo ve— y lo pinta la app pax (`PaxCotizacionGuiaView`, cuatro usos). En el editor, la lista
 del itinerario lo usaba como nombre del servicio **sólo cuando el servicio no tenía plantilla**
 (sin plantilla → se listan los segmentos; con plantilla → manda el nombre del servicio).
 
 **Conclusión: el segmento NO necesita el tratamiento del servicio.** Su nombre ya es el título
 comercial legible que ve el cliente, en un solo eje. La dualidad interno/operativo del servicio
-—que obligó a separar `nombreSnapshot` del título— aquí no existe ni hace falta. El código del
+—que obligó a separar el nombre interno del título— aquí no existe ni hace falta. El código del
 segmento (`nombreInterno`) sólo molesta, si acaso, en EasyAdmin; no viaja a ninguna cotización.
 
 #### Segmento homogeneizado + el servicio mono-segmento (2026-08-17)
@@ -102,7 +102,7 @@ Cusco», «Vuelo»), donde los tres nombres del servicio fallan a la vez.
 **2) Por qué importa en el editor.** Para un servicio con **un solo segmento y sin plantilla**:
 - el nombre OPERATIVO del servicio es genérico y no dice qué cosa es;
 - el nombre PÚBLICO del servicio **se descarta** en la vista del cliente: `PaxCotizacionGuiaView`
-  sólo pinta `nombrePublicoSnapshot` del servicio cuando `totalSegmentosServicio > 1`
+  sólo pinta `tituloSnapshot` del servicio cuando `totalSegmentosServicio > 1`
   (`mostrarTituloServicio`); con un segmento, el cliente ve el título del **segmento**, no el del
   servicio;
 - el que carga el significado es el segmento.
@@ -116,7 +116,7 @@ las vistas de operador muestran el segmento en lugar del nombre genérico:
 - En la **card de la lista**, el nombre grande pasa a ser el título del segmento y debajo su
   `nombreInterno`.
 - El `nombreInterno` del segmento **no está en el snapshot**: se lee del maestro vivo en
-  `catalogos.poolSegmentos` (helper `segmentoUnicoMaestro`), con fallback al `nombreSnapshot['es']`
+  `catalogos.poolSegmentos` (helper `segmentoUnicoMaestro`), con fallback al `tituloSnapshot['es']`
   si el pool no cargó.
 - **Reactivo**: aplicar una plantilla (setea `itinerarioMaestroId`) o añadir un 2º segmento (sube
   el `length`) desactiva la condición y devuelven los inputs editables, solo.
@@ -179,8 +179,8 @@ Tras el análisis de la asimetría (abajo), el modelo quedó en tres ejes limpio
 | Eje | Campo | Idioma | Editable | Cliente lo ve |
 |---|---|---|---|---|
 | **Código / slug** | `TravelItinerario.slug` (maestro) | uno | EasyAdmin | no |
-| **Operativo** (interno + proveedor) | `nombreSnapshot` (cotservicio) | **uno (es)** | ✅ sí (cotizador) | no |
-| **Comercial** | `nombrePublicoSnapshot` (cotservicio) | i18n (7) | ✅ sí | ✅ sí |
+| **Operativo** (interno + proveedor) | `nombreInternoSnapshot` (cotservicio) | **uno (es)** | ✅ sí (cotizador) | no |
+| **Comercial** | `tituloSnapshot` (cotservicio) | i18n (7) | ✅ sí | ✅ sí |
 
 Cambios que lo implementaron:
 
@@ -188,19 +188,19 @@ Cambios que lo implementaron:
   `nombreInterno` a un campo propio, copiado. En EasyAdmin el slug va primero y `nombreInterno`
   —ahora un nombre operativo de verdad— a continuación. `nombreInterno` se queda con el código
   hasta que se edite plantilla por plantilla.
-- **`nombreSnapshot` = nombre operativo, no título.** Nace del `nombreInterno` del servicio; al
+- **`nombreInternoSnapshot` = nombre operativo, no título.** Nace del `nombreInterno` del servicio; al
   aplicar plantilla se transforma en el `nombreInterno` de la plantilla (más específica). En un
   solo idioma —al proveedor se le habla en uno— vía `nombreOperativoComoI18n`. Ya no se copia
   del título ni el título se copia de él.
 - **Editable en el cotizador**: campo «Nombre operativo» propio, separado del «Nombre Público».
   Antes salía bloqueado con candado.
 
-⚠️ **`nombreSnapshot` sigue con `#[AutoTranslate]` en la entidad**, pero se llena con un solo
+⚠️ **`nombreInternoSnapshot` sigue con `#[AutoTranslate]` en la entidad**, pero se llena con un solo
 idioma a propósito. Si se quiere prohibir la traducción de raíz, hay que quitarle el atributo
 —decisión pendiente, no bloquea—.
 
-La Biblia (`contextoServicio`) lee `nombreSnapshot`, así que el operador ve ahora el nombre
-operativo, no el título comercial. Las cotizaciones existentes conservan su `nombreSnapshot`
+La Biblia (`contextoServicio`) lee `nombreInternoSnapshot`, así que el operador ve ahora el nombre
+operativo, no el título comercial. Las cotizaciones existentes conservan su `nombreInternoSnapshot`
 viejo (título) hasta que se reediten: sólo cambia el comportamiento de las nuevas.
 
 ### ⚠️ Los tres nombres de un SERVICIO, y la asimetría interno/público (2026-08-17)
@@ -209,23 +209,23 @@ Un `CotizacionCotservicio` tiene **tres** campos de nombre, y no dan lo mismo:
 
 | Campo | Qué es | Grupo | Editable |
 |---|---|---|---|
-| `nombreSnapshot` | Nombre del servicio del catálogo. **INTERNO** (Biblia, voucher) | no pax | ❌ bloqueado (candado) |
+| `nombreInternoSnapshot` | Nombre del servicio del catálogo. **INTERNO** (Biblia, voucher) | no pax | ❌ bloqueado (candado) |
 | `itinerarioNombreSnapshot` | Nombre de la **plantilla** (`TravelItinerario`) aplicada. Interno | no pax | ❌ sólo etiqueta |
-| `nombrePublicoSnapshot` | **TÍTULO público** (lo ve el cliente) | pax | ✅ sí |
+| `tituloSnapshot` | **TÍTULO público** (lo ve el cliente) | pax | ✅ sí |
 
 **La plantilla es más específica que el servicio, y por eso debe ganar.** Un servicio genérico
 «Alojamiento» tomado de la plantilla «Alojamiento en Lima» debería llamarse por la plantilla,
 no por el genérico. Cómo está hoy:
 
-| | Título PÚBLICO (`nombrePublicoSnapshot`) | Nombre INTERNO (`nombreSnapshot`) |
+| | Título PÚBLICO (`tituloSnapshot`) | Nombre INTERNO (`nombreInternoSnapshot`) |
 |---|---|---|
 | Override de la plantilla al aplicarla | ✅ **sí** (`aplicarPlantilla`, store: se copia el título del itinerario) | ❌ **no** — queda el genérico del servicio |
-| Fallback al servicio si no hay plantilla | ✅ sí (`nombrePublicoSnapshot \|\| nombreSnapshot`) | (es el propio servicio) |
+| Fallback al servicio si no hay plantilla | ✅ sí (`tituloSnapshot \|\| nombreInternoSnapshot`) | (es el propio servicio) |
 | Editable en la cotización | ✅ sí (input) | ❌ **no** — sale con candado (`servicioMaestroId` + componentes ⇒ bloqueado) |
 
 **El hueco, confirmado (lo reportó Jorge, 2026-08-17):**
 
-1. **El nombre interno NO recibe el override de la plantilla.** El público sí (`nombrePublicoSnapshot`
+1. **El nombre interno NO recibe el override de la plantilla.** El público sí (`tituloSnapshot`
    se sobrescribe con el título del itinerario al aplicarlo); el interno se queda con el nombre
    genérico del servicio. Y ese interno es el que usa **La Biblia** (`contextoServicio` =
    `getNombreSnapshot()`) y el que alimenta el voucher — así que el operador ve «Alojamiento» y
@@ -236,13 +236,13 @@ no por el genérico. Cómo está hoy:
 **Corrección propuesta (no aplicada — cambia el comportamiento de nombres):**
 
 - El nombre interno efectivo debería resolverse con la misma prioridad que el público:
-  `plantilla (itinerarioNombreSnapshot) → servicio (nombreSnapshot)`. Un helper único que las dos
+  `plantilla (itinerarioNombreSnapshot) → servicio (nombreInternoSnapshot)`. Un helper único que las dos
   caras usen, para que no vuelvan a divergir.
 - Hacer editable el nombre interno del servicio en la cotización, con la plantilla como valor
   sembrado y el servicio como fallback — igual que ya funciona el título público.
 
 Dónde vive cada pieza: se aplica la plantilla en `cotizacionEditorStore.aplicarPlantilla()`
-(copia título → `itinerarioNombreSnapshot` y `nombrePublicoSnapshot`, NO `nombreSnapshot`); el
+(copia título → `itinerarioNombreSnapshot` y `tituloSnapshot`, NO `nombreInternoSnapshot`); el
 nombre interno lo lee `BibliaSnapshotService::calcularValores()` (`contextoServicio`).
 
 ### Textos i18n
@@ -277,118 +277,97 @@ Los textos multi-idioma son `I18nContent[]` = `[{ language, content }]`.
 
 ---
 
-## 2.b Los CUATRO `nombreSnapshot`, y cuál lee cada vista (27/08/2026)
+## 2.b `tituloSnapshot` y `nombreInternoSnapshot`: el vocabulario (27/08/2026)
 
-Tres niveles del árbol tienen un campo llamado **`nombreSnapshot`**, y el componente además tiene
-**`nombreInternoSnapshot`**. Se llaman casi igual, ninguno decía qué era, y confundirlos es lo que
-hizo que La Biblia enseñara el itinerario en el sitio del servicio.
+Todo el árbol usa **dos nombres y sólo dos**, con el mismo significado en todas partes:
 
 ```
 Cotizacion
 └── CotizacionCotservicio   el DÍA
-        nombreSnapshot          → INTERNO   «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)»
-        nombrePublicoSnapshot   → PÚBLICO   «Excursión a Huayna Picchu de 1 día»
+        nombreInternoSnapshot  → INTERNO   «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)»
+        tituloSnapshot         → PÚBLICO   «Excursión a Huayna Picchu de 1 día»
     ├── CotizacionSegmento   el TRAMO
-    │       nombreSnapshot          → PÚBLICO   «Vuelo desde la ciudad de Lima a Cusco»
+    │       tituloSnapshot         → PÚBLICO   «Vuelo desde la ciudad de Lima a Cusco»
     └── CotizacionCotcomponente   lo que se COMPRA
-            nombreInternoSnapshot   → INTERNO   «Traslado a la Huacachina»
-            nombreSnapshot          → PÚBLICO   «Ticket aereo»
+            nombreInternoSnapshot  → INTERNO   «Traslado a la Huacachina»
+            tituloSnapshot         → PÚBLICO   «Ticket aereo»
 ```
 
-🔴 **`nombreSnapshot` significa LO CONTRARIO según la entidad.** En componente y segmento es el
-**público**; en cotservicio es el **interno**, y el público vive aparte en `nombrePublicoSnapshot`.
-No es una sutileza de matiz: son textos distintos —«Full Day HUAYNA: MAPI OLLA CUZ (bimodal)»
-frente a «Excursión a Huayna Picchu de 1 día»— y uno de ellos va al cliente.
+Y los maestros, con el mismo par: `nombreInterno` + `titulo`, en **`TravelComponente`**,
+`TravelSegmento`, `TravelTarifa` y `TravelServicio`.
 
-Quien lea `->getNombreSnapshot()` sin saber sobre qué entidad está, acierta o se equivoca según
-dónde caiga, y en los dos casos obtiene un texto que se lee bien. Es el mismo patrón que ya costó
-caro dos veces esta semana: **no falla, devuelve otra cosa plausible.**
+### Cómo distinguirlos sin memorizar nada
 
-⚠️ Y el nombre correcto **ya existe en el propio código**: `CotizacionCottarifa` tiene el par bien
-puesto, `$tituloSnapshot` + `$nombreInternoSnapshot`. Si algún día se unifica, ése es el molde —
-`tituloSnapshot` en componente y segmento, `nombreInternoSnapshot` en cotservicio— y no hay que
-inventar vocabulario nuevo.
+**Si está traducido, es para el cliente. Si es un `string` pelado, es para nosotros.** Está en la
+firma:
+
+| campo | tipo | traducido |
+|---|---|---|
+| `tituloSnapshot` / `titulo` | `json` + `#[AutoTranslate]` | **7 idiomas** |
+| `nombreInternoSnapshot` / `nombreInterno` | `string` o `json` sin atributo | sólo español |
+
+De ahí sale, sin más argumento, por qué el interno manda en La Biblia: el cuadro de tráfico lo
+leemos nosotros, no el huésped. Y por qué el título llega a `pax`: para eso está en siete idiomas.
+
+⚠️ **Escribir un `tituloSnapshot` por SQL lo deja sólo en español**, porque `AutoTranslate` cuelga
+de `prePersist`/`preUpdate`. En los internos da igual.
 
 ### De dónde sale cada uno
 
-**Lo compone el EDITOR, y PHP no lo toca nunca.** No hay ningún `setNombreSnapshot()` llamado desde
-el servidor: los únicos setters son los de las propias entidades, y `CotizacionDenormalizer` sólo
-inyecta ids para poder actualizar el JSON — el valor viaja hecho en el payload.
+**Lo compone el EDITOR, y PHP no lo toca nunca.** No hay ningún `setTituloSnapshot()` llamado desde
+el servidor: el valor viaja hecho en el payload.
 
 ```
 TravelComponente.titulo        (maestro · PÚBLICO · 7 idiomas)
         │  getTituloSafe() + copia profunda, al añadir del catálogo
         ▼
-CotizacionCotcomponente.nombreSnapshot     ← y aquí se queda congelado
+CotizacionCotcomponente.tituloSnapshot     ← y aquí se queda congelado
 ```
 
-| Qué añades | Fuente del `nombreSnapshot` |
+| Qué añades | Fuente del `tituloSnapshot` |
 |---|---|
 | Componente del catálogo | `TravelComponente.titulo` |
 | Segmento del catálogo | `TravelSegmento.titulo` |
 | Servicio nuevo | literal «Nuevo Servicio» |
-| Inclusión nueva | literal «Nueva inclusión» |
 | Componente manual | `[]` — lo escribe el operador |
 
-⚠️ **Copia `titulo`, nunca `nombre`.** Y ésa es la raíz de todo el episodio de los nombres: el
-operativo del maestro **jamás entra en la cotización**, así que La Biblia no puede sacarlo del
-snapshot y tiene que ir a buscarlo al catálogo. No es un descuido — es coherente con la regla de
-arriba: al snapshot sólo baja lo traducido, porque es lo que verá el cliente.
+⚠️ **Copia `titulo`, nunca `nombreInterno`.** Por eso el nombre operativo del maestro no entra en la
+cotización y La Biblia tiene que ir a buscarlo al catálogo
+(`BibliaSnapshotService::resolverNombreComponente()`).
 
-⚠️ **Es una copia PROFUNDA** (`JSON.parse(JSON.stringify(...))`), y ahí está el «snapshot»:
-desengancha el texto del maestro a propósito, para que renombrar el catálogo no reescriba una
-cotización ya enviada. El precio es el otro lado de la misma moneda — un maestro renombrado deja
-copias viejas para siempre, que es por qué el vuelo seguía diciendo «Ticket aereo» cuando su
-maestro ya decía «Vuelo Lima Cusco». Congelar y envejecer son la misma propiedad vista de los dos
-lados.
-
-### Cómo distinguirlos sin memorizar nada
-
-**Si está traducido, es para el cliente. Si es un `string` pelado, es para nosotros.** La
-diferencia está en la firma y no hay que recordarla:
-
-| campo | tipo | traducido |
-|---|---|---|
-| los tres `nombreSnapshot` | `json` + `#[AutoTranslate]` | **7 idiomas** |
-| `nombreInternoSnapshot` | `string`, sin atributo | sólo español |
-
-De ahí sale, sin más argumento, por qué el interno manda en La Biblia: el cuadro de tráfico lo
-leemos nosotros, no el huésped, así que quiere el texto que **no** se traduce. Y por qué el
-público llega hasta `pax`: para eso está en siete idiomas.
-
-⚠️ Consecuencia práctica: **escribir en un `nombreSnapshot` por SQL lo deja sólo en español**,
-porque `AutoTranslate` cuelga de `prePersist`/`preUpdate`. En `nombreInternoSnapshot` da igual.
-Es la misma regla de la tabla «migración vs. comando» de `CLAUDE.md`, aplicada a estos campos.
+⚠️ **Es copia PROFUNDA**, y ahí está el «snapshot»: desengancha el texto para que renombrar el
+catálogo no reescriba una cotización enviada. Congelar y envejecer son la misma propiedad vista de
+los dos lados — por eso un vuelo podía seguir diciendo «Ticket aereo» con el maestro ya renombrado.
 
 ### Quién lee cada uno
 
 | Campo | La Biblia / Órdenes | Editor (`util`) | Huésped (`pax`) |
 |---|---|---|---|
-| **Cotservicio**`.nombreSnapshot` (interno) | sí → se congela como `contextoServicio`, el renglón pequeño | sí | no |
-| **Cotservicio**`.nombrePublicoSnapshot` | no | sí | **sí** |
-| **Segmento**`.nombreSnapshot` | **no** (ver aviso) | sí | sí — `PaxCotizacionGuiaView` |
-| **Cotcomponente**`.nombreSnapshot` | sólo como último recurso del nombre | sí | sí |
+| **Cotservicio**`.nombreInternoSnapshot` | sí → se congela como `contextoServicio` | sí | no |
+| **Cotservicio**`.tituloSnapshot` | no | sí | **sí** |
+| **Segmento**`.tituloSnapshot` | **no** (ver aviso) | sí | sí |
+| **Cotcomponente**`.tituloSnapshot` | sólo como último recurso del nombre | sí | sí |
 | **Cotcomponente**`.nombreInternoSnapshot` | **sí, y manda sobre todo** | sí | no |
 
 ⚠️ **El nombre de segmento que ve el tráfico NO sale del snapshot.** La Biblia lo resuelve en vivo
 contra el maestro (`travel_segmento.nombre_interno`, vía `OperacionServicio::getSegmentoUnicoMaestroId()`)
-porque quiere el nombre **operativo**, mientras que el snapshot guarda el **público**. Son dos
-textos distintos para la misma cosa y conviven a propósito: «Transporte Aeropuerto Cusco - Hotel
-Cusco» frente a «Transporte desde el Aeropuerto de Cusco al hotel en Cusco».
+porque quiere el **operativo**, mientras el snapshot guarda el **público**. Dos textos distintos
+para la misma cosa, a propósito: «Transporte Aeropuerto Cusco - Hotel Cusco» frente a «Transporte
+desde el Aeropuerto de Cusco al hotel en Cusco».
 
-### Por qué NO se llama `nombreMaestroSnapshot`
+### Lo que NO se renombró, y por qué
 
-Sería el nombre natural —197 de 199 componentes lo tienen copiado del catálogo— pero **mentiría en
-los otros 2**: los componentes manuales no tienen maestro y ahí lo escribe el operador. Lo que de
-verdad separa los dos campos del componente no es su origen sino **para quién son**: uno es
-operativo y otro es público. Si algún día se renombra, `nombrePublicoSnapshot` es el que no falla
-en ningún caso.
+`snapshotItems[].nombreSnapshot` sigue llamándose así. **No es una columna: es contenido dentro de
+un JSON**, así que cambiarle el nombre no es una migración de esquema sino reescribir el dato de
+cada fila. Queda pendiente y anotado; es el único sitio del proyecto donde `nombreSnapshot`
+sobrevive.
 
-### Dónde está escrito, por si se toca
+### Cómo era antes (por si aparece en una rama vieja)
 
-`util/` sólo lo usa el **editor** (`cotizacionEditorStore.ts`, `CotizacionEditorView.vue`,
-`cotizacionEditorModel.ts`) y `pax/` sólo la **guía del cliente** (`PaxCotizacionGuiaView.vue`,
-`paxCotizacionModel.ts`). Todo lo demás que aparece en un grep es `api.d.ts`, que se regenera.
+`nombreSnapshot` guardaba el **público** en componente y segmento, y el **interno** en cotservicio
+—donde el público vivía en `nombrePublicoSnapshot`—. `->getNombreSnapshot()` devolvía una cosa u
+otra según la entidad, y en ambos casos un texto que se lee bien: no fallaba, devolvía otra cosa.
+`TravelComponente` era además el único maestro que llamaba `nombre` a su nombre interno.
 
 ## 3. Tarifas (`CotizacionCottarifa` / `TarifaSnapshot`)
 
@@ -573,7 +552,7 @@ payload.clasificacionFinancieraCliente = expurgarParaCliente(fin);  // público 
 
 El cliente **no puede ver nombres internos**. Reglas ya implementadas para las tarjetas de alternativa:
 
-1. **Título del componente**: `nombreSnapshot` (título público) si existe; si no, los **primeros 3 ítems incluidos** unidos por " · " (helper `tituloClienteDeComponente` en el store). Nunca el nombre interno del maestro ni el título del segmento.
+1. **Título del componente**: `tituloSnapshot` (título público) si existe; si no, los **primeros 3 ítems incluidos** unidos por " · " (helper `tituloClienteDeComponente` en el store). Nunca el nombre interno del maestro ni el título del segmento.
 2. **Herencia tarifa→ítems gateada** (criterio **permisivo**: se muestra si **algún** ítem del componente tiene el flag): `mostrar{Titulo,Modalidad,Categoria}Cliente = !items.length || items.some(flag)`.
 3. **Estándar reemplazada**: solo datos **públicos** (`estandarTitulo` + mod/cat), gateados. Nunca `estandarNombreInterno`.
 
@@ -1196,11 +1175,11 @@ van a existir nunca**, porque es una parada irrepetible.
 
 ### El bucle
 
-`agregarComponente()` crea el componente con `tipo: 'extras'`, `nombreSnapshot: []`,
+`agregarComponente()` crea el componente con `tipo: 'extras'`, `tituloSnapshot: []`,
 `sinHorario: true` y `componenteMaestroId: null`. De ahí no se salía:
 
 ```
-nombreSnapshot: []
+tituloSnapshot: []
   └─ isComponenteSoloItems() = true
        └─ el input de nombre se cambiaba por uno DISABLED,
           «Componente Contenedor (Solo ítems)»
@@ -1218,7 +1197,7 @@ nombreSnapshot: []
 | Qué | Dónde | Ahora |
 |---|---|---|
 | `isComponenteSoloItems()` | `CotizacionEditorView.vue` | Un contenedor lo es porque **tiene ítems**: `nombreSnapshot` vacío **Y** `snapshotItems` no vacío. Uno recién creado no es ninguna de las dos cosas |
-| `getNombreMaestroRef()` | `CotizacionEditorView.vue` | Sin maestro manda **su** `nombreSnapshot`; «Insumo sin seleccionar» sólo si tampoco hay nombre propio |
+| `getNombreMaestroRef()` | `CotizacionEditorView.vue` | Sin maestro manda **su** `tituloSnapshot`; «Insumo sin seleccionar» sólo si tampoco hay nombre propio |
 | Categoría Operativa | ficha del componente + `onTipoManualChange()` en el store | Selector, **sólo si `componenteMaestroId` es null** |
 
 ### El modo manual es una DECISIÓN, no la ausencia de maestro
@@ -1327,7 +1306,7 @@ instancias que ya existen no se tocan.
 
 ### El nombre INTERNO, que el componente no tenía
 
-`CotizacionCotcomponente` sólo guardaba `nombreSnapshot`, que es el **título público**: el nombre
+`CotizacionCotcomponente` sólo guardaba `tituloSnapshot`, que es el **título público**: el nombre
 interno venía siempre del maestro, y por eso «siempre existía». Un manual no tiene maestro, así
 que La Biblia acababa rotulando la fila con el texto del cliente —o con «Servicio sin nombre»—.
 
@@ -2775,7 +2754,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Agrupar pasajeros (salón, grupo, habitación, reserva aérea)** → `CotizacionFileGrupo` + `CotizacionPasajeroGrupo` (§6.m). ⚠️ Ejes cruzados, no un árbol; y el `esJefe` va en la pertenencia.
 - **El DNI o el pasaporte de un pasajero, con su vencimiento** → `CotizacionPasajeroIdentificacion`, una fila por documento (§6.l). ⚠️ Sin fecha es «sin comprobar», nunca «vigente».
 - **Adjuntar un archivo a un expediente** → `CotizacionFilearchivo` (antes `…Filedocumento`, ver §6.k). ⚠️ No confundir con `CotizacionFilepasajero::$tipodocumento`, que sí es identidad.
-- **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `nombreSnapshot` (público). Ver §6.h.
+- **Crear un servicio que no está en el catálogo** → botón «Manual» → `agregarComponente(id, true)` → `esManual`. Aporta su propio `nombreInternoSnapshot` (interno) y `tituloSnapshot` (público). Ver §6.h.
 - **Que un componente sin maestro se pueda nombrar y tipar** → `isComponenteSoloItems()` y `getNombreMaestroRef()` en `CotizacionEditorView.vue`, y `onTipoManualChange()` en el store. Ver §6.h — y ojo con lo que la cadena sigue exigiendo (tarifa, prestador, nombre).
 - **Saber qué se lleva la papelera de un párrafo** → el pie de la tarjeta en el Constructor de Storytelling, alimentado por `store.idSegmentoDeComponente()`. Ver §6.i.
 - **Quién ve un detalle del componente** → banderas de `AudienciaDetalleEnum` en `detallesOperativos`; se leen con `detallesPara()` / `textosPara()` y se filtran para el cliente en `getDetallesParaCliente()`. Ver §6.g, y **toca también el espejo** `AudienciaDetalle` en `cotizacionEditorModel.ts`.

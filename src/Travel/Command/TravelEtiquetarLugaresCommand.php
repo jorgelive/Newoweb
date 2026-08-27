@@ -174,7 +174,7 @@ final class TravelEtiquetarLugaresCommand extends Command
         $filas = [];
 
         foreach ($this->em->getRepository(TravelComponente::class)->findAll() as $comp) {
-            $nombre = (string) $comp->getNombre();
+            $nombre = (string) $comp->getNombreInterno();
             $quiere = $this->lugaresDe($nombre);
 
             if ($quiere === []) {

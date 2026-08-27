@@ -125,7 +125,7 @@ final class CrearVuelosPorRutaCommand extends Command
             // lee el cliente. Ésa va en `titulo`.
             $nombre = sprintf('Vuelo %s %s', $origen, $destino);
 
-            $componente = $repo->findOneBy(['nombre' => $nombre]);
+            $componente = $repo->findOneBy(['nombreInterno' => $nombre]);
 
             if ($componente !== null) {
                 $io->text(sprintf('  ya existe · %s', $nombre));
@@ -136,7 +136,7 @@ final class CrearVuelosPorRutaCommand extends Command
 
                 if (!$simula) {
                     $componente = (new TravelComponente())
-                        ->setNombre($nombre)
+                        ->setNombreInterno($nombre)
                         ->setTipo(ComponenteTipoEnum::VUELO)
                         // El título público, en español y sin abreviar: es lo que ve el pasajero, y
                         // de aquí salen las traducciones. La redacción imita a la que ya usan los

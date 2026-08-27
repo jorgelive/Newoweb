@@ -158,7 +158,7 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
             }
 
             $salida[] = array_filter([
-                'componente' => $componente->getNombre(),
+                'componente' => $componente->getNombreInterno(),
                 'componente_id' => (string) $componente->getId(),
                 'tarifas' => $tarifas,
             ], static fn ($v) => $v !== null);
@@ -203,9 +203,9 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
             ->createQueryBuilder('c')
             ->leftJoin('c.tarifas', 't')
             ->addSelect('t')
-            ->andWhere('c.nombre LIKE :q')
+            ->andWhere('c.nombreInterno LIKE :q')
             ->setParameter('q', '%' . $busqueda . '%')
-            ->orderBy('c.nombre', 'ASC')
+            ->orderBy('c.nombreInterno', 'ASC')
             ->setMaxResults(12)
             ->getQuery()
             ->getResult();

@@ -130,7 +130,7 @@ final class TravelCrearContactoMachupicchuCommand extends Command
     private function componente(SymfonyStyle $io, bool $seco): ?TravelComponente
     {
         $repo = $this->em->getRepository(TravelComponente::class);
-        $existente = $repo->findOneBy(['nombre' => self::COMPONENTE]);
+        $existente = $repo->findOneBy(['nombreInterno' => self::COMPONENTE]);
 
         if ($existente !== null) {
             $io->writeln(sprintf('  <comment>·</comment> componente «%s» ya existe', self::COMPONENTE));
@@ -139,7 +139,7 @@ final class TravelCrearContactoMachupicchuCommand extends Command
         }
 
         $componente = new TravelComponente();
-        $componente->setNombre(self::COMPONENTE);
+        $componente->setNombreInterno(self::COMPONENTE);
         $componente->setTipo(ComponenteTipoEnum::CONTACTO);
         $componente->setTitulo([['language' => 'es', 'content' => 'Recepción y contacto con nuestro personal']]);
 
@@ -241,7 +241,7 @@ final class TravelCrearContactoMachupicchuCommand extends Command
             $this->em->persist($pivote);
         }
 
-        $io->writeln(sprintf('  <info>+</info> «%s» colgado de «%s»', $componente->getNombre(), $segmento->getNombreInterno()));
+        $io->writeln(sprintf('  <info>+</info> «%s» colgado de «%s»', $componente->getNombreInterno(), $segmento->getNombreInterno()));
     }
 
     /**

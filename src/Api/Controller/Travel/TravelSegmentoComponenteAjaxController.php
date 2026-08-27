@@ -48,7 +48,7 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
 
             return [
                 'id' => $c->getId()->toRfc4122(),
-                'nombre' => $c->getNombre(),
+                'nombre' => $c->getNombreInterno(),
                 'tarifas' => $tarifas
             ];
         }, $componentes);
@@ -79,7 +79,7 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
 
         // 🔥 Se mapea el día a la vista
         $dataGeneral = array_map(fn($l) => [
-            'nombre'       => $l->getComponente()->getNombre(),
+            'nombre'       => $l->getComponente()->getNombreInterno(),
             'tarifaNombre' => $l->getTarifaPredeterminada() ? $l->getTarifaPredeterminada()->getNombreInterno() : 'Auto / Varias',
             'dia'          => $l->getDia(), // <-- Inyectamos el filtro de día relativo
             'hora'         => $l->getHora() ? $l->getHora()->format('H:i') : '--:--',

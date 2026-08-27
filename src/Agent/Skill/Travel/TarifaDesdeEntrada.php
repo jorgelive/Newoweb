@@ -152,7 +152,7 @@ final readonly class TarifaDesdeEntrada
     {
         return array_filter([
             'tarifa_id' => $t->getId() !== null ? (string) $t->getId() : null,
-            'componente' => $t->getComponente()?->getNombre(),
+            'componente' => $t->getComponente()?->getNombreInterno(),
             'nombre' => $t->getNombreInterno(),
             'precio' => $t->getMonto(),
             'moneda' => $t->getMoneda()?->getId(),
@@ -180,9 +180,9 @@ final readonly class TarifaDesdeEntrada
         /** @var TravelComponente|null $c */
         $c = $this->em->getRepository(TravelComponente::class)
             ->createQueryBuilder('c')
-            ->andWhere('c.nombre LIKE :q')
+            ->andWhere('c.nombreInterno LIKE :q')
             ->setParameter('q', '%' . $nombre . '%')
-            ->orderBy('c.nombre', 'ASC')
+            ->orderBy('c.nombreInterno', 'ASC')
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

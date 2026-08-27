@@ -123,13 +123,13 @@ final readonly class BuscarComponentesSkill implements SkillInterface, SkillDomi
         $qb = $this->em->getRepository(TravelComponente::class)
             ->createQueryBuilder('c')
             ->leftJoin('c.lugares', 'l')->addSelect('l')
-            ->orderBy('c.nombre', 'ASC')
+            ->orderBy('c.nombreInterno', 'ASC')
             ->setMaxResults(self::TOPE + 1);
 
         if ($busqueda !== '') {
             // Sin empresa: el componente ya no fija prestador —sus tarifas pueden ser de
             // varias— así que sólo quedan el nombre y el lugar.
-            $qb->andWhere('c.nombre LIKE :q OR l.nombre LIKE :q')
+            $qb->andWhere('c.nombreInterno LIKE :q OR l.nombre LIKE :q')
                 ->setParameter('q', '%' . $busqueda . '%');
         }
 
@@ -177,7 +177,7 @@ final readonly class BuscarComponentesSkill implements SkillInterface, SkillDomi
 
         return array_filter([
             'componente_id' => (string) $c->getId(),
-            'nombre' => $c->getNombre(),
+            'nombre' => $c->getNombreInterno(),
             'tipo' => $c->getTipo()->value,
             'duracion' => $c->getDuracion(),
             'lugares' => $lugares !== [] ? implode(', ', $lugares) : null,

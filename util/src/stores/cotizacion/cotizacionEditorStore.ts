@@ -296,9 +296,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     /** Título i18n de un maestro, o array vacío si no lo trae (nunca undefined). */
     /**
-     * Un `nombreInterno` (string simple) puesto en el formato i18n que usa `nombreSnapshot`.
+     * Un `nombreInterno` (string simple) puesto en el formato i18n que usa `nombreInternoSnapshot`.
      *
-     * `nombreSnapshot` pasó a ser el NOMBRE OPERATIVO (no el título): nace del `nombreInterno`
+     * `nombreInternoSnapshot` es el NOMBRE OPERATIVO (no el título): nace del `nombreInterno`
      * del servicio y, al aplicar plantilla, del de la plantilla. Como es operativo va en un solo
      * idioma —el español—, no traducido: al proveedor se le habla en uno.
      */
@@ -719,42 +719,42 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         };
 
         const nombreDeComponente = (componente: ComponenteCompleto): I18nContent[] => {
-            if (componente.nombreSnapshot?.length) return componente.nombreSnapshot;
+            if (componente.tituloSnapshot?.length) return componente.tituloSnapshot;
             // Caso 1 (contenedor sin nombre): fallback al segmento
             const seg = componente.cotsegmento;
-            if (seg && typeof seg === 'object' && Array.isArray((seg as CotSegmento).nombreSnapshot)) {
-                return (seg as CotSegmento).nombreSnapshot as I18nContent[];
+            if (seg && typeof seg === 'object' && Array.isArray((seg as CotSegmento).tituloSnapshot)) {
+                return (seg as CotSegmento).tituloSnapshot as I18nContent[];
             }
             return [];
         };
 
         // Nombre INTERNO del componente (siempre presente): sale del componente
-        // maestro. El nombreSnapshot es sólo el título público (opcional, para el
+        // maestro. El tituloSnapshot es sólo el título público (opcional, para el
         // cliente). Sólo lectura del catálogo; no dispara fetch dentro del computed.
         const nombreInternoDeComponente = (componente: ComponenteCompleto): string => {
             const maestroId = componente.componenteMaestroId ? extractIdStr(componente.componenteMaestroId) : '';
             if (maestroId) {
                 const maestro = catalogos.value.allComponentes.find((c) => extractIdStr(c) === maestroId);
                 // `nombre` existe tanto en el maestro completo como en el placeholder.
-                const nombre = maestro?.nombre ?? '';
+                const nombre = maestro?.nombreInterno ?? '';
                 if (nombre && nombre !== 'Sincronizando...') return nombre;
             }
             // Fallbacks internos: título override del snapshot, luego segmento.
-            const snap = getI18nText(componente.nombreSnapshot, idiomaEdicion);
+            const snap = getI18nText(componente.tituloSnapshot, idiomaEdicion);
             if (snap) return snap;
             const seg = componente.cotsegmento;
-            if (seg && typeof seg === 'object' && Array.isArray((seg as CotSegmento).nombreSnapshot)) {
-                return getI18nText((seg as CotSegmento).nombreSnapshot as I18nContent[], idiomaEdicion);
+            if (seg && typeof seg === 'object' && Array.isArray((seg as CotSegmento).tituloSnapshot)) {
+                return getI18nText((seg as CotSegmento).tituloSnapshot as I18nContent[], idiomaEdicion);
             }
             return '';
         };
 
         // Título PÚBLICO del componente para el cliente (nunca nombre interno ni
-        // segmento): si el componente tiene título público (nombreSnapshot) se usa;
+        // segmento): si el componente tiene título público (tituloSnapshot) se usa;
         // si no, se arma con los primeros 3 ítems INCLUIDOS unidos por " · ", por
         // idioma. Devuelve I18nContent[] para respetar traducciones.
         const tituloClienteDeComponente = (componente: ComponenteCompleto): I18nContent[] => {
-            if (componente.nombreSnapshot?.length) return componente.nombreSnapshot;
+            if (componente.tituloSnapshot?.length) return componente.tituloSnapshot;
             const items = (componente.snapshotItems || [])
                 .filter((it) => (it.modo || '').toLowerCase() === 'incluido' || it.incluido)
                 .slice(0, 3);
@@ -819,8 +819,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         cotizacion.value.cotservicios.forEach((servicio: CotServicio) => {
             const servicioId = extractIdStr(servicio.id);
-            const servicioNombre = servicio.nombrePublicoSnapshot?.length
-                ? servicio.nombrePublicoSnapshot : (servicio.nombreSnapshot || []);
+            const servicioNombre = servicio.tituloSnapshot?.length
+                ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []);
             const servicioLabel = getI18nText(servicioNombre, idiomaEdicion) || 'Servicio';
 
             servicio.cotcomponentes?.forEach((componente: ComponenteCompleto) => {
@@ -834,7 +834,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 // Nombre propio del componente (sin fallback al segmento): en vistas
                 // internas las alternativas prefieren el nombreInterno de la tarifa
                 // antes que caer al título del segmento contenedor.
-                const compNombrePropio = componente.nombreSnapshot?.length ? componente.nombreSnapshot : [];
+                const compNombrePropio = componente.tituloSnapshot?.length ? componente.tituloSnapshot : [];
                 const compNombreInterno = nombreInternoDeComponente(componente);
                 // Datos client-safe para el snapshot que consume la vista pax.
                 const compTituloCliente = tituloClienteDeComponente(componente);
@@ -1362,14 +1362,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         serviciosOrden.forEach((servicio) => {
             const servicioLabel = getI18nText(
-                servicio.nombrePublicoSnapshot?.length ? servicio.nombrePublicoSnapshot : (servicio.nombreSnapshot || []),
+                servicio.tituloSnapshot?.length ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []),
                 idiomaEdicion
             ) || 'Servicio';
 
             const bloque: InclusionServicio = {
                 servicioId: extractIdStr(servicio.id),
-                servicioNombre: servicio.nombrePublicoSnapshot?.length
-                    ? servicio.nombrePublicoSnapshot : (servicio.nombreSnapshot || []),
+                servicioNombre: servicio.tituloSnapshot?.length
+                    ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []),
                 incluidos: [], noIncluidos: [], cortesias: [], opcionales: []
             };
 
@@ -1390,9 +1390,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 const fecha = getFechaLimpia(componente.fechaHoraInicio);
                 const cCant = unidadesDe(componente.cantidad);
-                const tieneNombre = !!componente.nombreSnapshot?.length;
+                const tieneNombre = !!componente.tituloSnapshot?.length;
                 const items = componente.snapshotItems || [];
-                const compLabel = getI18nText(componente.nombreSnapshot, idiomaEdicion) || 'Insumo Logístico';
+                const compLabel = getI18nText(componente.tituloSnapshot, idiomaEdicion) || 'Insumo Logístico';
 
                 // Sin nombre propio y sin ítems no se genera ni una línea: el componente
                 // desaparece de la propuesta. Si además lleva tarifa, es costo que el
@@ -1466,7 +1466,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 bloque.opcionales.push({
                                     origen: 'componente',
                                     modo: 'opcional',
-                                    nombre: componente.nombreSnapshot,
+                                    nombre: componente.tituloSnapshot,
                                     grupoOpcion: etiquetaGrupoTarifa(g, false).indice,
                                     fecha,
                                     cantidadComponente: cCant,
@@ -1495,7 +1495,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         destino(modo).push({
                             origen: 'componente',
                             modo: modo as ModoFinanciero,
-                            nombre: componente.nombreSnapshot,
+                            nombre: componente.tituloSnapshot,
                             fecha,
                             cantidadComponente: cCant,
                             modalidad: tarifaRef?.modalidadSnapshot || null,
@@ -1789,12 +1789,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         const existsIdx = catalogos.value.allComponentes.findIndex(c => extractIdStr(c.id) === cleanId);
 
-        if (existsIdx !== -1 && (catalogos.value.allComponentes[existsIdx] as ComponentePlaceholder).nombre !== 'Sincronizando...') return;
+        if (existsIdx !== -1 && (catalogos.value.allComponentes[existsIdx] as ComponentePlaceholder).nombreInterno !== 'Sincronizando...') return;
 
         if (existsIdx === -1) {
             const placeholder: ComponentePlaceholder = {
                 id: cleanId,
-                nombre: 'Sincronizando...'
+                nombreInterno: 'Sincronizando...'
             };
             catalogos.value.allComponentes.push(placeholder);
         }
@@ -1949,8 +1949,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             data.cotservicios.forEach((s: CotServicio) => {
                 // Servicio: normaliza fecha base y asegura título público
                 s.fechaInicioAbsoluta = getFechaLimpia(s.fechaInicioAbsoluta);
-                if (!s.nombrePublicoSnapshot) {
-                    s.nombrePublicoSnapshot = JSON.parse(JSON.stringify(s.nombreSnapshot || []));
+                if (!s.tituloSnapshot) {
+                    s.tituloSnapshot = JSON.parse(JSON.stringify(s.nombreInternoSnapshot || []));
                 }
 
                 if (s.servicioMaestroId) {
@@ -2303,7 +2303,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             //
             // ⚠️ Antes bloqueaba cualquier guardado de una cotización que YA estuviera en un
             // estado protegido, y eso creaba un callejón sin salida: `agregarComponente()` crea el
-            // componente con `nombreSnapshot: []` y `snapshotItems: []` —lo normal, acabas de
+            // componente con `tituloSnapshot: []` y `snapshotItems: []` —lo normal, acabas de
             // añadirlo—, y esa vacuidad dispara la advertencia «no tiene título público ni ítems».
             // Con la cotización en `enviado` —las 10 de producción lo están—, el guardado abortaba.
             // Para rellenar la línea había que guardarla, y para guardarla había que rellenarla.
@@ -2702,9 +2702,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const nuevoServicio = {
             id: crypto.randomUUID(),
             servicioMaestroId: null,
-            nombreSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
+            nombreInternoSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             itinerarioNombreSnapshot: [{ language: 'es', content: 'Sin plantilla' }],
-            nombrePublicoSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
+            tituloSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             fechaInicioAbsoluta: fechaBase,
             cotsegmentos: [],
             cotcomponentes: [],
@@ -2816,7 +2816,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 // Sólo las escribe un componente manual; con maestro las pone el catálogo.
                 lugaresManuales: [],
                 nombreInternoSnapshot: null,
-                nombreSnapshot: [],
+                tituloSnapshot: [],
                 tipo: 'extras',
                 sinHorario: true,
                 cantidad: 1,
@@ -2999,7 +2999,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const nuevoComp: ComponenteCompleto = {
                         id: nuevoId,
                         componenteMaestroId: compMaestro.id || compMaestro['@id'],
-                        nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
+                        tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                         tipo: compMaestro.tipo || 'extras',
                         sinHorario: sinHorarioDeTipo(compMaestro.tipo),
                         cantidad: componentePadre.cantidad,
@@ -3575,7 +3575,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const nuevoComp: ComponenteCompleto = {
                     id: crypto.randomUUID(),
                     componenteMaestroId: extractIdStr(compMaestro) || null,
-                    nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
+                    tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                     tipo: tipoComp,
                     sinHorario,
                     // Propaga la promoción de la plantilla Travel: la hora de este
@@ -3642,14 +3642,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             servicio.itinerarioNombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda)));
             // El NOMBRE operativo se transforma en el de la plantilla (más específica que el
             // servicio). El título público sigue su propia vía, más abajo.
-            servicio.nombreSnapshot = nombreOperativoComoI18n(
+            servicio.nombreInternoSnapshot = nombreOperativoComoI18n(
                 (plantillaProfunda as { nombreInterno?: string }).nombreInterno
             );
             // Referencia interna a la plantilla: habilita el re-sync exacto de flags
             // (p.ej. "hora de servicio completo") por el botón Actualizar.
             servicio.itinerarioMaestroId = extractIdStr(plantillaId)
                 || extractIdStr(plantillaProfunda) || null;
-            servicio.nombrePublicoSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda))); // 👉 NUEVO
+            servicio.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda))); // 👉 NUEVO
             let ordenMaximo = servicio.cotsegmentos ? servicio.cotsegmentos.length : 0;
 
             const arrayRelaciones: RelacionItinerarioSegmento[] =
@@ -3688,7 +3688,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         dia: diaDelSegmento,
                         orden: ordenMaximo,
                         fechaAbsoluta: fechaCalculada,
-                        nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(seg))),
+                        tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(seg))),
                         contenidoSnapshot: JSON.parse(JSON.stringify(seg.contenido || [])),
                         notasSnapshot: extraerNotasSnapshot(seg),
                         imagenesSnapshot: extraerImagenesSnapshot(seg),
@@ -3729,7 +3729,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             dia: 1,
             orden: ordenNuevo,
             fechaAbsoluta: fechaCalculada,
-            nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro))),
+            tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro))),
             contenidoSnapshot: JSON.parse(JSON.stringify(segmentoMaestro.contenido || [])),
             notasSnapshot: extraerNotasSnapshot(segmentoMaestro),
             imagenesSnapshot: extraerImagenesSnapshot(segmentoMaestro),
@@ -3826,7 +3826,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 );
             }
 
-            segAfectado.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro)));
+            segAfectado.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro)));
             segAfectado.contenidoSnapshot = JSON.parse(JSON.stringify(segmentoMaestro.contenido || []));
             segAfectado.notasSnapshot = extraerNotasSnapshot(segmentoMaestro);
             segAfectado.imagenesSnapshot = extraerImagenesSnapshot(segmentoMaestro);
@@ -3850,7 +3850,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 dia: diaDelSegmento,
                 orden: 0,
                 fechaAbsoluta: fechaCalculada,
-                nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro))),
+                tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro))),
                 contenidoSnapshot: JSON.parse(JSON.stringify(segmentoMaestro.contenido || [])),
                 notasSnapshot: extraerNotasSnapshot(segmentoMaestro),
                 imagenesSnapshot: extraerImagenesSnapshot(segmentoMaestro),
@@ -3897,8 +3897,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (maestro && servicio) {
             // El NOMBRE (operativo, un idioma) sale del nombreInterno; el TÍTULO (comercial,
             // i18n, cliente) sale del titulo. Son ejes distintos y ya no se copian entre sí.
-            servicio.nombreSnapshot = nombreOperativoComoI18n(maestro.nombreInterno);
-            servicio.nombrePublicoSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+            servicio.nombreInternoSnapshot = nombreOperativoComoI18n(maestro.nombreInterno);
+            servicio.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
             await fetchServicioDetalles(val);
         }
     };
@@ -3984,7 +3984,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             componente.lugaresManuales = [];
             componente.tipo = maestro.tipo || 'extras';   // 🔥 snapshot autónomo del tipo
             componente.sinHorario = sinHorarioDeTipo(maestro.tipo);   // 🔥 snapshot del flag de horario
-            componente.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+            componente.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
 
             const reqHora = !componente.sinHorario;
             const fechaDate = componente.fechaHoraInicio.split('T')[0];
@@ -4507,7 +4507,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             servicio.cotsegmentos.forEach((cotSeg: CotSegmento) => {
                 const maestro = cotSeg.segmentoMaestroId ? mapaMaestros.get(cotSeg.segmentoMaestroId) : undefined;
                 if (maestro) {
-                    cotSeg.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+                    cotSeg.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
                     cotSeg.contenidoSnapshot = JSON.parse(JSON.stringify(maestro.contenido || []));
                     cotSeg.notasSnapshot = extraerNotasSnapshot(maestro);
                     cotSeg.imagenesSnapshot = extraerImagenesSnapshot(maestro);

@@ -506,7 +506,7 @@ final readonly class CotizacionPuntosDelServicio
 
     private function nombreDe(CotizacionCotcomponente $comp): string
     {
-        foreach ($comp->getNombreSnapshot() as $fila) {
+        foreach ($comp->getTituloSnapshot() as $fila) {
             $texto = trim((string) ($fila['content'] ?? ''));
 
             if ($texto !== '') {

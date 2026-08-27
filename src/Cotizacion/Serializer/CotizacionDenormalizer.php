@@ -51,11 +51,11 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
 
         if (isset($data['cotservicios']) && is_array($data['cotservicios'])) {
             foreach ($data['cotservicios'] as &$servicio) {
-                $this->embedIdInJson($servicio, CotizacionCotservicio::class, 'nombreSnapshot', $permiteUpdate);
+                $this->embedIdInJson($servicio, CotizacionCotservicio::class, 'nombreInternoSnapshot', $permiteUpdate);
 
                 if (isset($servicio['cotsegmentos']) && is_array($servicio['cotsegmentos'])) {
                     foreach ($servicio['cotsegmentos'] as &$segData) {
-                        $this->embedIdInJson($segData, CotizacionSegmento::class, 'nombreSnapshot', $permiteUpdate);
+                        $this->embedIdInJson($segData, CotizacionSegmento::class, 'tituloSnapshot', $permiteUpdate);
                     }
                 }
 
@@ -71,7 +71,7 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
                         // Desenlazamos el IRI para evitar errores 404 de API Platform con segmentos no creados.
                         unset($comp['cotsegmento']);
 
-                        $this->embedIdInJson($comp, CotizacionCotcomponente::class, 'nombreSnapshot', $permiteUpdate);
+                        $this->embedIdInJson($comp, CotizacionCotcomponente::class, 'tituloSnapshot', $permiteUpdate);
 
                         if (isset($comp['cottarifas']) && is_array($comp['cottarifas'])) {
                             foreach ($comp['cottarifas'] as &$tar) {
@@ -107,10 +107,10 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
         // 1. Extraemos las marcas inyectadas, restauramos los UUIDs exactos 1 a 1 en las entidades
         // y poblamos el mapa de objetos Segmento.
         foreach ($cotizacion->getCotservicios() as $servicio) {
-            $this->extractAndSetId($servicio, 'NombreSnapshot');
+            $this->extractAndSetId($servicio, 'NombreInternoSnapshot');
 
             foreach ($servicio->getCotsegmentos() as $segmento) {
-                $this->extractAndSetId($segmento, 'NombreSnapshot');
+                $this->extractAndSetId($segmento, 'TituloSnapshot');
                 $segmentoObjMap[(string) $segmento->getId()] = $segmento;
             }
         }
@@ -118,7 +118,7 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
         // 2. Reconectamos los componentes con los segmentos usando los UUIDs restaurados.
         foreach ($cotizacion->getCotservicios() as $servicio) {
             foreach ($servicio->getCotcomponentes() as $componente) {
-                $this->extractAndSetId($componente, 'NombreSnapshot');
+                $this->extractAndSetId($componente, 'TituloSnapshot');
 
                 // Reconstruimos la relación a nivel de objetos Doctrine (bidireccional).
                 $compId = (string) $componente->getId();

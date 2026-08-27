@@ -592,7 +592,7 @@ const inclusionesPorDia = computed(() => {
       });
       if (!secciones.length) continue;
 
-      servicios.push({ servicioId: sid, nombre: b.servicio.nombrePublicoSnapshot, secciones });
+      servicios.push({ servicioId: sid, nombre: b.servicio.tituloSnapshot, secciones });
     }
 
     // Total de líneas del día → decide si el panel arranca semicolapsado
@@ -1199,7 +1199,7 @@ const adelantoVista = computed(() => {
                 class="text-xl md:text-2xl font-black text-[#376875] leading-tight mb-3 mt-2 flex items-start gap-2.5"
             >
               <i class="fas fa-route text-[#E07845] text-sm mt-2 shrink-0"></i>
-              <span>{{ store.traducir(item.servicio.nombrePublicoSnapshot) }}</span>
+              <span>{{ store.traducir(item.servicio.tituloSnapshot) }}</span>
             </h3>
 
             <!-- Horario global de la excursión (componente promovido a "servicio
@@ -1224,7 +1224,7 @@ const adelantoVista = computed(() => {
                 class="flex justify-end mb-3"
             >
               <button
-                  @click="abrirInclusiones(item.servicio.id, item.servicio.nombrePublicoSnapshot)"
+                  @click="abrirInclusiones(item.servicio.id, item.servicio.tituloSnapshot)"
                   class="inline-flex items-center gap-2 text-[11px] font-black tracking-wide text-[#376875] bg-white border border-[#376875]/20 hover:border-[#376875]/50 hover:bg-[#376875]/5 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
               >
                 <i class="fas fa-list-check text-[#E07845]"></i>
@@ -1245,11 +1245,11 @@ const adelantoVista = computed(() => {
               </span>
               <div class="min-w-0 flex-1">
                 <p class="text-[9px] font-black text-[#376875]/50 uppercase tracking-widest">
-                  {{ store.traducir(item.servicio.nombrePublicoSnapshot) }}
+                  {{ store.traducir(item.servicio.tituloSnapshot) }}
                   <span class="normal-case text-slate-400 font-bold">· {{ maestroStore.t('cot_noche') || 'Noche' }} {{ item.noche }}/{{ item.totalNoches }}</span>
                 </p>
                 <p class="font-black text-gray-800 text-sm leading-snug">
-                  {{ store.traducir(item.segmento.nombreSnapshot) }}
+                  {{ store.traducir(item.segmento.tituloSnapshot) }}
                 </p>
               </div>
             </article>
@@ -1287,10 +1287,10 @@ const adelantoVista = computed(() => {
 
                 <div class="absolute bottom-0 left-0 p-5 md:p-6 pointer-events-none">
                   <p v-if="!item.mostrarTituloServicio" class="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1 drop-shadow">
-                    {{ store.traducir(item.servicio.nombrePublicoSnapshot) }}
+                    {{ store.traducir(item.servicio.tituloSnapshot) }}
                   </p>
                   <h4 class="text-white text-lg md:text-xl font-black leading-tight drop-shadow-md">
-                    {{ store.traducir(item.segmento.nombreSnapshot) }}
+                    {{ store.traducir(item.segmento.tituloSnapshot) }}
                   </h4>
                 </div>
               </div>
@@ -1301,13 +1301,13 @@ const adelantoVista = computed(() => {
                 <div v-if="modoResumen || !imagenesDe(item.segmento).length" class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
                     <p v-if="!item.mostrarTituloServicio" class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
-                      {{ store.traducir(item.servicio.nombrePublicoSnapshot) }}
+                      {{ store.traducir(item.servicio.tituloSnapshot) }}
                     </p>
                     <h4
                         class="text-gray-800 font-black leading-tight"
                         :class="modoResumen ? 'text-sm md:text-base mb-0' : 'text-base md:text-lg mb-3'"
                     >
-                      {{ store.traducir(item.segmento.nombreSnapshot) }}
+                      {{ store.traducir(item.segmento.tituloSnapshot) }}
                     </h4>
                   </div>
                   <!-- Rango horario del segmento (derivado de componentes) -->
@@ -1361,7 +1361,7 @@ const adelantoVista = computed(() => {
                   >
                     <i class="far fa-clock text-[#E07845] shrink-0"></i>
                     <span class="tabular-nums text-[#376875] font-black text-sm shrink-0 whitespace-nowrap">{{ horaRango(c) }}</span>
-                    <span class="truncate">{{ store.traducir(c.nombreSnapshot) || store.traducir(item.segmento.nombreSnapshot) }}</span>
+                    <span class="truncate">{{ store.traducir(c.tituloSnapshot) || store.traducir(item.segmento.tituloSnapshot) }}</span>
                   </p>
                 </div>
 

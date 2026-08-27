@@ -220,7 +220,7 @@ class BibliaSnapshotService
             // El nombre interno, aparte y sin resolver: `descripcionServicio` lo tapa en
             // cuanto la tarifa tiene `nombreParaProveedor`, y los dos hacen falta a la vez.
             'tarifaNombre'          => trim($tarifa?->getNombreInternoSnapshot() ?? '') ?: null,
-            'contextoServicio'      => $this->textoEspanol($cotservicio->getNombreSnapshot()),
+            'contextoServicio'      => $this->textoEspanol($cotservicio->getNombreInternoSnapshot()),
             // QUÉ es la fila, aparte del itinerario donde encaja. Los dos a la vez y sin
             // desempatar: uno grande y otro pequeño. Ver `resolverNombreComponente()`.
             'nombreComponente'      => $this->resolverNombreComponente($cotcomponente),
@@ -510,7 +510,7 @@ class BibliaSnapshotService
         }
 
         // Prioridad 4: nombre del componente en español (snapshot i18n)
-        return $this->textoEspanol($componente->getNombreSnapshot()) ?? 'Servicio sin nombre';
+        return $this->textoEspanol($componente->getTituloSnapshot()) ?? 'Servicio sin nombre';
     }
 
     /**
@@ -520,7 +520,7 @@ class BibliaSnapshotService
      * ```
      * 1. nombreInternoSnapshot  lo que el operador ESCRIBIÓ en esta cotización
      * 2. maestro->getNombre()   el nombre operativo del catálogo
-     * 3. nombreSnapshot (es)    el título público, como último recurso
+     * 3. tituloSnapshot (es)    el título público, como último recurso
      * ```
      *
      * ⚠️ **Lo escrito a mano manda sobre el maestro, y no al revés.** Una edición manual es una
@@ -531,7 +531,7 @@ class BibliaSnapshotService
      * ⚠️ **Pero los dos campos «snapshot» NO son la misma cosa**, y confundirlos cuesta caro:
      *
      * - `nombreInternoSnapshot` lo **escribe una persona**. Es una decisión, y por eso gana.
-     * - `nombreSnapshot` es una **copia del maestro** tomada el día que se cotizó. No es una
+     * - `tituloSnapshot` es una **copia del maestro** tomada el día que se cotizó. No es una
      *   decisión de nadie: es una foto que envejece. Si ganara, un componente cuyo maestro se
      *   renombró seguiría enseñando el nombre viejo para siempre — que es exactamente el caso del
      *   vuelo genérico: su copia dice «Ticket aereo» y el maestro ya dice «Vuelo Lima Cusco».
@@ -557,7 +557,7 @@ class BibliaSnapshotService
 
         if ($maestroId !== '') {
             $maestro   = $this->em->getRepository(TravelComponente::class)->find($maestroId);
-            $operativo = trim($maestro?->getNombre() ?? '');
+            $operativo = trim($maestro?->getNombreInterno() ?? '');
 
             if ($operativo !== '') {
                 return $operativo;
@@ -566,7 +566,7 @@ class BibliaSnapshotService
 
         // 3. La copia congelada del título público. Último recurso: envejece, pero es mejor que
         //    dejar la fila sin nombre.
-        return $this->textoEspanol($componente->getNombreSnapshot());
+        return $this->textoEspanol($componente->getTituloSnapshot());
     }
 
     /**

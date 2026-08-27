@@ -168,7 +168,7 @@ final class TravelCrearValleSagradoPrivadoCommand extends Command
     private function segmentoDeRecojo(): ?TravelSegmento
     {
         $componente = $this->em->getRepository(TravelComponente::class)
-            ->findOneBy(['nombre' => self::COMPONENTE_CLAVE]);
+            ->findOneBy(['nombreInterno' => self::COMPONENTE_CLAVE]);
 
         if ($componente === null) {
             return null;

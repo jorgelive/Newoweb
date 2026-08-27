@@ -1138,7 +1138,7 @@ Son tres nombres distintos y es fácil coger el que no es:
 | | ejemplo | para qué |
 |---|---|---|
 | operativo (maestro) | «Transporte Aeropuerto Cusco - Hotel Cusco» | **el que va en grande**: con el que despachamos |
-| público (`nombreSnapshot`) | «Transporte» | prosa de cliente, y **a veces genérico** |
+| público (`tituloSnapshot`) | «Transporte» | prosa de cliente, y **a veces genérico** |
 | del segmento | «Transporte desde el Aeropuerto de Cusco al hotel en Cusco» | el itinerario, va en pequeño |
 
 El público parece buen candidato porque en muchos componentes es descriptivo, pero en éste es
@@ -1169,8 +1169,8 @@ Ahora se congela en `OperacionServicio::$nombreComponente`, y el orden de
 
 ```
 1. nombreInternoSnapshot   lo que el operador ESCRIBIÓ en esta cotización
-2. maestro->getNombre()    el nombre operativo del catálogo
-3. nombreSnapshot (es)     el título público, último recurso
+2. maestro->getNombreInterno()  el nombre operativo del catálogo
+3. tituloSnapshot (es)     el título público, último recurso
 ```
 
 ⚠️ **Lo escrito a mano manda sobre el maestro.** Una edición manual es una decisión sobre ESE
@@ -1179,7 +1179,7 @@ cotización no serviría de nada — y el cambio desaparecería sin avisar, porq
 enseñando algo plausible.
 
 ⚠️ **Pero los dos campos «snapshot» no son la misma cosa.** `nombreInternoSnapshot` lo **escribe
-una persona**: es una decisión, y por eso gana. `nombreSnapshot` es una **copia del maestro** hecha
+una persona**: es una decisión, y por eso gana. `tituloSnapshot` es una **copia del maestro** hecha
 el día que se cotizó: no es decisión de nadie, es una foto que envejece. Si ganara, un componente
 cuyo maestro se renombró enseñaría el nombre viejo para siempre — el caso del vuelo, cuya copia
 dice «Ticket aereo» mientras el maestro ya dice «Vuelo Lima Cusco». Por eso la copia va la última y se copia a la línea al emitir. El maestro queda como

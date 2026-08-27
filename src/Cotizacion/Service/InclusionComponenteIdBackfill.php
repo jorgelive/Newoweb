@@ -166,7 +166,7 @@ final class InclusionComponenteIdBackfill
         $filas = $this->conn->fetchAllAssociative(
             "SELECT c.id AS id_bin,
                     c.cotservicio_id AS servicio_bin,
-                    JSON_UNQUOTE(JSON_EXTRACT(c.nombre_snapshot, '$[0].content')) AS nombre,
+                    JSON_UNQUOTE(JSON_EXTRACT(c.titulo_snapshot, '$[0].content')) AS nombre,
                     DATE(c.fecha_hora_inicio) AS fecha
              FROM cotizacion_cotcomponente c"
         );

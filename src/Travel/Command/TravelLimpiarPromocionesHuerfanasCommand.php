@@ -78,7 +78,7 @@ final class TravelLimpiarPromocionesHuerfanasCommand extends Command
         foreach ($huerfanas as $sc) {
             $io->writeln(sprintf(
                 '  <info>·</info> %-30s [%s] cuelga de «%s»',
-                mb_substr((string) $sc->getComponente()?->getNombre(), 0, 29),
+                mb_substr((string) $sc->getComponente()?->getNombreInterno(), 0, 29),
                 $sc->getComponente()?->getTipo()->value ?? '?',
                 mb_substr((string) $sc->getSegmento()?->getNombreInterno(), 0, 45)
             ));

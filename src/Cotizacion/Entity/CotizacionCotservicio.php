@@ -42,18 +42,17 @@ class CotizacionCotservicio
     /**
      * El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas».
      *
-     * 🔴 **OJO: aquí `nombreSnapshot` es el INTERNO**, al revés que en `CotizacionCotcomponente` y
-     * `CotizacionSegmento`, donde el mismo nombre de campo guarda el público. El público de ESTE
-     * servicio vive aparte, en `$nombrePublicoSnapshot`:
+     * Los dos nombres del día, ya con el vocabulario unificado (27/08/2026):
      *
      * ```
-     * nombreSnapshot         «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)»   ← interno, y va a La Biblia
-     * nombrePublicoSnapshot  «Excursión a Huayna Picchu de 1 día»         ← al huésped
+     * nombreInternoSnapshot  «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)»   ← éste, y va a La Biblia
+     * tituloSnapshot         «Excursión a Huayna Picchu de 1 día»         ← al huésped
      * ```
      *
-     * Quien lea `->getNombreSnapshot()` sin mirar sobre qué entidad está acierta o se equivoca
-     * según dónde caiga, y en ambos casos se lleva un texto que se lee bien. Ver
-     * `docs/Cotizaciones.md` §2.b.
+     * Hasta el renombrado, éste se llamaba `nombreSnapshot` — el mismo nombre que en
+     * `CotizacionCotcomponente` y `CotizacionSegmento` guarda el **público**. Leer
+     * `->getNombreSnapshot()` daba el interno o el público según la entidad, y en ambos casos un
+     * texto que se lee bien. Ver `docs/Cotizaciones.md` §2.b.
      *
      * Éste es el que La Biblia congela como `contextoServicio` y enseña en pequeño bajo el nombre
      * del componente.
@@ -63,7 +62,7 @@ class CotizacionCotservicio
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
-    private array $nombreSnapshot = [];
+    private array $nombreInternoSnapshot = [];
 
     /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
@@ -86,7 +85,7 @@ class CotizacionCotservicio
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
-    private array $nombrePublicoSnapshot = [];
+    private array $tituloSnapshot = [];
 
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'date_immutable', nullable: true)]
@@ -181,11 +180,11 @@ class CotizacionCotservicio
     /**
      * @return list<array{language?: string, content?: string|null}>
      */
-    public function getNombreSnapshot(): array { return $this->nombreSnapshot; }
+    public function getNombreInternoSnapshot(): array { return $this->nombreInternoSnapshot; }
     /**
-     * @param list<array{language?: string, content?: string|null}> $nombreSnapshot
+     * @param list<array{language?: string, content?: string|null}> $nombreInternoSnapshot
      */
-    public function setNombreSnapshot(array $nombreSnapshot): self { $this->nombreSnapshot = $nombreSnapshot; return $this; }
+    public function setNombreInternoSnapshot(array $nombreInternoSnapshot): self { $this->nombreInternoSnapshot = $nombreInternoSnapshot; return $this; }
 
     /**
      * @return list<array{language?: string, content?: string|null}>
@@ -202,11 +201,11 @@ class CotizacionCotservicio
     /**
      * @return list<array{language?: string, content?: string|null}>
      */
-    public function getNombrePublicoSnapshot(): array { return $this->nombrePublicoSnapshot; }
+    public function getTituloSnapshot(): array { return $this->tituloSnapshot; }
     /**
-     * @param list<array{language?: string, content?: string|null}> $nombrePublicoSnapshot
+     * @param list<array{language?: string, content?: string|null}> $tituloSnapshot
      */
-    public function setNombrePublicoSnapshot(array $nombrePublicoSnapshot): self { $this->nombrePublicoSnapshot = $nombrePublicoSnapshot; return $this; }
+    public function setTituloSnapshot(array $tituloSnapshot): self { $this->tituloSnapshot = $tituloSnapshot; return $this; }
 
     public function getFechaInicioAbsoluta(): ?DateTimeImmutable { return $this->fechaInicioAbsoluta; }
     public function setFechaInicioAbsoluta(?DateTimeImmutable $fechaInicioAbsoluta): self { $this->fechaInicioAbsoluta = $fechaInicioAbsoluta; return $this; }

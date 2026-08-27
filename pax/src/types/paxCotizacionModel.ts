@@ -58,7 +58,7 @@ export interface PaxCotSegmento {
     orden: number;
     fechaAbsoluta: string; // ISO date
     segmentoMaestroId?: string | null;
-    nombreSnapshot: I18n;
+    tituloSnapshot: I18n;
     contenidoSnapshot: I18n; // HTML por idioma
     imagenesSnapshot: PaxImagenSnapshot[];
     notasSnapshot: PaxNotaSnapshot[];
@@ -100,7 +100,7 @@ export interface PaxCotComponente {
     '@id'?: string;
     id: string;
     cantidad: number;
-    nombreSnapshot: I18n;
+    tituloSnapshot: I18n;
     fechaHoraInicio?: string | null;
     fechaHoraFin?: string | null;
     sinHorario?: boolean;
@@ -157,7 +157,7 @@ export interface PaxCotComponente {
 export interface PaxCotServicio {
     '@id'?: string;
     id: string;
-    nombrePublicoSnapshot: I18n;
+    tituloSnapshot: I18n;
     fechaInicioAbsoluta?: string | null;
     cotcomponentes: PaxCotComponente[];
     cotsegmentos: PaxCotSegmento[];

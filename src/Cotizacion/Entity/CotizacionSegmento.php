@@ -90,8 +90,8 @@ class CotizacionSegmento
     /**
      * El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco».
      *
-     * ⚠️ Uno de los tres `nombreSnapshot` del árbol — ver el de `CotizacionCotservicio` para el
-     * mapa completo. Éste es el de en medio: agrupa los componentes de un mismo trayecto.
+     * Es el de en medio del árbol: agrupa los componentes de un mismo trayecto. Antes se llamaba
+     * `nombreSnapshot`; ver `docs/Cotizaciones.md` §2.b.
      *
      * ⚠️ **Sólo lo lee `pax/`.** En La Biblia el nombre del segmento NO sale de aquí: se resuelve
      * en vivo contra el maestro (`travel_segmento.nombre_interno`, vía `segmentoUnicoMaestroId`),
@@ -103,7 +103,7 @@ class CotizacionSegmento
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
-    private array $nombreSnapshot = [];
+    private array $tituloSnapshot = [];
 
     /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
@@ -215,11 +215,11 @@ class CotizacionSegmento
     /**
      * @return list<array{language?: string, content?: string|null}>
      */
-    public function getNombreSnapshot(): array { return $this->nombreSnapshot; }
+    public function getTituloSnapshot(): array { return $this->tituloSnapshot; }
     /**
-     * @param list<array{language?: string, content?: string|null}> $nombreSnapshot
+     * @param list<array{language?: string, content?: string|null}> $tituloSnapshot
      */
-    public function setNombreSnapshot(array $nombreSnapshot): self { $this->nombreSnapshot = $nombreSnapshot; return $this; }
+    public function setTituloSnapshot(array $tituloSnapshot): self { $this->tituloSnapshot = $tituloSnapshot; return $this; }
 
     /**
      * @return list<array{language?: string, content?: string|null}>

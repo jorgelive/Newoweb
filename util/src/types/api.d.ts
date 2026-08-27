@@ -3019,7 +3019,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         Componente: {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3065,7 +3065,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-componente.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3089,7 +3089,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-componente.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3111,7 +3111,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-componente.write": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3133,7 +3133,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-servicio.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3153,7 +3153,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3199,7 +3199,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-componente.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3223,7 +3223,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-componente.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3245,7 +3245,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.html-servicio.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3265,7 +3265,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3311,7 +3311,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3335,7 +3335,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-componente.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3357,7 +3357,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3377,7 +3377,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3423,7 +3423,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart-componente.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3447,7 +3447,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart-componente.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -3469,7 +3469,7 @@ export interface components {
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente.multipart-servicio.item.read": {
             /** @description Obtiene el nombre interno del componente. */
-            nombre: string;
+            nombreInterno: string;
             titulo: {
                 [key: string]: string | null;
             }[];
@@ -7169,7 +7169,8 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -7277,7 +7278,8 @@ export interface components {
         };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -7380,7 +7382,8 @@ export interface components {
         };
         "CotizacionCotcomponente-cotizacion.write": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.write"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -7494,7 +7497,8 @@ export interface components {
         };
         "CotizacionCotcomponente-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_catalogo.read_pax_cotizacion.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -7541,7 +7545,8 @@ export interface components {
         };
         "CotizacionCotcomponente-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -7600,7 +7605,8 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -7708,7 +7714,8 @@ export interface components {
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -7828,7 +7835,8 @@ export interface components {
         };
         "CotizacionCotcomponente.html-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_catalogo.read_pax_cotizacion.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -7875,7 +7883,8 @@ export interface components {
         };
         "CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -7934,7 +7943,8 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8043,7 +8053,8 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8165,7 +8176,8 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_catalogo.read_pax_cotizacion.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8213,7 +8225,8 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8272,7 +8285,8 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8380,7 +8394,8 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8500,7 +8515,8 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_catalogo.read_pax_cotizacion.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8547,7 +8563,8 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"] | null;
-            nombreSnapshot?: {
+            /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -8598,7 +8615,8 @@ export interface components {
              * @example https://example.com/
              */
             cotizacion?: string;
-            nombreSnapshot?: {
+            /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             itinerarioNombreSnapshot?: {
@@ -8612,7 +8630,7 @@ export interface components {
              *     no proviene de una plantilla o es previo a este campo.
              */
             itinerarioMaestroId?: string | null;
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8637,7 +8655,8 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio-cotizacion.read_timestamp.read": {
-            nombreSnapshot?: {
+            /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             itinerarioNombreSnapshot?: {
@@ -8651,7 +8670,7 @@ export interface components {
              *     no proviene de una plantilla o es previo a este campo.
              */
             itinerarioMaestroId?: string | null;
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8671,7 +8690,8 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio-cotizacion.write": {
-            nombreSnapshot?: {
+            /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             itinerarioNombreSnapshot?: {
@@ -8685,7 +8705,7 @@ export interface components {
              *     no proviene de una plantilla o es previo a este campo.
              */
             itinerarioMaestroId?: string | null;
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8707,7 +8727,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionCotservicio-pax_catalogo.read_pax_cotizacion.read": {
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8717,7 +8737,7 @@ export interface components {
             id?: string;
         };
         "CotizacionCotservicio-pax_file.read_pax_cotizacion.read": {
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8732,7 +8752,8 @@ export interface components {
              * @example https://example.com/
              */
             cotizacion?: string;
-            nombreSnapshot?: {
+            /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             itinerarioNombreSnapshot?: {
@@ -8746,7 +8767,7 @@ export interface components {
              *     no proviene de una plantilla o es previo a este campo.
              */
             itinerarioMaestroId?: string | null;
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8771,7 +8792,8 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio.html-cotizacion.read_timestamp.read": {
-            nombreSnapshot?: {
+            /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             itinerarioNombreSnapshot?: {
@@ -8785,7 +8807,7 @@ export interface components {
              *     no proviene de una plantilla o es previo a este campo.
              */
             itinerarioMaestroId?: string | null;
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8811,7 +8833,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionCotservicio.html-pax_catalogo.read_pax_cotizacion.read": {
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8821,7 +8843,7 @@ export interface components {
             id?: string;
         };
         "CotizacionCotservicio.html-pax_file.read_pax_cotizacion.read": {
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8836,7 +8858,8 @@ export interface components {
              * @example https://example.com/
              */
             cotizacion?: string;
-            nombreSnapshot?: {
+            /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             itinerarioNombreSnapshot?: {
@@ -8850,7 +8873,7 @@ export interface components {
              *     no proviene de una plantilla o es previo a este campo.
              */
             itinerarioMaestroId?: string | null;
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8875,7 +8898,8 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreSnapshot?: {
+            /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             itinerarioNombreSnapshot?: {
@@ -8889,7 +8913,7 @@ export interface components {
              *     no proviene de una plantilla o es previo a este campo.
              */
             itinerarioMaestroId?: string | null;
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8915,7 +8939,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionCotservicio.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8925,7 +8949,7 @@ export interface components {
             id?: string;
         };
         "CotizacionCotservicio.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8940,7 +8964,8 @@ export interface components {
              * @example https://example.com/
              */
             cotizacion?: string;
-            nombreSnapshot?: {
+            /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             itinerarioNombreSnapshot?: {
@@ -8954,7 +8979,7 @@ export interface components {
              *     no proviene de una plantilla o es previo a este campo.
              */
             itinerarioMaestroId?: string | null;
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -8979,7 +9004,8 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio.multipart-cotizacion.read_timestamp.read": {
-            nombreSnapshot?: {
+            /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
+            nombreInternoSnapshot?: {
                 [key: string]: string | null;
             }[];
             itinerarioNombreSnapshot?: {
@@ -8993,7 +9019,7 @@ export interface components {
              *     no proviene de una plantilla o es previo a este campo.
              */
             itinerarioMaestroId?: string | null;
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -9019,7 +9045,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionCotservicio.multipart-pax_catalogo.read_pax_cotizacion.read": {
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -9029,7 +9055,7 @@ export interface components {
             id?: string;
         };
         "CotizacionCotservicio.multipart-pax_file.read_pax_cotizacion.read": {
-            nombrePublicoSnapshot?: {
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             /** Format: date-time */
@@ -12872,7 +12898,8 @@ export interface components {
             /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
             inicioTexto?: string | null;
             finTexto?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -12912,7 +12939,8 @@ export interface components {
             /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
             inicioTexto?: string | null;
             finTexto?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -12946,7 +12974,8 @@ export interface components {
             /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
             inicioTexto?: string | null;
             finTexto?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -12973,7 +13002,8 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -12995,7 +13025,8 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13025,7 +13056,8 @@ export interface components {
             /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
             inicioTexto?: string | null;
             finTexto?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13065,7 +13097,8 @@ export interface components {
             /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
             inicioTexto?: string | null;
             finTexto?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13096,7 +13129,8 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13118,7 +13152,8 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13148,7 +13183,8 @@ export interface components {
             /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
             inicioTexto?: string | null;
             finTexto?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13188,7 +13224,8 @@ export interface components {
             /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
             inicioTexto?: string | null;
             finTexto?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13219,7 +13256,8 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13241,7 +13279,8 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13271,7 +13310,8 @@ export interface components {
             /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
             inicioTexto?: string | null;
             finTexto?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13311,7 +13351,8 @@ export interface components {
             /** @description Dónde empieza y dónde acaba este párrafo, **cuando no hay maestro del que sacarlo**. */
             inicioTexto?: string | null;
             finTexto?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13342,7 +13383,8 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {
@@ -13364,7 +13406,8 @@ export interface components {
             fechaAbsoluta?: string;
             /** @description Identificador del segmento maestro del catálogo. */
             segmentoMaestroId?: string | null;
-            nombreSnapshot?: {
+            /** @description El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco». */
+            tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
             contenidoSnapshot?: {

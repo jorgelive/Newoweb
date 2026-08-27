@@ -83,7 +83,7 @@ final class TravelPromoverServicioPrincipalCommand extends Command
             $itinerario = $this->em->getRepository(TravelItinerario::class)
                 ->findOneBy(['nombreInterno' => $nombrePlantilla]);
             $componente = $this->em->getRepository(TravelComponente::class)
-                ->findOneBy(['nombre' => $nombreComponente]);
+                ->findOneBy(['nombreInterno' => $nombreComponente]);
 
             if ($itinerario === null || $componente === null) {
                 $io->writeln('  <error>✗</error> no encuentro la plantilla o el componente');

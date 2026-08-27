@@ -59,17 +59,17 @@ type CotServicioBase = components["schemas"]["CotizacionCotservicio-cotizacion.r
 
 export type CotServicio = Omit<
     CotServicioBase,
-    'nombreSnapshot' |
+    'nombreInternoSnapshot' |
     'itinerarioNombreSnapshot' |
-    'nombrePublicoSnapshot' |
+    'tituloSnapshot' |
     'cotcomponentes' |
     'cotsegmentos'
 > & {
-    nombreSnapshot: I18nContent[];
+    nombreInternoSnapshot: I18nContent[];
     itinerarioNombreSnapshot: I18nContent[];
     /** Id del maestro TravelItinerario desde el que se armó el servicio (re-sync exacto de flags). */
     itinerarioMaestroId?: string | null;
-    nombrePublicoSnapshot: I18nContent[];
+    tituloSnapshot: I18nContent[];
     cotcomponentes?: ComponenteCompleto[];
     cotsegmentos?: CotSegmento[];
 };
@@ -340,7 +340,7 @@ export type CotSegmento = Omit<
     'id' |
     'fechaAbsoluta' |
     'sobreescribirTraduccion' |
-    'nombreSnapshot' |       // <-- Agrégalo aquí
+    'tituloSnapshot' |       // <-- Agrégalo aquí
     'contenidoSnapshot' |    // <-- Agrégalo aquí
     'imagenesSnapshot' |     // <-- Agrégalo aquí
     'notasSnapshot'          // <-- Agrégalo aquí
@@ -355,7 +355,7 @@ export type CotSegmento = Omit<
     // puntos salen del `TravelSegmento` y estos ni se leen. Ver `CotizacionPuntosDelServicio`.
     inicioTexto?: string | null;
     finTexto?: string | null;
-    nombreSnapshot?: I18nContent[];
+    tituloSnapshot?: I18nContent[];
     contenidoSnapshot?: I18nContent[];
     imagenesSnapshot?: ImagenSnapshot[];
     notasSnapshot?: NotaSnapshot[];
@@ -390,7 +390,7 @@ export interface OrganizacionServicioOption {
 
 export interface ComponentePlaceholder {
     id: string;
-    nombre: string;
+    nombreInterno: string;
     '@id'?: string;
 }
 
@@ -503,12 +503,12 @@ export interface SnapshotItem {
 type CotComponenteBase = components["schemas"]["CotizacionCotcomponente-cotizacion.read_timestamp.read"];
 
 export type ComponenteCompleto = Omit<CotComponenteBase,
-    'id' | 'nombreSnapshot' | 'estado' | 'modo' | 'fechaHoraInicio' | 'fechaHoraFin'
+    'id' | 'tituloSnapshot' | 'estado' | 'modo' | 'fechaHoraInicio' | 'fechaHoraFin'
     | 'snapshotItems' | 'cottarifas' | 'detallesOperativos' | 'cotsegmento'
     | 'prestadorTituloSnapshot' | 'prestadorImagenesSnapshot'
 > & {
     id: string;
-    nombreSnapshot: I18nContent[];
+    tituloSnapshot: I18nContent[];
     estado: string;
     modo: string;
     fechaHoraInicio: string;
@@ -814,7 +814,7 @@ export interface OpcionUpgradeInterna extends OpcionUpgradeCliente {
     // Nombre interno de la estándar reemplazada (editor). NO se expone al cliente.
     estandarNombreInterno: string | null;
     // ── Insumos client-safe para expurgarParaCliente (no se muestran en interno) ──
-    // Título público del componente para el cliente: nombreSnapshot o, si falta,
+    // Título público del componente para el cliente: tituloSnapshot o, si falta,
     // los primeros 3 ítems incluidos. Nunca nombre interno ni segmento.
     componenteNombreCliente: I18nContent[];
     // Herencia tarifa→ítems gateada (permisiva: algún ítem lo permite).
@@ -996,7 +996,7 @@ export function expurgarParaCliente(fin: ClasificacionFinancieraInterna): Clasif
             grupoTarifa: o.grupoTarifa,
             grupoLabel: o.grupoLabel,
             esOpcion: o.esOpcion,
-            // Título PÚBLICO (nombreSnapshot o primeros ítems), nunca nombre interno.
+            // Título PÚBLICO (tituloSnapshot o primeros ítems), nunca nombre interno.
             componenteNombre: o.componenteNombreCliente,
             servicioId: o.servicioId,
             servicioNombre: o.servicioNombre,

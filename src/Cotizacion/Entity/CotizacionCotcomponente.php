@@ -65,21 +65,22 @@ class CotizacionCotcomponente
      *
      * ```
      * nombreInternoSnapshot   OPERATIVO   lo escribe SIEMPRE una persona   → manda
-     * nombreSnapshot (éste)   PÚBLICO     copiado del maestro (197) o a mano (2)
+     * tituloSnapshot (éste)   PÚBLICO     copiado del maestro (197) o a mano (2)
      * ```
      *
      * Por eso éste va el ÚLTIMO: al venir casi siempre copiado del catálogo, es una foto que
      * envejece. Si mandara, un componente cuyo maestro se renombró enseñaría el nombre viejo para
      * siempre — el caso del vuelo, cuya copia dice «Ticket aereo» y el maestro «Vuelo Lima Cusco».
      *
-     * ⚠️ Y es uno de los tres `nombreSnapshot` del árbol — ver `CotizacionCotservicio` para el mapa.
+     * ⚠️ Antes se llamaba `nombreSnapshot`, que en `CotizacionCotservicio` significaba lo contrario.
+     * Ver `docs/Cotizaciones.md` §2.b.
      *
      * @var list<array{language?: string, content?: string|null}>
      */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
-    private array $nombreSnapshot = [];
+    private array $tituloSnapshot = [];
 
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer', options: ['default' => 1])]
@@ -178,7 +179,7 @@ class CotizacionCotcomponente
     /**
      * Cómo se llama esto **para nosotros y para el proveedor**.
      *
-     * El componente sólo tenía `nombreSnapshot`, que es el título **público**; el nombre interno
+     * El componente sólo tenía `tituloSnapshot`, que es el título **público**; el nombre interno
      * salía siempre del maestro (`componenteMaestroId` → catálogo) y por eso «siempre existía».
      * Un componente manual no tiene maestro, así que sin este campo se quedaba sin nombre
      * interno y La Biblia lo rotulaba con el título del cliente — o con «Servicio sin nombre».
@@ -432,17 +433,17 @@ class CotizacionCotcomponente
      *
      * @return list<array{language?: string, content?: string|null}>
      */
-    public function getNombreSnapshot(): array { return $this->nombreSnapshot; }
+    public function getTituloSnapshot(): array { return $this->tituloSnapshot; }
 
     /**
      * Establece el snapshot del nombre del componente.
      *
-     * @param array $nombreSnapshot
+     * @param array $tituloSnapshot
      * @return self
      *
-     * @param list<array{language?: string, content?: string|null}> $nombreSnapshot
+     * @param list<array{language?: string, content?: string|null}> $tituloSnapshot
      */
-    public function setNombreSnapshot(array $nombreSnapshot): self { $this->nombreSnapshot = $nombreSnapshot; return $this; }
+    public function setTituloSnapshot(array $tituloSnapshot): self { $this->tituloSnapshot = $tituloSnapshot; return $this; }
 
     /**
      * Obtiene la cantidad de componentes instanciados.

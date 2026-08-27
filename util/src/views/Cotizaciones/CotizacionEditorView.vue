@@ -405,7 +405,7 @@ const opcionesComponentes = computed(() => {
   return store.catalogos.componentes
       .map(c => ({
         value: store.extractIdStr(c),
-        label: c.nombre || 'Insumo sin nombre'
+        label: c.nombreInterno || 'Insumo sin nombre'
       }))
       .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 });
@@ -819,7 +819,7 @@ const pedirBorrarSegmento = (segmentoId: string): void => {
  * Un contenedor lo es porque TIENE ítems, no porque le falte el nombre.
  *
  * ⚠️ Antes era sólo «no tiene nombre», y eso cerraba un bucle sin salida: el componente nace con
- * `nombreSnapshot: []`, así que salía marcado como contenedor y su input de nombre aparecía
+ * `tituloSnapshot: []`, así que salía marcado como contenedor y su input de nombre aparecía
  * deshabilitado — **para poder escribir el nombre hacía falta que ya tuviera nombre**. La única
  * salida era elegir un insumo maestro, que además pisa el `tipo` con el suyo, y como el
  * desplegable sólo ofrece el pool del servicio, todo componente hecho a mano acababa siendo
@@ -829,7 +829,7 @@ const pedirBorrarSegmento = (segmentoId: string): void => {
  * simplemente un componente vacío, y se le puede escribir el nombre.
  */
 const isComponenteSoloItems = (componente: ComponenteCompleto) => {
-  const sinNombre = !componente.nombreSnapshot || componente.nombreSnapshot.length === 0;
+  const sinNombre = !componente.tituloSnapshot || componente.tituloSnapshot.length === 0;
 
   return sinNombre && (componente.snapshotItems?.length ?? 0) > 0;
 };
@@ -847,22 +847,22 @@ const getNombreMaestroRef = (comp: ComponenteCompleto | null | undefined): strin
   const targetId = extractIdStrView(comp.componenteMaestroId);
 
   if (!targetId) {
-    return store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')
+    return store.getI18nText(comp.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')
       || 'Insumo sin seleccionar';
   }
 
   const c = store.catalogos.allComponentes.find((cat) => store.extractIdStr(cat) === targetId);
 
-  if (c && c.nombre !== 'Sincronizando...') return c.nombre || 'Insumo Genérico';
+  if (c && c.nombreInterno !== 'Sincronizando...') return c.nombreInterno || 'Insumo Genérico';
 
-  if (c && c.nombre === 'Sincronizando...') {
-    const snapshotName = store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es');
+  if (c && c.nombreInterno === 'Sincronizando...') {
+    const snapshotName = store.getI18nText(comp.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es');
     return snapshotName ? snapshotName : 'Sincronizando...';
   }
 
   store.fetchComponenteMaestroSilencioso(targetId as string);
 
-  const snapshotName = store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es');
+  const snapshotName = store.getI18nText(comp.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es');
   return snapshotName ? snapshotName : 'Sincronizando...';
 };
 
@@ -1349,26 +1349,26 @@ store.$onAction(({ name, args }) => {
                     </p>
 
                     <!-- Los tres nombres, ordenados por a quién sirven:
-                         1) OPERATIVO (nombreSnapshot) grande — el que tú usas y editas.
-                         2) CLIENTE (nombrePublicoSnapshot) debajo — lo que ve el pasajero.
+                         1) OPERATIVO (nombreInternoSnapshot) grande — el que tú usas y editas.
+                         2) CLIENTE (tituloSnapshot) debajo — lo que ve el pasajero.
                          3) PLANTILLA (itinerarioNombreSnapshot) como etiqueta de procedencia. -->
                     <!-- Mono-segmento sin plantilla: el nombre del servicio es genérico y su público
                          se descarta en la vista del cliente; el segmento es el que dice qué cosa es. -->
                     <div class="font-black text-lg text-slate-900 leading-tight">
                       <i v-if="store.isServicioConAlerta(servicio)" class="fas fa-exclamation-triangle text-red-500 mr-2" title="Faltan cuadrar tarifas"></i>
-                      <template v-if="store.esMonoSegmentoSinPlantilla(servicio)">{{ store.getI18nText(servicio.cotsegmentos?.[0]?.nombreSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
-                      <template v-else>{{ store.getI18nText(servicio.nombreSnapshot, 'es') || store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
+                      <template v-if="store.esMonoSegmentoSinPlantilla(servicio)">{{ store.getI18nText(servicio.cotsegmentos?.[0]?.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
+                      <template v-else>{{ store.getI18nText(servicio.nombreInternoSnapshot, 'es') || store.getI18nText(servicio.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
                     </div>
 
                     <!-- Mono-segmento: el nombre interno lo pone el segmento (no el servicio). -->
                     <p v-if="store.esMonoSegmentoSinPlantilla(servicio)"
                        class="text-[11px] font-bold text-slate-500 mt-1 leading-snug">
-                      <i class="fas fa-tag mr-1 text-slate-300"></i> {{ store.segmentoUnicoMaestro(servicio)?.nombreInterno || store.getI18nText(servicio.cotsegmentos?.[0]?.nombreSnapshot, 'es') }}
+                      <i class="fas fa-tag mr-1 text-slate-300"></i> {{ store.segmentoUnicoMaestro(servicio)?.nombreInterno || store.getI18nText(servicio.cotsegmentos?.[0]?.tituloSnapshot, 'es') }}
                     </p>
                     <!-- El nombre del cliente, sólo si aporta algo distinto del operativo. -->
-                    <p v-else-if="store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) && store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) !== store.getI18nText(servicio.nombreSnapshot, 'es')"
+                    <p v-else-if="store.getI18nText(servicio.tituloSnapshot, store.cotizacion.idiomaEdicion) && store.getI18nText(servicio.tituloSnapshot, store.cotizacion.idiomaEdicion) !== store.getI18nText(servicio.nombreInternoSnapshot, 'es')"
                        class="text-[11px] font-bold text-slate-500 mt-1 leading-snug">
-                      <i class="fas fa-user mr-1 text-slate-300"></i> Cliente: {{ store.getI18nText(servicio.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) }}
+                      <i class="fas fa-user mr-1 text-slate-300"></i> Cliente: {{ store.getI18nText(servicio.tituloSnapshot, store.cotizacion.idiomaEdicion) }}
                     </p>
 
                     <p class="text-[11px] font-bold text-slate-500 mt-1" v-if="store.getI18nText(servicio.itinerarioNombreSnapshot, 'es') !== 'Sin plantilla'">
@@ -1818,7 +1818,7 @@ store.$onAction(({ name, args }) => {
                 Edición de Servicio
               </p>
               <h2 class="text-sm font-black truncate">
-                {{ store.getI18nText(store.servicioActivo?.nombreSnapshot, 'es') || store.getI18nText(store.servicioActivo?.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) }}
+                {{ store.getI18nText(store.servicioActivo?.nombreInternoSnapshot, 'es') || store.getI18nText(store.servicioActivo?.tituloSnapshot, store.cotizacion.idiomaEdicion) }}
               </h2>
               <p v-if="store.serviciosOrdenados.length > 1" class="text-[11px] font-bold text-emerald-600/70 mt-0.5">
                 Servicio {{ store.serviciosOrdenados.findIndex(s => s.id === store.servicioActivo?.id) + 1 }} de {{ store.serviciosOrdenados.length }}
@@ -1856,7 +1856,7 @@ store.$onAction(({ name, args }) => {
                      para saber de qué servicio se trata, y el atajo deja de serlo. -->
                 <span v-if="!catalogoAbierto && store.servicioActivo"
                       class="text-[10px] font-bold text-slate-400 truncate min-w-0 flex-1">
-                  {{ store.getI18nText(store.servicioActivo.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es') }}
+                  {{ store.getI18nText(store.servicioActivo.nombreInternoSnapshot, store.cotizacion?.idiomaEdicion || 'es') }}
                   <span v-if="store.servicioActivo.fechaInicioAbsoluta" class="text-slate-300">· {{ store.servicioActivo.fechaInicioAbsoluta }}</span>
                 </span>
                 <i class="fas ml-auto text-slate-400 text-xs shrink-0"
@@ -1883,7 +1883,7 @@ store.$onAction(({ name, args }) => {
                     Nombre operativo <span class="text-slate-300 normal-case font-bold">(lo pone el segmento)</span>
                   </label>
                   <div class="bg-slate-50 border border-dashed border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-600">
-                    {{ store.segmentoUnicoMaestro(store.servicioActivo)?.nombreInterno || store.getI18nText(store.servicioActivo.cotsegmentos?.[0]?.nombreSnapshot, 'es') || '—' }}
+                    {{ store.segmentoUnicoMaestro(store.servicioActivo)?.nombreInterno || store.getI18nText(store.servicioActivo.cotsegmentos?.[0]?.tituloSnapshot, 'es') || '—' }}
                   </div>
                 </div>
                 <div>
@@ -1891,7 +1891,7 @@ store.$onAction(({ name, args }) => {
                     Nombre Público <span class="text-slate-300 normal-case font-bold">(lo pone el segmento)</span>
                   </label>
                   <div class="bg-slate-50 border border-dashed border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-600">
-                    {{ store.getI18nText(store.servicioActivo.cotsegmentos?.[0]?.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
+                    {{ store.getI18nText(store.servicioActivo.cotsegmentos?.[0]?.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
                   </div>
                   <p class="text-[9px] text-slate-400 mt-1 ml-1">
                     Este servicio es un solo segmento sin plantilla: su nombre lo pone el segmento, y el
@@ -1906,15 +1906,15 @@ store.$onAction(({ name, args }) => {
                   Nombre operativo <span class="text-slate-300 normal-case font-bold">(interno / proveedor · no lo ve el cliente)</span>
                 </label>
                 <div class="flex gap-2">
-                  <input :value="store.getI18nText(store.servicioActivo.nombreSnapshot, 'es')"
-                         @input="e => { if(store.servicioActivo) store.setI18nText(store.servicioActivo.nombreSnapshot, 'es', (e.target as HTMLInputElement).value) }"
+                  <input :value="store.getI18nText(store.servicioActivo.nombreInternoSnapshot, 'es')"
+                         @input="e => { if(store.servicioActivo) store.setI18nText(store.servicioActivo.nombreInternoSnapshot, 'es', (e.target as HTMLInputElement).value) }"
                          type="text" placeholder="Cómo lo nombras tú y lo pides al proveedor"
                          class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
                   <!-- Copia el nombre público al operativo. Para los servicios genéricos —«Vuelo»,
                        «Alojamiento»— el detalle está en el público («Vuelo Lima Cusco») y el operador
                        se quedaba sin él. Un toque lo iguala; sigue siendo editable después. -->
-                  <button v-if="store.getI18nText(store.servicioActivo.nombrePublicoSnapshot, 'es') && store.getI18nText(store.servicioActivo.nombrePublicoSnapshot, 'es') !== store.getI18nText(store.servicioActivo.nombreSnapshot, 'es')"
-                          @click="store.servicioActivo && store.setI18nText(store.servicioActivo.nombreSnapshot, 'es', store.getI18nText(store.servicioActivo.nombrePublicoSnapshot, 'es'))"
+                  <button v-if="store.getI18nText(store.servicioActivo.tituloSnapshot, 'es') && store.getI18nText(store.servicioActivo.tituloSnapshot, 'es') !== store.getI18nText(store.servicioActivo.nombreInternoSnapshot, 'es')"
+                          @click="store.servicioActivo && store.setI18nText(store.servicioActivo.nombreInternoSnapshot, 'es', store.getI18nText(store.servicioActivo.tituloSnapshot, 'es'))"
                           class="px-3 shrink-0 bg-slate-100 hover:bg-[#376875] hover:text-white text-slate-500 border border-slate-200 rounded-lg transition-colors shadow-sm"
                           title="Copiar el nombre público aquí">
                     <i class="fas fa-arrow-up"></i>
@@ -1928,8 +1928,8 @@ store.$onAction(({ name, args }) => {
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
                 <div class="flex gap-2">
-                  <input :value="store.getI18nText(store.servicioActivo.nombrePublicoSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
-                         @input="e => { if(store.cotizacion && store.servicioActivo) store.setI18nText(store.servicioActivo.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                  <input :value="store.getI18nText(store.servicioActivo.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                         @input="e => { if(store.cotizacion && store.servicioActivo) store.setI18nText(store.servicioActivo.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                          type="text" class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
 
                   <button @click="store.servicioActivo.sobreescribirTraduccion = !store.servicioActivo.sobreescribirTraduccion"
@@ -2161,7 +2161,7 @@ store.$onAction(({ name, args }) => {
             <div class="flex-1 min-w-0">
               <p class="text-[11px] font-black text-sky-200 uppercase tracking-widest truncate flex items-center gap-1">
                 <i class="fas fa-route"></i>
-                {{ store.getI18nText(store.servicioActualDeComponente?.nombrePublicoSnapshot, store.cotizacion.idiomaEdicion) || 'Servicio' }}
+                {{ store.getI18nText(store.servicioActualDeComponente?.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Servicio' }}
               </p>
               <h2 class="text-sm font-black truncate">{{ getNombreMaestroRef(store.componenteActivo) }}</h2>
               <p v-if="store.componentesHermanos.length > 1" class="text-[11px] font-bold text-sky-200 mt-0.5">
@@ -2315,8 +2315,8 @@ store.$onAction(({ name, args }) => {
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
 
                 <div class="flex gap-2" v-if="!isComponenteSoloItems(store.componenteActivo)">
-                  <input :value="store.getI18nText(store.componenteActivo.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
-                         @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                  <input :value="store.getI18nText(store.componenteActivo.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                         @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                          type="text" class="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
 
                   <button @click="store.componenteActivo.sobreescribirTraduccion = !store.componenteActivo.sobreescribirTraduccion"
@@ -3222,7 +3222,7 @@ store.$onAction(({ name, args }) => {
           <header class="bg-teal-600 text-white px-6 py-4 flex justify-between items-center">
             <div>
               <h2 class="font-black text-lg flex items-center gap-2"><i class="fas fa-book-open"></i> Constructor de Storytelling</h2>
-              <p class="text-[11px] font-bold text-teal-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.servicioActivo?.nombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
+              <p class="text-[11px] font-bold text-teal-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.servicioActivo?.nombreInternoSnapshot, store.cotizacion.idiomaEdicion) }}</p>
             </div>
             <button @click="store.cerrarEditorSegmentos()" class="w-8 h-8 rounded-full bg-teal-500 hover:bg-teal-400 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
           </header>
@@ -3369,8 +3369,8 @@ store.$onAction(({ name, args }) => {
                                  corregir lo que no veía. La versal se queda donde el texto NO se
                                  edita. -->
                             <div class="flex items-center gap-2 w-full lg:w-auto min-w-0">
-                              <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
-                                     @input="e => { if(store.cotizacion) store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                              <input :value="store.getI18nText(cotSeg.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                                     @input="e => { if(store.cotizacion) store.setI18nText(cotSeg.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                                      class="bg-transparent text-[11px] md:text-xs font-black text-slate-700 outline-none flex-1 w-full truncate" placeholder="Título del párrafo..." />
 
                               <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
@@ -3711,7 +3711,7 @@ store.$onAction(({ name, args }) => {
               </label>
               <select v-model="targetSegmentoId" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500">
                 <option v-for="(cotSeg, idx) in store.servicioActivo?.cotsegmentos || []" :key="cotSeg.id" :value="cotSeg.id">
-                  {{ (idx as number) + 1 }}. [Día {{ cotSeg.dia || 1 }}] {{ store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
+                  {{ (idx as number) + 1 }}. [Día {{ cotSeg.dia || 1 }}] {{ store.getI18nText(cotSeg.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
                 </option>
               </select>
             </div>

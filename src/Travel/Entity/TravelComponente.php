@@ -92,7 +92,7 @@ class TravelComponente
         maxMessage: 'El nombre del componente no puede superar los {{ limit }} caracteres.'
     )]
     #[ORM\Column(type: 'string', length: 150)]
-    private ?string $nombre = null;
+    private ?string $nombreInterno = null;
 
     /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:read', 'segmento:item:read'])]
@@ -204,8 +204,8 @@ class TravelComponente
         $this->resetTimestamps();
 
         // 2. Ajustar el nombre operativo
-        if ($this->nombre) {
-            $this->nombre = '(Clon) ' . $this->nombre;
+        if ($this->nombreInterno) {
+            $this->nombreInterno = '(Clon) ' . $this->nombreInterno;
         }
 
         // 3. Clonar profundamente los Ítems (Inclusiones)
@@ -243,7 +243,7 @@ class TravelComponente
      */
     public function __toString(): string
     {
-        return $this->nombre ?? 'Componente sin nombre';
+        return $this->nombreInterno ?? 'Componente sin nombre';
     }
 
     #[Groups(['componente:read', 'componente:item:read', 'servicio:item:read', 'segmento:read', 'segmento:item:read', 'cotizacion:read'])]
@@ -255,17 +255,17 @@ class TravelComponente
     /**
      * Obtiene el nombre interno del componente.
      */
-    public function getNombre(): ?string
+    public function getNombreInterno(): ?string
     {
-        return $this->nombre;
+        return $this->nombreInterno;
     }
 
     /**
      * Establece el nombre interno del componente.
      */
-    public function setNombre(string $nombre): self
+    public function setNombreInterno(string $nombre): self
     {
-        $this->nombre = $nombre;
+        $this->nombreInterno = $nombre;
         return $this;
     }
 

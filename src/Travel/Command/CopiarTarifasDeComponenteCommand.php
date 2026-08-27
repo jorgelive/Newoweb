@@ -71,7 +71,7 @@ final class CopiarTarifasDeComponenteCommand extends Command
         }
 
         $repo   = $this->em->getRepository(TravelComponente::class);
-        $origen = $repo->findOneBy(['nombre' => $desde]);
+        $origen = $repo->findOneBy(['nombreInterno' => $desde]);
 
         if ($origen === null) {
             $io->error(sprintf('No existe ningún componente llamado «%s».', $desde));
@@ -95,11 +95,11 @@ final class CopiarTarifasDeComponenteCommand extends Command
 
         /** @var TravelComponente[] $destinos */
         $destinos = $repo->createQueryBuilder('c')
-            ->where('c.nombre LIKE :patron')
+            ->where('c.nombreInterno LIKE :patron')
             ->andWhere('c.id != :origen')
             ->setParameter('patron', $patron)
             ->setParameter('origen', $origen->getId())
-            ->orderBy('c.nombre', 'ASC')
+            ->orderBy('c.nombreInterno', 'ASC')
             ->getQuery()
             ->getResult();
 
@@ -143,7 +143,7 @@ final class CopiarTarifasDeComponenteCommand extends Command
             }
 
             if ($nuevas > 0) {
-                $io->text(sprintf('  %s +%d · %s', $simula ? 'pondría' : 'puestas', $nuevas, $destino->getNombre()));
+                $io->text(sprintf('  %s +%d · %s', $simula ? 'pondría' : 'puestas', $nuevas, $destino->getNombreInterno()));
             }
         }
 

@@ -142,7 +142,7 @@ final class TravelAsignarCompradorTrenesCommand extends Command
         $puestos = 0;
 
         foreach ($tarifas as $tarifa) {
-            $componente = $tarifa->getComponente()?->getNombre() ?? '¿?';
+            $componente = $tarifa->getComponente()?->getNombreInterno() ?? '¿?';
             $prefijo = str_starts_with($tarifa->getNombreInterno() ?? '', 'PR ') ? 'PR ' : 'IR ';
             $prestador = $prestadores[$prefijo] ?? null;
 

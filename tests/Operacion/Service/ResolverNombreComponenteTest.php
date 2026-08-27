@@ -48,7 +48,7 @@ final class ResolverNombreComponenteTest extends TestCase
             ->setNombreInternoSnapshot('Traslado a la Olla de Juanita')
             // Hay maestro, y aun así no debe consultarse: la decisión ya está tomada.
             ->setComponenteMaestroId('01a04375-6bd2-7b02-86f8-097e45cb37bd')
-            ->setNombreSnapshot([['language' => 'es', 'content' => 'Transporte']]);
+            ->setTituloSnapshot([['language' => 'es', 'content' => 'Transporte']]);
 
         self::assertSame(
             'Traslado a la Olla de Juanita',
@@ -62,7 +62,7 @@ final class ResolverNombreComponenteTest extends TestCase
         // llamándose «   » y el maestro no llegaría a consultarse nunca.
         $componente = (new CotizacionCotcomponente())
             ->setNombreInternoSnapshot('   ')
-            ->setNombreSnapshot([['language' => 'es', 'content' => 'Ticket aereo']]);
+            ->setTituloSnapshot([['language' => 'es', 'content' => 'Ticket aereo']]);
 
         self::assertSame(
             'Ticket aereo',
@@ -73,7 +73,7 @@ final class ResolverNombreComponenteTest extends TestCase
     public function testSinManualNiMaestroCaeALaCopiaCongelada(): void
     {
         $componente = (new CotizacionCotcomponente())
-            ->setNombreSnapshot([
+            ->setTituloSnapshot([
                 ['language' => 'en', 'content' => 'Flight'],
                 ['language' => 'es', 'content' => 'Ticket aereo'],
             ]);

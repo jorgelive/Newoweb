@@ -683,7 +683,7 @@ final class TravelProponerPuntosCommand extends Command
             if ($itinerario === null) {
                 $sinPlantilla[] = sprintf(
                     '%s — en «%s»',
-                    $sc->getComponente()?->getNombre() ?? '?',
+                    $sc->getComponente()?->getNombreInterno() ?? '?',
                     $sc->getSegmento()?->getNombreInterno() ?? '?'
                 );
                 continue;

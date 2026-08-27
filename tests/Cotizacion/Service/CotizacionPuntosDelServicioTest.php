@@ -79,7 +79,7 @@ final class CotizacionPuntosDelServicioTest extends TestCase
         }
 
         $comp->setTipo($tipo);
-        $comp->setNombreSnapshot([['language' => 'es', 'content' => 'Servicio de prueba']]);
+        $comp->setTituloSnapshot([['language' => 'es', 'content' => 'Servicio de prueba']]);
         $comp->setCotsegmento($seg);
         $comp->setHoraServicioCompleto($abarca);
         $servicio->addCotcomponente($comp);

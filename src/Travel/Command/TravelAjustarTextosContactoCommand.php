@@ -168,7 +168,7 @@ final class TravelAjustarTextosContactoCommand extends Command
     private function renombrarTarifa(SymfonyStyle $io): void
     {
         $componente = $this->em->getRepository(TravelComponente::class)
-            ->findOneBy(['nombre' => 'Contacto con el cliente']);
+            ->findOneBy(['nombreInterno' => 'Contacto con el cliente']);
 
         if ($componente === null) {
             return;
