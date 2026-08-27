@@ -550,6 +550,27 @@ llegó a mirar.
 Está en el editor y no sólo en el cron porque **el momento en que estos huecos aparecen es al
 cargar catálogo**, y quien lo carga está en esa pantalla.
 
+### El cron nocturno (instalado el 27/08/2026)
+
+Corre a las **03:20**, con `--reparar`, en el crontab de `www-data`:
+
+```cron
+20 3 * * * /usr/bin/php /var/www/openperu.pe/bin/console app:cotizacion:revisar-coherencia --reparar --env=prod >> /var/www/openperu.pe/var/log/cotizacion_coherencia.log 2>&1
+```
+
+⚠️ **El crontab NO está en el repo**: se edita a mano en el servidor, así que esta sección es el
+único rastro que queda de que ese trabajo existe. Si se cambia allí, se cambia aquí.
+
+⚠️ **Repara sin supervisión, y es seguro por diseño**: sólo se toca lo que tiene una única
+respuesta posible. Lo que es una decisión queda como aviso en el log, para leerlo cuando se quiera.
+
+⚠️ **Devuelve código 1 cuando quedan avisos.** Es a propósito —sirve para encadenarlo— pero si
+algún día se montan alertas por salida de cron, este trabajo «fallará» los días que haya algo que
+mirar. No es un error: es el aviso.
+
+Comprobado ejecutándolo como `www-data` con el redirect incluido, que es donde fallan estas cosas:
+el log es suyo (`www-data:www-data`, como los demás del cron) y el comando sale con 0.
+
 ## 3. Tarifas (`CotizacionCottarifa` / `TarifaSnapshot`)
 
 Campos que mandan (todos `*Snapshot`):
