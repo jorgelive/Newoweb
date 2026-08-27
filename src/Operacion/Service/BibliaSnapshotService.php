@@ -516,26 +516,47 @@ class BibliaSnapshotService
     /**
      * El nombre OPERATIVO del componente: con el que lo llamamos nosotros al despacharlo.
      *
-     * «Transporte Aeropuerto Cusco - Hotel Cusco». **No el público** —«Transporte desde el
-     * Aeropuerto de Cusco al hotel en Cusco»—, que es prosa para el cliente y además a veces es
-     * genérico: ese mismo componente tiene «Transporte» a secas de nombre público, y con él la
-     * ficha decía «Transporte» sin más.
+     * ── El orden, que es lo único que importa aquí ──────────────────────────────
+     * ```
+     * 1. nombreInternoSnapshot  lo que el operador ESCRIBIÓ en esta cotización
+     * 2. maestro->getNombre()   el nombre operativo del catálogo
+     * 3. nombreSnapshot (es)    el título público, como último recurso
+     * ```
      *
-     * No comparte cadena con `resolverDescripcion()` ni es su respaldo: aquélla resuelve **cómo
-     * llama el proveedor a lo que le compras** y en los componentes de catálogo se queda en la
-     * variante de tarifa («Auto», «Adulto extranjero»). Esto resuelve **qué es**. Los dos hacen
-     * falta a la vez, igual que `tarifaNombre`.
+     * ⚠️ **Lo escrito a mano manda sobre el maestro, y no al revés.** Una edición manual es una
+     * decisión sobre ESTE expediente; el maestro es una plantilla. Si el catálogo pudiera pisarla,
+     * corregir un nombre en la cotización no serviría de nada y —peor— el cambio desaparecería sin
+     * avisar, porque la ficha seguiría enseñando algo plausible.
      *
-     * El orden es el del despacho: el maestro manda porque es el vocabulario compartido del
-     * catálogo; el interno propio sólo lo tienen los manuales; y el público es el último recurso,
-     * para que la fila nunca se quede sin nombre.
+     * ⚠️ **Pero los dos campos «snapshot» NO son la misma cosa**, y confundirlos cuesta caro:
+     *
+     * - `nombreInternoSnapshot` lo **escribe una persona**. Es una decisión, y por eso gana.
+     * - `nombreSnapshot` es una **copia del maestro** tomada el día que se cotizó. No es una
+     *   decisión de nadie: es una foto que envejece. Si ganara, un componente cuyo maestro se
+     *   renombró seguiría enseñando el nombre viejo para siempre — que es exactamente el caso del
+     *   vuelo genérico: su copia dice «Ticket aereo» y el maestro ya dice «Vuelo Lima Cusco».
+     *
+     * Por eso el manual va PRIMERO y la copia va ÚLTIMA, con el maestro en medio.
+     *
+     * ── Y no comparte cadena con `resolverDescripcion()` ────────────────────────
+     * Aquélla resuelve **cómo llama el proveedor a lo que le compras**, y en los componentes de
+     * catálogo se queda en la variante de tarifa («Auto», «Adulto extranjero»). Esto resuelve
+     * **qué es**. Los dos hacen falta a la vez, igual que `tarifaNombre`.
      */
     public function resolverNombreComponente(CotizacionCotcomponente $componente): ?string
     {
+        // 1. Lo que escribió el operador para ESTE expediente. Manda sobre todo lo demás.
+        $manual = trim($componente->getNombreInternoSnapshot() ?? '');
+
+        if ($manual !== '') {
+            return $manual;
+        }
+
+        // 2. El catálogo, que es el vocabulario compartido y está vivo.
         $maestroId = trim($componente->getComponenteMaestroId() ?? '');
 
         if ($maestroId !== '') {
-            $maestro = $this->em->getRepository(TravelComponente::class)->find($maestroId);
+            $maestro   = $this->em->getRepository(TravelComponente::class)->find($maestroId);
             $operativo = trim($maestro?->getNombre() ?? '');
 
             if ($operativo !== '') {
@@ -543,12 +564,8 @@ class BibliaSnapshotService
             }
         }
 
-        $propio = trim($componente->getNombreInternoSnapshot() ?? '');
-
-        if ($propio !== '') {
-            return $propio;
-        }
-
+        // 3. La copia congelada del título público. Último recurso: envejece, pero es mejor que
+        //    dejar la fila sin nombre.
         return $this->textoEspanol($componente->getNombreSnapshot());
     }
 

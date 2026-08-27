@@ -1164,8 +1164,25 @@ Peor en la Orden: el snapshot **no llevaba el nombre en absoluto**, así que el 
 manda al proveedor sólo tenía la variante de tarifa. Le llegaron órdenes que decían «Auto» y
 «Hotel 4 estrellas por grupo» como encargo completo.
 
-Ahora se congela en `OperacionServicio::$nombreComponente` (`BibliaSnapshotService::resolverNombreComponente()`:
-operativo del maestro → interno propio, que sólo tienen los manuales → público como último recurso) y se copia a la línea al emitir. El maestro queda como
+Ahora se congela en `OperacionServicio::$nombreComponente`, y el orden de
+`BibliaSnapshotService::resolverNombreComponente()` es:
+
+```
+1. nombreInternoSnapshot   lo que el operador ESCRIBIÓ en esta cotización
+2. maestro->getNombre()    el nombre operativo del catálogo
+3. nombreSnapshot (es)     el título público, último recurso
+```
+
+⚠️ **Lo escrito a mano manda sobre el maestro.** Una edición manual es una decisión sobre ESE
+expediente; el maestro es una plantilla. Si el catálogo pudiera pisarla, corregir un nombre en la
+cotización no serviría de nada — y el cambio desaparecería sin avisar, porque la ficha seguiría
+enseñando algo plausible.
+
+⚠️ **Pero los dos campos «snapshot» no son la misma cosa.** `nombreInternoSnapshot` lo **escribe
+una persona**: es una decisión, y por eso gana. `nombreSnapshot` es una **copia del maestro** hecha
+el día que se cotizó: no es decisión de nadie, es una foto que envejece. Si ganara, un componente
+cuyo maestro se renombró enseñaría el nombre viejo para siempre — el caso del vuelo, cuya copia
+dice «Ticket aereo» mientras el maestro ya dice «Vuelo Lima Cusco». Por eso la copia va la última y se copia a la línea al emitir. El maestro queda como
 refuerzo para las filas anteriores al campo, y la deriva la denuncia la reconciliación, que ya lo
 tiene en `ETIQUETAS`.
 

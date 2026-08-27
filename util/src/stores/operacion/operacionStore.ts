@@ -444,11 +444,22 @@ export const useOperacionStore = defineStore('operacionStore', () => {
             nombreInternoSnapshot?: string | null;
         } | undefined;
 
+        // ⚠️ El orden es ESPEJO de `BibliaSnapshotService::resolverNombreComponente()`: lo que
+        // escribió el operador manda sobre el maestro, no al revés. Una edición manual es una
+        // decisión sobre este expediente; el maestro es una plantilla, y si pudiera pisarla,
+        // corregir un nombre en la cotización no serviría de nada y el cambio desaparecería sin
+        // avisar. Estaba al revés hasta el 27/08/2026.
+        const manual = (componente?.nombreInternoSnapshot ?? '').trim();
+
+        if (manual !== '') {
+            return manual;
+        }
+
         if (componente?.componenteMaestroId) {
             return nombreComponentePorMaestro.value[componente.componenteMaestroId] ?? null;
         }
 
-        return componente?.nombreInternoSnapshot || null;
+        return null;
     };
 
     /**
