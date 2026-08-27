@@ -404,9 +404,9 @@ const opcionesServicios = computed(() => {
 /**
  * El nombre operativo que trae el MAESTRO del componente activo, si lo hay.
  *
- * Sólo para enseñarlo como pista bajo el campo de nombre interno: es lo que saldrá en la orden y
- * en La Biblia mientras ese campo siga en blanco. No se escribe en el snapshot —eso convertiría
- * una herencia viva en una copia congelada— y por eso va de `placeholder` y no de `value`.
+ * Se usa para dos cosas: enseñarlo como pista bajo el campo, y **reponerlo si el operador vacía
+ * el campo** (`reponerNombreDelCatalogoSiQuedoVacio`). Lo segundo hace falta porque el resolutor
+ * ya no consulta el catálogo: un campo vacío cae al título público, no al maestro.
  */
 const nombreMaestroDelComponenteActivo = computed<string | null>(() => {
   const comp = store.componenteActivo;
@@ -418,6 +418,22 @@ const nombreMaestroDelComponenteActivo = computed<string | null>(() => {
 
   return nombre && nombre !== 'Sincronizando...' ? nombre : null;
 });
+
+/**
+ * Vaciar el campo = volver al nombre del catálogo, no dejarlo sin nombre.
+ *
+ * El resolutor de La Biblia ya no consulta el maestro —la ruta del nombre es una sola— así que un
+ * campo vacío no «hereda»: cae al título público. Reponer aquí es lo que mantiene cierta la
+ * promesa que el operador lee bajo el campo, y deja el snapshot siempre con valor.
+ *
+ * En `blur` y no en `input`: en `input` no se podría ni borrar para reescribir.
+ */
+const reponerNombreDelCatalogoSiQuedoVacio = (): void => {
+  const comp = store.componenteActivo;
+  if (!comp || (comp.nombreInternoSnapshot ?? '').trim() !== '') return;
+
+  comp.nombreInternoSnapshot = nombreMaestroDelComponenteActivo.value || null;
+};
 
 const opcionesComponentes = computed(() => {
   return store.catalogos.componentes
@@ -1390,7 +1406,7 @@ store.$onAction(({ name, args }) => {
                     </p>
 
                     <p class="text-[11px] font-bold text-slate-500 mt-1" v-if="store.getI18nText(servicio.itinerarioNombreInternoSnapshot, 'es') !== 'Sin plantilla'">
-                      <i class="fas fa-map-signs mr-1 text-slate-300"></i> Plantilla: {{ store.getI18nText(servicio.itinerarioNombreInternoSnapshot, store.cotizacion.idiomaEdicion) }}
+                      <i class="fas fa-map-signs mr-1 text-slate-300"></i> Plantilla: {{ store.getI18nText(servicio.itinerarioNombreInternoSnapshot, 'es') }}
                     </p>
                     <p class="text-[11px] font-bold text-slate-500 mt-1" v-else-if="servicio.cotsegmentos && servicio.cotsegmentos.length > 0">
                       <i class="fas fa-layer-group mr-1 text-slate-300"></i> Storytelling a medida ({{ servicio.cotsegmentos.length }} párrafos)
@@ -1874,7 +1890,7 @@ store.$onAction(({ name, args }) => {
                      para saber de qué servicio se trata, y el atajo deja de serlo. -->
                 <span v-if="!catalogoAbierto && store.servicioActivo"
                       class="text-[10px] font-bold text-slate-400 truncate min-w-0 flex-1">
-                  {{ store.getI18nText(store.servicioActivo.nombreInternoSnapshot, store.cotizacion?.idiomaEdicion || 'es') }}
+                  {{ store.getI18nText(store.servicioActivo.nombreInternoSnapshot, 'es') }}
                   <span v-if="store.servicioActivo.fechaInicioAbsoluta" class="text-slate-300">· {{ store.servicioActivo.fechaInicioAbsoluta }}</span>
                 </span>
                 <i class="fas ml-auto text-slate-400 text-xs shrink-0"
@@ -1970,7 +1986,7 @@ store.$onAction(({ name, args }) => {
               <div class="flex items-start justify-between gap-2 mb-2">
                 <div>
                   <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest"><i class="fas fa-align-left mr-1"></i> Storytelling</h3>
-                  <p class="text-[10px] text-teal-500 mt-1 font-medium">{{ store.getI18nText(store.servicioActivo.itinerarioNombreInternoSnapshot, store.cotizacion.idiomaEdicion) }}</p>
+                  <p class="text-[10px] text-teal-500 mt-1 font-medium">{{ store.getI18nText(store.servicioActivo.itinerarioNombreInternoSnapshot, 'es') }}</p>
                 </div>
                 <button @click="store.servicioActivo.servicioMaestroId && store.abrirEditorSegmentos()"
                         :disabled="!store.servicioActivo.servicioMaestroId"
@@ -2322,22 +2338,30 @@ store.$onAction(({ name, args }) => {
                    que cambia el catálogo entero por un caso puntual — y encima ese cambio no llega
                    solo a La Biblia: hay que aprobarlo por reconciliación.
 
-                   Vacío = manda el maestro. Escrito = manda lo escrito. La precedencia vive en
-                   `BibliaSnapshotService::resolverNombreComponente()` y su test; aquí sólo se
-                   habilita el campo. Ver docs/Cotizaciones.md §2.b. -->
+                   ⚠️ **Dejarlo en blanco lo DEVUELVE al del catálogo, no lo vacía.** Desde que
+                   la ruta del nombre es única, el resolutor no consulta el maestro: si esto queda
+                   vacío cae al título PÚBLICO —«Transporte» a secas— y la fila pierde su nombre
+                   operativo. Así que el vaciado se trata como «revertir»: al salir del campo se
+                   repone el del catálogo, y el snapshot nunca se queda sin valor.
+
+                   Es la única forma de que la promesa de abajo sea verdad. Estuvo tres horas
+                   siendo mentira —la pantalla decía «en blanco usa el del catálogo» mientras el
+                   resolutor devolvía el título público—, que es justo el fallo que esta tanda
+                   venía a matar: no falla, devuelve otra cosa plausible.
+
+                   Ver `BibliaSnapshotService::resolverNombreComponente()` y docs §2.b. -->
               <div class="col-span-2">
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
                   Nombre interno <span class="text-slate-400 normal-case font-bold">— para la orden y La Biblia</span>
                 </label>
                 <input :value="store.componenteActivo.nombreInternoSnapshot ?? ''"
                        @input="e => { if (store.componenteActivo) store.componenteActivo.nombreInternoSnapshot = (e.target as HTMLInputElement).value || null }"
+                       @blur="reponerNombreDelCatalogoSiQuedoVacio"
                        type="text" maxlength="255"
                        :placeholder="nombreMaestroDelComponenteActivo || 'Traslado a La Olla de Juanita (ida)'"
                        class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500 placeholder:text-slate-300 placeholder:font-medium">
-                <!-- El placeholder enseña el nombre del maestro: así se ve qué va a salir si se
-                     deja en blanco, sin escribirlo y sin fingir que el campo está relleno. -->
                 <p v-if="nombreMaestroDelComponenteActivo" class="text-[10px] text-slate-400 font-bold mt-1 ml-1">
-                  En blanco usa el del catálogo: «{{ nombreMaestroDelComponenteActivo }}»
+                  Bórralo para volver al del catálogo: «{{ nombreMaestroDelComponenteActivo }}»
                 </p>
               </div>
 

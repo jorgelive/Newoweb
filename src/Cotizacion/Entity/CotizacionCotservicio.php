@@ -62,7 +62,6 @@ class CotizacionCotservicio
     #[ORM\Column(type: 'json')]
     private array $nombreInternoSnapshot = [];
 
-    /** @var list<array{language?: string, content?: string|null}> */
     /**
      * Cómo se llamaba LA PLANTILLA el día que se aplicó. Congelado y de sólo lectura.
      *

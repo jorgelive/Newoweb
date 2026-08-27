@@ -34,11 +34,20 @@ final class ResolverNombreComponenteTest extends TestCase
         return new BibliaSnapshotService($this->emProhibido());
     }
 
-    /** Un EntityManager que no debe usarse: la resolución no consulta el catálogo. */
+    /**
+     * Un EntityManager que no debe usarse: la resolución no consulta el catálogo.
+     *
+     * Se vetan las CUATRO puertas, no sólo `getRepository()`. Con una sola vetada, reintroducir la
+     * consulta por `find()` o por `createQueryBuilder()` devolvería `null` del mock y los cuatro
+     * casos seguirían en verde — la garantía se vería intacta sin serlo.
+     */
     private function emProhibido(): EntityManagerInterface
     {
         $em = $this->createMock(EntityManagerInterface::class);
-        $em->expects($this->never())->method('getRepository');
+
+        foreach (['getRepository', 'find', 'createQueryBuilder', 'createQuery'] as $puerta) {
+            $em->expects($this->never())->method($puerta);
+        }
 
         return $em;
     }

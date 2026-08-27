@@ -1168,15 +1168,20 @@ Ahora se congela en `OperacionServicio::$nombreComponente`, y el orden de
 `BibliaSnapshotService::resolverNombreComponente()` es:
 
 ```
-1. nombreInternoSnapshot   lo que el operador ESCRIBIÓ en esta cotización
-2. maestro->getNombreInterno()  el nombre operativo del catálogo
-3. tituloSnapshot (es)     el título público, último recurso
+1. nombreInternoSnapshot   el operativo: copiado del maestro al añadirlo, o escrito a mano
+2. tituloSnapshot (es)     el título público, último recurso
 ```
 
-⚠️ **Lo escrito a mano manda sobre el maestro.** Una edición manual es una decisión sobre ESE
-expediente; el maestro es una plantilla. Si el catálogo pudiera pisarla, corregir un nombre en la
-cotización no serviría de nada — y el cambio desaparecería sin avisar, porque la ficha seguiría
-enseñando algo plausible.
+⚠️ **El maestro ya no se consulta aquí.** Desde el 27/08/2026 el operativo se copia al snapshot al
+añadir el componente —como ya hacían servicio y tarifa—, así que la ruta del nombre es una sola:
+maestro → snapshot → La Biblia → Orden. La deriva del catálogo la denuncia la reconciliación en vez
+de aplicarse a escondidas. El test lo fija con un EntityManager que estalla si alguien lo usa.
+
+⚠️ **Vaciar el campo en el editor lo DEVUELVE al del catálogo, no lo deja sin nombre.** Como el
+resolutor ya no consulta el maestro, un campo vacío caería al título público —«Transporte» a
+secas—; por eso el editor repone el del catálogo al salir del campo
+(`reponerNombreDelCatalogoSiQuedoVacio`). Sin eso, la pantalla prometía una herencia que el backend
+había dejado de hacer.
 
 ⚠️ **Pero los dos campos «snapshot» no son la misma cosa.** `nombreInternoSnapshot` lo **escribe
 una persona**: es una decisión, y por eso gana. `tituloSnapshot` es una **copia del maestro** hecha
