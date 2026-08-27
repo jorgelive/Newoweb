@@ -1511,6 +1511,36 @@ ordenados son la plantilla y el segmento. Así que:
 La marca significa lo mismo en los dos sitios —«este componente es el dueño de su día dentro de su
 contenedor»—; lo que cambia es que un lado tiene contenedor a ese nivel y el otro no.
 
+## 11.bis Los vuelos van por RUTA, un componente cada uno (2026-08-27)
+
+Un vuelo **es** su ruta. «Lima → Cusco» es lo que se compra, así que su identidad pertenece al
+**componente**, no al segmento que lo envuelve.
+
+Los trenes ya estaban así —«Tren Ollanta Mapi», «Tren Mapi Ollanta», «Tren Poroy Mapi»…, seis
+rutas— y por eso ninguno da problemas. Los vuelos eran la excepción: un único **«Ticket aereo»**
+genérico, y para saber de qué vuelo se hablaba había que leer el segmento. En el cuadro de tráfico
+eso dejaba fichas que decían «Ticket aereo» y nada más.
+
+Alta: `app:travel:crear-vuelos-por-ruta "Lima<>Cusco"` (idempotente por `nombre`, con `--dry-run`).
+
+⚠️ **Va por comando y no por SQL**: `TravelComponente::$titulo` lleva `#[AutoTranslate]`, y ese
+listener cuelga de `prePersist`. Un `INSERT` directo deja la ficha sólo en español y no lo denuncia
+nadie.
+
+⚠️ **No se generaliza a «todo componente de nombre genérico».** Cabe un segmento «Vuelo Cusco a
+Lima», pero **no** uno «Walking Sticks en Vinicunca»: los bastones son un extra colgado de una
+excursión y se resuelven viendo lo que tienen al lado. La regla es **por tipo de servicio** —los
+que se venden como trayecto: vuelo, tren, transporte entre dos puntos—, no por si el nombre parece
+genérico. El razonamiento largo está en `docs/Operacion.md`, en «Los dos nombres SIEMPRE».
+
+⚠️ Y **«sin lugar» tampoco es la señal**: de 226 componentes hay 10 sin lugar, y entre ellos están
+«Ticket aereo» (genérico) junto a «Box Lunch» y «Walking Sticks», que se nombran perfectamente
+solos.
+
+Las cotizaciones que ya usan el genérico **no se repuntan**: dos de ellas son versiones
+`confirmado` e `historico`, y cambiarles el componente de origen reescribe lo que se vendió. El
+cambio vale hacia adelante; para leerlas, el cuadro ya enseña la ruta desde el segmento.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
