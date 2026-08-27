@@ -529,6 +529,22 @@ class OperacionOrdenServicio
             $acumulado[$monedaNegociada]['real'] += $real > 0.0 ? $real : ($monedaNegociada === $monedaCotizada ? $cotizado : 0.0);
         }
 
+        // ⚠️ Una orden ANULADA soltó sus filas vivas (`anular()` las devuelve al pool), así que
+        // el bucle de arriba no suma nada y la pantalla decía **«Sin importes»** — como si la
+        // orden no hubiera costado nada. Y sí costó: por eso se emitió.
+        //
+        // Lo que se pidió sigue escrito en las **líneas congeladas**, que es justo el rastro que
+        // una anulada existe para conservar. Se suman de ahí para poder enseñarlo —tachado, que
+        // es lo que dice «esto se pidió y ya no vale» sin fingir que nunca pasó.
+        if ($acumulado === []) {
+            foreach ($this->items as $item) {
+                $m = $item->getMoneda()?->getId() ?? '—';
+                $acumulado[$m] ??= ['cotizado' => 0.0, 'real' => 0.0, 'pagado' => 0.0];
+                $acumulado[$m]['cotizado'] += (float) $item->getImporte();
+                $acumulado[$m]['real']     += (float) $item->getImporte();
+            }
+        }
+
         ksort($acumulado);
 
         $salida = [];

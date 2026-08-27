@@ -3424,7 +3424,13 @@ onMounted(async () => {
 
                             <!-- Una línea por moneda, sin convertir. Ver §5.4. -->
                             <div class="shrink-0 text-right">
-                                <div v-for="t in (orden.totalesPorMoneda ?? [])" :key="t.moneda" class="leading-tight mb-0.5">
+                                <!-- ⚠️ En una ANULADA el importe va TACHADO, no escondido. Decía
+                                     «Sin importes» —porque anular suelta las filas vivas y la suma
+                                     salía vacía— y eso se lee como «no costó nada». Costó: por eso
+                                     se emitió. Tachado dice las dos cosas a la vez: cuánto se pidió
+                                     y que ya no vale. -->
+                                <div v-for="t in (orden.totalesPorMoneda ?? [])" :key="t.moneda" class="leading-tight mb-0.5"
+                                     :class="orden.estadoOs === 'cancelada' ? 'line-through decoration-2 decoration-rose-300 opacity-60' : ''">
                                     <span class="text-[10px] font-bold text-slate-400 mr-1">{{ t.moneda }}</span>
                                     <span class="text-sm font-black text-slate-800 tabular-nums">{{ importe(t.real) }}</span>
                                     <!-- Con pagos: se ve el SALDO, que es lo que de verdad falta abonar. -->
