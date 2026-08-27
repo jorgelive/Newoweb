@@ -90,8 +90,8 @@ class CotizacionSegmento
     /**
      * El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco».
      *
-     * Es el de en medio del árbol: agrupa los componentes de un mismo trayecto. Antes se llamaba
-     * `nombreSnapshot`; ver `docs/Cotizaciones.md` §2.b.
+     * Es el de en medio del árbol: agrupa los componentes de un mismo trayecto. Ver
+     * `docs/Cotizaciones.md` §2.b.
      *
      * ⚠️ **Sólo lo lee `pax/`.** En La Biblia el nombre del segmento NO sale de aquí: se resuelve
      * en vivo contra el maestro (`travel_segmento.nombre_interno`, vía `segmentoUnicoMaestroId`),

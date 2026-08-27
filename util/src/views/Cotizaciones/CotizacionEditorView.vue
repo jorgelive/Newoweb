@@ -2724,8 +2724,8 @@ store.$onAction(({ name, args }) => {
                            @change="store.toggleUpsellComponent(item, store.componenteActivo)"
                            class="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">
 
-                    <input :value="store.getI18nText(item.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
-                           @input="e => { if(store.cotizacion) store.setI18nText(item.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                    <input :value="store.getI18nText(item.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                           @input="e => { if(store.cotizacion) store.setI18nText(item.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
                            class="text-xs font-bold text-slate-700 w-full outline-none bg-transparent"
                            :class="(!item.incluido && item.modo === 'no_incluido') ? 'line-through text-slate-400' : (!item.incluido && item.modo === 'opcional') ? 'text-slate-500 italic' : ''"
                            placeholder="Descripción de la inclusión...">

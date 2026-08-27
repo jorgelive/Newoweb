@@ -10,8 +10,8 @@
 // Hasta el 27/08/2026 estaban escritos enteros a mano «porque los snapshots JSON salen como
 // diccionario abierto en el export». El diagnóstico era correcto y la conclusión no: un tipo a
 // mano no falla cuando el backend cambia — **describe una API que ya no existe**, y `vue-tsc` lo
-// da por bueno porque sólo sabe lo que dice el `.d.ts`. Se vio al renombrar `nombreSnapshot` a
-// `tituloSnapshot`: `util` señaló sus 80 usos y `pax` no dijo nada, porque no miraba el esquema.
+// da por bueno porque sólo sabe lo que dice el `.d.ts`. Se vio en el renombrado de nombres de
+// agosto: `util` señaló sus 80 usos y `pax` no dijo ni una, porque no miraba el esquema.
 //
 // La regla: `Omit<Base, 'campo'> & { campo: TipoReal }`, y **sólo** por estos dos motivos:
 //
@@ -107,7 +107,7 @@ export interface PaxSnapshotItem {
     id: string;
     modo: 'incluido' | 'no_incluido' | 'opcional' | 'cortesia' | string;
     incluido: boolean;
-    nombreSnapshot: I18n;
+    tituloSnapshot: I18n;
     tituloTarifaVisible: boolean;
     categoriaTarifaVisible: boolean;
     modalidadTarifaVisible: boolean;

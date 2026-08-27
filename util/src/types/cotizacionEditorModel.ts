@@ -484,7 +484,7 @@ export interface TarifaSnapshot {
 
 export interface SnapshotItem {
     id: string;
-    nombreSnapshot: I18nContent[];
+    tituloSnapshot: I18nContent[];
     modo: string;
     modoOriginal: string;
     incluido: boolean;

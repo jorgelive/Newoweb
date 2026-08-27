@@ -212,8 +212,8 @@ Cualquier otro campo se toma del esquema tal cual. Si falta, se arregla en PHP y
 
 ⚠️ **`pax/src/types/paxCotizacionModel.ts` estuvo escrito entero a mano hasta el 27/08/2026**, con
 un argumento razonable —«los snapshots JSON salen como diccionario abierto»— y una conclusión
-falsa. Se vio al renombrar `nombreSnapshot`→`tituloSnapshot`: **`util` señaló sus 80 usos y `pax`
-no dijo ni una palabra**, porque no miraba el esquema. Un tipo a mano no se queda corto: describe
+falsa. Se vio en el renombrado de nombres de agosto: **`util` señaló sus 80 usos y `pax` no dijo
+ni una palabra**, porque no miraba el esquema. Un tipo a mano no se queda corto: describe
 una API que ya no existe, y `vue-tsc` lo da por bueno porque sólo sabe lo que dice el `.d.ts`.
 
 No se declara el campo a mano en un `*Model.ts`: un tipo escrito a mano que se queda corto **no

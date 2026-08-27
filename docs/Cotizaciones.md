@@ -355,19 +355,15 @@ porque quiere el **operativo**, mientras el snapshot guarda el **público**. Dos
 para la misma cosa, a propósito: «Transporte Aeropuerto Cusco - Hotel Cusco» frente a «Transporte
 desde el Aeropuerto de Cusco al hotel en Cusco».
 
-### Lo que NO se renombró, y por qué
+### El contenido del JSON también se migró
 
-`snapshotItems[].nombreSnapshot` sigue llamándose así. **No es una columna: es contenido dentro de
-un JSON**, así que cambiarle el nombre no es una migración de esquema sino reescribir el dato de
-cada fila. Queda pendiente y anotado; es el único sitio del proyecto donde `nombreSnapshot`
-sobrevive.
+`snapshotItems[].tituloSnapshot` era el último sitio con el nombre viejo. **No es una columna: es
+una clave dentro de un `json`**, así que no bastaba un `ALTER TABLE` — hubo que reescribir el
+contenido de 62 componentes y 184 ítems (`Version20260827180000`, con la transformación en PHP
+porque en SQL serían tres funciones anidadas por elemento que nadie va a saber releer).
 
-### Cómo era antes (por si aparece en una rama vieja)
-
-`nombreSnapshot` guardaba el **público** en componente y segmento, y el **interno** en cotservicio
-—donde el público vivía en `nombrePublicoSnapshot`—. `->getNombreSnapshot()` devolvía una cosa u
-otra según la entidad, y en ambos casos un texto que se lee bien: no fallaba, devolvía otra cosa.
-`TravelComponente` era además el único maestro que llamaba `nombre` a su nombre interno.
+⚠️ Fue en la MISMA migración que el código que lo lee. Separarlos habría dejado los 184 ítems sin
+nombre en pantalla entre un paso y otro — y sin error: un hueco, que es peor de detectar.
 
 ## 3. Tarifas (`CotizacionCottarifa` / `TarifaSnapshot`)
 
@@ -392,7 +388,7 @@ Configs UI (iconos/labels): `MODALIDAD_CONFIG`, `CATEGORIA_CONFIG` y helper `mod
 
 ### Ítems del componente (`snapshotItems` / `SnapshotItem`)
 Sub-elementos del componente (ej. "Guía Profesional", "Transporte"). Campos relevantes:
-- `nombreSnapshot`, `modo` (`incluido`/`no_incluido`/`opcional`/`cortesia`), `incluido`.
+- `tituloSnapshot`, `modo` (`incluido`/`no_incluido`/`opcional`/`cortesia`), `incluido`.
 - **Flags de visibilidad** (herencia tarifa→ítem hacia el cliente): `tituloTarifaVisible`, `modalidadTarifaVisible`, `categoriaTarifaVisible`. Controlan si el ítem muestra el título/modalidad/categoría **heredados de la tarifa** al cliente.
 
 
@@ -1196,7 +1192,7 @@ tituloSnapshot: []
 
 | Qué | Dónde | Ahora |
 |---|---|---|
-| `isComponenteSoloItems()` | `CotizacionEditorView.vue` | Un contenedor lo es porque **tiene ítems**: `nombreSnapshot` vacío **Y** `snapshotItems` no vacío. Uno recién creado no es ninguna de las dos cosas |
+| `isComponenteSoloItems()` | `CotizacionEditorView.vue` | Un contenedor lo es porque **tiene ítems**: `tituloSnapshot` vacío **Y** `snapshotItems` no vacío. Uno recién creado no es ninguna de las dos cosas |
 | `getNombreMaestroRef()` | `CotizacionEditorView.vue` | Sin maestro manda **su** `tituloSnapshot`; «Insumo sin seleccionar» sólo si tampoco hay nombre propio |
 | Categoría Operativa | ficha del componente + `onTipoManualChange()` en el store | Selector, **sólo si `componenteMaestroId` es null** |
 
@@ -1343,7 +1339,7 @@ El editor ya no estorba, pero la cadena aguas abajo exige cosas que nadie recuer
 |---|---|
 | Al menos **una tarifa** (basta manual, con moneda) | `OperacionServicio::isSoloReferencia()` → **no entra en una Orden**, 422 en tres guardas |
 | **Prestador** | La orden se crea pero **no se puede enviar**: «no hay a quién escribirle» |
-| `nombreSnapshot` o `snapshotItems` | `construirInclusiones()` no genera línea → **advertencia bloqueante** al guardar |
+| `tituloSnapshot` o `snapshotItems` | `construirInclusiones()` no genera línea → **advertencia bloqueante** al guardar |
 | Tarifa con `rolSnapshot: 'estandar'`, si `modo: incluido` | se publica como «Opción N» dentro de *Opcional* |
 
 ⚠️ **Y La Biblia no se entera sola.** `BibliaSnapshotService` es idempotente **por existencia de
@@ -2672,8 +2668,8 @@ Reglas al tocar esta zona:
 
 - **No leas `dataActiva` directamente.** Fue `any` durante mucho tiempo y eso
   dejaba escribir campos de un tipo sobre un nodo de otro sin ningún aviso: así
-  se coló durante meses una cabecera que pintaba `tarifaActiva.nombreSnapshot`,
-  campo que no existe en `TarifaSnapshot` (es `tituloSnapshot`), y que por tanto
+  se coló durante meses una cabecera que pintaba un campo inexistente en
+  `TarifaSnapshot` —el título se llama ahí `tituloSnapshot`—, y que por tanto
   salía **siempre vacía**.
 - **Cada bloque del template cuelga de su accesor** (`v-if="store.servicioActivo"`,
   no `v-if="store.inspectorActivo === 'servicio'"`): además de elegir el nivel,

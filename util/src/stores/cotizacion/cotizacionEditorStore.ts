@@ -344,7 +344,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         return {
             id: crypto.randomUUID(),
-            nombreSnapshot: JSON.parse(JSON.stringify(tituloData)),
+            tituloSnapshot: JSON.parse(JSON.stringify(tituloData)),
             modo: modoBackend,
             modoOriginal: modoBackend,
             // ItemModoEnum ya no tiene 'cortesia': solo 'incluido' marca el check
@@ -761,12 +761,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (!items.length) return [];
             // Idiomas presentes en cualquiera de los ítems.
             const idiomas = new Set<string>();
-            items.forEach((it) => (it.nombreSnapshot || []).forEach((c) => idiomas.add(c.language)));
+            items.forEach((it) => (it.tituloSnapshot || []).forEach((c) => idiomas.add(c.language)));
             if (!idiomas.size) return [];
             return [...idiomas].map((language) => ({
                 language,
                 content: items
-                    .map((it) => getI18nText(it.nombreSnapshot, language))
+                    .map((it) => getI18nText(it.tituloSnapshot, language))
                     .filter(Boolean)
                     .join(' · ')
             }));
@@ -1525,14 +1525,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     // y a favor del cliente: acabas regalando lo que querías cobrar aparte.
                     if (!MODOS_ITEM_VALIDOS.includes(modoItem)) {
                         avisar(servicioLabel, compLabel,
-                            `el ítem "${getI18nText(item.nombreSnapshot, idiomaEdicion) || 'sin nombre'}" `
+                            `el ítem "${getI18nText(item.tituloSnapshot, idiomaEdicion) || 'sin nombre'}" `
                             + `tiene el modo desconocido "${modoItem}" y se publicará como Incluido.`);
                     }
 
                     destino(modoItem).push({
                         origen: 'item',
                         modo: modoItem as InclusionLinea['modo'],
-                        nombre: item.nombreSnapshot,
+                        nombre: item.tituloSnapshot,
                         fecha,
                         cantidadComponente: 1,
                         // Herencia condicional por flags desde la tarifa estándar del contenedor
@@ -2884,7 +2884,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (!componente.snapshotItems) componente.snapshotItems = [];
             componente.snapshotItems.push({
                 id: crypto.randomUUID(),
-                nombreSnapshot: [{ language: 'es', content: 'Nueva inclusión' }],
+                tituloSnapshot: [{ language: 'es', content: 'Nueva inclusión' }],
                 incluido: true,
                 modo: 'incluido',
                 modoOriginal: 'incluido',

@@ -49,10 +49,9 @@ class CotizacionCotservicio
      * tituloSnapshot         «Excursión a Huayna Picchu de 1 día»         ← al huésped
      * ```
      *
-     * Hasta el renombrado, éste se llamaba `nombreSnapshot` — el mismo nombre que en
-     * `CotizacionCotcomponente` y `CotizacionSegmento` guarda el **público**. Leer
-     * `->getNombreSnapshot()` daba el interno o el público según la entidad, y en ambos casos un
-     * texto que se lee bien. Ver `docs/Cotizaciones.md` §2.b.
+     * ⚠️ **Aquí el interno es el que ve el tráfico** y el título el que ve el huésped, al revés
+     * de lo que sugiere la intuición: La Biblia es nuestra, no del cliente. Ver
+     * `docs/Cotizaciones.md` §2.b.
      *
      * Éste es el que La Biblia congela como `contextoServicio` y enseña en pequeño bajo el nombre
      * del componente.

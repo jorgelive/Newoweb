@@ -72,8 +72,7 @@ class CotizacionCotcomponente
      * envejece. Si mandara, un componente cuyo maestro se renombró enseñaría el nombre viejo para
      * siempre — el caso del vuelo, cuya copia dice «Ticket aereo» y el maestro «Vuelo Lima Cusco».
      *
-     * ⚠️ Antes se llamaba `nombreSnapshot`, que en `CotizacionCotservicio` significaba lo contrario.
-     * Ver `docs/Cotizaciones.md` §2.b.
+     * ⚠️ El mapa de los cuatro nombres del árbol está en `docs/Cotizaciones.md` §2.b.
      *
      * @var list<array{language?: string, content?: string|null}>
      */
@@ -111,7 +110,7 @@ class CotizacionCotcomponente
 
     /** @var list<array<string, mixed>> */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
-    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['nombreSnapshot'], format: 'text')]
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['tituloSnapshot'], format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $snapshotItems = [];
 
