@@ -292,6 +292,39 @@ Cotizacion
             nombreSnapshot         →  PÚBLICO, casi siempre copia «Ticket aereo»
 ```
 
+### De dónde sale cada uno
+
+**Lo compone el EDITOR, y PHP no lo toca nunca.** No hay ningún `setNombreSnapshot()` llamado desde
+el servidor: los únicos setters son los de las propias entidades, y `CotizacionDenormalizer` sólo
+inyecta ids para poder actualizar el JSON — el valor viaja hecho en el payload.
+
+```
+TravelComponente.titulo        (maestro · PÚBLICO · 7 idiomas)
+        │  getTituloSafe() + copia profunda, al añadir del catálogo
+        ▼
+CotizacionCotcomponente.nombreSnapshot     ← y aquí se queda congelado
+```
+
+| Qué añades | Fuente del `nombreSnapshot` |
+|---|---|
+| Componente del catálogo | `TravelComponente.titulo` |
+| Segmento del catálogo | `TravelSegmento.titulo` |
+| Servicio nuevo | literal «Nuevo Servicio» |
+| Inclusión nueva | literal «Nueva inclusión» |
+| Componente manual | `[]` — lo escribe el operador |
+
+⚠️ **Copia `titulo`, nunca `nombre`.** Y ésa es la raíz de todo el episodio de los nombres: el
+operativo del maestro **jamás entra en la cotización**, así que La Biblia no puede sacarlo del
+snapshot y tiene que ir a buscarlo al catálogo. No es un descuido — es coherente con la regla de
+arriba: al snapshot sólo baja lo traducido, porque es lo que verá el cliente.
+
+⚠️ **Es una copia PROFUNDA** (`JSON.parse(JSON.stringify(...))`), y ahí está el «snapshot»:
+desengancha el texto del maestro a propósito, para que renombrar el catálogo no reescriba una
+cotización ya enviada. El precio es el otro lado de la misma moneda — un maestro renombrado deja
+copias viejas para siempre, que es por qué el vuelo seguía diciendo «Ticket aereo» cuando su
+maestro ya decía «Vuelo Lima Cusco». Congelar y envejecer son la misma propiedad vista de los dos
+lados.
+
 ### Cómo distinguirlos sin memorizar nada
 
 **Si está traducido, es para el cliente. Si es un `string` pelado, es para nosotros.** La
