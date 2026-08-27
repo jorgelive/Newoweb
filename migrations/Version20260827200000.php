@@ -41,21 +41,29 @@ final class Version20260827200000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE cotizacion_cotservicio CHANGE itinerario_nombre_snapshot itinerario_nombre_interno_snapshot JSON NOT NULL');
-
+        // ⚠️ **El contenido se migra ANTES del rename, y con el nombre VIEJO de la columna.**
+        //
+        // `addSql()` no ejecuta: **encola** para el final de `up()`. `$this->connection`, en
+        // cambio, va inmediato. Con el `ALTER` arriba del todo se lee natural —«renombro y luego
+        // relleno»— y es exactamente al revés de lo que ocurre: el SELECT salía primero y moría
+        // con `Unknown column 'itinerario_nombre_interno_snapshot'`. Pasó en el despliegue del
+        // 27/08/2026, con el código ya arriba y la columna todavía sin renombrar.
+        //
+        // Así que primero se convierte sobre `itinerario_nombre_snapshot`, y el `CHANGE` de abajo
+        // se lleva los datos ya buenos dentro.
         $filas = $this->connection->fetchAllAssociative(
             'SELECT sv.id, it.nombre_interno
                FROM cotizacion_cotservicio sv
                JOIN travel_itinerario it
                  ON HEX(it.id) = UPPER(REPLACE(sv.itinerario_maestro_id, "-", ""))
-              WHERE JSON_LENGTH(sv.itinerario_nombre_interno_snapshot) > 0
+              WHERE JSON_LENGTH(sv.itinerario_nombre_snapshot) > 0
                 AND it.nombre_interno IS NOT NULL
                 AND it.nombre_interno <> ""'
         );
 
         foreach ($filas as $fila) {
             $this->connection->executeStatement(
-                'UPDATE cotizacion_cotservicio SET itinerario_nombre_interno_snapshot = ? WHERE id = ?',
+                'UPDATE cotizacion_cotservicio SET itinerario_nombre_snapshot = ? WHERE id = ?',
                 [
                     json_encode(
                         [['language' => 'es', 'content' => $fila['nombre_interno']]],
@@ -70,6 +78,9 @@ final class Version20260827200000 extends AbstractMigration
             '    <info>%d servicios pasan al nombre operativo de su plantilla; los demás conservan su marcador</info>',
             \count($filas)
         ));
+
+        // Y ahora sí el rename, que Doctrine ejecutará al terminar este método.
+        $this->addSql('ALTER TABLE cotizacion_cotservicio CHANGE itinerario_nombre_snapshot itinerario_nombre_interno_snapshot JSON NOT NULL');
     }
 
     public function down(Schema $schema): void
