@@ -430,8 +430,8 @@ class OperacionServicio
      * del componente, y lo único que dice de qué vuelo o traslado concreto se habla cuando el
      * componente se llama en genérico («Ticket aereo»).
      *
-     * ⚠️ Antes lo resolvía el navegador **en vivo** contra el maestro, por
-     * `getSegmentoUnicoMaestroId()`, y con el mismo `catch` que ya borró el nombre del componente.
+     * ⚠️ Antes lo resolvía el navegador **en vivo** contra el maestro, con el mismo `catch` que ya
+     * borró el nombre del componente —y el getter que daba ese id se retiró con él—.
      * Ahora viaja congelado desde `CotizacionSegmento::$nombreInternoSnapshot`: una sola ruta para
      * los dos nombres.
      */
@@ -736,30 +736,6 @@ class OperacionServicio
 
     public function getCotizacionServicio(): ?CotizacionCotservicio { return $this->cotizacionServicio; }
     public function setCotizacionServicio(?CotizacionCotservicio $cotizacionServicio): self { $this->cotizacionServicio = $cotizacionServicio; return $this; }
-
-    /**
-     * El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla.
-     *
-     * En ese caso el nombre del servicio es genérico («Alojamiento») y el que dice qué cosa es
-     * lo lleva el segmento. La Biblia usa este id para resolver EN VIVO el nombre interno del
-     * segmento contra el maestro —igual que los contactos de proveedor—, sin snapshot ni
-     * reconciliación. `null` cuando hay plantilla, o 0 / varios segmentos: ahí manda el nombre
-     * del servicio, que es una cabecera y no un tramo.
-     */
-    #[Groups(['operacion:item:read'])]
-    public function getSegmentoUnicoMaestroId(): ?string
-    {
-        $servicio = $this->cotizacionServicio;
-        if ($servicio === null || $servicio->getItinerarioMaestroId() !== null) {
-            return null;
-        }
-        $segmentos = $servicio->getCotsegmentos();
-        if ($segmentos->count() !== 1) {
-            return null;
-        }
-        $unico = $segmentos->first();
-        return $unico === false ? null : $unico->getSegmentoMaestroId();
-    }
 
     public function getCotizacionComponente(): ?CotizacionCotcomponente { return $this->cotizacionComponente; }
     public function setCotizacionComponente(?CotizacionCotcomponente $cotizacionComponente): self { $this->cotizacionComponente = $cotizacionComponente; return $this; }

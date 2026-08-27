@@ -17799,8 +17799,6 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
-            /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
-            readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id del prestador que vale. */
             readonly prestadorEfectivoMaestroId?: string | null;
             /** @description El nombre del prestador que vale. */
@@ -18204,8 +18202,6 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
-            /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
-            readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id del prestador que vale. */
             readonly prestadorEfectivoMaestroId?: string | null;
             /** @description El nombre del prestador que vale. */
@@ -18419,8 +18415,6 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
-            /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
-            readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id del prestador que vale. */
             readonly prestadorEfectivoMaestroId?: string | null;
             /** @description El nombre del prestador que vale. */
@@ -18634,8 +18628,6 @@ export interface components {
             updatedAt?: string | null;
             /** @description La fila está en el cuadro de tráfico como REFERENCIA, no como compra. */
             readonly soloReferencia?: boolean;
-            /** @description El maestro del ÚNICO segmento, y sólo cuando el servicio es mono-segmento SIN plantilla. */
-            readonly segmentoUnicoMaestroId?: string | null;
             /** @description El id del prestador que vale. */
             readonly prestadorEfectivoMaestroId?: string | null;
             /** @description El nombre del prestador que vale. */
