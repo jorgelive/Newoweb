@@ -39,7 +39,24 @@ class CotizacionCotservicio
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Cotizacion $cotizacion = null;
 
-    /** @var list<array{language?: string, content?: string|null}> */
+    /**
+     * El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas».
+     *
+     * ⚠️ Los tres niveles del árbol tienen un campo llamado `nombreSnapshot` y **no son lo
+     * mismo**. De arriba abajo:
+     *
+     * ```
+     * CotizacionCotservicio   ← ESTE.  el DÍA          «Full Day Paracas y Huacachina»
+     *   CotizacionSegmento             el TRAMO        «Vuelo de la ciudad de Lima a Cusco»
+     *   CotizacionCotcomponente        lo que se COMPRA «Ticket aereo», «Transporte»
+     * ```
+     *
+     * Éste es el que La Biblia congela como `contextoServicio` y enseña en pequeño bajo el
+     * nombre del componente. **No sale en la app del huésped**: es el único de los tres sin
+     * `pax_cotizacion:read`.
+     *
+     * @var list<array{language?: string, content?: string|null}>
+     */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]

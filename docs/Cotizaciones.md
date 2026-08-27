@@ -277,6 +277,50 @@ Los textos multi-idioma son `I18nContent[]` = `[{ language, content }]`.
 
 ---
 
+## 2.b Los CUATRO `nombreSnapshot`, y cuál lee cada vista (27/08/2026)
+
+Tres niveles del árbol tienen un campo llamado **`nombreSnapshot`**, y el componente además tiene
+**`nombreInternoSnapshot`**. Se llaman casi igual, ninguno decía qué era, y confundirlos es lo que
+hizo que La Biblia enseñara el itinerario en el sitio del servicio.
+
+```
+Cotizacion
+└── CotizacionCotservicio      nombreSnapshot  →  el DÍA        «Full Day Paracas y Huacachina»
+    ├── CotizacionSegmento     nombreSnapshot  →  el TRAMO      «Vuelo de la ciudad de Lima a Cusco»
+    └── CotizacionCotcomponente
+            nombreInternoSnapshot  →  OPERATIVO, siempre a mano  «Traslado a la Huacachina»
+            nombreSnapshot         →  PÚBLICO, casi siempre copia «Ticket aereo»
+```
+
+### Quién lee cada uno
+
+| Campo | La Biblia / Órdenes | Editor (`util`) | Huésped (`pax`) |
+|---|---|---|---|
+| **Cotservicio**`.nombreSnapshot` | sí → se congela como `contextoServicio`, el renglón pequeño | sí | **no** — es el único sin `pax_cotizacion:read` |
+| **Segmento**`.nombreSnapshot` | **no** (ver aviso) | sí | sí — `PaxCotizacionGuiaView` |
+| **Cotcomponente**`.nombreSnapshot` | sólo como último recurso del nombre | sí | sí |
+| **Cotcomponente**`.nombreInternoSnapshot` | **sí, y manda sobre todo** | sí | no |
+
+⚠️ **El nombre de segmento que ve el tráfico NO sale del snapshot.** La Biblia lo resuelve en vivo
+contra el maestro (`travel_segmento.nombre_interno`, vía `OperacionServicio::getSegmentoUnicoMaestroId()`)
+porque quiere el nombre **operativo**, mientras que el snapshot guarda el **público**. Son dos
+textos distintos para la misma cosa y conviven a propósito: «Transporte Aeropuerto Cusco - Hotel
+Cusco» frente a «Transporte desde el Aeropuerto de Cusco al hotel en Cusco».
+
+### Por qué NO se llama `nombreMaestroSnapshot`
+
+Sería el nombre natural —197 de 199 componentes lo tienen copiado del catálogo— pero **mentiría en
+los otros 2**: los componentes manuales no tienen maestro y ahí lo escribe el operador. Lo que de
+verdad separa los dos campos del componente no es su origen sino **para quién son**: uno es
+operativo y otro es público. Si algún día se renombra, `nombrePublicoSnapshot` es el que no falla
+en ningún caso.
+
+### Dónde está escrito, por si se toca
+
+`util/` sólo lo usa el **editor** (`cotizacionEditorStore.ts`, `CotizacionEditorView.vue`,
+`cotizacionEditorModel.ts`) y `pax/` sólo la **guía del cliente** (`PaxCotizacionGuiaView.vue`,
+`paxCotizacionModel.ts`). Todo lo demás que aparece en un grep es `api.d.ts`, que se regenera.
+
 ## 3. Tarifas (`CotizacionCottarifa` / `TarifaSnapshot`)
 
 Campos que mandan (todos `*Snapshot`):

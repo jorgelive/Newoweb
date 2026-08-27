@@ -56,7 +56,26 @@ class CotizacionCotcomponente
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?CotizacionSegmento $cotsegmento = null;
 
-    /** @var list<array{language?: string, content?: string|null}> */
+    /**
+     * El nombre PÚBLICO de la línea que se compra: el que ve el cliente.
+     *
+     * ⚠️ **No confundir con `$nombreInternoSnapshot`**, que es el OPERATIVO. La diferencia no es
+     * de dónde vienen sino para quién son, y decide quién gana en
+     * `BibliaSnapshotService::resolverNombreComponente()`:
+     *
+     * ```
+     * nombreInternoSnapshot   OPERATIVO   lo escribe SIEMPRE una persona   → manda
+     * nombreSnapshot (éste)   PÚBLICO     copiado del maestro (197) o a mano (2)
+     * ```
+     *
+     * Por eso éste va el ÚLTIMO: al venir casi siempre copiado del catálogo, es una foto que
+     * envejece. Si mandara, un componente cuyo maestro se renombró enseñaría el nombre viejo para
+     * siempre — el caso del vuelo, cuya copia dice «Ticket aereo» y el maestro «Vuelo Lima Cusco».
+     *
+     * ⚠️ Y es uno de los tres `nombreSnapshot` del árbol — ver `CotizacionCotservicio` para el mapa.
+     *
+     * @var list<array{language?: string, content?: string|null}>
+     */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]

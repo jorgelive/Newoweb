@@ -87,7 +87,19 @@ class CotizacionSegmento
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
     private ?string $finTexto = null;
 
-    /** @var list<array{language?: string, content?: string|null}> */
+    /**
+     * El nombre del TRAMO: «Vuelo desde la ciudad de Lima a la ciudad de Cusco».
+     *
+     * ⚠️ Uno de los tres `nombreSnapshot` del árbol — ver el de `CotizacionCotservicio` para el
+     * mapa completo. Éste es el de en medio: agrupa los componentes de un mismo trayecto.
+     *
+     * ⚠️ **Sólo lo lee `pax/`.** En La Biblia el nombre del segmento NO sale de aquí: se resuelve
+     * en vivo contra el maestro (`travel_segmento.nombre_interno`, vía `segmentoUnicoMaestroId`),
+     * porque el cuadro quiere el nombre **operativo** y esto es el **público**. Son dos textos
+     * distintos para la misma cosa y conviven a propósito.
+     *
+     * @var list<array{language?: string, content?: string|null}>
+     */
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
