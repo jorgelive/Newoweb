@@ -3067,7 +3067,14 @@ onMounted(async () => {
                                             <i :class="[getTipoComponenteConfig(servicio.tipoComponente).icon,
                                                        getTipoComponenteConfig(servicio.tipoComponente).text, 'text-sm mt-0.5 shrink-0']"
                                                :title="getTipoComponenteConfig(servicio.tipoComponente).label"></i>
-                                            <span>{{ nombreComponenteDe(servicio) || nombreSegmentoDe(servicio) || servicio.contextoServicio || getTipoComponenteConfig(servicio.tipoComponente).label }}</span>
+                                            <!-- ⚠️ El título es el COMPONENTE y sólo el componente. El itinerario tiene su
+                                                 propia ranura pequeña más abajo: son dos datos, no dos intentos
+                                                 del mismo. Cuando el itinerario podía subir aquí de respaldo, un
+                                                 traslado de Ollantaytambo a Cusco se anunciaba como «Full Day
+                                                 HUAYNA: MAPI OLLA CUZ» y salía DUPLICADO en la ficha —arriba y
+                                                 abajo—, que es la única señal que lo delataba. El último recurso
+                                                 es el tipo («Transporte»): genérico, pero nunca miente. -->
+                                            <span>{{ nombreComponenteDe(servicio) || getTipoComponenteConfig(servicio.tipoComponente).label }}</span>
                                         </p>
                                         <p v-if="servicio.descripcionServicio" class="text-[11px] font-bold text-slate-500 leading-tight mt-1">
                                             <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ servicio.descripcionServicio }}
@@ -3498,7 +3505,18 @@ onMounted(async () => {
                                          class="bg-slate-50 rounded-lg px-2 py-1.5">
                                         <div class="flex items-start justify-between gap-2">
                                             <div class="min-w-0">
-                                                <p class="text-[11px] font-black text-slate-800 leading-snug">{{ it.descripcion }}</p>
+                                                <!-- Las mismas dos ranuras que en el cuadro: el encargo grande y el
+                                                     día del itinerario pequeño. `descripcion` es SÓLO la variante de
+                                                     tarifa, y sola era lo que le llegaba al proveedor como «Auto». -->
+                                                <p class="text-[11px] font-black text-slate-800 leading-snug">
+                                                    {{ it.nombreComponente || it.descripcion }}
+                                                    <span v-if="it.nombreComponente && it.descripcion && it.descripcion !== it.nombreComponente"
+                                                          class="font-bold text-slate-400">· {{ it.descripcion }}</span>
+                                                </p>
+                                                <p v-if="it.contextoServicio && it.contextoServicio !== (it.nombreComponente || it.descripcion)"
+                                                   class="text-[10px] text-slate-400 leading-snug">
+                                                    <i class="fas fa-map-signs text-[8px] mr-1 text-slate-300"></i>{{ it.contextoServicio }}
+                                                </p>
                                                 <p class="text-[10px] text-slate-400 leading-snug">
                                                     <span v-if="it.hora">{{ it.hora }}</span>
                                                     <span v-if="it.cantidadPax"> · {{ it.cantidadPax }} pax</span>
@@ -4599,7 +4617,7 @@ onMounted(async () => {
             <div class="min-w-0 flex-1">
               <p class="font-black text-sm truncate flex items-center gap-1.5">
                 <i :class="[getTipoComponenteConfig(servicioFicha.tipoComponente).icon, 'text-xs opacity-80']"></i>
-                {{ nombreComponenteDe(servicioFicha) || servicioFicha.contextoServicio || getTipoComponenteConfig(servicioFicha.tipoComponente).label }}
+                {{ nombreComponenteDe(servicioFicha) || getTipoComponenteConfig(servicioFicha.tipoComponente).label }}
               </p>
               <p class="text-[10px] font-bold text-white/70 truncate">{{ servicioFicha.descripcionServicio }}</p>
             </div>

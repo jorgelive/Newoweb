@@ -418,7 +418,27 @@ export const useOperacionStore = defineStore('operacionStore', () => {
      * Sin el respaldo, un componente manual se quedaba rotulado con su tarifa, y una tarifa
      * («Adulto Extranjero») no dice si lo que se compró es un ticket o un guiado.
      */
+    /**
+     * QUÉ es esta fila. Del SNAPSHOT primero, del maestro sólo como refuerzo.
+     *
+     * ⚠️ **Antes salía sólo del maestro, y por eso se perdía sin dejar rastro.** Se resolvía por
+     * `componenteMaestroId` contra `nombreComponentePorMaestro`, que se llena en el mismo lote que
+     * las etiquetas de lugar — y ese lote tiene un `catch` que lo vacía entero porque «los badges
+     * son decoración». En cuanto esa petición fallaba, esto devolvía `null`, la ficha caía al
+     * respaldo y **enseñaba el nombre del ITINERARIO como si fuera el servicio**: al que sólo hace
+     * el traslado Ollantaytambo→Cusco se le leía «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)».
+     *
+     * No se nota porque no deja un hueco: deja otro nombre, y se lee plausible.
+     *
+     * Ahora el nombre viaja congelado en el snapshot (`OperacionServicio::$nombreComponente`), que
+     * es además lo que promete la Orden. El maestro queda para las filas emitidas antes de que el
+     * campo existiera. Si el catálogo se renombra, lo denuncia la reconciliación.
+     */
     const nombreComponenteDeServicio = (servicio: OperacionServicio): string | null => {
+        if (servicio.nombreComponente) {
+            return servicio.nombreComponente;
+        }
+
         const componente = servicio.cotizacionComponente as {
             componenteMaestroId?: string;
             nombreInternoSnapshot?: string | null;

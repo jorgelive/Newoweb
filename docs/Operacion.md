@@ -1122,6 +1122,58 @@ Lo que se retiró: el bloqueo por monedas distintas en `setOrdenServicio()` y en
 `conflictoSeleccion`. Lo que **no** se retiró: expediente único, comprador único, nada de
 referencias ni cancelados, y nada que ya esté en otra orden.
 
+#### Dos ranuras, no una cadena: el componente y el itinerario (2026-08-27)
+
+La ficha y la orden enseñan **dos nombres a la vez**, y son datos distintos:
+
+```
+GRANDE   nombreComponente    QUÉ hay que hacer   «Transporte desde Estación de Ollantaytambo a Cusco»
+al lado  descripcionServicio la VARIANTE          «Auto»  (tarifa: auto / van / bus)
+pequeño  contextoServicio    DÓNDE encaja         «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)»
+```
+
+⚠️ **Ninguno es respaldo del otro.** Que el itinerario pudiera subir a la ranura grande cuando
+faltaba el componente es el fallo entero: un traslado de Ollantaytambo a Cusco se anunciaba como
+«Full Day HUAYNA: MAPI OLLA CUZ», y Gabriel Aime —que sólo hace ese tramo— aparecía encargado de
+la excursión completa. **No deja un hueco: deja otro nombre**, y se lee perfectamente plausible.
+La única pista era que salía duplicado, arriba y abajo, en la misma ficha.
+
+El último recurso del título es el **tipo** (`Transporte`, `Guiado`): genérico, pero nunca miente.
+
+##### Por qué está denormalizado
+
+El nombre vivía **sólo en el catálogo maestro** y lo resolvía el navegador en vivo, por
+`componenteMaestroId`, en el mismo lote que las etiquetas de lugar. Ese lote tiene un `catch` que
+lo vacía entero, con este razonamiento escrito al lado: *«los badges son decoración»*. Y lo son —
+pero el nombre del componente viajaba de polizón entre ellos, y no es decoración: es la identidad
+de la fila. Cualquier fallo de esa petición borraba el nombre de todo el cuadro.
+
+Peor en la Orden: el snapshot **no llevaba el nombre en absoluto**, así que el documento que se le
+manda al proveedor sólo tenía la variante de tarifa. Le llegaron órdenes que decían «Auto» y
+«Hotel 4 estrellas por grupo» como encargo completo.
+
+Ahora se congela en `OperacionServicio::$nombreComponente` (`BibliaSnapshotService::resolverNombreComponente()`:
+nombre público en español → nombre interno) y se copia a la línea al emitir. El maestro queda como
+refuerzo para las filas anteriores al campo, y la deriva la denuncia la reconciliación, que ya lo
+tiene en `ETIQUETAS`.
+
+##### Las tres superficies leen lo mismo
+
+`OperacionOrdenServicioItem::getTituloParaProveedor()` y `getVarianteParaProveedor()` las usan la
+página pública, el PDF y el texto de WhatsApp. Una sola fuente: es lo que evita arreglar dos y
+dejar la tercera diciendo «Auto». La variante se calla si repetiría el título —en los componentes
+manuales suelen coincidir—, y el itinerario también.
+
+##### `resolverDescripcion()` NO se tocó
+
+Sigue resolviendo **cómo llama el proveedor a lo que le compras**, y su prioridad 1 —el
+`nombreParaProveedor` de la tarifa— es correcta para lo que hace. El fallo no era ésa: era pedirle
+que respondiera además a *«qué es esto»*, que es otra pregunta. En los componentes de catálogo ese
+campo trae la variante («Auto», «Adulto extranjero», «Extranjero») porque nombra la línea de
+precio, no el servicio.
+
+Backfill: `app:operacion:backfill-nombre-componente` (idempotente, con `--dry-run`).
+
 #### La suma se calcula en el servidor, no en la pantalla
 
 `OperacionOrdenServicio::getTotalesPorMoneda()` devuelve una línea por moneda con dos

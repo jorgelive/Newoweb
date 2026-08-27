@@ -17108,8 +17108,15 @@ export interface components {
         "OperacionOrdenServicioItem-operacion.item.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
             operacionServicioId?: string | null;
-            /** @default  */
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
             descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
             /** Format: date-time */
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
@@ -17150,8 +17157,15 @@ export interface components {
         "OperacionOrdenServicioItem-operacion.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
             operacionServicioId?: string | null;
-            /** @default  */
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
             descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
             /** Format: date-time */
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
@@ -17192,8 +17206,15 @@ export interface components {
         "OperacionOrdenServicioItem.html-operacion.item.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
             operacionServicioId?: string | null;
-            /** @default  */
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
             descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
             /** Format: date-time */
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
@@ -17234,8 +17255,15 @@ export interface components {
         "OperacionOrdenServicioItem.html-operacion.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
             operacionServicioId?: string | null;
-            /** @default  */
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
             descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
             /** Format: date-time */
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
@@ -17276,8 +17304,15 @@ export interface components {
         "OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
             operacionServicioId?: string | null;
-            /** @default  */
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
             descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
             /** Format: date-time */
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
@@ -17318,8 +17353,15 @@ export interface components {
         "OperacionOrdenServicioItem.jsonld-operacion.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
             operacionServicioId?: string | null;
-            /** @default  */
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
             descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
             /** Format: date-time */
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
@@ -17360,8 +17402,15 @@ export interface components {
         "OperacionOrdenServicioItem.multipart-operacion.item.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
             operacionServicioId?: string | null;
-            /** @default  */
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
             descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
             /** Format: date-time */
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
@@ -17402,8 +17451,15 @@ export interface components {
         "OperacionOrdenServicioItem.multipart-operacion.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
             operacionServicioId?: string | null;
-            /** @default  */
+            /**
+             * @description La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+             * @default
+             */
             descripcion: string;
+            /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
+            nombreComponente?: string | null;
+            /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
+            contextoServicio?: string | null;
             /** Format: date-time */
             fechaServicio?: string | null;
             /** @description Tal y como se pidió: «08:30», o nulo si la Orden no fijaba hora. */
@@ -17606,6 +17662,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -17704,6 +17762,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @default 1 */
@@ -17810,6 +17870,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -17901,6 +17963,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -17995,6 +18059,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -18093,6 +18159,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @default 1 */
@@ -18202,6 +18270,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -18300,6 +18370,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @default 1 */
@@ -18409,6 +18481,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @description Snapshot de ComponenteModoEnum: incluido, no_incluido, cortesia, reemplazado. */
@@ -18507,6 +18581,8 @@ export interface components {
             tarifaNombre?: string | null;
             /** @description Nombre del CotizacionCotservicio padre (el "día" del itinerario) en español. */
             contextoServicio?: string | null;
+            /** @description QUÉ es esta fila: el nombre público del componente, en español. */
+            nombreComponente?: string | null;
             /** @description Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum). */
             tipoComponente?: string | null;
             /** @default 1 */

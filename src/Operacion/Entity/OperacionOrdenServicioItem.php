@@ -66,9 +66,36 @@ class OperacionOrdenServicioItem
     // LO QUE DIJO EL DOCUMENTO — nada de esto se vuelve a tocar
     // ─────────────────────────────────────────────────────────────────────────
 
+    /**
+     * La VARIANTE de tarifa: «Auto», «Adulto extranjero», «Base».
+     *
+     * ⚠️ Durante un tiempo fue lo ÚNICO que llevaba la línea, y por eso a los proveedores les
+     * llegaron órdenes que decían «Auto» y «Hotel 4 estrellas por grupo» a secas. Sola no dice
+     * qué hay que hacer: acompaña a `nombreComponente`, no lo sustituye.
+     */
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 255)]
     private string $descripcion = '';
+
+    /**
+     * QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande.
+     *
+     * «Transporte desde Estación de Ollantaytambo a Cusco». Nulo sólo en las órdenes emitidas
+     * antes de que existiera el campo.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $nombreComponente = null;
+
+    /**
+     * DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia.
+     *
+     * Se congela junto al nombre del componente y **nunca lo sustituye**. Que pudiera ocupar su
+     * sitio es lo que hacía que un traslado apareciera como «Full Day HUAYNA: MAPI OLLA CUZ».
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $contextoServicio = null;
 
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'date', nullable: true)]
@@ -318,5 +345,39 @@ class OperacionOrdenServicioItem
         ));
 
         return $this;
+    }
+
+    public function getNombreComponente(): ?string { return $this->nombreComponente; }
+    public function setNombreComponente(?string $v): self { $this->nombreComponente = $v; return $this; }
+
+    public function getContextoServicio(): ?string { return $this->contextoServicio; }
+    public function setContextoServicio(?string $v): self { $this->contextoServicio = $v; return $this; }
+
+    /**
+     * El encargo tal y como se lee: el componente, y si no lo hay la variante.
+     *
+     * Una sola fuente para las TRES superficies —la web, el PDF y el texto de WhatsApp—, que es
+     * lo que evita que se arreglen dos y la tercera siga diciendo «Auto».
+     */
+    public function getTituloParaProveedor(): string
+    {
+        return trim($this->nombreComponente ?? '') ?: $this->descripcion;
+    }
+
+    /**
+     * El calificador que acompaña al título, o null si repetiría lo mismo.
+     *
+     * En los componentes manuales la variante suele ser el mismo texto que el nombre, y
+     * «Traslado a la Huacachina — Traslado a la Huacachina» enseña a no leer la línea.
+     */
+    public function getVarianteParaProveedor(): ?string
+    {
+        $variante = trim($this->descripcion);
+
+        if ($variante === '' || $variante === trim($this->nombreComponente ?? '')) {
+            return null;
+        }
+
+        return $variante;
     }
 }

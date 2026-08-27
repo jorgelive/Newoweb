@@ -400,6 +400,30 @@ class OperacionServicio
     private ?string $contextoServicio = null;
 
     /**
+     * QUÉ es esta fila: el nombre público del componente, en español.
+     *
+     * «Transporte desde Estación de Ollantaytambo a Cusco», no «Auto». Es el nombre que
+     * identifica el servicio, y va **junto** a `contextoServicio` —uno grande y otro pequeño—,
+     * no en vez de él: el componente dice qué se hace y el itinerario dónde encaja.
+     *
+     * ⚠️ **Está denormalizado porque vivía SÓLO en el maestro, y eso lo perdía en silencio.**
+     * El front lo resolvía en vivo por `componenteMaestroId`, en el mismo lote que las etiquetas
+     * de lugar — y ese lote tiene un `catch` que lo vacía entero porque «los badges son
+     * decoración». Cuando fallaba, la ficha caía al respaldo `contextoServicio` y **enseñaba el
+     * nombre del ITINERARIO como si fuera el servicio**: Gabriel Aime, que sólo hace el traslado
+     * Ollantaytambo→Cusco, aparecía con «Full Day HUAYNA: MAPI OLLA CUZ (bimodal)». No se nota
+     * porque no deja un hueco: deja otro nombre, y se lee perfectamente plausible.
+     *
+     * Y en la Orden no había ni eso: sin este campo, el proveedor recibía la variante de tarifa
+     * como encargo — «Auto», «Hotel 4 estrellas por grupo».
+     *
+     * Congelado, como todo lo que la orden promete: cambiar el catálogo no reescribe lo vendido.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read', 'operacion:write'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $nombreComponente = null;
+
+    /**
      * Snapshot de CotizacionCotcomponente::$tipo (valores de ComponenteTipoEnum).
      *
      * Se guarda como string suelto y no como enumType porque el origen también lo es
@@ -980,6 +1004,9 @@ class OperacionServicio
 
     public function getContextoServicio(): ?string { return $this->contextoServicio; }
     public function setContextoServicio(?string $contextoServicio): self { $this->contextoServicio = $contextoServicio; return $this; }
+
+    public function getNombreComponente(): ?string { return $this->nombreComponente; }
+    public function setNombreComponente(?string $v): self { $this->nombreComponente = $v; return $this; }
 
     public function getTipoComponente(): ?string { return $this->tipoComponente; }
     public function setTipoComponente(?string $tipoComponente): self { $this->tipoComponente = $tipoComponente; return $this; }

@@ -220,6 +220,9 @@ class BibliaSnapshotService
             // cuanto la tarifa tiene `nombreParaProveedor`, y los dos hacen falta a la vez.
             'tarifaNombre'          => trim($tarifa?->getNombreInternoSnapshot() ?? '') ?: null,
             'contextoServicio'      => $this->textoEspanol($cotservicio->getNombreSnapshot()),
+            // QUÉ es la fila, aparte del itinerario donde encaja. Los dos a la vez y sin
+            // desempatar: uno grande y otro pequeño. Ver `resolverNombreComponente()`.
+            'nombreComponente'      => $this->resolverNombreComponente($cotcomponente),
             // Clasificación del componente: hoy no filtra nada — entra todo a La Biblia —
             // pero viaja en el snapshot para que la vista pueda agrupar, priorizar y
             // filtrar, y para poder definir después qué tipos son realmente despachables.
@@ -289,6 +292,10 @@ class BibliaSnapshotService
         if ($aplica('descripcionServicio')) {
             $ops->setDescripcionServicio((string) $valores['descripcionServicio']);
         }
+        if ($aplica('nombreComponente')) {
+            $ops->setNombreComponente($this->comoTexto($valores['nombreComponente']));
+        }
+
         if ($aplica('contextoServicio')) {
             $ops->setContextoServicio($this->comoTexto($valores['contextoServicio']));
         }
@@ -503,6 +510,27 @@ class BibliaSnapshotService
 
         // Prioridad 4: nombre del componente en español (snapshot i18n)
         return $this->textoEspanol($componente->getNombreSnapshot()) ?? 'Servicio sin nombre';
+    }
+
+    /**
+     * El nombre PÚBLICO del componente, que es el que dice qué se hace.
+     *
+     * No comparte cadena con `resolverDescripcion()` y no es su respaldo: aquélla resuelve
+     * **cómo llama el proveedor a lo que le compras** —y en los componentes de catálogo se queda
+     * en la variante de tarifa: «Auto», «Adulto extranjero», «Extranjero»—, mientras que esto
+     * resuelve **qué es**. Los dos hacen falta a la vez, igual que `tarifaNombre`.
+     *
+     * Primero el nombre público y después el interno: el interno sólo lo tienen los componentes
+     * manuales, y el documento que sale de aquí lo lee el proveedor, no nosotros.
+     */
+    public function resolverNombreComponente(CotizacionCotcomponente $componente): ?string
+    {
+        $publico = $this->textoEspanol($componente->getNombreSnapshot());
+        if ($publico !== null && $publico !== '') {
+            return $publico;
+        }
+
+        return trim($componente->getNombreInternoSnapshot() ?? '') ?: null;
     }
 
     /**

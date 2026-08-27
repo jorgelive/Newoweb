@@ -54,7 +54,11 @@ final readonly class OperacionOrdenEmision
                 $item = new OperacionOrdenServicioItem();
                 $item
                     ->setOperacionServicioId((string) $servicio->getId())
+                    // Los DOS, siempre: qué es y dónde encaja. `descripcion` sola es la
+                    // variante de tarifa, y sola le decía «Auto» al que hace el traslado.
                     ->setDescripcion($servicio->getDescripcionServicio())
+                    ->setNombreComponente($servicio->getNombreComponente())
+                    ->setContextoServicio($servicio->getContextoServicio())
                     ->setFechaServicio($servicio->getFechaServicio())
                     // La hora que se pidió: la pactada si la hay, si no la vendida.
                     ->setHora($servicio->getHoraRecojo() ?? $servicio->getHoraComponente())

@@ -164,7 +164,17 @@ final readonly class OperacionOrdenDocumento
             $partes[] = $hora;
         }
 
-        $partes[] = $item->getDescripcion();
+        // QUÉ hay que hacer, en negrita, y la variante de tarifa detrás entre paréntesis.
+        //
+        // ⚠️ Antes aquí iba `getDescripcion()` a secas, que es SÓLO la variante: al que hacía el
+        // traslado Ollantaytambo→Cusco le llegaba una línea que decía «Auto», y al hotelero
+        // «Hotel 4 estrellas por grupo». La variante importa —distingue el auto de la van— pero
+        // como calificador de un encargo, no como el encargo.
+        $partes[] = sprintf('*%s*', $item->getTituloParaProveedor());
+
+        if (($variante = $item->getVarianteParaProveedor()) !== null) {
+            $partes[] = $variante;
+        }
 
         // La hora de recojo CONFIRMADA es la que vale; si no la hay todavía, no se inventa.
         //
@@ -197,6 +207,15 @@ final readonly class OperacionOrdenDocumento
 
         // El reloj marca dónde empieza cada servicio, que es lo que se busca al repasar el día.
         // Un icono y no un guion porque en una lista de cinco el ojo salta a la forma, no al signo.
+        // El día del itinerario, sin negrita y al final: sitúa el servicio sin competir con él.
+        // Se calla cuando repetiría el título —en un traslado suelto el día se llama igual—,
+        // porque decir dos veces lo mismo es lo que hacía dudar de cuál era el encargo.
+        $contexto = trim((string) $item->getContextoServicio());
+
+        if ($contexto !== '' && $contexto !== $item->getTituloParaProveedor()) {
+            $partes[] = $contexto;
+        }
+
         $linea = '🕐 ' . implode('  ·  ', $partes);
 
         // El pin va en su propio renglón, alineado bajo el reloj: es una dirección larga y metida
