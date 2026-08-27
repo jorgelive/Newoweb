@@ -1537,6 +1537,26 @@ genérico. El razonamiento largo está en `docs/Operacion.md`, en «Los dos nomb
 «Ticket aereo» (genérico) junto a «Box Lunch» y «Walking Sticks», que se nombran perfectamente
 solos.
 
+### Etiquetas y tarifas de una ruta
+
+**Los dos extremos, siempre.** Cada ruta se etiqueta con origen y destino, porque un vuelo se busca
+desde cualquiera de sus dos puntas: «qué tengo en Cusco ese día» tiene que sacar tanto el que llega
+como el que sale. El genérico «Ticket aereo» no tenía ninguna etiqueta y no salía nunca.
+
+⚠️ **El aeropuerto nombra la ruta; la etiqueta agrupa la operación.** No siempre coinciden, y ahí
+el sufijo `@`: `"Lima<>Juliaca@Puno"` crea «Vuelo Lima Juliaca» etiquetado **Puno**. Crear
+«Juliaca» al lado de «Puno» partiría en dos el filtro de un mismo sitio, y quien filtrara por Puno
+no vería el vuelo. Mismo caso con `"Lima<>Cancún@Riviera Maya"`.
+
+**Las tarifas son las variantes de equipaje**: artículo personal, mano, mano y bodega, bodega — que
+es como tarifan las aerolíneas. Se copian del componente que las tenga con
+`app:travel:copiar-tarifas --desde="Ticket aereo" --a="Vuelo %"`, idempotente por `nombreInterno`.
+Nacen a 0.00 y el importe se rellena ruta por ruta.
+
+⚠️ Ese comando **quita el prefijo «(Clon) »** que pone `TravelTarifa::__clone()`. El prefijo es
+correcto para el botón de duplicar de la UI —ahí el clon convive con el original— y es justo lo
+contrario aquí, donde la tarifa aterriza en otro componente y no hay con qué confundirla.
+
 Las cotizaciones que ya usan el genérico **no se repuntan**: dos de ellas son versiones
 `confirmado` e `historico`, y cambiarles el componente de origen reescribe lo que se vendió. El
 cambio vale hacia adelante; para leerlas, el cuadro ya enseña la ruta desde el segmento.
