@@ -819,6 +819,18 @@ const varianteDeFila = (s: OperacionServicio): string | null => {
     return variante !== '' && variante !== tituloDeFila(s) ? variante : null;
 };
 
+/**
+ * DÓNDE encaja la fila: el segmento si lo hay, si no el día del itinerario.
+ *
+ * Se calla cuando repetiría el título —en un traslado suelto el día se llama igual que el
+ * servicio— porque decir dos veces lo mismo es lo que hacía dudar de cuál era el encargo.
+ */
+const itinerarioDeFila = (s: OperacionServicio): string | null => {
+    const itinerario = (nombreSegmentoDe(s) || s.contextoServicio || '').trim();
+
+    return itinerario !== '' && itinerario !== tituloDeFila(s) ? itinerario : null;
+};
+
 // ============================================================================
 // COSTO REAL — lo que de verdad se pagó, frente a lo que decía la cotización
 //
@@ -3100,6 +3112,23 @@ onMounted(async () => {
                                         <p v-if="varianteDeFila(servicio)" class="text-[11px] font-bold text-slate-500 leading-tight mt-1">
                                             <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ varianteDeFila(servicio) }}
                                         </p>
+                                        <!-- ── EL ITINERARIO, PEGADO AL TÍTULO Y SIN APAGAR ────
+                                             Estaba abajo del todo y en gris, con el resto de datos
+                                             de contexto. Funciona mientras el componente se nombre
+                                             solo; deja de funcionar en cuanto el nombre es
+                                             GENÉRICO —«Ticket aereo», «Transporte»—, porque
+                                             entonces lo único que dice qué vuelo es está al pie y
+                                             atenuado. Aquí manda el caso peor.
+
+                                             ⚠️ Esto es un apaño consciente: lo que corresponde es
+                                             un flag en el maestro que declare el componente como
+                                             de nombre genérico, y que entonces mande el nombre de
+                                             la plantilla. Mientras no exista, se sube para todos
+                                             —cuesta una línea en los que no lo necesitan, y ésa es
+                                             la mitad barata del error—. Ver docs/Operacion.md. -->
+                                        <p v-if="itinerarioDeFila(servicio)" class="text-[11px] font-bold text-slate-600 leading-tight mt-1">
+                                            <i class="fas fa-map-signs text-[9px] mr-1 text-slate-400"></i>{{ itinerarioDeFila(servicio) }}
+                                        </p>
                                     </div>
 
                                     <!-- Ver y editar, cada uno con su botón y del mismo tamaño: son
@@ -3186,9 +3215,6 @@ onMounted(async () => {
                                     <span v-else><i class="fas fa-folder-open mr-1"></i>Sin expediente</span>
 
                                     <span class="shrink-0"><i class="fas fa-users mr-1"></i>{{ servicio.cantidadPax }}</span>
-                                    <span v-if="nombreSegmentoDe(servicio) || servicio.contextoServicio" class="truncate">
-                                        <i class="fas fa-map-signs mr-1"></i>{{ nombreSegmentoDe(servicio) || servicio.contextoServicio }}
-                                    </span>
                                 </div>
 
                                 <!-- ── Los dos ESTADOS, en línea. Son lo que se mueve a diario ─ -->
