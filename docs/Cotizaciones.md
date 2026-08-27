@@ -351,6 +351,23 @@ tapaba decora sólo el normalizer de **JSON-LD**, así que pidiendo el mismo enl
 marcados como ocultos. `pax` no los lee en ninguna parte, así que no publicarlos cierra el agujero
 en cualquier formato — más barato y más seguro que un segundo decorador.
 
+#### A quién se nombra y a quién no (criterio, 27/08/2026)
+
+No es una preferencia estética: **se nombra a quien no puedes perder, y se calla a quien sí.**
+
+| Se nombra | Por qué |
+|---|---|
+| Hoteles | Es el dato que más pesa antes de comprar, y el cliente lo va a ver igual al llegar |
+| Ferroviarias (PeruRail, IncaRail) | Son las dos únicas opciones a Machu Picchu: ocultarlas no protege nada |
+
+| Se calla | Por qué |
+|---|---|
+| Operador, guía, transportista | Son a quienes el cliente podría contratar directo la próxima vez |
+
+Por eso el default del maestro es **oculto** y habilitar una empresa es una decisión consciente,
+empresa por empresa — y por eso encender la marca en un componente **pide confirmación** mientras
+que apagarla no.
+
 ### Maestro → snapshot, campo por campo
 
 Qué copia cada nivel al añadirlo desde el catálogo. Lo hace el **editor**; PHP no compone ninguno.
