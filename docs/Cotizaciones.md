@@ -292,6 +292,24 @@ Cotizacion
             nombreSnapshot         →  PÚBLICO, casi siempre copia «Ticket aereo»
 ```
 
+### Cómo distinguirlos sin memorizar nada
+
+**Si está traducido, es para el cliente. Si es un `string` pelado, es para nosotros.** La
+diferencia está en la firma y no hay que recordarla:
+
+| campo | tipo | traducido |
+|---|---|---|
+| los tres `nombreSnapshot` | `json` + `#[AutoTranslate]` | **7 idiomas** |
+| `nombreInternoSnapshot` | `string`, sin atributo | sólo español |
+
+De ahí sale, sin más argumento, por qué el interno manda en La Biblia: el cuadro de tráfico lo
+leemos nosotros, no el huésped, así que quiere el texto que **no** se traduce. Y por qué el
+público llega hasta `pax`: para eso está en siete idiomas.
+
+⚠️ Consecuencia práctica: **escribir en un `nombreSnapshot` por SQL lo deja sólo en español**,
+porque `AutoTranslate` cuelga de `prePersist`/`preUpdate`. En `nombreInternoSnapshot` da igual.
+Es la misma regla de la tabla «migración vs. comando» de `CLAUDE.md`, aplicada a estos campos.
+
 ### Quién lee cada uno
 
 | Campo | La Biblia / Órdenes | Editor (`util`) | Huésped (`pax`) |
