@@ -329,7 +329,15 @@ se edita con el checkbox **«Nombrarlo al cliente»**.
 
 ⚠️ **Marcar la empresa en el catálogo NO cambia las cotizaciones ya hechas.** La semilla ya cayó.
 Pasó el 27/08/2026: se marcaron dos hoteles como visibles y 9 componentes siguieron ocultos porque
-se habían armado antes. Para arrastrarlos hay que reasignar el prestador en cada uno.
+se habían armado antes. Se corrigieron con `Version20260828020000`, que **sólo enciende, nunca
+apaga** —un componente ocultado a mano se queda oculto aunque el maestro diga que sí—. Si vuelve a
+pasar, la salida es reasignar el prestador o repetir esa corrección; **no se convirtió en herencia
+viva a propósito**, porque la cotización manda sobre el catálogo.
+
+⚠️ **Encender la marca pide confirmación; apagarla no.** Revelar quién opera un servicio le dice al
+cliente a quién podría contratar directamente el año que viene, así que la fricción va sólo en esa
+dirección (`alternarNombrarPrestador`). Ponerla en ambas enseñaría a darle a «Aceptar» sin leer, y
+ahí se pierde la protección entera.
 
 ⚠️ **El flag global `Cotizacion::$proveedorOculto` se retiró.** Había dos mecanismos para lo mismo
 y apuntaban en direcciones opuestas: el global por defecto decía «no ocultes» y el del componente

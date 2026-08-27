@@ -428,6 +428,42 @@ const nombreMaestroDelComponenteActivo = computed<string | null>(() => {
  *
  * En `blur` y no en `input`: en `input` no se podría ni borrar para reescribir.
  */
+/**
+ * Enciende o apaga «Nombrarlo al cliente», pidiendo confirmación **sólo al encender**.
+ *
+ * Revelar quién opera un servicio es una decisión comercial: le dice al cliente a quién podría
+ * contratar directamente el año que viene. Apagarlo no tiene ese riesgo, así que la fricción va
+ * únicamente en la dirección que la merece — poner el mismo diálogo en las dos enseña a darle a
+ * «Aceptar» sin leer, que es como se pierde la protección entera.
+ *
+ * El nombre sale del catálogo vivo, no del snapshot: es el que el cliente va a leer.
+ */
+const alternarNombrarPrestador = (e: Event): void => {
+  const comp = store.componenteActivo;
+  const marcado = (e.target as HTMLInputElement).checked;
+
+  if (!comp) return;
+
+  if (!marcado) {
+    comp.prestadorVisible = false;
+
+    return;
+  }
+
+  const quien = comp.prestadorNombreSnapshot || 'este proveedor';
+
+  if (window.confirm(`El cliente verá que «${quien}» opera este servicio. ¿Lo nombramos?`)) {
+    comp.prestadorVisible = true;
+
+    return;
+  }
+
+  // Rechazado: el input ya se pintó marcado, así que hay que devolverlo. Reasignar la misma
+  // propiedad no basta —Vue no ve cambio— y por eso se toca el DOM directamente.
+  (e.target as HTMLInputElement).checked = false;
+  comp.prestadorVisible = false;
+};
+
 const reponerNombreDelCatalogoSiQuedoVacio = (): void => {
   const comp = store.componenteActivo;
   if (!comp || (comp.nombreInternoSnapshot ?? '').trim() !== '') return;
@@ -2586,7 +2622,11 @@ store.$onAction(({ name, args }) => {
                          propuesta en silencio; ahora es un valor que se guarda. Se siembra
                          al asignar y aquí se puede contradecir. -->
                     <label class="mt-2.5 flex items-start gap-2 cursor-pointer">
-                      <input v-model="store.componenteActivo.prestadorVisible" type="checkbox"
+                      <!-- `:checked` + `@change` y no `v-model`: encender esto REVELA al proveedor
+                           a un cliente, y eso se confirma. Apagar no pregunta —ocultar nunca hace
+                           daño— así que la fricción cae sólo del lado que la merece. -->
+                      <input :checked="store.componenteActivo.prestadorVisible" type="checkbox"
+                             @change="alternarNombrarPrestador($event)"
                              class="mt-0.5 w-3.5 h-3.5 accent-indigo-500 cursor-pointer shrink-0" />
                       <span class="min-w-0">
                         <span class="block text-[10px] font-black text-slate-600 uppercase tracking-wide">
