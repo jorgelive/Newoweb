@@ -312,6 +312,37 @@ leemos nosotros, no el huésped. Y por qué el título llega a `pax`: para eso e
 ⚠️ **Escribir un `tituloSnapshot` por SQL lo deja sólo en español**, porque `AutoTranslate` cuelga
 de `prePersist`/`preUpdate`. En los internos da igual.
 
+### Quién decide si el cliente ve al prestador (27/08/2026)
+
+**Un solo interruptor, y vive en el componente.**
+
+```
+TravelOrganizacion.visibleParaCliente   ¿se le puede nombrar siquiera?   → SEMILLA
+        │  se copia al asignar el prestador, y sólo entonces
+        ▼
+CotizacionCotcomponente.prestadorVisible   la decisión de ESTA línea     → MANDA
+```
+
+La semilla cae en dos momentos: al añadir el componente del catálogo y al asignar o cambiar el
+prestador (`sembrarPrestadorDesdeMaestro` / `onPrestadorComponenteChange`). Después es snapshot y
+se edita con el checkbox **«Nombrarlo al cliente»**.
+
+⚠️ **Marcar la empresa en el catálogo NO cambia las cotizaciones ya hechas.** La semilla ya cayó.
+Pasó el 27/08/2026: se marcaron dos hoteles como visibles y 9 componentes siguieron ocultos porque
+se habían armado antes. Para arrastrarlos hay que reasignar el prestador en cada uno.
+
+⚠️ **El flag global `Cotizacion::$proveedorOculto` se retiró.** Había dos mecanismos para lo mismo
+y apuntaban en direcciones opuestas: el global por defecto decía «no ocultes» y el del componente
+«no muestres», y como el restrictivo gana con un OR, el global no podía usarse nunca en la
+dirección útil — sólo servía para ocultar lo que ya estaba oculto. Estuvo a `false` en **0 de 11**
+cotizaciones desde que existe.
+
+⚠️ **Los ids del prestador ya no se publican en `pax_cotizacion:read`.** El normalizer que los
+tapaba decora sólo el normalizer de **JSON-LD**, así que pidiendo el mismo enlace público con
+`Accept: application/json` salían los `prestadorMaestroId` de todos los componentes, incluidos los
+marcados como ocultos. `pax` no los lee en ninguna parte, así que no publicarlos cierra el agujero
+en cualquier formato — más barato y más seguro que un segundo decorador.
+
 ### Maestro → snapshot, campo por campo
 
 Qué copia cada nivel al añadirlo desde el catálogo. Lo hace el **editor**; PHP no compone ninguno.

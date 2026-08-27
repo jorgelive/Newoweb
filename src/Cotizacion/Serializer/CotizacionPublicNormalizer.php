@@ -22,12 +22,15 @@ use Symfony\Component\Serializer\SerializerInterface;
  *     bloque completo: `inclusiones` (ya sin montos) y los datos descriptivos
  *     de `opcionesUpgrade` (nombre, tarifa, badges) no son dinero y deben
  *     seguir viéndose aunque el precio esté oculto. Ver redactarMontos().
- *  2. Si proveedorOculto=true (flag GLOBAL a nivel de cotización completa),
- *     inyecta un flag en $context ANTES de delegar al normalizer decorado.
- *     Ese $context viaja automáticamente en toda la recursión de serialización
- *     (Cotizacion -> cotservicios -> cotcomponentes), así que
- *     CotizacionCotcomponenteProveedorPublicNormalizer lo puede leer 3 niveles
- *     más abajo sin que este archivo conozca esa entidad directamente.
+ *  2. Precarga en LOTE los maestros de prestador de toda la cotización, para que el normalizer
+ *     de cada componente sólo lea de un mapa en vez de consultar uno por fila.
+ *
+ * ⚠️ Aquí hubo un tercer cometido: inyectar en `$context` el flag global `proveedorOculto` de la
+ * cotización, que el normalizer del componente sumaba con un OR. **Se retiró el 27/08/2026.** No
+ * se usó nunca —0 de 11 cotizaciones— y no podía usarse en la dirección útil: la marca del
+ * componente nace en `false`, así que el global sólo servía para ocultar lo que ya estaba oculto.
+ * La visibilidad la decide ahora un único interruptor, `CotizacionCotcomponente::$prestadorVisible`,
+ * sembrado desde `TravelOrganizacion::$visibleParaCliente` y editable por línea.
  *
  * CRÍTICO: supportsNormalization() delega SIEMPRE al normalizer decorado.
  * Este servicio reemplaza el normalizer general de item de toda la API
@@ -58,13 +61,7 @@ final class CotizacionPublicNormalizer implements NormalizerInterface, Serialize
     {
         $isPublicView = \in_array(self::GRUPO_PUBLICO, $context['groups'] ?? [], true);
 
-        // Se inyecta ANTES de delegar, para que el flag exista en el $context
-        // que reciben las llamadas recursivas a los hijos (cotservicios, etc.).
-        if ($isPublicView && $object instanceof Cotizacion && $object->isProveedorOculto()) {
-            $context['pax_proveedor_oculto_global'] = true;
-        }
-
-        // Mismo criterio, misma razón: se hace ANTES de delegar. Aquí se recorre el árbol
+        // Se hace ANTES de delegar. Aquí se recorre el árbol
         // una vez, se juntan los soft-links y se traen todos los maestros de golpe, para
         // que el normalizer de cada componente sólo tenga que leer del mapa. Resolverlo
         // ahí abajo sería una consulta por componente.

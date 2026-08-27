@@ -109,7 +109,6 @@ export type Cotizacion = Omit<
     resumen: I18nContent[];
     clasificacionFinanciera?: ClasificacionFinancieraInterna;
     clasificacionFinancieraCliente?: ClasificacionFinancieraCliente;
-    proveedorOculto?: boolean;
     /** Modo catálogo unitario: oculta totales y referencias a cantidad de pax en la guía del cliente. */
     totalesOcultos?: boolean;
 };

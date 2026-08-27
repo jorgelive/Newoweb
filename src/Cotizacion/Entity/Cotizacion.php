@@ -193,9 +193,6 @@ class Cotizacion
     private bool $precioOculto = false;
 
     // 🔥 NUEVO FLAG DE PROVEEDOR OCULTO A NIVEL GLOBAL
-    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
-    #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private bool $proveedorOculto = false;
 
     /**
      * Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
@@ -568,29 +565,6 @@ class Cotizacion
     public function isTotalesOcultos(): bool { return $this->totalesOcultos; }
     public function setTotalesOcultos(bool $totalesOcultos): void { $this->totalesOcultos = $totalesOcultos; }
 
-    /**
-     * Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-     *
-     * Este método existe para accionar un anonimato logístico masivo en
-     * las plantillas de renderización públicas.
-     *
-     * @return bool
-     */
-    public function isProveedorOculto(): bool
-    {
-        return $this->proveedorOculto;
-    }
-
-    /**
-     * Define el estado de ocultamiento global de los proveedores logísticos.
-     *
-     * @param bool $proveedorOculto
-     * @return void
-     */
-    public function setProveedorOculto(bool $proveedorOculto): void
-    {
-        $this->proveedorOculto = $proveedorOculto;
-    }
 
     /**
      * @return list<array{language?: string, content?: string|null}>

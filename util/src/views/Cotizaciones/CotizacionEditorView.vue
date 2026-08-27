@@ -1500,21 +1500,6 @@ store.$onAction(({ name, args }) => {
           </div>
           <div class="p-6 flex-1 overflow-y-auto flex flex-col gap-6 pb-32">
 
-            <div class="order-last shrink-0 bg-teal-50 border border-teal-100 rounded-xl p-4 flex items-center justify-between shadow-sm">
-              <div>
-                <h3 class="text-[10px] font-black text-teal-700 uppercase tracking-widest"><i class="fas fa-user-secret mr-1"></i> Anonimato Logístico</h3>
-                <p class="text-[9px] text-teal-500 mt-1 font-medium leading-tight pr-4">Ocultar todos los proveedores y servicios logísticos al generar vistas públicas o vouchers.</p>
-              </div>
-              <button @click="store.cotizacion.proveedorOculto = !store.cotizacion.proveedorOculto"
-                      :class="[
-                           'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0',
-                           store.cotizacion.proveedorOculto ? 'bg-teal-600' : 'bg-slate-300'
-                       ]">
-                 <span :class="store.cotizacion.proveedorOculto ? 'translate-x-6' : 'translate-x-1'"
-                       class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
-              </button>
-            </div>
-
             <div v-if="!store.modoCatalogo" class="order-1 shrink-0 bg-[#376875] text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
               <i class="fas fa-chart-pie absolute -right-6 -bottom-6 text-8xl opacity-10"></i>
               <div class="relative z-10">

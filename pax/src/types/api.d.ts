@@ -4350,11 +4350,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -4449,11 +4444,6 @@ export interface components {
             adelanto: string;
             /** @default false */
             precioOculto: boolean;
-            /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
             /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
@@ -4558,11 +4548,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -4652,11 +4637,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -4732,11 +4712,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -4809,11 +4784,6 @@ export interface components {
             adelanto: string;
             /** @default false */
             precioOculto: boolean;
-            /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
             /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
@@ -4892,11 +4862,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -4958,11 +4923,6 @@ export interface components {
             adelanto: string;
             /** @default false */
             precioOculto: boolean;
-            /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
             /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
@@ -5094,11 +5054,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -5194,11 +5149,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -5288,11 +5238,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -5365,11 +5310,6 @@ export interface components {
             adelanto: string;
             /** @default false */
             precioOculto: boolean;
-            /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
             /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
@@ -5448,11 +5388,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -5515,11 +5450,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -5581,11 +5511,6 @@ export interface components {
             adelanto: string;
             /** @default false */
             precioOculto: boolean;
-            /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
             /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
@@ -5682,11 +5607,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -5776,11 +5696,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -5853,11 +5768,6 @@ export interface components {
             adelanto: string;
             /** @default false */
             precioOculto: boolean;
-            /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
             /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
@@ -5936,11 +5846,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -6003,11 +5908,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -6069,11 +5969,6 @@ export interface components {
             adelanto: string;
             /** @default false */
             precioOculto: boolean;
-            /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
             /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
@@ -6170,11 +6065,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -6264,11 +6154,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -6341,11 +6226,6 @@ export interface components {
             adelanto: string;
             /** @default false */
             precioOculto: boolean;
-            /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
             /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
@@ -6424,11 +6304,6 @@ export interface components {
             /** @default false */
             precioOculto: boolean;
             /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
-            /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
              *     (el "2X" del perfil, el "× N pax · total" y el "Precio total del viaje").
@@ -6490,11 +6365,6 @@ export interface components {
             adelanto: string;
             /** @default false */
             precioOculto: boolean;
-            /**
-             * @description Determina si todos los proveedores de la cotización deben ocultarse al cliente.
-             * @default false
-             */
-            proveedorOculto: boolean;
             /**
              * @description Modo "catálogo unitario": cuando está activo, la guía del cliente deja de
              *     mostrar cualquier referencia a cantidad de pasajeros o suma como grupo
@@ -7529,13 +7399,6 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /**
-             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
-             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
-             */
-            prestadorMaestroId?: string | null;
-            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
-            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -7577,13 +7440,6 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /**
-             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
-             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
-             */
-            prestadorMaestroId?: string | null;
-            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
-            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -7867,13 +7723,6 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /**
-             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
-             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
-             */
-            prestadorMaestroId?: string | null;
-            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
-            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -7915,13 +7764,6 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /**
-             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
-             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
-             */
-            prestadorMaestroId?: string | null;
-            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
-            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8208,13 +8050,6 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /**
-             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
-             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
-             */
-            prestadorMaestroId?: string | null;
-            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
-            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8257,13 +8092,6 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /**
-             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
-             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
-             */
-            prestadorMaestroId?: string | null;
-            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
-            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8547,13 +8375,6 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /**
-             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
-             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
-             */
-            prestadorMaestroId?: string | null;
-            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
-            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;
@@ -8595,13 +8416,6 @@ export interface components {
              * @default false
              */
             horaServicioCompleto: boolean;
-            /**
-             * @description SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
-             *     hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
-             */
-            prestadorMaestroId?: string | null;
-            /** @description El servicio contratado (ej. el tipo de habitación). Enlace. */
-            prestadorServicioMaestroId?: string | null;
             /** @description Superficie segura para el cliente final. */
             readonly detallesParaCliente?: {
                 [key: string]: string | null;

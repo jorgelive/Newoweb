@@ -278,7 +278,12 @@ class CotizacionCotcomponente
      * SOFT-LINK al catálogo maestro. Viaja a pax porque es lo que la vista del cliente
      * hidrata EN LOTE: se manda el id, no la ficha repetida en cada componente.
      */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    // ⚠️ **Sin `pax_cotizacion:read` a propósito.** Es un id opaco que el cliente no usa —`pax/`
+    // no lo lee en ninguna parte— y exponerlo filtraba el prestador de componentes marcados como
+    // ocultos: el normalizer que los tapa sólo decora el normalizer de JSON-LD, así que pidiendo
+    // el mismo enlace público con `Accept: application/json` salían todos. No publicar el campo
+    // cierra el agujero en cualquier formato, que es más barato que un segundo decorador.
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $prestadorMaestroId = null;
 
@@ -293,7 +298,12 @@ class CotizacionCotcomponente
      * @see $prestadorServicioTituloSnapshot para su cara pública.
      */
     /** El servicio contratado (ej. el tipo de habitación). Enlace. */
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    // ⚠️ **Sin `pax_cotizacion:read` a propósito.** Es un id opaco que el cliente no usa —`pax/`
+    // no lo lee en ninguna parte— y exponerlo filtraba el prestador de componentes marcados como
+    // ocultos: el normalizer que los tapa sólo decora el normalizer de JSON-LD, así que pidiendo
+    // el mismo enlace público con `Accept: application/json` salían todos. No publicar el campo
+    // cierra el agujero en cualquier formato, que es más barato que un segundo decorador.
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $prestadorServicioMaestroId = null;
 

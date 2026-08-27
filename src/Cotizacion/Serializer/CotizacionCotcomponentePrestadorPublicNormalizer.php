@@ -33,7 +33,7 @@ use Symfony\Component\Serializer\SerializerInterface;
  *
  * ── El gate ─────────────────────────────────────────────────────────────────
  *
- *   se muestra  ⟺  NO (Cotizacion::proveedorOculto)  Y  componente.prestadorVisible
+ *   se muestra  ⟺  CotizacionCotcomponente::isPrestadorVisible()
  *
  * El flag global es el interruptor white-label de toda la propuesta y gana siempre; la
  * bandera del componente sólo puede afinar hacia abajo. Ojo a la asimetría: el global está
@@ -68,11 +68,6 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
      * viaja en la entidad— porque con ellos el cliente podría hidratar la ficha por su
      * cuenta contra el endpoint público.
      */
-    private const PRESTADOR_SNAPSHOT_FIELDS = [
-        'prestadorMaestroId',
-        'prestadorServicioMaestroId',
-    ];
-
     public function __construct(
         #[Autowire(service: 'App\Cotizacion\Serializer\CotizacionCotcomponentePrestadorPublicNormalizer.inner')]
         private readonly NormalizerInterface $decorated,
@@ -91,14 +86,21 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
         $isPublicView = \in_array(self::GRUPO_PUBLICO, $context['groups'] ?? [], true);
 
         if ($isPublicView && $object instanceof CotizacionCotcomponente && \is_array($data)) {
-            $ocultar = ($context['pax_proveedor_oculto_global'] ?? false)
-                || !$object->isPrestadorVisible();
-
-            if ($ocultar) {
-                foreach (self::PRESTADOR_SNAPSHOT_FIELDS as $field) {
-                    unset($data[$field]);
-                }
-            } else {
+            // ⚠️ **Un solo interruptor, y vive en el componente.** Hasta el 27/08/2026 había
+            // además uno global en la cotización (`proveedorOculto`) que se sumaba con un OR.
+            // Nunca se usó —0 de 11 cotizaciones— y no podía usarse en la dirección útil: el del
+            // componente nace en `false`, así que el global ya sólo servía para ocultar lo que de
+            // todas formas estaba oculto. Dos mecanismos para lo mismo, uno muerto.
+            // ⚠️ **Un solo interruptor, y vive en el componente.** Hasta el 27/08/2026 había además
+            // uno global en la cotización (`proveedorOculto`) que se sumaba con un OR. Nunca se usó
+            // —0 de 11 cotizaciones— y no podía usarse en la dirección útil: el del componente nace
+            // en `false`, así que el global sólo servía para ocultar lo que ya estaba oculto.
+            //
+            // Y ya no hay nada que TAPAR: los ids del prestador dejaron de publicarse en
+            // `pax_cotizacion:read`, así que ocultar es simplemente no inyectar. Antes se hacía con
+            // un `unset()`, y eso sólo protegía en JSON-LD —este decorador no cubre el normalizer
+            // de JSON plano—, con lo que el mismo enlace público en otro formato los enseñaba todos.
+            if ($object->isPrestadorVisible()) {
                 $data = $this->conDatosVivos($object, $data);
             }
         }
