@@ -27,6 +27,7 @@ use App\Cotizacion\Enum\ComponenteEstadoEnum;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Operacion\Enum\EstadoOperacionEnum;
+use App\Operacion\Enum\EstadoOrdenServicioEnum;
 use App\Operacion\Enum\VisibilidadPuntoEnum;
 use App\Operacion\Enum\EstadoReservaProveedorEnum;
 use App\Entity\Trait\TimestampTrait;
@@ -594,6 +595,28 @@ class OperacionServicio
 
     public function setOrdenServicio(?OperacionOrdenServicio $ordenServicio): self
     {
+        // ── SACAR UNA FILA DE UNA ORDEN ─────────────────────────────────────
+        //
+        // Sólo mientras se compone (borrador) o cuando la orden ya está anulada —que es lo que
+        // hace `OperacionOrdenEmision::anular()` al soltar sus filas—.
+        //
+        // ⚠️ Quitar una línea de una orden EMITIDA sería cambiarle el encargo al proveedor por
+        // detrás: él tiene un papel con esa línea y nadie le avisaría. Para eso está reemitir.
+        // La guarda vive aquí y no en la pantalla porque el `PATCH` está abierto a cualquier
+        // consumidor de la API.
+        if ($ordenServicio === null && $this->ordenServicio !== null) {
+            $estado = $this->ordenServicio->getEstadoOs();
+
+            if ($estado !== EstadoOrdenServicioEnum::BORRADOR && $estado !== EstadoOrdenServicioEnum::CANCELADA) {
+                throw new \DomainException(sprintf(
+                    'No se puede sacar «%s» de la orden %s: ya está emitida y el proveedor la tiene. '
+                    . 'Anúlala y reemite sin esa línea.',
+                    $this->descripcionServicio ?? 'este servicio',
+                    $this->ordenServicio->getNumeroOs()
+                ));
+            }
+        }
+
         // La regla vive aquí y no sólo en la vista: una OS es una solicitud formal de
         // compra a un proveedor, y meterle un servicio que nadie compra produce un
         // documento con un importe que no se debe. API Platform mapea DomainException

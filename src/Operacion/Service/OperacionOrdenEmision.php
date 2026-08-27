@@ -112,13 +112,17 @@ final readonly class OperacionOrdenEmision
      */
     public function anular(OperacionOrdenServicio $orden, ?OperacionOrdenServicio $sucesora = null): void
     {
+        // ⚠️ El ESTADO va primero, y no es cosmético. Sacar una fila de una orden sólo se
+        // permite mientras se compone (borrador) o cuando ya está anulada —ver la guarda de
+        // `OperacionServicio::setOrdenServicio()`—. Soltándolas antes de marcarla, la orden
+        // todavía estaría emitida y la guarda tumbaría la propia anulación.
+        $orden->setEstadoOs(EstadoOrdenServicioEnum::CANCELADA);
+
         // El `foreach` sobre una copia: `setOrdenServicio(null)` toca la colección que se está
         // recorriendo, y modificar mientras se itera se salta elementos.
         foreach ($orden->getOperacionServicios()->toArray() as $servicio) {
             $servicio->setOrdenServicio(null);
         }
-
-        $orden->setEstadoOs(EstadoOrdenServicioEnum::CANCELADA);
 
         $sucesora?->setReemplazaA($orden);
     }

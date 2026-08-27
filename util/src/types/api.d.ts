@@ -16653,6 +16653,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -16681,6 +16687,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "OperacionOrdenServicio-operacion.read_timestamp.read": {
+            /** @description ⚠️ **FIJO desde que se crea.** Ni siquiera en borrador se cambia. */
             numeroOs?: string;
             file?: components["schemas"]["CotizacionFile-operacion.read_timestamp.read"];
             compradorMaestroId?: string | null;
@@ -16704,6 +16711,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
             /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
             readonly totalesPorMoneda?: {
                 moneda?: string;
@@ -16730,6 +16743,7 @@ export interface components {
             readonly avisosDeRutas?: string[];
         };
         "OperacionOrdenServicio-operacion.write": {
+            /** @description ⚠️ **FIJO desde que se crea.** Ni siquiera en borrador se cambia. */
             numeroOs?: string;
             /**
              * Format: iri-reference
@@ -16748,6 +16762,7 @@ export interface components {
             id?: string;
         };
         "OperacionOrdenServicio-operacion.write.jsonMergePatch": {
+            /** @description ⚠️ **FIJO desde que se crea.** Ni siquiera en borrador se cambia. */
             numeroOs?: string;
             /**
              * Format: iri-reference
@@ -16807,6 +16822,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -16835,6 +16856,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "OperacionOrdenServicio.html-operacion.read_timestamp.read": {
+            /** @description ⚠️ **FIJO desde que se crea.** Ni siquiera en borrador se cambia. */
             numeroOs?: string;
             file?: components["schemas"]["CotizacionFile.html-operacion.read_timestamp.read"];
             compradorMaestroId?: string | null;
@@ -16858,6 +16880,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
             /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
             readonly totalesPorMoneda?: {
                 moneda?: string;
@@ -16889,6 +16917,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -16928,6 +16962,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
             /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
             readonly totalesPorMoneda?: {
                 moneda?: string;
@@ -16953,6 +16993,7 @@ export interface components {
             /** @description Cadenas que se quedaron sin decir dónde empiezan o dónde acaban. */
             readonly avisosDeRutas?: string[];
         } & (components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description ⚠️ **FIJO desde que se crea.** Ni siquiera en borrador se cambia. */
             numeroOs?: string;
             file?: components["schemas"]["CotizacionFile.jsonld-operacion.read_timestamp.read"];
             compradorMaestroId?: string | null;
@@ -16975,6 +17016,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
             /** @description Lo que separa al documento de La Biblia **y obliga a reemitir**. */
             readonly divergencias?: string[];
             /** @description Lo que se resuelve **actualizando la orden**, sin reemitir. */
@@ -17003,6 +17050,7 @@ export interface components {
             updatedAt?: string | null;
         };
         "OperacionOrdenServicio.multipart-operacion.read_timestamp.read": {
+            /** @description ⚠️ **FIJO desde que se crea.** Ni siquiera en borrador se cambia. */
             numeroOs?: string;
             file?: components["schemas"]["CotizacionFile.multipart-operacion.read_timestamp.read"];
             compradorMaestroId?: string | null;
@@ -17026,6 +17074,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description Qué se puede tocar en esta orden, y el motivo cuando no. */
+            readonly edicionPermitida?: {
+                [key: string]: {
+                    [key: string]: boolean | string | null;
+                };
+            };
             /** @description Lo que suma la orden, POR MONEDA y sin convertir. */
             readonly totalesPorMoneda?: {
                 moneda?: string;

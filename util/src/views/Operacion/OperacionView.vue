@@ -2141,6 +2141,44 @@ const onGuardarCosto = async (
 
 // ── EDICIÓN DE LA CABECERA ───────────────────────────────────────────────────
 const ordenEditando = ref<OperacionOrdenServicio | null>(null);
+
+/**
+ * Qué se puede tocar en la orden que se está editando, **según el backend**.
+ *
+ * ⚠️ La regla NO se escribe aquí. `OperacionOrdenServicio::getEdicionPermitida()` la decide y la
+ * manda con la orden; esto sólo la lee. El `PATCH` está abierto a cualquier consumidor de la API,
+ * así que una copia en el formulario sería la más fácil de saltarse y la primera en quedarse
+ * desfasada.
+ *
+ * Si el campo no viene —una orden cargada antes de este cambio, o un consumidor viejo— se falla
+ * BLOQUEANDO: ofrecer un campo que el servidor va a rechazar es peor que no ofrecerlo, porque el
+ * error llega después de escribir.
+ */
+const permisoEdicion = (clave: string): { permitido: boolean; motivo: string | null } => {
+    const mapa = ordenEditando.value?.edicionPermitida as
+        Record<string, { permitido?: boolean; motivo?: string | null }> | undefined;
+    const regla = mapa?.[clave];
+
+    return {
+        permitido: regla?.permitido === true,
+        motivo: regla?.motivo ?? 'No se puede cambiar en este estado.',
+    };
+};
+
+/**
+ * Lo que se puede y no se puede hacer con esta orden, para enseñarlo entero.
+ *
+ * El formulario sólo lleva la cabecera; las líneas, la hora confirmada y los pagos se tocan en la
+ * tarjeta y en La Biblia. Sin decirlo, «no puedo cambiarlo aquí» se lee como «no se puede
+ * cambiar», y alguien acaba anulando una orden para hacer algo que sí podía hacer.
+ */
+const resumenEdicion = computed(() => [
+    { clave: 'servicios',      etiqueta: 'Quitar o añadir líneas',      donde: 'desde La Biblia' },
+    { clave: 'horaConfirmada', etiqueta: 'Confirmar la hora de recojo', donde: 'en la ficha del servicio' },
+    { clave: 'rutasVisibles',  etiqueta: 'Qué extremos ve el proveedor', donde: 'en «Qué verá el proveedor»' },
+    { clave: 'pagos',          etiqueta: 'Registrar pagos',             donde: 'con el botón Pagos' },
+    { clave: 'bitacora',       etiqueta: 'Escribir en la bitácora',     donde: 'con el botón Bitácora' },
+].map((f) => ({ ...f, ...permisoEdicion(f.clave) })));
 const formEdicion = ref({ numeroOs: '', compradorMaestroId: '' as string | null, compradorNombre: '', estadoOs: 'borrador' });
 const guardandoEdicion = ref(false);
 const errorEdicion = ref<string | null>(null);
@@ -4107,30 +4145,73 @@ onMounted(async () => {
                 </header>
 
                 <div class="p-5 flex flex-col gap-3">
-                    <label class="flex flex-col gap-1">
+                    <!-- ⚠️ Lo bloqueado se ENSEÑA con su motivo, no se esconde.
+                         Un campo que desaparece se lee como un fallo de la pantalla; uno
+                         deshabilitado que dice por qué enseña la regla. Y quién puede qué lo
+                         decide el backend (`getEdicionPermitida()`), no este formulario: el
+                         `PATCH` está abierto a cualquier consumidor, así que si la regla viviera
+                         aquí sería la única copia y además la más fácil de saltarse. -->
+                    <div class="flex flex-col gap-1">
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Número de OS</span>
-                        <input
-                            v-model="formEdicion.numeroOs"
-                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#376875]"
-                        />
-                    </label>
+                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            <span class="text-sm font-bold text-slate-700">{{ formEdicion.numeroOs }}</span>
+                            <i class="fas fa-lock ml-auto text-[10px] text-slate-300"></i>
+                        </div>
+                        <span class="text-[10px] text-slate-400 leading-snug">
+                            {{ permisoEdicion('numeroOs').motivo }}
+                        </span>
+                    </div>
 
                     <label class="flex flex-col gap-1">
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                             Destinatario <span class="text-slate-300 normal-case font-bold">(a quién se le manda)</span>
                         </span>
+
                         <SearchableSelect
+                            v-if="permisoEdicion('destinatario').permitido"
                             v-model="formEdicion.compradorMaestroId"
                             :options="opcionesProveedores"
                             placeholder="Buscar proveedor..."
                             @update:model-value="onDestinatarioEdicion"
                         />
-                        <span v-if="!formEdicion.compradorMaestroId && formEdicion.compradorNombre"
+                        <div v-else class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                            <span class="text-sm font-bold text-slate-700 truncate">{{ formEdicion.compradorNombre || '—' }}</span>
+                            <i class="fas fa-lock ml-auto shrink-0 text-[10px] text-slate-300"></i>
+                        </div>
+                        <span v-if="!permisoEdicion('destinatario').permitido"
+                              class="text-[10px] text-slate-400 leading-snug">
+                            {{ permisoEdicion('destinatario').motivo }}
+                        </span>
+
+                        <span v-if="permisoEdicion('destinatario').permitido && !formEdicion.compradorMaestroId && formEdicion.compradorNombre"
                               class="text-[10px] font-bold text-amber-600 flex items-start gap-1">
                             <i class="fas fa-triangle-exclamation mt-0.5"></i>
                             <span>Va a nombre de <b>{{ formEdicion.compradorNombre }}</b>, que no está en el catálogo.</span>
                         </span>
                     </label>
+
+                    <!-- Qué más se puede tocar en este estado, y dónde. El formulario sólo lleva
+                         la cabecera; las líneas, la hora y los pagos viven en la tarjeta y en La
+                         Biblia. Sin esta lista, «no puedo cambiarlo aquí» se confunde con «no se
+                         puede cambiar». -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                            En una orden {{ getEstadoOsConfig(formEdicion.estadoOs).label.toLowerCase() }}
+                        </p>
+                        <p v-for="fila in resumenEdicion" :key="fila.clave"
+                           class="text-[11px] leading-snug flex items-start gap-1.5"
+                           :class="fila.permitido ? 'text-slate-600 font-bold' : 'text-slate-400'">
+                            <i class="mt-0.5 text-[9px] shrink-0 fas"
+                               :class="fila.permitido ? 'fa-check text-emerald-500' : 'fa-lock text-slate-300'"></i>
+                            <span>
+                                {{ fila.etiqueta }}<template v-if="fila.donde && fila.permitido">
+                                    <span class="font-medium text-slate-400"> — {{ fila.donde }}</span>
+                                </template><template v-else-if="!fila.permitido">
+                                    <span class="font-medium"> — {{ fila.motivo }}</span>
+                                </template>
+                            </span>
+                        </p>
+                    </div>
 
                     <!-- ⚠️ El estado se VE aquí y se MUEVE desde los botones de la tarjeta.
                          Era un `<select>` y ese control no distingue entre corregir un dato y
@@ -4166,7 +4247,11 @@ onMounted(async () => {
                     >
                         Cancelar
                     </button>
+                    <!-- Sin nada editable en este estado, «Guardar» no guardaría nada: se
+                         retira en vez de dejar un botón que sólo puede decepcionar. El diálogo
+                         pasa a ser lo que de verdad es ahí: una ficha de consulta. -->
                     <button
+                        v-if="permisoEdicion('destinatario').permitido"
                         @click="guardarEdicion"
                         :disabled="guardandoEdicion || !formEdicion.numeroOs.trim()"
                         class="px-5 py-2 bg-[#E07845] hover:bg-[#c96636] disabled:opacity-50 text-white rounded-lg text-xs font-black uppercase tracking-widest shadow-sm transition-colors"

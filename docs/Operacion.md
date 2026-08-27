@@ -2124,6 +2124,66 @@ podría recuperar de ninguna otra parte.
 
 ## 8. Gotchas
 
+### Qué se puede editar en cada estado (26/08/2026)
+
+| | Borrador | Emitida | Confirmada | Completada | Cancelada |
+|---|---|---|---|---|---|
+| Nº de OS | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 |
+| Destinatario | ✏️ | 🔒 | 🔒 | 🔒 | 🔒 |
+| Quitar o añadir líneas | ✏️ | 🔒 | 🔒 | 🔒 | 🔒 |
+| Confirmar hora de recojo | 🔒 | ✏️ | ✏️ | 🔒 | 🔒 |
+| Qué extremos ve el proveedor | ✏️ | ✏️ | ✏️ | 🔒 | 🔒 |
+| Pagos | ✏️ | ✏️ | ✏️ | ✏️ | 🔒 |
+| Bitácora | ✏️ | ✏️ | ✏️ | ✏️ | ✏️ |
+
+**El porqué de cada línea, que es lo que no se ve leyendo la tabla:**
+
+- **El número NUNCA se edita, ni en borrador.** Es la referencia con la que el proveedor contesta
+  —«confirmo la OS-…»— y con la que archiva en su lado. Cambiarlo deja al otro hablando de un
+  número que ya no existe, y ni el chat ni el correo que él tiene se enteran.
+- **El destinatario sólo mientras se compone.** Cambiarlo después de emitir **no es editar, es otra
+  orden**: quien la recibió seguiría creyendo que es suya. Para eso está reemitir, que anula la
+  primera y avisa.
+- **Las líneas, igual.** Quitar una de una orden emitida le cambia el encargo por detrás.
+- **La hora confirmada NO es una modificación**, es completar el documento con lo que el proveedor
+  respondió — por eso se aplica sin reemitir (`aplicar-menores`). En **completada** se cierra: el
+  servicio ya se operó y confirmar su hora a toro pasado no completa nada, reescribe historia.
+- **Las rutas visibles son presentación, no pacto**: ocultar un renglón dice menos, no dice algo
+  falso.
+- **A un proveedor se le puede pagar tarde**, así que los pagos siguen abiertos en completada. En
+  anulada no: no se le paga lo que se le retiró.
+- **La bitácora siempre.** Es el registro de lo que pasó, y lo que pasó no deja de pasar.
+
+**Dónde vive la regla:**
+
+- **Las guardas de verdad**, en los setters de la entidad (`setNumeroOs`,
+  `exigirCabeceraEditable()`) y en `OperacionServicio::setOrdenServicio()`. ⚠️ Tienen que estar ahí
+  y no en el formulario: el `PATCH` está abierto a cualquier consumidor de la API —otra pestaña, un
+  script—, y hasta hoy **no lo sabía nadie**: se podía cambiar el destinatario de una orden emitida.
+- **El mapa para la pantalla**, en `getEdicionPermitida()`, expuesto en los grupos de lectura. La
+  vista lo lee y no reescribe la regla; si el campo no viene, **falla bloqueando**.
+
+⚠️ **Las guardas bloquean CAMBIOS, no asignaciones.** Los setters se llaman con el valor que ya
+está cada vez que se denormaliza un `PATCH`, así que guardar una orden emitida sin tocar nada
+habría reventado con un 422 que no describía nada — y un guardado que falla sin haber cambiado nada
+enseña a desconfiar del botón, no de la regla.
+
+⚠️ **`anular()` marca el estado ANTES de soltar las filas.** Sacar una fila sólo se permite en
+borrador o en anulada; soltándolas antes de marcarla, la orden seguiría emitida y la guarda
+tumbaría la propia anulación.
+
+⚠️ **El mapa y la guarda no coinciden en anulada, a propósito.** El mapa dice que no se tocan las
+líneas —no es un gesto que se le ofrezca a nadie— mientras la guarda sí lo permite, porque es lo
+que `anular()` necesita para vaciarla. El mapa describe lo que la pantalla puede ofrecer; la
+guarda, lo que el dominio tolera.
+
+**En la pantalla, lo bloqueado se ENSEÑA con su motivo**, no se esconde: un campo que desaparece se
+lee como un fallo, uno deshabilitado que dice por qué enseña la regla. Y el diálogo lista además lo
+que sí se puede hacer **y dónde** —las líneas en La Biblia, la hora en la ficha, los pagos en su
+botón—, porque sin eso «no puedo cambiarlo aquí» se confunde con «no se puede cambiar» y alguien
+acaba anulando una orden para hacer algo que sí podía. Cuando no queda nada editable, **el botón
+«Guardar» desaparece**: el diálogo es entonces una ficha de consulta, y así se comporta.
+
 **«Órdenes vigentes» enseñaba las canceladas.** El rótulo mentía y, peor, una anulada se leía
 igual de vigente que las demás a la velocidad a la que se repasa una lista. Una orden anulada **no
 se borra** —es el rastro de lo que se le mandó a alguien—, así que la respuesta no es quitarla sino

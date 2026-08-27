@@ -315,16 +315,147 @@ class OperacionOrdenServicio
     }
 
     public function getNumeroOs(): string { return $this->numeroOs; }
-    public function setNumeroOs(string $numeroOs): self { $this->numeroOs = $numeroOs; return $this; }
+    /**
+     * ⚠️ **FIJO desde que se crea.** Ni siquiera en borrador se cambia.
+     *
+     * Es la referencia con la que el proveedor contesta —«confirmo la OS-20260826-166»—, y con la
+     * que se archiva en su lado. Cambiarlo deja al otro hablando de un número que ya no existe, y
+     * ni el chat ni el correo que él tiene se enteran.
+     *
+     * La guarda distingue crear de editar: la primera asignación pasa, las siguientes no. Si de
+     * verdad hace falta otro número, el camino es anular y reemitir — que además le avisa.
+     */
+    public function setNumeroOs(string $numeroOs): self
+    {
+        if (isset($this->numeroOs) && $this->numeroOs !== '' && $this->numeroOs !== $numeroOs) {
+            throw new \DomainException(sprintf(
+                'El número de una Orden no se cambia: %s es la referencia con la que el proveedor '
+                . 'te responde. Anúlala y emite otra si necesitas un número distinto.',
+                $this->numeroOs
+            ));
+        }
+
+        $this->numeroOs = $numeroOs;
+
+        return $this;
+    }
 
     public function getFile(): ?CotizacionFile { return $this->file; }
     public function setFile(?CotizacionFile $file): self { $this->file = $file; return $this; }
 
     public function getCompradorMaestroId(): ?string { return $this->compradorMaestroId; }
-    public function setCompradorMaestroId(?string $v): self { $this->compradorMaestroId = $v; return $this; }
+    public function setCompradorMaestroId(?string $v): self
+    {
+        if ($v !== $this->compradorMaestroId) {
+            $this->exigirCabeceraEditable('el destinatario');
+        }
+
+        $this->compradorMaestroId = $v;
+
+        return $this;
+    }
 
     public function getCompradorNombre(): ?string { return $this->compradorNombre; }
-    public function setCompradorNombre(?string $v): self { $this->compradorNombre = $v; return $this; }
+
+    public function setCompradorNombre(?string $v): self
+    {
+        if ($v !== $this->compradorNombre) {
+            $this->exigirCabeceraEditable('el destinatario');
+        }
+
+        $this->compradorNombre = $v;
+
+        return $this;
+    }
+
+    /**
+     * La cabecera sólo se toca mientras la orden **se está componiendo**.
+     *
+     * ⚠️ Vive en la entidad y no en el formulario, y ése es el punto: el `PATCH` está abierto a
+     * cualquier consumidor de la API —otra pestaña, un script, la app de mañana— y la pantalla no
+     * puede ser la única que lo sepa. Hasta hoy no lo sabía nadie: se podía cambiar el
+     * destinatario de una orden ya emitida, o sea del documento que el proveedor tiene en la mano.
+     *
+     * Cambiar de destinatario después de emitir **no es editar, es otra orden**: quien la recibió
+     * seguiría creyendo que es suya. Para eso está reemitir, que anula la primera y avisa.
+     *
+     * ⚠️ Bloquea **cambios**, no asignaciones: los setters se llaman con el valor que ya está cada
+     * vez que se denormaliza un `PATCH`, así que guardar una orden emitida sin tocar nada habría
+     * reventado con un 422 que no describía nada. Un guardado que falla sin que hayas cambiado
+     * nada enseña a desconfiar del botón, no de la regla.
+     */
+    /**
+     * Qué se puede tocar en esta orden, y el motivo cuando no.
+     *
+     * ⚠️ **Existe para que la pantalla no vuelva a escribir la regla.** Las guardas de verdad son
+     * los setters y los procesadores —el `PATCH` está abierto a cualquier consumidor—, pero un
+     * formulario que ofrece un campo y luego recibe un 422 es un formulario que miente. Esto le
+     * dice de antemano qué habilitar, y **el motivo**, que es lo que enseña la regla en vez de
+     * esconderla: un campo que desaparece sin explicación se lee como un fallo.
+     *
+     * La tabla completa por estado está en `docs/Operacion.md`.
+     *
+     * @return array<string, array{permitido: bool, motivo: string|null}>
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    public function getEdicionPermitida(): array
+    {
+        $borrador = $this->estadoOs === EstadoOrdenServicioEnum::BORRADOR;
+        $anulada  = $this->estadoOs === EstadoOrdenServicioEnum::CANCELADA;
+        $cerrada  = $this->estadoOs === EstadoOrdenServicioEnum::COMPLETADA || $anulada;
+        // Mientras el proveedor la tiene en la mano y el viaje aún no pasó: ahí es cuando él
+        // contesta con su hora. Una orden completada ya se operó — confirmar su hora a toro
+        // pasado no completa nada, sólo reescribe historia.
+        $enCurso  = !$borrador && !$cerrada;
+
+        $regla = static fn (bool $permitido, ?string $motivo): array => [
+            'permitido' => $permitido,
+            'motivo' => $permitido ? null : $motivo,
+        ];
+
+        return [
+            // Fijo desde que se crea: es la referencia con la que el proveedor responde.
+            'numeroOs' => $regla(false, 'El número identifica la orden ante el proveedor y no cambia nunca.'),
+
+            'destinatario' => $regla($borrador, $anulada
+                ? 'La orden está anulada.'
+                : 'El proveedor ya tiene esta orden. Cambiar de destinatario es otra orden: anula y reemite.'),
+
+            // ⚠️ En ANULADA el mapa dice `false` aunque la guarda del setter sí deje soltar filas:
+            // eso lo necesita `OperacionOrdenEmision::anular()` para vaciarla, no es un gesto que
+            // se le ofrezca a nadie. El mapa describe lo que la pantalla puede ofrecer; la guarda,
+            // lo que el dominio tolera. No tienen por qué coincidir, y aquí no coinciden a propósito.
+            'servicios' => $regla($borrador, $anulada
+                ? 'La orden está anulada.'
+                : 'Quitar o añadir líneas cambiaría el encargo por detrás. Anula y reemite.'),
+
+            // Confirmar la hora que dio el proveedor NO es modificar: es completar el documento.
+            'horaConfirmada' => $regla($enCurso, $borrador
+                ? 'Todavía no se le ha pedido nada al proveedor.'
+                : 'La orden ya está cerrada.'),
+
+            // Qué extremos se le imprimen es presentación, no pacto.
+            'rutasVisibles' => $regla(!$cerrada, 'La orden ya está cerrada.'),
+
+            // A un proveedor se le puede pagar después de que el servicio se operó.
+            'pagos' => $regla(!$anulada, 'La orden está anulada: no se le paga.'),
+
+            'bitacora' => $regla(true, null),
+        ];
+    }
+
+    private function exigirCabeceraEditable(string $que): void
+    {
+        if ($this->estadoOs === EstadoOrdenServicioEnum::BORRADOR) {
+            return;
+        }
+
+        throw new \DomainException(sprintf(
+            'No se puede cambiar %s de una orden %s: el proveedor ya la tiene. Anúlala y reemite.',
+            $que,
+            mb_strtolower($this->estadoOs->name)
+        ));
+    }
 
     public function getEstadoOs(): EstadoOrdenServicioEnum { return $this->estadoOs; }
     public function setEstadoOs(EstadoOrdenServicioEnum $estadoOs): self { $this->estadoOs = $estadoOs; return $this; }
