@@ -798,6 +798,27 @@ const nombreSegmentoDe = (s: OperacionServicio): string | null => operacionStore
 // Nombre interno del componente (Guía, Transporte…): identifica la fila dentro de un servicio.
 const nombreComponenteDe = (s: OperacionServicio): string | null => operacionStore.nombreComponenteDeServicio(s);
 
+/**
+ * Título y variante de una fila. **Espejo de `OperacionOrdenServicioItem::getTituloParaProveedor()`
+ * y `getVarianteParaProveedor()`** — si cambia la regla, se tocan LOS DOS.
+ *
+ * El título nunca cae al itinerario: ése tiene su propia ranura pequeña, y dejarle ocupar ésta es
+ * lo que hacía que un traslado se anunciara como «Full Day HUAYNA: MAPI OLLA CUZ». Cae a la
+ * VARIANTE, que sí habla de esta fila — en los componentes `pool` es lo único que la identifica
+ * («Cultur (Base 1, 2 pax)», «Americana Royal Class»), porque no tienen nombre propio.
+ *
+ * Y cuando el título ya ES la variante, `varianteDeFila` devuelve null: repetirla debajo del
+ * título enseña a no leer la línea.
+ */
+const tituloDeFila = (s: OperacionServicio): string =>
+    nombreComponenteDe(s) || s.descripcionServicio || getTipoComponenteConfig(s.tipoComponente).label;
+
+const varianteDeFila = (s: OperacionServicio): string | null => {
+    const variante = (s.descripcionServicio ?? '').trim();
+
+    return variante !== '' && variante !== tituloDeFila(s) ? variante : null;
+};
+
 // ============================================================================
 // COSTO REAL — lo que de verdad se pagó, frente a lo que decía la cotización
 //
@@ -3074,10 +3095,10 @@ onMounted(async () => {
                                                  HUAYNA: MAPI OLLA CUZ» y salía DUPLICADO en la ficha —arriba y
                                                  abajo—, que es la única señal que lo delataba. El último recurso
                                                  es el tipo («Transporte»): genérico, pero nunca miente. -->
-                                            <span>{{ nombreComponenteDe(servicio) || getTipoComponenteConfig(servicio.tipoComponente).label }}</span>
+                                            <span>{{ tituloDeFila(servicio) }}</span>
                                         </p>
-                                        <p v-if="servicio.descripcionServicio" class="text-[11px] font-bold text-slate-500 leading-tight mt-1">
-                                            <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ servicio.descripcionServicio }}
+                                        <p v-if="varianteDeFila(servicio)" class="text-[11px] font-bold text-slate-500 leading-tight mt-1">
+                                            <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ varianteDeFila(servicio) }}
                                         </p>
                                     </div>
 
@@ -4617,7 +4638,7 @@ onMounted(async () => {
             <div class="min-w-0 flex-1">
               <p class="font-black text-sm truncate flex items-center gap-1.5">
                 <i :class="[getTipoComponenteConfig(servicioFicha.tipoComponente).icon, 'text-xs opacity-80']"></i>
-                {{ nombreComponenteDe(servicioFicha) || getTipoComponenteConfig(servicioFicha.tipoComponente).label }}
+                {{ tituloDeFila(servicioFicha) }}
               </p>
               <p class="text-[10px] font-bold text-white/70 truncate">{{ servicioFicha.descripcionServicio }}</p>
             </div>
