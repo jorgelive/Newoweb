@@ -172,9 +172,15 @@ Dos trampas que ya costaron caro, porque **no fallan al compilar**:
 
 ### TypeScript: los tipos de la API se GENERAN
 
-`util/src/types/api.d.ts` sale de `npm run gen:api` (exporta el OpenAPI de API Platform y lo
-pasa por `openapi-typescript`). **Al añadir o cambiar un campo expuesto por la API, se
-regenera**, en la misma sesión.
+`util/src/types/api.d.ts` **y `pax/src/types/api.d.ts`** salen de `npm run gen:api` (exporta el
+OpenAPI de API Platform y lo pasa por `openapi-typescript`). **Al añadir o cambiar un campo
+expuesto por la API, se regeneran LAS DOS**, en la misma sesión.
+
+⚠️ **`pax` no tenía el script hasta el 27/08/2026**, y su `api.d.ts` llevaba **8 días congelado**:
+se había generado una vez a mano y nadie lo volvió a tocar. Al darle su `gen:api` y regenerarlo
+salieron **6106 líneas** de diferencia. No había roto nada de milagro —lo que `pax` lee del esquema
+no estaba entre lo que cambió—, pero un `.d.ts` viejo no falla: **describe una API que ya no
+existe**, y el typecheck lo da por bueno porque sólo sabe lo que dice el `.d.ts`.
 
 ⚠️ **`cache:clear` NO invalida los grupos de serialización, y el fallo es mudo.** El script usaba
 `cache:clear --quiet` y el export salía con la foto ANTERIOR: el campo recién publicado no
