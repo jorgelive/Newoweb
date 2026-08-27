@@ -2124,6 +2124,22 @@ podría recuperar de ninguna otra parte.
 
 ## 8. Gotchas
 
+**«Órdenes vigentes» enseñaba las canceladas.** El rótulo mentía y, peor, una anulada se leía
+igual de vigente que las demás a la velocidad a la que se repasa una lista. Una orden anulada **no
+se borra** —es el rastro de lo que se le mandó a alguien—, así que la respuesta no es quitarla sino
+no enseñarla salvo que se pida.
+
+Ahora hay un chip por estado con su contador, y **las canceladas empiezan apagadas**. El rótulo
+dice lo que se está viendo: «Órdenes vigentes» o «Órdenes» a secas si se encienden.
+
+⚠️ Se guardan los estados **visibles**, no los ocultos: el día que se añada un estado al enum,
+aparece solo. Con una lista de excluidos, un estado nuevo se colaría sin que nadie lo decidiera.
+
+⚠️ **Se avisa siempre de cuántas quedan escondidas**, y el vacío por filtro es **distinto** del
+vacío de verdad: «no hay ninguna» se arregla generando una, «las hay pero el filtro las esconde»
+se arregla tocando un chip. Confundirlos manda a alguien a crear una orden que ya tiene. Es el
+mismo principio que el bloque de La Biblia para los filtros de la vista.
+
 **Para los grupos de WhatsApp se copia y se pega, y no es un apaño.** El modal de envío lleva un
 botón **Copiar** que se lleva el cuerpo **más el enlace**, con el formato de WhatsApp ya puesto.
 

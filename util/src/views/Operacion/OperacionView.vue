@@ -30,6 +30,8 @@ import {
     getEstadoComponenteConfig,
     ESTADO_RESERVA_PROVEEDOR_CONFIG,
     ESTADO_OPERACION_CONFIG,
+    ESTADO_OS_CONFIG,
+    type EstadoOsValue,
     TIPOS_COMPONENTE,
     SIN_LUGAR,
     type FiltrosBiblia,
@@ -2255,6 +2257,58 @@ const guardarEdicion = async () => {
         guardandoEdicion.value = false;
     }
 };
+/**
+ * Qué estados de Orden se ven. **Las canceladas quedan fuera por defecto.**
+ *
+ * La pestaña se llama «Órdenes vigentes» y enseñaba las canceladas mezcladas con las demás: el
+ * rótulo mentía y, peor, una orden anulada se lee igual de vigente que las otras a la velocidad
+ * a la que se repasa una lista. Una anulada no se borra —es el rastro de lo que se le mandó a
+ * alguien, ver `docs/Operacion.md`—, así que la respuesta no es quitarla sino no enseñarla salvo
+ * que se pida.
+ *
+ * ⚠️ Se guardan las **visibles** y no las ocultas: el día que se añada un estado nuevo al enum,
+ * aparece solo. Con una lista de excluidos, un estado nuevo se colaría sin que nadie lo decidiera.
+ */
+const ESTADOS_OS_POR_DEFECTO: EstadoOsValue[] = ['borrador', 'emitida', 'confirmada', 'completada'];
+const estadosOsVisibles = ref<EstadoOsValue[]>([...ESTADOS_OS_POR_DEFECTO]);
+
+const alternarEstadoOs = (estado: EstadoOsValue): void => {
+    const i = estadosOsVisibles.value.indexOf(estado);
+
+    if (i === -1) estadosOsVisibles.value.push(estado);
+    else estadosOsVisibles.value.splice(i, 1);
+};
+
+/** Las órdenes que se pintan, ya filtradas. */
+const ordenesVisibles = computed(() =>
+    operacionStore.ordenesServicio.filter(
+        (o) => estadosOsVisibles.value.includes((o.estadoOs || 'borrador') as EstadoOsValue)
+    )
+);
+
+/** Cuántas hay de cada estado, para el contador de cada chip. */
+const conteoPorEstadoOs = computed<Record<string, number>>(() => {
+    const cuenta: Record<string, number> = {};
+
+    operacionStore.ordenesServicio.forEach((o) => {
+        const e = o.estadoOs || 'borrador';
+        cuenta[e] = (cuenta[e] ?? 0) + 1;
+    });
+
+    return cuenta;
+});
+
+/**
+ * ⚠️ Cuántas quedan ESCONDIDAS por el filtro.
+ *
+ * Se dice siempre que hay alguna. Una lista recortada sin avisar es el fallo que ya costó las
+ * filas de tipo `contacto` en La Biblia: se lee como «no hay nada» y nadie echa de menos lo que
+ * no sabía que existía.
+ */
+const ordenesOcultasPorFiltro = computed(() =>
+    operacionStore.ordenesServicio.length - ordenesVisibles.value.length
+);
+
 const cuerpoMensaje = ref<string>('');
 const enviandoMensaje = ref<boolean>(false);
 
@@ -3121,17 +3175,88 @@ onMounted(async () => {
             <!-- PESTAÑA: ÓRDENES DE SERVICIO -------------------------------->
             <section v-else-if="activeTab === 'ordenes'" class="flex flex-col min-h-full">
 
-                <div class="sticky top-0 z-10 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200 px-4 md:px-6 py-3 flex items-center gap-3 shrink-0">
+                <div class="sticky top-0 z-10 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200 px-3 md:px-6 py-2.5 shrink-0">
                     <div class="flex items-center gap-2">
                         <i class="fas fa-list-check text-[#E07845]"></i>
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Órdenes Vigentes</span>
+                        <!-- El rótulo dice lo que se ESTÁ viendo. Antes decía «vigentes» siempre,
+                             también cuando la lista traía canceladas: un título que miente es peor
+                             que no tenerlo, porque nadie vuelve a comprobarlo. -->
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                            {{ estadosOsVisibles.includes('cancelada') ? 'Órdenes' : 'Órdenes vigentes' }}
+                        </span>
+                        <span class="text-[10px] font-black text-slate-400 tabular-nums">{{ ordenesVisibles.length }}</span>
+
+                        <button
+                            v-if="estadosOsVisibles.length !== ESTADOS_OS_POR_DEFECTO.length
+                                  || !ESTADOS_OS_POR_DEFECTO.every(e => estadosOsVisibles.includes(e))"
+                            @click="estadosOsVisibles = [...ESTADOS_OS_POR_DEFECTO]"
+                            class="ml-auto px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-400 hover:text-[#E07845] transition-colors"
+                        >
+                            Restablecer
+                        </button>
                     </div>
+
+                    <!-- Un chip por estado, con su contador. Las CANCELADAS empiezan apagadas: una
+                         anulada no se borra —es el rastro de lo que se le mandó a alguien— pero
+                         tampoco debe leerse igual de vigente que el resto al repasar la lista. -->
+                    <div class="mt-2 flex flex-wrap items-center gap-1">
+                        <button
+                            v-for="(cfg, estado) in ESTADO_OS_CONFIG"
+                            :key="estado"
+                            @click="alternarEstadoOs(estado as EstadoOsValue)"
+                            :class="estadosOsVisibles.includes(estado as EstadoOsValue)
+                                ? [cfg.bg, cfg.text, cfg.border]
+                                : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400'"
+                            class="flex items-center gap-1 px-2 py-1 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors"
+                        >
+                            <i class="fas" :class="cfg.icon"></i>
+                            {{ cfg.label }}
+                            <span v-if="conteoPorEstadoOs[estado]" class="tabular-nums opacity-70">
+                                {{ conteoPorEstadoOs[estado] }}
+                            </span>
+                        </button>
+                    </div>
+
+                    <!-- ⚠️ Se dice SIEMPRE que hay alguna escondida. Una lista recortada sin aviso
+                         se lee como «no hay nada», que es el fallo que ya costó las filas de tipo
+                         `contacto` en La Biblia. -->
+                    <p v-if="ordenesOcultasPorFiltro > 0"
+                       class="mt-1.5 text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
+                        <i class="fas fa-eye-slash text-[9px]"></i>
+                        <!-- «órdenes» lleva tilde y «orden» no: el plural la mueve, así que no
+                             vale con pegarle «es» al singular. -->
+                        {{ ordenesOcultasPorFiltro }} {{ ordenesOcultasPorFiltro === 1 ? 'orden' : 'órdenes' }}
+                        sin mostrar por el filtro
+                    </p>
                 </div>
 
                 <div v-if="operacionStore.isLoading" class="flex-1 flex items-center justify-center py-16">
                     <div class="text-center">
                         <i class="fas fa-spinner fa-spin text-3xl text-[#E07845] mb-3"></i>
                         <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Cargando órdenes...</p>
+                    </div>
+                </div>
+
+                <!-- ⚠️ Dos vacíos distintos, y confundirlos es mandar a alguien a crear una orden
+                     que ya tiene. «No hay ninguna» se arregla generando; «las hay pero el filtro
+                     las esconde» se arregla tocando un chip. -->
+                <div v-else-if="operacionStore.ordenesServicio.length > 0 && ordenesVisibles.length === 0"
+                     class="flex-1 flex items-center justify-center py-16 px-4">
+                    <div class="text-center max-w-sm">
+                        <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+                            <i class="fas fa-filter-circle-xmark text-2xl text-slate-300"></i>
+                        </div>
+                        <p class="font-black text-slate-500 uppercase tracking-widest text-xs mb-1">Nada con este filtro</p>
+                        <p class="text-sm text-slate-400">
+                            Hay {{ operacionStore.ordenesServicio.length }} {{ operacionStore.ordenesServicio.length === 1 ? 'orden' : 'órdenes' }},
+                            pero ninguna en los estados que estás viendo.
+                        </p>
+                        <button
+                            @click="estadosOsVisibles = (Object.keys(ESTADO_OS_CONFIG) as EstadoOsValue[])"
+                            class="mt-4 px-3 py-1.5 bg-white border border-slate-200 hover:border-[#E07845] rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-500"
+                        >
+                            Ver todas
+                        </button>
                     </div>
                 </div>
 
@@ -3152,7 +3277,7 @@ onMounted(async () => {
                 -->
                 <div v-else class="px-3 md:px-6 py-3 md:py-4 flex flex-col gap-2">
                     <div
-                        v-for="orden in operacionStore.ordenesServicio"
+                        v-for="orden in ordenesVisibles"
                         :key="orden.id"
                         class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
                     >
