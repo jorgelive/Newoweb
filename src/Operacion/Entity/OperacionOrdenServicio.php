@@ -536,7 +536,12 @@ class OperacionOrdenServicio
         // Lo que se pidió sigue escrito en las **líneas congeladas**, que es justo el rastro que
         // una anulada existe para conservar. Se suman de ahí para poder enseñarlo —tachado, que
         // es lo que dice «esto se pidió y ya no vale» sin fingir que nunca pasó.
-        if ($acumulado === []) {
+        // ⚠️ La condición mira las FILAS VIVAS, no si el acumulado quedó vacío. Con
+        // `$acumulado === []` bastaba **un pago** para que el fallback no entrara: una orden
+        // anulada con un adelanto abonado volvía a decir importe 0 —y encima un saldo negativo,
+        // «te deben 50»— porque el pago llenaba el array y las líneas congeladas no se sumaban
+        // nunca. Verificado ejecutándolo: sin pago daba 84.00; con un pago de 50, 0.00.
+        if ($this->operacionServicios->isEmpty()) {
             foreach ($this->items as $item) {
                 $m = $item->getMoneda()?->getId() ?? '—';
                 $acumulado[$m] ??= ['cotizado' => 0.0, 'real' => 0.0, 'pagado' => 0.0];

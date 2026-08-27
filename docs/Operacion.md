@@ -1136,6 +1136,18 @@ Dos detalles que parecen caprichos y no lo son:
   columna equivocada.
 - **Mientras nadie negocie, `real` vale lo cotizado.** Un cero ahí se leería como «pactado en
   cero», que es lo contrario de «todavía sin pactar».
+- **Sin filas vivas, suma las líneas congeladas.** Una orden anulada soltó sus filas (§5.4.a),
+  así que el bucle normal no recorre nada: sin este respaldo diría «PEN 0.00» de algo que sí
+  costó dinero. La condición mira `operacionServicios->isEmpty()`, **no si el acumulado quedó
+  vacío**: los pagos también escriben en ese array, y con `$acumulado === []` bastaba **un
+  adelanto abonado** para que el respaldo no entrara — la orden volvía al 0.00 y además
+  enseñaba un saldo negativo, «te deben 50», porque restaba el pago de una nada. Comprobado:
+  sin pago, 84.00; con un pago de 50, 0.00.
+
+⚠️ **En una orden cancelada los importes se pintan TACHADOS**, no en cero ni ocultos. El dinero
+que se pactó forma parte de lo que pasó —es lo que se le dijo al proveedor antes de anular— y
+esconderlo deja el histórico contando una versión que no ocurrió. Es la misma regla de «no se
+borra: se marca» aplicada a los números.
 
 ⚠️ **No hay ningún medio de envío de la orden.** `OperacionMensaje` es una **bitácora**: `tipo`,
 `cuerpoHtml` y quién lo escribió. Se anota lo que se le dijo al proveedor; no manda correo ni

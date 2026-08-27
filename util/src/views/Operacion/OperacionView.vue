@@ -4715,8 +4715,15 @@ onMounted(async () => {
               </div>
               <div class="flex items-baseline justify-between mt-1">
                 <span class="text-[11px] font-bold text-slate-400">Negociado</span>
-                <span class="text-sm font-black tabular-nums" :class="servicioFicha.costoNegociado ? 'text-slate-800' : 'text-slate-300'">
-                  {{ servicioFicha.monedaNegociada?.id || '' }} {{ importe(servicioFicha.costoNegociado) }}
+                <!-- `hayNegociado()` y no la verdad del valor: «0.00» es truthy en JS, así que
+                     esto pintaba «PEN 0.00» en negro como un precio pactado en cero. Mismo fallo
+                     que el de la ficha del cuadro; aquí tapaba menos porque el cotizado se ve
+                     justo encima, pero decía igual de mal las cosas. -->
+                <span class="text-sm font-black tabular-nums" :class="hayNegociado(servicioFicha) ? 'text-slate-800' : 'text-slate-300'">
+                  <template v-if="hayNegociado(servicioFicha)">
+                    {{ servicioFicha.monedaNegociada?.id || '' }} {{ importe(servicioFicha.costoNegociado) }}
+                  </template>
+                  <template v-else>sin negociar</template>
                 </span>
               </div>
               <p v-if="deltaOperativo(servicioFicha) !== null && deltaOperativo(servicioFicha) !== 0"
