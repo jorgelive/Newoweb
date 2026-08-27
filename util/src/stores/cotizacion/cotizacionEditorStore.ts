@@ -867,7 +867,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const montoBase = parseFloat(String(t.montoCosto)) || 0;
                     const moneda = String(t.moneda || 'USD').toUpperCase();
 
-                    const costoTotal = aBimoneda(montoBase * tCant * cCant, moneda);
+                    // ⚠️ **En GRUPAL el monto YA es el total del grupo.** Es la regla de
+                    // `docs/Cotizaciones.md` §6.g.2 —`montoCosto × (esGrupal ? 1 : cantidad)`— y
+                    // aquí faltaba, con `esGrupal` ya resuelto trece líneas más arriba y usado
+                    // dos más abajo para `cupos`.
+                    //
+                    // El fallo se escondía al dividir: con `cantidad = 2` y 2 pax, el total salía
+                    // 80 en vez de 40 pero el por-pax daba 40 igual (80/2), que es lo que enseña
+                    // la ficha. O sea que la pantalla cuadraba y el COSTO NETO del viaje iba
+                    // doblado. Con 3 pax ni el por-pax habría cuadrado.
+                    const costoTotal = aBimoneda(montoBase * (esGrupal ? 1 : tCant) * cCant, moneda);
                     const markup = modoFin === 'incluido' ? markupDeLinea(t) : 0;
                     // cortesía: venta 0 (el costo lo absorbe el file); no_incluido: venta = costo
                     const ventaTotal: Bimoneda = modoFin === 'cortesia'

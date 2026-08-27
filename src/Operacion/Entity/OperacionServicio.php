@@ -953,7 +953,10 @@ class OperacionServicio
             if (TarifaRolEnum::tryFrom($tarifa->getRolSnapshot() ?? '') === TarifaRolEnum::ALTERNATIVA) {
                 continue;
             }
-            $cantidad = max(1, $tarifa->getCantidad());
+            // Misma regla que `BibliaSnapshotService::calcularCostoCotizado()`: en grupal el
+            // monto YA es el total del grupo. Si este desglose no la aplicara, explicaría un
+            // número distinto del que suma — que es peor que no explicarlo.
+            $cantidad = $tarifa->isEsGrupal() ? 1 : max(1, $tarifa->getCantidad());
             $subtotal = (float) $tarifa->getMontoCosto() * $cantidad * $unidades;
 
             $lineas[] = [

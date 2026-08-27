@@ -380,9 +380,12 @@ class BibliaSnapshotService
      * proveedor un importe menor que lo cotizado sin que nada lo delatara.
      *
      * ── La fórmula es la del cotizador, no una nueva ────────────────────────────
-     * `monto × cantidad_de_la_tarifa × cantidad_del_componente`, sumado sobre las tarifas que
-     * no son ALTERNATIVA. Es exactamente lo que hace `cotizacionEditorStore` al calcular el
-     * costo de una línea — si algún día cambia allí, tiene que cambiar aquí.
+     * `monto × (esGrupal ? 1 : cantidad_de_la_tarifa) × cantidad_del_componente`, sumado sobre
+     * las tarifas que no son ALTERNATIVA. Es exactamente lo que hace `cotizacionEditorStore` al
+     * calcular el costo de una línea — si algún día cambia allí, tiene que cambiar aquí.
+     *
+     * ⚠️ El paréntesis del `esGrupal` **faltaba hasta el 27/08/2026** y doblaba el costo de toda
+     * tarifa grupal con cantidad > 1.
      *
      * ⚠️ **SIEMPRE los dos factores, no uno u otro.** No es que los hoteles multipliquen por
      * noches y el resto por pax: es una sola fórmula con tres términos. Que en los datos de
@@ -407,8 +410,19 @@ class BibliaSnapshotService
                 continue;   // venta opcional que nadie compró: no se encarga ni se paga
             }
 
+            // ⚠️ **En GRUPAL el monto ya es el total del grupo: no se multiplica por la
+            // cantidad.** Es la regla escrita en `docs/Cotizaciones.md` §6.g.2 —
+            // `montoCosto × (esGrupal ? 1 : cantidad)`— y aquí faltaba.
+            //
+            // Con una tarifa grupal de S/40 y `cantidad = 2` esto daba **80**, y de ahí pasaba al
+            // `costoCotizado` de La Biblia y al importe de la Orden. O sea: el costo del viaje
+            // salía doblado en cada tarifa grupal con cantidad > 1, sin que nada lo delatara —
+            // la ficha del editor sí aplicaba la regla y enseñaba 40, así que los dos números
+            // convivían en pantallas distintas y cuadraba el que uno mirase primero.
+            $factorTarifa = $tarifa->isEsGrupal() ? 1 : max(1, $tarifa->getCantidad());
+
             $total += (float) $tarifa->getMontoCosto()
-                * max(1, $tarifa->getCantidad())
+                * $factorTarifa
                 * $unidadesComponente;
         }
 

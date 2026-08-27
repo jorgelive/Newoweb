@@ -1032,6 +1032,49 @@ cálculo ignora es lo que hace parecer que algo falla.
 ⚠️ La regla, que vale para cualquier sitio nuevo que sume tarifas:
 `montoCosto × (esGrupal ? 1 : cantidad)`. En grupal el monto **ya es el total**.
 
+### 6.g.3 La misma regla faltaba en los TRES cálculos que suman de verdad (27/08/2026)
+
+La ficha se arregló en agosto, pero los sitios que calculan el dinero **seguían multiplicando sin
+mirar `esGrupal`**:
+
+| Dónde | Qué corrompía |
+|---|---|
+| `BibliaSnapshotService::calcularCostoCotizado()` | el `costoCotizado` de La Biblia → y de ahí el importe de la Orden |
+| `OperacionServicio::getDesgloseCotizado()` | el desglose que explica ese número |
+| `cotizacionEditorStore` (`costoTotal`) | **el costo neto y la ganancia de la cotización** |
+
+Con una tarifa grupal de S/40 y `cantidad = 2`, los tres daban **80**.
+
+⚠️ **Por qué nadie lo vio antes.** En el editor el error **se cancela al dividir**: el por-pax es
+`costoTotal / cupos`, y en grupal `cupos = numPax`. Con `cantidad = 2` y 2 pax, `80 / 2 = 40` —
+que es justo lo que enseña la ficha. **La pantalla cuadraba y el total iba doblado.** Con 3 pax ni
+el por-pax habría cuadrado. Y en `resolverGrupal()` el flag se resolvía **bien**, trece líneas
+antes; sólo faltaba en la multiplicación.
+
+⚠️ **Ninguno de los tres consulta el maestro**: los dos de PHP recorren `getCottarifas()` del
+snapshot, y el fallback al catálogo del store es código muerto —`es_grupal` es `NOT NULL` y en
+producción hay **0 nulos de 179**—. El dato correcto estaba siempre en el snapshot; simplemente no
+se usaba.
+
+**Alcance real, medido en producción el 27/08/2026:** de 61 tarifas grupales, sólo **2** tenían
+`cantidad > 1`. Las otras 59 tienen 1, y por eso el fallo llevaba meses sin morder. Los datos se
+corrigieron recalculando por ORM.
+
+### 6.g.4 El «0.00» que tapaba el costo de La Biblia (27/08/2026)
+
+La ficha pintaba `costoNegociado ?? costoCotizado`. Pero `costo_negociado` es **`NOT NULL` y
+arranca en «0.00»**, así que el `??` —que sólo salta con `null`— **no entraba nunca**: las 47 filas
+de producción enseñaban `0.00` en vez de su costo cotizado.
+
+Y peor: la clase de color preguntaba `costoNegociado ?`, y en JavaScript la cadena `'0.00'` es
+**verdadera**. Así que lo pintaba en negro, como un precio negociado de cero — no como un dato que
+falta. Un cuadro de costos que dice cero es peor que uno que no dice nada.
+
+⚠️ La regla: **cero es «sin registrar», no un importe.** Se pregunta con `hayNegociado()`
+—`Number(costoNegociado) !== 0`—, que es lo que `deltaOperativo()` ya hacía bien desde el
+principio. Si un proveedor cobrara cero de verdad, eso es una cortesía y se marca como tal en la
+cotización.
+
 ## 6.h El componente hecho A MANO, y el bucle que lo impedía (23/08/2026)
 
 Caso que lo forzó: un Full Day Paracas–Ica en el que unos amigos invitan a los pasajeros a comer

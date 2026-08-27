@@ -818,11 +818,23 @@ const nombreComponenteDe = (s: OperacionServicio): string | null => operacionSto
 
 
 
+/**
+ * ¿Hay un costo negociado DE VERDAD?
+ *
+ * ⚠️ `costo_negociado` es `NOT NULL` y arranca en «0.00», así que **no se puede preguntar con
+ * `??` ni por la verdad del valor**: el `??` no salta nunca —nunca es null— y en JS la cadena
+ * «0.00» es verdadera. Preguntando mal, las 47 filas de producción se leían como «negociado en
+ * cero» en vez de «todavía sin negociar», y la ficha enseñaba 0.00 tapando el costo cotizado.
+ *
+ * Cero es «sin registrar», no un importe. Si algún día un proveedor cobra cero de verdad, eso es
+ * una cortesía y se marca como tal en la cotización, no con un costo negociado de 0.
+ */
+const hayNegociado = (s: OperacionServicio): boolean => Number(s.costoNegociado ?? 0) !== 0;
+
 /** Diferencia real − cotizado. Positiva = costó más de lo previsto. */
 const deltaOperativo = (s: OperacionServicio): number | null => {
-    const real = Number(s.costoNegociado ?? 0);
-    if (real === 0) return null;   // sin registrar: no hay delta que enseñar
-    return real - Number(s.costoCotizado ?? 0);
+    if (!hayNegociado(s)) return null;   // sin registrar: no hay delta que enseñar
+    return Number(s.costoNegociado ?? 0) - Number(s.costoCotizado ?? 0);
 };
 
 const importe = (v?: string | null): string => Number(v ?? 0).toFixed(2);
@@ -3184,10 +3196,18 @@ onMounted(async () => {
 
                                     <!-- El dinero, en LECTURA. Se negocia en el formulario, que es
                                          donde está el editor con su confirmación. -->
+                                    <!-- ⚠️ `hayNegociado()` y no `?? ` ni la verdad del valor.
+                                         `costo_negociado` es NOT NULL y arranca en «0.00», así que
+                                         el `??` no saltaba NUNCA y las 47 filas de producción
+                                         enseñaban 0.00 en vez de su costo cotizado. Y en JS la
+                                         cadena «0.00» es VERDADERA, así que además lo pintaba en
+                                         negro: se leía como un precio negociado de cero, no como
+                                         un dato que falta. Un cuadro de costos que dice cero es
+                                         peor que uno que no dice nada. -->
                                     <span v-if="!servicio.soloReferencia" class="ml-auto text-right shrink-0">
                                         <span class="block text-[10px] font-black tabular-nums"
-                                              :class="servicio.costoNegociado ? 'text-slate-800' : 'text-slate-300'">
-                                            <span class="text-slate-300 mr-0.5">{{ (servicio.costoNegociado ? servicio.monedaNegociada?.id : servicio.monedaCotizada?.id) || '' }}</span>{{ importe(servicio.costoNegociado ?? servicio.costoCotizado) }}
+                                              :class="hayNegociado(servicio) ? 'text-slate-800' : 'text-slate-300'">
+                                            <span class="text-slate-300 mr-0.5">{{ (hayNegociado(servicio) ? servicio.monedaNegociada?.id : servicio.monedaCotizada?.id) || '' }}</span>{{ importe(hayNegociado(servicio) ? servicio.costoNegociado : servicio.costoCotizado) }}
                                         </span>
                                         <span v-if="deltaOperativo(servicio) !== null && deltaOperativo(servicio) !== 0"
                                               class="block text-[9px] font-black tabular-nums"
