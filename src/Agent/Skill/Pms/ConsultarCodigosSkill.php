@@ -11,6 +11,7 @@ use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Entity\PmsUnidad;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoCalendario;
@@ -220,6 +221,17 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
                 'disponible' => false,
                 'motivo' => $this->motivo($acceso),
                 'disponible_desde' => $acceso->liberaEn?->format('d/m/Y H:i'),
+                // ⚠️ Los teléfonos viajan AQUÍ, con el motivo, y no se dejan para que el
+                // modelo los busque en la guía.
+                //
+                // Estaban escritos dentro del ítem «Horario solicitudes», que sólo llega si el
+                // índice de temas lo selecciona por sus términos (`horario de atención`, `a qué
+                // hora atienden`…). El 27/08/2026 una huésped escribió «acabamos de llegar» —que
+                // no casa con ninguno—, el modelo se quedó sin ninguna salida que ofrecerle y se
+                // inventó que alguien acudiría a recibirla. Estuvo una hora en la puerta.
+                //
+                // Aquí son deterministas: si no hay código, salen. Sin segundo paso.
+                'contacto' => $this->contacto($unidad),
             ], static fn ($v) => $v !== null));
         }
 
@@ -341,6 +353,37 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
      * entre corchetes para pintarse dentro de un párrafo— y aquí hace falta una instrucción para
      * el modelo, que además le prohíbe rellenar el hueco por su cuenta.
      */
+    /**
+     * Por dónde puede resolverlo una persona cuando el código no sale.
+     *
+     * Los dos contestan; el de Yape es además por donde se paga. Se devuelven los dos con su
+     * etiqueta para que el modelo elija según lo que haga falta —hablar o pagar— en vez de
+     * tener que adivinar cuál es cuál.
+     *
+     * `null` si el establecimiento no los tiene puestos: mejor no ofrecer un teléfono que
+     * ofrecer uno inventado.
+     *
+     * @return array<string, string>|null
+     */
+    private function contacto(PmsUnidad $unidad): ?array
+    {
+        $establecimiento = $unidad->getEstablecimiento();
+
+        $contacto = array_filter([
+            'telefono' => trim((string) $establecimiento?->getTelefonoAtencion()),
+            'telefono_yape' => trim((string) $establecimiento?->getTelefonoYape()),
+        ], static fn (string $v): bool => $v !== '');
+
+        if ($contacto === []) {
+            return null;
+        }
+
+        return $contacto + [
+            'nota' => 'Por los dos contesta una persona. El de «telefono_yape» es además el '
+                . 'número del Yape, así que es el que se da para pagar por ahí.',
+        ];
+    }
+
     private function motivo(PmsGuiaAcceso $acceso): string
     {
         return match ($acceso->estado) {

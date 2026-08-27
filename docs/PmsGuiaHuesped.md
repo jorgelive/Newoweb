@@ -277,6 +277,38 @@ Los dos primeros son nuevos y arreglan una fuga real. Ver §6.
 
 ---
 
+## 3.b 🔥 Un dato que DEBE salir no puede vivir en un ítem de guía
+
+Los teléfonos de atención estaban escritos dentro del texto del ítem «Horario solicitudes
+(general)». Y un ítem sólo llega al modelo si **el índice de temas lo selecciona** por sus
+`agenteTerminos` — que ahí eran `horario de atención`, `a qué hora atienden`, `contacto`.
+
+El **27/08/2026** una huésped escribió *«acabamos de llegar»*. El triaje enrutó bien —a
+`consultar_codigos`—, la skill contestó bien —«no está confirmada, los códigos salen al
+confirmar el pago»— y el escalado salió bien. Pero **ningún teléfono llegó al modelo**, porque
+esa frase no casa con ninguno de esos términos. Sin una salida que ofrecer, el modelo unió los
+dos hechos que sí tenía —«falta pagar» y «avisé al equipo»— y se inventó el puente:
+*«alguien les ayudará con el registro y el pago»*. Nadie iba a ir: la entrada es autónoma.
+Estuvo **una hora en la puerta**.
+
+La regla que sale de ahí:
+
+> **Si un dato tiene que salir sí o sí en un momento concreto, va por el camino determinista.**
+> La guía es para lo que se consulta *cuando se pregunta*; lo que se necesita *cuando pasa algo*
+> lo devuelve la skill de ese algo.
+
+Por eso `telefono_atencion` y `telefono_yape` son ahora campos de `PmsEstablecimiento` y los
+devuelve `ConsultarCodigosSkill` en `contacto`, junto al `motivo` y sin segundo paso — igual que
+ya hacía con el código de la caja.
+
+⚠️ **Y no se duplican.** El ítem de guía deja de llevarlos escritos: un teléfono en dos sitios es
+un teléfono que un día se cambia en uno solo. El ítem sigue contestando *«¿a qué hora atienden?»*,
+que es su pregunta.
+
+⚠️ **`telefonoPrincipal` es otra cosa**: el comercial, el que está en la web y en las OTA y se
+sirve al catálogo público. Son **tres números para tres usos**, y mandar al huésped al comercial
+cuando está en la puerta es mandarlo al sitio equivocado en el peor momento.
+
 ## 4. Flujo de una petición
 
 ```
