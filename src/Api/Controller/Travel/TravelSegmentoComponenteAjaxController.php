@@ -39,7 +39,7 @@ class TravelSegmentoComponenteAjaxController extends AbstractController
         $segmentoId = $relacion->getSegmento()->getId();
 
         // 1. Catálogo para el Select
-        $componentes = $this->em->getRepository(TravelComponente::class)->findBy([], ['nombre' => 'ASC']);
+        $componentes = $this->em->getRepository(TravelComponente::class)->findBy([], ['nombreInterno' => 'ASC']);
         $cat = array_map(function($c) {
             $tarifas = array_map(fn($t) => [
                 'id' => $t->getId()->toRfc4122(),

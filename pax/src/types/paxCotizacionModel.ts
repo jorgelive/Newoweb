@@ -5,13 +5,38 @@
 // Endpoint: GET /client/cotizacion/cotizacion_file/{localizador}  (PUBLIC_ACCESS)
 // Provider: CotizacionFilePublicProvider
 //
-// A diferencia del editor (que deriva sus tipos de components['schemas'][...]),
-// aquí casi todo el contenido son SNAPSHOTS JSON (columnas type: 'json') que el
-// OpenAPI export tipa como `any`/`object`. Por eso se modelan a mano, espejando
-// exactamente los campos que llevan #[Groups(['pax_cotizacion:read'])] en las
-// entities. Si prefieres anclarlos al schema autogenerado, la raíz equivale a:
-//   components['schemas']['CotizacionFile.jsonld-pax_cotizacion.read']
+// ⚠️ **EL CONTRATO ES `api.d.ts`. Estos tipos se ANCLAN a él, no se copian.**
+//
+// Hasta el 27/08/2026 estaban escritos enteros a mano «porque los snapshots JSON salen como
+// diccionario abierto en el export». El diagnóstico era correcto y la conclusión no: un tipo a
+// mano no falla cuando el backend cambia — **describe una API que ya no existe**, y `vue-tsc` lo
+// da por bueno porque sólo sabe lo que dice el `.d.ts`. Se vio al renombrar `nombreSnapshot` a
+// `tituloSnapshot`: `util` señaló sus 80 usos y `pax` no dijo nada, porque no miraba el esquema.
+//
+// La regla: `Omit<Base, 'campo'> & { campo: TipoReal }`, y **sólo** por estos dos motivos:
+//
+//   1. El export tipa una columna JSON como `{[k: string]: string|null}[]` y la forma real es
+//      `{ language, content }[]`. Se estrecha, no se inventa.
+//   2. El campo lo INYECTA el normalizer al servir y la introspección no lo ve (los datos del
+//      prestador, que se leen del catálogo vivo). Ahí no hay esquema que respetar.
+//   3. El esquema lo marca OPCIONAL porque API Platform no puede garantizarlo al escribir —`id`,
+//      `fechaAbsoluta`—, pero un recurso que se LEE siempre lo trae. Se pasa a requerido para no
+//      sembrar `!` y `?? ''` por toda la vista. Mismo criterio que `util` (`CotSegmento`,
+//      `ComponenteCompleto`). Es la única familia de override que estrecha una opcionalidad, y
+//      sólo vale porque este modelo describe una respuesta de LECTURA.
+//
+// Cualquier otro campo se toma del esquema tal cual. Si falta uno, se arregla en PHP y se
+// regenera con `npm run gen:api` — no se declara aquí.
 // ============================================================================
+
+import type { components } from './api';
+
+type SegmentoBase   = components['schemas']['CotizacionSegmento-pax_file.read_pax_cotizacion.read'];
+type CottarifaBase  = components['schemas']['CotizacionCottarifa-pax_file.read_pax_cotizacion.read'];
+type ComponenteBase = components['schemas']['CotizacionCotcomponente-pax_file.read_pax_cotizacion.read'];
+type ServicioBase   = components['schemas']['CotizacionCotservicio-pax_file.read_pax_cotizacion.read'];
+type CotizacionBase = components['schemas']['Cotizacion-pax_file.read_pax_cotizacion.read'];
+type PasajeroBase   = components['schemas']['CotizacionFilepasajero-pax_file.read'];
 
 // --- Primitivos compartidos --------------------------------------------------
 
@@ -50,37 +75,31 @@ export interface PaxDetalleCliente {
 
 // --- Segmento (día a día del itinerario) -------------------------------------
 
-export interface PaxCotSegmento {
-    '@id'?: string;
-    '@type'?: string;
-    id: string;
-    dia: number;
-    orden: number;
-    fechaAbsoluta: string; // ISO date
-    segmentoMaestroId?: string | null;
+export type PaxCotSegmento = Omit<
+    SegmentoBase,
+    'tituloSnapshot' | 'contenidoSnapshot' | 'imagenesSnapshot' | 'notasSnapshot'
+> & {
+    // Motivo 1: columnas i18n/JSON que el export da como diccionario abierto.
     tituloSnapshot: I18n;
     contenidoSnapshot: I18n; // HTML por idioma
     imagenesSnapshot: PaxImagenSnapshot[];
     notasSnapshot: PaxNotaSnapshot[];
-}
+    // Motivo 3.
+    id: string;
+    fechaAbsoluta: string;
+    '@id'?: string;
+    '@type'?: string;
+};
 
 // --- Tarifa (solo campos expuestos al cliente) --------------------------------
 
-export interface PaxCottarifa {
-    '@id'?: string;
-    id: string;
-    cantidad: number;
+export type PaxCottarifa = Omit<CottarifaBase, 'tituloSnapshot' | 'notaRol'> & {
+    // Motivo 1. El resto —modalidad, categoría, edades, esGrupal— se toma del esquema.
     tituloSnapshot: I18n;
-    nombreInternoSnapshot?: string | null;
-    modalidadSnapshot?: string | null; // 'privado' | 'compartido' | null
-    categoriaSnapshot?: string | null; // 'superior' | ...
-    procedenciaSnapshot?: string | null;
-    edadMinimaSnapshot?: number | null;
-    edadMaximaSnapshot?: number | null;
-    esGrupal: boolean;
-    rolSnapshot?: string | null;
     notaRol?: I18n;
-}
+    id: string;   // Motivo 3.
+    '@id'?: string;
+};
 
 // --- Item dentro de snapshotItems de un componente ----------------------------
 
@@ -96,16 +115,19 @@ export interface PaxSnapshotItem {
 
 // --- Componente ---------------------------------------------------------------
 
-export interface PaxCotComponente {
-    '@id'?: string;
-    id: string;
-    cantidad: number;
+export type PaxCotComponente = Omit<
+    ComponenteBase,
+    'tituloSnapshot' | 'cotsegmento' | 'cottarifas' | 'detallesParaCliente'
+> & {
+    // ── Motivo 1: columnas JSON que el export da como diccionario abierto ──
     tituloSnapshot: I18n;
-    fechaHoraInicio?: string | null;
-    fechaHoraFin?: string | null;
-    sinHorario?: boolean;
-    tipo?: string | null;
+    cotsegmento?: PaxCotSegmento | null;
+    cottarifas: PaxCottarifa[];
+    detallesParaCliente: PaxDetalleCliente[];
+    id: string;   // Motivo 3.
+    '@id'?: string;
 
+    // (del esquema; el docblock se conserva porque explica la REGLA, no la forma)
     /**
      * Dónde va este componente dentro de su jornada al CONTAR el viaje.
      *
@@ -116,11 +138,7 @@ export interface PaxCotComponente {
      * Sirve para que el alojamiento cierre su día en vez de caer en medio —el backend sirve los
      * componentes por `fechaHoraInicio` y el check-in de un hotel es a media tarde—.
      */
-    ordenNarrativo?: number;
-
-    cotsegmento?: PaxCotSegmento | null;
-    cottarifas: PaxCottarifa[];
-    detallesParaCliente: PaxDetalleCliente[];
+    // `ordenNarrativo` viene del esquema: no se redeclara.
 
     /**
      * PRESTADOR — quién presta este servicio.
@@ -146,22 +164,22 @@ export interface PaxCotComponente {
     /** El servicio contratado (ej. el tipo de habitación), también inyectado. */
     prestadorServicioTitulo?: I18n;
     prestadorServicioImagenes?: PaxImagenSnapshot[];
-
-    /** Su hora representa el horario de toda la excursión (servicio completo), no
-     *  la del segmento donde está anclado. Ver CotizacionCotcomponente. */
-    horaServicioCompleto?: boolean;
-}
+};
 
 // --- Servicio -----------------------------------------------------------------
 
-export interface PaxCotServicio {
-    '@id'?: string;
-    id: string;
+export type PaxCotServicio = Omit<
+    ServicioBase,
+    'tituloSnapshot' | 'cotcomponentes' | 'cotsegmentos'
+> & {
     tituloSnapshot: I18n;
-    fechaInicioAbsoluta?: string | null;
+    // Se estrechan a los tipos ya anclados de abajo, para que la recursión del esquema no
+    // arrastre la forma cruda en cada nivel.
     cotcomponentes: PaxCotComponente[];
     cotsegmentos: PaxCotSegmento[];
-}
+    id: string;   // Motivo 3.
+    '@id'?: string;
+};
 
 // --- Clasificación financiera CLIENTE (sin costos ni márgenes) -----------------
 
@@ -290,49 +308,35 @@ export interface PaxClasificacionFinancieraCliente {
 
 // --- Cotización activa (solo campos pax) ---------------------------------------
 
-export interface PaxCotizacion {
-    '@id'?: string;
-    '@type'?: string;
-    id?: string;
-    version: number;
-    estado: string; // CotizacionEstadoEnum
-    numPax: number;
-    /** Título comercial opcional de la propuesta/tour (i18n); vacío si no se definió. */
+export type PaxCotizacion = Omit<
+    CotizacionBase,
+    'titulo' | 'resumen' | 'clasificacionFinancieraCliente' | 'cotservicios'
+> & {
+    // Motivo 1: columnas JSON.
     titulo?: I18n;
-    precioOculto: boolean;
-    proveedorOculto: boolean; // 🔥 anonimato global de proveedores
-    /** Modo catálogo unitario: oculta totales y toda referencia a cantidad de pasajeros. */
-    totalesOcultos?: boolean;
     resumen: unknown[];
-    fechaExpiracion?: string | null;
-    monedaGlobal: string;
-    idiomaCliente: string;
-    /** Ausente si precioOculto=true (redactado por CotizacionPublicNormalizer). */
-    totalVenta?: string;
-    /** Ausente si precioOculto=true (redactado por CotizacionPublicNormalizer). */
-    adelanto?: string;
     clasificacionFinancieraCliente?: PaxClasificacionFinancieraCliente | null;
     cotservicios: PaxCotServicio[];
-}
+    '@id'?: string;
+    '@type'?: string;
+};
+
 
 // --- Pasajeros y documentos visibles ------------------------------------------
 
-export interface PaxFilepasajero {
-    '@id'?: string;
-    id?: string;
-    nombre: string;
-    apellido: string;
-    pais?: unknown; // objeto MaestroPais embebido según serialización
-    sexo?: 'M' | 'F' | null;
-    fechanacimiento?: string | null;
+export type PaxFilepasajero = Omit<PasajeroBase, 'identificaciones'> & {
     /**
      * Sus documentos de identidad. Espejo de `CotizacionPasajeroIdentificacion`.
      *
      * ⚠️ Sustituye a `tipodocumento` + `numerodocumento`, que admitían uno solo: una persona lleva
      * DNI *y* pasaporte con vencimientos distintos. **Al tocar la entidad, tocar esto.**
+     *
+     * Se estrecha (motivo 1) porque el export da la colección embebida sin forma útil.
      */
     identificaciones?: Array<{ tipo?: string | null; numero?: string | null; vencimiento?: string | null }>;
-}
+    '@id'?: string;
+};
+
 
 /**
  * Un adjunto del expediente: boleto, factura, confirmación de reserva.

@@ -195,6 +195,27 @@ La metadata vive en pools de caché que `cache:clear` no toca. Medido el 25/08/2
 Si publicas un campo y no lo ves en `api.d.ts`, **no es que el grupo esté mal**: comprueba
 primero que el export no venga de caché.
 
+### ⚠️ El contrato es `api.d.ts`. Los `*Model.ts` se ANCLAN a él, no lo copian
+
+**Nada de tipos escritos a mano.** La forma es siempre `Omit<Base, 'campo'> & { campo: TipoReal }`,
+y el override sólo se justifica por tres motivos:
+
+1. **Estrechar una columna JSON**: el export tipa un i18n como `{[k: string]: string|null}[]` y la
+   forma real es `{ language, content }[]`. Se estrecha, no se inventa.
+2. **Un campo que INYECTA el normalizer** al servir y la introspección no ve (los datos vivos del
+   prestador). Ahí no hay esquema que respetar.
+3. **Pasar a requerido lo que el esquema marca opcional** —`id`, `fechaAbsoluta`— porque API
+   Platform no lo garantiza al escribir pero un recurso que se LEE siempre lo trae. Sólo vale en
+   modelos de lectura, y evita sembrar `!` por toda la vista.
+
+Cualquier otro campo se toma del esquema tal cual. Si falta, se arregla en PHP y se regenera.
+
+⚠️ **`pax/src/types/paxCotizacionModel.ts` estuvo escrito entero a mano hasta el 27/08/2026**, con
+un argumento razonable —«los snapshots JSON salen como diccionario abierto»— y una conclusión
+falsa. Se vio al renombrar `nombreSnapshot`→`tituloSnapshot`: **`util` señaló sus 80 usos y `pax`
+no dijo ni una palabra**, porque no miraba el esquema. Un tipo a mano no se queda corto: describe
+una API que ya no existe, y `vue-tsc` lo da por bueno porque sólo sabe lo que dice el `.d.ts`.
+
 No se declara el campo a mano en un `*Model.ts`: un tipo escrito a mano que se queda corto **no
 falla al compilar**, miente — y el día que alguien sí regenere, la intersección de las dos formas
 revienta lejos de aquí.
