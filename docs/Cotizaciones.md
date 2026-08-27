@@ -490,6 +490,49 @@ porque en SQL serían tres funciones anidadas por elemento que nadie va a saber 
 ⚠️ Fue en la MISMA migración que el código que lo lee. Separarlos habría dejado los 184 ítems sin
 nombre en pantalla entre un paso y otro — y sin error: un hueco, que es peor de detectar.
 
+## 2.c El chequeo de coherencia (27/08/2026)
+
+`app:cotizacion:revisar-coherencia` — sin opciones sólo mira; con `--reparar` arregla.
+
+### Por qué hace falta
+
+**En este dominio «no aparece» es un estado legítimo.** Un componente puede no tener proveedor, ni
+habitación, ni foto, y la pantalla se ve igual de bien. Eso hace que un fallo real y un caso vacío
+correcto sean **indistinguibles a ojo**, y por eso los cuatro que se encontraron ese día llevaban
+meses ahí:
+
+| Estaba bien | Faltaba | Se veía como |
+|---|---|---|
+| el nombre en el maestro | copiarlo al snapshot | otro nombre plausible |
+| el `id` en la entidad | el grupo de serialización | una tarjeta que no sale |
+| el nombre de la habitación | su título público | «no tiene habitación» |
+| el id del servicio del prestador | su nombre congelado | «hotel 4 estrellas» a secas |
+
+Ninguno daba error. Lo que los delata no es un síntoma, es la **incoherencia interna**: *un id
+puesto con su nombre vacío es una combinación que ninguna acción del editor produce.*
+
+### La regla que separa reparar de avisar
+
+**Se repara lo que tiene una sola respuesta posible.** Si el id apunta a un maestro que existe y el
+nombre está vacío, el nombre es el del maestro. No hay segunda lectura.
+
+**Se avisa de lo que es una decisión.** Que un prestador esté oculto teniendo permiso el maestro
+puede ser deliberado; que una tarifa no tenga clase puede ser que aún no toque. Un script que
+«arregla» decisiones ajenas hace más daño que el hueco que rellena.
+
+⚠️ **Nunca toca documentos emitidos.** Las líneas de una Orden congelada se listan, no se corrigen:
+dicen lo que se le mandó al proveedor. Se arreglan reemitiendo.
+
+⚠️ El último reparable —`biblia-desincronizada`— va **después** a propósito, para arrastrar lo que
+los anteriores acaban de arreglar. Y sincroniza **sin pasar por la reconciliación**: son campos
+vacíos que se rellenan, no cambios que alguien deba aprobar.
+
+⚠️ Todos los JOIN convierten los ids a mano: los `*_maestro_id` son `varchar(36)` **con guiones** y
+los `id` de `travel_*` son `binary(16)`. En crudo dan **cero filas sin error** — y un chequeo que
+nunca encuentra nada es peor que no tenerlo.
+
+Devuelve código 1 si queda algo por mirar, para poder encadenarlo en un cron.
+
 ## 3. Tarifas (`CotizacionCottarifa` / `TarifaSnapshot`)
 
 Campos que mandan (todos `*Snapshot`):
