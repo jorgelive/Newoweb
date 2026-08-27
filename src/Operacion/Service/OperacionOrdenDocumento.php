@@ -176,6 +176,18 @@ final readonly class OperacionOrdenDocumento
             $partes[] = $variante;
         }
 
+        // QUÉ exactamente se le contrata: la habitación, la clase de tren. Va después de la
+        // variante porque la concreta —«Alojamiento en Cusco · Hotel 4 estrellas · Habitación
+        // premium»— y es el dato con el que el hotelero busca la reserva.
+        //
+        // Se calla si repite lo que ya se dijo: cuando el componente tiene servicio de prestador,
+        // `resolverDescripcion()` lo usa como descripción, así que variante y servicio coinciden.
+        $servicio = trim((string) $item->getPrestadorServicioNombre());
+
+        if ($servicio !== '' && $servicio !== $variante && $servicio !== $item->getTituloParaProveedor()) {
+            $partes[] = $servicio;
+        }
+
         // La hora de recojo CONFIRMADA es la que vale; si no la hay todavía, no se inventa.
         //
         // ⚠️ Y sólo se dice cuando DIFIERE de la hora del servicio. En los datos reales coinciden

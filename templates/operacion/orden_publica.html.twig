@@ -43,6 +43,9 @@
            va al lado y más apagada. El día del itinerario, debajo y más pequeño todavía: sitúa
            el servicio y no compite con él. */
         .variante { color: #475569; font-size: 11px; }
+        /* Lo contratado —habitación, clase de tren— con el color de la marca: es lo que el
+           proveedor busca al abrir el documento, no un matiz. */
+        .servicio-prestador { color: #376875; font-weight: bold; font-size: 11px; }
         .contexto { color: #94a3b8; font-size: 10px; }
         .vacio { color: #94a3b8; font-style: italic; }
     </style>
@@ -88,6 +91,14 @@
                         <span class="servicio">{{ item.tituloParaProveedor }}</span>
                         {% if item.varianteParaProveedor %}
                             <span class="variante">{{ item.varianteParaProveedor }}</span>
+                        {% endif %}
+                        {# QUÉ se le contrata exactamente: la habitación, la clase de tren. Es el
+                           dato con el que el hotelero busca la reserva. Se calla si repite lo ya
+                           dicho: con servicio de prestador, la descripción YA es ese texto. #}
+                        {% if item.prestadorServicioNombre
+                              and item.prestadorServicioNombre != item.varianteParaProveedor
+                              and item.prestadorServicioNombre != item.tituloParaProveedor %}
+                            <br><span class="servicio-prestador">{{ item.prestadorServicioNombre }}</span>
                         {% endif %}
                         {% if item.contextoServicio and item.contextoServicio != item.tituloParaProveedor %}
                             <br><span class="contexto">{{ item.contextoServicio }}</span>

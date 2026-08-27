@@ -1223,6 +1223,25 @@ donde el día se llama igual que el servicio.
 Sticks», que se nombran perfectamente solos. Al revés, «Transporte Aeropuerto Cusco - Hotel Cusco»
 sí tiene lugar y es específico.
 
+##### Qué se le contrata exactamente (27/08/2026)
+
+La línea de la orden lleva ahora un cuarto dato, después de la variante:
+
+```
+Alojamiento en Cusco  ·  Hotel 4 estrellas por grupo  ·  Habitación premium
+   ↑ componente             ↑ variante de tarifa          ↑ servicio del prestador
+```
+
+Es el dato con el que el hotelero busca la reserva. Se calla cuando repetiría lo ya dicho: si el
+componente tiene servicio de prestador, `resolverDescripcion()` ya lo usa como descripción, así que
+variante y servicio coinciden.
+
+⚠️ **El nombre venía vacío aunque la habitación estuviera asignada.** `prestadorServicioMaestroId`
+estaba puesto y `prestadorServicioNombreSnapshot` no, y la Orden lee el **snapshot** —mientras que
+`pax` resuelve **en vivo** contra el catálogo—. Por eso el huésped veía la habitación y el
+proveedor no. Corregido con `Version20260828040000`, que rellena la cadena entera: cotización → La
+Biblia → líneas ya congeladas, sólo donde está vacío.
+
 ##### Las tres superficies leen lo mismo
 
 `OperacionOrdenServicioItem::getTituloParaProveedor()` y `getVarianteParaProveedor()` las usan la
