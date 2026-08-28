@@ -263,6 +263,20 @@ const titularComun = computed(() => {
     return nombres.size === 1 ? (fichasDelAbierto.value[0]?.titular ?? null) : null;
 });
 
+/**
+ * La nota de uso, cuando es la MISMA en todas las fichas del medio abierto.
+ *
+ * Es el caso normal: la nota describe cómo se usa el medio —«envío en efectivo para recojo en
+ * tienda», no «no lo mandes a una cuenta»— y eso no cambia entre las ocho cuentas de un banco.
+ * Sacándola de la columna de los números se lee como lo que es: una frase, alineada a la
+ * izquierda y a lo ancho, en vez de tres renglones estrechos junto a un importe.
+ */
+const notaComun = computed(() => {
+    const notas = new Set(fichasDelAbierto.value.map(f => f.nota ?? ''));
+
+    return notas.size === 1 ? (fichasDelAbierto.value[0]?.nota ?? null) : null;
+});
+
 /** El nombre del medio abierto, traducido. */
 const nombreDelAbierto = computed(() => {
     const codigo = fichaAbierta.value;
@@ -883,18 +897,25 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                 <span class="min-w-0 text-right">
                   <!-- `select-all`: el gesto de un dedo encima selecciona el número entero, que
                        es lo único que el huésped va a hacer aquí. -->
-                  <span v-if="f.numero" class="block select-all text-[13px] font-black tabular-nums text-gray-900 leading-snug break-all">
+                  <!-- `tabular-nums` sólo si de verdad hay dígitos que alinear. Western
+                       Union no tiene cuenta: su «número» es el destino del giro —«Cusco,
+                       Perú»—, y puesto en cifras monoespaciadas se lee como un código que
+                       hubiera que copiar. La clase existe para cuadrar dígitos; aplicarla sólo
+                       cuando los hay es lo que dice. -->
+                  <span v-if="f.numero"
+                        class="block select-all text-[13px] font-black text-gray-900 leading-snug break-all"
+                        :class="/\d/.test(f.numero) ? 'tabular-nums' : ''">
                     {{ f.numero }}
                   </span>
                   <span v-if="f.cci" class="block select-all text-[11px] font-bold tabular-nums text-slate-400 leading-snug break-all">
                     CCI {{ f.cci }}
                   </span>
                   <!-- El titular sólo aquí cuando difiere entre cuentas; si es el mismo en
-                       todas, se dice una vez al pie. -->
+                       todas, se dice una vez al pie. Igual con la nota. -->
                   <span v-if="!titularComun && f.titular" class="block text-[11px] font-medium text-slate-500 leading-snug">
                     {{ f.titular }}
                   </span>
-                  <span v-if="f.nota" class="block text-[11px] font-medium text-slate-400 leading-snug">
+                  <span v-if="!notaComun && f.nota" class="block text-[11px] font-medium text-slate-500 leading-snug">
                     {{ f.nota }}
                   </span>
                 </span>
@@ -904,6 +925,14 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                    confirmar, y verlo coincidir es lo que le dice que no se equivocó. -->
               <p v-if="titularComun" class="mt-2 border-t border-slate-100 pt-1.5 text-[11px] font-medium text-slate-500 leading-snug">
                 {{ titularComun }}<span v-if="fichasDelAbierto[0]?.titularAlterno"> · {{ fichasDelAbierto[0].titularAlterno }}</span>
+              </p>
+
+              <!-- La nota, al final y a lo ancho: se lee DESPUÉS del nombre y del destino,
+                   que es el orden en que se rellena el formulario del giro. En Western Union
+                   es la línea que evita que el dinero se mande por una vía que no podemos
+                   cobrar, así que no va en gris de pie de página. -->
+              <p v-if="notaComun" class="mt-2 border-t border-slate-100 pt-1.5 text-[11px] font-medium text-slate-600 leading-snug">
+                {{ notaComun }}
               </p>
             </div>
 

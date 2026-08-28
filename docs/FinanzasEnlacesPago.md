@@ -1764,6 +1764,34 @@ Por eso las dos superficies serializan **campo a campo y nunca la entidad**.
 ventana de días, pero no tiene nada que enseñar. Si se publicara, la app del pax le pintaría su
 icono de información y abriría un cuadro en blanco. Ver `docs/PmsBeds24ReservasSync.md` §12.5.2.
 
+### 14.2c La nota: lo que hay que HACER con ese número
+
+Un número no dice cómo se usa, y en **Western Union esa diferencia cuesta dinero**: la empresa
+ofrece *enviar a una cuenta bancaria* además del giro para recojo en tienda, y un envío hecho
+por esa vía **no lo podemos cobrar**. Para el huésped las dos cosas son «mandar por Western
+Union»; descubrirlo después es un giro perdido.
+
+Por eso la nota es contenido de negocio versionado, no algo tecleado una vez en el panel: la
+fija `fin:medios:notas` (`src/Finanzas/Command/FinNotasMedioCobroCommand.php`), idempotente por
+el texto castellano.
+
+⚠️ **Va por comando y no por SQL, y además necesita `setSobreescribirTraduccion(true)`.**
+`$nota` lleva `#[AutoTranslate]`, y el modo por defecto del listener es «seguro»: sólo rellena
+los idiomas VACÍOS. Al reescribir una nota **ya traducida**, sin el flag el castellano cambia y
+los otros seis se quedan con el texto anterior — un huésped alemán leería la versión sin el
+aviso, que es justo el caso que la nota existe para evitar.
+
+⚠️ **Y el texto origen tiene que nombrar el papel entero, no señalar.** «Envíalo **a ese
+nombre**» —con el nombre un renglón más arriba— se tradujo al italiano y al neerlandés como *el
+remitente* («a nome di questo mittente», «op naam van de afzender»). Con eso el huésped pone su
+propio nombre y el giro queda incobrable: el mismo fallo que la nota venía a evitar, sólo que
+en dos idiomas y sin que nadie lo vea. Quedó «El destinatario del giro es el nombre indicado en
+este recuadro». **Un deíctico no sobrevive a una traducción automática**, porque el traductor
+no ve el recuadro.
+
+El aviso va **después** de la instrucción positiva, no en su lugar: quien lee «no hagas X» sin
+saber antes qué sí hacer se queda sin saberlo.
+
 ### 14.3 La audiencia es dinero, no permisos
 
 `FinAudienciaCobro` (`todos` / `peru` / `internacional`) existe porque ofrecer el medio

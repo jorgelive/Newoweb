@@ -97,7 +97,13 @@ final class PmsReservaPaxProvider implements ProviderInterface
             //
             // ⚠️ Proyección de HUÉSPED: sin comisión interna ni coste teórico. La decisión es
             // la misma que ve el equipo; lo que cambia es qué campos lleva.
-            $cifras['situacion'] = $this->comoResumen($this->situacion->paraHuesped($reserva));
+            $cifras['situacion'] = $this->comoResumen(
+                $this->situacion->paraHuesped($reserva),
+                // Mismo criterio que `ConsultarMediosPagoSkill`: el idioma del huésped, con
+                // caída al español. Las notas de cobro están traducidas a los siete y sin
+                // esto salían todas en castellano.
+                $reserva->getIdioma()?->getId() ?? 'es',
+            );
         }
 
         $reserva->setResumenFinancieroCliente($base + $cifras);
@@ -228,7 +234,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
      *
      * @return array<string, mixed>
      */
-    private function comoResumen(PmsSituacionDeCobro $situacion): array
+    private function comoResumen(PmsSituacionDeCobro $situacion, string $idioma): array
     {
         return [
             'queSePide' => $situacion->queSePide->name,
@@ -252,7 +258,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
             // con el localizador, así que están al alcance de quien tenga el enlace. Son
             // cuentas para RECIBIR dinero, no credenciales — el mismo criterio por el que la
             // guía del huésped ya las publica.
-            'medios' => $this->conFichas($situacion),
+            'medios' => $this->conFichas($situacion, $idioma),
         ];
     }
 
@@ -268,7 +274,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
      *
      * @return list<array<string, mixed>>
      */
-    private function conFichas(PmsSituacionDeCobro $situacion): array
+    private function conFichas(PmsSituacionDeCobro $situacion, string $idioma): array
     {
         /** @var array<string, array<string, mixed>> $porCodigo */
         $porCodigo = [];
@@ -282,7 +288,14 @@ final class PmsReservaPaxProvider implements ProviderInterface
                     'numero' => $ficha->getNumero(),
                     'cci' => $ficha->getCci(),
                     'moneda' => $ficha->getMoneda(),
-                    'nota' => $ficha->getNotaEsVisual() !== '' ? $ficha->getNotaEsVisual() : null,
+                    // ⚠️ `getNotaEn()`, NO `getNotaEsVisual()`. El segundo es un getter
+                    // señuelo para que EasyAdmin encuentre la propiedad en el listado, y
+                    // **siempre devuelve cadena vacía** —quien pinta la celda es el
+                    // `formatValue()` del CRUD—. Usarlo aquí filtraba la nota entera sin dar
+                    // un solo error: el huésped de Western Union veía un nombre y una ciudad,
+                    // y no las instrucciones de cobro. Es la trampa de CLAUDE.md: el atributo
+                    // (o el getter) mal elegido no falla, deja de hacer su trabajo.
+                    'nota' => $ficha->getNotaEn($idioma),
                 ], static fn ($v): bool => $v !== null && $v !== '');
 
                 // ⚠️ Una ficha SIN NINGÚN campo no viaja. Existe —«efectivo» tiene la suya en
