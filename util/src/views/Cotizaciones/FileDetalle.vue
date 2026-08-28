@@ -110,6 +110,18 @@ const linkPublico = computed(() => {
   return `${getUrls().pax}/file/${file.value.localizador}`;
 });
 
+/**
+ * Descarga del contacto para la agenda del móvil (.vcf).
+ *
+ * Gemela de la del drawer de reservas, pero **con los datos de ESTE módulo**: el nombre de
+ * agenda es `localizador · grupo` —un expediente no tiene fechas propias con las que
+ * ordenarlo— y la nota lleva titular, país, idioma, estado y pasajeros, en el mismo orden
+ * que la tarjeta. Lo arma `CotizacionFileVcardController`.
+ *
+ * Por `id` y no por localizador: es la clave que ya tiene la vista, y el endpoint es interno.
+ */
+const vcardUrl = computed(() => (fileId.value ? `${getUrls().api}/cotizacion/files/${fileId.value}/vcard` : ''));
+
 const linkPublicoVersion = (version?: number) => {
   if (!file.value?.localizador) return '';
   const base = `${getUrls().pax}/file/${file.value.localizador}`;
@@ -1590,10 +1602,22 @@ const eliminarDocumento = async (iri?: string) => {
               <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
                 <i class="fas fa-folder-open mr-2 text-[#E07845]"></i> Datos del Expediente
               </h2>
-              <button v-if="modoVistaFile" type="button" @click="girarPanelFile(false)"
-                      class="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors">
-                <i class="fas fa-pencil-alt text-[9px]"></i> Editar
-              </button>
+              <span v-if="modoVistaFile" class="shrink-0 flex items-center gap-1.5">
+                <!-- vCard: va en la cabecera de ESTA tarjeta y no en la barra de arriba porque
+                     lo que descarga es justo lo que hay debajo —contacto, titular, país— y
+                     porque la barra ya lleva las acciones del expediente entero (link público,
+                     eliminar, nueva versión). Sin teléfono no se ofrece: un contacto sin
+                     número no sirve para nada en una agenda. -->
+                <a v-if="vcardUrl && file?.telefono" :href="vcardUrl" target="_blank"
+                   title="Descargar contacto (vCard) con los datos del expediente"
+                   class="flex items-center gap-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors">
+                  <i class="fas fa-address-card text-[9px]"></i> vCard
+                </a>
+                <button type="button" @click="girarPanelFile(false)"
+                        class="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors">
+                  <i class="fas fa-pencil-alt text-[9px]"></i> Editar
+                </button>
+              </span>
               <span v-else-if="isDirty" class="shrink-0 text-[9px] font-black text-amber-600 uppercase tracking-widest">
                 <i class="fas fa-circle text-[6px] mr-1"></i> Sin guardar
               </span>

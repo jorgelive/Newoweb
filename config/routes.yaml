@@ -114,6 +114,18 @@ finanzas_webhook_controllers:
     type: attribute
     host: '%app.host.api%'
 
+# COTIZACIONES — endpoints internos del expediente que no son API Platform.
+#
+# Hoy sólo la vCard del expediente: genera un archivo y manda `Content-Disposition`, así que
+# no encaja como recurso —un `<a href>` basta y no hay JSON que serializar—.
+#
+# Mismo aviso que los de arriba: el host de api cae en PUBLIC_ACCESS, así que la protección es
+# el `denyAccessUnlessGranted()` del propio controlador. No lo quites.
+cotizacion_api_controllers:
+    resource: ../src/Cotizacion/Controller/Api/
+    type: attribute
+    host: '%app.host.api%'
+
 # Panel (Easyadmin)
 panel_controllers:
     resource: ../src/Panel/Controller/

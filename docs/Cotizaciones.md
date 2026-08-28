@@ -3114,3 +3114,23 @@ es lo que hacía el método eliminado.
 `supportsNormalization()` se invocaba con 3 parámetros cuando la interfaz de Symfony 6
 declaraba 2. En Symfony 7 el `$context` es parte oficial de la firma, así que el error
 desapareció solo y esas entradas se eliminaron.
+
+---
+
+## vCard del expediente (28/08/2026)
+
+La cabecera de «Datos del Expediente» lleva un botón **vCard** que descarga el contacto para
+la agenda del móvil: `GET /cotizacion/files/{id}/vcard`.
+
+Va en **esa** tarjeta y no en la barra de acciones de arriba porque lo que descarga es justo
+lo que hay debajo —contacto, titular, país, idioma, estado—; la barra ya tiene las acciones
+del expediente entero (copiar link, vista cliente, eliminar, nueva versión).
+
+**Sin teléfono no se ofrece**: un contacto sin número no sirve de nada en una agenda.
+
+El detalle de qué lleva dentro, por qué el nombre de agenda es `localizador · grupo` y por qué
+no comparte código con la vCard de reservas está en `docs/Telefonos.md` §5.
+
+⚠️ El endpoint vive en `src/Cotizacion/Controller/Api/`, que **hubo que declarar en
+`config/routes.yaml`**: era el primer controlador del módulo fuera de API Platform y sin esa
+línea las rutas no existen — 404 mudo, no error.

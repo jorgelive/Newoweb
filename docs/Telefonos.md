@@ -134,6 +134,30 @@ El teléfono **sigue sin resolverse en el front**: el componente lo recibe ya re
 `TelefonoDeContacto` (backend), que es quien sabe cuál de las identidades vale y si está
 vetada o retirada. Copiar esa regla en TypeScript sería reintroducir el espejo que se quitó.
 
+### La vCard: una por módulo, con SUS datos (28/08/2026)
+
+Hay dos, y no comparten código a propósito:
+
+| Módulo | Controlador | Nombre en la agenda |
+|---|---|---|
+| Reservas | `PmsReservaVcardController` | `2026/05/12 B x2 (Casita 3) Juan Pérez` |
+| Expedientes | `CotizacionFileVcardController` | `2KVBMX · Nune & Todd` |
+
+La mecánica sí es idéntica —descarga directa con `Content-Disposition`, un `<a href>` basta—
+pero **el contenido no se copia**: una reserva es una estancia y se busca por fecha, casita y
+canal; un expediente **no tiene fechas propias** (las tienen sus cotizaciones, y hay varias
+versiones), así que ordenarlo por fecha sería inventarse un dato. Lo que lo identifica es su
+localizador. La nota de cada uno lleva lo que enseña su propia ficha, en el mismo orden.
+
+⚠️ **Las dos convierten a E164** (`+51967007752`) y no reutilizan el formato de pantalla: la
+columna se guarda sin `+` y `CotizacionFile::getTelefono()` devuelve INTERNATIONAL con
+espacios, que es para leer, no para una agenda.
+
+⚠️ **Un controlador nuevo NO tiene rutas hasta declarar su directorio en `config/routes.yaml`.**
+`src/Cotizacion/Controller/Api/` no estaba y hubo que añadirlo. No da error: da un 404 en una
+ruta que `debug:router` no lista, que parece un fallo del front. El propio `routes.yaml` lo
+avisa en el bloque de Operación — y aun así volvió a pasar.
+
 ## 6. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
@@ -145,5 +169,6 @@ vetada o retirada. Copiar esa regla en TypeScript sería reintroducir el espejo 
 | Cambiar el número con el que se abre WhatsApp | `util/src/utils/telefono.ts` | `telefonoParaWhatsapp()` |
 | Tocar el teléfono / vCard del drawer (los dos modos) | `util/src/components/reservas/ReservaTelefonoIdentidad.vue` | un solo componente: no lo dupliques por modo |
 | Cambiar el teléfono que sale en la vCard | `src/Pms/Controller/Api/PmsReservaVcardController.php` | `__invoke()` |
+| Cambiar la vCard del EXPEDIENTE | `src/Cotizacion/Controller/Api/CotizacionFileVcardController.php` | `__invoke()` — nombre de agenda y nota |
 | Cambiar cómo se buscan reservas por teléfono | `src/Pms/Repository/PmsReservaRepository.php` | `findVivasByTelefono()` |
 | Normalizar teléfonos de un canal nuevo | el persister del canal | inyectar `PhoneSanitizer` |
