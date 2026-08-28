@@ -1832,6 +1832,93 @@ en ninguna». Comprobado con datos reales: Pisac → 5, un segmento nuevo → 0.
 EasyAdmin no tiene propiedad que leer. `getVirtualPuntos()` es la excepción: hace el render
 entero en la entidad y por eso su campo no lleva `formatValue`.
 
+## 11.quinquies Segmento ↔ componente: los dos patrones, y cómo se elige (28/08/2026)
+
+Es la relación que más se malinterpreta del catálogo, porque **no hay una forma correcta: hay
+dos**, y la que toca la decide una pregunta de negocio, no de modelado.
+
+### La pregunta que decide
+
+> **¿Qué compra el pasajero: cada cosa por separado, o el programa entero?**
+
+| Se compra… | Patrón | Ejemplo |
+|---|---|---|
+| cada cosa por separado | **un componente por segmento** | `ACT_RESORT` |
+| el programa entero | **un componente ANCLA y el resto sólo cuenta** | `CITY_LIM`, `WALK_MIR` |
+
+**Estadía en un resort** → cada actividad tiene prestador propio: el buffet no lo sirve quien
+lleva la piscina, y cada una puede incluirse o no. Cada segmento carga su componente y su tarifa.
+
+**Excursión** → nadie vende «el Parque Kennedy». Se contrata un programa con traslados y guía, y
+el Parque Kennedy es un **capítulo del relato**. Un solo componente lo representa.
+
+⚠️ Y es lo que ya hacía el catálogo antes de que nadie lo escribiera: de los **siete** segmentos
+de `CITY_LIM`, **seis tienen cero componentes**.
+
+### Cómo queda una excursión
+
+```
+orden  segmento                       componente
+  1    DES-WALK_MIR-AEROPUERTO        Desayuno en el aeropuerto      ← excepción: comida
+  2    SAL_EXC-WALK_MIR               ⚓ ANCLA · el programa entero
+  3    VIS-WALK_MIR-KENNEDY           — sólo cuenta
+  4    VIS-WALK_MIR-MALECON           — sólo cuenta
+  5    ALM-WALK_MIR-LARCOMAR          Almuerzo en Larcomar           ← excepción: comida
+  6    VIS-WALK_MIR-LARCOMAR_LIBRE    — sólo cuenta
+  7    RET_EXC-WALK_MIR-AEROPUERTO    — sólo cuenta   (el retorno va dentro del ancla)
+```
+
+**Las comidas son la excepción** y por el mismo criterio: se compran aparte y pueden ir incluidas
+o no, así que llevan componente propio.
+
+**El retorno NO lleva componente**: va dentro del ancla, como en `CITY_LIM`.
+
+### ⚠️ El ancla tiene DOS relaciones con el mismo componente
+
+Y no es redundancia:
+
+| Relación | Contexto | Hora | `horaServicioCompleto` | Para qué |
+|---|---|---|---|---|
+| global | — | — | no | lleva la **tarifa por defecto**; vale para cualquier tour |
+| de plantilla | el itinerario | 08:30 | **sí** | fija el horario **dentro de este tour** |
+
+`TravelSegmentoComponente::validarPromocionRequierePlantilla()` **prohíbe** promover sin
+plantilla, y el porqué está en su docblock: *una promoción global aplicaría a todos los tours que
+usen el segmento y chocaría con las horas específicas de cada plantilla*.
+
+⚠️ Por el mismo motivo **la relación global del ancla va sin hora**. Las comidas sí la llevan: un
+desayuno es a las 07:00 lo use quien lo use, pero la hora de salida de una excursión es de cada
+tour.
+
+Consecuencia práctica: **la plantilla tiene que existir antes que la relación promovida**. El
+comando crea servicio → segmentos con su relación global → itinerario → relación promovida.
+
+`horaServicioCompleto` es lo que `promoPorServicio` (en `PaxCotizacionGuiaView.vue`) lee para
+poner el horario de toda la excursión en la cabecera, sin estirar el segmento donde se apoya.
+
+### ⚠️ Sin componente no hay hora, así que el orden vive en el itinerario
+
+Un segmento que sólo cuenta no tiene relación con componente, luego no tiene hora, luego en la
+guía cae al desempate por `orden`. Ese orden **no está en el segmento**: vive en
+`travel_itinerario_segmento_rel`.
+
+Por eso una excursión **sí crea plantilla** aunque una estadía de resort no la necesite: sin ella
+habría que recordar a mano, en cada cotización, que el malecón va después del Parque Kennedy.
+
+### Los extremos
+
+`SAL_EXC` arranca en el punto fijo del aeropuerto y `RET_EXC` termina allí; los del medio van en
+`SIN_DEFINIR`. De ahí sale el «dónde recojo / dónde dejo» de la orden de servicio: el servicio del
+día toma su origen del PRIMER segmento y su destino del ÚLTIMO.
+
+⚠️ **En una escala no hay hotel**, así que no sirven los `TRANS-APT_LIM-HOTEL_LIM` de `TRF_LIM`,
+que terminan en `ALOJAMIENTO`. Es la razón de que la escala lleve traslados propios.
+
+### El comando
+
+`app:travel:crear-escala-miraflores` (con `--dry-run`), idempotente por slug. Por comando y no por
+migración: `titulo` y `contenido` llevan `#[AutoTranslate]`.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
