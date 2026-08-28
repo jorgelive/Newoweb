@@ -1898,6 +1898,9 @@ poner el horario de toda la excursión en la cabecera, sin estirar el segmento d
 
 ### ⚠️ Sin componente no hay hora, así que el orden vive en el itinerario
 
+> El algoritmo completo de ordenamiento —los tres tiers, el grupo atómico y la trampa de
+> «sin hora va al final»— está en `docs/Cotizaciones.md` §6.u.
+
 Un segmento que sólo cuenta no tiene relación con componente, luego no tiene hora, luego en la
 guía cae al desempate por `orden`. Ese orden **no está en el segmento**: vive en
 `travel_itinerario_segmento_rel`.

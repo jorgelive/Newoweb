@@ -73,6 +73,22 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
          * FILA 3: CONFIGURACIÓN HORARIA, MODO COMERCIAL Y FILTROS OPERATIVOS
          * ==================================================================== */
         yield TimeField::new('hora', 'Hora Inicio')
+            ->setHelp(self::ayudaPlegable(
+                'La hora <strong>coloca</strong> el bloque en el día del pasajero; no sólo lo describe.',
+                'La guía agrupa por servicio y ordena los grupos así: '
+                . '<strong>1.</strong> los que tienen hora, por su hora <em>más temprana</em>; '
+                . '<strong>2.</strong> los que no tienen ninguna; '
+                . '<strong>3.</strong> las estadías, siempre al final.<br>'
+                . '⚠️ Un grupo <strong>sin ninguna hora va después de TODO lo que tenga hora</strong>. '
+                . 'Un «Día libre en el resort» sin hora, en un día con salida nocturna a las 22:00, '
+                . 'pintaba la discoteca primero y el día libre detrás. Por eso lleva 07:00 aunque '
+                . 'cubra la jornada entera: aquí la hora <em>posiciona</em>.<br>'
+                . '⚠️ Y el grupo es <strong>atómico</strong>: se coloca por su hora más temprana y '
+                . 'todo lo suyo se pinta seguido. Un servicio con desayuno (07:00) y cena (19:00) '
+                . 'se mete ENTERO delante de una excursión de las 08:00. Para intercalar algo, hay '
+                . 'que <strong>partir el día en dos cotservicios</strong>.<br>'
+                . 'Ver «Cómo se ordena un día» en <code>docs/Cotizaciones.md</code> §6.u.'
+            ))
             ->setFormat('HH:mm')
             ->setFormTypeOptions([
                 'widget' => 'single_text',
@@ -115,6 +131,16 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
             ->setColumns('col-12 col-md-3');
 
         yield IntegerField::new('orden', 'Orden')
+            ->setHelp(self::ayudaPlegable(
+                'Ordena <strong>dentro</strong> del servicio. Entre servicios manda la hora.',
+                'Dentro de un mismo servicio los segmentos se pintan por este número. Entre '
+                . 'servicios distintos no pinta nada: ahí decide la hora, y sólo cuando NINGUNO '
+                . 'de los dos grupos tiene hora se recurre al <code>orden</code> más bajo como '
+                . 'desempate.<br>'
+                . 'Es lo que sostiene el guion de una excursión, donde los segmentos que sólo '
+                . 'cuentan —el malecón, la tarde libre— no llevan componente y por tanto no '
+                . 'tienen hora. Ver <code>docs/Travel.md</code> §11.quinquies.'
+            ))
             ->setColumns('col-12 col-md-3')
             ->setFormTypeOptions([
                 'empty_data' => '1',

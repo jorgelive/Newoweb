@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationHtmlType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Pms\Entity\PmsGuiaItem;
@@ -136,33 +137,6 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         return $this->imagineCacheManager->getBrowserPath($relativePath, $filterSet);
     }
 
-    /**
-     * Ayuda larga que arranca plegada, dejando una línea que ya informa.
-     *
-     * Estas ayudas se ganaron su longitud —«Quién lo ve» y «De qué habla» son dos ejes que se
-     * cruzan y confundirlos ya provocó una fuga real— pero juntas ocupaban la pantalla entera y
-     * el formulario dejaba de verse.
-     *
-     * EasyAdmin no tiene nada para plegar una ayuda: `collapsible()`/`renderCollapsed()` son de
-     * `FormField` y esconden el panel ENTERO, campos incluidos, que es lo contrario de lo que
-     * hace falta. Pero `field.help` se pinta con `|raw` (ver `crud/form_theme.html.twig`), así
-     * que un `<details>` de HTML nativo pliega sólo la ayuda, sin JS ni plantilla propia.
-     *
-     * ⚠️ El resumen NO es el título de un desplegable vacío: es la frase que hay que poder leer
-     * sin abrir nada. Plegar una ayuda para que quien no la abra se quede sin lo esencial es
-     * peor que la pared de texto.
-     */
-    private static function ayudaPlegable(string $resumen, string $detalle): string
-    {
-        return sprintf(
-            '<details><summary style="cursor:pointer; list-style:revert;">%s '
-            . '<span class="text-muted">— ver detalle</span></summary>'
-            . '<div class="mt-1">%s</div></details>',
-            $resumen,
-            $detalle,
-        );
-    }
-
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')
@@ -197,7 +171,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->renderExpanded(false)
             ->setRequired(true)
             ->setColumns(6)
-            ->setHelp(self::ayudaPlegable(
+            ->setHelp(BaseCrudController::ayudaPlegable(
                 'Cuatro niveles; cada uno añade <strong>una condición</strong> al anterior.',
                 'Cuatro niveles, cada uno añade UNA condición al anterior. '
                 . '<strong>Público</strong>: sale en el catálogo de la unidad, visible para cualquiera sin reserva '
@@ -228,7 +202,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->renderExpanded(false)
             ->setRequired(true)
             ->setColumns(6)
-            ->setHelp(self::ayudaPlegable(
+            ->setHelp(BaseCrudController::ayudaPlegable(
                 'De QUÉ trata el ítem, no cuánta confianza pide. Déjalo en <strong>General</strong> salvo excepción.',
                 'No es lo mismo que «Quién lo ve»: eso es CUÁNTA confianza hace falta, esto es DE QUÉ trata. '
                 . 'Sirve para callar ciertos temas según el canal por el que se responda, sin tocar lo que se '
@@ -248,7 +222,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         // ítem —cómo se llega a él—, no un detalle de presentación. Enterrado tras el icono
         // no lo encontraba nadie.
         yield TextareaField::new('agenteTerminos', '🔎 Cómo lo preguntan (para el asistente)')
-            ->setHelp(self::ayudaPlegable(
+            ->setHelp(BaseCrudController::ayudaPlegable(
                 'Palabras con las que el huésped pregunta por esto, <strong>separadas por comas</strong>.',
                 'Palabras con las que el huésped pregunta por esto, <strong>separadas por comas</strong> '
                 . 'y en los idiomas en que escriban. Sirven para que el asistente encuentre este '
@@ -263,7 +237,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         // Estandariza lo que antes dependía del criterio del modelo: sobre este tema informa
         // pero no concede. La orden viaja con el contenido (ver ConsultarGuiaSkill::detalle()).
         yield BooleanField::new('agenteRequiereHumano', '🔔 Requiere confirmar con una persona')
-            ->setHelp(self::ayudaPlegable(
+            ->setHelp(BaseCrudController::ayudaPlegable(
                 'Temas que el asistente puede EXPLICAR pero no CONCEDER.',
                 'Marca los temas que el asistente puede EXPLICAR pero no CONCEDER: salida tardía, '
                 . 'entrada temprana, servicios extra… Al responderlos avisará al equipo y dejará '
@@ -278,7 +252,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         // Sustituye al cuerpo SOLO para el asistente. La app del huésped sigue pintando la
         // descripción de siempre. Ver PmsGuiaItem::$agenteContenido.
         yield TextareaField::new('agenteContenido', '🗣️ Lo que dice el asistente (si es distinto)')
-            ->setHelp(self::ayudaPlegable(
+            ->setHelp(BaseCrudController::ayudaPlegable(
                 'Déjalo vacío y el asistente cuenta el cuerpo del ítem.',
                 'Déjalo vacío y el asistente cuenta el cuerpo del ítem, que es lo normal. '
                 . 'Escribe aquí cuando por chat convenga decir OTRA cosa: el depósito de garantía '
@@ -315,7 +289,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->setFormTypeOption('entry_options', ['label' => false, 'attr' => ['rows' => 4]])
             ->allowAdd()
             ->allowDelete()
-            ->setHelp(self::ayudaPlegable(
+            ->setHelp(BaseCrudController::ayudaPlegable(
                 '<strong>Casi siempre va vacío.</strong> Sólo si el tema tiene un «¿y si no le funciona?».',
                 '<strong>Casi siempre va vacío.</strong> La mayoría de los temas se contestan de '
                 . 'una vez. Llénalo sólo donde el tema tenga de verdad un «¿y si no le funciona?».'
@@ -379,7 +353,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->setHelp(self::ayudaPlaceholders());
 
         yield TextField::new('icono', 'Icono (FontAwesome)')
-            ->setHelp(self::ayudaPlegable(
+            ->setHelp(BaseCrudController::ayudaPlegable(
                 'Ej: <code>fa-wifi</code>, <code>fa-utensils</code>.',
                 'Ej: fa-wifi, fa-utensils. '
                 . '<strong>Ojo:</strong> <code>fa-circle-info</code>, <code>fa-images</code> y '

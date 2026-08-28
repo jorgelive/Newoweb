@@ -2954,6 +2954,80 @@ Miraflores 2). Alcanzan a **18 componentes**, los 18 con el prestador visible y 
 sin galería propia**: es decir, los 18 promueven. Punta Cana todavía no tiene ninguna — cargar esas
 fotos es lo que hace que los segmentos genéricos del resort dejen de salir desnudos.
 
+## 6.u Cómo se ordena un día (28/08/2026)
+
+La regla vive en `itinerarioVista` (`pax/src/views/cotizacion/PaxCotizacionGuiaView.vue`) y decide
+en qué orden ve el pasajero lo que le pasa en un día. **No es intuitiva**, y de ella salen dos
+trampas que ya se midieron.
+
+### El algoritmo, en tres pasos
+
+```
+1. AGRUPAR   los bloques por cotservicio  (`servicio.id`)
+2. ORDENAR   los grupos:
+                 tier 0  tiene alguna hora   → por su hora MÁS TEMPRANA
+                 tier 1  ninguna hora        → por su `orden` más bajo
+                 tier 2  es estadía          → siempre al final
+3. ORDENAR   dentro de cada grupo, por `segmento.orden`
+```
+
+La hora de un grupo sale de las horas de sus bloques **más la hora promovida** del componente con
+`horaServicioCompleto`, si lo hay (`promoPorServicio`). Por eso una excursión cuyo único horario
+está en el ancla se coloca bien.
+
+### ⚠️ Trampa 1: el grupo es ATÓMICO
+
+Un cotservicio se coloca por su hora **más temprana** y **todo lo suyo se pinta seguido**. Medido
+con las horas reales del resort:
+
+```
+┌ Actividades resort   tier 0 (07:00)
+│   07:00  Desayuno buffet
+│   19:00  Cena buffet            ← ¡antes de una excursión de las 08:00!
+│   21:30  Espectáculo nocturno
+┌ Isla Saona           tier 0 (08:00)
+│   08:00  Isla Saona
+```
+
+No hay forma de intercalar algo *dentro* de un grupo. La solución es **partir el día en dos
+cotservicios** —resort mañana / excursión / resort noche—, que además es el patrón normal del
+sistema: en una propuesta real «Alojamiento» aparece **12 veces** como cotservicios distintos.
+
+Con el resort partido, el mismo día ordena bien: 07:00 desayuno → 08:00 Saona → 19:00 cena →
+21:30 show.
+
+### ⚠️ Trampa 2: sin hora se va al final, no al principio
+
+`tier 1` va **después de todo lo que tenga hora**, y eso rompe la intuición de que «lo que no tiene
+hora es de fondo, va primero».
+
+```
+┌ Coco Bongo           tier 0 (22:00)   ← ¡primero!
+│   22:00  Coco Bongo
+┌ Actividades resort   tier 1 (orden 1)
+│     ·    Día libre en el resort       ← sin hora
+```
+
+Por eso **`ACT-RESORT-DIA_LIBRE` lleva 07:00** aunque represente la jornada entera: aquí la hora
+no describe, **posiciona**. Es contraintuitivo y por eso está escrito.
+
+La regla que sale de las dos: **si un segmento tiene que caer en un sitio concreto del día, dale
+hora.** Dejarla vacía no es «sin preferencia», es «al final».
+
+### Lo que sí funciona sin tocar nada
+
+- **Empates**: dos bloques a la misma hora dentro del grupo desempatan por `orden`, de forma
+  estable.
+- **Excursión con guion**: el ancla presta su hora al grupo y los segmentos que sólo cuentan
+  —sin componente, luego sin hora— mantienen su secuencia por `orden`. Es el caso de `WALK_MIR`.
+- **Estadías al final**: el alojamiento nunca se cuela entre las actividades del día.
+
+### Dónde está escrito para quien edita
+
+En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
+`TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
+reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |

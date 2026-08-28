@@ -88,7 +88,7 @@ final class CrearActividadesResortCommand extends Command
      * El repertorio. `prestador` es la clave del servicio de arriba del que saldrán las fotos.
      *
      * @var list<array{slug: string, nombre: string, titulo: string, contenido: string,
-     *                 tipo: ComponenteTipoEnum, prestador: string, hora: string|null}>
+     *                 tipo: ComponenteTipoEnum, prestador: string, hora: string}>
      */
     private const SEGMENTOS = [
         [
@@ -212,7 +212,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'espectáculo nocturno.',
             'tipo' => ComponenteTipoEnum::EXTRAS,
             'prestador' => 'resort',
-            'hora' => null,
+            'hora' => '07:00',
         ],
     ];
 
@@ -371,11 +371,8 @@ final class CrearActividadesResortCommand extends Command
                 ->setTarifaPredeterminada($tarifa)
                 ->setModo(ComponenteModoEnum::INCLUIDO)
                 ->setDia(1)
-                ->setOrden(1);
-
-            if ($def['hora'] !== null) {
-                $rel->setHora(new \DateTimeImmutable($def['hora']));
-            }
+                ->setOrden(1)
+                ->setHora(new \DateTimeImmutable($def['hora']));
             $this->em->persist($rel);
 
             if ($servicioTravel !== null) {
@@ -414,18 +411,20 @@ final class CrearActividadesResortCommand extends Command
             $io->text('  todas bien nombradas.');
         }
 
-        // Las horas son lo que coloca cada bloque en la cronología del día: sin ellas la guía
-        // cae al desempate por `orden`, que es frágil cuando un mismo servicio aparece dos veces
-        // en un día —justo lo que pasa al partir el día para intercalar una excursión—.
+        // Las horas son lo que coloca cada bloque en la cronología del día.
+        //
+        // ⚠️ Y no es «frágil sin ellas»: es que un grupo SIN hora cae a tier 1, y **tier 1 va
+        // siempre después de todo lo que tenga hora**. Medido: un día de resumen —«Día libre en
+        // el resort», sin hora— con una salida a Coco Bongo a las 22:00 pintaba la discoteca
+        // PRIMERO y el día libre detrás.
+        //
+        // Por eso el día libre lleva 07:00 aunque cubra la jornada entera: la hora aquí no
+        // describe, POSICIONA. Ver «Cómo se ordena un día» en docs/Cotizaciones.md §6.u.
         // Se sincronizan también en los que ya existían, pero SIN pisar una hora ya puesta.
         $io->section('Horas');
         $puestas = 0;
 
         foreach (self::SEGMENTOS as $def) {
-            if ($def['hora'] === null) {
-                continue;
-            }
-
             $segmento = $this->em->getRepository(TravelSegmento::class)->findOneBy(['slug' => $def['slug']]);
             if ($segmento === null) {
                 continue;

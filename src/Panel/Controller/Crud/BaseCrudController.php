@@ -172,6 +172,30 @@ abstract class BaseCrudController extends AbstractCrudController
      * Se usa desde `formatValue()`, así que el `renderAsHtml()` del campo lo pone quien
      * llama; lo que sale de aquí ya viene escapado.
      */
+    /**
+     * Ayuda larga que arranca plegada, dejando una línea que ya informa.
+     *
+     * EasyAdmin no tiene nada para esto: `collapsible()`/`renderCollapsed()` son de `FormField`
+     * y esconden el panel ENTERO, campos incluidos. Pero `field.help` se pinta con `|raw` (ver
+     * `crud/form_theme.html.twig`), así que un `<details>` nativo pliega sólo la ayuda, sin JS.
+     *
+     * ⚠️ El resumen NO es el título de un desplegable vacío: es la frase que hay que poder leer
+     * sin abrir nada. Plegar una ayuda para que quien no la abra se quede sin lo esencial es
+     * peor que la pared de texto.
+     *
+     * Es `public` porque `PmsGuiaItemCrudController` no hereda de aquí y también la usa.
+     */
+    public static function ayudaPlegable(string $resumen, string $detalle): string
+    {
+        return sprintf(
+            '<details><summary style="cursor:pointer; list-style:revert;">%s '
+            . '<span class="text-muted">— ver detalle</span></summary>'
+            . '<div class="mt-1">%s</div></details>',
+            $resumen,
+            $detalle,
+        );
+    }
+
     protected static function muestraDeColor(mixed $hex): string
     {
         if (!is_string($hex) || $hex === '') {
