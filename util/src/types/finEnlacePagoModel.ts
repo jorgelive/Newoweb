@@ -12,7 +12,14 @@
 // ============================================================================
 
 /** Estados de `App\Finanzas\Enum\FinEnlacePagoEstado`. */
-export type FinEnlacePagoEstado = 'pendiente' | 'pagado' | 'fallido' | 'expirado' | 'anulado';
+export type FinEnlacePagoEstado =
+    | 'pendiente'
+    | 'pagado'
+    | 'fallido'
+    | 'expirado'
+    | 'anulado'
+    /** Se cobró y luego se devolvió el dinero por la pasarela. Sólo se llega desde `pagado`. */
+    | 'reembolsado';
 
 /** Orígenes de `App\Finanzas\Enum\FinOrigenCobro`. */
 export type FinOrigenCobro = 'pms_reserva' | 'tour_reserva' | 'cotizacion';
@@ -179,6 +186,9 @@ export interface FinEnlacePagoCreate {
 export const clasesEstadoEnlace = (estado: FinEnlacePagoEstado): string => {
     switch (estado) {
         case 'pagado': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        // Ámbar y no gris: un cobro devuelto no es lo mismo que uno que nunca ocurrió.
+        // Hubo dinero, y se fue — la fila tiene que poder distinguirse de un anulado.
+        case 'reembolsado': return 'bg-amber-50 text-amber-700 border-amber-200';
         case 'pendiente': return 'bg-sky-50 text-sky-700 border-sky-200';
         case 'fallido': return 'bg-rose-50 text-rose-700 border-rose-200';
         default: return 'bg-slate-100 text-slate-500 border-slate-200';

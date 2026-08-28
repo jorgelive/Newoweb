@@ -289,6 +289,64 @@ async function anularCobro(cobro: FinEnlacePago): Promise<void> {
     }
 }
 
+// ============================================================================
+// DEVOLVER UN COBRO
+//
+// ⚠️ Es la única acción de esta pantalla que MUEVE DINERO de verdad: llama a la pasarela.
+// Sólo sobre un cobro `pagado`, y sólo desde aquí — el panel de la reserva enseña el estado
+// pero no lo decide (devolver es caja, no recepción). Ver docs/FinanzasEnlacesPago.md.
+// ============================================================================
+
+const devolviendoId = ref<string | null>(null);
+const errorDevolver = ref<string | null>(null);
+
+/**
+ * Confirma con un `prompt`, no con un `confirm`, y no es un capricho de UI.
+ *
+ * El motivo es **obligatorio**: acaba en la nota del cobro del PMS y es lo único que explica,
+ * meses después, por qué esa reserva tiene un pago en cero. Un `confirm` no puede pedirlo, y
+ * pedirlo en un segundo diálogo encadenado es peor. El `prompt` hace las dos cosas de una:
+ * cancelar aborta, y el texto es el dato.
+ *
+ * Se exige no vacío a propósito. El backend acepta vacío —no quiere bloquear al agente ni a
+ * una llamada futura— pero desde una pantalla con una persona delante, un reembolso sin
+ * motivo es un agujero en el historial que nadie va a poder rellenar después.
+ */
+async function devolverCobro(cobro: FinEnlacePago): Promise<void> {
+    if (devolviendoId.value) return;
+
+    const importe = `${cobro.monedaSimbolo ?? ''} ${cobro.montoNeto}`.trim();
+    const motivo = window.prompt(
+        `DEVOLVER ${importe} a la tarjeta del cliente.\n\n`
+        + `${cobro.concepto || cobro.origenReferencia || 'sin concepto'}\n\n`
+        + `Se devuelve el NETO: la comisión de la pasarela no se reintegra.\n`
+        + `Esto no se puede deshacer.\n\n`
+        + `Escribe el motivo (quedará en el historial):`,
+        '',
+    );
+
+    // `null` = canceló. Cadena vacía = pulsó aceptar sin escribir.
+    if (motivo === null) return;
+
+    if (motivo.trim() === '') {
+        errorDevolver.value = 'La devolución necesita un motivo: es lo único que la explica después.';
+        return;
+    }
+
+    errorDevolver.value = null;
+    devolviendoId.value = cobro.id;
+    try {
+        const actualizado = await store.reembolsarCobro(cobro.id, motivo.trim());
+
+        if (fichaCobro.value?.id === cobro.id) fichaCobro.value = actualizado;
+    } catch (err) {
+        const data = (err as { response?: { data?: { error?: string } } })?.response?.data;
+        errorDevolver.value = data?.error || 'No se pudo completar la devolución.';
+    } finally {
+        devolviendoId.value = null;
+    }
+}
+
 /** Fecha con hora: en una ficha sí importa a qué hora se emitió o se pagó. */
 function fechaLarga(iso?: string | null): string {
     if (!iso) return '—';
@@ -350,12 +408,14 @@ function fechaLarga(iso?: string | null): string {
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Estado</span>
                         <select v-model="filtros.estado" @change="cargar"
                             class="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white">
+                            <!-- Del backend, no escritos a mano: eran una copia de
+                                 `FinEnlacePagoEstado` en TypeScript y al añadir «Reembolsado»
+                                 el desplegable se quedó corto sin que nada fallara. Mismo
+                                 criterio que el catálogo de medios de la otra pestaña. -->
                             <option value="">Todos</option>
-                            <option value="pendiente">Pendiente</option>
-                            <option value="pagado">Pagado</option>
-                            <option value="fallido">Fallido</option>
-                            <option value="expirado">Expirado</option>
-                            <option value="anulado">Anulado</option>
+                            <option v-for="e in store.estadosCobro" :key="e.value" :value="e.value">
+                                {{ e.label }}
+                            </option>
                         </select>
                     </label>
 
@@ -422,6 +482,9 @@ function fechaLarga(iso?: string | null): string {
                      por qué es lo que hace repetir la acción. -->
                 <p v-if="errorAnular" class="mt-2 text-[11px] font-bold text-rose-600">
                     <i class="fas fa-ban mr-1"></i>{{ errorAnular }}
+                </p>
+                <p v-if="errorDevolver" class="mt-2 text-[11px] font-bold text-rose-600">
+                    <i class="fas fa-rotate-left mr-1"></i>{{ errorDevolver }}
                 </p>
             </div>
 
@@ -601,6 +664,20 @@ function fechaLarga(iso?: string | null): string {
                                      que cerrar. `@click.stop` en las dos, o la fila abriría
                                      además la ficha. -->
                                 <td class="px-3 py-2 text-right whitespace-nowrap">
+                                    <!-- Devolver: sólo sobre un cobro PAGADO, y por eso nunca
+                                         convive con copiar/anular —que son de los vigentes—.
+                                         Ámbar, no rojo: no es destructivo ni un error, es una
+                                         operación legítima que mueve dinero. -->
+                                    <button v-if="c.estado === 'pagado'" type="button"
+                                        @click.stop="devolverCobro(c)"
+                                        :disabled="devolviendoId !== null"
+                                        title="Devolver el dinero al cliente por la pasarela"
+                                        class="px-2 py-1 border border-amber-200 rounded text-[10px] font-black
+                                               text-amber-700 hover:bg-amber-50
+                                               disabled:opacity-40 disabled:cursor-not-allowed">
+                                        <i class="fas" :class="devolviendoId === c.id ? 'fa-circle-notch fa-spin' : 'fa-rotate-left'"></i>
+                                        Devolver
+                                    </button>
                                     <span v-if="c.vigente" class="inline-flex items-center gap-1">
                                         <button type="button" @click.stop="copiar(c)"
                                             title="Copiar el enlace de pago"
@@ -847,6 +924,30 @@ function fechaLarga(iso?: string | null): string {
                     <i class="fas mr-1" :class="anulandoId === fichaCobro.id ? 'fa-circle-notch fa-spin' : 'fa-ban'"></i>
                     Anular cobro
                 </button>
+            </footer>
+
+            <!-- Pie del cobro YA PAGADO. Es otro footer y no una rama del de arriba porque no
+                 comparten ni una acción: aquel vive de que el enlace siga siendo pagable y
+                 éste de lo contrario. Un cobro pagado no se copia (ya no sirve) ni se anula.
+
+                 Ámbar y no rojo: devolver no es deshacer un error, es una operación legítima
+                 que mueve dinero. El aviso de la comisión va DEBAJO del botón y no en el
+                 diálogo solamente, porque es la pregunta que el operador se hace antes de
+                 pulsar, no después. -->
+            <footer v-else-if="fichaCobro.estado === 'pagado'"
+                class="shrink-0 px-4 py-3 border-t border-slate-100 bg-slate-50 space-y-2">
+                <p v-if="errorDevolver" class="text-[11px] font-bold text-rose-600">{{ errorDevolver }}</p>
+                <button type="button" @click="devolverCobro(fichaCobro)" :disabled="devolviendoId !== null"
+                    class="w-full py-2 rounded-xl border border-amber-300 bg-white text-xs font-black
+                           text-amber-700 hover:bg-amber-50
+                           disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fas mr-1" :class="devolviendoId === fichaCobro.id ? 'fa-circle-notch fa-spin' : 'fa-rotate-left'"></i>
+                    Devolver {{ fichaCobro.monedaSimbolo }} {{ fichaCobro.montoNeto }}
+                </button>
+                <p class="text-[10px] font-bold text-slate-400 leading-snug">
+                    Se devuelve el <b>neto</b>: la comisión de la pasarela no se reintegra, y el
+                    cliente ya la vio anunciada al pagar.
+                </p>
             </footer>
         </aside>
     </div>

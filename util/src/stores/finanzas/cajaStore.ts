@@ -14,6 +14,7 @@ import { ref } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import type {
     FinEnlacePago,
+    FinEnlacePagoEstado,
     FinEnlacePagoManualCreate,
     FinCobrosRespuesta,
     FinTotalCobro,
@@ -42,6 +43,15 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
 
     /** Catálogo de medios servido por los módulos; nunca se declara en el frontend. */
     const medios = ref<{ value: string; label: string }[]>([]);
+
+    /**
+     * Estados posibles de un cobro, servidos por el backend con el listado.
+     *
+     * El filtro los pintaba a mano y era una copia de `FinEnlacePagoEstado` en TypeScript:
+     * al añadir `reembolsado` el desplegable se quedó corto sin que nada fallara. Ahora sale
+     * del enum de PHP, que es su única fuente — mismo criterio que los medios.
+     */
+    const estadosCobro = ref<{ value: FinEnlacePagoEstado; label: string }[]>([]);
 
     /**
      * Sólo se mandan los filtros con valor.
@@ -98,6 +108,24 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
         return data.enlace;
     };
 
+    /**
+     * Devuelve el dinero de un cobro y sustituye su fila con lo que responde el backend.
+     *
+     * ⚠️ Esto MUEVE DINERO: llama a la pasarela de verdad. El backend valida que el enlace
+     * esté `pagado` y que no se haya devuelto ya, así que aquí no se replica ninguna regla —
+     * lo único que hace el front es preguntar antes (ver `reembolsarCobro()` en la vista).
+     *
+     * Mismo criterio que `anularCobro()`: se reemplaza la fila en vez de recargar la lista.
+     */
+    const reembolsarCobro = async (id: string, motivo: string): Promise<FinEnlacePago> => {
+        const { data } = await apiClient.post<{ enlace: FinEnlacePago }>(
+            `/finanzas/enlaces-pago/${id}/reembolsar`, { motivo },
+        );
+        cobros.value = cobros.value.map(c => (c.id === id ? data.enlace : c));
+
+        return data.enlace;
+    };
+
     const fetchCobros = async (filtros: FinCajaFiltros): Promise<void> => {
         isLoading.value = true;
         error.value = null;
@@ -107,6 +135,7 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
             });
             cobros.value = data.cobros ?? [];
             totalesCobros.value = data.totales ?? [];
+            estadosCobro.value = data.estados ?? [];
             cobrosTruncado.value = !!data.truncado;
         } catch (err) {
             error.value = mensajeDeError(err);
@@ -165,10 +194,12 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
         totalesCaja,
         cajaTruncado,
         medios,
+        estadosCobro,
         fetchCobros,
         fetchCobroDetalle,
         fetchMovimientos,
         crearManual,
         anularCobro,
+        reembolsarCobro,
     };
 });

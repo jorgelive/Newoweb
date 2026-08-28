@@ -1338,13 +1338,32 @@ dejaría la fila a cero y los totales diciendo lo de antes.
 
 ### Dónde vive la acción: SÓLO en `/finanzas`
 
-⚠️ **A 28/08/2026 el backend está desplegado y la UI todavía NO.** El endpoint
-`POST /finanzas/enlaces-pago/{id}/reembolsar` existe y funciona, pero ningún botón lo llama:
-hoy la devolución se dispara a mano contra la API. Cuando se pinte, va en el panel general
-(pestaña Cobros), fila y ficha, con el mismo patrón que anular.
+El botón vive en el panel general (pestaña **Cobros**), en la fila y en la ficha, y **sólo
+sobre un cobro `pagado`**. No convive nunca con copiar/anular, que son de los vigentes: por
+eso la ficha tiene **dos pies distintos** y no uno con ramas — no comparten ni una acción.
 
-Y **no** en el panel de la reserva. Allí esto se ve —el enlace en «Reembolsado», el cobro en
-cero con su nota— pero no se decide.
+Y **no** está en el panel de la reserva. Allí esto se ve —el enlace en «Reembolsado», el cobro
+en cero con su nota— pero no se decide.
+
+⚠️ **Se confirma con `prompt`, no con `confirm`, y el motivo es obligatorio.** Acaba en la nota
+del cobro del PMS y es lo único que explica, meses después, por qué esa reserva tiene un pago
+en cero. Un `confirm` no puede pedirlo y encadenar dos diálogos es peor; el `prompt` hace las
+dos cosas de una — cancelar aborta, y el texto es el dato.
+
+> El **backend sí acepta motivo vacío** (lo pone como «no indicado»): no se le cierra la puerta
+> al agente ni a una llamada futura. La exigencia es de la pantalla, donde hay una persona
+> delante y un reembolso sin motivo es un agujero que nadie va a poder rellenar después.
+
+Ámbar y no rojo en los dos sitios: devolver no es deshacer un error ni una acción destructiva,
+es una operación legítima que mueve dinero. El aviso de que se devuelve el **neto** va debajo
+del botón además de en el diálogo, porque es la pregunta que el operador se hace **antes** de
+pulsar.
+
+⚠️ **El filtro de estados dejó de escribirse a mano.** Era una copia de `FinEnlacePagoEstado`
+en TypeScript, y al añadir `reembolsado` el desplegable se quedó corto **sin que nada
+fallara** — el estado existía, se guardaba, y no se podía filtrar por él. Ahora sale de
+`estadosCobro`, que el backend manda con el listado desde el enum de PHP. Mismo criterio que
+el catálogo de medios.
 
 Devolver dinero es una operación de **caja**, no de recepción, y el sitio donde vive una
 acción es parte de quién puede hacerla. Es la misma razón por la que emitir un enlace sí está
@@ -1458,6 +1477,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
+| Tocar el botón de devolver (fila o ficha) | `util/src/views/Finanzas/FinanzasView.vue` | `devolverCobro()` — el motivo es obligatorio aquí, no en el backend |
+| Añadir un estado de cobro al filtro | **nada en el front** | sale de `FinEnlacePagoEstado::opciones()`; el desplegable lo lee de `estadosCobro` |
 | Cambiar cuánto se devuelve al reembolsar (§11 quater) | `src/Finanzas/Service/Culqi/CulqiClient.php` | `reembolsar()` — hoy `montoNetoCentimos()`, **no** el total |
 | Cambiar el `reason` que se manda a Culqi | `src/Finanzas/Service/Culqi/CulqiClient.php` | `MOTIVO_POR_DEFECTO` — enum cerrado de tres valores |
 | Cambiar qué hace el PMS al recibir una devolución | `src/Pms/Finanzas/PmsReservaOrigenCobroResolver.php` | `registrarDevolucion()` — pago a 0 + nota, por ORM |
