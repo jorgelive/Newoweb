@@ -899,6 +899,49 @@ razones ya estaban escritas en `docs/Mensajeria.md` §11:
    skill sacaría un enlace de cobro hacia un huésped real sin pasar por esa confirmación, y con
    el autorespondedor encendido, sin que lo viera nadie.
 
+### Dónde vive la sección: acordeón propio, y sin `readOnly` (28/08/2026)
+
+`ReservaEnlacesPagoSection.vue` estuvo colgada **al final del acordeón "Pagos"** del panel
+financiero, con el argumento de que para el operador «es otra forma de que entre dinero». El
+argumento es cierto y la ubicación era mala:
+
+- Quedaba **debajo** de la lista de cobros, del bloque del depósito del canal y del formulario
+  de alta. En un móvil eso es recorrer el acordeón entero para llegar a lo que se venía a hacer.
+- Y no son la misma cosa. **"Pagos" es lo que YA entró** —contabilidad, cuadra con el saldo—;
+  **un enlace es lo que se ha PEDIDO**, y puede no entrar nunca. Mezclarlos hacía leer un enlace
+  pendiente como si fuera dinero.
+
+Ahora es el **tercer acordeón**, hermano de Cargos y Pagos, con su propio color (violeta) y una
+pastilla **«N por cobrar»** en la cabecera cuando hay enlaces vigentes. Esa pastilla es lo único
+del listado que cambia la siguiente acción del operador: quien va a anotar un pago a mano
+necesita saber que hay un enlace vivo **antes** de abrir nada.
+
+> El cuerpo va con `v-show`, no con `v-if`, igual que los otros dos: el componente pide sus
+> enlaces al montarse, y con `v-if` la cabecera no sabría cuántos hay hasta que alguien la
+> abriera — que es justo lo que se quiere evitar.
+
+⚠️ **El componente ya no acepta `readOnly`**, y la eliminación es deliberada. Lo tenía y
+escondía emitir y anular cuando el drawer estaba en modo «Ver Estancia». Era un error de
+encuadre: **el modo Ver protege los DATOS de la reserva** —fechas, unidad, titular, cargos—, y
+un enlace de pago no es un dato de la reserva, es una **gestión de cobro** sobre ella. El caso
+normal es exactamente ése: se abre la ficha para mirar mientras el huésped escribe pidiendo
+pagar. Obligar a pulsar «Editar» —que además desbloquea todo lo demás— para mandar un enlace es
+pedir más permiso del necesario para hacer menos daño.
+
+Anular tampoco destruye nada: el enlace queda en estado `anulado` con su historia entera a la
+vista (§5). Lo único irreversible es **cobrar**, y eso lo hace el cliente, no el operador.
+
+Y no abre ningún agujero, porque **`readOnly` nunca fue un permiso**: lo pone
+`ReservasView::abrirEdicion()` según cómo se entró a la ficha (mirar vs. editar), y quien
+manda de verdad son los `#[IsGranted(Roles::RESERVAS_WRITE)]` de `FinEnlacePagoApiController`.
+Un usuario sin ese rol seguía sin poder emitir con el botón visible, y sigue sin poder ahora.
+Confundir un modo de interfaz con un control de acceso es lo que hacía la versión anterior.
+
+El botón de anular pasó de un icono suelto a **«🚫 Anular» con su palabra**: un 🚫 pegado a
+«Copiar» se leía como «no se puede copiar». Y la URL ocupa ahora su propio renglón, con las
+acciones debajo — en un móvil los tres en línea dejaban el campo en dos centímetros, que es
+precisamente el que hay que poder seleccionar a mano cuando el portapapeles está bloqueado.
+
 ### Los atajos del panel
 
 `ReservaEnlacesPagoSection.vue` ofrece los dos cobros que se piden de verdad, sin teclear ni
@@ -1148,6 +1191,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar qué cargo se da por bueno (Culqi) | `src/Finanzas/Service/Culqi/CulqiClient.php` | `cargoPagaElEnlace()` |
 | Cambiar la pasarela por defecto | `.env` / `.env.local` | `FINANZAS_PASARELA_POR_DEFECTO` |
 | Tocar el selector de pasarela del operador | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `eligePasarela` |
+| Mover la sección de enlaces dentro del panel | `util/src/components/reservas/ReservaFinanzasPanel.vue` | acordeón `seccionAbierta === 'enlaces'` |
+| Cambiar quién puede emitir o anular un enlace | el backend (`#[IsGranted]` de `FinEnlacePagoApiController`) | **no** un `readOnly` en el front — ver §11 bis |
 | Cambiar qué datos del cobro se ven sin desplegar | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | bloque `estado === 'pagado'` |
 | Tocar la vista de auditoría de la respuesta | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `alternarAuditoria()` |
 | Extraer un campo nuevo de la respuesta a columna | el cliente de esa pasarela | `comoRespuestaNormalizada()` |

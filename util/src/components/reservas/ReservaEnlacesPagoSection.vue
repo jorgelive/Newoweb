@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // ============================================================================
-// Sección "Cobrar con tarjeta" del panel financiero: emite enlaces de pago.
+// Acordeón "Enlaces de pago" del panel financiero: emite, lista y anula enlaces.
 //
 // Componente APARTE y no un bloque más dentro de ReservaFinanzasPanel.vue por dos
 // razones: el panel ya pasa de 1400 líneas, y sobre todo porque esto no es del PMS.
@@ -10,6 +10,18 @@
 //
 // El importe que se teclea es el NETO (lo que abona la reserva). El recargo de la
 // pasarela lo calcula y lo suma el backend, que es quien tiene el porcentaje.
+//
+// ── ⚠️ SIN `readOnly`, a propósito ──────────────────────────────────────────
+// Lo tenía, y ocultaba el botón de emitir y el de anular cuando el drawer estaba
+// en modo "Ver Estancia". Era un error de encuadre: el modo Ver protege los DATOS
+// de la reserva —fechas, unidad, titular, cargos—, y un enlace de pago no es un
+// dato de la reserva, es una gestión de cobro sobre ella. El caso normal es
+// exactamente ése: se abre la ficha para mirar mientras el huésped escribe
+// pidiendo pagar. Obligar a pulsar "Editar" —que además desbloquea todo lo demás—
+// para mandar un enlace es pedir más permiso del necesario para hacer menos daño.
+//
+// Anular tampoco destruye nada: el enlace queda con estado `anulado` y su historia
+// entera a la vista. Lo único irreversible sería cobrar, y eso lo hace el cliente.
 // ============================================================================
 import { computed, ref, watch } from 'vue';
 import { useEnlacesPagoStore } from '@/stores/finanzas/enlacesPagoStore';
@@ -51,7 +63,6 @@ const props = defineProps<{
      * pintar las dos con el mismo símbolo sería exactamente el error que se vino a arreglar.
      */
     monedaSimbolo?: string | null;
-    readOnly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -126,17 +137,14 @@ const eligePasarela = computed(() => store.pasarelas.length > 1);
 
 const hayPendiente = computed(() => store.enlaces.some((e) => e.vigente));
 
-/**
- * El botón está SIEMPRE disponible (salvo en solo-lectura), aunque el saldo sea cero.
- *
- * Antes se ocultaba sin saldo, y era un error: el saldo de ahora no es el de dentro de un
- * rato. Se añade un cargo por consumos, una noche extra o una penalización, y en ese momento
- * hay que poder cobrar. Ocultar el botón obligaba a registrar primero el cargo sólo para que
- * reapareciera — el sistema decidiendo por el operador.
- *
- * Si no hay saldo, el importe simplemente nace vacío y lo teclea él.
- */
-const puedeCobrar = computed(() => !props.readOnly);
+// El botón de emitir está SIEMPRE disponible, aunque el saldo sea cero.
+//
+// Antes se ocultaba sin saldo, y era un error: el saldo de ahora no es el de dentro de un
+// rato. Se añade un cargo por consumos, una noche extra o una penalización, y en ese momento
+// hay que poder cobrar. Ocultar el botón obligaba a registrar primero el cargo sólo para que
+// reapareciera — el sistema decidiendo por el operador.
+//
+// Si no hay saldo, el importe simplemente nace vacío y lo teclea él.
 
 /** Las monedas que de verdad tienen algo pendiente. */
 const conSaldo = computed(() => props.saldos.filter(s => Number(s.saldo) > 0.005));
@@ -321,22 +329,21 @@ function fechaCorta(iso: string | null): string {
 </script>
 
 <template>
-    <div class="border-t border-slate-100">
+    <div>
         <div class="px-4 py-3">
-            <div class="flex items-center justify-between gap-2">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">
-                    <i class="fas fa-link mr-1"></i> Enlaces de pago
-                </p>
-                <button v-if="puedeCobrar && !formAbierto" type="button" @click="abrirForm()"
-                    class="px-3 py-1.5 bg-[#376875] hover:bg-[#2d5660] text-white rounded-lg text-[11px] font-black">
-                    <i class="fas fa-credit-card mr-1"></i> Cobrar con tarjeta
-                </button>
-            </div>
+            <!-- El rótulo «Enlaces de pago» ya lo pone la cabecera del acordeón: repetirlo
+                 aquí era gastar el primer renglón en decir dónde estás. Lo que ocupa su sitio
+                 es la acción, a ancho completo — en móvil un botón de 3 palabras alineado a la
+                 derecha se lee como un adorno del título. -->
+            <button v-if="!formAbierto" type="button" @click="abrirForm()"
+                class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#376875] hover:bg-[#2d5660] text-white rounded-lg text-[11px] font-black">
+                <i class="fas fa-credit-card"></i> Cobrar con tarjeta
+            </button>
 
             <!-- ===== ATAJOS DE IMPORTE =====
                  Prellenan el formulario, no emiten: el operador sigue viendo vigencia,
                  recargo y concepto antes de confirmar. Ver el bloque del script. -->
-            <div v-if="puedeCobrar && !formAbierto && presets.length" class="mt-2 flex flex-wrap gap-2">
+            <div v-if="!formAbierto && presets.length" class="mt-2 flex flex-wrap gap-2">
                 <button v-for="preset in presets" :key="preset.clave" type="button"
                     :title="preset.detalle"
                     @click="abrirForm(preset)"
@@ -350,8 +357,7 @@ function fechaCorta(iso: string | null): string {
                 </button>
             </div>
 
-            <p v-if="!props.readOnly && !haySaldo && !store.enlaces.length"
-                class="mt-2 text-[11px] text-slate-400">
+            <p v-if="!haySaldo && !store.enlaces.length" class="mt-2 text-[11px] text-slate-400">
                 Sin saldo pendiente. Puedes emitir un enlace igualmente y teclear el importe.
             </p>
 
@@ -473,20 +479,30 @@ function fechaCorta(iso: string | null): string {
                     </p>
 
                     <!-- La URL en un input de solo lectura, no en un <p>: si el portapapeles
-                         está bloqueado, esto es lo que permite seleccionarla a mano. -->
-                    <div v-if="enlace.vigente" class="mt-2 flex items-center gap-1.5">
+                         está bloqueado, esto es lo que permite seleccionarla a mano.
+
+                         La URL sola en su renglón y las acciones debajo: en un móvil los tres
+                         en línea dejaban el campo en dos centímetros —justo el que hay que
+                         poder seleccionar cuando el portapapeles falla— y empujaban «Anular»
+                         fuera de la tarjeta. -->
+                    <div v-if="enlace.vigente" class="mt-2 space-y-1.5">
                         <input :value="enlace.url" readonly
-                            class="flex-1 min-w-0 px-2 py-1 bg-white/70 border border-current/20 rounded text-[10px] font-mono truncate" />
-                        <button type="button" @click="copiar(enlace)"
-                            class="shrink-0 px-2 py-1 bg-white/80 hover:bg-white border border-current/20 rounded text-[10px] font-black">
-                            <i class="fas" :class="copiadoId === enlace.id ? 'fa-check' : 'fa-copy'"></i>
-                            {{ copiadoId === enlace.id ? 'Copiado' : 'Copiar' }}
-                        </button>
-                        <button v-if="!props.readOnly" type="button" @click="anular(enlace)"
-                            :disabled="store.isSaving"
-                            class="shrink-0 px-2 py-1 hover:bg-white/60 rounded text-[10px] font-black opacity-70 hover:opacity-100">
-                            <i class="fas fa-ban"></i>
-                        </button>
+                            class="w-full min-w-0 px-2 py-1 bg-white/70 border border-current/20 rounded text-[10px] font-mono truncate" />
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <button type="button" @click="copiar(enlace)"
+                                class="px-2 py-1 bg-white/80 hover:bg-white border border-current/20 rounded text-[10px] font-black">
+                                <i class="fas" :class="copiadoId === enlace.id ? 'fa-check' : 'fa-copy'"></i>
+                                {{ copiadoId === enlace.id ? 'Copiado' : 'Copiar' }}
+                            </button>
+                            <!-- Con su palabra, no sólo el icono: un 🚫 al lado de «Copiar» se
+                                 lee como «no se puede copiar». Y es la acción que cierra un
+                                 cobro pedido por error, así que tiene que encontrarse. -->
+                            <button type="button" @click="anular(enlace)" :disabled="store.isSaving"
+                                class="px-2 py-1 bg-white/60 hover:bg-white border border-current/20 rounded
+                                       text-[10px] font-black opacity-70 hover:opacity-100 disabled:opacity-40">
+                                <i class="fas fa-ban"></i> Anular
+                            </button>
+                        </div>
                     </div>
 
                     <!-- ===== AUDITORÍA: la respuesta tal cual la mandó la pasarela =====

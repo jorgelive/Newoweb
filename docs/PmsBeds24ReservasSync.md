@@ -3225,8 +3225,54 @@ para dejarlo fijo. Por eso su cabecera —en degradado teal, o **ámbar si el co
 anulado** (§12.7)— ya muestra el **saldo** sin necesidad de abrirlo, en verde si está saldado y
 en rojo si queda pendiente. Al cambiar de reserva vuelve a colapsarse.
 
-Dentro: un resumen (Cargos · Pagado · Saldo, en la moneda de la cabecera) y dos acordeones,
-**Cargos** y **Pagos**.
+Dentro: un resumen (Cargos · Pagado · Saldo, **una fila por moneda** desde §12.2b — nada se
+convierte) y tres acordeones, **Cargos**, **Pagos** y **Enlaces de pago**.
+
+El tercero se separó de «Pagos» el 28/08/2026; el porqué y la retirada de su `readOnly` están
+en `docs/FinanzasEnlacesPago.md` §11 bis. En una línea: **Pagos es lo que ya entró; un enlace
+es lo que se ha pedido y puede no entrar nunca**, y colgado al final de Pagos había que
+recorrer el acordeón entero para llegar a él.
+
+#### «Registrar pago», no «Cobrar» (28/08/2026)
+
+Los dos botones del resumen —el del saldo de cada moneda y el de la fila de prepago— decían
+**Cobrar**. Con la sección de enlaces al lado, esa palabra pasó a estar ocupada: ahí sí se
+cobra de verdad, contra una pasarela. Estos dos **no mueven un céntimo**: abren la
+confirmación del cobro rápido y **anotan** que el huésped ya pagó.
+
+Dos detalles de maquetación que no son cosméticos, porque la etiqueta pasó de una palabra a
+dos en un panel que se usa en móvil:
+
+- En la celda de saldo (un tercio del ancho) el botón va **sin `tracking-wide` y con
+  `leading-tight`**: envuelve en dos renglones antes que recortarse. Lo que no puede romperse
+  nunca es la **cifra**, que por eso sigue en su propia línea encima.
+- La fila de prepago pasó a `flex-wrap`: con la etiqueta larga de la política al lado, el
+  botón se salía por el borde derecho.
+
+⚠️ Y la **tira de confirmación** perdió el `shrink-0` que llevaba su grupo de controles. El
+`<select>` de medio de pago mide lo que mida su opción más larga («Transferencia bancaria»), y
+con la fila blindada contra el encogimiento los botones se salían de la pantalla — «Cancelar»
+quedaba cortado por la mitad. **El panel no lleva `overflow-hidden`** (rompería los `sticky`
+de los formularios), así que un desbordamiento aquí no se delata solo: no se ve una barra de
+scroll, se ve un botón a medias.
+
+#### El nombre de la casita no se recorta
+
+La barra de estancia de **Cargos** pintaba `Casita 6 · 05/10/2026 → 11/10/2026` con `truncate`
+en el título y `whitespace-nowrap` en las fechas. En un móvil el que cedía era **siempre** el
+título: la casita quedaba en una «C». Y la casita es el dato que se busca ahí — las fechas ya
+están arriba, en la estancia.
+
+Ahora fluye: título y fechas se apilan cuando no caben y vuelven a la misma línea cuando sí
+(`flex-wrap`, sin punto de corte por breakpoint — **el ancho aquí lo manda el drawer, no la
+pantalla**). Se fue el `·` de separación: al envolver abría el renglón de las fechas y se leía
+como una viñeta; el salto de tamaño y de color ya separa las dos cosas. Mismo criterio en las
+cabeceras de bloque de **Pagos**, donde recortar «Depósito del canal» a «Depósito» diría otra
+cosa.
+
+**La regla que sale de aquí:** en este panel, `truncate` sobre un rótulo que identifica algo
+—una casita, un bloque— es un bug esperando a un móvil. Se envuelve. `truncate` se queda para
+lo que de verdad no cabe y no se lee, como la URL de un enlace de pago.
 
 **Gotcha del alta de una reserva directa.** Como el panel exige `reservaId`, al crear no aparece;
 y si el drawer se cerrara al guardar, habría que buscar la reserva otra vez en el calendario para
@@ -4478,6 +4524,9 @@ sobre una reserva con contenido habría dado la misma falsa tranquilidad.
 | Cambiar quién limpia por defecto en las estancias nuevas | Panel → **Usuarios** | Casilla «Limpia por defecto» (`User::$esLimpiezaPorDefecto`) — es un DATO, no hay ningún nombre en el código |
 | Cambiar hasta cuándo se puede corregir la moneda de un cargo (§12.4) | `PmsInformacionFinancieraCoherenciaListener` | `importeAnteriorEnCero()` + espejo `puedeCambiarMoneda()` en `ReservaFinanzasPanel.vue` |
 | Cambiar qué cobros arrancan plegados (§12.5.2) | `ReservaFinanzasPanel.vue` | `bloquesPagos` — el flag `plegable` |
+| Añadir o mover un acordeón del panel (§12.5.2) | `ReservaFinanzasPanel.vue` | `SeccionFinanzas` + `toggleSeccion()` — cuerpo con `v-show`, nunca `v-if` |
+| Cambiar la pastilla «N por cobrar» de Enlaces (§12.5.2) | `ReservaFinanzasPanel.vue` | `enlacesVigentes` — lee `enlace.vigente`, **no** el estado |
+| Renombrar los botones del cobro rápido (§12.5.2) | `ReservaFinanzasPanel.vue` | `abrirCobroRapido()` — «Registrar pago» anota, no cobra |
 | Dejar de ocultar una plantilla de Beds24 (§12.5.2) | `util/src/types/pmsFinanzasModel.ts` | `MARCADOR_BEDS24` en `descripcionVisible()` |
 | Mover una ayuda de la pantalla a un tooltip | Vista | `<InfoTooltip>` — criterio en `UI_Componentes_Compartidos.md` §3.e |
 | Cambiar cómo se suman los totales por moneda (§12.2b) | `PmsInformacionFinancieraRecalculoService` | `recalcularPorMoneda()` — **y su espejo** `PmsTotalesPorMoneda::de()` |

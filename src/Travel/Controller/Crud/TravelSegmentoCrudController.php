@@ -277,6 +277,54 @@ class TravelSegmentoCrudController extends BaseCrudController
             ->hideOnDetail()
             ->setColumns(12);
 
+        // 🔥 LECTURA (Getter Virtual)
+        //
+        // El cuerpo NO se veía en el detalle —el campo real es `onlyOnForms`—, así que para leer
+        // lo que un segmento cuenta había que abrirlo en edición. Es justo lo que más se
+        // inspecciona, y editar para mirar es cómo se cambian cosas sin querer.
+        //
+        // Lleva el recuento de idiomas al lado porque `#[AutoTranslate]` sólo corre al guardar
+        // por el ORM: un segmento cargado por SQL se queda con el español solo y **no lo dice**.
+        // Ver el aviso de migración vs. comando en CLAUDE.md.
+        yield TextField::new('virtualContenido', 'Cuerpo del Relato')
+            ->hideOnForm()
+            ->formatValue(static function ($value, TravelSegmento $entity) {
+                $español = null;
+                $idiomas = [];
+
+                foreach ($entity->getContenido() as $item) {
+                    if (!isset($item['language'], $item['content']) || trim((string) $item['content']) === '') {
+                        continue;
+                    }
+
+                    $idiomas[] = strtoupper((string) $item['language']);
+
+                    if ($item['language'] === 'es') {
+                        $español = (string) $item['content'];
+                    }
+                }
+
+                if ($español === null) {
+                    return '<span class="text-muted small"><i class="fas fa-language"></i> Sin cuerpo en español</span>';
+                }
+
+                $sello = count($idiomas) >= 7
+                    ? sprintf('<span class="badge bg-success-subtle text-success-emphasis border">%d idiomas</span>', count($idiomas))
+                    : sprintf(
+                        '<span class="badge bg-warning-subtle text-warning-emphasis border" title="AutoTranslate no corrió o se cargó por SQL">⚠ sólo %s</span>',
+                        htmlspecialchars(implode(' ', $idiomas)),
+                    );
+
+                return sprintf(
+                    '<div class="mb-1">%s</div><div class="border rounded p-2 bg-light" style="font-size:13px; max-height:340px; overflow:auto;">%s</div>',
+                    $sello,
+                    $español,
+                );
+            })
+            ->renderAsHtml()
+            ->setColumns(12);
+
+        // 🔥 ESCRITURA (Campo Real)
         yield CollectionField::new('contenido', 'Cuerpo del Relato')
             ->setEntryType(TranslationHtmlType::class)
             ->onlyOnForms()

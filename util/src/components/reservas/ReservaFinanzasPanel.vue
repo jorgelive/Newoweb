@@ -2,9 +2,10 @@
 // ============================================================================
 // Panel financiero de la reserva (acordeones dentro del drawer de detalle).
 //
-// Estructura: un acordeón "Resumen" siempre visible + dos acordeones plegables,
-// "Cargos" (lo que se le cobra al huésped, viene de Beds24) y "Pagos" (lo que
-// hemos recibido, se registra aquí).
+// Estructura: un acordeón "Resumen" siempre visible + tres acordeones plegables,
+// "Cargos" (lo que se le cobra al huésped, viene de Beds24), "Pagos" (lo que
+// hemos recibido, se registra aquí) y "Enlaces de pago" (lo que le pedimos cobrar
+// a la pasarela; el módulo es Finanzas, no el PMS).
 //
 // 🔒 CANDADO DE EDICIÓN: los cargos llegan sincronizados desde el canal (son
 // verdad histórica de Beds24). Editarlos a mano es una corrección excepcional,
@@ -69,7 +70,9 @@ const enlacesPago = useEnlacesPagoStore();
 /** El panel entero arranca COLAPSADO: la cabecera ya adelanta el saldo, que es lo que se busca. */
 const panelAbierto = ref(false);
 
-const seccionAbierta = ref<'cargos' | 'pagos' | null>(null);
+type SeccionFinanzas = 'cargos' | 'pagos' | 'enlaces';
+
+const seccionAbierta = ref<SeccionFinanzas | null>(null);
 const error = ref<string | null>(null);
 
 /** Cabecera en ámbar cuando el cobro está anulado, para que se note sin desplegar. */
@@ -84,7 +87,7 @@ const cargosDesbloqueados = ref(false);
  */
 const pagosDesbloqueados = ref(false);
 
-function toggleSeccion(s: 'cargos' | 'pagos'): void {
+function toggleSeccion(s: SeccionFinanzas): void {
     seccionAbierta.value = seccionAbierta.value === s ? null : s;
 }
 
@@ -157,6 +160,19 @@ function fechaLegible(iso?: string | null): string {
 const saldosParaCobrar = computed(() => totalesPorMoneda.value
     .filter(t => Number(t.saldo) > 0.005)
     .map(t => ({ moneda: t.moneda, simbolo: t.simbolo, saldo: t.saldo })));
+
+/**
+ * Los enlaces que el cliente todavía puede pagar.
+ *
+ * `vigente` lo decide el backend y NO es «pendiente»: un enlace fallido sigue siendo vigente
+ * —se puede reintentar con otra tarjeta— y un expirado no lo es aunque nunca se pagara. Por eso
+ * se lee la bandera y no se compara el estado aquí.
+ *
+ * La cabecera del acordeón enseña cuántos hay porque es lo único que exige actuar: un enlace
+ * vivo es dinero que puede entrar solo, y el operador que va a registrar un pago a mano
+ * necesita saberlo ANTES de abrir nada.
+ */
+const enlacesVigentes = computed(() => enlacesPago.enlaces.filter(e => e.vigente));
 
 /** Los totales por moneda, tal como los manda el backend. Vacío mientras carga. */
 const totalesPorMoneda = computed<PmsTotalMoneda[]>(() => finanzas.info?.totalesPorMoneda ?? []);
@@ -1631,13 +1647,20 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         </p>
                         <!-- DEBAJO y no al lado: la celda es un tercio del panel, y con el botón
                              en la misma línea el importe se partía en dos renglones. Lo que no
-                             puede romperse nunca es la cifra. -->
+                             puede romperse nunca es la cifra.
+
+                             «Registrar pago» y no «Cobrar»: esto NO cobra nada —no mueve dinero
+                             ni habla con ninguna pasarela—, anota que el huésped ya pagó. Quien
+                             leía «Cobrar» esperaba lo otro, que es lo que hace la sección de
+                             enlaces. Sin `tracking-wide` y con `leading-tight` porque en dos
+                             palabras la letra espaciada no cabe en el tercio de celda: envuelve
+                             en dos renglones antes que recortarse. -->
                         <button v-if="puedeCobrarSaldo(t)" type="button"
-                            class="mt-1.5 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide
+                            class="mt-1.5 px-2 py-0.5 rounded text-[9px] font-black uppercase leading-tight
                                    bg-[#376875] text-white hover:bg-[#2c545f] transition-colors"
-                            :title="`Registra un cobro por los ${importeEn(t.saldo, t.moneda)} que faltan.`"
+                            :title="`Anota un pago por los ${importeEn(t.saldo, t.moneda)} que faltan.`"
                             @click="abrirCobroRapido(t.saldo, t.moneda, `el saldo en ${t.moneda}`)">
-                            Cobrar
+                            Registrar pago
                         </button>
                     </div>
                 </div>
@@ -1711,8 +1734,8 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                      Sólo aparece si queda algo por pedir: en cuanto hay un pago registrado
                      el backend deja de mandarlo (ese pago ERA el prepago). -->
                 <div v-if="prepago"
-                    class="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-100 bg-[#376875]/5">
-                    <span class="min-w-0">
+                    class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 px-3 py-2 border-t border-slate-100 bg-[#376875]/5">
+                    <span class="min-w-0 flex-1">
                         <span class="text-[10px] font-black text-[#376875] uppercase tracking-wide">
                             <i class="fas fa-hand-holding-dollar mr-1"></i>Prepago pendiente
                         </span>
@@ -1722,17 +1745,21 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         </span>
                     </span>
                     <!-- En la moneda de la CABECERA aunque se esté mirando la otra: ver el
-                         bloque PREPAGO PENDIENTE del script. -->
+                         bloque PREPAGO PENDIENTE del script.
+
+                         La fila envuelve (`flex-wrap`) desde que el botón dice «Registrar pago»
+                         en vez de «Cobrar»: con la política larga al lado ya no caben los dos en
+                         un móvil, y lo que se sale de pantalla es siempre el botón. -->
                     <span class="flex items-center gap-2 shrink-0">
                         <span class="text-sm font-black text-[#376875] tabular-nums">
                             {{ prepagoImporte }}
                         </span>
                         <button v-if="!cobroRapido && !panelAnulado" type="button"
                             class="px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wide
-                                   bg-[#376875] text-white hover:bg-[#2c545f] transition-colors"
-                            title="Registra un cobro por este importe exacto."
+                                   bg-[#376875] text-white hover:bg-[#2c545f] transition-colors whitespace-nowrap"
+                            title="Anota que el huésped ya pagó este importe. Para cobrarlo con tarjeta, usa Enlaces de pago."
                             @click="abrirCobroPrepago()">
-                            Cobrar
+                            Registrar pago
                         </button>
                     </span>
                 </div>
@@ -1742,16 +1769,21 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                 <div v-if="cobroRapido"
                     class="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-t
                            border-[#376875]/20 bg-[#376875]/10">
-                    <span class="text-[11px] font-bold text-[#376875]">
+                    <span class="min-w-0 flex-1 text-[11px] font-bold text-[#376875]">
                         Registrar <b class="font-black">{{ cobroRapidoImporte }}</b> por
                         {{ cobroRapido.etiqueta }}. ¿Cómo pagó?
                         <b v-if="prepagoTotalConComision" class="block font-black text-[10px] text-slate-500 mt-0.5">
                             Se le pasan {{ prepagoTotalConComision }} — {{ prepagoComision }}% de recargo
                         </b>
                     </span>
-                    <span class="flex items-center gap-1.5 shrink-0">
+                    <!-- ⚠️ SIN `shrink-0`: el `<select>` mide lo que mida su opción más larga
+                         («Transferencia bancaria»), y con la fila blindada contra el encogimiento
+                         los botones se salían por el borde derecho — «Cancelar» quedaba cortado
+                         a la mitad y el panel no lleva `overflow-hidden` que lo delate. Ahora
+                         envuelve: primero el select, debajo los dos botones si hace falta. -->
+                    <span class="flex flex-wrap items-center justify-end gap-1.5 min-w-0">
                         <select v-model="prepagoMedioPago" :disabled="registrandoPrepago"
-                            class="px-2 py-1 rounded-md border border-slate-300 bg-white text-[11px] font-bold
+                            class="min-w-0 max-w-full px-2 py-1 rounded-md border border-slate-300 bg-white text-[11px] font-bold
                                    text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#376875]/30">
                             <option v-for="m in finanzas.mediosPago" :key="m.id" :value="m.id">{{ m.label }}</option>
                         </select>
@@ -1827,8 +1859,9 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
             <!-- ===== ACORDEÓN: CARGOS ===== -->
             <!-- Sin overflow-hidden: ver la nota del <section> raíz (rompe el sticky). -->
             <!-- Cada bloque tiene SU color —verde lo que se factura, azul lo que
-                 entra— para no perder de vista en cuál se está trabajando: los dos
-                 formularios se parecen mucho y con todo en gris se confundían. -->
+                 entra, violeta lo que se ha pedido y aún no entra— para no perder de
+                 vista en cuál se está trabajando: los formularios se parecen mucho y
+                 con todo en gris se confundían. -->
             <div class="border rounded-xl mb-3 transition-colors"
                 :class="seccionAbierta === 'cargos' ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200'">
                 <button type="button" @click="toggleSeccion('cargos')"
@@ -1885,15 +1918,31 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <!-- Más alta y con tipografía mayor que antes: aquí vive el icono de
                              canal, y a 10px no se distinguía el azul de Booking del rojo de
                              Airbnb, que es precisamente lo que hay que ver de un vistazo. -->
+                        <!-- ⚠️ NADA de `truncate` en el nombre de la casita.
+                             Con el `whitespace-nowrap` de las fechas al lado, el que cedía era
+                             siempre el título: en un móvil «Casita 6 · 05/10/2026 → 11/10/2026»
+                             dejaba la casita en una «C». Y la casita es el dato que se busca —
+                             las fechas ya están arriba, en la estancia.
+
+                             La solución es DEJARLO FLUIR: nombre y fechas se apilan cuando no
+                             caben y vuelven a la misma línea cuando sí (`flex-wrap`, sin punto
+                             de corte fijo — el ancho aquí lo manda el drawer, no la pantalla).
+
+                             Sin el `·` de separación: al envolver abría el renglón de las
+                             fechas y se leía como una viñeta. El salto de tamaño y de color ya
+                             separa las dos cosas. -->
                         <div v-if="mostrarGrupos"
-                            class="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50 border-y border-slate-100">
-                            <span class="flex items-center gap-2 min-w-0">
+                            class="flex items-start justify-between gap-2 px-4 py-2.5 bg-slate-50 border-y border-slate-100">
+                            <span class="flex items-start gap-2 min-w-0 flex-1">
                                 <i v-if="g.canal" :class="[canalInfo(g.canal).icono, canalInfo(g.canal).color]"
-                                    class="text-sm shrink-0" :title="canalInfo(g.canal).texto"></i>
-                                <i v-else class="fas fa-door-open text-xs text-slate-400 shrink-0"></i>
-                                <span class="text-xs font-black text-slate-700 truncate">{{ g.titulo }}</span>
-                                <span v-if="g.subtitulo" class="text-[11px] font-bold text-slate-400 whitespace-nowrap">
-                                    · {{ g.subtitulo }}
+                                    class="text-sm shrink-0 mt-px" :title="canalInfo(g.canal).texto"></i>
+                                <i v-else class="fas fa-door-open text-xs text-slate-400 shrink-0 mt-0.5"></i>
+                                <span class="min-w-0 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 leading-tight">
+                                    <span class="text-xs font-black text-slate-700 break-words">{{ g.titulo }}</span>
+                                    <span v-if="g.subtitulo"
+                                        class="text-[11px] font-bold text-slate-400 whitespace-nowrap">
+                                        {{ g.subtitulo }}
+                                    </span>
                                 </span>
                             </span>
                             <span class="flex items-center gap-2 text-xs font-black text-slate-700 shrink-0">
@@ -2303,7 +2352,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
 
             <!-- ===== ACORDEÓN: PAGOS ===== -->
             <!-- Sin overflow-hidden: ver la nota del <section> raíz (rompe el sticky). -->
-            <div class="border rounded-xl transition-colors"
+            <div class="border rounded-xl mb-3 transition-colors"
                 :class="seccionAbierta === 'pagos' ? 'border-sky-200 bg-sky-50/40' : 'border-slate-200'">
                 <button type="button" @click="toggleSeccion('pagos')"
                     class="w-full flex items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-sky-50/70"
@@ -2339,11 +2388,14 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             @click="b.plegable && (pagosAutomaticosAbiertos = !pagosAutomaticosAbiertos)"
                             class="w-full flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50 border-y border-slate-100 text-left"
                             :class="b.plegable ? 'hover:bg-slate-100 transition-colors' : ''">
-                            <span class="flex items-center gap-2 min-w-0">
+                            <!-- Mismo criterio que la barra de estancia de Cargos: el título
+                                 envuelve, no se recorta. Aquí son dos rótulos fijos y cortos,
+                                 pero recortar «Depósito del canal» a «Depósito» diría otra cosa. -->
+                            <span class="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0 flex-1">
                                 <i v-if="b.plegable" class="fas fa-chevron-right text-[10px] text-slate-400 transition-transform shrink-0"
                                     :class="{ 'rotate-90': pagosAutomaticosAbiertos }"></i>
                                 <i :class="b.icono" class="text-xs text-slate-400 shrink-0"></i>
-                                <span class="text-xs font-black text-slate-700 truncate">{{ b.titulo }}</span>
+                                <span class="text-xs font-black text-slate-700 break-words">{{ b.titulo }}</span>
                                 <span class="text-[11px] font-bold text-slate-400 whitespace-nowrap">({{ b.pagos.length }})</span>
                             </span>
                             <span class="flex items-center gap-2 text-xs font-black text-slate-700 shrink-0">
@@ -2669,27 +2721,64 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <i class="fas fa-plus"></i> Registrar un pago
                     </button>
 
-                    <!-- Cobro por pasarela. Va DENTRO de "Pagos" porque para el operador es
-                         otra forma de que entre dinero, pero el módulo es Finanzas, no el PMS:
-                         se comunica por origenTipo/origenId (ver el componente).
+                </div>
+            </div>
 
-                         Se le pasan los saldos POR MONEDA: una pasarela cobra en una divisa, así
-                         que con deuda en dos se ofrece un atajo por cada una y cada enlace pide
-                         exactamente lo que se debe en ella. Convertir para dar «un total» sería
-                         deshacer lo que este rediseño vino a arreglar.
+            <!-- ===== ACORDEÓN: ENLACES DE PAGO =====
+                 Sección PROPIA, hermana de Cargos y Pagos, y no un bloque al final de "Pagos".
 
-                         Al confirmarse un cobro, el webhook crea el PmsPagoFinanciero en el
-                         backend; `recargar()` es lo que lo trae a esta lista. -->
-                    <!-- El prepago viaja para los ATAJOS de importe. Es `null` en cuanto hay un
-                         pago registrado, y de eso depende que el atajo ofrezca «adelanto +
-                         total» o sólo «saldo»: ver los presets del componente. -->
+                 Estuvo dentro porque para el operador «es otra forma de que entre dinero», y
+                 eso escondía las dos cosas que de verdad se vienen a hacer aquí: pedirle a
+                 alguien que pague, y ver si ya pagó. Quedaban debajo de la lista de cobros, del
+                 depósito del canal y del formulario de alta — al final de un acordeón largo que
+                 en móvil hay que recorrer entero. Y no son lo mismo: "Pagos" es lo que YA entró
+                 (contabilidad); esto es lo que se ha PEDIDO y puede no entrar nunca.
+
+                 ⚠️ El módulo es Finanzas, no el PMS: se comunica por origenTipo/origenId, así
+                 que el día que existan las reservas de tours se monta igual cambiando el prop.
+
+                 Se le pasan los saldos POR MONEDA: una pasarela cobra en una divisa, así que con
+                 deuda en dos se ofrece un atajo por cada una y cada enlace pide exactamente lo
+                 que se debe en ella. Convertir para dar «un total» sería deshacer §12.2b.
+
+                 El prepago viaja para los ATAJOS de importe. Es `null` en cuanto hay un pago
+                 registrado, y de eso depende que el atajo ofrezca «adelanto + total» o sólo
+                 «saldo»: ver los presets del componente.
+
+                 ⚠️ NO se le pasa `readOnly`, y es deliberado — ver la cabecera del componente.
+
+                 Al confirmarse un cobro, el webhook crea el PmsPagoFinanciero en el backend;
+                 `recargar()` es lo que lo trae a la lista de Pagos. -->
+            <div class="border rounded-xl transition-colors"
+                :class="seccionAbierta === 'enlaces' ? 'border-violet-200 bg-violet-50/40' : 'border-slate-200'">
+                <button type="button" @click="toggleSeccion('enlaces')"
+                    class="w-full flex items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-violet-50/70"
+                    :class="seccionAbierta === 'enlaces' ? 'rounded-t-xl bg-violet-50/80' : 'rounded-xl'">
+                    <span class="flex items-center gap-2 text-sm font-bold" :class="seccionAbierta === 'enlaces' ? 'text-violet-900' : 'text-slate-700'">
+                        <i class="fas fa-chevron-right text-[10px] transition-transform"
+                            :class="[seccionAbierta === 'enlaces' ? 'rotate-90 text-violet-500' : 'text-slate-400']"></i>
+                        <i class="fas fa-link" :class="seccionAbierta === 'enlaces' ? 'text-violet-600' : 'text-slate-400'"></i>
+                        Enlaces de pago
+                        <span class="font-normal text-xs" :class="seccionAbierta === 'enlaces' ? 'text-violet-600/70' : 'text-slate-400'">({{ enlacesPago.enlaces.length }})</span>
+                    </span>
+                    <!-- Sólo los VIGENTES, y sólo si los hay: es la única parte de esta lista
+                         que cambia lo que el operador va a hacer a continuación. -->
+                    <span v-if="enlacesVigentes.length"
+                        class="shrink-0 px-2 py-0.5 rounded-md bg-violet-100 text-violet-700 text-[10px] font-black uppercase tracking-wide whitespace-nowrap">
+                        {{ enlacesVigentes.length }} por cobrar
+                    </span>
+                </button>
+
+                <!-- `v-show` y no `v-if`, igual que los otros dos: el componente carga sus
+                     enlaces al montarse y con `v-if` la cabecera no sabría cuántos hay hasta
+                     que alguien la abriera — que es justo lo que se quiere evitar. -->
+                <div v-show="seccionAbierta === 'enlaces'" class="border-t border-violet-100">
                     <ReservaEnlacesPagoSection
                         origen-tipo="pms_reserva"
                         :origen-id="props.reservaId"
                         :saldos="saldosParaCobrar"
                         :prepago="prepago"
                         :moneda-simbolo="monedaCabecera?.simbolo"
-                        :read-only="readOnly"
                         @actualizado="finanzas.recargar()" />
                 </div>
             </div>
