@@ -136,6 +136,33 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         return $this->imagineCacheManager->getBrowserPath($relativePath, $filterSet);
     }
 
+    /**
+     * Ayuda larga que arranca plegada, dejando una línea que ya informa.
+     *
+     * Estas ayudas se ganaron su longitud —«Quién lo ve» y «De qué habla» son dos ejes que se
+     * cruzan y confundirlos ya provocó una fuga real— pero juntas ocupaban la pantalla entera y
+     * el formulario dejaba de verse.
+     *
+     * EasyAdmin no tiene nada para plegar una ayuda: `collapsible()`/`renderCollapsed()` son de
+     * `FormField` y esconden el panel ENTERO, campos incluidos, que es lo contrario de lo que
+     * hace falta. Pero `field.help` se pinta con `|raw` (ver `crud/form_theme.html.twig`), así
+     * que un `<details>` de HTML nativo pliega sólo la ayuda, sin JS ni plantilla propia.
+     *
+     * ⚠️ El resumen NO es el título de un desplegable vacío: es la frase que hay que poder leer
+     * sin abrir nada. Plegar una ayuda para que quien no la abra se quede sin lo esencial es
+     * peor que la pared de texto.
+     */
+    private static function ayudaPlegable(string $resumen, string $detalle): string
+    {
+        return sprintf(
+            '<details><summary style="cursor:pointer; list-style:revert;">%s '
+            . '<span class="text-muted">— ver detalle</span></summary>'
+            . '<div class="mt-1">%s</div></details>',
+            $resumen,
+            $detalle,
+        );
+    }
+
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')
@@ -170,7 +197,8 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->renderExpanded(false)
             ->setRequired(true)
             ->setColumns(6)
-            ->setHelp(
+            ->setHelp(self::ayudaPlegable(
+                'Cuatro niveles; cada uno añade <strong>una condición</strong> al anterior.',
                 'Cuatro niveles, cada uno añade UNA condición al anterior. '
                 . '<strong>Público</strong>: sale en el catálogo de la unidad, visible para cualquiera sin reserva '
                 . '(es el único que aparece en el catálogo). '
@@ -180,7 +208,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 . '(úsalo para códigos de puerta, caja fuerte y WiFi). '
                 . 'Los dos últimos, si no se cumplen, NO desaparecen: el huésped ve el título con un candado '
                 . 'y qué le falta para abrirlo.'
-            );
+            ));
 
         // Eje DISTINTO del de arriba, y por eso va justo al lado: "quién lo ve" es una
         // escalera de confianza, esto es de qué habla el ítem. Se cruzan, no se sustituyen.
@@ -200,7 +228,8 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->renderExpanded(false)
             ->setRequired(true)
             ->setColumns(6)
-            ->setHelp(
+            ->setHelp(self::ayudaPlegable(
+                'De QUÉ trata el ítem, no cuánta confianza pide. Déjalo en <strong>General</strong> salvo excepción.',
                 'No es lo mismo que «Quién lo ve»: eso es CUÁNTA confianza hace falta, esto es DE QUÉ trata. '
                 . 'Sirve para callar ciertos temas según el canal por el que se responda, sin tocar lo que se '
                 . 'publica en la web. '
@@ -213,41 +242,44 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 . '⚠️ Cuando alguien escribe desde una OTA y aún NO ha confirmado, los tres del medio '
                 . 'DESAPARECEN de lo que ve el agente — la plataforma nos penaliza por darlos. Todo lo marcado '
                 . 'como General se contesta con normalidad, que es lo que hay que hacer para no perder la reserva.'
-            );
+            ));
 
         // Va aquí, junto a «Quién lo ve», y no abajo con el icono: es una decisión sobre el
         // ítem —cómo se llega a él—, no un detalle de presentación. Enterrado tras el icono
         // no lo encontraba nadie.
         yield TextareaField::new('agenteTerminos', '🔎 Cómo lo preguntan (para el asistente)')
-            ->setHelp(
+            ->setHelp(self::ayudaPlegable(
+                'Palabras con las que el huésped pregunta por esto, <strong>separadas por comas</strong>.',
                 'Palabras con las que el huésped pregunta por esto, <strong>separadas por comas</strong> '
                 . 'y en los idiomas en que escriban. Sirven para que el asistente encuentre este '
                 . 'ítem al responder por chat; no se le muestran a nadie.<br>'
                 . 'Ej. para la ducha: <code>ducha, agua caliente, calentador, gas, temperatura, '
                 . 'shower, hot water</code>.<br>'
                 . 'Si lo dejas vacío se sigue buscando por el título y el texto, pero se encuentra peor.'
-            )
+            ))
             ->setNumOfRows(2)
             ->setColumns(6);
 
         // Estandariza lo que antes dependía del criterio del modelo: sobre este tema informa
         // pero no concede. La orden viaja con el contenido (ver ConsultarGuiaSkill::detalle()).
         yield BooleanField::new('agenteRequiereHumano', '🔔 Requiere confirmar con una persona')
-            ->setHelp(
+            ->setHelp(self::ayudaPlegable(
+                'Temas que el asistente puede EXPLICAR pero no CONCEDER.',
                 'Marca los temas que el asistente puede EXPLICAR pero no CONCEDER: salida tardía, '
                 . 'entrada temprana, servicios extra… Al responderlos avisará al equipo y dejará '
                 . 'la conversación pendiente, en vez de dar por hecho que se puede.<br>'
                 . '<strong>Ojo:</strong> márcalo aunque el texto ya explique las condiciones — es '
                 . 'justo cuando la guía dice «sujeto a disponibilidad» cuando hace falta que '
                 . 'alguien mire si esa noche está libre.'
-            )
+            ))
             ->renderAsSwitch(true)
             ->setColumns(6);
 
         // Sustituye al cuerpo SOLO para el asistente. La app del huésped sigue pintando la
         // descripción de siempre. Ver PmsGuiaItem::$agenteContenido.
         yield TextareaField::new('agenteContenido', '🗣️ Lo que dice el asistente (si es distinto)')
-            ->setHelp(
+            ->setHelp(self::ayudaPlegable(
+                'Déjalo vacío y el asistente cuenta el cuerpo del ítem.',
                 'Déjalo vacío y el asistente cuenta el cuerpo del ítem, que es lo normal. '
                 . 'Escribe aquí cuando por chat convenga decir OTRA cosa: el depósito de garantía '
                 . 'leído en la guía está bien, soltado a bocajarro a quien preguntó otra cosa '
@@ -270,7 +302,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 . 'Para que no lo suelte de entrada, déjalo escrito con su instrucción: '
                 . '<em>«Depósito: SOLO si pregunta. No lo saques tú. Si pregunta: sí, son S/ 300 '
                 . 'y se devuelven al salir.»</em> Las instrucciones no se le escapan al huésped.'
-            )
+            ))
             ->setNumOfRows(5)
             ->hideOnIndex()
             ->setColumns(12);
@@ -283,7 +315,8 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->setFormTypeOption('entry_options', ['label' => false, 'attr' => ['rows' => 4]])
             ->allowAdd()
             ->allowDelete()
-            ->setHelp(
+            ->setHelp(self::ayudaPlegable(
+                '<strong>Casi siempre va vacío.</strong> Sólo si el tema tiene un «¿y si no le funciona?».',
                 '<strong>Casi siempre va vacío.</strong> La mayoría de los temas se contestan de '
                 . 'una vez. Llénalo sólo donde el tema tenga de verdad un «¿y si no le funciona?».'
                 . '<br>'
@@ -301,7 +334,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 . '<strong>Esto NO es el sitio de lo que sólo se dice si lo preguntan.</strong> El '
                 . 'depósito de garantía no depende de que insista, sino de que pregunte por él: '
                 . 'eso va en su propio ítem, no aquí.'
-            )
+            ))
             ->hideOnIndex()
             ->setColumns(12);
 
@@ -346,13 +379,14 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->setHelp(self::ayudaPlaceholders());
 
         yield TextField::new('icono', 'Icono (FontAwesome)')
-            ->setHelp(
+            ->setHelp(self::ayudaPlegable(
+                'Ej: <code>fa-wifi</code>, <code>fa-utensils</code>.',
                 'Ej: fa-wifi, fa-utensils. '
                 . '<strong>Ojo:</strong> <code>fa-circle-info</code>, <code>fa-images</code> y '
                 . '<code>fa-location-dot</code> se usaron para decidir qué contenido sale al '
                 . 'catálogo público (migración Version20260804150000). No los pongas en un ítem '
                 . 'que no quieras publicar.'
-            )
+            ))
             ->setColumns(6);
 
         yield FormField::addPanel('Botón de Acción (Opcional)')->setIcon('fa fa-link');

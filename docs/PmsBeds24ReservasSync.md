@@ -3064,6 +3064,33 @@ Cómo se abre y cómo se cierra:
   retira** —hay que devolverlo antes al automático—. `getMotivoNoBorrable()` da un texto para
   cada caso; con uno solo, el tooltip del basurero daba una instrucción que no funcionaba.
 
+#### El segundo pago que no se borra: el que vino de una pasarela (28/08/2026)
+
+`getMotivoNoBorrable()` tiene desde el 28/08/2026 **dos** motivos, y conviene no confundirlos
+porque se parecen en la pantalla y no en el fondo:
+
+| Pago | Por qué no se borra |
+|---|---|
+| Depósito automático del canal (`esAutomatico`) | Porque **reaparecería solo**: el sincronizador no lo encuentra y crea otro |
+| Cobro por enlace de pasarela (`enlacePagoId`) | Porque **la pasarela no se entera**: el dinero se movió fuera y aquí sólo hay su reflejo |
+
+El segundo lo marca `pms_pago_financiero.enlace_pago_id`, que escribe
+`PmsReservaOrigenCobroResolver::registrarCobro()` al crear el pago. Es una referencia **soft**
+a `fin_enlace_pago`, sin FK, porque Finanzas es transversal y el PMS no le pone llaves a sus
+tablas. El porqué de persistirla —la relación se resolvía en el frontend y bastaba mientras
+sólo sirviera para pintar una etiqueta— está en `docs/FinanzasEnlacesPago.md`.
+
+Borrar ese cobro dejaba el enlace en `PAGADO`, con su código de autorización, mientras la
+reserva volvía a deber un dinero que el huésped sí había pagado. **Una devolución se anota
+como un cargo aparte**, no borrando el cobro; el hueco que eso deja abierto (no hay estado
+`REEMBOLSADO`) está en `docs/Pendientes.md`.
+
+⚠️ **Consecuencia en el borrado de reservas:** los pagos van en `cascade: ['remove']`, así que
+una reserva con un cobro por pasarela ya no se puede borrar — correcto, pero el aviso llega
+tarde, porque `PmsReserva::getMotivoNoBorrable()` (§12.12.1) sólo recorre las estancias y no
+mira los pagos. La laguna no es nueva —el depósito de las OTA ya la tenía— pero ahora alcanza
+a más reservas. También apuntada en `Pendientes.md`.
+
 La regla vive en **la entidad** (`PmsPagoFinanciero::isGestionadoPorElSistema()`), no repetida en
 el listener, el servicio y la SPA: los tres la consultan, y el campo se serializa para que el
 panel sepa cuándo pedir el candado. Verificado con `var/probar-deposito-intervenido.php`
@@ -4427,6 +4454,7 @@ sobre una reserva con contenido habría dado la misma falsa tranquilidad.
 | Cambiar el paso/horizonte del barrido de tarifas (§8.1) | `Beds24RatesPushJob` | `getStepInterval()` (`P2W`) / `getHorizonteMaximo()` |
 | Podar filas `success` viejas de una cola que creció (§2, §8.1) | `app:exchange:vigilar-colas` (cron min 25) | ahí va el `DELETE ... status='success' AND created_at < ...` |
 | Cambiar cuándo se puede borrar una estancia (§12.12.1) | `PmsEventoCalendario` | `getMotivoNoBorrable()` — fuente única; `util` sólo tipa el campo serializado en `PmsBorrableInfo`, no reimplementa la regla |
+| Cambiar cuándo se puede borrar un PAGO | `PmsPagoFinanciero` | `getMotivoNoBorrable()` — dos motivos: depósito del canal y cobro por enlace (`enlacePagoId`) |
 | Que el borrado de la reserva arrastre una tabla nueva (§12.12.3) | `PmsReserva` | declarar el lado inverso con `cascade: ['remove']`; una FK sin mapear = 1451 |
 | Tocar el desenganche de colas al borrar un link (§12.11.b) | `Beds24BookingsPushQueueCreator` | `detachQueuesFromLink()` |
 | Cambiar qué link conserva su `beds24BookId` al mover de casita (§6.3.b) | `PmsEventoCalendarioFactory` | `internalHydrate()` — rama de espejos y `$mueveDentroDelMismoVirtual` |

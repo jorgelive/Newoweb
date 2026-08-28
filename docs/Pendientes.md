@@ -1040,3 +1040,44 @@ El segundo hueco **no se cierra rechazando el pago**. Si el dinero se movió en 
 cliente tiene el cargo en su tarjeta lo llamemos como lo llamemos: registrarlo es peor de leer y
 mucho mejor que esconderlo. Lo que falta es **dejar rastro de la contradicción** —un enlace
 `anulado` que acabó cobrado— no negarla.
+
+---
+
+## Devolver un cobro de pasarela no tiene sitio en el modelo — 28/08/2026
+
+Salió al vetar el borrado de los pagos que vienen de un enlace (28/08/2026, ver
+`docs/FinanzasEnlacesPago.md`). El veto es correcto y se queda: borrar ese pago dejaba el
+enlace en `PAGADO` mientras la reserva volvía a deber el dinero, o sea **escondía** la
+devolución en vez de registrarla.
+
+Pero al cerrar esa puerta queda a la vista que **no hay ninguna otra**:
+
+### Lo que falta
+
+- **`FinEnlacePagoEstado` no tiene `REEMBOLSADO`.** Un enlace devuelto sigue diciendo
+  «Cobrado el 26/08» con su código de autorización, para siempre. La única forma de saber que
+  el dinero volvió es leer el cargo de devolución que alguien haya anotado a mano.
+- **`PmsTipoCargo` no tiene un caso para la devolución.** Hoy se anota como `OTRO`, que
+  funciona para el saldo pero no dice qué es: en el desglose del huésped y en la caja aparece
+  un «Otro» positivo sin más explicación que su texto libre.
+
+### Lo que NO hay que hacer
+
+Volver a permitir el borrado. Es la salida que parece más barata y es la que reintroduce el
+problema entero: la pasarela no se entera de que aquí se borró una fila, y quien tiene la
+verdad de ese dinero es el extracto de Culqi.
+
+### Por dónde iría
+
+Un estado `REEMBOLSADO` en el enlace (no final para el saldo, pero sí para `estaVigente()`) y
+un tipo de cargo propio, escritos por la misma acción: «registrar devolución» sobre el enlace,
+que anota el cargo y mueve el estado a la vez. Mientras eso no exista, el procedimiento
+manual —devolver en el Backoffice y anotar el cargo— es correcto pero deja el enlace mintiendo.
+
+### Y una laguna vieja que este veto hace más visible
+
+`PmsReserva::getMotivoNoBorrable()` sólo recorre las **estancias**, no los pagos. Así que una
+reserva con un cobro no borrable —el depósito automático de una OTA, y ahora también un cobro
+por pasarela— se anuncia como borrable, y el rechazo llega del listener al intentarlo. No es
+nuevo (el depósito de las OTA ya lo hacía), pero ahora alcanza a más reservas. El arreglo es
+que ese método pregunte también a `getInformacionFinanciera()->getPagos()`.

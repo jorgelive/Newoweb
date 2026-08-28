@@ -1119,6 +1119,28 @@ no el frontend.
 
 ---
 
+### Las ayudas del formulario van plegadas (28/08/2026)
+
+Siete ayudas del CRUD del ítem se habían ganado su longitud —«Quién lo ve» y «De qué habla» son
+dos ejes que se cruzan, y confundirlos ya provocó una fuga real (§10)— pero juntas sumaban más de
+5.600 caracteres y **ocupaban la pantalla entera**: el formulario dejaba de verse.
+
+`PmsGuiaItemCrudController::ayudaPlegable()` las envuelve en un `<details>` cerrado.
+
+⚠️ **EasyAdmin no tiene nada para esto.** `collapsible()` y `renderCollapsed()` existen, pero son
+de `FormField` y esconden el **panel entero, campos incluidos** — lo contrario de lo que hace
+falta. Lo que sí sirve es que **`field.help` se pinta con `|raw`** (`crud/form_theme.html.twig`),
+así que un `<details>` de HTML nativo pliega sólo la ayuda: sin JS, sin plantilla propia, sin
+sobrescribir nada del bundle.
+
+⚠️ **El `<summary>` no es el título de un cajón vacío: es la frase que hay que poder leer sin
+abrir nada.** «Déjalo en General salvo excepción» o «Casi siempre va vacío» son justo la parte que
+evita el error más común, y esconderlas habría sido peor que la pared de texto. El detalle —el
+porqué, los casos raros, los avisos de OTA— es lo que baja.
+
+Es el mismo reparto que la escalera de `agentePasos`: arriba lo que sirve a quien pregunta, abajo
+lo que sólo hace falta cuando el caso lo pide.
+
 ## 8. Dónde tocar para cambiar X
 
 | Necesito… | Archivo | Símbolo |

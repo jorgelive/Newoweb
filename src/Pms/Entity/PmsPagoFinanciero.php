@@ -66,6 +66,9 @@ use Symfony\Component\Uid\Uuid;
 // obtiene por `/pms_informacion_financieras/por-reserva/{reservaId}`.
 #[ORM\Entity(repositoryClass: PmsPagoFinancieroRepository::class)]
 #[ORM\Table(name: 'pms_pago_financiero')]
+// Declarado aquí y no sólo en la migración: un índice que existe en la base y no en el
+// mapping lo borra el siguiente `doctrine:migrations:diff` sin que nadie lo pida.
+#[ORM\Index(name: 'idx_pms_pago_enlace', columns: ['enlace_pago_id'])]
 #[ORM\HasLifecycleCallbacks]
 class PmsPagoFinanciero
 {
@@ -208,6 +211,27 @@ class PmsPagoFinanciero
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     #[Groups(['pms_pago:read', 'pms_pago:patch'])]
     private bool $intervenido = false;
+
+    /**
+     * El `FinEnlacePago` que generó este cobro, o null si se registró a mano.
+     *
+     * **Soft, sin FK**, por el mismo motivo que `FinEnlacePago::$origenId` en la dirección
+     * contraria: Finanzas es transversal y el PMS no le pone llaves a sus tablas
+     * (`docs/FinanzasEnlacesPago.md` §2).
+     *
+     * ── Por qué se PERSISTE, si la relación ya se resolvía en el frontend ──────
+     * El panel cruzaba `enlace.movimientoGeneradoId` con el id del pago para pintar la
+     * etiqueta «Enlace · Culqi», y eso bastaba mientras la marca sólo sirviera para pintar:
+     * allí las dos listas están cargadas. El propio doc lo dejó dicho — «si algún día hace
+     * falta esa marca FUERA del panel, habrá que persistirla».
+     *
+     * Ese día llegó con `getMotivoNoBorrable()`, que es una regla de negocio y corre en el
+     * backend, donde no hay ninguna lista de enlaces a mano. Preguntárselo a Finanzas por
+     * repositorio metería una consulta dentro de un getter de entidad y rompería la fuente
+     * única: el listener y la SPA dejarían de leer la misma regla.
+     */
+    #[ORM\Column(name: 'enlace_pago_id', type: 'uuid', nullable: true)]
+    private ?Uuid $enlacePagoId = null;
 
     /**
      * Quién RECIBIÓ el dinero de manos del huésped.
@@ -357,6 +381,22 @@ class PmsPagoFinanciero
                 . 'tenga cargos. Para que desaparezca, quita los cargos.';
         }
 
+        // El dinero de este cobro entró por una PASARELA, y la pasarela no se entera de que
+        // aquí se borró una fila. Borrarlo dejaba dos mentiras a la vez: el enlace siguiendo
+        // en `PAGADO` con su código de autorización, y la reserva debiendo un dinero que el
+        // huésped sí pagó. Además rompe la trazabilidad —`movimientoGeneradoId` del enlace
+        // queda apuntando a una fila que ya no existe— y con ella la etiqueta «Enlace ·
+        // pasarela» que explicaba por qué el cobro y el enlace no valen lo mismo (§6).
+        //
+        // ⚠️ Es un veto DURO, no un aviso. A diferencia del depósito del canal, esto no se
+        // puede deshacer desde el sistema: quien tiene la verdad es el extracto de la
+        // pasarela.
+        if ($this->enlacePagoId !== null) {
+            return 'Este cobro entró por un enlace de pago: el dinero lo movió la pasarela, y '
+                . 'borrarlo aquí dejaría el enlace diciendo que se cobró mientras la reserva '
+                . 'vuelve a deberlo. Si lo devolviste, anótalo como un cargo aparte.';
+        }
+
         return null;
     }
 
@@ -376,6 +416,9 @@ class PmsPagoFinanciero
 
     public function isEsAutomatico(): bool { return $this->esAutomatico; }
     public function setEsAutomatico(bool $esAutomatico): self { $this->esAutomatico = $esAutomatico; return $this; }
+
+    public function getEnlacePagoId(): ?Uuid { return $this->enlacePagoId; }
+    public function setEnlacePagoId(?Uuid $enlacePagoId): self { $this->enlacePagoId = $enlacePagoId; return $this; }
 
     public function isIntervenido(): bool { return $this->intervenido; }
     public function setIntervenido(bool $intervenido): self { $this->intervenido = $intervenido; return $this; }

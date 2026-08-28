@@ -247,10 +247,20 @@ cuerpo (`SUCCESS` o no). `IzipayClient::post()` comprueba eso y no el código HT
 
 - **`FALLIDO` no es final.** Que una tarjeta rebote no invalida el enlace.
   `FinEnlacePagoEstado::esFinal()` lo deja fuera, y `estaVigente()` sigue dejando pagar.
-- **`PAGADO` es irreversible desde el sistema.** No se "des-paga" borrando el enlace: se
-  devuelve el dinero en el Backoffice de **la pasarela que lo cobró** —hoy Culqi— y se elimina
-  después el pago que generó.
-  `FinEnlacePagoService::anular()` se niega explícitamente sobre un enlace pagado.
+- **`PAGADO` es irreversible desde el sistema.** El dinero se devuelve en el Backoffice de
+  **la pasarela que lo cobró** —hoy Culqi—, y `FinEnlacePagoService::anular()` se niega
+  explícitamente sobre un enlace pagado.
+
+  ⚠️ **Corrección del 28/08/2026:** aquí se decía «y se elimina después el pago que generó».
+  Eso ya no se puede: desde el veto de `getMotivoNoBorrable()` un cobro por pasarela no se
+  borra (§ *La relación pago ↔ enlace*). **Una devolución se anota como un cargo aparte**, que
+  además es lo correcto contablemente y lo que hace el resto de este código: no se borra el
+  asiento, se escribe el contrario. Borrar el pago dejaba el enlace diciendo `PAGADO` sobre
+  una fila que ya no existía, o sea escondía la devolución en vez de registrarla.
+
+  Queda un hueco reconocido: **no hay estado `REEMBOLSADO`**, así que el enlace sigue diciendo
+  «cobrado» y quien quiera saber que hubo devolución tiene que leer el cargo. Es menos malo
+  que la alternativa anterior, pero no es la respuesta final — ver `docs/Pendientes.md`.
 - **`ANULADO` es un estado NUESTRO: no se propaga a ninguna pasarela**, y con Culqi no hay
   nada que propagar. Emitir un enlace no llama a nadie —`crear()` escribe una fila y devuelve
   una URL de `pax`—, y en Culqi el cargo lo crea **nuestro servidor** con `cobrarConToken()`.
@@ -732,6 +742,42 @@ etiqueta.
 
 > Si algún día hace falta esa marca **fuera del panel** —en la vista de caja, en el agente—
 > habrá que persistirla, porque ahí no se dispone de los enlaces.
+
+**Ese día llegó el 28/08/2026, y la marca ya se persiste:**
+`pms_pago_financiero.enlace_pago_id` (soft, sin FK, como todo lo que cruza a Finanzas — §2).
+La escribe `PmsReservaOrigenCobroResolver::registrarCobro()` al crear el pago.
+
+Lo que la hizo falta no fue una etiqueta más, sino una **regla**: un cobro por pasarela no se
+puede borrar (abajo), y `PmsPagoFinanciero::getMotivoNoBorrable()` corre en el backend, donde
+no hay ninguna lista de enlaces cargada. Preguntárselo a Finanzas por repositorio metería una
+consulta dentro de un getter de entidad y partiría en dos la fuente única que ese método es.
+
+⚠️ La etiqueta del panel **sigue resolviéndose en el frontend** por cruce. No se migró a leer
+el campo nuevo: allí el cruce funciona, es gratis y cambiarlo no arregla nada. Son dos
+mecanismos para dos usos distintos y está bien que lo sean — pero si algún día el cruce del
+panel falla, la respuesta es leer `enlacePagoId`, no arreglar el cruce.
+
+#### Un cobro por pasarela NO se borra
+
+`getMotivoNoBorrable()` lo veta en cuanto `enlacePagoId` no es null. El basurero desaparece y
+en su sitio queda el candado con el motivo, igual que con el depósito del canal.
+
+Borrarlo dejaba **dos afirmaciones contradictorias vivas a la vez**: el enlace seguía en
+`PAGADO` con su fecha y su código de autorización, y la reserva volvía a deber un dinero que
+el huésped sí pagó. Y rompía la trazabilidad en las dos direcciones —
+`fin_enlace_pago.movimiento_generado_id` quedaba apuntando a una fila inexistente— y con ella
+la etiqueta que era lo único que explicaba por qué el enlace y el pago no valen lo mismo.
+
+La diferencia con el depósito del canal importa: **aquél se veta porque reaparecería solo;
+éste se veta porque la pasarela no se entera**. Quien tiene la verdad de este dinero es el
+extracto de Culqi, no una fila nuestra.
+
+⚠️ **Efecto colateral: una reserva con un cobro por pasarela ya no se puede borrar.** Sus
+pagos van en `cascade: ['remove']`, así que el borrado llega al veto y el listener lo rechaza.
+Es lo correcto —no se borra la reserva de alguien que pagó— pero el aviso llega **tarde**:
+`PmsReserva::getMotivoNoBorrable()` sólo mira las estancias, no los pagos, así que la pantalla
+no lo anuncia antes de intentarlo. Es la misma laguna que ya tenía el depósito automático de
+las OTA, no una nueva; queda apuntada en `docs/Pendientes.md`.
 
 ### La respuesta de la pasarela NO se modela, y es una decisión
 

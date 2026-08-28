@@ -156,6 +156,10 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
             ->setMedioPago(PmsMedioPago::TARJETA_CREDITO)
             ->setComisionPorcentaje($enlace->getRecargoPorcentaje())
             ->setFechaPago($enlace->getPagadoEn() ?? new DateTimeImmutable())
+            // De dónde vino el dinero, en un campo y no sólo en las notas: es lo que hace que
+            // `PmsPagoFinanciero::getMotivoNoBorrable()` pueda vetar el borrado sin preguntarle
+            // nada a Finanzas. Un texto en `notas` no es una regla, es una frase.
+            ->setEnlacePagoId($enlace->getId())
             ->setReferencia($enlace->getTransaccionUuid() ?? $enlace->getOrdenId())
             ->setNotas(sprintf(
                 'Cobro por %s. Enlace de pago %s.',
