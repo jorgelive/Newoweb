@@ -80,7 +80,12 @@ final readonly class PmsSituacionDeCobro
      * ⚠️ El orden se conserva —`ofrecibles()` ya viene ordenado y la tarjeta va al final—
      * porque abrir por la opción cara empuja a pagar de más a quien podía transferir.
      *
-     * @return list<array{importe: string, enSoles: string|null, recargoPorcentaje: string|null, etiquetas: list<string>}>
+     * ⚠️ Viajan los **códigos** además de las etiquetas. La etiqueta sale de
+     * `FinMedioCobroTipo::label()` y está en español; `pax` tiene los suyos traducidos en
+     * `UiI18n` (`res_medio_yape`, `res_medio_efectivo`…) y resuelve por código. Mandar sólo
+     * la etiqueta era enseñarle «Transferencia bancaria» a un huésped que lee en inglés.
+     *
+     * @return list<array{importe: string, enSoles: string|null, recargoPorcentaje: string|null, codigos: list<string>, etiquetas: list<string>}>
      */
     public function mediosPorImporte(): array
     {
@@ -96,10 +101,12 @@ final readonly class PmsSituacionDeCobro
                     'importe' => $medio->importe,
                     'enSoles' => $medio->enSoles,
                     'recargoPorcentaje' => $medio->llevaRecargo() ? $medio->recargoPorcentaje : null,
+                    'codigos' => [],
                     'etiquetas' => [],
                 ];
             }
 
+            $grupos[$clave]['codigos'][] = $medio->codigo;
             $grupos[$clave]['etiquetas'][] = $medio->etiqueta;
         }
 

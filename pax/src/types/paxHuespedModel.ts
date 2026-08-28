@@ -95,7 +95,14 @@ export interface PmsSituacionDeCobro {
         enSoles?: string | null;
         /** `null` sin recargo. Se dice como matiz, no como un cálculo que hacer. */
         recargoPorcentaje?: string | null;
-        /** Los medios que cuestan eso. Se enumeran en una línea. */
+        /**
+         * Los códigos de los medios que cuestan eso (`yape`, `efectivo`…).
+         *
+         * Se traducen con `res_medio_{codigo}` de `UiI18n`: las `etiquetas` que manda el
+         * backend salen de un enum PHP y están en español.
+         */
+        codigos: string[];
+        /** Respaldo en español, por si falta la cadena traducida. */
         etiquetas: string[];
     }[];
 }

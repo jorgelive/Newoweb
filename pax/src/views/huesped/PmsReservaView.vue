@@ -170,6 +170,33 @@ const soloProgreso = computed(() => finanzas.value?.soloProgreso === true);
  */
 const situacion = computed(() => finanzas.value?.situacion ?? null);
 
+/**
+ * El grupo de la TARJETA, que es el único con recargo.
+ *
+ * Se separa del resto porque cuesta otra cosa: dentro del cuadro obligaría a leer dos cifras
+ * y a decidir cuál es «la» cifra. Fuera, con su asterisco, se entiende que es una variante.
+ */
+const conTarjeta = computed(() =>
+    situacion.value?.medios.find(g => g.recargoPorcentaje) ?? null);
+
+/**
+ * Los medios que valen el importe del cuadro, enumerados y **traducidos por código**.
+ *
+ * ⚠️ La `etiqueta` que manda el backend sale de `FinMedioCobroTipo::label()` y está en
+ * español. `pax` tiene los suyos en `UiI18n` (`res_medio_yape`, `res_medio_efectivo`…), así
+ * que se resuelve por CÓDIGO y la etiqueta queda de respaldo: sin esto, un huésped que lee
+ * en inglés veía «Transferencia bancaria».
+ */
+const mediosSinTarjeta = computed(() => {
+    const grupo = situacion.value?.medios.find(g => !g.recargoPorcentaje);
+
+    if (!grupo) return '';
+
+    return grupo.codigos
+        .map((codigo, i) => maestroStore.t('res_medio_' + codigo) || grupo.etiquetas[i] || codigo)
+        .join(' · ');
+});
+
 const todoPagado = computed(() => soloProgreso.value || finSaldo.value <= 0);
 
 /** Saldo pagando con tarjeta: saldo + comisión, redondeado a 2 decimales. */
@@ -695,48 +722,79 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
                sólo quiere saber cuánto y por dónde. Quien pide el porqué es minoría, y
                para ésos está el toggle. -->
           <div v-if="situacion?.hayAlgoQuePedir && cuentaAbierta" class="mt-5">
-            <p class="text-[11px] font-black uppercase tracking-widest text-slate-400">
-              {{ situacion.queSePide === 'ADELANTO'
-                ? (maestroStore.t('res_pide_adelanto') || 'Adelanto para asegurar tu reserva')
-                : (maestroStore.t('res_pide_total') || 'Total a pagar') }}
-            </p>
 
-            <!-- Un bloque POR MONEDA. Con una sola —lo normal— se lee igual que antes; con
-                 dos, cada una dice lo suyo y NO se suman: el huésped debe en las dos. -->
-            <p v-for="imp in situacion.importes" :key="imp.moneda"
-               class="mt-1 text-2xl font-black tabular-nums text-gray-900 leading-none">
-              {{ imp.simbolo || imp.moneda }} {{ imp.importe }}
-              <span v-if="imp.enSoles" class="ml-1 text-sm font-bold text-slate-400">
-                (S/ {{ imp.enSoles }})
-              </span>
-            </p>
+            <!-- ═══ EL CUADRO: qué se pide, a cuánto, y por dónde ═══
+                 Es el CTA principal y por eso es un enlace, no un párrafo: lo que el huésped
+                 quiere hacer con esta cifra es pagarla. Lleva dentro los medios con los que
+                 ese importe vale —los que el catálogo ofrece según su perfil y lo que falta
+                 para su llegada—, porque el precio y el «por dónde» son la misma decisión.
 
-            <!-- Las formas de pago, cada una con lo que se entrega por ella. El 5.5 % de la
-                 tarjeta está DENTRO de su importe; el porcentaje se dice como matiz, no como
-                 una operación que el huésped tenga que hacer. -->
-            <!-- Una línea por PRECIO, no por medio. Los que cuestan lo mismo van juntos:
-                 repetir la misma cifra cinco veces es el ruido que esto viene a quitar.
-                 Casi siempre son dos líneas — el precio normal y el de tarjeta. -->
-            <ul class="mt-4 divide-y divide-slate-100 border-t border-slate-100">
-              <li v-for="(grupo, i) in situacion.medios" :key="i"
-                  class="flex items-baseline justify-between gap-3 py-2.5">
-                <span class="min-w-0 text-[13px] font-bold text-slate-600">
-                  {{ grupo.etiquetas.join(' · ') }}
-                  <span v-if="grupo.recargoPorcentaje" class="block text-[11px] font-medium text-slate-400">
-                    {{ maestroStore.t('res_incluye_comision', { pct: String(Number(grupo.recargoPorcentaje)) })
-                        || `incluye ${Number(grupo.recargoPorcentaje)}% de comisión` }}
-                  </span>
+                 La tarjeta NO está aquí: cuesta otra cosa, y mezclarla obligaría a leer dos
+                 cifras dentro del mismo cuadro. Va fuera, con su asterisco. -->
+            <component
+                :is="enlacesPago.length ? 'router-link' : 'div'"
+                v-bind="enlacesPago.length
+                  ? { to: { name: 'pago_enlace', params: { token: enlacesPago[0].token } } }
+                  : {}"
+                class="block rounded-2xl border border-[#376875]/25 bg-[#376875]/5 px-4 py-3.5 transition-colors"
+                :class="enlacesPago.length ? 'hover:bg-[#376875]/10 active:scale-[0.99]' : ''"
+            >
+              <div class="flex items-baseline justify-between gap-3">
+                <span class="text-[11px] font-black uppercase tracking-widest text-[#376875]">
+                  {{ situacion.queSePide === 'ADELANTO'
+                    ? (maestroStore.t('res_pide_adelanto') || 'Adelanto para asegurar tu reserva')
+                    : (maestroStore.t('res_pide_total') || 'Total a pagar') }}
                 </span>
-                <span class="shrink-0 text-right">
-                  <span class="block text-[15px] font-black tabular-nums text-gray-900 leading-none">
-                    {{ situacion.importes[0]?.simbolo || situacion.importes[0]?.moneda }} {{ grupo.importe }}
-                  </span>
-                  <span v-if="grupo.enSoles" class="block text-[11px] font-bold text-slate-400 tabular-nums">
-                    S/ {{ grupo.enSoles }}
-                  </span>
+                <i v-if="enlacesPago.length" class="fas fa-arrow-right text-[11px] text-[#376875]/60 shrink-0"></i>
+              </div>
+
+              <!-- Un bloque POR MONEDA. Con una sola —lo normal— se lee igual; con dos, cada
+                   una dice lo suyo y NO se suman: el huésped debe en las dos. -->
+              <p v-for="imp in situacion.importes" :key="imp.moneda"
+                 class="mt-1 text-2xl font-black tabular-nums text-gray-900 leading-none">
+                {{ imp.simbolo || imp.moneda }} {{ imp.importe }}
+                <span v-if="imp.enSoles" class="ml-1 text-sm font-bold text-slate-400">
+                  (S/ {{ imp.enSoles }})
                 </span>
-              </li>
-            </ul>
+              </p>
+
+              <!-- Con qué medios vale ESE importe. Enumerados en una línea, no en una lista:
+                   son alternativas del mismo precio, no opciones que comparar. -->
+              <p v-if="mediosSinTarjeta" class="mt-1.5 text-[12px] font-bold text-slate-500 leading-snug">
+                {{ mediosSinTarjeta }}
+              </p>
+
+              <p v-if="situacion.queSePide === 'ADELANTO' && finanzas?.prepago"
+                 class="mt-1 text-[11px] font-medium text-slate-400 leading-snug">
+                {{ maestroStore.t(finanzas.prepago.claveI18n) }}
+              </p>
+            </component>
+
+            <!-- ═══ LA TARJETA, FUERA DEL CUADRO ═══
+                 Cuesta más, así que no puede ir dentro: dos cifras en el mismo cuadro obligan
+                 a decidir cuál es «la» cifra. El asterisco la ata al importe de arriba y dice
+                 por qué difiere, sin pedirle al huésped que sume nada. -->
+            <div v-if="conTarjeta" class="mt-3 flex items-center gap-3">
+              <p class="min-w-0 flex-1 text-[12px] font-medium text-slate-500 leading-snug">
+                <span class="font-black text-slate-400">*</span>
+                {{ maestroStore.t('res_con_tarjeta') || 'Con tarjeta de crédito' }}
+                <span class="font-black text-slate-700 tabular-nums">
+                  {{ situacion.importes[0]?.simbolo || situacion.importes[0]?.moneda }} {{ conTarjeta.importe }}
+                </span>
+                <span class="block text-[11px] text-slate-400">
+                  {{ maestroStore.t('res_recargo_nota', { pct: String(Number(conTarjeta.recargoPorcentaje)) })
+                      || `Incluye ${Number(conTarjeta.recargoPorcentaje)}% de comisión` }}
+                </span>
+              </p>
+
+              <!-- 25 % del ancho: es la acción cara, y darle el mismo peso que al cuadro
+                   empujaría a pagar de más a quien podía transferir. -->
+              <router-link v-if="enlacesPago.length"
+                  :to="{ name: 'pago_enlace', params: { token: enlacesPago[0].token } }"
+                  class="w-1/4 shrink-0 rounded-xl bg-[#E07845] px-2 py-2.5 text-center text-[11px] font-black uppercase tracking-wide text-white shadow-sm transition-colors hover:bg-[#D06535]">
+                {{ maestroStore.t('res_pagar_online') || 'Pagar ahora' }}
+              </router-link>
+            </div>
 
             <!-- El segundo peldaño. Va aquí, pegado a las cifras que abre, y no al pie de la
                  tarjeta: lo que despliega es el porqué de estos números. -->
@@ -767,23 +825,12 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
               <!-- Detalle de cargos, línea a línea -->
               <div class="pt-6">
 
-                <!-- Prepago pendiente. Solo lo manda el backend a quien no ha pagado nada:
-                     si ya hay un pago, ese pago era el prepago. Se pinta ARRIBA del
-                     desglose porque es lo único aquí que pide una acción. -->
-                <div v-if="finanzas?.prepago"
-                     class="mb-4 rounded-xl border border-[#376875]/20 bg-[#376875]/5 px-4 py-3">
-                  <div class="flex items-center justify-between gap-3">
-                    <span class="text-[12px] font-black uppercase tracking-wider text-[#376875]">
-                      💳 {{ maestroStore.t('res_prepago_titulo') || 'Prepago' }}
-                    </span>
-                    <span class="text-[15px] font-black text-[#376875] tabular-nums">
-                      {{ formatMonto(Number(finanzas.prepago.monto)) }}
-                    </span>
-                  </div>
-                  <p class="mt-1 text-[11px] font-medium leading-snug text-slate-500">
-                    {{ maestroStore.t(finanzas.prepago.claveI18n) }}
-                  </p>
-                </div>
+                <!-- El cuadro del PREPAGO ya no se pinta aquí: subió al resumen, que es
+                     donde pide la acción. Repetirlo dentro del detalle enseñaba la misma
+                     cifra dos veces en la misma tarjeta, con dos formatos distintos, y
+                     obligaba a comprobar que decían lo mismo.
+                     El detalle empieza directamente por el desglose, que es a lo que se
+                     abre: de qué se compone el total. -->
 
                 <!-- Separa el prepago —lo único que pide acción— del desglose informativo. -->
                 <p class="mb-2 text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
