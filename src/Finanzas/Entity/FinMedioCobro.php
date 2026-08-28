@@ -119,6 +119,24 @@ class FinMedioCobro
     private ?int $diasMinimos = null;
 
     /**
+     * Días MÁXIMOS de antelación con los que se puede ofrecer. `null` = sin tope.
+     *
+     * Es el espejo de `$diasMinimos`, y existe por el EFECTIVO: no se le puede pedir efectivo
+     * a alguien que todavía no ha llegado. Con `0`, el medio sólo aparece el día de la llegada
+     * o después — cuando la persona ya está en el alojamiento y puede poner el dinero en mano.
+     *
+     * ⚠️ **No es una regla de audiencia, es de PRESENCIA.** Da igual el país: un peruano en
+     * Puno tampoco puede pagar en efectivo en Cusco. Por eso no se resolvió con
+     * `FinAudienciaCobro` —que separa Perú de fuera— sino con los días, que es lo que de
+     * verdad decide.
+     *
+     * Con `$diasMinimos` forman una VENTANA: Western Union necesita antelación (`min 2`),
+     * el efectivo necesita lo contrario (`max 0`), y la mayoría no necesita ninguna de las dos.
+     */
+    #[ORM\Column(name: 'dias_maximos', type: 'smallint', nullable: true)]
+    private ?int $diasMaximos = null;
+
+    /**
      * La aclaración que acompaña al número: «cobro en tienda», «mándanos la captura».
      *
      * Va traducida —y no en español a secas como el resto de textos que ve el modelo— porque
@@ -166,16 +184,32 @@ class FinMedioCobro
     public function getDiasMinimos(): ?int { return $this->diasMinimos; }
     public function setDiasMinimos(?int $dias): self { $this->diasMinimos = $dias; return $this; }
 
+    public function getDiasMaximos(): ?int { return $this->diasMaximos; }
+    public function setDiasMaximos(?int $dias): self { $this->diasMaximos = $dias; return $this; }
+
     /**
-     * ¿Llega a tiempo este medio?
+     * ¿Cabe este medio en el momento en que se pregunta?
+     *
+     * Es una VENTANA, no un suelo. `$diasMinimos` la abre por abajo —Western Union tarda, y
+     * ofrecérselo a quien llega mañana es ofrecer algo inútil— y `$diasMaximos` la cierra por
+     * arriba —el efectivo exige que la persona esté delante—.
      *
      * `$dias` a `null` significa «no se sabe cuándo llega» —una cotización sin fechas, un chat
      * sin reserva—: entonces pasan todos, igual que hace la audiencia cuando no sabe de dónde
      * paga. Esconder una opción por no saber es peor que ofrecerla de más.
+     *
+     * ⚠️ Los días van con signo: negativos cuando la llegada ya pasó. Un `max 0` deja pasar
+     * el día de la llegada **y toda la estancia**, que es justo lo que se quiere para el
+     * saldo que se paga en el alojamiento.
      */
     public function llegaATiempo(?int $dias): bool
     {
-        return $this->diasMinimos === null || $dias === null || $dias >= $this->diasMinimos;
+        if ($dias === null) {
+            return true;
+        }
+
+        return ($this->diasMinimos === null || $dias >= $this->diasMinimos)
+            && ($this->diasMaximos === null || $dias <= $this->diasMaximos);
     }
 
     public function getAudiencia(): FinAudienciaCobro { return $this->audiencia; }

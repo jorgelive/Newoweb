@@ -1692,6 +1692,30 @@ convertir. Antes esto lo daba gratis el bloque plegable, que ya iba dentro de `!
 
 ## 14. El catálogo de medios de cobro (`FinMedioCobro`)
 
+### La ventana de días: `dias_minimos` y `dias_maximos`
+
+Dos columnas que juntas dicen **cuándo** se puede ofrecer un medio, y la mayoría no usa
+ninguna de las dos:
+
+| Medio | `min` | `max` | Por qué |
+|---|---|---|---|
+| Western Union | 2 | — | Tarda. Ofrecérselo a quien llega mañana es ofrecer algo inútil |
+| Efectivo | — | **0** | No se paga en mano desde otro sitio |
+| El resto | — | — | Sirven en cualquier momento |
+
+⚠️ **El efectivo NO se resolvió con la audiencia, y la distinción importa.**
+`FinAudienciaCobro` separa Perú de fuera, y la tentación era marcarlo «sólo Perú». Está mal:
+**un peruano en Puno tampoco puede pagar efectivo en Cusco**. Lo que decide no es de dónde es
+la persona sino **dónde está**, y eso lo aproxima el calendario, no el país.
+
+Los días van **con signo** y son negativos una vez dentro de la estancia, así que `max 0`
+deja pasar el día de la llegada y todos los siguientes — que es justo lo que se quiere para
+el saldo que se paga en el alojamiento.
+
+`llegaATiempo(null)` sigue dejando pasar todo: sin fechas —una cotización, un chat sin
+reserva— esconder una opción por no saber es peor que ofrecerla de más.
+
+
 Todo lo de arriba trata de cobrar **por pasarela**: una URL, una tarjeta, un webhook. Este
 apartado es lo contrario y por eso vive aparte: **las vías por las que el cliente nos manda el
 dinero él mismo** —un Yape, una transferencia, un giro— y de las que sólo tenemos que darle el
