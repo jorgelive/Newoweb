@@ -9972,3 +9972,38 @@ añade un cuarto proveedor de contexto y no se añade allí, la sonda deja de cu
 - **Que el agente lea los enlaces en vez de la cabecera.** Es el paso que vuelve la promoción
   innecesaria y el que hace de verdad multi-asunto al agente: hoy, de las varias reservas de un
   hilo, sólo ve la de la cabecera.
+
+---
+
+## El hilo por asunto devolvía un 500, y se leía como «no tiene conversación» (28/08/2026)
+
+`ConversacionPorAsuntoController` devolvía el `MessageConversation` confiando en que API
+Platform lo serializara. **No lo hacía**: cada llamada moría con
+`ControllerDoesNotReturnResponseException` —«debe devolver un Response y devolvió
+`Proxies\__CG__\…\MessageConversation`»—. Los otros seis controladores del módulo ya
+devolvían `JsonResponse`; éste era el único que no, y el único que fallaba.
+
+### Por qué tardó en verse
+
+**Porque el front lo escondía.** `chatStore.fetchConversacionPorContexto()` envuelve la
+llamada en un `try/catch` que devuelve `null`, así que un 500 se leía exactamente igual que
+«este asunto todavía no tiene hilo» — que es una respuesta legítima y frecuente. No había
+nada que mirar.
+
+Sólo se notó por el otro consumidor: el botón **Editar** de los identificadores en el drawer
+de reserva (`editarIdentificadores()`), que no captura y enseñaba «No se pudo abrir el editor
+de identificadores» — un mensaje genérico que tampoco decía la causa.
+
+⚠️ **La lección no es el `catch`.** Devolver `null` ante un fallo de red es razonable. Lo que
+lo volvió invisible es que `null` **ya significaba otra cosa** en ese endpoint: «no hay hilo».
+Cuando un valor de error coincide con un valor legítimo de negocio, el error deja de existir.
+
+### El arreglo
+
+Se normaliza a mano con `'jsonld'` y el grupo `conversation:read` —los mismos que declara el
+`#[ApiResource]`— para que el cuerpo sea **idéntico** al que se esperaba: `chatStore` mira
+`@id` y `reservasStore` lee `id`. Y `204` explícito cuando no hay hilo, que antes salía de
+devolver `null`.
+
+Verificado en `var/probar-por-asunto.php`: la firma es `Response`, el controlador se instancia
+con su normalizador, y el cuerpo trae las dos claves.
