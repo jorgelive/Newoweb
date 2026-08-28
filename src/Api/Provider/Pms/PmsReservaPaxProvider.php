@@ -277,7 +277,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
             foreach ($medio->fichas as $ficha) {
                 $datos = array_filter([
                     'titular' => $ficha->getTitular(),
-                    'titularAlterno' => $ficha->getTitularAlterno(),
+                    'titularAlterno' => $this->alternoSiAporta($ficha->getTitular(), $ficha->getTitularAlterno()),
                     'banco' => $ficha->getBanco(),
                     'numero' => $ficha->getNumero(),
                     'cci' => $ficha->getCci(),
@@ -310,6 +310,30 @@ final class PmsReservaPaxProvider implements ProviderInterface
             },
             $situacion->mediosPorImporte(),
         );
+    }
+
+    /**
+     * El titular alterno, sólo cuando dice algo que el principal no dice.
+     *
+     * Casi siempre es el MISMO nombre sin tildes —«Susan Acuña Romero» / «Susan Acuna
+     * Romero»— porque hay bancos que no las aceptan en el campo de destinatario. Al huésped
+     * eso no le sirve: le enseña dos nombres casi iguales y le hace dudar de cuál copiar,
+     * cuando la app de su banco va a aceptar cualquiera de los dos.
+     *
+     * Se compara sin tildes ni mayúsculas. Si de verdad son dos personas distintas —una
+     * cuenta a nombre de otro titular—, el alterno sale.
+     */
+    private function alternoSiAporta(?string $titular, ?string $alterno): ?string
+    {
+        if ($alterno === null || $alterno === '' || $titular === null) {
+            return $alterno;
+        }
+
+        $normalizar = static fn (string $v): string => mb_strtolower(
+            (string) preg_replace('/[^a-z ]/i', '', (string) iconv('UTF-8', 'ASCII//TRANSLIT', $v))
+        );
+
+        return $normalizar($titular) === $normalizar($alterno) ? null : $alterno;
     }
 
     /**

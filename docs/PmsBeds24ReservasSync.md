@@ -2242,6 +2242,11 @@ Las compone `PmsReservaPaxProvider::conFichas()`, que cruza por código los grup
   monedas. Por eso es una lista, y por eso el cuadro se pinta en filas de una línea con el
   titular dicho **una sola vez** al pie (`titularComun`): repetido ocho veces convierte el
   desplegable en una pared.
+- **El titular alterno sólo sale si aporta.** Casi siempre es el mismo nombre sin tildes
+  —hay bancos que no las aceptan en el campo de destinatario—, y enseñar «Susan Acuña Romero ·
+  Susan Acuna Romero» le hace dudar de cuál copiar cuando su banco acepta cualquiera de los
+  dos. `alternoSiAporta()` compara sin tildes ni mayúsculas; si de verdad son dos personas
+  distintas, sale.
 - **El cierre es una X.** En táctil no hay «quitar el ratón de encima», así que sin cierre
   explícito un cuadro abierto se queda abierto. Y empuja lo de abajo en vez de flotar: un
   tooltip absoluto en un móvil tapa justo el importe que lo motivó.
