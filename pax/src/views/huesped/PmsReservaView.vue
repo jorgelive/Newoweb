@@ -213,6 +213,24 @@ const enlaceDelImporte = computed(() => {
 });
 
 /**
+ * Si el huésped ya abrió ALGUNA ficha en esta visita.
+ *
+ * Apaga el latido de las «i». El parpadeo es una señal de descubrimiento —«esto se puede
+ * pulsar»— y una vez descubierto deja de ser información y pasa a ser insistencia, encima
+ * en la pantalla donde le estamos pidiendo dinero.
+ *
+ * No se persiste entre visitas a propósito: quien vuelve una semana después a buscar el
+ * número de cuenta agradece la pista otra vez, y guardarlo obligaría a decidir cuánto dura.
+ */
+const yaDescubrio = ref(false);
+
+/** Abre o cierra la ficha de un medio, y calla el latido para siempre. */
+function alternarFicha(codigo: string): void {
+    fichaAbierta.value = fichaAbierta.value === codigo ? null : codigo;
+    yaDescubrio.value = true;
+}
+
+/**
  * Qué ficha de medio está abierta, si alguna. `null` = ninguna.
  *
  * Uno a la vez: dos cuadros de cuentas abiertos a la vez en un móvil es una pantalla de
@@ -787,9 +805,10 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                     <span v-if="i > 0" class="text-slate-300"> · </span>{{ m.etiqueta }}<button
                         v-if="m.tieneFicha"
                         type="button"
-                        class="ml-1 align-middle text-[#376875]/70 transition-colors hover:text-[#376875]"
+                        class="ml-1 inline-block align-middle text-[#376875]/70 transition-colors hover:text-[#376875]"
+                        :class="{ 'i-late': !yaDescubrio }"
                         :aria-label="m.etiqueta"
-                        @click="fichaAbierta = fichaAbierta === m.codigo ? null : m.codigo"
+                        @click="alternarFicha(m.codigo)"
                     ><i class="fa-solid fa-circle-info text-[11px]"></i></button>
                   </span>
                 </span>
@@ -1196,3 +1215,40 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
     </div>
   </div>
 </template>
+
+<style scoped>
+/**
+ * El latido de las «i»: un guiño cada diez segundos.
+ *
+ * Un icono de información dentro de una corrida de texto no se lee como pulsable —parece
+ * puntuación—, y quien no lo pulsa acaba preguntando el número de cuenta por WhatsApp, que
+ * es justo el paso que estas fichas vienen a quitar.
+ *
+ * Es DOBLE y corto —dos golpes en poco más de un segundo, y nueve de quietud— porque un
+ * latido se lee como una llamada y un parpadeo lento se lee como algo roto. Y va en CSS y no
+ * en un `setInterval`: el navegador lo pausa solo cuando la pestaña está en segundo plano, y
+ * no hay temporizador que limpiar al desmontar.
+ *
+ * El `transform` obliga a `inline-block`: en un `inline` no tiene efecto.
+ */
+@keyframes i-late {
+  0%, 100% { transform: scale(1);    opacity: 0.7; }
+  3%       { transform: scale(1.45); opacity: 1; }
+  6%       { transform: scale(1);    opacity: 0.7; }
+  9%       { transform: scale(1.3);  opacity: 1; }
+  12%      { transform: scale(1);    opacity: 0.7; }
+}
+
+.i-late {
+  animation: i-late 10s ease-in-out infinite;
+}
+
+/**
+ * ⚠️ Quien pide menos movimiento no ve ninguno. No es cosmético: para alguien con trastorno
+ * vestibular o migraña con aura, algo que se mueve solo en un bucle sin fin es un síntoma.
+ * El icono sigue estando y sigue abriendo su ficha — lo único que se va es el guiño.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .i-late { animation: none; }
+}
+</style>

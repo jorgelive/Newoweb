@@ -2247,6 +2247,14 @@ Las compone `PmsReservaPaxProvider::conFichas()`, que cruza por código los grup
   Susan Acuna Romero» le hace dudar de cuál copiar cuando su banco acepta cualquiera de los
   dos. `alternoSiAporta()` compara sin tildes ni mayúsculas; si de verdad son dos personas
   distintas, sale.
+- **Las «i» laten cada 10 s hasta que se abre una.** Un icono de información dentro de una
+  corrida de texto no se lee como pulsable —parece puntuación—, y quien no lo pulsa acaba
+  preguntando el número de cuenta por WhatsApp, que es el paso que las fichas vienen a quitar.
+  El latido es doble y corto: un parpadeo lento se lee como algo roto. Se apaga con el primer
+  clic (`yaDescubrio`), porque descubierto deja de ser información y pasa a ser insistencia en
+  la pantalla donde le pedimos dinero. Va en CSS y no en un `setInterval` —el navegador lo
+  pausa solo en segundo plano— y **`prefers-reduced-motion` lo desactiva**: un bucle infinito
+  de movimiento es un síntoma para quien tiene migraña con aura o trastorno vestibular.
 - **El cierre es una X.** En táctil no hay «quitar el ratón de encima», así que sin cierre
   explícito un cuadro abierto se queda abierto. Y empuja lo de abajo en vez de flotar: un
   tooltip absoluto en un móvil tapa justo el importe que lo motivó.
