@@ -15,6 +15,7 @@ use App\Operacion\Enum\EstadoOrdenServicioEnum;
 use App\Travel\Service\Message\TravelOrganizacionMessageContext;
 use Doctrine\ORM\EntityManagerInterface;
 use DomainException;
+use RuntimeException;
 
 /**
  * Manda la Orden de Servicio al proveedor, por el canal que se elija.
@@ -212,6 +213,20 @@ final readonly class OperacionOrdenEnvio
             );
         }
 
-        return $this->apertura->abrir(TravelOrganizacionMessageContext::CONTEXT_TYPE, $id);
+        try {
+            return $this->apertura->abrir(TravelOrganizacionMessageContext::CONTEXT_TYPE, $id);
+        } catch (RuntimeException $e) {
+            // ⚠️ **Se traduce la excepción, no se mapea `RuntimeException` a 422.**
+            //
+            // `AperturaDeHilo` se niega con un motivo perfectamente legible —«no hay ni teléfono
+            // ni correo registrados»— pero lo lanza como `RuntimeException`, que no está en el
+            // mapa de `api_platform.yaml`. Resultado: el operador leía **«Internal Server Error»**
+            // teniendo la respuesta delante, y sin forma de saber que sólo faltaba un teléfono.
+            //
+            // Mapear `RuntimeException: 422` en la configuración lo arreglaría de un plumazo y
+            // sería peor: es la excepción genérica de PHP, la lanza medio mundo, y convertirla en
+            // «error del usuario» escondería como 422 fallos que sí son nuestros.
+            throw new DomainException($e->getMessage(), 0, $e);
+        }
     }
 }
