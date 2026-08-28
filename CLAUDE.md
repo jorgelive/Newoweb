@@ -406,6 +406,33 @@ peldaño 2   agentePasos[1]    sigue sin ir: la comprobación que decide qué se
 
 El mecanismo completo está en `docs/Mensajeria.md` §22.
 
+## Staging: se nombran las rutas, siempre
+
+⚠️ **`git add -A`, `git add .` y `git commit -a` están prohibidos**, y lo corta
+`.claude/hooks/git-staging-guard.sh` (hook `PreToolUse` en `.claude/settings.json`).
+
+El motivo, del 28/08/2026: un `git add -A` barrió trabajo sin commitear que había en el árbol
+—entidad `PmsPagoFinanciero`, `FinEnlacePagoService`, `IzipayClient`, dos vistas Vue de Finanzas y
+una **migración**— y lo repartió entre cuatro commits cuyos mensajes hablaban de galerías de fotos
+y ayudas plegables. La migración se desplegó **sin ejecutarse** y `pms_pago_financiero` empezó a
+pedir una columna inexistente: 500 en todo lo que tocara pagos.
+
+**El árbol de trabajo es compartido.** El editor de una persona y una sesión de agente escriben en
+la misma carpeta, y `-A` no distingue quién escribió qué. La única defensa es que el comando diga
+qué entra:
+
+```bash
+git status --porcelain          # mira qué hay ahí
+git add src/Foo.php docs/Foo.md # por ruta, sólo lo tuyo
+```
+
+Si aparece un archivo que no reconoces, **no se incluye**: se pregunta. Permitidos `git add
+<ruta>`, `git add -p` y `git add -u <ruta>`.
+
+⚠️ Y el corolario, que es la mitad cara: **`doctrine:migrations:migrate` va en TODO despliegue**,
+también cuando crees que no tocaste el esquema — que es justo cuando muerde, porque entonces
+nadie lo comprueba.
+
 ## Despliegue
 
 `push` → `pull` en el servidor → build → **`doctrine:migrations:migrate`**.
