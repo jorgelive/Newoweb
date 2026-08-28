@@ -354,7 +354,10 @@ final class CrearActividadesResortCommand extends Command
             // Ojo: los setters de TravelTarifa devuelven void, así que aquí no se encadena.
             $tarifa = new TravelTarifa();
             $tarifa->setComponente($componente);
-            $tarifa->setNombreInterno(sprintf('%s · %s', self::ORG_NOMBRE, $def['titulo']));
+            // ⚠️ Desde el nombre INTERNO, no desde el título: el título público de los dos
+            // check-in es el mismo («Llegada y check-in»), así que nombrar por ahí dejaba dos
+            // tarifas distintas con idéntico nombre y sin forma de distinguirlas en el panel.
+            $tarifa->setNombreInterno(sprintf('%s · %s', self::ORG_NOMBRE, $def['nombre']));
             $tarifa->setTitulo([['language' => 'es', 'content' => $def['titulo']]]);
             $tarifa->setMoneda($moneda);
             $tarifa->setMonto('0.00');
@@ -379,6 +382,36 @@ final class CrearActividadesResortCommand extends Command
                 $servicioTravel->addSegmento($segmento);
                 $servicioTravel->addComponente($componente);
             }
+        }
+
+        $io->section('Nombres de tarifa');
+        $renombradas = 0;
+
+        foreach (self::SEGMENTOS as $def) {
+            $segmento = $this->em->getRepository(TravelSegmento::class)->findOneBy(['slug' => $def['slug']]);
+            if ($segmento === null) {
+                continue;
+            }
+
+            $esperado = sprintf('%s · %s', self::ORG_NOMBRE, $def['nombre']);
+
+            foreach ($segmento->getSegmentoComponentes() as $rel) {
+                $tarifa = $rel->getTarifaPredeterminada();
+                if ($tarifa === null || $tarifa->getNombreInterno() === $esperado) {
+                    continue;
+                }
+
+                ++$renombradas;
+                $io->text(sprintf('  %s · %s', $simula ? 'renombraría' : 'renombrada  ', $esperado));
+
+                if (!$simula) {
+                    $tarifa->setNombreInterno($esperado);
+                }
+            }
+        }
+
+        if ($renombradas === 0) {
+            $io->text('  todas bien nombradas.');
         }
 
         // Las horas son lo que coloca cada bloque en la cronología del día: sin ellas la guía
