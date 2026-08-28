@@ -2943,7 +2943,7 @@ honesto es darle una salida.
 
 | Situación | |
 |---|---|
-| Llegó y no hay adelanto (tiene enlace y teléfono) | 🔇 silencioso |
+| Llegó y no hay adelanto (se le da el teléfono) | 🔇 silencioso |
 | Ya se le contestó con conocimiento y se escala por control | 🔇 silencioso |
 | Pregunta algo que el bot no sabe | 🔔 anunciado |
 | Emergencia | 🔔 anunciado |
@@ -2953,6 +2953,18 @@ honesto es darle una salida.
 `ConsultarCodigosSkill` devuelve `escalar_en_silencio` cuando **hoy es el día de la llegada**.
 Los días anteriores es al revés —avisar al equipo *es* la gestión, cabe una excepción a la
 política y hay tiempo de organizarla—, así que se anuncia.
+
+⚠️ **Y el mismo día ya no se le pide que pague.** El `motivo` de `SinPago` tiene dos redacciones
+y las separa `esElDiaDeLlegada()`. Faltando días dice lo esperable: el adelanto de la primera
+noche, el enlace, y que el efectivo no vale *para el adelanto* aunque sí para el saldo. Con el
+huésped ya en la puerta, el texto **prohíbe ofrecer el enlace** y manda al teléfono de `contacto`.
+
+No es cortesía: es que cobrar por el chat ahí **no funciona** —nadie saca la tarjeta con las
+maletas en la mano— y gasta el único momento en que una persona podría desbloquearlo. Y hay con
+qué desbloquearlo: `pago-alojamiento` está en `ESTADOS_PAGO_CONFIABLES`, así que un operador que
+evalúa y lo pone **abre los códigos sin que entre un céntimo**. El teléfono no compite con el
+escalado, lo acelera: es el canal por el que el huésped pide esa evaluación. Si es él quien saca
+el tema de pagar por enlace, entonces sí se le da.
 
 ⚠️ **Y la frase de vuelta cambió incluso en el modo anunciado.** Antes decía *«dile que su
 consulta pasó a una persona»*, y de ahí salió el *«alguien les ayudará con el registro»* que dejó

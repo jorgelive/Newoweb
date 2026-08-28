@@ -76,6 +76,29 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         'nl' => 'Deze code kan veranderen. Kijk altijd in je gids voor de actuele code:',
     ];
 
+    /**
+     * Lo que se le dice EL DÍA DE LA LLEGADA, en lugar del aviso de arriba.
+     *
+     * En la puerta, «este código puede cambiar» es ruido: no le dice qué hacer. Lo que necesita
+     * es que la entrada es suya —caja de seguridad, sin esperar a nadie— y dónde están los pasos.
+     *
+     * Va pretraducido, y no redactado por el modelo, porque el 27/08/2026 una huésped escribió
+     * «acabamos de llegar», el modelo se quedó sin nada que ofrecerle y se inventó que alguien
+     * acudiría a recibirla. Estuvo una hora en la puerta. Ésta es la frase que no se puede caer.
+     *
+     * El «como se le indicó antes» es literal: el dato ya viaja en los mensajes previos y en la
+     * guía. Recordarlo evita que suene a condición nueva inventada en el peor momento.
+     */
+    private const array PASOS = [
+        'es' => 'La entrada es autónoma, como se le indicó antes: las llaves están en una caja de seguridad y abre usted mismo. Los pasos están en su guía:',
+        'en' => 'Entry is self-service, as we mentioned earlier: the keys are in a lockbox and you let yourself in. The steps are in your guide:',
+        'pt' => 'A entrada é autónoma, como já lhe indicámos: as chaves estão num cofre e o próprio hóspede abre. Os passos estão no seu guia:',
+        'fr' => 'L\'entrée est autonome, comme indiqué précédemment : les clés sont dans un coffre et vous ouvrez vous-même. Les étapes sont dans votre guide :',
+        'it' => 'L\'ingresso è autonomo, come già indicato: le chiavi sono in una cassaforte e apri da solo. I passaggi sono nella tua guida:',
+        'de' => 'Der Zugang ist selbstständig, wie bereits mitgeteilt: Die Schlüssel liegen in einem Safe, du öffnest selbst. Die Schritte stehen in deinem Guide:',
+        'nl' => 'De toegang is zelfstandig, zoals eerder aangegeven: de sleutels liggen in een kluisje en je opent zelf. De stappen staan in je gids:',
+    ];
+
     public function __construct(
         private EntityManagerInterface $em,
         private PmsGuiaEstanciaResolver $estancias,
@@ -99,10 +122,15 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
                 . 'cual y, si trae fecha, desde cuándo lo tendrá. Y si dice que falta '
                 . 'configurarlo, eso NO es que el huésped no pueda verlo: es que nadie lo ha '
                 . 'puesto en el panel, así que avisa al equipo en vez de decirle que espere. '
-                . '⚠️ AL DAR EL CÓDIGO, PON SIEMPRE el texto de «avisale_de_esto» con su enlace: '
-                . 'ya viene escrito en el idioma del huésped y le dice que el código puede '
-                . 'cambiar y que la guía tiene el bueno. Sin eso le dejas en el chat una copia '
-                . 'que envejece, y el día que se cambie el código seguirá usando el viejo. '
+                . '⚠️ AL DAR EL CÓDIGO, PON SIEMPRE el texto de «avisale_de_esto» TAL CUAL, con '
+                . 'su enlace: ya viene escrito en el idioma del huésped y ya viene elegido según '
+                . 'el día. Antes de la llegada le dice que el código puede cambiar y que la guía '
+                . 'tiene el bueno —sin eso le dejas una copia que envejece en su WhatsApp—; el '
+                . 'día que llega le dice que la entrada es autónoma, con llave en caja de '
+                . 'seguridad, y que los pasos están en la guía. No lo reescribas ni lo resumas. '
+                . 'Si viene «y_luego», haz también lo que diga. '
+                . '☎️ En «contacto» van los teléfonos del alojamiento: si pide uno, dáselo de '
+                . 'ahí y de ningún otro sitio. '
                 . '💰 LA CAJA DEL DINERO NO EXISTE PARA EL HUÉSPED: si pregunta por ella, o por '
                 . '«la otra caja», o por dónde se guarda la recaudación, dile que ésa es interna '
                 . 'del alojamiento y no la compartas ni la busques por otro lado. Esta skill no '
@@ -220,7 +248,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         if (!$acceso->estaAbierto()) {
             return SkillResult::ok($base + array_filter([
                 'disponible' => false,
-                'motivo' => $this->motivo($acceso),
+                'motivo' => $this->motivo($acceso, $this->esElDiaDeLlegada($evento)),
                 'disponible_desde' => $acceso->liberaEn?->format('d/m/Y H:i'),
                 // ⚠️ Los teléfonos viajan AQUÍ, con el motivo, y no se dejan para que el
                 // modelo los busque en la guía.
@@ -233,8 +261,8 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
                 //
                 // Aquí son deterministas: si no hay código, salen. Sin segundo paso.
                 'contacto' => $this->contacto($unidad),
-                // 🔇 El mismo día no se le anuncia el escalado: ver `escalarEnSilencio()`.
-                'escalar_en_silencio' => $this->escalarEnSilencio($evento) ?: null,
+                // 🔇 El mismo día no se le anuncia el escalado: ver `esElDiaDeLlegada()`.
+                'escalar_en_silencio' => $this->esElDiaDeLlegada($evento) ?: null,
             ], static fn ($v) => $v !== null));
         }
 
@@ -280,17 +308,38 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
             ? rtrim($this->urlGuia, '/') . '/' . $reserva->getLocalizador()
             : null;
 
+        // 🚪 El día de la llegada el texto cambia entero. Ver el docblock de self::PASOS: en la
+        // puerta no sirve una advertencia sobre el futuro del código, sirve saber que la entrada
+        // es suya y dónde están los pasos.
+        $enLaPuerta = $this->esElDiaDeLlegada($evento);
+        $frase = $enLaPuerta
+            ? (self::PASOS[$idioma] ?? self::PASOS['es'])
+            : (self::AVISO[$idioma] ?? self::AVISO['es']);
+
         return SkillResult::ok($base + array_filter([
             'disponible' => true,
             'codigos' => $codigos,
-            // 🔗 El código NO se manda solo: va con el aviso y el enlace, en el idioma del
+            // 🔗 El código NO se manda solo: va con la frase y el enlace, en el idioma del
             // huésped. Así el mensaje deja de ser la fuente —que envejece en su WhatsApp el día
             // que se cambie el código— y pasa a ser un atajo hacia la guía, que siempre da el
-            // valor de ahora. Ver el docblock de self::AVISO.
+            // valor de ahora. Ver los docblocks de self::AVISO y self::PASOS.
             'avisale_de_esto' => $enlace !== null
-                ? sprintf('%s %s', self::AVISO[$idioma] ?? self::AVISO['es'], $enlace)
-                : (self::AVISO[$idioma] ?? self::AVISO['es']),
+                ? sprintf('%s %s', $frase, $enlace)
+                : $frase,
             'enlace_guia' => $enlace,
+            // ☎️ Los teléfonos salen SIEMPRE, no sólo cuando el código está bloqueado.
+            //
+            // Estaban además copiados a mano en el ítem «Horario solicitudes» de la guía, que
+            // sólo llega si el índice de temas lo elige por sus términos. Ahora la única copia
+            // es la del establecimiento y ésta es la puerta por la que se pide: si no saliera
+            // aquí, quitarlos de la ficha los habría hecho desaparecer.
+            'contacto' => $this->contacto($unidad),
+            // Con el huésped ya dentro del día de llegada, la frase se cierra ofreciendo la
+            // ayuda. Es lo que evita que se quede mirando la caja sin saber a quién acudir.
+            'y_luego' => $enLaPuerta
+                ? 'Cierra el mensaje diciéndole que si algo no le sale llame al teléfono de '
+                    . '«contacto». No le anuncies que avisas a nadie: la llamada es suya.'
+                : null,
             'idioma_del_aviso' => $idioma,
             // Se anuncia lo que falta aunque haya otros: si el huésped pide justo ése, el
             // modelo tiene que saber que no existe en vez de decir que no le toca verlo.
@@ -350,13 +399,6 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
     }
 
     /**
-     * Por qué todavía no, en una frase que el modelo pueda repetir.
-     *
-     * No se reutiliza `PmsGuiaMensajes`: aquellos son textos de interfaz —`[Disponible el 12/08]`,
-     * entre corchetes para pintarse dentro de un párrafo— y aquí hace falta una instrucción para
-     * el modelo, que además le prohíbe rellenar el hueco por su cuenta.
-     */
-    /**
      * ¿El escalado de este caso debe salir en silencio?
      *
      * Sí **el día de la llegada**, y sólo ese día. La razón no es el sigilo: es que una promesa
@@ -371,7 +413,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
      * Por FECHA y no por hora, igual que el catálogo de medios: el día de la llegada es un día
      * entero, y a las nueve de la mañana el huésped ya está de camino.
      */
-    private function escalarEnSilencio(PmsEventoCalendario $evento): bool
+    private function esElDiaDeLlegada(PmsEventoCalendario $evento): bool
     {
         $inicio = $evento->getInicio();
 
@@ -414,8 +456,34 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         ];
     }
 
-    private function motivo(PmsGuiaAcceso $acceso): string
+    /**
+     * Por qué todavía no, en una frase que el modelo pueda repetir.
+     *
+     * No se reutiliza `PmsGuiaMensajes`: aquellos son textos de interfaz —`[Disponible el 12/08]`,
+     * entre corchetes para pintarse dentro de un párrafo— y aquí hace falta una instrucción para
+     * el modelo, que además le prohíbe rellenar el hueco por su cuenta.
+     *
+     * ⚠️ **«Sin pago» se dice de dos maneras muy distintas según el día**, y ésa es la razón de
+     * que este método reciba la fecha. Faltando días, el enlace resuelve solo y pedir el adelanto
+     * es lo normal. Con el huésped ya en la puerta, insistir en cobrar por el chat no es que sea
+     * poco cordial: es que no funciona —nadie saca la tarjeta con las maletas en la mano— y gasta
+     * el único momento en el que una persona podría desbloquearlo.
+     */
+    private function motivo(PmsGuiaAcceso $acceso, bool $enLaPuerta): string
     {
+        // Ya está aquí y no hay adelanto: esto NO se resuelve cobrando, se resuelve hablando.
+        // Existe `pago-alojamiento` justo para esto —un operador evalúa y abre los códigos sin
+        // que entre un céntimo—, y el teléfono es el canal por el que el huésped lo pide.
+        if ($enLaPuerta && $acceso->estado === PmsGuiaAccesoEstado::SinPago) {
+            return 'Ya está aquí y no consta el adelanto de la primera noche, que es lo que abre '
+                . 'los códigos. NO le pidas que pague ahora ni le pases el enlace: con las '
+                . 'maletas en la puerta eso no se resuelve por el chat. Recuérdale lo que ya se '
+                . 'le dijo antes —el acceso se habilita con el adelanto— y dile que, como ya '
+                . 'está aquí, escriba o llame al teléfono de «contacto» y le atienden enseguida. '
+                . 'Ahí lo resuelve una persona. Si él saca el tema de pagar por el enlace, '
+                . 'entonces sí se lo das.';
+        }
+
         return match ($acceso->estado) {
             PmsGuiaAccesoEstado::Pendiente => 'Todavía no ha empezado su estancia. Los códigos se '
                 . 'entregan al acercarse el check-in; dile desde cuándo los tendrá.',

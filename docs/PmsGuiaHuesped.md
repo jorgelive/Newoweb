@@ -303,7 +303,18 @@ ya hacía con el código de la caja.
 
 ⚠️ **Y no se duplican.** El ítem de guía deja de llevarlos escritos: un teléfono en dos sitios es
 un teléfono que un día se cambia en uno solo. El ítem sigue contestando *«¿a qué hora atienden?»*,
-que es su pregunta.
+que es su pregunta. Los borra `Version20260827234500` — hasta el 27/08/2026 la ficha seguía
+teniendo la copia literal de `telefono_atencion` y `telefono_yape`.
+
+⚠️ **Pero borrarlos a secas los habría NEGADO.** Está probado con el depósito de garantía (ver
+`CLAUDE.md`): lo que se le quita del texto, el modelo lo convierte en «no existe» —y *«no tenemos
+teléfono»* es peor que un número viejo—. Por eso la ficha conserva un **puntero sin contenido**:
+dice que los números existen, que uno es el del Yape y que se piden a `consultar_codigos` en
+`contacto`. No dice cuáles son.
+
+Y para que ese puntero tenga destino, `contacto` pasó a salir **también cuando el código sí está
+disponible**, no sólo cuando viene bloqueado. Si no, quitarlos de la ficha los habría dejado
+inalcanzables para cualquiera que ya pudiera entrar.
 
 ⚠️ **`telefonoPrincipal` es otra cosa**: el comercial, el que está en la web y en las OTA y se
 sirve al catálogo público. Son **tres números para tres usos**, y mandar al huésped al comercial
@@ -855,6 +866,34 @@ Los siete idiomas están en `ConsultarCodigosSkill::AVISO`, no en un archivo de 
 siete frases que sólo usa esta skill, y tenerlas al lado del código que las elige evita que se
 queden a medio traducir sin que nadie lo note. El enlace se arma con `%pax_book_guide_url%` +
 localizador, igual que `guide_url` de `PmsMessageDataResolver`.
+
+#### 🚪 El día de la llegada, ese mismo campo dice otra cosa
+
+`avisale_de_esto` **no siempre trae el aviso**. El día del check-in trae `PASOS` en vez de
+`AVISO`, con el mismo enlace detrás:
+
+```
+[es] La entrada es autónoma, como se le indicó antes: las llaves están en una caja de
+     seguridad y abre usted mismo. Los pasos están en su guía: https://…/FZWF94
+```
+
+El motivo es que **en la puerta las dos frases compiten y sólo una sirve**. «Este código puede
+cambiar, consulta tu guía» es una advertencia sobre el futuro: correcta el martes, ruido cuando
+el huésped está de pie con las maletas y lo que necesita es saber que la entrada es suya. La
+frase de llegada le da los tres hechos que resuelven ese momento: es autónoma, ya se le dijo
+antes, y los pasos están ahí.
+
+Va **pretraducida**, como `AVISO`, por lo de siempre: es justo la frase que se cae si se deja
+redactar. Ver §3.b — el 27/08/2026 el modelo, sin ella y sin teléfonos, se inventó que alguien
+iría a recibir a la huésped.
+
+Con ella viaja `y_luego`, que le dice al modelo que cierre ofreciendo el teléfono de `contacto`.
+La ayuda va **al final y como salida**: si va delante, todos llaman y el autoservicio no sirve
+de nada.
+
+Lo elige `esElDiaDeLlegada()`, **por fecha y no por hora** —a las nueve de la mañana el huésped
+ya está de camino—. Es el mismo método que decide `escalar_en_silencio`: un solo hecho con dos
+consecuencias, y por eso se llama por el hecho y no por una de ellas.
 
 #### 🔑 «¿Cuál es el código de la caja?» sin hablar de ningún huésped
 
@@ -1496,9 +1535,10 @@ La migración `Version20260812250000` crea la columna con **todo en `general`**.
 clasifique, la resta no tapa nada. Como mínimo:
 
 - `Ubicación (general)` → `DireccionExacta`
-- `Horario solicitudes (general)` → `Contacto` — contiene dos teléfonos y el número de Yape, y
-  es alcanzable **hoy** por una consulta de OTA sin confirmar (nivel `cliente`, y `PmsGuiaAcceso`
-  permite `Cliente` a cualquier huésped identificado)
+- `Horario solicitudes (general)` → `Contacto` — **ya no contiene los teléfonos** desde
+  `Version20260827234500` (§3.b), sólo el puntero a `consultar_codigos`. Se clasifica igual: es
+  alcanzable **hoy** por una consulta de OTA sin confirmar (nivel `cliente`, y `PmsGuiaAcceso`
+  permite `Cliente` a cualquier huésped identificado), y el puntero no es dato sensible
 - `Wifi`, `Llaves` y los `Puerta (casa N)` → `Credenciales`
 
 Se clasifica desde el panel: ítem de guía → **«De qué habla»**.
