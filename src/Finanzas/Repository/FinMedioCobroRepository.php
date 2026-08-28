@@ -28,11 +28,15 @@ class FinMedioCobroRepository extends ServiceEntityRepository
      * optimizar aquí.
      *
      * @param bool|null $desdePeru `null` = no se sabe, y entonces pasan todos. Ver
-     *                             `ConsultarMediosPagoSkill::esDePeru()`.
+     *                              `ConsultarMediosPagoSkill::esDePeru()`.
+     * @param int|null  $dias       Días que faltan para la llegada. `null` = no se sabe (una
+     *                              cotización sin fechas), y entonces tampoco se esconde nada.
+     *                              Es lo que retira Western Union cuando ya no da tiempo
+     *                              ({@see FinMedioCobro::llegaATiempo()}).
      *
      * @return list<FinMedioCobro>
      */
-    public function ofrecibles(?bool $desdePeru = null): array
+    public function ofrecibles(?bool $desdePeru = null, ?int $dias = null): array
     {
         $medios = $this->createQueryBuilder('m')
             ->where('m.activo = true')
@@ -43,7 +47,9 @@ class FinMedioCobroRepository extends ServiceEntityRepository
 
         return array_values(array_filter(
             $medios,
-            static fn (FinMedioCobro $m) => $m->esOfrecible() && $m->getAudiencia()->aplicaA($desdePeru)
+            static fn (FinMedioCobro $m) => $m->esOfrecible()
+                && $m->getAudiencia()->aplicaA($desdePeru)
+                && $m->llegaATiempo($dias)
         ));
     }
 }

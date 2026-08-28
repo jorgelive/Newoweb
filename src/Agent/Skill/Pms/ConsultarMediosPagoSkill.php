@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Skill\Pms;
 
+use DateTimeImmutable;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
@@ -183,7 +184,10 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDo
 
         $desdePeru = $this->procedencia->pagaDesdePeru($reserva);
         $idioma = $reserva->getIdioma()?->getId() ?? 'es';
-        $medios = $this->medios($this->catalogo->ofrecibles($desdePeru), $idioma);
+        // Los días que faltan retiran los medios que ya no dan tiempo —Western Union—, igual
+        // que la procedencia retira los que no aplican a un extranjero. Ver
+        // `FinMedioCobro::llegaATiempo()`.
+        $medios = $this->medios($this->catalogo->ofrecibles($desdePeru, $this->diasHastaLlegada($reserva)), $idioma);
 
         // Sin medios configurados NO se devuelve una lista vacía y ya: una lista vacía se lee
         // como «este alojamiento no cobra» y el modelo improvisa igual. Se dice qué hacer.
@@ -267,6 +271,28 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDo
                     . 'ninguna URL y no digas que se lo enviarás: ofrécele los medios de «medios» '
                     . 'y, si insiste con la tarjeta, llama a escalar_al_equipo.',
         ];
+    }
+
+    /**
+     * Días completos que faltan para la llegada. 0 el mismo día, `null` si no se sabe.
+     *
+     * Se compara **por fecha, no por hora**: «el día de la llegada» es un día entero, y a las
+     * nueve de la mañana el huésped ya está de camino. Usar la hora haría que un medio
+     * apareciera y desapareciera a lo largo del mismo día, que es imposible de explicar.
+     */
+    private function diasHastaLlegada(PmsReserva $reserva): ?int
+    {
+        $llegada = $reserva->getFechaLlegada();
+
+        if ($llegada === null) {
+            return null;
+        }
+
+        $hoy = new DateTimeImmutable('today');
+        $dia = DateTimeImmutable::createFromInterface($llegada)->setTime(0, 0);
+
+        // Ya llegó o está dentro: no queda margen para nada que tarde.
+        return max(0, (int) $hoy->diff($dia)->format('%r%a'));
     }
 
     /**

@@ -100,6 +100,25 @@ class FinMedioCobro
     private FinAudienciaCobro $audiencia = FinAudienciaCobro::TODOS;
 
     /**
+     * Días MÍNIMOS que tienen que faltar para la llegada para poder ofrecer este medio.
+     *
+     * `null` = sirve siempre, que es el caso de casi todos.
+     *
+     * Existe por **Western Union**: tarda, así que ofrecérselo a alguien que llega mañana —o
+     * que ya está en la puerta— es darle una salida que no existe. Y ése es el peor tipo de
+     * respuesta: parece útil y se descubre inútil cuando ya no hay tiempo.
+     *
+     * La audiencia dice **a quién** se le ofrece; esto, **cuándo**. Son dos ejes distintos y
+     * por eso son dos campos: Western Union es `internacional` Y necesita margen; el efectivo
+     * es de `todos` y no necesita ninguno.
+     *
+     * ⚠️ Va aquí, en el medio, y no en las skills: el catálogo lo consultan el agente, la app
+     * del huésped y las cotizaciones. Puesto en un solo sitio, los tres se corrigen a la vez.
+     */
+    #[ORM\Column(name: 'dias_minimos', type: 'smallint', nullable: true)]
+    private ?int $diasMinimos = null;
+
+    /**
      * La aclaración que acompaña al número: «cobro en tienda», «mándanos la captura».
      *
      * Va traducida —y no en español a secas como el resto de textos que ve el modelo— porque
@@ -143,6 +162,21 @@ class FinMedioCobro
 
     public function getMoneda(): ?string { return $this->moneda; }
     public function setMoneda(?string $moneda): self { $this->moneda = $moneda !== null ? strtoupper(trim($moneda)) : null; return $this; }
+
+    public function getDiasMinimos(): ?int { return $this->diasMinimos; }
+    public function setDiasMinimos(?int $dias): self { $this->diasMinimos = $dias; return $this; }
+
+    /**
+     * ¿Llega a tiempo este medio?
+     *
+     * `$dias` a `null` significa «no se sabe cuándo llega» —una cotización sin fechas, un chat
+     * sin reserva—: entonces pasan todos, igual que hace la audiencia cuando no sabe de dónde
+     * paga. Esconder una opción por no saber es peor que ofrecerla de más.
+     */
+    public function llegaATiempo(?int $dias): bool
+    {
+        return $this->diasMinimos === null || $dias === null || $dias >= $this->diasMinimos;
+    }
 
     public function getAudiencia(): FinAudienciaCobro { return $this->audiencia; }
     public function setAudiencia(FinAudienciaCobro $audiencia): self { $this->audiencia = $audiencia; return $this; }

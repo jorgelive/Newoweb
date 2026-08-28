@@ -1015,6 +1015,44 @@ igualmente**: el cobro existió y hay que poder verlo. La ficha lo dice en vez d
 
 ---
 
+### 11 bis.3 Qué medios se ofrecen: **a quién** y **cuándo**
+
+El catálogo (`FinMedioCobroRepository::ofrecibles()`) filtra por dos ejes, y son dos porque
+responden a preguntas distintas:
+
+| Eje | Campo | Lo decide |
+|---|---|---|
+| **A quién** | `audiencia` (todos / peru / internacional) | `PmsProcedenciaHuesped::pagaDesdePeru()` |
+| **Cuándo** | `diasMinimos` | Los días que faltan para la llegada |
+
+`diasMinimos` existe por **Western Union**, que hoy vale **2**: se ofrece mientras falten dos
+días o más y desaparece el día antes y el mismo día. Ofrecérselo a alguien que llega mañana es
+darle una salida que no existe — y es el peor tipo de respuesta, la que parece útil y se
+descubre inútil cuando ya no queda tiempo.
+
+Resultado, medido sobre los medios reales:
+
+```
+internacional · faltan 5 días  →  western_union, efectivo
+internacional · falta 1 día    →  efectivo              ← WU se retira solo
+peruano       · el mismo día   →  yape, plin, transferencias, efectivo
+```
+
+⚠️ **`null` en cualquiera de los dos ejes = no se esconde nada.** Sin saber de dónde paga, o sin
+fecha de llegada (una cotización a medio hacer), pasan todos: esconder una opción por no saber
+es peor que ofrecerla de más.
+
+⚠️ **Se compara por FECHA, no por hora.** «El día de la llegada» es un día entero: a las nueve
+de la mañana el huésped ya está de camino. Con la hora, un medio aparecería y desaparecería a lo
+largo del mismo día, que es imposible de explicar a nadie.
+
+**Y el filtro vive en el catálogo, no en las skills**, porque lo consultan tres sitios —el
+agente (`ConsultarMediosPagoSkill`), la app del huésped (`PmsGuiaHuespedProvider`) y las
+cotizaciones—. Puesto abajo, los tres se corrigen a la vez; puesto arriba, habría tres reglas
+que un día dirán cosas distintas.
+
+---
+
 ### 11 ter. El aviso de cobro al equipo
 
 Hasta ahora **un cobro no avisaba a nadie**: se enteraba quien mirase el panel de la reserva —el

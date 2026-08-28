@@ -6,6 +6,7 @@ namespace App\Api\Provider\Pms;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use DateTimeImmutable;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsGuia;
 use App\Pms\Entity\PmsReserva;
@@ -100,7 +101,7 @@ final class PmsGuiaHuespedProvider implements ProviderInterface
             // chat — si cada uno dedujera por su cuenta, la pantalla y el asistente acabarían
             // ofreciendo cuentas distintas al mismo huésped.
             ->setMediosPagoParaCliente(
-                $this->mediosPago($this->procedencia->pagaDesdePeru($reserva))
+                $this->mediosPago($this->procedencia->pagaDesdePeru($reserva), $this->diasHastaLlegada($reserva))
             )
             ->setAccesoParaCliente($acceso);
     }
@@ -117,13 +118,35 @@ final class PmsGuiaHuespedProvider implements ProviderInterface
      * obligaría al backend a saber en qué idioma está mirando el huésped ahora mismo, que es
      * algo que cambia con un clic y sin recargar.
      *
-     * @return array<int, array<string, mixed>>
      */
-    private function mediosPago(?bool $desdePeru): array
+    /**
+     * Días completos hasta la llegada. 0 el mismo día, `null` si no hay fecha.
+     *
+     * Espejo de `ConsultarMediosPagoSkill::diasHastaLlegada()`: se compara por FECHA y no por
+     * hora, para que un medio no aparezca y desaparezca a lo largo del mismo día.
+     */
+    private function diasHastaLlegada(PmsReserva $reserva): ?int
+    {
+        $llegada = $reserva->getFechaLlegada();
+
+        if ($llegada === null) {
+            return null;
+        }
+
+        return max(0, (int) (new DateTimeImmutable('today'))
+            ->diff(DateTimeImmutable::createFromInterface($llegada)->setTime(0, 0))
+            ->format('%r%a'));
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function mediosPago(?bool $desdePeru, ?int $dias): array
     {
         $filas = [];
 
-        foreach ($this->mediosCobro->ofrecibles($desdePeru) as $medio) {
+        // Los días retiran lo que ya no da tiempo (Western Union). Mismo criterio que el
+        // agente: si la app le enseña un medio que no llega, la contradicción la descubre el
+        // huésped cuando ya no puede reaccionar.
+        foreach ($this->mediosCobro->ofrecibles($desdePeru, $dias) as $medio) {
             $filas[] = array_filter([
                 'tipo' => $medio->getTipo()->value,
                 'medio' => $medio->getTipo()->label(),
