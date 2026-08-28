@@ -117,6 +117,21 @@ final readonly class PmsSituacionDeCobroResolver
         }
 
         // ── 4 · PAGOS ───────────────────────────────────────────────────────
+        //
+        // ⚠️ El cruce de monedas va ANTES que todo lo demás de esta etapa, y lo encontró
+        // ejecutar el read-model contra producción: GASUNN tiene cargos en USD y un Yape de
+        // S/ 223.70 **sin imputar**. Sumando cada moneda por su lado, `quedaAlgoPorCobrar()`
+        // dice que sí —los dólares siguen sin pagar— y `haySaldoAFavor()` dice que no
+        // —el cuadre convertido sale a cero—. O sea que sin esta guarda se le pedía el total
+        // a alguien que ya había pagado.
+        //
+        // No es un caso degradado: es lo que pasa cada vez que alguien paga en soles una
+        // deuda en dólares y nadie ha pulsado «imputar». Lo arregla un humano en un clic
+        // (§12.2b); hasta entonces, callar es la única respuesta honesta.
+        if ($totales->hayCruceDeMonedas()) {
+            return $this->nada(PmsMotivoSinCobro::CRUCE_DE_MONEDAS, $paraHuesped);
+        }
+
         if ($totales->haySaldoAFavor()) {
             return $this->nada(PmsMotivoSinCobro::SALDO_A_FAVOR, $paraHuesped);
         }

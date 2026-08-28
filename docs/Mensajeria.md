@@ -10110,5 +10110,25 @@ producción, que es donde están los casos raros.
   siguen componiendo por su cuenta. El read-model existe, la sustitución no está hecha.
 - **`cobraPorNosotros` sigue siendo la constante** `PmsChannel::CANAL_PAGO_TOTAL`, aislada en
   un método del resolver para que el día que sea columna haya un solo sitio que tocar.
-- Las ramas de **dos monedas** y **cancelada con penalización** están escritas y sin
-  ejercitar: no hay ningún caso así en local.
+- La rama de **cancelada con penalización** está escrita y sin ejercitar: no hay ningún caso
+  así ni en local ni en las 60 reservas de producción que se revisaron.
+
+### ⚠️ El cruce de monedas, que sólo apareció al correrlo en producción
+
+`CRUCE_DE_MONEDAS` no estaba en el diseño: lo encontró `pms:situacion-cobro` contra datos
+reales. La reserva **GASUNN** tiene cargos por US$ 66.17 y un Yape de **S/ 223.70 sin
+imputar**, y las dos guardas de la etapa 4 la dejaban pasar:
+
+- `quedaAlgoPorCobrar()` dice **sí** — los dólares siguen sin pagar.
+- `haySaldoAFavor()` dice **no** — el cuadre convertido sale a cero.
+
+Resultado: el read-model le pedía **el total a alguien que ya había pagado**. No es un caso
+degradado; es lo que pasa cada vez que alguien paga en soles una deuda en dólares y nadie ha
+pulsado «imputar».
+
+La guarda usa `hayCruceDeMonedas()`, que existía justo para esto, y va **antes** que el resto
+de la etapa 4. Lo resuelve un humano en un clic (§12.2b); hasta entonces **callar es la única
+respuesta honesta**.
+
+> La lección para el resto del pipeline: dos condiciones que por separado dan la respuesta
+> correcta pueden dar juntas la equivocada. Ninguna de las dos estaba mal.
