@@ -117,7 +117,14 @@ export interface PmsSituacionDeCobro {
             numero?: string;
             cci?: string;
             moneda?: string;
-            nota?: string;
+            /**
+             * El array i18n crudo, que traduce `maestroStore.traducir()`.
+             *
+             * No llega resuelto del servidor a propósito: el idioma de la tarjeta lo pone el
+             * selector del huésped, no el `idioma` que se dedujo al crear la reserva —hay
+             * reservas con uno y otro distintos—. Mismo trato que la guía le da a esta nota.
+             */
+            nota?: PmsContenidoTraducible[];
         }[]>;
     }[];
 }

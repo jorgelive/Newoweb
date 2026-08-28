@@ -272,9 +272,14 @@ const titularComun = computed(() => {
  * izquierda y a lo ancho, en vez de tres renglones estrechos junto a un importe.
  */
 const notaComun = computed(() => {
-    const notas = new Set(fichasDelAbierto.value.map(f => f.nota ?? ''));
+    // Se traduce AQUÍ y no en el servidor: el idioma lo manda el selector de la ficha, no el
+    // `idioma` que se dedujo al crear la reserva. Hay reservas con `en` guardado que se están
+    // leyendo en castellano, y resolverlo en PHP metería un párrafo en inglés en una tarjeta
+    // española. Es lo mismo que hace la guía con esta misma nota.
+    const textos = fichasDelAbierto.value.map(f => maestroStore.traducir(f.nota));
+    const distintos = new Set(textos);
 
-    return notas.size === 1 ? (fichasDelAbierto.value[0]?.nota ?? null) : null;
+    return distintos.size === 1 && textos[0] ? textos[0] : null;
 });
 
 /** El nombre del medio abierto, traducido. */
@@ -916,7 +921,7 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                     {{ f.titular }}
                   </span>
                   <span v-if="!notaComun && f.nota" class="block text-[11px] font-medium text-slate-500 leading-snug">
-                    {{ f.nota }}
+                    {{ maestroStore.traducir(f.nota) }}
                   </span>
                 </span>
               </div>

@@ -2242,15 +2242,21 @@ Las compone `PmsReservaPaxProvider::conFichas()`, que cruza por código los grup
   monedas. Por eso es una lista, y por eso el cuadro se pinta en filas de una línea con el
   titular dicho **una sola vez** al pie (`titularComun`): repetido ocho veces convierte el
   desplegable en una pared.
-- **La nota va en el idioma del huésped**, y se pinta a lo ancho al pie del cuadro —no en la
-  columna estrecha de los números—, después del nombre: es el orden en que se rellena el
-  formulario de un giro. En Western Union es la línea que evita mandar el dinero por una vía
-  que no podemos cobrar, así que no va en gris de pie de página. Ver `docs/FinanzasEnlacesPago.md` §14.2c.
-- ⚠️ **`getNotaEn($idioma)`, nunca `getNotaEsVisual()`.** El segundo es un getter señuelo para
-  que EasyAdmin encuentre la propiedad en el listado y **siempre devuelve cadena vacía** —quien
-  pinta la celda es el `formatValue()` del CRUD—. Usarlo aquí filtraba la nota entera sin dar un
-  solo error: el huésped de Western Union veía un nombre y una ciudad, y ninguna instrucción. Es
-  la trampa de «un atributo mal puesto no falla, deja de hacer su trabajo», con un getter.
+- **La nota se pinta a lo ancho al pie del cuadro** —no en la columna estrecha de los
+  números—, después del nombre: es el orden en que se rellena el formulario de un giro. En
+  Western Union es la línea que evita mandar el dinero por una vía que no podemos cobrar, así
+  que no va en gris de pie de página. Ver `docs/FinanzasEnlacesPago.md` §14.2c.
+- ⚠️ **La nota viaja como ARRAY i18n y la traduce el cliente** (`maestroStore.traducir()`),
+  igual que `PmsGuiaHuespedProvider::mediosPago()` hace con esta misma nota. Resolverla en PHP
+  con `getNotaEn($reserva->getIdioma())` parece más limpio y **da el idioma equivocado**: ese
+  campo es el que se dedujo al crear la reserva, y la tarjeta se pinta en el que el huésped
+  eligió en el selector. Hay reservas con `idioma = en` que se leen en castellano; resuelta en
+  servidor, esa tarjeta saldría en español con un párrafo en inglés dentro.
+- ⚠️ **Y nunca `getNotaEsVisual()`.** Es un getter señuelo para que EasyAdmin encuentre la
+  propiedad en el listado y **siempre devuelve cadena vacía** —quien pinta la celda es el
+  `formatValue()` del CRUD—. Usarlo filtraba la nota entera sin dar un solo error: el huésped de
+  Western Union veía un nombre y una ciudad, y ninguna instrucción. Es la trampa de «un atributo
+  mal puesto no falla, deja de hacer su trabajo», con un getter.
 - **`tabular-nums` sólo si hay dígitos.** Western Union no tiene cuenta: su «número» es el
   destino del giro —«Cusco, Perú»—, y en cifras monoespaciadas se lee como un código que copiar.
 - **El titular alterno sólo sale si aporta.** Casi siempre es el mismo nombre sin tildes
