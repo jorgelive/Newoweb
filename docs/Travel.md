@@ -1622,6 +1622,88 @@ otro nombre tres componentes más allá. Conviene barrer de vez en cuando agrupa
 normalizado (sin mayúsculas, acentos ni símbolos) y por título público repetido; el barrido del
 27/08/2026 encontró además once tarifas con el mismo nombre y títulos distintos.
 
+## 11.quater Actividades de resort: el segmento es genérico, la tarifa sabe de qué hotel (28/08/2026)
+
+Es la cara de catálogo de `docs/Cotizaciones.md` §6.t, y el caso donde el patrón se ve entero.
+
+### El reparto
+
+Un desayuno buffet se cuenta igual en Punta Cana que en Cancún. Lo que cambia entre un resort
+y otro **no es el texto: es la foto**. Así que:
+
+```
+  segmento genérico   ──►  componente genérico  ──►  tarifa POR RESORT  ──►  servicio del
+  «Piscina y playa»        «Piscina y playa»         Occidental: 0 USD       prestador (fotos)
+  slug sin el destino      uno solo, reutilizado     una por hotel           donde se sube todo
+```
+
+**Ni el segmento ni el componente llevan el destino en el nombre ni en el slug.** El slug es
+`ACT-RESORT-PISCINA_PLAYA`, no `ACT-PUJ_RESORT-PISCINA_PLAYA`: meterle `PUJ` ataría a Punta Cana
+una ficha que sirve para cualquier resort, y obligaría a duplicarla en el segundo destino — que es
+justo lo que este reparto evita.
+
+**Añadir el resort número dos no crea ningún segmento.** Crea su organización, sus servicios con
+sus fotos, y una tarifa más colgando de los mismos doce componentes.
+
+### ⚠️ `visibleParaCliente` de la organización es lo que enciende las fotos
+
+`cotizacionEditorStore.ts` siembra `prestadorVisible` del componente desde
+`TravelOrganizacion::isVisibleParaCliente()`, y el normalizer público **sólo inyecta las imágenes
+si ese flag está puesto**. Un resort con fotos cargadas y la organización sin marcar visible sale
+sin ninguna, y no da error en ningún sitio.
+
+Es el primer sitio donde mirar cuando «las fotos no salen».
+
+### Siete servicios de prestador para doce tarifas, y es a propósito
+
+Varias tarifas comparten el mismo servicio del prestador:
+
+| Servicio del prestador | Lo usan |
+|---|---|
+| Lobby y recepción | los dos check-in y los dos check-out |
+| Restaurante buffet | desayuno, almuerzo y cena buffet |
+| Restaurantes temáticos | cena temática |
+| Piscinas y playa | piscina y playa |
+| Actividades y deportes | actividades recreativas |
+| Espectáculos nocturnos | espectáculo nocturno |
+| El resort | día libre (resumen) |
+
+El motivo es doble. **Subir fotos es trabajo manual**, y con un servicio por actividad habría que
+subir el lobby cuatro veces; esas cuatro copias se separan con el tiempo y nadie se entera. Y
+**la guía las enseñaría una sola vez igualmente**, porque `galeriaPorBloque` deduplica por foto: las
+copias serían trabajo invisible.
+
+Si algún día un desayuno merece foto propia, se crea su servicio y se repunta esa tarifa. Partir es
+barato; unificar cuatro copias divergentes, no.
+
+### El servicio contenedor no tiene itinerario
+
+`ACT_RESORT` («Actividades en resort») expone sus doce segmentos y doce componentes por los
+**pools** —`travel_segmento_servicio_pool` y `travel_servicio_componentes_pool`— y no define ningún
+`TravelItinerario`. Es el mismo patrón de `ALO`, `TRF_CUZ` y `VUELO`: un repertorio del que se toma
+lo que haga falta, en vez de una plantilla fija.
+
+Encaja con cómo se arma un resort: el primer día lleva check-in y la secuencia completa de
+actividades; los días siguientes, un solo segmento de día libre.
+
+### La tarifa va sin ningún filtro
+
+`procedencia`, `edadMinima/Maxima` y `capacidadMinima/Maxima` quedan en `null`, y el monto en 0: son
+actividades incluidas en el todo incluido, no se venden ni se restringen. El único dato que la
+tarifa aporta es **a qué hotel pertenece esta versión de la actividad**.
+
+### El comando
+
+`app:travel:crear-actividades-resort` (con `--dry-run`). Idempotente por clave natural —slug de
+segmento, nombre comercial de la organización, nombre del servicio—, así que repetirlo no duplica.
+
+Va por comando y no por migración porque `titulo` y `contenido` llevan `#[AutoTranslate]`: un
+`INSERT` en SQL se salta el listener y dejaría las fichas sólo en español.
+
+Para el segundo resort **no vale re-ejecutarlo tal cual**: hoy la organización está en una
+constante. Hay que parametrizarla (una opción `--organizacion`) y saltarse la creación de segmentos,
+que ya existirán — el comando ya los detecta y los informa como «ya existe».
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
