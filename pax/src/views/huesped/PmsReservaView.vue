@@ -409,30 +409,24 @@ const CUENTA_DETALLE = 'detalle';
 const cuentaRef = ref<HTMLElement | null>(null);
 
 /**
- * TRES estados, no dos, y el orden es el de la atención del huésped:
+ * DOS estados, no tres: el resumen se ve **siempre** y el detalle se despliega.
  *
- *   cerrado            sólo la barra de progreso — «¿voy bien?»
- *   + cuentaAbierta    el RESUMEN: cuánto y por qué medios
- *   + detalleAbierto   el DETALLE: de qué se compone
+ * Hubo un peldaño intermedio —la tarjeta cerrada enseñando sólo la barra— que tenía sentido
+ * cuando el «resumen» era el desglose entero y en móvil empujaba las unidades fuera de
+ * pantalla. Al comprimirlo a un cuadro de tres renglones dejó de tenerlo: esconder detrás de
+ * un botón lo único que pide una acción era esconderla por costumbre. Y quedaban **dos
+ * toggles seguidos** —«Ver detalle» y «Mostrar menos»—, que es una pregunta de más para la
+ * misma acción.
  *
- * Lo que cambia entre resumen y detalle son los **subtotales**: el resumen da una cifra
- * por opción ejecutable; el detalle la abre en cargos, pagos, tipo de cambio y comisión.
- *
- * ⚠️ El resumen va DENTRO del primer plegable, no fuera. Estuvo fuera un rato y rompía lo
- * que la tarjeta hacía bien: cerrada enseñaba sólo la barra, y en móvil eso es lo que
- * impide que la cuenta empuje las unidades fuera de pantalla.
+ * Queda uno. Lo que cambia entre resumen y detalle son los **subtotales**: el resumen da una
+ * cifra por precio; el detalle la abre en cargos, pagos, tipo de cambio y comisión.
  */
-// Abierto POR DEFECTO. Estuvo cerrado mientras el resumen era el desglose entero y en móvil
-// empujaba las unidades fuera de pantalla; ahora son un cuadro y una línea, así que esconder
-// lo único que pide una acción sería esconderla por costumbre. El DETALLE sigue cerrado.
-const cuentaAbierta = ref(true);
 const detalleCuentaAbierto = ref(route.hash === '#' + CUENTA_DETALLE);
 
 /** El hash manda al entrar: es lo que permite enlazar directamente a uno de los dos. */
 watch(() => route.hash, (h) => {
     if (h !== '#' + CUENTA_RESUMEN && h !== '#' + CUENTA_DETALLE) return;
 
-    cuentaAbierta.value = true;
     detalleCuentaAbierto.value = h === '#' + CUENTA_DETALLE;
     void enfocarCuenta();
 });
@@ -448,18 +442,7 @@ async function enfocarCuenta(): Promise<void> {
     cuentaRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-/** Abre o cierra el RESUMEN. Al cerrarlo se cierra también el detalle: no queda colgando. */
-function verResumen(abrir: boolean): void {
-    cuentaAbierta.value = abrir;
-
-    if (!abrir) {
-        detalleCuentaAbierto.value = false;
-    }
-
-    void router.replace({ hash: abrir ? '#' + CUENTA_RESUMEN : '' });
-}
-
-/** Abre o cierra el DETALLE, que vive dentro del resumen. */
+/** Abre o cierra el DETALLE, el único plegable que queda. */
 function verDetalle(abrir: boolean): void {
     detalleCuentaAbierto.value = abrir;
     void router.replace({ hash: '#' + (abrir ? CUENTA_DETALLE : CUENTA_RESUMEN) });
@@ -706,13 +689,16 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                La experiencia es la que manda aquí: a la mayoría le abruma el cálculo y
                sólo quiere saber cuánto y por dónde. Quien pide el porqué es minoría, y
                para ésos está el toggle. -->
-          <div v-if="situacion?.hayAlgoQuePedir && cuentaAbierta" class="mt-5">
+          <div v-if="situacion?.hayAlgoQuePedir" class="mt-4">
 
             <!-- ═══ EL CUADRO: qué se pide, a cuánto, y por dónde ═══
                  Es el CTA principal y por eso es un enlace, no un párrafo: lo que el huésped
-                 quiere hacer con esta cifra es pagarla. Lleva dentro los medios con los que
-                 ese importe vale —los que el catálogo ofrece según su perfil y lo que falta
-                 para su llegada—, porque el precio y el «por dónde» son la misma decisión.
+                 quiere hacer con esta cifra es pagarla.
+
+                 En DOS COLUMNAS y no apilado: el rótulo es largo —«Adelanto para asegurar tu
+                 reserva»— y debajo del importe partía la tarjeta en cinco renglones. Con el
+                 texto a la izquierda y la cifra a la derecha son tres, y el ojo encuentra el
+                 número donde ya lo busca en cualquier factura.
 
                  La tarjeta NO está aquí: cuesta otra cosa, y mezclarla obligaría a leer dos
                  cifras dentro del mismo cuadro. Va fuera, con su asterisco. -->
@@ -721,38 +707,42 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                 v-bind="enlaceDelImporte
                   ? { to: { name: 'pago_enlace', params: { token: enlaceDelImporte.token } } }
                   : {}"
-                class="block rounded-2xl border border-[#376875]/25 bg-[#376875]/5 px-4 py-3.5 transition-colors"
+                class="flex items-center justify-between gap-3 rounded-2xl border border-[#376875]/25 bg-[#376875]/5 px-4 py-3 transition-colors"
                 :class="enlaceDelImporte ? 'hover:bg-[#376875]/10 active:scale-[0.99]' : ''"
             >
-              <div class="flex items-baseline justify-between gap-3">
-                <span class="text-[11px] font-black uppercase tracking-widest text-[#376875]">
+              <span class="min-w-0">
+                <span class="block text-[11px] font-black uppercase tracking-widest text-[#376875] leading-tight">
                   {{ situacion.queSePide === 'ADELANTO'
                     ? (maestroStore.t('res_pide_adelanto') || 'Adelanto para asegurar tu reserva')
                     : (maestroStore.t('res_pide_total') || 'Total a pagar') }}
                 </span>
-                <i v-if="enlaceDelImporte" class="fas fa-arrow-right text-[11px] text-[#376875]/60 shrink-0"></i>
-              </div>
 
-              <!-- Un bloque POR MONEDA. Con una sola —lo normal— se lee igual; con dos, cada
-                   una dice lo suyo y NO se suman: el huésped debe en las dos. -->
-              <p v-for="imp in situacion.importes" :key="imp.moneda"
-                 class="mt-1 text-2xl font-black tabular-nums text-gray-900 leading-none">
-                {{ imp.simbolo || imp.moneda }} {{ imp.importe }}
-                <span v-if="imp.enSoles" class="ml-1 text-sm font-bold text-slate-400">
-                  (S/ {{ imp.enSoles }})
+                <!-- Con qué medios vale ESE importe. En una línea, no en lista: son
+                     alternativas del mismo precio, no opciones que comparar. -->
+                <span v-if="mediosSinTarjeta" class="mt-0.5 block text-[12px] font-bold text-slate-500 leading-snug">
+                  {{ mediosSinTarjeta }}
                 </span>
-              </p>
 
-              <!-- Con qué medios vale ESE importe. Enumerados en una línea, no en una lista:
-                   son alternativas del mismo precio, no opciones que comparar. -->
-              <p v-if="mediosSinTarjeta" class="mt-1.5 text-[12px] font-bold text-slate-500 leading-snug">
-                {{ mediosSinTarjeta }}
-              </p>
+                <span v-if="situacion.queSePide === 'ADELANTO' && finanzas?.prepago"
+                      class="block text-[11px] font-medium text-slate-400 leading-snug">
+                  {{ maestroStore.t(finanzas.prepago.claveI18n) }}
+                </span>
+              </span>
 
-              <p v-if="situacion.queSePide === 'ADELANTO' && finanzas?.prepago"
-                 class="mt-1 text-[11px] font-medium text-slate-400 leading-snug">
-                {{ maestroStore.t(finanzas.prepago.claveI18n) }}
-              </p>
+              <!-- Un bloque POR MONEDA. Con una sola —lo normal— es una cifra; con dos, cada
+                   una dice lo suyo y NO se suman: el huésped debe en las dos. -->
+              <span class="shrink-0 flex items-center gap-2 text-right">
+                <span>
+                  <span v-for="imp in situacion.importes" :key="imp.moneda"
+                        class="block text-lg font-black tabular-nums text-gray-900 leading-none">
+                    {{ imp.simbolo || imp.moneda }} {{ imp.importe }}
+                    <span v-if="imp.enSoles" class="block mt-0.5 text-[11px] font-bold text-slate-400">
+                      S/ {{ imp.enSoles }}
+                    </span>
+                  </span>
+                </span>
+                <i v-if="enlaceDelImporte" class="fas fa-arrow-right text-[11px] text-[#376875]/60"></i>
+              </span>
             </component>
 
             <!-- ═══ LA TARJETA, FUERA DEL CUADRO ═══
@@ -772,34 +762,15 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                 </span>
               </p>
 
-              <!-- 25 % del ancho: es la acción cara, y darle el mismo peso que al cuadro
-                   empujaría a pagar de más a quien podía transferir. -->
-              <!-- Mismo cuerpo de letra que el banner naranja que había arriba
-                   (`text-[13px] font-black uppercase tracking-wider`): al quedarse solo,
-                   este botón es la acción principal de la tarjeta y tenía que pesar igual.
-                   Lo que cambia es el ANCHO —un cuarto—, no la tipografía: sigue siendo la
-                   opción cara y no debe competir en superficie con el cuadro. -->
+              <!-- Compacto a propósito: es la acción CARA. Tiene que verse y poder pulsarse
+                   —de ahí el color y el peso— pero no ganarle superficie al cuadro, o empuja
+                   a pagar de más a quien podía transferir. -->
               <router-link v-if="enlaceDelImporte"
                   :to="{ name: 'pago_enlace', params: { token: enlaceDelImporte.token } }"
-                  class="w-1/4 shrink-0 rounded-2xl bg-[#E07845] px-2 py-3 text-center text-[13px] font-black uppercase tracking-wider leading-tight text-white shadow-lg shadow-orange-100 transition-all hover:bg-[#D06535] active:scale-[0.98]">
+                  class="shrink-0 rounded-xl bg-[#E07845] px-3 py-2 text-center text-[12px] font-black uppercase tracking-wide leading-tight text-white shadow-md shadow-orange-100 transition-all hover:bg-[#D06535] active:scale-[0.98]">
                 {{ maestroStore.t('res_pagar_online') || 'Pagar ahora' }}
               </router-link>
             </div>
-
-            <!-- El segundo peldaño. Va aquí, pegado a las cifras que abre, y no al pie de la
-                 tarjeta: lo que despliega es el porqué de estos números. -->
-            <button
-                type="button"
-                @click="verDetalle(!detalleCuentaAbierto)"
-                :aria-expanded="detalleCuentaAbierto"
-                class="mt-3 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-[#376875]/70 hover:text-[#376875] transition-colors"
-            >
-              {{ detalleCuentaAbierto
-                ? (maestroStore.t('res_ocultar_detalle') || 'Ocultar detalle')
-                : (maestroStore.t('res_ver_detalle') || 'Ver detalle') }}
-              <i class="fas fa-chevron-down text-[9px] transition-transform duration-300"
-                 :class="{ 'rotate-180': detalleCuentaAbierto }"></i>
-            </button>
           </div>
 
           <!-- ═══ DETALLE PLEGABLE ═══
@@ -807,7 +778,7 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                antemano (lo que `max-height` obliga a adivinar y recortaría el
                contenido si crece). El hijo necesita overflow-hidden para que el
                recorte ocurra durante la transición. -->
-          <div v-if="!soloProgreso && cuentaAbierta"
+          <div v-if="!soloProgreso"
                class="grid transition-[grid-template-rows] duration-500 ease-in-out"
                :class="detalleCuentaAbierto ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
             <div class="overflow-hidden">
@@ -912,32 +883,24 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
           </div>
           <!-- ═══ FIN DETALLE PLEGABLE ═══ -->
 
-          <!-- ═══ LOS DOS PELDAÑOS ═══
-               Cerrada, la tarjeta enseña sólo la barra: en móvil es lo que impide que la
-               cuenta empuje las unidades fuera de pantalla, y responde de un vistazo a la
-               única pregunta que casi todos se hacen — «¿voy bien?».
-
-               El primer botón abre el RESUMEN (cuánto y por qué medios). El segundo, ya
-               dentro, abre el DETALLE. Lo que cambia entre uno y otro son los subtotales:
-               el resumen da una cifra por opción; el detalle la abre en cargos, pagos,
-               tipo de cambio y comisión.
-
-               El de detalle sólo existe con el resumen abierto: un botón que despliega algo
-               que está escondido dentro de otra cosa cerrada no se entiende.
+          <!-- ═══ VER DETALLE ═══
+               El único plegable. Hubo dos botones seguidos —«Ver detalle» dentro del resumen
+               y «Mostrar menos» al pie— y era una pregunta de más para la misma acción. Se
+               queda el del pie, que es donde el ojo ya miraba.
 
                `soloProgreso` (Airbnb sin extras) no enseña cifras: no hay nada que abrir. -->
           <button
               v-if="!soloProgreso"
               type="button"
-              @click="verResumen(!cuentaAbierta)"
-              :aria-expanded="cuentaAbierta"
+              @click="verDetalle(!detalleCuentaAbierto)"
+              :aria-expanded="detalleCuentaAbierto"
               class="w-full mt-3 pt-2.5 -mb-1 border-t border-slate-100 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#376875]/70 hover:text-[#376875] transition-colors"
           >
-            {{ cuentaAbierta
-              ? (maestroStore.t('res_ver_menos') || 'Ocultar')
-              : (maestroStore.t('res_ver_mas') || 'Ver mi cuenta') }}
+            {{ detalleCuentaAbierto
+              ? (maestroStore.t('res_ocultar_detalle') || 'Ocultar detalle')
+              : (maestroStore.t('res_ver_detalle') || 'Ver detalle') }}
             <i class="fas fa-chevron-down transition-transform duration-300"
-               :class="{ 'rotate-180': cuentaAbierta }"></i>
+               :class="{ 'rotate-180': detalleCuentaAbierto }"></i>
           </button>
         </div>
       </section>
