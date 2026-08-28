@@ -939,6 +939,18 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
               <p v-if="notaComun" class="mt-2 border-t border-slate-100 pt-1.5 text-[11px] font-medium text-slate-600 leading-snug">
                 {{ notaComun }}
               </p>
+
+              <!-- Y lo último, porque es lo último que hace: avisarnos. El texto depende del
+                   CANAL —el chat de Booking no admite imágenes— y por eso lo elige el backend
+                   y no vive en la nota del medio: metido ahí, a un huésped de una reserva
+                   directa se le hablaba del chat de una plataforma por la que no vino.
+
+                   Sólo aquí dentro: todos los medios con ficha son los que se ejecutan a
+                   distancia, que son justo los que hay que confirmar. Al efectivo y a la
+                   tarjeta no les hace falta, y no tienen ficha. -->
+              <p v-if="situacion?.avisoPago" class="mt-2 text-[11px] font-medium text-slate-400 leading-snug">
+                {{ maestroStore.t(situacion.avisoPago) }}
+              </p>
             </div>
 
             <!-- ═══ LA TARJETA, FUERA DEL CUADRO ═══

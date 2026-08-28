@@ -134,6 +134,14 @@ export interface PmsSituacionDeCobro {
             nota?: PmsContenidoTraducible[];
         }[]>;
     }[];
+    /**
+     * Clave i18n del aviso de «ya pagué»: `res_aviso_pago` o `res_aviso_pago_sin_imagenes`.
+     *
+     * La elige el provider según el canal de la reserva —el chat de Booking no transporta
+     * imágenes, el resto sí— y la resuelve `maestroStore.t()`. Va aquí y no en la nota de cada
+     * medio porque no es del medio: es del canal. Ver `PmsChannel::CHAT_SIN_IMAGENES`.
+     */
+    avisoPago: string;
 }
 
 export interface PmsResumenFinanciero {

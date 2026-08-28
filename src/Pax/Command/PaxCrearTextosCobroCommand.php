@@ -73,6 +73,14 @@ final class PaxCrearTextosCobroCommand extends Command
         // cierre tiene que ser un botón, y un botón necesita nombre para el lector de
         // pantalla aunque sólo se vea un aspa.
         'res_cerrar' => 'Cerrar',
+
+        // Cómo avisarnos de que ya pagó. Son DOS y no una porque el chat de Booking no
+        // transporta imágenes y el resto sí: la variante la elige `PmsReservaPaxProvider`
+        // según el canal de la reserva, no el texto. Estuvo metido dentro de las notas de Yape
+        // y Plin del catálogo de cobro, y así se le hablaba del chat de Booking a huéspedes de
+        // reservas directas. Ver `PmsChannel::CHAT_SIN_IMAGENES`.
+        'res_aviso_pago' => 'Avísanos por este chat cuando lo hayas hecho y el equipo lo confirma. Si quieres, mándanos la captura.',
+        'res_aviso_pago_sin_imagenes' => 'Avísanos por este chat cuando lo hayas hecho y el equipo lo confirma. Si quieres mandarnos la captura, hazlo por WhatsApp: este chat no admite imágenes.',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

@@ -52,6 +52,26 @@ class PmsChannel
      */
     public const array ORIGENES_PROPIOS = [self::CODIGO_DIRECTO, 'manual', 'web', ''];
 
+    /**
+     * Canales cuyo chat NO acepta imágenes.
+     *
+     * Booking transporta sólo texto, así que a un huésped suyo hay que decirle que la captura
+     * del pago la mande por WhatsApp. Es un dato del CANAL, y por eso vive aquí y no en
+     * `FinMedioCobro`: el catálogo de cobro lo comparten el PMS y las cotizaciones, y no tiene
+     * por qué saber qué es Booking. Estuvo metido dentro de las notas de Yape y Plin, y el
+     * resultado era que a un huésped que había reservado **directo** se le hablaba del chat de
+     * una plataforma por la que no vino.
+     *
+     * Airbnb no está: su chat sí admite imágenes. Se enumera lo que falla, no lo que funciona.
+     */
+    public const array CHAT_SIN_IMAGENES = [self::CODIGO_BOOKING];
+
+    /** ¿Se le puede mandar una captura por el chat de este canal? */
+    public function chatAdmiteImagenes(): bool
+    {
+        return !in_array(strtolower(trim((string) $this->getId())), self::CHAT_SIN_IMAGENES, true);
+    }
+
     /** ¿Este origen es una plataforma que se interpone entre el huésped y nosotros? */
     public static function esDePlataforma(?string $origen): bool
     {

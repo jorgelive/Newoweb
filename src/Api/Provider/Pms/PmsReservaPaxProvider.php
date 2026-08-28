@@ -104,7 +104,10 @@ final class PmsReservaPaxProvider implements ProviderInterface
             //
             // ⚠️ Proyección de HUÉSPED: sin comisión interna ni coste teórico. La decisión es
             // la misma que ve el equipo; lo que cambia es qué campos lleva.
-            $cifras['situacion'] = $this->comoResumen($this->situacion->paraHuesped($reserva));
+            $cifras['situacion'] = $this->comoResumen(
+                $this->situacion->paraHuesped($reserva),
+                $reserva->getChannel(),
+            );
         }
 
         $reserva->setResumenFinancieroCliente($base + $cifras);
@@ -235,7 +238,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
      *
      * @return array<string, mixed>
      */
-    private function comoResumen(PmsSituacionDeCobro $situacion): array
+    private function comoResumen(PmsSituacionDeCobro $situacion, ?PmsChannel $canal): array
     {
         return [
             'queSePide' => $situacion->queSePide->name,
@@ -260,6 +263,16 @@ final class PmsReservaPaxProvider implements ProviderInterface
             // cuentas para RECIBIR dinero, no credenciales — el mismo criterio por el que la
             // guía del huésped ya las publica.
             'medios' => $this->conFichas($situacion),
+
+            // Cómo avisarnos de que ya pagó. Va la CLAVE i18n, no el texto: la resuelve el
+            // cliente con el idioma de su selector, igual que el resto de rótulos.
+            //
+            // Aquí y no en la nota de cada medio porque no es del medio, es del CANAL — y
+            // porque dicha una vez es una frase y repetida en cada ficha es ruido. Sin canal
+            // (una reserva cargada a mano) se asume el chat normal, que es el caso bueno.
+            'avisoPago' => $canal === null || $canal->chatAdmiteImagenes()
+                ? 'res_aviso_pago'
+                : 'res_aviso_pago_sin_imagenes',
         ];
     }
 

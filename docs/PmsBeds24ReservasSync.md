@@ -2252,6 +2252,14 @@ Las compone `PmsReservaPaxProvider::conFichas()`, que cruza por código los grup
   campo es el que se dedujo al crear la reserva, y la tarjeta se pinta en el que el huésped
   eligió en el selector. Hay reservas con `idioma = en` que se leen en castellano; resuelta en
   servidor, esa tarjeta saldría en español con un párrafo en inglés dentro.
+- **El aviso de «ya pagué» lo elige el CANAL, y va aparte de la nota.** El chat de Booking no
+  transporta imágenes, así que a su huésped hay que decirle que la captura la mande por
+  WhatsApp; al de una reserva directa, no. Estuvo metido dentro de las notas de Yape y Plin del
+  catálogo de cobro y el resultado era que **a un huésped de una reserva directa se le hablaba
+  del chat de una plataforma por la que no vino**. Ahora `comoResumen()` manda la clave i18n
+  (`res_aviso_pago` / `res_aviso_pago_sin_imagenes`) según `PmsChannel::chatAdmiteImagenes()`, y
+  la resuelve el cliente. Sin canal —una reserva cargada a mano— se asume el chat normal, que es
+  el caso bueno. Se pinta una vez, al pie del cuadro abierto: repetida en cada ficha es ruido.
 - ⚠️ **Y nunca `getNotaEsVisual()`.** Es un getter señuelo para que EasyAdmin encuentre la
   propiedad en el listado y **siempre devuelve cadena vacía** —quien pinta la celda es el
   `formatValue()` del CRUD—. Usarlo filtraba la nota entera sin dar un solo error: el huésped de

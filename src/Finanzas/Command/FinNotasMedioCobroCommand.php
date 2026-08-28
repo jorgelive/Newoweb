@@ -53,9 +53,11 @@ final class FinNotasMedioCobroCommand extends Command
     /**
      * El castellano es la fuente; los otros seis los escribe el listener.
      *
-     * Sólo los tipos que necesitan una instrucción. Yape, Plin y las transferencias no llevan
-     * nota a propósito: el número se copia y ya está, y una nota que no aporta es una línea
-     * más que leer en la pantalla donde le pedimos dinero.
+     * Aquí va **sólo lo que es del medio**: cómo se ejecuta ese pago concreto. Cómo avisarnos
+     * después NO va aquí aunque lo estuviera —ver `PmsChannel::CHAT_SIN_IMAGENES`—, porque
+     * depende del canal de la reserva y este catálogo lo comparten el PMS y las cotizaciones.
+     *
+     * La cadena vacía **borra** la nota: es como se retira una que ya no debería estar.
      *
      * @var array<string, string>
      */
@@ -74,7 +76,17 @@ final class FinNotasMedioCobroCommand extends Command
             . 'El destinatario del giro es el nombre indicado en este recuadro. '
             . 'No uses la opción de envío a una cuenta bancaria: Western Union también la '
             . 'ofrece y ese dinero no lo podemos cobrar. '
-            . 'En cuanto lo envíes, pásanos el número de seguimiento (MTCN) por este chat.',
+            // Sin decir POR DÓNDE: eso lo pone el aviso de canal, que es quien sabe si el
+            // chat de esta reserva admite imágenes. Aquí acabaría repetido y en desacuerdo.
+            . 'En cuanto lo envíes, pásanos el número de seguimiento (MTCN).',
+
+        // ⚠️ Vacías a propósito, y no es que les falte texto: llevaban «el chat de Booking no
+        // admite imagenes» —con la errata propagada a los otros seis idiomas— y eso se le
+        // estaba enseñando a huéspedes de reservas DIRECTAS, que no vinieron por Booking. Lo
+        // que decían de útil («avísanos cuando lo hayas hecho») lo dice ahora el aviso de
+        // canal, una vez y en el idioma correcto.
+        FinMedioCobroTipo::YAPE->value => '',
+        FinMedioCobroTipo::PLIN->value => '',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -102,7 +114,9 @@ final class FinNotasMedioCobroCommand extends Command
                 continue;
             }
 
-            if ($medio->getNotaEn('es') === $esperado) {
+            // `?? ''` para que la nota AUSENTE y el `''` del mapa se comparen iguales: si no,
+            // el comando volvería a «borrar» lo ya borrado en cada pasada.
+            if (($medio->getNotaEn('es') ?? '') === $esperado) {
                 $io->writeln(sprintf('  <comment>=</comment> %s ya la tiene', $medio->getTipo()->label()));
                 continue;
             }
@@ -110,14 +124,14 @@ final class FinNotasMedioCobroCommand extends Command
             ++$tocados;
             $io->writeln(sprintf('  <info>~</info> %s', $medio->getTipo()->label()));
             $io->writeln(sprintf('      antes: %s', $medio->getNotaEn('es') ?? '—'));
-            $io->writeln(sprintf('      ahora: %s', $esperado));
+            $io->writeln(sprintf('      ahora: %s', $esperado !== '' ? $esperado : '<comment>(sin nota)</comment>'));
 
             if ($simular) {
                 continue;
             }
 
             $medio
-                ->setNota([['language' => 'es', 'content' => $esperado]])
+                ->setNota($esperado === '' ? [] : [['language' => 'es', 'content' => $esperado]])
                 // Ver el aviso de la cabecera: sin esto los otros seis idiomas se quedan con
                 // el texto anterior y sólo el castellano avisa de lo de la cuenta bancaria.
                 ->setSobreescribirTraduccion(true);

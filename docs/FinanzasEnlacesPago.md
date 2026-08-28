@@ -1792,6 +1792,15 @@ no ve el recuadro.
 El aviso va **después** de la instrucción positiva, no en su lugar: quien lee «no hagas X» sin
 saber antes qué sí hacer se queda sin saberlo.
 
+⚠️ **En la nota va sólo lo que es del MEDIO.** Cómo avisarnos después depende del canal de la
+reserva —el chat de Booking no transporta imágenes— y este catálogo lo comparten el PMS y las
+cotizaciones: no tiene por qué saber qué es Booking. Estuvo dentro de las notas de Yape y Plin,
+y así **a un huésped de una reserva directa se le hablaba del chat de una plataforma por la que
+no vino**. Vive ahora en `PmsChannel::CHAT_SIN_IMAGENES` y se publica como clave i18n aparte;
+ver `docs/PmsBeds24ReservasSync.md` §12.5.2. Por eso la nota de Western Union pide el MTCN sin
+decir por dónde: eso lo pone el aviso de canal, y dicho en los dos sitios acabarían en
+desacuerdo.
+
 ### 14.3 La audiencia es dinero, no permisos
 
 `FinAudienciaCobro` (`todos` / `peru` / `internacional`) existe porque ofrecer el medio
