@@ -116,6 +116,13 @@ export interface PmsSituacionDeCobro {
             banco?: string;
             numero?: string;
             cci?: string;
+            /**
+             * El SÍMBOLO ya resuelto («S/.», «US$»), no el código ISO.
+             *
+             * Lo resuelve el provider contra `MaestroMoneda`, igual que el resto de cifras de
+             * esta tarjeta. El huésped compara cuentas para elegir la suya y lee el símbolo en
+             * su propia banca, no «PEN».
+             */
             moneda?: string;
             /**
              * El array i18n crudo, que traduce `maestroStore.traducir()`.

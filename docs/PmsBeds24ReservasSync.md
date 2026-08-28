@@ -2257,6 +2257,11 @@ Las compone `PmsReservaPaxProvider::conFichas()`, que cruza por código los grup
   `formatValue()` del CRUD—. Usarlo filtraba la nota entera sin dar un solo error: el huésped de
   Western Union veía un nombre y una ciudad, y ninguna instrucción. Es la trampa de «un atributo
   mal puesto no falla, deja de hacer su trabajo», con un getter.
+- **La moneda va como SÍMBOLO, no como código ISO.** «BCP PEN» pide traducir mentalmente en la
+  única pantalla donde el huésped compara cuentas para elegir la suya; «BCP S/.» es lo que lee
+  en su propia banca. Lo resuelve `simboloMoneda()` contra `MaestroMoneda`, que es de donde ya
+  salen el conmutador, los importes y el cuadre — la ficha era la única que mandaba el código
+  crudo, porque `FinMedioCobro::$moneda` es una columna de texto suelta y no una relación.
 - **`tabular-nums` sólo si hay dígitos.** Western Union no tiene cuenta: su «número» es el
   destino del giro —«Cusco, Perú»—, y en cifras monoespaciadas se lee como un código que copiar.
 - **El titular alterno sólo sale si aporta.** Casi siempre es el mismo nombre sin tildes

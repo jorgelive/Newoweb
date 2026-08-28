@@ -37,6 +37,13 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  */
 final class PmsReservaPaxProvider implements ProviderInterface
 {
+    /**
+     * Símbolos de moneda ya resueltos, por código ISO. `null` = el maestro no la tiene.
+     *
+     * @var array<string, string|null>
+     */
+    private array $simbolos = [];
+
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.item_provider')]
         private readonly ItemProvider $itemProvider,
@@ -281,7 +288,13 @@ final class PmsReservaPaxProvider implements ProviderInterface
                     'banco' => $ficha->getBanco(),
                     'numero' => $ficha->getNumero(),
                     'cci' => $ficha->getCci(),
-                    'moneda' => $ficha->getMoneda(),
+                    // El SÍMBOLO, no el código ISO. «BCP PEN» pide traducir mentalmente en
+                    // la única pantalla donde el huésped compara cuentas para elegir la suya;
+                    // «BCP S/.» es lo que lee en su propia banca. Sale de `MaestroMoneda`,
+                    // que es de donde ya salen todas las demás cifras de esta tarjeta —el
+                    // conmutador, los importes, el cuadre—: la ficha era la única que mandaba
+                    // el código crudo.
+                    'moneda' => $this->simboloMoneda($ficha->getMoneda()),
                     // El ARRAY i18n entero, y lo traduce el cliente — mismo trato que
                     // `PmsGuiaHuespedProvider::mediosPago()` le da a esta misma nota.
                     //
@@ -325,6 +338,31 @@ final class PmsReservaPaxProvider implements ProviderInterface
             },
             $situacion->mediosPorImporte(),
         );
+    }
+
+    /**
+     * El símbolo de una moneda por su código ISO, con caída al propio código.
+     *
+     * `FinMedioCobro::$moneda` es una columna de texto suelta, no una relación: el catálogo de
+     * cobro se tecleó antes de que existiera `MaestroMoneda` y guarda «PEN» a pelo. La caída
+     * cubre que alguien teclee una moneda que el maestro no tenga —mejor «CLP» que un hueco
+     * donde debería decir en qué moneda es la cuenta.
+     *
+     * Se cachea en memoria porque esto se pregunta una vez por ficha y hay ocho sólo en las
+     * transferencias.
+     */
+    private function simboloMoneda(?string $codigo): ?string
+    {
+        if ($codigo === null || $codigo === '') {
+            return null;
+        }
+
+        if (!array_key_exists($codigo, $this->simbolos)) {
+            $this->simbolos[$codigo] = $this->em->getRepository(MaestroMoneda::class)
+                ->find($codigo)?->getSimbolo();
+        }
+
+        return $this->simbolos[$codigo] ?? $codigo;
     }
 
     /**
