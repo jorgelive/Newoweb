@@ -38,6 +38,16 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * siempre, y la tentación entonces es "desactivar la validación un rato" — que es
  * exactamente cómo se acepta un cobro falsificado.
  *
+ * ## 🅿️ PARADA (stalled) — 28/08/2026
+ *
+ * **Esta pasarela no está en uso y no se toca.** `FINANZAS_PASARELA_POR_DEFECTO=culqi`, e
+ * Izipay exige S/200 000 de venta acumulada para habilitar enlaces de pago. El conector se
+ * conserva entero y compilando —rehacerlo desde cero costaría mucho más que mantenerlo— pero
+ * **no se le arreglan huecos ni se refactoriza** hasta que se implemente de verdad.
+ *
+ * Los huecos ya detectados están apuntados, con su verificación, en `docs/Pendientes.md`
+ * («Izipay: PARADA hasta que se implemente»). Si encuentras otro, va ahí: no aquí.
+ *
  * @see https://developers.izipay.pe/api/
  */
 final class IzipayClient implements FinPasarelaClientInterface

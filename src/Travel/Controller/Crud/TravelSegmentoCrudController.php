@@ -230,26 +230,30 @@ class TravelSegmentoCrudController extends BaseCrudController
             );
 
         yield TextField::new('virtualPuntos', 'Recojo → Entrega')
-            ->onlyOnIndex()
+            ->hideOnForm()
             ->renderAsHtml();
 
         yield ChoiceField::new('inicioModo', 'Empieza en')
             ->setChoices(array_reduce(PuntoModoEnum::cases(), static fn ($c, $e) => $c + [$e->etiqueta() => $e], []))
             ->formatValue(static fn ($value) => $value instanceof PuntoModoEnum ? $value->etiqueta() : $value)
+            ->onlyOnForms()
             ->setColumns(3);
 
         yield AssociationField::new('inicioPunto', 'Punto de inicio')
             ->autocomplete()
+            ->onlyOnForms()
             ->setColumns(3)
             ->setHelp('Sólo si arriba has elegido «Un punto fijo».');
 
         yield ChoiceField::new('finModo', 'Termina en')
             ->setChoices(array_reduce(PuntoModoEnum::cases(), static fn ($c, $e) => $c + [$e->etiqueta() => $e], []))
             ->formatValue(static fn ($value) => $value instanceof PuntoModoEnum ? $value->etiqueta() : $value)
+            ->onlyOnForms()
             ->setColumns(3);
 
         yield AssociationField::new('finPunto', 'Punto de fin')
             ->autocomplete()
+            ->onlyOnForms()
             ->setColumns(3)
             ->setHelp('Sólo si arriba has elegido «Un punto fijo».');
 
@@ -334,7 +338,7 @@ class TravelSegmentoCrudController extends BaseCrudController
 
         // 🔥 LECTURA (Getter Virtual ya existente)
         yield TextField::new('virtualLogistica', 'Logística Inyectada')
-            ->onlyOnIndex()
+            ->hideOnForm()
             ->formatValue(function ($value, TravelSegmento $entity) {
                 // Sin `@var`: el getter ya declara `Collection<int, TravelSegmentoComponente>`.
                 // La anotación que había aquí lo rebajaba a `iterable`, y con eso `isEmpty()`
@@ -380,9 +384,126 @@ class TravelSegmentoCrudController extends BaseCrudController
             })
             ->renderAsHtml();
 
+        // 🔥 LECTURA — La cadena que decide si este segmento saldrá CON fotos.
+        //
+        // Reproduce en el panel la regla que corre en `pax` (`galeriaPorBloque`,
+        // `docs/Cotizaciones.md` §6.t), porque hasta ahora no había ninguna pantalla que
+        // contestara «¿este segmento va a salir con fotos?» y había que ir a mirar cuatro sitios:
+        // la tarifa, el prestador, su bandera de visibilidad y el buzón de imágenes.
+        //
+        // El fallo que caza es MUDO: un prestador oculto no inyecta ni una imagen por muchas que
+        // le subas, y no da error en ningún sitio.
+        yield TextField::new('virtualCadenaFotos', '¿De dónde saldrán las fotos?')
+            ->onlyOnDetail()
+            ->formatValue(static function ($value, TravelSegmento $entity) {
+                $propias = $entity->getImagenes()->count();
+
+                if ($propias > 0) {
+                    return sprintf(
+                        '<div class="alert alert-success py-2 mb-0"><i class="fas fa-images"></i> '
+                        . '<strong>Manda su galería propia</strong> (%d foto%s). '
+                        . 'La regla 1 gana: no se promueve nada del prestador.</div>',
+                        $propias,
+                        $propias === 1 ? '' : 's',
+                    );
+                }
+
+                $componentes = $entity->getSegmentoComponentes();
+
+                if ($componentes->isEmpty()) {
+                    return '<div class="alert alert-secondary py-2 mb-0">Sin componentes: este segmento '
+                        . 'saldrá <strong>sin fotos</strong>.</div>';
+                }
+
+                $filas = [];
+                $total = 0;
+
+                foreach ($componentes as $sc) {
+                    $nombre = $sc->getComponente() !== null
+                        ? htmlspecialchars((string) $sc->getComponente())
+                        : 'componente sin nombre';
+
+                    $tarifa = $sc->getTarifaPredeterminada();
+
+                    if ($tarifa === null) {
+                        $filas[] = sprintf(
+                            '<div class="mb-2"><strong>%s</strong><div class="ms-3 text-danger small">'
+                            . '<i class="fas fa-triangle-exclamation"></i> Sin tarifa predeterminada: '
+                            . 'no aporta prestador ni fotos.</div></div>',
+                            $nombre,
+                        );
+                        continue;
+                    }
+
+                    $cadena = sprintf(
+                        '<div class="ms-3 small">└ tarifa: <code>%s</code> — %s %s</div>',
+                        htmlspecialchars((string) $tarifa->getNombreInterno()),
+                        htmlspecialchars((string) $tarifa->getMonto()),
+                        htmlspecialchars((string) ($tarifa->getMoneda()?->getId() ?? '')),
+                    );
+
+                    $prestador = $tarifa->getPrestador();
+
+                    if ($prestador === null) {
+                        $cadena .= '<div class="ms-4 small text-warning-emphasis">'
+                            . '<i class="fas fa-triangle-exclamation"></i> Sin prestador.</div>';
+                        $filas[] = sprintf('<div class="mb-2"><strong>%s</strong>%s</div>', $nombre, $cadena);
+                        continue;
+                    }
+
+                    $visible = $prestador->isVisibleParaCliente();
+                    $cadena .= sprintf(
+                        '<div class="ms-4 small">└ presta: <strong>%s</strong> %s</div>',
+                        htmlspecialchars((string) $prestador->getNombreComercial()),
+                        $visible
+                            ? '<span class="badge bg-success-subtle text-success-emphasis border">se muestra</span>'
+                            : '<span class="badge bg-danger-subtle text-danger-emphasis border" '
+                              . 'title="Sin esta bandera el normalizer no inyecta NINGUNA imagen">oculto</span>',
+                    );
+
+                    $buzon = $tarifa->getPrestadorServicio();
+
+                    if ($buzon === null) {
+                        $cadena .= '<div class="ms-5 small text-muted">└ sin servicio de prestador: '
+                            . 'sus fotos tendrían que ir en el propio segmento.</div>';
+                    } else {
+                        $fotos = $buzon->getImagenes()->count();
+
+                        if ($visible) {
+                            $total += $fotos;
+                        }
+
+                        $cadena .= sprintf(
+                            '<div class="ms-5 small">└ buzón: «%s» %s</div>',
+                            htmlspecialchars((string) $buzon->getNombre()),
+                            $fotos > 0
+                                ? sprintf('<span class="badge bg-light text-dark border">%d fotos</span>', $fotos)
+                                : '<span class="badge bg-warning-subtle text-warning-emphasis border">0 fotos</span>',
+                        );
+                    }
+
+                    $filas[] = sprintf('<div class="mb-2"><strong>%s</strong>%s</div>', $nombre, $cadena);
+                }
+
+                $veredicto = $total > 0
+                    ? sprintf(
+                        '<div class="alert alert-success py-2 mb-2"><i class="fas fa-images"></i> '
+                        . 'Saldrá con <strong>%d foto%s</strong> promovida%s del prestador.</div>',
+                        $total,
+                        $total === 1 ? '' : 's',
+                        $total === 1 ? '' : 's',
+                    )
+                    : '<div class="alert alert-warning py-2 mb-2"><i class="fas fa-triangle-exclamation"></i> '
+                      . 'Hoy saldría <strong>sin ninguna foto</strong>.</div>';
+
+                return $veredicto . implode('', $filas);
+            })
+            ->renderAsHtml()
+            ->setColumns(12);
+
         // 🔥 ESCRITURA (Campo Real)
         yield CollectionField::new('segmentoComponentes', 'Componentes Logísticos Vinculados')
-            ->hideOnIndex()
+            ->onlyOnForms()
             ->useEntryCrudForm(TravelSegmentoComponenteCrudController::class)
             ->setFormTypeOptions(['by_reference' => false, 'prototype' => true])
             ->setFormTypeOption('prototype_data', new TravelSegmentoComponente())
@@ -390,7 +511,7 @@ class TravelSegmentoCrudController extends BaseCrudController
 
         // 🔥 NUEVO: LECTURA — Galería con thumbnails (Liip) + modal
         yield TextField::new('virtualGaleria', 'Galería de Fotos')
-            ->onlyOnIndex()
+            ->hideOnForm()
             ->formatValue(fn ($value, $entity) => $this->renderGaleriaThumbnails(
                 $entity->getImagenes(),
                 $entity,
@@ -401,7 +522,7 @@ class TravelSegmentoCrudController extends BaseCrudController
 
         // ESCRITURA (Campo Real, sin thumbnails, formulario CRUD normal)
         yield CollectionField::new('imagenes', 'Galería de Fotos')
-            ->hideOnIndex()
+            ->onlyOnForms()
             ->useEntryCrudForm(TravelSegmentoImagenCrudController::class)
             ->setFormTypeOptions(['by_reference' => false, 'prototype' => true])
             ->setFormTypeOption('prototype_data', new TravelSegmentoImagen())

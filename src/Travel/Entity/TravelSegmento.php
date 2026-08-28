@@ -338,8 +338,6 @@ class TravelSegmento
 
     /**
      * @return Collection<int, TravelItinerarioSegmentoRel>
-     *
-     * @return Collection<int, TravelItinerarioSegmentoRel>
      */
     public function getItinerarioSegmentosInyectados(): Collection
     {
@@ -353,6 +351,8 @@ class TravelSegmento
     public function getVirtualNotas(): string { return ''; }
     public function getVirtualItinerarios(): string { return ''; }
     public function getVirtualGaleria(): string { return ''; }
+    public function getVirtualContenido(): string { return ''; }
+    public function getVirtualCadenaFotos(): string { return ''; }
 
     #[Assert\Callback]
     public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void

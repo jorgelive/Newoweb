@@ -1010,3 +1010,33 @@ nada: le llegan las dos definiciones.
 Si acaba llamándose `consultar_itinerario` y el operador tiene las dos, comprobar **con una
 pregunta ambigua real** («el itinerario de Santiago») a cuál llama el modelo. Si se equivoca, la
 salida es la (2): que la equivocada lo diga. No hace falta nada más hasta verlo fallar.
+
+---
+
+## 🅿️ Izipay: PARADA hasta que se implemente — 28/08/2026
+
+**Decisión: no se toca el camino de Izipay.** Ni para arreglarle los dos huecos de abajo. El
+conector se queda entero y compilando —borrarlo obligaría a rehacerlo (`docs/FinanzasEnlacesPago.md`
+§11)— pero no se le añaden guardas ni se refactoriza mientras nadie lo ejecute.
+
+Lo que la dejó parada no es técnico: Izipay **exige S/200 000 de venta acumulada** para habilitar
+enlaces de pago, y para vender eso hacen falta los enlaces. `FINANZAS_PASARELA_POR_DEFECTO=culqi`.
+
+### Los dos huecos, verificados contra el código el 28/08/2026
+
+Salieron de la pregunta «¿`anular()` propaga hasta la pasarela?». La respuesta corta es **no**, y
+con Culqi da igual porque no hay nada que propagar: `crear()` no llama a nadie y el cargo lo crea
+nuestro servidor con `cobrarConToken()`, que `estaVigente()` ya bloquea (410 en
+`FinPagoPublicoController`, líneas de `/configuracion` y `/culqi/cobrar`).
+
+| Hueco | Qué pasaría | Por qué hoy no ocurre |
+|---|---|---|
+| `FinEnlacePagoService::anular()` no revoca el `formToken` en Lyra | Un token emitido antes del anular sigue vivo unos minutos: quien ya tuviera la página abierta completa el pago | No se emite ningún enlace por Izipay |
+| `FinEnlacePagoService::confirmarPago()` sólo corta si el estado es `PAGADO`, no si es `ANULADO` | Un IPN sobre un enlace anulado lo marcaría `PAGADO` y crearía el `PmsPagoFinanciero` | Sólo alcanzable por el IPN de Izipay; el webhook de Culqi necesita un cargo que no existe |
+
+### Cuando se retome, la dirección ya está decidida
+
+El segundo hueco **no se cierra rechazando el pago**. Si el dinero se movió en la pasarela, el
+cliente tiene el cargo en su tarjeta lo llamemos como lo llamemos: registrarlo es peor de leer y
+mucho mejor que esconderlo. Lo que falta es **dejar rastro de la contradicción** —un enlace
+`anulado` que acabó cobrado— no negarla.

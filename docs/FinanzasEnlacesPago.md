@@ -1,4 +1,4 @@
-# Finanzas — Enlaces de pago por pasarela (Izipay)
+# Finanzas — Enlaces de pago por pasarela (Culqi operativa · Izipay PARADA)
 
 Módulo `src/Finanzas/`. Emite enlaces de cobro que se envían al cliente, los cobra por
 pasarela y devuelve el dinero al módulo que lo generó (hoy el PMS; mañana tours).
@@ -7,8 +7,32 @@ Nace **transversal** a propósito: es el arranque del sistema de administración
 no una función del PMS. Por eso no conoce ninguna entidad de negocio y todo lo que sabe del
 documento que cobra se lo cuenta un *resolver* que vive en el módulo dueño.
 
-**Estado:** operativo end-to-end para reservas del PMS. El origen `tour_reserva` está
-declarado en el enum pero **sin resolver**: emitir un cobro con ese origen falla a propósito.
+**Estado:** operativo end-to-end para reservas del PMS **por Culqi**. El origen `tour_reserva`
+está declarado en el enum pero **sin resolver**: emitir un cobro con ese origen falla a
+propósito.
+
+## 🅿️ IZIPAY ESTÁ PARADA (stalled) — 28/08/2026
+
+**No se toca el camino de Izipay hasta que esté implementada de verdad.** Su conector se
+queda entero y compilando (§11: borrarlo obligaría a rehacerlo), pero **no se le arreglan
+huecos, no se le añaden guardas y no se refactoriza**. Cualquier hallazgo sobre Izipay se
+apunta aquí abajo y se queda quieto: pulir un camino que nadie ejecuta es pagar hoy por una
+decisión que no se ha tomado.
+
+`FINANZAS_PASARELA_POR_DEFECTO=culqi`, y Izipay exige S/200 000 de venta acumulada para
+habilitar enlaces — el muro que la dejó parada.
+
+**Congelado hasta que se habilite:**
+
+| Hueco | Qué pasa | Por qué no urge |
+|---|---|---|
+| `anular()` no revoca el `formToken` en Lyra | Un token emitido antes del anular sigue vivo unos minutos: el cliente que ya tenía la página abierta puede completar el pago | No hay tokens de Izipay porque no se emite por Izipay |
+| `confirmarPago()` no comprueba `ANULADO`, sólo `PAGADO` | Un IPN sobre un enlace anulado lo marcaría `PAGADO` y crearía el `PmsPagoFinanciero` | Sólo es alcanzable por el IPN de Izipay: en Culqi el cargo lo crea nuestro servidor y `estaVigente()` ya lo bloquea (§5) |
+
+⚠️ Ese segundo hueco, **si algún día se cierra, no se cierra rechazando el pago**. Si el
+dinero se movió de verdad en la pasarela, el cliente tiene el cargo en su tarjeta lo llamemos
+como lo llamemos: registrarlo es peor de leer y mucho mejor que esconderlo. Lo que faltaría
+es dejar rastro de la contradicción (un enlace `anulado` que acabó cobrado), no negarla.
 
 ---
 
@@ -224,8 +248,18 @@ cuerpo (`SUCCESS` o no). `IzipayClient::post()` comprueba eso y no el código HT
 - **`FALLIDO` no es final.** Que una tarjeta rebote no invalida el enlace.
   `FinEnlacePagoEstado::esFinal()` lo deja fuera, y `estaVigente()` sigue dejando pagar.
 - **`PAGADO` es irreversible desde el sistema.** No se "des-paga" borrando el enlace: se
-  devuelve el dinero en el Backoffice de Izipay y se elimina después el pago que generó.
+  devuelve el dinero en el Backoffice de **la pasarela que lo cobró** —hoy Culqi— y se elimina
+  después el pago que generó.
   `FinEnlacePagoService::anular()` se niega explícitamente sobre un enlace pagado.
+- **`ANULADO` es un estado NUESTRO: no se propaga a ninguna pasarela**, y con Culqi no hay
+  nada que propagar. Emitir un enlace no llama a nadie —`crear()` escribe una fila y devuelve
+  una URL de `pax`—, y en Culqi el cargo lo crea **nuestro servidor** con `cobrarConToken()`.
+  Anular basta porque `ANULADO` es `esFinal()` → `estaVigente()` es `false`, y
+  `FinPagoPublicoController` lo comprueba en las **dos** puertas, `/configuracion` y
+  `/culqi/cobrar` (410 en ambas). Sin nuestro servidor no hay cargo, y sin cargo el webhook
+  tampoco confirma: `verificarCargo()` no encuentra ninguno.
+  Con **Izipay** la garantía sería más floja —`/configuracion` sí emite un `formToken` real
+  que sobrevive al anular— pero eso está **parado**: ver el bloque 🅿️ del encabezado.
 - **La expiración no la aplica ningún cron.** `estaVigente()` ya cierra la puerta al leer;
   `marcarCaducados()` se llama al listar y es sólo cosmética del panel.
 - **`confirmarPago()` es idempotente.** Un IPN repetido —Izipay reintenta si no
@@ -472,6 +506,10 @@ imposible: para vender eso necesitas los enlaces. Culqi no tiene muro de volumen
 afiliación, así que es la pasarela operativa. El conector de Izipay se queda **entero y
 funcionando** para el día que cambien la política o nos habiliten; borrarlo obligaría a
 rehacerlo desde cero.
+
+🅿️ **Pero «se queda» no es «se mantiene»: Izipay está PARADA.** Se conserva compilando y no
+se toca —ni para arreglarle huecos conocidos— hasta que se implemente. La lista de lo que
+queda congelado con ella está en el bloque 🅿️ del encabezado de este documento.
 
 ### Los flujos NO se parecen, y por eso la interfaz es corta
 

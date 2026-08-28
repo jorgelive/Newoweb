@@ -1770,6 +1770,52 @@ un hotel concreto: se ajustan por cotización.
 `ACT-RESORT-DIA_LIBRE` va **sin hora** a propósito: representa el día entero, y darle una lo
 colocaría antes o después de cosas que en realidad lo contienen.
 
+### La ficha del segmento en el panel: leer sin abrir en edición (28/08/2026)
+
+El detalle estaba **más pobre que el índice**. Tres resúmenes buenos —`virtualPuntos`,
+`virtualLogistica`, `virtualGaleria`— eran `onlyOnIndex`, y en su lugar la ficha pintaba los
+campos crudos: cuatro filas de «Sin definir / Nulo» donde el índice resolvía con una flecha, y un
+hueco mudo bajo «Galería de Fotos».
+
+Y el cuerpo del relato era `onlyOnForms`, así que **para leer lo que un segmento cuenta había que
+abrirlo en EDICIÓN** — que es como se cambian cosas sin querer.
+
+El reparto ahora es limpio: **el detalle sólo lee, el formulario sólo escribe.**
+
+| Panel | Lo que se lee | Lo que se edita |
+|---|---|---|
+| Narrativo | `virtualTitulo`, `virtualContenido` | `titulo`, `contenido` |
+| Puntos | `virtualPuntos` | `inicioModo`, `inicioPunto`, `finModo`, `finPunto` |
+| Logística | `virtualLogistica`, `virtualCadenaFotos` | `segmentoComponentes` |
+| Galería | `virtualGaleria` | `imagenes` |
+
+### `virtualCadenaFotos`: el panel contesta «¿saldrá con fotos?»
+
+Reproduce en el detalle la regla que corre en `pax` (`galeriaPorBloque`, `Cotizaciones.md` §6.t),
+porque hasta ahora **ninguna pantalla lo contestaba** y había que mirar cuatro sitios: la tarifa,
+el prestador, su bandera de visibilidad y el buzón de imágenes.
+
+```
+Saldrá con 5 fotos promovidas del prestador.
+  Actividades recreativas de resort
+    └ tarifa: Occidental Caribe · Actividades recreativas — 0.00 USD
+      └ presta: Occidental Caribe - Punta Cana   [se muestra]
+        └ buzón: «Actividades y deportes»        [5 fotos]
+```
+
+Empieza por el veredicto y avisa de los cuatro cortes de la cadena: sin tarifa predeterminada, sin
+prestador, **prestador oculto** y buzón a cero.
+
+⚠️ El corte del prestador oculto es el que justifica la pantalla: **no inyecta ni una imagen por
+muchas que le subas, y no da error en ningún sitio.**
+
+Si el segmento tiene galería propia, no recorre nada: dice que manda la suya, que es la regla 1.
+
+⚠️ **Los campos `virtualX` necesitan un getter-muñón en la entidad** (`getVirtualX(): string
+{ return ''; }`), aunque todo el trabajo lo haga el `formatValue` del controlador. Sin él,
+EasyAdmin no tiene propiedad que leer. `getVirtualPuntos()` es la excepción: hace el render
+entero en la entidad y por eso su campo no lleva `formatValue`.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |

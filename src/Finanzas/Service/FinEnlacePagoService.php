@@ -228,6 +228,16 @@ final class FinEnlacePagoService
      * un reintento crearía un segundo `PmsPagoFinanciero` y dejaría la reserva con el
      * doble de pagos. Ese duplicado no se detecta hasta que alguien cuadra la caja.
      *
+     * ⚠️ La guarda mira SÓLO `PAGADO`, no los otros estados finales. Un IPN sobre un enlace
+     * `ANULADO` lo cobraría igual. **No es un descuido pendiente de arreglar aquí**: hoy no
+     * es alcanzable —Culqi no llega por IPN, el cargo lo crea `culqiCobrar()` y ahí
+     * `estaVigente()` ya devuelve 410— y el único camino que lo alcanzaría es el de Izipay,
+     * que está PARADA (ver `docs/Pendientes.md`, «Izipay: PARADA hasta que se implemente»).
+     *
+     * Y si algún día se cierra, no se cierra rechazando el pago: si el dinero se movió en la
+     * pasarela, el cliente tiene el cargo en su tarjeta. Lo que faltaría es dejar rastro de
+     * la contradicción, no negarla.
+     *
      * @param array<string, mixed> $respuesta `kr-answer` ya decodificado y con la firma validada.
      */
     public function confirmarPago(FinEnlacePago $enlace, array $respuesta): void
