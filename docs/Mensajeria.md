@@ -2928,6 +2928,38 @@ Para un aviso nuevo hace falta: el texto, una plantilla aprobada por Meta para f
 `escaladoDe`—, va por `ajustarMensaje`, un `Closure(Message): void`. Existe para que ese dato no
 entre en el contrato y acabe siendo un campo que los demás avisos arrastran sin usar.
 
+##### 🔇 Escalado silencioso: cuándo el huésped NO debe enterarse
+
+Una promesa de atención y una llamada a la acción **compiten, y gana siempre la promesa**:
+esperar sale más barato que actuar. El 27/08/2026 una huésped con un enlace de US$ 48,97 delante
+esperó **73 minutos** porque se le dijo que el equipo estaba avisado. El aviso había salido y era
+verdad; lo que sobraba era contárselo.
+
+`escalar_al_equipo` acepta `silencioso: true`: el aviso sale exactamente igual —mismo WhatsApp a
+la guardia, mismo enfriamiento— y lo único que cambia es que **al huésped no se le dice**.
+
+**La regla:** se anuncia mientras el equipo pueda hacer algo con tiempo; se calla cuando lo único
+honesto es darle una salida.
+
+| Situación | |
+|---|---|
+| Llegó y no hay adelanto (tiene enlace y teléfono) | 🔇 silencioso |
+| Ya se le contestó con conocimiento y se escala por control | 🔇 silencioso |
+| Pregunta algo que el bot no sabe | 🔔 anunciado |
+| Emergencia | 🔔 anunciado |
+| No hay guardia | 🔔 anunciado, sin plazo |
+
+⚠️ **No lo decide el modelo.** Se lo indican las skills deterministas que conocen la situación:
+`ConsultarCodigosSkill` devuelve `escalar_en_silencio` cuando **hoy es el día de la llegada**.
+Los días anteriores es al revés —avisar al equipo *es* la gestión, cabe una excepción a la
+política y hay tiempo de organizarla—, así que se anuncia.
+
+⚠️ **Y la frase de vuelta cambió incluso en el modo anunciado.** Antes decía *«dile que su
+consulta pasó a una persona»*, y de ahí salió el *«alguien les ayudará con el registro»* que dejó
+a la huésped esperando: en un contexto de llegada, el modelo convierte «una persona» en
+presencia. Ahora fija el **canal** —«le escribirán por aquí»—, que dice lo mismo de verdadero sin
+comprometer a nadie a moverse.
+
 ##### 🔥 El traductor automático también traduce los NOMBRES de las variables
 
 Y entonces la plantilla deja de hidratarse. Pasó en `aviso_escalado_interno`: el código manda

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Skill\Pms;
 
+use DateTimeImmutable;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
@@ -232,6 +233,8 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
                 //
                 // Aquí son deterministas: si no hay código, salen. Sin segundo paso.
                 'contacto' => $this->contacto($unidad),
+                // 🔇 El mismo día no se le anuncia el escalado: ver `escalarEnSilencio()`.
+                'escalar_en_silencio' => $this->escalarEnSilencio($evento) ?: null,
             ], static fn ($v) => $v !== null));
         }
 
@@ -354,6 +357,33 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
      * el modelo, que además le prohíbe rellenar el hueco por su cuenta.
      */
     /**
+     * ¿El escalado de este caso debe salir en silencio?
+     *
+     * Sí **el día de la llegada**, y sólo ese día. La razón no es el sigilo: es que una promesa
+     * de atención y una llamada a la acción compiten, y gana siempre la promesa —esperar sale
+     * más barato que actuar—. Con el huésped en la puerta, lo único que le sirve es el enlace o
+     * el teléfono; decirle además que el equipo está avisado le hace sentarse a esperar. El
+     * 27/08/2026 fueron 73 minutos.
+     *
+     * Los días anteriores es al revés: avisar al equipo **es** la gestión —cabe una excepción a
+     * la política de prepago, y hay tiempo de organizarla—, así que se le dice.
+     *
+     * Por FECHA y no por hora, igual que el catálogo de medios: el día de la llegada es un día
+     * entero, y a las nueve de la mañana el huésped ya está de camino.
+     */
+    private function escalarEnSilencio(PmsEventoCalendario $evento): bool
+    {
+        $inicio = $evento->getInicio();
+
+        if ($inicio === null) {
+            return false;
+        }
+
+        return DateTimeImmutable::createFromInterface($inicio)->format('Y-m-d')
+            === (new DateTimeImmutable('today'))->format('Y-m-d');
+    }
+
+    /**
      * Por dónde puede resolverlo una persona cuando el código no sale.
      *
      * Los dos contestan; el de Yape es además por donde se paga. Se devuelven los dos con su
@@ -389,8 +419,16 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         return match ($acceso->estado) {
             PmsGuiaAccesoEstado::Pendiente => 'Todavía no ha empezado su estancia. Los códigos se '
                 . 'entregan al acercarse el check-in; dile desde cuándo los tendrá.',
-            PmsGuiaAccesoEstado::SinPago => 'La reserva no está confirmada. Los códigos se '
-                . 'entregan al confirmar el pago: díselo sin dar ninguna cifra.',
+            // ⚠️ Lo que abre la puerta es el ADELANTO de la primera noche, no el total. El
+            // resto se paga al check-in y ahí el efectivo es lo normal — decir «hay que pagar»
+            // a secas hace creer al huésped que le piden la estancia entera por adelantado, y
+            // con las maletas en la puerta eso cambia por completo su disposición.
+            PmsGuiaAccesoEstado::SinPago => 'Todavía no hay adelanto registrado, y es el adelanto '
+                . 'de la PRIMERA NOCHE lo que abre los códigos, no el total: el resto se paga '
+                . 'al hacer el check-in y ahí el efectivo vale. El importe y el enlace te los da '
+                . 'consultar_cuenta; pásale el enlace tal cual. El efectivo NO sirve para el '
+                . 'adelanto, porque es previo a que pueda entrar. Si aun así pide pagarlo todo '
+                . 'en efectivo al llegar, eso es una excepción: escala al equipo.',
             PmsGuiaAccesoEstado::Expirada => 'Su estancia ya terminó, así que los códigos ya no '
                 . 'están disponibles.',
             default => 'No puedo dar los códigos de esta casita ahora mismo. Que lo mire un '

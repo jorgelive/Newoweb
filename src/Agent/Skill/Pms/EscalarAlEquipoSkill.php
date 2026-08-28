@@ -149,6 +149,11 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                     . 'seguridad. Con esto el aviso sale aunque ya se haya avisado hace un rato. '
                     . 'Un huésped enfadado NO es una emergencia; que algo lleve días sin '
                     . 'resolverse, tampoco.'),
+                SkillParameter::booleano('silencioso', 'true cuando YA le has dado al huésped una '
+                    . 'salida concreta —un enlace de pago, un teléfono al que llamar— y avisar '
+                    . 'al equipo es sólo para que lo sepan. Con esto NO se le dice al huésped '
+                    . 'que se avisó a nadie. Te lo indican las skills que conocen la situación, '
+                    . 'como consultar_codigos con «escalar_en_silencio».', requerido: false),
                 SkillParameter::texto('conversacion_id', 'Sólo si hablas desde el panel sobre el '
                     . 'chat de otro. En la conversación con el huésped no hace falta.',
                     requerido: false),
@@ -211,6 +216,18 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         // falso positivo cuesta un WhatsApp de más; un falso negativo silencia una emergencia de
         // verdad. Ante la duda, que suene.
         $emergencia = (bool) ($entrada['emergencia'] ?? false);
+
+        // 🔇 SILENCIOSO: el equipo se entera, el huésped no.
+        //
+        // Existe porque una promesa de atención y una llamada a la acción COMPITEN, y gana
+        // siempre la promesa: esperar sale más barato que actuar. El 27/08/2026 una huésped
+        // con un enlace de 48,97 delante esperó 73 minutos porque se le dijo que el equipo
+        // estaba avisado. El aviso salió y era verdad; lo que sobraba era contárselo.
+        //
+        // No lo decide el modelo por su cuenta: se lo indican las skills deterministas que
+        // conocen la situación (`consultar_codigos` devuelve `escalar_en_silencio` cuando el
+        // huésped ya tiene enlace y teléfono).
+        $silencioso = (bool) ($entrada['silencioso'] ?? false);
 
         // ── La última red: ¿esto ya está contestado? ─────────────────────────
         // Buena parte de lo que se escala son preguntas repetidas cuya respuesta no cambia
@@ -326,12 +343,33 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
             'avisados' => $resultado->avisados,
             'no_avisados' => $resultado->noAvisados !== [] ? $resultado->noAvisados : null,
             'aviso_encolado' => $resultado->alguienFueAvisado(),
-            'mensaje' => $resultado->alguienFueAvisado()
-                ? 'Ya está avisado el equipo. Dile al huésped que su consulta pasó a una persona '
-                    . 'y que le responderán; no le des un plazo concreto, que no lo sabes.'
-                : 'La conversación queda marcada como pendiente aunque el aviso no salió. Dile '
-                    . 'al huésped que queda anotada, sin prometer cuándo.',
+            'mensaje' => $this->queDecirle($resultado->alguienFueAvisado(), $silencioso),
         ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * Qué tiene que hacer el modelo con el huésped después de escalar.
+     *
+     * ⚠️ «Pasó a una persona» era la frase de antes, y de ahí salió el
+     * *«alguien les ayudará con el registro»* del 27/08/2026: en un contexto de llegada, el
+     * modelo la convierte en presencia. Ahora se fija el CANAL —«le escribirán por aquí»—, que
+     * dice lo mismo de verdadero sin comprometer a nadie a moverse.
+     */
+    private function queDecirle(bool $avisado, bool $silencioso): string
+    {
+        if (!$avisado) {
+            return 'La conversación queda marcada como pendiente aunque el aviso no salió. Dile '
+                . 'al huésped que queda anotada, sin prometer cuándo.';
+        }
+
+        if ($silencioso) {
+            return 'Equipo avisado. NO le digas que has avisado a nadie ni que alguien acudirá: '
+                . 'ya tiene una salida concreta y contarle que hay gente mirándolo le hará '
+                . 'esperar en vez de usarla. Termina con la acción, no con el estado del caso.';
+        }
+
+        return 'Ya está avisado el equipo. Dile al huésped que le escribirán POR AQUÍ; no le des '
+            . 'un plazo concreto, que no lo sabes, y no digas que alguien acudirá a verle.';
     }
 
     /**
