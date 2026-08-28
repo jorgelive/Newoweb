@@ -375,6 +375,63 @@ const horaRango = (c: PaxCotComponente) => {
 const imagenesDe = (segmento: PaxCotSegmento): { imageUrl: string }[] =>
     (segmento.imagenesSnapshot ?? []).filter((i) => i.imageUrl);
 
+/**
+ * Galería definitiva de cada bloque, ya deduplicada contra todo lo que salió antes.
+ *
+ * ⚠️ **El segmento pone el relato; el prestador pone la cara.**
+ *
+ * Los segmentos de estancia son GENÉRICOS a propósito —«Piscina y playa», «Desayuno buffet»— y se
+ * redactan una sola vez. Las fotos las aporta el **servicio del prestador** que resuelve la tarifa
+ * elegida, así que el mismo segmento enseña la piscina del resort que de verdad se contrató.
+ *
+ * La aritmética es lo que hace que valga la pena: con las fotos dentro del segmento harían falta
+ * N resorts × M actividades segmentos. Así hacen falta M, y añadir un resort no cuesta ninguno.
+ *
+ * Reglas, en este orden:
+ *
+ *  1. **Si el segmento trae sus propias fotos, mandan.** Los segmentos redactados para un sitio
+ *     concreto —Paracas, Islas Ballestas— ya tienen galería y no hay nada que promover.
+ *  2. **Si no, se concatenan las de TODOS sus componentes**: primero las del servicio del
+ *     prestador (la habitación, la actividad) y después las de la empresa.
+ *  3. **Ninguna foto se repite en toda la guía.** La galería del hotel cae en el primer segmento
+ *     que la trae —el check-in— y no vuelve a salir en los días siguientes. Pero si la piscina
+ *     tiene fotos PROPIAS, ésas sí aparecen: la deduplicación es **por foto, no por posición**,
+ *     así que lo repetido se calla y lo distinto siempre se enseña.
+ *
+ * Se calcula de una vez sobre `itinerarioVista` —que ya viene ordenado por día— porque «la primera
+ * vez que aparece» sólo tiene sentido recorriendo el itinerario entero en orden. Hacerlo dentro
+ * del `v-for` daría un resultado distinto según qué día estuviera abierto.
+ */
+const galeriaPorBloque = computed<Map<string, { imageUrl: string }[]>>(() => {
+  const salida = new Map<string, { imageUrl: string }[]>();
+  const vistas = new Set<string>();
+
+  for (const dia of itinerarioVista.value) {
+    for (const bloque of dia.bloques) {
+      const propias = imagenesDe(bloque.segmento);
+
+      const delPrestador = propias.length
+        ? []
+        : bloque.componentes.flatMap((c) => [
+            ...(c.prestadorServicioImagenes ?? []),
+            ...(c.prestadorImagenes ?? []),
+          ]);
+
+      const nuevas = [...propias, ...delPrestador].filter(
+        (i) => i.imageUrl && !vistas.has(i.imageUrl),
+      );
+
+      nuevas.forEach((i) => vistas.add(i.imageUrl));
+      salida.set(bloque.key, nuevas);
+    }
+  }
+
+  return salida;
+});
+
+const galeriaDe = (bloque: BloqueVista): { imageUrl: string }[] =>
+    galeriaPorBloque.value.get(bloque.key) ?? [];
+
 const desplazarGaleria = (ev: Event, dir: number) => {
   const wrap = (ev.currentTarget as HTMLElement).closest('[data-galeria]');
   const track = wrap?.querySelector('.galeria-track') as HTMLElement | null;
@@ -1260,10 +1317,10 @@ const adelantoVista = computed(() => {
                 class="bg-white rounded-4xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mb-6"
             >
               <!-- Galería de imágenes (desplazable) — oculta en modo Resumen -->
-              <div v-if="!modoResumen && imagenesDe(item.segmento).length" class="h-48 md:h-64 relative overflow-hidden" data-galeria>
+              <div v-if="!modoResumen && galeriaDe(item).length" class="h-48 md:h-64 relative overflow-hidden" data-galeria>
                 <div class="galeria-track flex h-full overflow-x-auto snap-x snap-mandatory no-scrollbar">
                   <img
-                      v-for="(img, ii) in imagenesDe(item.segmento)"
+                      v-for="(img, ii) in galeriaDe(item)"
                       :key="ii"
                       :src="img.imageUrl"
                       class="w-full h-full shrink-0 snap-center object-cover"

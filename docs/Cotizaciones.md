@@ -2838,6 +2838,96 @@ o no.
 El patrón es siempre igual: **una condición que deduce «puedo editar» del propio dato que falta**.
 Cuando el estado inicial es vacío, se cierra sobre sí misma.
 
+## 6.t La foto la pone el prestador; el relato lo pone el segmento (27/08/2026)
+
+### El problema es aritmético
+
+Un resort de Punta Cana se cuenta con actividades genéricas: «Desayuno buffet», «Piscina y playa»,
+«Cena en restaurante temático», «Espectáculo nocturno». El **texto** de esas actividades es el mismo
+en cualquier resort — cambia la **cara**: la piscina del Barceló no es la del Meliá.
+
+Si las fotos viven dentro del segmento, hacen falta **N resorts × M actividades** segmentos, y cada
+resort nuevo obliga a redactar M veces el mismo párrafo. Con diez actividades y seis resorts son
+sesenta segmentos que dicen lo mismo, y sesenta sitios donde corregir una errata.
+
+La salida es partir las dos cosas:
+
+```
+  segmento genérico            componente + tarifa               servicio del prestador
+  «Piscina y playa»     ──►    (resuelve QUÉ resort)      ──►    fotos de ESA piscina
+  el relato, escrito 1 vez     el enlace, por cotización         la cara, en el catálogo
+```
+
+Con eso hacen falta **M segmentos**, y añadir un resort no cuesta ninguno: cuesta cargar su ficha de
+catálogo con sus servicios y sus fotos. La actividad de piscina se escribe una vez y cada cotización
+la enseña con la piscina que de verdad se contrató.
+
+### Las tres reglas, en orden
+
+Viven en `galeriaPorBloque` (`pax/src/views/cotizacion/PaxCotizacionGuiaView.vue`):
+
+1. **Si el segmento trae galería propia, manda.** Los segmentos redactados para un sitio concreto
+   —Paracas, Islas Ballestas— ya tienen sus fotos y no hay nada que promover. La promoción es un
+   **recurso para los genéricos**, no un sustituto de lo escrito a mano.
+2. **Si no, se concatenan las de TODOS sus componentes**: primero las del servicio del prestador
+   (la habitación, la actividad) y después las de la empresa. Un segmento puede llevar almuerzo y
+   piscina a la vez, y las dos galerías suman.
+3. **Ninguna foto se repite en toda la guía.**
+
+### ⚠️ La deduplicación es por FOTO, no por posición
+
+Es el matiz que decide si la guía cansa o no, y la alternativa fácil está mal.
+
+Lo intuitivo sería «las fotos del hotel salen sólo en el check-in». Eso funciona para la galería del
+hotel, pero **mata justo lo que se buscaba**: si la actividad de piscina tiene fotos propias en el
+catálogo —otro servicio del mismo prestador—, una regla posicional las esconde y el resto de días
+se queda sin cara.
+
+Deduplicando por URL de imagen se obtienen las dos cosas a la vez, sin decidir nada:
+
+- la galería de la **habitación** cae en el primer segmento que la trae —el check-in— y no vuelve a
+  aparecer en los siete días siguientes, porque son literalmente las mismas fotos;
+- la galería de la **piscina** sí aparece en su día, porque son fotos distintas.
+
+**Lo repetido se calla solo; lo distinto siempre se enseña.**
+
+El recorrido se hace de una vez sobre `itinerarioVista`, que ya viene ordenado por día, porque «la
+primera vez que aparece» sólo tiene sentido leyendo el itinerario entero en orden. Calcularlo dentro
+del `v-for` daría un resultado distinto según qué día estuviera abierto.
+
+### ⚠️ Las fotos pasan por el mismo filtro que el nombre del prestador
+
+`CotizacionCotcomponentePrestadorPublicNormalizer` inyecta `prestadorImagenes` y
+`prestadorServicioImagenes` **sólo si `isPrestadorVisible()`**. Eso no es una limitación que haya que
+sortear: **una foto de la piscina del Barceló identifica al hotel igual de bien que su nombre**, así
+que revelarla con el prestador oculto sería la misma fuga por otra puerta.
+
+La consecuencia práctica: **la promoción funciona donde enseñas al proveedor** —resorts, hoteles,
+trenes— y en un componente con el prestador oculto el segmento se queda con su galería propia o sin
+galería. Es lo correcto, y por eso el interruptor es uno solo.
+
+### Qué exige esto de los datos
+
+La potencia sale del catálogo, no del código. Para que un resort nuevo funcione:
+
+| Hace falta | Dónde |
+|---|---|
+| La organización con su título público | `TravelOrganizacion` |
+| Un **servicio por actividad** que quieras ilustrar, con sus fotos | `TravelOrganizacionServicio` + sus imágenes |
+| Que la tarifa lleve su organización y su servicio | `CotizacionCottarifa` → se copia al componente |
+| Que el componente quede con `prestadorVisible = true` | ficha del componente |
+
+Un servicio sin fotos no rompe nada: el segmento simplemente no gana galería. Y un servicio con
+fotos pero **sin título** es la incoherencia que caza `CoherenciaCatalogoChecker` — hoy la tiene
+Terra Andina Colonial Mansion.
+
+### Estado medido el 27/08/2026
+
+Cuatro servicios del catálogo tienen fotos (Tambo del Inka 5, Hatun Inti 4, Terra Andina 3, Sonesta
+Miraflores 2). Alcanzan a **18 componentes**, los 18 con el prestador visible y **los 18 en segmentos
+sin galería propia**: es decir, los 18 promueven. Punta Cana todavía no tiene ninguna — cargar esas
+fotos es lo que hace que los segmentos genéricos del resort dejen de salir desnudos.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
@@ -2932,6 +3022,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Tipos compartidos del árbol/tarifas** → `util/src/types/cotizacionEditorModel.ts` (interno) y `pax/src/types/paxCotizacionModel.ts` (cliente). Mantenerlos coherentes.
 - **Nombre interno del componente** → helper `nombreInternoDeComponente` (store). **Título público / por ítems** → `tituloClienteDeComponente` (store).
 - **Badges modalidad/categoría** → `modCatBadges` (`cotizacionEditorModel.ts` en util; local en `PaxCotizacionGuiaView.vue` en pax).
+- **De dónde salen las fotos de la tarjeta de un segmento** → `galeriaPorBloque` en `PaxCotizacionGuiaView.vue`. Propias del segmento si las hay; si no, las del servicio del prestador de sus componentes, deduplicadas por foto en toda la guía (§6.t). Si no sale ninguna, mira antes `prestadorVisible` que el código: sin él no se inyectan.
 - **Serialización pública / ocultar precio o proveedor** → `src/Cotizacion/Serializer/CotizacionPublicNormalizer.php` + grupos `pax_cotizacion:read` en las entidades.
 - **Portada o duración de un tour de catálogo (en el panel o en pax)** → `TourTarjetaResolver` (§6.b). Nunca reimplementar la derivación en la entidad ni en el front.
 - **La tarjeta de precio de la guía (colapsada/expandida, textos del pie)** → sección "TARJETA DE PRECIO" de `PaxCotizacionGuiaView.vue` + `finanzasAbiertas` / `hayPanelPrecio`. Ojo con el vocabulario: §6.
