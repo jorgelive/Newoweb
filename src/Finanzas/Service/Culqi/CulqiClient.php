@@ -42,6 +42,17 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 final class CulqiClient implements FinPasarelaClientInterface
 {
     private const RUTA_CHARGES = '/v2/charges';
+    private const RUTA_REFUNDS = '/v2/refunds';
+
+    /**
+     * Los tres valores que admite `reason` en la API de devoluciones de Culqi:
+     * `duplicado`, `fraudulento`, `solicitud_comprador`.
+     *
+     * El nuestro es siempre el tercero: quien devuelve aquí es el operador atendiendo a un
+     * cliente que lo pidió. Los otros dos existen para casos que no pasan por este panel —un
+     * cobro duplicado se resuelve en el Backoffice, y un fraude no lo declara una recepción.
+     */
+    public const MOTIVO_POR_DEFECTO = 'solicitud_comprador';
 
     /**
      * Librería JS del **Checkout Custom**.
@@ -129,6 +140,67 @@ final class CulqiClient implements FinPasarelaClientInterface
                 'enlaceId' => (string) $enlace->getId(),
                 'origenTipo' => $enlace->getOrigenTipo()->value,
                 'ordenId' => (string) $enlace->getOrdenId(),
+            ],
+        ]);
+    }
+
+    /**
+     * Devuelve el dinero de un cargo ya cobrado.
+     *
+     * ── Se devuelve el NETO, no el total ────────────────────────────────────────
+     * El huésped pagó `montoTotal` (neto + 5.5%) y a su documento se le abonó `montoNeto`.
+     * Se devuelve **lo que el documento recibió**, y el recargo se queda donde estaba: fue
+     * el coste de pagar con tarjeta, anunciado en el propio botón antes de pulsarlo
+     * («Incluye 5.5% de comisión»). Devolver el total significaría que la casa paga la
+     * comisión de una operación que ya no existe.
+     *
+     * Y coincide con lo que hace Culqi: su documentación dice que **pasada la fecha de la
+     * venta la devolución descuenta su comisión**, o sea que no la reintegra. Devolver el
+     * total obligaría a poner esa diferencia de nuestro bolsillo.
+     *
+     * ── `reason` es un ENUM cerrado ─────────────────────────────────────────────
+     * `duplicado`, `fraudulento`, `solicitud_comprador`. No es texto libre — el README de la
+     * librería PHP de Culqi pone una frase de ejemplo y engaña.
+     *
+     * ⚠️ Por eso `$motivo` **NO** alimenta `reason`: se manda siempre `MOTIVO_POR_DEFECTO`.
+     * El texto del operador va a `metadata` (que no valida nada) y sobre todo a la nota del
+     * asiento del módulo, que es donde se lee. El parámetro se queda en la firma porque lo
+     * declara el contrato y otra pasarela puede sí saber usarlo.
+     *
+     * ⚠️ El importe va en **céntimos**, igual que el cargo (`montoTotalCentimos()`). Mandar
+     * `100.00` en vez de `10000` devuelve un sol en lugar de cien, y la API lo acepta.
+     *
+     * @return array<string, mixed> El objeto `refund` de Culqi.
+     * @throws RuntimeException si Culqi rechaza la devolución (fuera de plazo, ya devuelto,
+     *                          saldo insuficiente en la cuenta…).
+     */
+    public function reembolsar(FinEnlacePago $enlace, string $motivo = self::MOTIVO_POR_DEFECTO): array
+    {
+        $cargoId = $enlace->getTransaccionUuid();
+
+        if ($cargoId === null || $cargoId === '') {
+            throw new RuntimeException(
+                'Este enlace no guardó el id del cargo de Culqi, así que no se puede devolver '
+                . 'desde aquí. Hazlo en el Backoffice de la pasarela.'
+            );
+        }
+
+        return $this->peticion('POST', self::RUTA_REFUNDS, [
+            'amount' => $enlace->montoNetoCentimos(),
+            'charge_id' => $cargoId,
+            // ⚠️ CONSTANTE, no `$motivo`. `reason` es un enum cerrado de Culqi y el texto del
+            // operador lo haría inválido: la devolución se rechazaría con un 502 que no
+            // explica nada. Se mandó `$motivo` aquí en la primera versión y era un fallo —
+            // el flujo entero no habría funcionado salvo que alguien escribiera por
+            // casualidad una de las tres palabras.
+            'reason' => self::MOTIVO_POR_DEFECTO,
+            'metadata' => [
+                'enlaceId' => (string) $enlace->getId(),
+                'ordenId' => (string) $enlace->getOrdenId(),
+                // Aquí SÍ cabe el texto libre: metadata no valida nada y vuelve en el objeto
+                // `refund`, así que el porqué del operador queda también del lado de Culqi
+                // para quien concilie desde su Backoffice.
+                'motivo' => $motivo !== '' ? mb_substr($motivo, 0, 200) : 'no indicado',
             ],
         ]);
     }

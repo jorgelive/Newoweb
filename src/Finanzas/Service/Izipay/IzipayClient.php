@@ -156,6 +156,42 @@ final class IzipayClient implements FinPasarelaClientInterface
     }
 
     /**
+     * 🅿️ NO IMPLEMENTADO — Izipay está parada (ver la cabecera de la clase).
+     *
+     * ── Por qué el método existe estando vacío ──────────────────────────────────
+     * Porque el contrato manda. `reembolsar()` se declara en `FinPasarelaClientInterface`, y
+     * se declaró ahí **a sabiendas** de que Izipay tendría que implementarlo: aflojar el
+     * contrato a una capacidad opcional habría escondido este hueco detrás de un `instanceof`
+     * que nadie mira. Así el hueco tiene nombre, sale en el editor, y el día que Izipay se
+     * habilite la lista de lo que falta es la lista de métodos que lanzan.
+     *
+     * No contradice el «no se toca lo parado»: eso prohíbe **arreglarle huecos**, no dejarlo
+     * compilando, que es justo lo que la cabecera dice que se hace.
+     *
+     * ── Por qué LANZA y no devuelve un array vacío ──────────────────────────────
+     * Es un método de dinero. Si devolviera `[]`, `FinEnlacePagoService::reembolsar()` daría
+     * la devolución por buena, marcaría el enlace `REEMBOLSADO` y pondría el cobro a cero —
+     * sobre un dinero que sigue en la cuenta del cliente. Nadie lo descubriría hasta que
+     * alguien reclamase. Un fallo ruidoso aquí es infinitamente más barato.
+     *
+     * ── Y por qué no se escribe ahora ───────────────────────────────────────────
+     * No hay un solo enlace emitido por Izipay, así que no existe ningún cargo suyo que
+     * devolver: el método es inalcanzable hoy. Y escribirlo contra la API de Lyra sin poder
+     * probarlo —sin cuenta habilitada— daría código que parece hecho y nadie ha visto
+     * funcionar, que es peor que este `throw`.
+     *
+     * Cuando toque: Lyra expone la devolución en su API de gestión de transacciones, y hace
+     * falta el `uuid` de la transacción, que ya se guarda en `transaccionUuid`.
+     */
+    public function reembolsar(FinEnlacePago $enlace, string $motivo = ''): array
+    {
+        throw new RuntimeException(
+            'Izipay no admite devoluciones desde el sistema: la integración está parada y sin '
+            . 'habilitar. Si este cobro salió por Izipay, devuélvelo en su Backoffice.'
+        );
+    }
+
+    /**
      * ¿La firma del POST recibido es auténtica?
      *
      * Se firma el `kr-answer` **crudo**, tal como llegó. Decodificarlo y volver a

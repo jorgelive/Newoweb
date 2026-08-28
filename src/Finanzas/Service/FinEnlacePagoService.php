@@ -16,6 +16,8 @@ use DateTimeImmutable;
 use DomainException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
+use Throwable;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
 
@@ -242,9 +244,14 @@ final class FinEnlacePagoService
      */
     public function confirmarPago(FinEnlacePago $enlace, array $respuesta): void
     {
-        $enlace->setRespuestaPasarela($respuesta);
-
+        // ⚠️ La guarda va ANTES de tocar `respuestaPasarela`, y no al revés.
+        //
+        // Estaba después, y sobre un enlace REEMBOLSADO destruía la prueba: el archivo
+        // `{cobro, devolucion}` que escribe `reembolsar()` se pisaba con la respuesta nueva
+        // antes de que el `return` la salvara. Se perdía justo lo que se cotejaría contra el
+        // extracto el día que alguien discutiera la devolución.
         if ($enlace->getEstado() === FinEnlacePagoEstado::PAGADO) {
+            $enlace->setRespuestaPasarela($respuesta);
             $this->logger->info('[finanzas] IPN repetido sobre un enlace ya pagado; se ignora', [
                 'enlace' => (string) $enlace->getId(),
             ]);
@@ -252,6 +259,26 @@ final class FinEnlacePagoService
 
             return;
         }
+
+        // ⚠️ Y un enlace ya DEVUELTO no vuelve a cobrarse por un aviso tardío.
+        //
+        // El cargo de Culqi sigue existiendo después del reembolso —conserva su `amount` y
+        // anota `amount_refunded` aparte—, así que `cargoPagaElEnlace()` lo daba por bueno y
+        // un `charge.update` posterior habría marcado PAGADO otra vez y creado un SEGUNDO
+        // `PmsPagoFinanciero`. La reserva aparecería cobrada sobre un dinero ya devuelto, y
+        // encima sonaría el aviso al equipo. La devolución puede disparar ese aviso ella
+        // misma: el flujo podía deshacerse solo.
+        //
+        // No se toca `respuestaPasarela` en este camino, por lo mismo de arriba.
+        if ($enlace->getEstado() === FinEnlacePagoEstado::REEMBOLSADO) {
+            $this->logger->warning('[finanzas] aviso de cobro sobre un enlace ya REEMBOLSADO; se ignora', [
+                'enlace' => (string) $enlace->getId(),
+            ]);
+
+            return;
+        }
+
+        $enlace->setRespuestaPasarela($respuesta);
 
         $transaccion = $this->primeraTransaccion($respuesta);
 
@@ -302,11 +329,124 @@ final class FinEnlacePagoService
         $this->em->flush();
     }
 
+    /**
+     * Devuelve el dinero de un enlace cobrado y deshace su asiento en el módulo dueño.
+     *
+     * ── El orden es la garantía, y no se puede invertir ──────────────────────────
+     *   1. La pasarela devuelve.        ← si falla aquí, no se ha escrito NADA
+     *   2. El enlace pasa a REEMBOLSADO.
+     *   3. El módulo deshace su asiento (el PMS pone el cobro a cero con una nota).
+     *   4. Un solo flush cierra 2 y 3.
+     *
+     * Primero el dinero y después el registro, nunca al revés: un estado que se adelanta a la
+     * pasarela es una devolución anotada que puede no haber ocurrido — y el saldo diría que le
+     * debemos algo a alguien que sigue teniendo su dinero. Si la pasarela falla, esto lanza y
+     * la ficha se queda exactamente como estaba.
+     *
+     * Los pasos 2 y 3 comparten flush por lo contrario: si el enlace quedara reembolsado y el
+     * cobro siguiera vivo, el saldo de la reserva mentiría en la otra dirección.
+     *
+     * ── Sólo desde el panel de Finanzas ──────────────────────────────────────────
+     * La acción vive en `/finanzas`, no en el panel de la reserva. En el PMS esto **se ve**
+     * —el enlace en «Reembolsado» y el cobro en cero con su nota— pero no se decide: devolver
+     * dinero es una operación de caja, no de recepción.
+     *
+     * @param string $motivo Lo que escribió el operador. Va a la nota del asiento del módulo;
+     *                       a la pasarela viaja su enum cerrado (`CulqiClient::reembolsar()`).
+     * @throws DomainException si el enlace no está PAGADO.
+     * @throws RuntimeException si la pasarela rechaza la devolución.
+     */
+    public function reembolsar(FinEnlacePago $enlace, string $motivo = ''): void
+    {
+        if ($enlace->getEstado() === FinEnlacePagoEstado::REEMBOLSADO) {
+            throw new DomainException('Este cobro ya se devolvió.');
+        }
+
+        if ($enlace->getEstado() !== FinEnlacePagoEstado::PAGADO) {
+            throw new DomainException(
+                'Sólo se puede devolver un cobro que se llegó a pagar. Un enlace pendiente o '
+                . 'fallido se anula, que no mueve dinero.'
+            );
+        }
+
+        // 1 · El dinero primero. Lanza si la pasarela dice que no —o si no sabe devolver,
+        // como Izipay, que lo declara y lo dice en vez de fingir que trabajó.
+        $respuesta = $this->pasarelas->para($enlace->getPasarela())->reembolsar($enlace, $motivo);
+
+        // ⚠️ Se loguea el ID DEL REFUND y el importe, no sólo «se devolvió».
+        //
+        // Es el único rastro que sobrevive si el flush de abajo falla: en ese momento el
+        // dinero está fuera y la base no se ha enterado, y la respuesta cruda vive en una
+        // entidad que no llegó a persistirse. Con el id se puede reconciliar contra Culqi;
+        // sin él, la única salida es cotejar a mano el extracto.
+        $refundId = is_string($respuesta['id'] ?? null) ? $respuesta['id'] : '(sin id)';
+
+        $this->logger->info('[finanzas] devolución aceptada por la pasarela', [
+            'enlace' => (string) $enlace->getId(),
+            'pasarela' => $enlace->getPasarela()->value,
+            'refund' => $refundId,
+            'montoNeto' => $enlace->getMontoNeto(),
+        ]);
+
+        // 2 · El estado. La respuesta cruda se GUARDA junto a la del cobro, no encima: las dos
+        // son parte de la historia de este enlace y la del cobro es la que se cotejará contra
+        // el extracto el día que alguien discuta la operación.
+        $enlace
+            ->setEstado(FinEnlacePagoEstado::REEMBOLSADO)
+            ->setRespuestaPasarela([
+                'cobro' => $enlace->getRespuestaPasarela(),
+                'devolucion' => $respuesta,
+            ]);
+
+        // 3 · Y el módulo dueño deshace lo suyo. Un cobro manual no tiene a quién avisar.
+        $this->registry->registrarDevolucion($enlace, $motivo);
+
+        // 4 · Los dos juntos.
+        //
+        // ⚠️ Si esto falla, el dinero YA SALIÓ y la base no se ha enterado: el enlace se queda
+        // PAGADO con su cobro vivo, y la reserva dice que cobró algo que ya devolvimos. Es la
+        // única ventana irreparable del flujo —no se puede «des-devolver»— así que se grita en
+        // el log con todo lo necesario para reconciliar a mano, y se relanza para que el
+        // operador vea un error en vez de creer que salió bien.
+        try {
+            $this->em->flush();
+        } catch (Throwable $e) {
+            $this->logger->critical(
+                '[finanzas] DINERO DEVUELTO Y NO ANOTADO — reconciliar a mano contra la pasarela',
+                [
+                    'enlace' => (string) $enlace->getId(),
+                    'refund' => $refundId,
+                    'montoNeto' => $enlace->getMontoNeto(),
+                    'moneda' => $enlace->getMonedaCodigo(),
+                    'error' => $e->getMessage(),
+                ],
+            );
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Cierra un enlace que todavía NO se cobró.
+     *
+     * ⚠️ Anular es sólo para lo que no movió dinero. Lo cobrado se devuelve (`reembolsar()`),
+     * y lo devuelto ya está cerrado: sin la segunda guarda, anular reescribía el estado
+     * terminal `REEMBOLSADO` a `ANULADO` y borraba de la vista que hubo una devolución —con
+     * el cobro del módulo en cero y nadie capaz de explicar por qué.
+     */
     public function anular(FinEnlacePago $enlace): void
     {
+        if ($enlace->getEstado() === FinEnlacePagoEstado::REEMBOLSADO) {
+            throw new DomainException(
+                'Este cobro ya se devolvió, así que no hay nada que anular. El enlace queda '
+                . 'como está para que la devolución no desaparezca del historial.'
+            );
+        }
+
         if ($enlace->getEstado() === FinEnlacePagoEstado::PAGADO) {
             throw new DomainException(
-                'Este enlace ya se cobró. Para revertirlo hay que devolver el dinero en el Backoffice de la pasarela.'
+                'Este enlace ya se cobró: anularlo no le devolvería el dinero a nadie. Usa '
+                . 'la devolución desde el panel de Finanzas.'
             );
         }
 

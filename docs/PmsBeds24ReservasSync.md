@@ -3085,11 +3085,36 @@ reserva volvía a deber un dinero que el huésped sí había pagado. **Una devol
 como un cargo aparte**, no borrando el cobro; el hueco que eso deja abierto (no hay estado
 `REEMBOLSADO`) está en `docs/Pendientes.md`.
 
-⚠️ **Consecuencia en el borrado de reservas:** los pagos van en `cascade: ['remove']`, así que
-una reserva con un cobro por pasarela ya no se puede borrar — correcto, pero el aviso llega
-tarde, porque `PmsReserva::getMotivoNoBorrable()` (§12.12.1) sólo recorre las estancias y no
-mira los pagos. La laguna no es nueva —el depósito de las OTA ya la tenía— pero ahora alcanza
-a más reservas. También apuntada en `Pendientes.md`.
+#### El 500 sin texto al borrar la reserva, y las dos puertas que lo arreglan
+
+Los pagos van en `cascade: ['remove']`, así que un pago no borrable tumba el borrado de la
+reserva entera. Eso ya pasaba con el depósito automático de las OTA, y **se veía como un 500
+pelado**: el veto lo lanzaba el listener de coherencia desde `onFlush`, con la transacción
+abierta, y a la pantalla no llegaba ningún motivo que enseñar.
+
+Arreglado el 28/08/2026 por los dos lados que el operador toca:
+
+| Puerta | Dónde | Qué consigue |
+|---|---|---|
+| **Antes de pulsar** | `PmsReserva::getMotivoNoBorrable()` ahora recorre también `informacionFinanciera->getPagos()` | `safeToDelete` va en `false` y la SPA no ofrece el botón; el campo ya viajaba serializado, así que el front no cambia |
+| **Si se intenta igual** | `PmsReservaDeleteListener::preRemove()` suma los motivos de los pagos a los que ya reunía | Sale un `AccessDeniedHttpException` **con el texto dentro**, no un `DomainException` en mitad del flush |
+
+⚠️ **`preRemove` y no el listener de coherencia**, aunque los dos vetan lo mismo. `preRemove`
+corre en el `remove()`, antes de tocar la base, y lanza una excepción HTTP que la SPA sabe
+leer. El de coherencia salta en `onFlush`, cuando el EntityManager está a punto de cerrarse —
+y ése era el 500. **El veto de coherencia se queda igualmente**: protege el borrado de un pago
+*suelto*, que no pasa por `preRemove`. Dos puertas para dos caminos, con la misma regla detrás
+(`PmsPagoFinanciero::getMotivoNoBorrable()`).
+
+Verificado con `var/probar-borrado-pago-enlace.php` (transacción con rollback): un pago manual
+sigue borrable, el del enlace no, la reserva se declara no borrable **con su motivo**, el
+intento devuelve `AccessDeniedHttpException` con el texto, y el pago suelto lo sigue parando
+la coherencia.
+
+⚠️ El script tiene un orden que no se puede cambiar a la ligera: **un flush rechazado cierra
+el EntityManager**, así que todo lo que necesite seguir usándolo va antes de provocar el
+rechazo (el último caso pide un manager nuevo con `resetManager()`; la transacción sobrevive
+porque es de la conexión, no del manager).
 
 La regla vive en **la entidad** (`PmsPagoFinanciero::isGestionadoPorElSistema()`), no repetida en
 el listener, el servicio y la SPA: los tres la consultan, y el campo se serializa para que el

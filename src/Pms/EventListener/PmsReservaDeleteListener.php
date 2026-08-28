@@ -68,6 +68,30 @@ final class PmsReservaDeleteListener
             }
         }
 
+        // ── 1b · Pagos que no se pueden borrar ──────────────────────────────
+        //
+        // Los pagos van en `cascade: ['remove']`, así que uno no borrable —el depósito
+        // automático de una OTA, o un cobro que entró por un enlace de pasarela— tumba el
+        // borrado de la reserva entera.
+        //
+        // ⚠️ Se comprueba AQUÍ, en `preRemove`, y no se deja para el listener de coherencia,
+        // que también lo veta. El motivo es el mensaje que ve el operador: la coherencia
+        // salta en `onFlush`, con la transacción abierta y el EntityManager a punto de
+        // cerrarse, y lo que llegaba a la pantalla era un 500 sin texto. `preRemove` corre
+        // en el `remove()`, antes de tocar la base, y lanza una excepción HTTP con su motivo
+        // dentro — que es lo que la SPA sabe enseñar.
+        //
+        // El veto de coherencia se queda igualmente: protege el borrado de un pago suelto,
+        // que no pasa por aquí. Dos puertas para dos caminos, con la misma regla detrás
+        // (`PmsPagoFinanciero::getMotivoNoBorrable()`).
+        foreach ($reserva->getInformacionFinanciera()?->getPagos() ?? [] as $pago) {
+            $motivo = $pago->getMotivoNoBorrable();
+
+            if ($motivo !== null) {
+                $motivos[] = sprintf('tiene un cobro que no se puede eliminar (%s)', $motivo);
+            }
+        }
+
         // ── 2 · El hilo de chat, que no cascadea ────────────────────────────
         foreach ($this->conversacionesDe($reserva, $args) as $nombre) {
             $motivos[] = sprintf(

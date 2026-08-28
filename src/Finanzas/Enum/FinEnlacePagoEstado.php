@@ -7,11 +7,13 @@ namespace App\Finanzas\Enum;
 /**
  * Ciclo de vida de un enlace de pago.
  *
- * Ojo con la asimetría: PAGADO es **terminal e irreversible** desde el sistema. Un cobro
- * que ya pasó por la pasarela no se "des-paga" borrando el enlace; se anula devolviendo el
- * dinero en el Backoffice de la pasarela y eliminando después el pago que generó. Por eso
- * `esFinal()` incluye PAGADO: ningún webhook posterior puede sacarlo de ahí (ver
- * `FinEnlacePagoService::confirmarPago()`, que ignora reintentos sobre enlaces ya pagados).
+ * Ojo con la asimetría: PAGADO es **terminal** desde el sistema. Ningún webhook posterior
+ * puede sacarlo de ahí (ver `FinEnlacePagoService::confirmarPago()`, que ignora reintentos
+ * sobre enlaces ya pagados), y `esFinal()` lo incluye por eso.
+ *
+ * Del PAGADO sólo se sale por una puerta, y es hacia adelante: REEMBOLSADO. **No se vuelve a
+ * PENDIENTE ni se borra nada** — el cobro ocurrió, y lo que hubo después fue otro hecho, no
+ * la cancelación del primero.
  */
 enum FinEnlacePagoEstado: string
 {
@@ -30,6 +32,15 @@ enum FinEnlacePagoEstado: string
     /** El operador lo canceló a mano. */
     case ANULADO = 'anulado';
 
+    /**
+     * Se cobró y luego se devolvió el dinero por la pasarela.
+     *
+     * Sólo se llega desde PAGADO, y la transición la escribe `FinEnlacePagoService::reembolsar()`
+     * **después** de que Culqi confirme la devolución — nunca antes: un estado que se adelanta al
+     * dinero es exactamente la mentira que este estado vino a quitar.
+     */
+    case REEMBOLSADO = 'reembolsado';
+
     public function etiqueta(): string
     {
         return match ($this) {
@@ -38,6 +49,7 @@ enum FinEnlacePagoEstado: string
             self::FALLIDO   => 'Fallido',
             self::EXPIRADO  => 'Expirado',
             self::ANULADO   => 'Anulado',
+            self::REEMBOLSADO => 'Reembolsado',
         };
     }
 
@@ -50,8 +62,8 @@ enum FinEnlacePagoEstado: string
     public function esFinal(): bool
     {
         return match ($this) {
-            self::PAGADO, self::EXPIRADO, self::ANULADO => true,
-            self::PENDIENTE, self::FALLIDO              => false,
+            self::PAGADO, self::EXPIRADO, self::ANULADO, self::REEMBOLSADO => true,
+            self::PENDIENTE, self::FALLIDO                                 => false,
         };
     }
 

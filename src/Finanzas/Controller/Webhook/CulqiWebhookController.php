@@ -91,6 +91,17 @@ final class CulqiWebhookController extends AbstractController
                 return $this->json(['ok' => true, 'ignorado' => 'ya_pagado']);
             }
 
+            // ⚠️ Y un enlace ya DEVUELTO tampoco se reabre. El cargo sigue existiendo en
+            // Culqi tras el reembolso —conserva su `amount`—, así que `cargoPagaElEnlace()`
+            // lo verificaría igual y un `charge.update` tardío lo habría marcado PAGADO otra
+            // vez, creando un segundo pago sobre dinero ya devuelto. `confirmarPago()` tiene
+            // la misma guarda; ésta ahorra además la consulta a Culqi.
+            if ($enlace->getEstado() === FinEnlacePagoEstado::REEMBOLSADO) {
+                $this->cerrarAudit($audit, FinPasarelaWebhookAudit::ESTADO_IGNORADO, 'ya_reembolsado');
+
+                return $this->json(['ok' => true, 'ignorado' => 'ya_reembolsado']);
+            }
+
             $cargo = $this->culqi->verificarCargo($idCargo);
 
             if ($cargo === null || !$this->culqi->cargoPagaElEnlace($cargo, $enlace)) {

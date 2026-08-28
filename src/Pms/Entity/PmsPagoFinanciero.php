@@ -394,7 +394,8 @@ class PmsPagoFinanciero
         if ($this->enlacePagoId !== null) {
             return 'Este cobro entró por un enlace de pago: el dinero lo movió la pasarela, y '
                 . 'borrarlo aquí dejaría el enlace diciendo que se cobró mientras la reserva '
-                . 'vuelve a deberlo. Si lo devolviste, anótalo como un cargo aparte.';
+                . 'vuelve a deberlo. Para devolverlo, usa la devolución desde el panel de '
+                . 'Finanzas: deja este cobro en cero con su nota y avisa a la pasarela.';
         }
 
         return null;

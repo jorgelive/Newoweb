@@ -14,6 +14,7 @@ use App\Finanzas\Service\FinEnlacePagoService;
 use App\Finanzas\Service\FinOrigenCobroRegistry;
 use App\Security\Roles;
 use DomainException;
+use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -183,6 +184,48 @@ final class FinEnlacePagoApiController extends AbstractController
             $this->servicio->anular($enlace);
         } catch (DomainException $e) {
             return $this->json(['error' => $e->getMessage()], 422);
+        }
+
+        return $this->json(['enlace' => $this->serializar($enlace)]);
+    }
+
+    /**
+     * Devuelve el dinero de un cobro y deshace su asiento en el módulo dueño.
+     *
+     * ⚠️ **Sólo desde el panel de Finanzas** (`/finanzas` → Cobros). No se expone en el panel
+     * de la reserva a propósito: allí esto **se ve** —el enlace en «Reembolsado» y el cobro en
+     * cero con su nota— pero no se decide. Devolver dinero es una operación de caja, no de
+     * recepción, y el sitio donde vive una acción es parte de quién puede hacerla.
+     *
+     * El `motivo` es texto libre del operador y acaba en la nota del asiento. A la pasarela no
+     * llega: allí `reason` es un enum cerrado de tres valores.
+     */
+    #[Route('/{id}/reembolsar', name: 'reembolsar', methods: ['POST'])]
+    #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para devolver cobros.')]
+    public function reembolsar(string $id, Request $request): JsonResponse
+    {
+        $enlace = $this->repository->find($id);
+
+        if (!$enlace instanceof FinEnlacePago) {
+            return $this->json(['error' => 'Enlace no encontrado.'], 404);
+        }
+
+        /** @var array<string, mixed> $datos */
+        $datos = json_decode((string) $request->getContent(), true) ?: [];
+        $motivo = is_string($datos['motivo'] ?? null) ? trim($datos['motivo']) : '';
+
+        try {
+            $this->servicio->reembolsar($enlace, $motivo);
+        } catch (DomainException $e) {
+            // Regla NUESTRA: el enlace no está pagado, o ya se devolvió. 422 porque la
+            // petición es válida y la situación no.
+            return $this->json(['error' => $e->getMessage()], 422);
+        } catch (RuntimeException $e) {
+            // Todo lo que viene de la pasarela: que diga que no (fuera de plazo, saldo
+            // insuficiente en la cuenta), que no conteste, o que **no sepa devolver** —el
+            // stub de Izipay lanza `RuntimeException`, así que cae aquí y no en el 422 de
+            // arriba. 502 en los tres casos: el fallo no es del operador ni de esta petición.
+            return $this->json(['error' => $e->getMessage()], 502);
         }
 
         return $this->json(['enlace' => $this->serializar($enlace)]);

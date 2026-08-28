@@ -59,4 +59,27 @@ interface FinOrigenCobroResolverInterface
      * poder navegar del enlace al asiento, o `null` si el módulo no crea nada.
      */
     public function registrarCobro(FinEnlacePago $enlace): ?Uuid;
+
+    /**
+     * Deshace en el módulo el dinero que la pasarela acaba de devolver.
+     *
+     * Se llama desde `FinEnlacePagoService::reembolsar()` y **sólo después** de que la
+     * pasarela confirme la devolución: primero se mueve el dinero, luego se escribe. Al revés
+     * se estaría anotando una devolución que puede no haber ocurrido.
+     *
+     * ── Lo que se espera de la implementación ───────────────────────────────────
+     * **No borrar el asiento.** El cobro existió y sigue siendo parte de lo que le pasó a ese
+     * documento; lo que cambia es que ya no vale dinero. El PMS pone su `PmsPagoFinanciero` a
+     * cero y le añade una nota — la fila se queda, el saldo vuelve solo por el recálculo de
+     * coherencia, y el histórico no pierde nada.
+     *
+     * Es la misma regla que gobierna el resto del módulo: no se borra, se marca.
+     *
+     * Debe ser **idempotente**: un enlace ya `REEMBOLSADO` no vuelve a pasar por aquí (Finanzas
+     * lo frena antes), pero no confíes sólo en eso.
+     *
+     * `$motivo` es el texto que escribió el operador, para que quede en el asiento del módulo.
+     * A la pasarela no viaja: allí `reason` es un enum cerrado de tres valores.
+     */
+    public function registrarDevolucion(FinEnlacePago $enlace, string $motivo): void;
 }

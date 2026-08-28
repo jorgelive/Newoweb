@@ -259,6 +259,18 @@ class FinEnlacePago
         return (int) round((float) $this->montoTotal * 100);
     }
 
+    /**
+     * El NETO en céntimos: lo que se devuelve al reembolsar.
+     *
+     * Se cobra el total y se devuelve el neto, y no es una asimetría por descuido: el recargo
+     * fue el coste de pagar con tarjeta —anunciado en el botón antes de pulsarlo— y la pasarela
+     * no lo reintegra. Ver `CulqiClient::reembolsar()`.
+     */
+    public function montoNetoCentimos(): int
+    {
+        return (int) round((float) $this->montoNeto * 100);
+    }
+
     /** Importe del recargo, derivado. Nunca se guarda: se recalcularía mal si cambia el neto. */
     #[Groups(['fin_enlace:read'])]
     public function getMontoRecargo(): string

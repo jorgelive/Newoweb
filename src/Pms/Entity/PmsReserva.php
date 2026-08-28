@@ -335,7 +335,16 @@ class PmsReserva
 
     /**
      * Motivo legible por el que la reserva NO se puede eliminar, o null si sí se puede.
-     * Devuelve el de la primera estancia que bloquea la operación.
+     * Devuelve el del primer obstáculo que encuentra.
+     *
+     * ⚠️ Mira las estancias **y los pagos**. Lo segundo se añadió el 28/08/2026 y arregla un
+     * fallo viejo: los pagos van en `cascade: ['remove']`, así que un pago no borrable
+     * —el depósito automático de una OTA, o un cobro que entró por un enlace de pasarela—
+     * tumba el borrado de la reserva entera. Pero este método sólo recorría las estancias, así
+     * que la pantalla anunciaba la reserva como borrable, el operador pulsaba, y el rechazo
+     * llegaba después desde el listener de coherencia — sin un motivo que la SPA supiera
+     * enseñar. Es el mismo pecado que `PmsPagoFinanciero::getMotivoNoBorrable()` vino a
+     * arreglar un nivel más abajo: ofrecer una acción que el sistema ya sabe que va a negar.
      */
     #[Groups(['pms_reserva:read'])]
     public function getMotivoNoBorrable(): ?string
@@ -344,6 +353,15 @@ class PmsReserva
             $motivo = $evento->getMotivoNoBorrable();
             if (null !== $motivo) {
                 return $motivo;
+            }
+        }
+
+        foreach ($this->informacionFinanciera?->getPagos() ?? [] as $pago) {
+            $motivo = $pago->getMotivoNoBorrable();
+            if (null !== $motivo) {
+                // Se antepone de quién es el problema: al pie de una reserva, un texto que
+                // empieza por «Este cobro…» deja al operador buscando cuál.
+                return sprintf('tiene un cobro que no se puede eliminar. %s', $motivo);
             }
         }
 

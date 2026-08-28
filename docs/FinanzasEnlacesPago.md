@@ -50,6 +50,7 @@ es dejar rastro de la contradicción (un enlace `anulado` que acabó cobrado), n
 10. [Añadir un módulo nuevo que cobre](#10-añadir-un-módulo-nuevo-que-cobre)
 11. [Dos pasarelas en paralelo: Izipay y Culqi](#11-dos-pasarelas-en-paralelo-izipay-y-culqi)
 11 bis. [Enlaces de PREPAGO](#11-bis-enlaces-de-prepago)
+11 quater. [Devoluciones: deshacer un cobro que ya pasó](#11-quater-devoluciones-deshacer-un-cobro-que-ya-paso)
 12. [Despliegue: por qué no basta con `git pull`](#12-despliegue-por-qué-no-basta-con-git-pull)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 14. [El catálogo de medios de cobro (`FinMedioCobro`)](#14-el-catálogo-de-medios-de-cobro-finmediocobro)
@@ -237,7 +238,8 @@ cuerpo (`SUCCESS` o no). `IzipayClient::post()` comprueba eso y no el código HT
                   ┌──────────┐
    crear() ──────►│PENDIENTE │
                   └────┬─────┘
-        IPN ok ────────┤────────► PAGADO    (terminal, irreversible)
+        IPN ok ────────┤────────► PAGADO ──────► REEMBOLSADO  (terminal)
+                       │            (devuelto por la pasarela, §11 quater)
         IPN ko ────────┤────────► FALLIDO ──┐
                        │            ▲       │ el cliente reintenta con otra
                        │            └───────┘ tarjeta en la MISMA url
@@ -247,20 +249,24 @@ cuerpo (`SUCCESS` o no). `IzipayClient::post()` comprueba eso y no el código HT
 
 - **`FALLIDO` no es final.** Que una tarjeta rebote no invalida el enlace.
   `FinEnlacePagoEstado::esFinal()` lo deja fuera, y `estaVigente()` sigue dejando pagar.
-- **`PAGADO` es irreversible desde el sistema.** El dinero se devuelve en el Backoffice de
-  **la pasarela que lo cobró** —hoy Culqi—, y `FinEnlacePagoService::anular()` se niega
-  explícitamente sobre un enlace pagado.
+- **`PAGADO` no se deshace: se avanza a `REEMBOLSADO`.** No hay vuelta a `PENDIENTE` y no se
+  borra nada. El cobro ocurrió, y una devolución es **otro hecho** encima, no la cancelación
+  del primero. `FinEnlacePagoService::anular()` se niega explícitamente sobre un enlace pagado
+  —anular es para lo que aún no se cobró—, y para lo cobrado está `reembolsar()` (§11 quater),
+  que llama a la pasarela, sella el estado y deja el cobro del módulo en cero con una nota.
 
-  ⚠️ **Corrección del 28/08/2026:** aquí se decía «y se elimina después el pago que generó».
-  Eso ya no se puede: desde el veto de `getMotivoNoBorrable()` un cobro por pasarela no se
-  borra (§ *La relación pago ↔ enlace*). **Una devolución se anota como un cargo aparte**, que
-  además es lo correcto contablemente y lo que hace el resto de este código: no se borra el
-  asiento, se escribe el contrario. Borrar el pago dejaba el enlace diciendo `PAGADO` sobre
-  una fila que ya no existía, o sea escondía la devolución en vez de registrarla.
+  ⚠️ **Tampoco se deshace borrando el pago.** El cobro por pasarela está vetado en
+  `PmsPagoFinanciero::getMotivoNoBorrable()` (§ *La relación pago ↔ enlace*): borrarlo dejaba
+  el enlace diciendo `PAGADO` sobre una fila inexistente, o sea escondía la devolución en vez
+  de registrarla. Hasta el 28/08/2026 el procedimiento era devolver en el Backoffice y
+  eliminar el pago; ya no vale, y sólo queda el Backoffice para una pasarela que no sepa
+  devolver desde aquí (hoy, Izipay).
 
-  Queda un hueco reconocido: **no hay estado `REEMBOLSADO`**, así que el enlace sigue diciendo
-  «cobrado» y quien quiera saber que hubo devolución tiene que leer el cargo. Es menos malo
-  que la alternativa anterior, pero no es la respuesta final — ver `docs/Pendientes.md`.
+- **`REEMBOLSADO` es final y llega SIEMPRE después del dinero.** Lo escribe `reembolsar()` una
+  vez que la pasarela confirma, nunca antes: un estado que se adelanta es una devolución
+  anotada que puede no haber ocurrido. Es final para `esFinal()`/`estaVigente()`, así que el
+  enlace deja de ser pagable y desaparece de la app del huésped.
+
 - **`ANULADO` es un estado NUESTRO: no se propaga a ninguna pasarela**, y con Culqi no hay
   nada que propagar. Emitir un enlace no llama a nadie —`crear()` escribe una fila y devuelve
   una URL de `pax`—, y en Culqi el cargo lo crea **nuestro servidor** con `cobrarConToken()`.
@@ -773,11 +779,12 @@ La diferencia con el depósito del canal importa: **aquél se veta porque reapar
 extracto de Culqi, no una fila nuestra.
 
 ⚠️ **Efecto colateral: una reserva con un cobro por pasarela ya no se puede borrar.** Sus
-pagos van en `cascade: ['remove']`, así que el borrado llega al veto y el listener lo rechaza.
-Es lo correcto —no se borra la reserva de alguien que pagó— pero el aviso llega **tarde**:
-`PmsReserva::getMotivoNoBorrable()` sólo mira las estancias, no los pagos, así que la pantalla
-no lo anuncia antes de intentarlo. Es la misma laguna que ya tenía el depósito automático de
-las OTA, no una nueva; queda apuntada en `docs/Pendientes.md`.
+pagos van en `cascade: ['remove']`, así que el borrado llega al veto. Es lo correcto —no se
+borra la reserva de alguien que pagó— y **el aviso llega a tiempo y con su motivo**:
+`PmsReserva::getMotivoNoBorrable()` recorre también los pagos, así que la SPA no ofrece el
+botón, y `PmsReservaDeleteListener::preRemove()` rechaza con el texto dentro si se intenta
+igual. Antes esto salía como un 500 pelado —el veto saltaba en `onFlush`— y con el depósito
+automático de las OTA pasaba ya desde antes. El detalle está en `docs/PmsBeds24ReservasSync.md`.
 
 ### La respuesta de la pasarela NO se modela, y es una decisión
 
@@ -1252,6 +1259,159 @@ propósito: hacerlo haría sonar el móvil de toda la guardia (ver `docs/Mensaje
 
 ---
 
+## 11 quater. Devoluciones: deshacer un cobro que ya pasó (28/08/2026)
+
+Un cobro por pasarela **no se borra** (§ *La relación pago ↔ enlace*). Lo que sí se puede es
+devolver el dinero, y desde el 28/08/2026 se hace **desde el sistema**, no sólo en el
+Backoffice de Culqi.
+
+### Cuánto se devuelve: el NETO
+
+Es la decisión que lo ordena todo, y sale de que **el recargo se cobra anunciado y aparte**:
+el botón del huésped dice «Incluye 5.5% de comisión» antes de que pulse.
+
+| | Importe |
+|---|---|
+| El huésped pagó a su tarjeta | `montoTotal` (neto + 5.5%) |
+| A la reserva se le abonó | `montoNeto` |
+| Culqi se quedó | el recargo |
+
+Se devuelve **lo que el documento recibió**: el neto. El huésped asume el coste de haber
+pagado con tarjeta, que aceptó al pulsar; la casa no pone nada; y el asiento devuelve
+exactamente lo que entró.
+
+⚠️ Y coincide con lo que hace la pasarela: la documentación de Culqi dice que **pasada la
+fecha de la venta la devolución descuenta su comisión**, o sea que no la reintegra. Devolver
+el total obligaría a poner esa diferencia de nuestro bolsillo, por una operación que además
+ya no existe.
+
+> Sin esa transparencia previa habría que discutir quién come la comisión. Con ella, no hay
+> discusión — y por eso la nota del 5.5% en el botón del pax no es cosmética: es lo que hace
+> barata esta decisión.
+
+### El orden, que ES la garantía
+
+```
+1. La pasarela devuelve         ← si falla aquí, no se ha escrito NADA
+2. El enlace pasa a REEMBOLSADO
+3. El módulo dueño deshace su asiento
+4. Un solo flush cierra 2 y 3
+```
+
+**Primero el dinero, después el registro.** Un estado que se adelanta a la pasarela es una
+devolución anotada que puede no haber ocurrido: el saldo diría que le debemos algo a alguien
+que sigue teniendo su dinero. Si Culqi rechaza, la ficha se queda exactamente como estaba.
+
+**2 y 3 comparten flush** por lo contrario: un enlace reembolsado con el cobro todavía vivo
+haría mentir al saldo en la otra dirección.
+
+### `REEMBOLSADO`: del PAGADO se sale hacia adelante
+
+Estado nuevo en `FinEnlacePagoEstado`, **final** para `esFinal()`/`estaVigente()`. No se
+vuelve a `PENDIENTE` ni se borra nada: el cobro ocurrió, y lo que hubo después fue **otro
+hecho**, no la cancelación del primero.
+
+La respuesta cruda de Culqi se guarda **junto** a la del cobro, no encima:
+`{cobro: …, devolucion: …}`. La del cobro es la que se cotejará contra el extracto el día que
+alguien discuta la operación; perderla para guardar la nueva sería cambiar la prueba por el
+recibo.
+
+### Qué ve el PMS: el cobro a CERO con una nota
+
+`PmsReservaOrigenCobroResolver::registrarDevolucion()` pone el `PmsPagoFinanciero` a `0.00`,
+le anula la comisión y le **añade** una nota con fecha, importe, pasarela y el motivo que
+escribió el operador.
+
+Se eligió esto frente a un **contra-cargo de devolución**, que devolvía el mismo saldo:
+
+- Un contra-cargo mete una línea **positiva** en el desglose del huésped —parece que se le
+  cobra algo más— y hay que explicarla.
+- El cobro a cero no aparece donde estorba, y el saldo sube solo.
+
+⚠️ **No se borra la fila**: el cobro existió, y borrarlo dejaría el enlace apuntando a una
+fila inexistente. Es la regla del módulo — no se borra, se marca — y además el veto de
+`getMotivoNoBorrable()` lo impediría.
+
+⚠️ **El importe se cambia por el ORM, nunca por SQL.** El listener de coherencia se engancha
+al flush y es quien recalcula `total_pagos` y el saldo de la cabecera. Un `UPDATE` directo
+dejaría la fila a cero y los totales diciendo lo de antes.
+
+### Dónde vive la acción: SÓLO en `/finanzas`
+
+⚠️ **A 28/08/2026 el backend está desplegado y la UI todavía NO.** El endpoint
+`POST /finanzas/enlaces-pago/{id}/reembolsar` existe y funciona, pero ningún botón lo llama:
+hoy la devolución se dispara a mano contra la API. Cuando se pinte, va en el panel general
+(pestaña Cobros), fila y ficha, con el mismo patrón que anular.
+
+Y **no** en el panel de la reserva. Allí esto se ve —el enlace en «Reembolsado», el cobro en
+cero con su nota— pero no se decide.
+
+Devolver dinero es una operación de **caja**, no de recepción, y el sitio donde vive una
+acción es parte de quién puede hacerla. Es la misma razón por la que emitir un enlace sí está
+en la reserva: pedir un cobro es gestión del alojamiento; deshacerlo, no.
+
+### `reason` de Culqi es un ENUM cerrado
+
+`duplicado`, `fraudulento`, `solicitud_comprador`. **No es texto libre** — el README de la
+librería PHP de Culqi pone una frase de ejemplo (`"bought an incorrect product"`) y engaña.
+
+Se manda siempre `solicitud_comprador`: quien devuelve aquí es el operador atendiendo a un
+cliente que lo pidió. Los otros dos son para casos que no pasan por este panel — un cobro
+duplicado se resuelve en el Backoffice, y un fraude no lo declara una recepción.
+
+El motivo **de verdad**, el que escribe el operador, viaja a la nota del asiento del módulo,
+no a la pasarela.
+
+### Por qué `reembolsar()` está en el contrato común
+
+Se planteó como capacidad opcional (una interfaz aparte que sólo implementara Culqi) para que
+Izipay —parada— no tuviera que escribir nada. **Se revirtió**: un contrato no se afloja por el
+estado de una implementación. Declararlo opcional escondía el hueco de Izipay detrás de un
+`instanceof` que nadie mira.
+
+Así que `reembolsar()` vive en `FinPasarelaClientInterface` e `IzipayClient` lo implementa
+**lanzando**, con un docblock que explica por qué está vacío. El hueco tiene nombre y sale en
+el editor; el día que Izipay se habilite, la lista de lo que falta es la lista de métodos que
+lanzan.
+
+⚠️ La regla que sale de ahí, y que decide qué entra en esa interfaz corta: **se deja fuera lo
+que a una pasarela no le APLICA; no lo que simplemente no está ESCRITO todavía.**
+`cobrarConToken()` no está porque el flujo de Izipay no tiene ese paso —pedírselo sería
+inventarle un concepto—; `reembolsar()` sí, porque devolver dinero lo hace cualquier pasarela
+de tarjeta.
+
+⚠️ Y un stub de dinero **lanza, nunca devuelve un array vacío**. Con `[]`, el servicio daría
+la devolución por buena, marcaría el enlace y pondría el cobro a cero sobre dinero que sigue
+en la cuenta del cliente. Nadie lo descubre hasta que el cliente reclama.
+
+### ⚠️ El estado de pago de la estancia NO baja solo
+
+`PmsEstadoPagoEventosService` es deliberadamente **de una sola dirección**: registrar un pago
+confirma, quitarlo no des-confirma (§12.9). Tras una devolución el cobro queda en cero y el
+recálculo corre, pero la estancia **conserva** su `pago-total` / `pago-parcial`.
+
+Eso no es cosmético: esos estados están en `ESTADOS_PAGO_CONFIABLES` y son los que **abren los
+códigos de acceso de la guía**. Un huésped al que se le devolvió el dinero conserva la entrada
+hasta que alguien toque la estancia.
+
+Si la devolución acompaña a una cancelación —el caso normal— el operador cancela la estancia y
+el problema no existe. Si la reserva sigue viva, **hay que bajarle el estado de pago a mano**.
+
+No se automatiza porque la asimetría es vieja y deliberada, y degradar en automático tiene sus
+propios riesgos; pero este flujo la dispara sin avisar, así que queda dicho aquí y en la nota
+del asiento.
+
+### Lo que sigue sin resolverse
+
+- **Devoluciones parciales.** Culqi las admite y el contrato también (el importe va como
+  parámetro), pero el flujo devuelve el neto entero y pone el cobro a cero. Una parcial
+  exigiría dejar el pago en `neto − devuelto`, y no hay caso todavía.
+- **Un cobro MANUAL no imputa nada**: `registrarDevolucion()` no tiene módulo al que avisar,
+  igual que `registrarCobro()`. El enlace queda `REEMBOLSADO` y ahí acaba, que es correcto —
+  no había documento al que abonarle el dinero en primer lugar.
+
+---
+
 ## 12. Despliegue: por qué no basta con `git pull`
 
 Dos pasos que **no se hacen solos** y cuyos fallos no se parecen a su causa. Los dos
@@ -1298,6 +1458,10 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
+| Cambiar cuánto se devuelve al reembolsar (§11 quater) | `src/Finanzas/Service/Culqi/CulqiClient.php` | `reembolsar()` — hoy `montoNetoCentimos()`, **no** el total |
+| Cambiar el `reason` que se manda a Culqi | `src/Finanzas/Service/Culqi/CulqiClient.php` | `MOTIVO_POR_DEFECTO` — enum cerrado de tres valores |
+| Cambiar qué hace el PMS al recibir una devolución | `src/Pms/Finanzas/PmsReservaOrigenCobroResolver.php` | `registrarDevolucion()` — pago a 0 + nota, por ORM |
+| Añadir devoluciones a otro módulo que cobre | el resolver de ese módulo | implementar `registrarDevolucion()` del contrato |
 | Cambiar el % de recargo de tarjeta | `config/services/services_finanzas.yaml` **y** `src/Pms/Enum/PmsMedioPago.php` | `finanzas.recargo_tarjeta_porcentaje` / `comisionPorcentaje()` |
 | Cambiar la vigencia por defecto | `src/Finanzas/Service/FinEnlacePagoService.php` | `VIGENCIA_DIAS_DEFECTO` |
 | Cambiar el formato del `orderId` | `src/Finanzas/Service/FinEnlacePagoService.php` | `generarOrdenId()` |

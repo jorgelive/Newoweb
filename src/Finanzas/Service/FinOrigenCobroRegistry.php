@@ -82,6 +82,25 @@ final class FinOrigenCobroRegistry
     }
 
     /**
+     * Deshace el cobro en el módulo dueño tras una devolución. Sólo lo llama
+     * `FinEnlacePagoService`.
+     *
+     * Mismo silencio que `registrarCobro()` ante un cobro manual, y por el mismo motivo: no
+     * hay documento al que devolverle nada, y el dinero ya salió de la pasarela. Reventar
+     * aquí dejaría el enlace sin marcar sobre una devolución que sí ocurrió.
+     */
+    public function registrarDevolucion(FinEnlacePago $enlace, string $motivo): void
+    {
+        $tipo = $enlace->getOrigenTipo();
+
+        if ($tipo === null || $enlace->getOrigenId() === null) {
+            return;
+        }
+
+        $this->para($tipo)->registrarDevolucion($enlace, $motivo);
+    }
+
+    /**
      * Orígenes que HOY pueden cobrarse (los que tienen resolver).
      *
      * La SPA pinta este catálogo y no `FinOrigenCobro::cases()`: el enum declara el
