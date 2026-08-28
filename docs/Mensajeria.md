@@ -2950,7 +2950,9 @@ honesto es darle una salida.
 | No hay guardia | 🔔 anunciado, sin plazo |
 
 ⚠️ **No lo decide el modelo.** Se lo indican las skills deterministas que conocen la situación:
-`ConsultarCodigosSkill` devuelve `escalar_en_silencio` cuando **hoy es el día de la llegada**.
+`ConsultarCodigosSkill` devuelve `escalar_en_silencio` mientras el huésped **está llegando** —el
+día del check-in y hasta las 6:00 del siguiente, porque a las 00:15 sigue estando en la calle;
+ver `docs/PmsGuiaHuesped.md`—.
 Los días anteriores es al revés —avisar al equipo *es* la gestión, cabe una excepción a la
 política y hay tiempo de organizarla—, así que se anuncia.
 
@@ -2958,6 +2960,12 @@ política y hay tiempo de organizarla—, así que se anuncia.
 y las separa `esElDiaDeLlegada()`. Faltando días dice lo esperable: el adelanto de la primera
 noche, el enlace, y que el efectivo no vale *para el adelanto* aunque sí para el saldo. Con el
 huésped ya en la puerta, el texto **prohíbe ofrecer el enlace** y manda al teléfono de `contacto`.
+
+⚠️ **Pero esa rama exige que HAYA teléfono.** Prohibir el enlace mandando a un `contacto` que
+`array_filter` acaba de quitar del payload deja al modelo sin ninguna salida que ofrecer, y sin
+salida se inventa una — que es literalmente el fallo que todo esto viene a cerrar. Si el
+establecimiento se queda sin teléfonos configurados, se cae al motivo del enlace: cobrar por el
+chat es malo, pero nada es peor.
 
 No es cortesía: es que cobrar por el chat ahí **no funciona** —nadie saca la tarjeta con las
 maletas en la mano— y gasta el único momento en que una persona podría desbloquearlo. Y hay con

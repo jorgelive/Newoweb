@@ -891,9 +891,31 @@ Con ella viaja `y_luego`, que le dice al modelo que cierre ofreciendo el teléfo
 La ayuda va **al final y como salida**: si va delante, todos llaman y el autoservicio no sirve
 de nada.
 
-Lo elige `esElDiaDeLlegada()`, **por fecha y no por hora** —a las nueve de la mañana el huésped
-ya está de camino—. Es el mismo método que decide `escalar_en_silencio`: un solo hecho con dos
-consecuencias, y por eso se llama por el hecho y no por una de ellas.
+Y `y_luego` **sólo sale si hay teléfono**. Es la misma regla que gobierna el motivo de SinPago:
+ver `docs/Mensajeria.md` §22 — mandar a un `contacto` que `array_filter` acaba de quitar del
+payload deja al modelo apuntando a la nada, y sin salida se inventa una.
+
+Lo elige `esElDiaDeLlegada()`, que **empieza por fecha** —a las nueve de la mañana el huésped ya
+está de camino, aunque el check-in sea a las dos— pero **no termina a medianoche**: se alarga
+hasta las **6:00 del día siguiente**. Es el mismo método que decide `escalar_en_silencio`: un
+solo hecho con dos consecuencias, y por eso se llama por el hecho y no por una de ellas.
+
+⚠️ **Lo de la madrugada no es un adorno.** Con el corte en el día natural, quien llegaba a las
+00:15 —un vuelo con retraso, un bus de noche, o alguien que entiende «la noche del 27» como
+«hasta que amanezca el 28»— perdía de golpe las tres cosas: la frase de llegada, el silencio del
+escalado y la prohibición de cobrarle por el chat. Es decir, **reproducía el incidente original
+desplazado quince minutos**, y encima a la hora en que peor sienta que te pidan una tarjeta.
+
+La ventana se pasa de larga **a propósito**, porque el error se paga asimétrico: que alguien ya
+instalado reciba de más la frase de llegada no le cuesta nada; que se la pierda quien está en la
+calle costó una hora de pie. El otro lado sí se cierra —a las 10:00 del día siguiente ya no está
+llegando, está instalado—, y eso lo cubre el caso 8 del script.
+
+El reloj entra **por el constructor** (`ClockInterface`, con `Clock` real por defecto). No es
+ceremonia: esa franja de madrugada es justo la que no se puede probar con la hora del sistema, y
+sin poder probarla no se sabe si existe. Ojo al escribirla — `MockClock` arranca en **UTC**, que
+en Lima ya es el día siguiente pasadas las 19:00; hay que anclarlo a `America/Lima` o se mide
+contra un día que no es el del huésped.
 
 #### 🔑 «¿Cuál es el código de la caja?» sin hablar de ningún huésped
 

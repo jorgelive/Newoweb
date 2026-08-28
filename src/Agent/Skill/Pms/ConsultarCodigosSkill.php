@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Agent\Skill\Pms;
 
 use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\Clock;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
@@ -104,6 +106,9 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         private PmsGuiaEstanciaResolver $estancias,
         #[Autowire('%pax_book_guide_url%')]
         private string $urlGuia,
+        // El reloj entra por el constructor porque la ventana de llegada se extiende hasta la
+        // madrugada siguiente, y esa franja es justo la que no se puede probar con la hora real.
+        private ClockInterface $reloj = new Clock(),
     ) {}
 
     public function nombre(): string
@@ -246,9 +251,11 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         // Condiciones 1 y 2: si la ventana está cerrada no hay nada que enseñar, y el motivo
         // es el mismo para todos los códigos.
         if (!$acceso->estaAbierto()) {
+            $contacto = $this->contacto($unidad);
+
             return SkillResult::ok($base + array_filter([
                 'disponible' => false,
-                'motivo' => $this->motivo($acceso, $this->esElDiaDeLlegada($evento)),
+                'motivo' => $this->motivo($acceso, $this->esElDiaDeLlegada($evento), $contacto !== null),
                 'disponible_desde' => $acceso->liberaEn?->format('d/m/Y H:i'),
                 // ⚠️ Los teléfonos viajan AQUÍ, con el motivo, y no se dejan para que el
                 // modelo los busque en la guía.
@@ -260,7 +267,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
                 // inventó que alguien acudiría a recibirla. Estuvo una hora en la puerta.
                 //
                 // Aquí son deterministas: si no hay código, salen. Sin segundo paso.
-                'contacto' => $this->contacto($unidad),
+                'contacto' => $contacto,
                 // 🔇 El mismo día no se le anuncia el escalado: ver `esElDiaDeLlegada()`.
                 'escalar_en_silencio' => $this->esElDiaDeLlegada($evento) ?: null,
             ], static fn ($v) => $v !== null));
@@ -312,6 +319,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         // puerta no sirve una advertencia sobre el futuro del código, sirve saber que la entrada
         // es suya y dónde están los pasos.
         $enLaPuerta = $this->esElDiaDeLlegada($evento);
+        $contacto = $this->contacto($unidad);
         $frase = $enLaPuerta
             ? (self::PASOS[$idioma] ?? self::PASOS['es'])
             : (self::AVISO[$idioma] ?? self::AVISO['es']);
@@ -333,10 +341,10 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
             // sólo llega si el índice de temas lo elige por sus términos. Ahora la única copia
             // es la del establecimiento y ésta es la puerta por la que se pide: si no saliera
             // aquí, quitarlos de la ficha los habría hecho desaparecer.
-            'contacto' => $this->contacto($unidad),
+            'contacto' => $contacto,
             // Con el huésped ya dentro del día de llegada, la frase se cierra ofreciendo la
             // ayuda. Es lo que evita que se quede mirando la caja sin saber a quién acudir.
-            'y_luego' => $enLaPuerta
+            'y_luego' => $enLaPuerta && $contacto !== null
                 ? 'Cierra el mensaje diciéndole que si algo no le sale llame al teléfono de '
                     . '«contacto». No le anuncies que avisas a nadie: la llamada es suya.'
                 : null,
@@ -410,8 +418,10 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
      * Los días anteriores es al revés: avisar al equipo **es** la gestión —cabe una excepción a
      * la política de prepago, y hay tiempo de organizarla—, así que se le dice.
      *
-     * Por FECHA y no por hora, igual que el catálogo de medios: el día de la llegada es un día
-     * entero, y a las nueve de la mañana el huésped ya está de camino.
+     * Empieza por FECHA y no por hora, igual que el catálogo de medios: a las nueve de la mañana
+     * el huésped ya está de camino, aunque el check-in sea a las dos. Lo que NO termina por fecha
+     * es el final —ver el comentario de `$hasta`—: la medianoche no es cuando deja de estar
+     * llegando, es cuando peor le sienta que lo tratemos como si ya estuviera dentro.
      */
     private function esElDiaDeLlegada(PmsEventoCalendario $evento): bool
     {
@@ -421,8 +431,23 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
             return false;
         }
 
-        return DateTimeImmutable::createFromInterface($inicio)->format('Y-m-d')
-            === (new DateTimeImmutable('today'))->format('Y-m-d');
+        $desde = DateTimeImmutable::createFromInterface($inicio)->setTime(0, 0);
+
+        // ⚠️ Hasta las 6:00 del día siguiente, NO hasta la medianoche.
+        //
+        // Un vuelo con retraso, un bus que llega de madrugada, o simplemente alguien que
+        // entiende «la noche del 27» como «hasta que amanezca el 28»: a las 00:15 sigue siendo
+        // el huésped que está llegando, y con el corte en el día natural se le caía TODO —la
+        // frase de llegada, el silencio del escalado y la prohibición de cobrarle por el chat—
+        // justo en la hora en la que peor sienta que le pidan una tarjeta.
+        //
+        // El error se paga asimétrico, y por eso la ventana se pasa de larga a propósito: que
+        // alguien ya instalado reciba de más la frase de llegada no le cuesta nada; que se la
+        // pierda quien está en la calle costó una hora de pie.
+        $hasta = $desde->modify('+1 day')->setTime(6, 0);
+        $ahora = $this->reloj->now();
+
+        return $ahora >= $desde && $ahora < $hasta;
     }
 
     /**
@@ -468,13 +493,19 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
      * es lo normal. Con el huésped ya en la puerta, insistir en cobrar por el chat no es que sea
      * poco cordial: es que no funciona —nadie saca la tarjeta con las maletas en la mano— y gasta
      * el único momento en el que una persona podría desbloquearlo.
+     *
+     * ⚠️ **Y esa rama exige que HAYA teléfono.** Prohibir el enlace mandando a un `contacto` que
+     * `array_filter` acaba de quitar del payload deja al modelo sin ninguna salida que ofrecer —y
+     * sin salida se inventa una, que es exactamente el fallo del 27/08/2026—. Si el
+     * establecimiento se queda sin teléfonos configurados, mejor el texto del enlace: cobrar por
+     * el chat es peor que nada, pero nada es peor todavía.
      */
-    private function motivo(PmsGuiaAcceso $acceso, bool $enLaPuerta): string
+    private function motivo(PmsGuiaAcceso $acceso, bool $enLaPuerta, bool $hayTelefono): string
     {
         // Ya está aquí y no hay adelanto: esto NO se resuelve cobrando, se resuelve hablando.
         // Existe `pago-alojamiento` justo para esto —un operador evalúa y abre los códigos sin
         // que entre un céntimo—, y el teléfono es el canal por el que el huésped lo pide.
-        if ($enLaPuerta && $acceso->estado === PmsGuiaAccesoEstado::SinPago) {
+        if ($enLaPuerta && $hayTelefono && $acceso->estado === PmsGuiaAccesoEstado::SinPago) {
             return 'Ya está aquí y no consta el adelanto de la primera noche, que es lo que abre '
                 . 'los códigos. NO le pidas que pague ahora ni le pases el enlace: con las '
                 . 'maletas en la puerta eso no se resuelve por el chat. Recuérdale lo que ya se '

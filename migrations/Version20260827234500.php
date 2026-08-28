@@ -58,6 +58,14 @@ final class Version20260827234500 extends AbstractMigration
         ]);
     }
 
+    /**
+     * ⚠️ El `down()` reescribe los dos números **literales**, tal como estaban el 27/08/2026.
+     *
+     * Si para cuando alguien lo ejecute los teléfonos del establecimiento ya han cambiado, esto
+     * devuelve los viejos a la ficha presentándolos como vigentes — y ahí sí volvería a haber
+     * dos copias, discrepando. Es inherente a revertir contenido con literales: si hay que
+     * volver atrás, comprobar antes `pms_establecimiento.telefono_atencion` y `telefono_yape`.
+     */
     public function down(Schema $schema): void
     {
         $this->addSql(<<<'SQL'
