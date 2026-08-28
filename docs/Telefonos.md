@@ -110,6 +110,30 @@ texto libre o números incompletos, mostrar el dato tal cual siempre es mejor qu
 `formatearTelefono()` para pintar, `telefonoParaWhatsapp()` para el enlace (devuelve `null`
 si no hay número utilizable, para poder ocultar la acción en vez de abrir un chat roto).
 
+### El teléfono en el drawer de reserva: se ENSEÑA en los dos modos (28/08/2026)
+
+`ReservaTelefonoIdentidad.vue` pinta el número resuelto, la marca «sin verificar», el botón
+**Editar** (que lleva al editor de identidades en el chat) y el de **vCard**. Se monta en el
+modo «Ver» **y** en el de «Editar» del `ReservaEditDrawer`.
+
+**Un componente y no dos copias del marcado**, porque es literalmente la misma información:
+el teléfono no es un dato de la reserva sino de la **persona**, así que no cambia entre modos.
+
+⚠️ **Por qué hizo falta arreglarlo.** Al mover el teléfono a las identidades se quitó su campo
+editable del formulario —correcto: editarlo ahí no cambiaría a dónde salen los mensajes, y
+dejaría dos datos contradiciéndose— pero **con el campo se fue también el número y el botón de
+vCard**, y en su lugar quedó una nota que decía dónde mirarlo. Eso fue quitar de más: enseñar
+y descargar son **consulta**, no edición, y quien está editando una reserva sigue necesitando
+saber a qué número se le escribe.
+
+La regla que sale de ahí: **al retirar un campo editable, comprobar qué se llevó por delante
+en modo lectura.** Lo que desaparece sin dar error es lo que nadie echa de menos hasta que
+hace falta.
+
+El teléfono **sigue sin resolverse en el front**: el componente lo recibe ya resuelto de
+`TelefonoDeContacto` (backend), que es quien sabe cuál de las identidades vale y si está
+vetada o retirada. Copiar esa regla en TypeScript sería reintroducir el espejo que se quitó.
+
 ## 6. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
@@ -119,6 +143,7 @@ si no hay número utilizable, para poder ocultar la acción en vez de abrir un c
 | Cambiar el país asumido al **mostrar** | `util/src/utils/telefono.ts` | `PAIS_POR_DEFECTO` |
 | Cambiar cómo se ve un teléfono en el drawer / expedientes | `util/src/utils/telefono.ts` | `formatearTelefono()` |
 | Cambiar el número con el que se abre WhatsApp | `util/src/utils/telefono.ts` | `telefonoParaWhatsapp()` |
+| Tocar el teléfono / vCard del drawer (los dos modos) | `util/src/components/reservas/ReservaTelefonoIdentidad.vue` | un solo componente: no lo dupliques por modo |
 | Cambiar el teléfono que sale en la vCard | `src/Pms/Controller/Api/PmsReservaVcardController.php` | `__invoke()` |
 | Cambiar cómo se buscan reservas por teléfono | `src/Pms/Repository/PmsReservaRepository.php` | `findVivasByTelefono()` |
 | Normalizar teléfonos de un canal nuevo | el persister del canal | inyectar `PhoneSanitizer` |

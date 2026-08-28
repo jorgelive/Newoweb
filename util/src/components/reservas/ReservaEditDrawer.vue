@@ -9,6 +9,7 @@ import { getUrls } from '@/services/apiClient';
 import { formatearTelefono, telefonoParaWhatsapp } from '@/utils/telefono';
 import { enfocarEnScroller } from '@/utils/scrollEnfoque';
 import ReservaFinanzasPanel from '@/components/reservas/ReservaFinanzasPanel.vue';
+import ReservaTelefonoIdentidad from '@/components/reservas/ReservaTelefonoIdentidad.vue';
 import WhatsappPlantillasLista from '@/components/reservas/WhatsappPlantillasLista.vue';
 import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import InfoTooltip from '@/components/common/InfoTooltip.vue';
@@ -2301,36 +2302,12 @@ async function ejecutarBorrado(): Promise<void> {
                                 <p class="text-sm font-bold text-slate-800 mt-0.5">{{ clienteForm.apellidoCliente || '—' }}</p>
                             </div>
                             <!-- El número al que se ESCRIBE, resuelto desde las identidades de
-                                 la persona. El campo de la reserva es la semilla con la que se
-                                 creó y puede estar desfasado: se avisa cuando es eso lo que se
-                                 ve. Se edita en el chat, en «Identificadores». -->
-                            <div class="col-span-2">
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
-                                    Teléfono
-                                    <span v-if="telefonoOrigen === 'semilla'"
-                                        title="Es el número con el que se creó la reserva; la persona todavía no tiene identificador propio."
-                                        class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded normal-case tracking-normal">sin verificar</span>
-                                </p>
-                                <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                                    <p class="text-sm font-bold text-slate-800">{{ formatearTelefono(telefonoContacto) || '—' }}</p>
-
-                                    <button type="button" @click="editarIdentificadores" :disabled="abriendoChat"
-                                        title="Editar los identificadores de esta persona: añadir, retirar, marcar cuál se usa"
-                                        class="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-wide transition-colors shrink-0 disabled:opacity-40">
-                                        <i class="fas" :class="abriendoChat ? 'fa-circle-notch fa-spin' : 'fa-pen'"></i> Editar
-                                    </button>
-
-                                    <a v-if="vcardUrl && telefonoContacto" :href="vcardUrl" target="_blank" title="Descargar contacto (vCard)"
-                                        class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-black uppercase tracking-wide transition-colors shrink-0">
-                                        <i class="fas fa-address-card"></i> vCard
-                                    </a>
-                                </div>
-
-                                <!-- Aquí y no arriba del scroll: ver `errorTelefono`. -->
-                                <p v-if="errorTelefono" class="text-[11px] font-bold text-rose-600 mt-1.5 leading-snug">
-                                    <i class="fas fa-exclamation-triangle mr-1"></i>{{ errorTelefono }}
-                                </p>
-                            </div>
+                                 la persona. Mismo componente que en el modo Editar: es la misma
+                                 información y no puede contarse de dos maneras. -->
+                            <ReservaTelefonoIdentidad class="col-span-2"
+                                :telefono="telefonoContacto" :origen="telefonoOrigen"
+                                :vcard-url="vcardUrl" :ocupado="abriendoChat" :error="errorTelefono"
+                                @editar="editarIdentificadores" />
                             <div class="col-span-2">
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Email</p>
                                 <p class="text-sm font-bold text-slate-800 mt-0.5">{{ clienteForm.emailCliente || '—' }}</p>
@@ -2401,11 +2378,24 @@ async function ejecutarBorrado(): Promise<void> {
                             </label>
                         </template>
 
-                        <p v-else class="col-span-2 text-[11px] font-bold text-slate-400 leading-snug bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                            <i class="fas fa-id-card mr-1"></i>
-                            El teléfono y el correo son de la <strong class="text-slate-500">persona</strong>, no de esta reserva.
-                            Se editan desde el botón <strong class="text-slate-500">Editar</strong> del teléfono, en la vista.
-                        </p>
+                        <!-- Editando una reserva que ya existe, el teléfono se ENSEÑA aunque no
+                             se edite aquí. Antes había sólo una nota diciendo dónde mirarlo, y era
+                             quitar de más: no se pintaba el número ni el botón de vCard, que son
+                             consulta y no edición. Quien edita una reserva sigue necesitando saber
+                             a qué número se le escribe — y poder llevárselo a la agenda. -->
+                        <div v-else class="col-span-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
+                            <ReservaTelefonoIdentidad
+                                :telefono="telefonoContacto" :origen="telefonoOrigen"
+                                :vcard-url="vcardUrl" :ocupado="abriendoChat" :error="errorTelefono"
+                                @editar="editarIdentificadores" />
+
+                            <p class="mt-2 pt-2 border-t border-slate-200 text-[11px] font-bold text-slate-400 leading-snug">
+                                <i class="fas fa-id-card mr-1"></i>
+                                El teléfono y el correo son de la <strong class="text-slate-500">persona</strong>,
+                                no de esta reserva: <strong class="text-slate-500">Editar</strong> los cambia en
+                                <strong class="text-slate-500">todas</strong> sus reservas.
+                            </p>
+                        </div>
                         <label>
                             <span class="text-xs font-bold text-slate-500">País</span>
                             <select v-model="clienteForm.pais"
