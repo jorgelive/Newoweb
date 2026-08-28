@@ -660,6 +660,63 @@ const inclusionesPorDia = computed(() => {
   return m;
 });
 
+/**
+ * En qué línea de cada día se nombra a un proveedor, callando las repeticiones SEGUIDAS.
+ *
+ * ⚠️ **El proveedor se nombra una vez por estancia, no una vez por servicio ni por día.**
+ *
+ * Antes bastaba con marcar el prestador visible en un componente: como la estadía entera era
+ * UN cotservicio, la pastilla salía una vez. Al armar cada día del resort como su propio
+ * cotservicio —que es lo que permite intercalar una excursión entre el desayuno y la cena—
+ * «una vez por servicio» pasó a ser **una vez por día**: el mismo hotel en el desayuno de los
+ * siete días.
+ *
+ * ⚠️ La regla NO es «una vez en toda la guía», y la diferencia importa: con un viaje que
+ * empieza y termina en el mismo hotel de Lima, la global deja la vuelta **sin nombre**. Se
+ * callan sólo los días **consecutivos**, así que volver a un hotel lo vuelve a nombrar.
+ *
+ * Medido en la propuesta de Nune & Todd: nueve menciones para cinco proveedores, con Terra
+ * Andina repetida tres veces seguidas.
+ *
+ * No sustituye a `prestadorVisible`, que decide si el proveedor se puede nombrar siquiera.
+ * Esto sólo evita repetir lo que se acaba de decir.
+ */
+const lineaQueNombraProveedor = computed<Map<string, string>>(() => {
+  const m = new Map<string, string>();
+  let previos = new Set<string>();
+
+  for (const dia of itinerarioVista.value) {
+    const panel = inclusionesPorDia.value.get(dia.fecha);
+    if (!panel) continue;
+
+    const deHoy = new Set<string>();
+
+    for (const srv of panel.servicios) {
+      for (const sec of srv.secciones) {
+        for (const l of sec.lineas) {
+          const prov = proveedorDeComponente(l.componenteId);
+          if (!prov || !l.componenteId) continue;
+
+          const clave = store.traducir(prov.titulo);
+          if (!clave) continue;
+
+          // Se nombra si ayer no se nombró, y sólo en la primera línea del día.
+          if (!previos.has(clave) && !deHoy.has(clave)) {
+            m.set(`${dia.fecha}|${clave}`, l.componenteId);
+          }
+
+          deHoy.add(clave);
+        }
+      }
+    }
+
+    // Un día sin ninguna mención no rompe la racha: la estancia sigue siendo la misma.
+    if (deHoy.size) previos = deHoy;
+  }
+
+  return m;
+});
+
 // ── Modal de inclusiones del servicio COMPLETO (todos los días) ──────────────
 interface InclusionModal {
   servicioId: string;
@@ -687,7 +744,14 @@ const chipsDeLinea = (l: PaxInclusionItem): ChipLinea[] => {
   // contra el catálogo maestro al servir, así que renombrar un hotel se ve al instante
   // sin re-guardar la propuesta. El único puente es `componenteId`; la clave natural que
   // había antes colisionaba en silencio y pintaba el proveedor equivocado.
-  const proveedorLinea = proveedorDeComponente(l.componenteId);
+  const proveedorCrudo = proveedorDeComponente(l.componenteId);
+
+  // Sólo en su primera aparición: ver `primeraLineaPorProveedor`.
+  const proveedorLinea =
+      proveedorCrudo &&
+      lineaQueNombraProveedor.value.get(`${dateOf(l.fecha)}|${store.traducir(proveedorCrudo.titulo)}`) === l.componenteId
+          ? proveedorCrudo
+          : null;
 
   // Datos crudos por tarifa (o la propia línea si no trae tarifas)
   // Si la línea no trae tarifas, la propia línea hace de fuente: ambas

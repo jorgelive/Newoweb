@@ -2921,6 +2921,32 @@ Un servicio sin fotos no rompe nada: el segmento simplemente no gana galería. Y
 fotos pero **sin título** es la incoherencia que caza `CoherenciaCatalogoChecker` — hoy la tiene
 Terra Andina Colonial Mansion.
 
+### El nombre del proveedor sigue la misma regla, pero por RACHA (28/08/2026)
+
+Armar cada día de resort como su propio cotservicio —lo que permite intercalar una excursión
+entre el desayuno y la cena, ver §6.u— rompió una costumbre que funcionaba: marcar el prestador
+visible en **un** componente y que la pastilla saliera una vez. Con la estadía partida en siete
+cotservicios, «una vez por servicio» pasó a ser **una vez por día**.
+
+`lineaQueNombraProveedor` aplica el mismo principio que la galería —lo repetido se calla— con una
+diferencia deliberada:
+
+⚠️ **No es «una vez en toda la guía»: se callan sólo los días CONSECUTIVOS.** Un viaje que empieza
+y termina en el mismo hotel de Lima dejaría la vuelta sin nombre con la regla global. Volver a un
+hotel lo vuelve a nombrar; encadenar noches, no.
+
+Un día sin ninguna mención no rompe la racha: la estancia sigue siendo la misma aunque ese día se
+saliera de excursión.
+
+La pastilla de «Su reserva» (`prestadorDeLinea`, sólo `modo === 'no_incluido'`) **queda fuera**: no
+es un proveedor nuestro sino lo que el pasajero ya tiene contratado, y ahí repetir informa.
+
+Esto no sustituye a `prestadorVisible`, que decide si el proveedor se puede nombrar siquiera; sólo
+evita repetir lo que se acaba de decir.
+
+Medido en la propuesta de Nune & Todd: **nueve menciones para cinco proveedores**, con Terra Andina
+repetida tres veces seguidas.
+
 ### Estado medido el 27/08/2026
 
 Cuatro servicios del catálogo tienen fotos (Tambo del Inka 5, Hatun Inti 4, Terra Andina 3, Sonesta
