@@ -93,58 +93,22 @@ hoy queda mudo en modo enlace (`docs/Mensajeria.md` §20.6).
 
 Con esto, el LLM tendrá material contundente para dar una respuesta técnica y tranquilizadora sin tener que deducirlo solo por la 'capacidad de la casa'.
 
-## El país de las reservas de Airbnb es el idioma, no el país
+## Un país por defecto no se distingue de uno confirmado
 
-**Observación (19/08/2026).** Cruzando `country2` con el prefijo del teléfono del mismo payload
-en `pms_beds24_webhook_audit`: **16 reservas de Airbnb marcadas `ES` tienen móvil peruano
-(+51)**, una +52 y otra +57. **Ninguna tiene +34.** Booking.com, en cambio, cuadra siempre
-(`ES`↔+34, `FR`↔+33, `IT`↔+39).
+**Residuo de la corrección del país de Airbnb (19/08/2026), que ya está hecha y por eso se
+retiró de aquí:** `resolvePais()` cae a `MaestroPais::DEFAULT_PAIS` (`'PE'`) cuando no hay ni
+teléfono con prefijo ni `country2` — 4 de 47 reservas de Airbnb medidas aquel día.
 
-Airbnb manda el **idioma** del huésped en ese campo cuando colisiona con un código de país:
-`es`→`ES`, `fr`→`FR`, `pt`→`PT`. Con `en` no colapsa y entonces sí llega el país bueno. Hoy hay
-**27 reservas de Airbnb guardadas como España**. Detalle en `docs/PmsBeds24ReservasSync.md` §3.3.
+En esas acertó, pero la reserva queda **indistinguible de una con país confirmado**, y
+`PmsProcedenciaHuesped::pagaDesdePeru()` devuelve `true` sobre una suposición nuestra. Es el
+mismo pecado que esa clase evita con el teléfono: ahí un `51` puesto por el saneador se trata
+como `null` a propósito, y aquí un `PE` puesto por defecto se trata como dato.
 
-Aparte, en 4 de 47 reservas de Airbnb el campo llega `null` y `resolvePais()` cae a
-`MaestroPais::DEFAULT_PAIS` (= `'PE'`). En esas cuatro acertó —apellidos y teléfonos peruanos—,
-pero deja la reserva indistinguible de una con país confirmado.
+**La salida no es cambiar el defecto** —una reserva necesita país para guardarse— sino poder
+distinguirlos: una marca de «país supuesto» que `pagaDesdePeru()` lea como `null` en vez de
+como `true`, y entonces se le enseñan todos los medios y elige el huésped.
 
-**Por qué importa.** `PmsProcedenciaHuesped::pagaDesdePeru()` decide los medios de cobro. Con
-`pais = 'ES'` devuelve `false` y a un peruano se le ofrece tarjeta con recargo y Western Union,
-y **no** Yape, Plin ni transferencia: al revés de la regla, y a escala. Su respaldo por teléfono
-—escrito justo para esto— no se ejecuta nunca, porque sólo mira el teléfono cuando la reserva no
-tiene país, y el pull siempre le pone uno.
-
-**Lo que NO está afectado:** el mensaje de prepago. Airbnb está en
-`PmsChannel::CANAL_PAGO_TOTAL`, así que `GenerarMensajePrepagoSkill` sale antes de mirar el país.
-Los afectados son `consultar_medios_pago`, `consultar_cuenta` y la guía del huésped.
-
-**✅ Resuelto para lo que entre a partir de ahora (19/08/2026).** `resolvePais()` pide el país
-al prefijo del teléfono en Airbnb, antes de mirar `country2`; y `country2` dejó de empujarse a
-las OTA. Ver `docs/PmsBeds24ReservasSync.md` §3.3 y §7.2.
-
-**✅ Y las reservas ya guardadas tienen comando** (19/08/2026):
-
-```bash
-php bin/console app:pms:corregir-pais-ota --dry-run    # dice qué haría
-php bin/console app:pms:corregir-pais-ota              # lo hace
-```
-
-`PmsCorregirPaisOtaCommand`. Toca **sólo** las reservas con la firma exacta del fallo
-—`pais === strtoupper(idioma)`, que es lo que produce la colisión `es`→`ES`— y usa como
-evidencia el prefijo internacional del teléfono. Si el teléfono no lo trae, la deja como está:
-no se cambia un país por una suposición.
-
-En seco sobre la base local: **24 reservas se corregirían** —no sólo a `PE`: también `AR`, `CL`,
-`MX` y `CO`, que estaban todas marcadas España— y 3 se quedan sin tocar por falta de teléfono
-deducible. Idempotencia comprobada con datos reales en transacción con rollback
-(`var/probar-corregir-pais.php`): segunda pasada, 0 reservas.
-
-⚠️ **Está pendiente de correr en producción.** Los números de arriba son de la base local.
-
-**Lo que sigue sin decidirse:** el `DEFAULT_PAIS = 'PE'` cuando no hay ni teléfono ni
-`country2` (23 reservas de Airbnb no tienen teléfono deducible). Sigue tapando el «no se sabe»
-que `PmsProcedenciaHuesped::pagaDesdePeru()` está escrito para devolver, y su respaldo por
-teléfono continúa sin ejecutarse nunca.
+Sin prisa: el defecto acierta casi siempre y el coste de equivocarse es enseñar un medio de más.
 
 ## Descomentar el enlace de pago en el mensaje de prepago
 

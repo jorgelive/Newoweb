@@ -67,9 +67,27 @@ final readonly class GenerarMensajePrepagoSkill implements SkillInterface, Skill
         return [PmsFrentes::NEGOCIO];
     }
 
+    /**
+     * ⚠️ **SIN `Roles::HUESPED`, y esto es una corrección de seguridad (28/08/2026).**
+     *
+     * Esta skill lee `entrada['reserva_id']` tal cual y **no** tiene el
+     * `reservaDelContexto($actor)` que sus hermanas sí implementaron a propósito
+     * ({@see ConsultarCuentaSkill}, {@see ConsultarMediosPagoSkill}): ahí, hablando con un
+     * huésped, la reserva la fija el hilo y «el `reserva_id` del modelo ni se mira».
+     *
+     * Con `HUESPED` en esta lista y sin esa guarda, un identificador que el modelo trajera de
+     * cualquier sitio devolvía nombre completo, casitas, fechas e importes **de la reserva de
+     * otra persona**. El UUID es difícil de adivinar, pero la regla de la casa es que lo que
+     * decide el modelo se valida con código —«un modelo se inventa identificadores con toda la
+     * seguridad del mundo»— y aquí no se validaba nada.
+     *
+     * Se cierra por el lado del rol y no añadiendo la guarda porque el destino de esta skill
+     * ya está en discusión (su cuerpo debería ser una plantilla, no PHP). Quitar el rol la
+     * deja donde siempre debió estar: una herramienta del equipo.
+     */
     public function rolesRequeridos(): array
     {
-        return [Roles::RESERVAS_SHOW, Roles::HUESPED];
+        return [Roles::RESERVAS_SHOW];
     }
 
     public function nivelRiesgo(): NivelRiesgo

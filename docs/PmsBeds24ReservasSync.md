@@ -2153,6 +2153,55 @@ el saldo pagando con tarjeta. Reglas que no se ven en el código:
 - El lookup de la cabecera usa `findOneBy(['reserva' => $reserva])` con el objeto — un
   SearchFilter sobre la relación devolvería vacío en silencio por el UUID binario (§12.6).
 
+#### Resumen / Detallado, y el ancla que los enlaza (28/08/2026)
+
+La tarjeta tenía un plegable «Mostrar más». Ahora son **dos pestañas**, y el estado viaja en
+la URL:
+
+```
+/huesped/reserva/{localizador}#resumen    → Resumen (por defecto)
+/huesped/reserva/{localizador}#detalle    → Detallado
+```
+
+**Por qué pestañas y no el plegable.** Dos motivos, y el segundo es el que manda:
+
+1. **De uso:** la mayoría de huéspedes se abruma con el desglose —recargo, tipo de cambio,
+   cargos línea a línea— y sólo quiere saber cuánto y por dónde. Quien pide detalle es minoría.
+2. **Técnico: un plegable no se puede enlazar.** Cuando el equipo contesta a alguien que
+   pregunta de qué se compone su cuenta, quiere mandarle el desglose, no una página donde
+   tenga que buscar el botón.
+
+⚠️ **Y de ahí sale que la plantilla de WhatsApp no necesite variantes.** Fuera de la ventana
+de 24 h sólo se puede mandar plantilla aprobada; con el ancla, el mensaje aprobado es **uno
+solo** —un empujón con botón de URL— y lo único que cambia entre «te recuerdo que debes» y
+«aquí tienes el desglose» es el `#`. Sin esto haría falta una plantilla por variante, y las
+variantes son cientos (política × momento × procedencia × monedas × idiomas). Ver
+`docs/Mensajeria.md`.
+
+**Las dos anclas son explícitas**, incluida la del resumen que es el estado por defecto: el
+enlace tiene que decir a qué lleva. Quien lo recibe por WhatsApp no ve la página, ve la URL.
+
+⚠️ **El ancla también trae la tarjeta a la vista.** El router de `pax` **no declara
+`scrollBehavior`**, así que un hash abría la pestaña correcta y dejaba al huésped mirando el
+principio de la página —la cuenta es una sección entre varias—. Se resuelve en el componente
+y no en el router a propósito: un `scrollBehavior` global cambiaría el comportamiento de
+todas las rutas de `pax` para arreglar una.
+
+⚠️ Y el desplazamiento se hace **también al montar**, no sólo en el `watch` del hash: llegando
+por enlace el hash ya está puesto y nunca *cambia*, así que el `watch` no dispara. Es el
+camino más frecuente —el huésped abre lo que le mandamos— y era justo el que se quedaba sin
+desplazar. Va después de `cargar()`, porque la sección se pinta con `v-if="finanzas"`.
+
+**El «atrás» del móvil:** cambiar de pestaña usa `replace`, no `push`. Con `push`, atrás
+alternaría pestañas en vez de salir de la reserva.
+
+Con `soloProgreso` no se pintan las pestañas: no hay cifras, así que no hay dos caras.
+
+> **Pendiente:** el contenido de la pestaña Resumen sigue siendo el de antes (barra, saldo y
+> botones de pago). Le faltan los campos del mensaje —Total y las formas de pago con su
+> importe final— y eso necesita que `pax` reciba los medios de cobro, que hoy sólo lee el
+> agente.
+
 ### 12.0.2c Canales que cobran por nosotros: qué ve el huésped
 
 En `PmsChannel::CANAL_PAGO_TOTAL` (Airbnb, VRBO) el resumen se recalcula excluyendo **todo lo que

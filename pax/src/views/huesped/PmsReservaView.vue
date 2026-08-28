@@ -2,8 +2,8 @@
 /**
  * src/views/huesped/PmsReservaView.vue
  */
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, nextTick, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { usePmsReservaStore } from '@/stores/huesped/paxHuespedReservaStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
 import type { PmsEventoCalendario } from '@/types/paxHuespedModel';
@@ -15,6 +15,7 @@ const props = defineProps<{
 const pmsStore = usePmsReservaStore();
 const maestroStore = useMaestroStore();
 const router = useRouter();
+const route = useRoute();
 
 const isReady = ref(false);
 
@@ -42,7 +43,24 @@ const cargar = async () => {
   }
 };
 
-onMounted(cargar);
+/**
+ * Al montar se carga y, si la URL trae ancla de cuenta, se lleva la tarjeta a la vista.
+ *
+ * ⚠️ El `watch` del hash NO cubre este caso: llegando por enlace, el hash ya está puesto
+ * y nunca *cambia*, así que no dispara. Es el camino más frecuente —el huésped abre el
+ * enlace que le mandamos por WhatsApp— y era justo el que se quedaba sin desplazar.
+ *
+ * Va DESPUÉS de `cargar()` porque la sección se pinta con `v-if="finanzas"`: antes de que
+ * llegue la reserva no hay nada a lo que desplazarse.
+ */
+onMounted(async () => {
+    await cargar();
+
+    if (route.hash === '#' + CUENTA_RESUMEN || route.hash === '#' + CUENTA_DETALLE) {
+        await enfocarCuenta();
+    }
+});
+
 // 🔥 Recarga al cambiar el localizador (el buscador hace push sobre la misma ruta)
 watch(() => props.localizador, cargar);
 
@@ -283,12 +301,75 @@ const porMoneda = computed(() => (mixta.value ? finanzas.value?.porMoneda ?? [] 
 const marcaAprox = computed(() => (mixta.value ? '≈ ' : ''));
 
 /**
- * El detalle del estado de cuenta (desglose, saldo y recargo de tarjeta) arranca
- * plegado: en móvil la tarjeta empujaba las unidades fuera de pantalla. Arriba
- * queda solo el titular — estado y barra de progreso — que es lo que el huésped
- * mira de un vistazo.
+ * Las dos caras del estado de cuenta: RESUMEN (por defecto) y DETALLADO.
+ *
+ * ── Por qué pestañas y no el plegable de antes ──────────────────────────────
+ * Era un «Mostrar más» y tenía dos problemas. El primero, de uso: la mayoría de
+ * huéspedes se abruma con el desglose —el cálculo del recargo, el tipo de cambio,
+ * los cargos línea a línea— y sólo quiere saber cuánto y por dónde; los que piden
+ * detalle son minoría. El segundo, técnico: **un plegable no se puede enlazar**.
+ * Cuando el equipo contesta a alguien que pregunta de qué se compone su cuenta,
+ * quiere mandarle el desglose, no una página donde tenga que buscar el botón.
+ *
+ * Con pestañas hay ancla, y el ancla viaja en el enlace. **Las DOS son explícitas**:
+ *
+ *   /huesped/reserva/{localizador}#resumen    → Resumen
+ *   /huesped/reserva/{localizador}#detalle    → Detallado
+ *
+ * `#resumen` podría sobrar —es el estado por defecto— y aun así se manda: el enlace
+ * tiene que decir a qué lleva. Quien lo recibe por WhatsApp no ve la página, ve la
+ * URL; y quien lo pega en un mensaje meses después no tiene que acordarse de que
+ * «sin hash» significaba resumen.
+ *
+ * Eso es lo que hace que **la plantilla de WhatsApp no necesite variantes**: fuera
+ * de la ventana de 24 h el mensaje aprobado es un empujón con un botón de URL, y
+ * lo único que cambia entre «te recuerdo que debes» y «aquí tienes el desglose»
+ * es el `#` de esa URL. Ver docs/Mensajeria.md.
+ *
+ * ── ⚠️ El ancla también TRAE LA TARJETA A LA VISTA ──────────────────────────
+ * El router de `pax` no declara `scrollBehavior`, así que un hash abre la pestaña
+ * correcta y deja al huésped mirando el principio de la página — la cuenta es una
+ * sección entre varias. Se resuelve aquí y no en el router a propósito: un
+ * `scrollBehavior` global cambiaría el comportamiento de todas las rutas de `pax`
+ * para arreglar una.
+ *
+ * Sólo se desplaza cuando el hash viene en la URL. Entrar sin hash deja la página
+ * arriba, que es donde el huésped espera empezar.
+ *
+ * ── El «atrás» del móvil ────────────────────────────────────────────────────
+ * Cambiar de pestaña usa `replace`, no `push`: con `push`, el botón atrás del
+ * móvil alternaría pestañas en vez de salir de la reserva, que es lo que el
+ * huésped espera de él.
  */
-const detalleCuentaAbierto = ref(false);
+const CUENTA_RESUMEN = 'resumen';
+const CUENTA_DETALLE = 'detalle';
+
+const cuentaRef = ref<HTMLElement | null>(null);
+const detalleCuentaAbierto = ref(route.hash === '#' + CUENTA_DETALLE);
+
+/** El hash manda al entrar: es lo que permite enlazar directamente al desglose. */
+watch(() => route.hash, (h) => {
+    if (h !== '#' + CUENTA_RESUMEN && h !== '#' + CUENTA_DETALLE) return;
+
+    detalleCuentaAbierto.value = h === '#' + CUENTA_DETALLE;
+    void enfocarCuenta();
+});
+
+/**
+ * Lleva la tarjeta de cuenta a la vista.
+ *
+ * `nextTick` porque al llegar con hash la sección puede no estar todavía en el DOM:
+ * se pinta con `v-if="finanzas"`, y las finanzas llegan con la reserva.
+ */
+async function enfocarCuenta(): Promise<void> {
+    await nextTick();
+    cuentaRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function verCuenta(detalle: boolean): void {
+    detalleCuentaAbierto.value = detalle;
+    void router.replace({ hash: '#' + (detalle ? CUENTA_DETALLE : CUENTA_RESUMEN) });
+}
 
 /* ─────────────────────────────────────────────────────────────
  * ENLACES DE PAGO
@@ -406,7 +487,7 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
       <!-- ═══ ESTADO DE CUENTA ═══ Solo si el backend mandó el resumen (hay
            cabecera financiera con cargos). Presentación, sin lógica de negocio:
            el saldo ya viene calculado; aquí solo se añade el recargo de tarjeta. -->
-      <section v-if="finanzas" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-300/40 ring-1 ring-slate-200/70 border border-slate-200 overflow-hidden mb-6">
+      <section v-if="finanzas" ref="cuentaRef" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-300/40 ring-1 ring-slate-200/70 border border-slate-200 overflow-hidden mb-6">
         <div class="p-5 md:p-8">
 
           <!-- Cabecera de la tarjeta -->
@@ -687,20 +768,36 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
           </div>
           <!-- ═══ FIN DETALLE PLEGABLE ═══ -->
 
-          <!-- Sin cifras no hay detalle que desplegar: el botón sobraría. -->
-          <button
-              v-if="!soloProgreso"
-              type="button"
-              @click="detalleCuentaAbierto = !detalleCuentaAbierto"
-              :aria-expanded="detalleCuentaAbierto"
-              class="w-full mt-3 pt-2.5 -mb-1 border-t border-slate-100 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#376875]/70 hover:text-[#376875] transition-colors"
-          >
-            {{ detalleCuentaAbierto
-              ? (maestroStore.t('res_ver_menos') || 'Mostrar menos')
-              : (maestroStore.t('res_ver_mas') || 'Mostrar más') }}
-            <i class="fas fa-chevron-down transition-transform duration-300"
-               :class="{ 'rotate-180': detalleCuentaAbierto }"></i>
-          </button>
+          <!-- ═══ PESTAÑAS ═══
+               Sustituyen al «Mostrar más». Van ABAJO y no arriba a propósito: el
+               resumen se lee entero sin tocarlas, y quien necesita el desglose lo
+               busca al final, que es donde ya miraba el botón anterior.
+
+               `soloProgreso` (Airbnb sin extras) no enseña cifras, así que no hay
+               dos caras entre las que elegir y las pestañas no se pintan. -->
+          <div v-if="!soloProgreso"
+               class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1"
+               role="tablist"
+               :aria-label="maestroStore.t('res_cuenta_vistas') || 'Vistas del estado de cuenta'">
+            <button type="button" role="tab"
+                    :aria-selected="!detalleCuentaAbierto"
+                    @click="verCuenta(false)"
+                    class="flex-1 rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-widest transition-colors"
+                    :class="!detalleCuentaAbierto
+                      ? 'bg-[#376875]/8 text-[#376875] ring-1 ring-[#376875]/20'
+                      : 'text-slate-400 hover:text-slate-600'">
+              {{ maestroStore.t('res_cuenta_resumen') || 'Resumen' }}
+            </button>
+            <button type="button" role="tab"
+                    :aria-selected="detalleCuentaAbierto"
+                    @click="verCuenta(true)"
+                    class="flex-1 rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-widest transition-colors"
+                    :class="detalleCuentaAbierto
+                      ? 'bg-[#376875]/8 text-[#376875] ring-1 ring-[#376875]/20'
+                      : 'text-slate-400 hover:text-slate-600'">
+              {{ maestroStore.t('res_cuenta_detalle') || 'Detallado' }}
+            </button>
+          </div>
         </div>
       </section>
 
