@@ -187,6 +187,31 @@ const conTarjeta = computed(() =>
  * que se resuelve por CÓDIGO y la etiqueta queda de respaldo: sin esto, un huésped que lee
  * en inglés veía «Transferencia bancaria».
  */
+/**
+ * El enlace de pago que corresponde a lo que se está pidiendo.
+ *
+ * ⚠️ **No es siempre el primero.** Pueden convivir dos vigentes —el del adelanto y el del
+ * total, y los dos son legítimos— y el banner que había arriba los pintaba los dos, uno por
+ * enlace. Al quedar un solo botón, mandar al primero sin mirar podía llevar al huésped a
+ * pagar un importe distinto del que la tarjeta le acaba de enseñar.
+ *
+ * Se elige por IMPORTE: el enlace cobra el total con recargo, que es justamente la cifra de
+ * `conTarjeta`. Si ninguno cuadra —el equipo emitió otra cosa— se cae al primero, que es lo
+ * que había antes, en vez de dejar al huésped sin botón.
+ */
+const enlaceDelImporte = computed(() => {
+    const enlaces = enlacesPago.value;
+
+    if (enlaces.length === 0) return null;
+
+    const objetivo = conTarjeta.value?.importe;
+    const exacto = objetivo
+        ? enlaces.find(e => Number(e.montoTotal) === Number(objetivo))
+        : undefined;
+
+    return exacto ?? enlaces[0];
+});
+
 const mediosSinTarjeta = computed(() => {
     const grupo = situacion.value?.medios.find(g => !g.recargoPorcentaje);
 
@@ -397,7 +422,10 @@ const cuentaRef = ref<HTMLElement | null>(null);
  * que la tarjeta hacía bien: cerrada enseñaba sólo la barra, y en móvil eso es lo que
  * impide que la cuenta empuje las unidades fuera de pantalla.
  */
-const cuentaAbierta = ref(route.hash === '#' + CUENTA_RESUMEN || route.hash === '#' + CUENTA_DETALLE);
+// Abierto POR DEFECTO. Estuvo cerrado mientras el resumen era el desglose entero y en móvil
+// empujaba las unidades fuera de pantalla; ahora son un cuadro y una línea, así que esconder
+// lo único que pide una acción sería esconderla por costumbre. El DETALLE sigue cerrado.
+const cuentaAbierta = ref(true);
 const detalleCuentaAbierto = ref(route.hash === '#' + CUENTA_DETALLE);
 
 /** El hash manda al entrar: es lo que permite enlazar directamente a uno de los dos. */
@@ -444,23 +472,17 @@ function verDetalle(abrir: boolean): void {
  * vista se abre con el localizador y crear un cobro desde aquí sería un write
  * que dispara cualquiera que tenga el enlace de la reserva.
  *
- * Van FUERA del plegable a propósito. Es la única acción de toda la tarjeta, y
- * el detalle arranca cerrado: un botón de pagar escondido detrás de «Mostrar
- * más» es un botón que nadie pulsa.
+ * Ya no se pintan uno a uno: el banner que lo hacía se retiró y el pago vive ahora en el
+ * cuadro del resumen. Cuál de ellos se ofrece lo decide `enlaceDelImporte`, por importe y no
+ * por orden — con dos vigentes, el primero puede no ser el que la tarjeta acaba de enseñar.
  * ───────────────────────────────────────────────────────────── */
 const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
 
-/**
- * Importe del botón, SIEMPRE en la moneda del enlace.
- *
- * No pasa por `formatMonto`: ese aplica el conmutador a soles, y el enlace cobra
- * lo que dice su fila, en su moneda. Enseñar «S/ 137.20» en un botón que va a
- * cargar US$ 40.50 a la tarjeta es la reclamación garantizada.
- */
-const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string | null): string =>
-    `${simbolo || moneda || ''} ${Number(monto).toLocaleString(maestroStore.idiomaActual, {
-      minimumFractionDigits: 2, maximumFractionDigits: 2,
-    })}`;
+// `importeEnlace()` se retiró con el banner naranja: era quien formateaba su cifra. Lo que
+// hacía —enseñar el importe en la moneda del ENLACE y no en la del conmutador de soles— lo
+// garantiza ahora el read-model, que manda `importes` y `medios` ya en su moneda y con la
+// equivalencia aparte. Enseñar «S/ 137.20» en un botón que carga US$ 40.50 sigue siendo la
+// reclamación garantizada; sólo que ya no puede pasar por aquí.
 </script>
 
 <template>
@@ -676,43 +698,6 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
             </div>
           </div>
 
-          <!-- ═══ PAGAR ONLINE ═══
-               Fuera del plegable: es la única acción de la tarjeta y el detalle arranca
-               cerrado. Uno por enlace vigente — el equipo puede haber emitido el del
-               adelanto y el del saldo, y los dos son legítimos.
-
-               El importe va SIEMPRE en la moneda del enlace, sin pasar por el conmutador
-               de soles: la tarjeta se carga con lo que dice la fila. -->
-          <div v-if="enlacesPago.length" class="mt-4 space-y-2">
-            <router-link
-                v-for="enlace in enlacesPago"
-                :key="enlace.token"
-                :to="{ name: 'pago_enlace', params: { token: enlace.token } }"
-                class="flex items-center justify-between gap-3 rounded-2xl bg-[#E07845] px-4 py-3.5 text-white shadow-lg shadow-orange-100 transition-all hover:bg-[#D06535] active:scale-[0.98]"
-            >
-              <span class="min-w-0">
-                <span class="block text-[13px] font-black uppercase tracking-wider">
-                  <i class="fas fa-credit-card mr-1.5"></i>{{ maestroStore.t('res_pagar_online') || 'Pagar ahora' }}
-                </span>
-                <!-- El concepto lo redactó quien emitió el enlace y dice si es el adelanto
-                     o el saldo. Sin él, dos botones seguidos son indistinguibles. -->
-                <span class="block truncate text-[11px] font-medium text-white/85">{{ enlace.concepto }}</span>
-                <!-- El recargo se dice ANTES de pulsar: es la diferencia entre lo que abona
-                     su reserva y lo que verá en el extracto de la tarjeta. -->
-                <span v-if="Number(enlace.recargoPorcentaje) > 0" class="block text-[10px] font-semibold text-white/70">
-                  {{ maestroStore.t('res_recargo_nota', { pct: String(Number(enlace.recargoPorcentaje)) })
-                      || `Incluye ${Number(enlace.recargoPorcentaje)}% de comisión` }}
-                </span>
-              </span>
-              <span class="shrink-0 text-right">
-                <span class="block text-lg font-black tabular-nums leading-none">
-                  {{ importeEnlace(enlace.montoTotal, enlace.simbolo, enlace.moneda) }}
-                </span>
-                <i class="fas fa-arrow-right mt-1 text-[11px] text-white/80"></i>
-              </span>
-            </router-link>
-          </div>
-
           <!-- ═══ RESUMEN ═══
                Lo que se lee de un vistazo: UNA cifra por opción que el huésped puede
                ejecutar, con el recargo ya dentro. El desglose —base, comisión, tipo de
@@ -732,12 +717,12 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
                  La tarjeta NO está aquí: cuesta otra cosa, y mezclarla obligaría a leer dos
                  cifras dentro del mismo cuadro. Va fuera, con su asterisco. -->
             <component
-                :is="enlacesPago.length ? 'router-link' : 'div'"
-                v-bind="enlacesPago.length
-                  ? { to: { name: 'pago_enlace', params: { token: enlacesPago[0].token } } }
+                :is="enlaceDelImporte ? 'router-link' : 'div'"
+                v-bind="enlaceDelImporte
+                  ? { to: { name: 'pago_enlace', params: { token: enlaceDelImporte.token } } }
                   : {}"
                 class="block rounded-2xl border border-[#376875]/25 bg-[#376875]/5 px-4 py-3.5 transition-colors"
-                :class="enlacesPago.length ? 'hover:bg-[#376875]/10 active:scale-[0.99]' : ''"
+                :class="enlaceDelImporte ? 'hover:bg-[#376875]/10 active:scale-[0.99]' : ''"
             >
               <div class="flex items-baseline justify-between gap-3">
                 <span class="text-[11px] font-black uppercase tracking-widest text-[#376875]">
@@ -745,7 +730,7 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
                     ? (maestroStore.t('res_pide_adelanto') || 'Adelanto para asegurar tu reserva')
                     : (maestroStore.t('res_pide_total') || 'Total a pagar') }}
                 </span>
-                <i v-if="enlacesPago.length" class="fas fa-arrow-right text-[11px] text-[#376875]/60 shrink-0"></i>
+                <i v-if="enlaceDelImporte" class="fas fa-arrow-right text-[11px] text-[#376875]/60 shrink-0"></i>
               </div>
 
               <!-- Un bloque POR MONEDA. Con una sola —lo normal— se lee igual; con dos, cada
@@ -789,9 +774,14 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
 
               <!-- 25 % del ancho: es la acción cara, y darle el mismo peso que al cuadro
                    empujaría a pagar de más a quien podía transferir. -->
-              <router-link v-if="enlacesPago.length"
-                  :to="{ name: 'pago_enlace', params: { token: enlacesPago[0].token } }"
-                  class="w-1/4 shrink-0 rounded-xl bg-[#E07845] px-2 py-2.5 text-center text-[11px] font-black uppercase tracking-wide text-white shadow-sm transition-colors hover:bg-[#D06535]">
+              <!-- Mismo cuerpo de letra que el banner naranja que había arriba
+                   (`text-[13px] font-black uppercase tracking-wider`): al quedarse solo,
+                   este botón es la acción principal de la tarjeta y tenía que pesar igual.
+                   Lo que cambia es el ANCHO —un cuarto—, no la tipografía: sigue siendo la
+                   opción cara y no debe competir en superficie con el cuadro. -->
+              <router-link v-if="enlaceDelImporte"
+                  :to="{ name: 'pago_enlace', params: { token: enlaceDelImporte.token } }"
+                  class="w-1/4 shrink-0 rounded-2xl bg-[#E07845] px-2 py-3 text-center text-[13px] font-black uppercase tracking-wider leading-tight text-white shadow-lg shadow-orange-100 transition-all hover:bg-[#D06535] active:scale-[0.98]">
                 {{ maestroStore.t('res_pagar_online') || 'Pagar ahora' }}
               </router-link>
             </div>
