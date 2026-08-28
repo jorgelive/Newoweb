@@ -1704,6 +1704,45 @@ Para el segundo resort **no vale re-ejecutarlo tal cual**: hoy la organización 
 constante. Hay que parametrizarla (una opción `--organizacion`) y saltarse la creación de segmentos,
 que ya existirán — el comando ya los detecta y los informa como «ya existe».
 
+### Las excursiones que se intercalan, y sus DOS orígenes de foto (28/08/2026)
+
+`SAONA` e `COCO_BONGO` son servicios aparte, no segmentos de `ACT_RESORT`. El motivo es de la
+guía, no del catálogo: los bloques de un cotservicio se pintan **seguidos** (se agrupan por
+`servicio.id`), y el pool de un cotservicio es el de su servicio maestro. Meterlas dentro pondría
+«Actividades en resort» de encabezado sobre una excursión a Isla Saona.
+
+Se intercalan **partiendo el día del resort en dos cotservicios** y colando la excursión en medio;
+el orden lo da la hora. Repetir un servicio maestro varias veces en una cotización es el patrón
+normal —«Alojamiento» aparece 12 veces en una propuesta real—.
+
+⚠️ **Y aquí las dos excursiones NO sacan las fotos del mismo sitio, a propósito:**
+
+| | De dónde salen sus fotos | Por qué |
+|---|---|---|
+| **Isla Saona** | del **propio segmento** (regla 1) | Es un **lugar**: la playa es la misma la opere quien la opere. Es el caso de Paracas. Sus tarifas nacen **sin prestador**. |
+| **Coco Bongo** | del **servicio del prestador** | Es una **marca con locales en varias ciudades**: el segmento es genérico y el local concreto entra por la tarifa, igual que un resort. |
+
+⚠️ **Las dos modalidades de Coco Bongo NO comparten servicio de prestador**, al revés que el lobby
+del resort. Son **alternativas** —el pasajero contrata una o la otra, nunca las dos—, así que la
+deduplicación de la galería no las taparía nunca y separarlas sí gana fotos distintas. La regla
+completa: se comparte buzón cuando las fotos coincidirían; se separa cuando son excluyentes.
+
+⚠️ Sus tarifas nacen **a 0**: son el vehículo para colgar prestador y servicio, no un precio.
+
+### Las horas no son decorado: colocan el bloque en el día
+
+Los grupos de un día se ordenan por su hora más temprana; sin hora caen a un desempate por
+`orden`, que es frágil justo cuando hace falta —dos cotservicios del mismo servicio en un día,
+que es lo que produce intercalar una excursión—.
+
+Por eso los componentes de resort nacen con hora por defecto (desayuno 07:00, almuerzo 12:30, cena
+19:00, espectáculo 21:30, Saona 08:00, Coco Bongo 22:00), y el comando las **sincroniza también en
+los que ya existían, sin pisar una hora ya puesta**. Son horarios de resort all-inclusive, no de
+un hotel concreto: se ajustan por cotización.
+
+`ACT-RESORT-DIA_LIBRE` va **sin hora** a propósito: representa el día entero, y darle una lo
+colocaría antes o después de cosas que en realidad lo contienen.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |

@@ -88,7 +88,7 @@ final class CrearActividadesResortCommand extends Command
      * El repertorio. `prestador` es la clave del servicio de arriba del que saldrán las fotos.
      *
      * @var list<array{slug: string, nombre: string, titulo: string, contenido: string,
-     *                 tipo: ComponenteTipoEnum, prestador: string}>
+     *                 tipo: ComponenteTipoEnum, prestador: string, hora: string|null}>
      */
     private const SEGMENTOS = [
         [
@@ -100,6 +100,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'usar el resort: piscinas, playa y restaurantes.',
             'tipo' => ComponenteTipoEnum::EXTRAS,
             'prestador' => 'lobby',
+            'hora' => '10:00',
         ],
         [
             'slug' => 'ACT-RESORT-CHECKIN_PM',
@@ -109,6 +110,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'habitación ya disponible. Queda tiempo para instalarse antes de la cena.',
             'tipo' => ComponenteTipoEnum::EXTRAS,
             'prestador' => 'lobby',
+            'hora' => '15:00',
         ],
         [
             'slug' => 'ACT-RESORT-CHECKOUT_AM',
@@ -118,6 +120,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'en custodia en recepción hasta la hora del traslado.',
             'tipo' => ComponenteTipoEnum::EXTRAS,
             'prestador' => 'lobby',
+            'hora' => '08:00',
         ],
         [
             'slug' => 'ACT-RESORT-CHECKOUT_PM',
@@ -127,6 +130,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'seguir usando las instalaciones; el equipaje queda en custodia en recepción.',
             'tipo' => ComponenteTipoEnum::EXTRAS,
             'prestador' => 'lobby',
+            'hora' => '15:00',
         ],
         [
             'slug' => 'DES-RESORT-BUFFET',
@@ -136,6 +140,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'de cocina caliente, fruta fresca, panadería y bebidas.',
             'tipo' => ComponenteTipoEnum::ALIMENTACION_HORARIO_VAR,
             'prestador' => 'buffet',
+            'hora' => '07:00',
         ],
         [
             'slug' => 'ALM-RESORT-BUFFET',
@@ -145,6 +150,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'local. Según el hotel, también hay servicio junto a la piscina o en la playa.',
             'tipo' => ComponenteTipoEnum::ALIMENTACION_HORARIO_VAR,
             'prestador' => 'buffet',
+            'hora' => '12:30',
         ],
         [
             'slug' => 'CEN-RESORT-BUFFET',
@@ -154,6 +160,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'cocina en vivo y una selección de postres.',
             'tipo' => ComponenteTipoEnum::ALIMENTACION_HORARIO_VAR,
             'prestador' => 'buffet',
+            'hora' => '19:00',
         ],
         [
             'slug' => 'CEN-RESORT-TEMATICO',
@@ -163,6 +170,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'Requieren reserva previa y la disponibilidad se gestiona en recepción al llegar.',
             'tipo' => ComponenteTipoEnum::ALIMENTACION_HORARIO_VAR,
             'prestador' => 'tematicos',
+            'hora' => '19:30',
         ],
         [
             'slug' => 'ACT-RESORT-PISCINA_PLAYA',
@@ -172,6 +180,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'servicio de bar incluido.',
             'tipo' => ComponenteTipoEnum::EXTRAS,
             'prestador' => 'piscinas',
+            'hora' => '10:00',
         ],
         [
             'slug' => 'ACT-RESORT-RECREATIVAS',
@@ -182,6 +191,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'publica cada mañana en el hotel.',
             'tipo' => ComponenteTipoEnum::EXTRAS,
             'prestador' => 'deportes',
+            'hora' => '16:00',
         ],
         [
             'slug' => 'ACT-RESORT-SHOW',
@@ -191,6 +201,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'shows temáticos. La programación varía cada noche.',
             'tipo' => ComponenteTipoEnum::EXTRAS,
             'prestador' => 'shows',
+            'hora' => '21:30',
         ],
         [
             'slug' => 'ACT-RESORT-DIA_LIBRE',
@@ -201,6 +212,7 @@ final class CrearActividadesResortCommand extends Command
                 . 'espectáculo nocturno.',
             'tipo' => ComponenteTipoEnum::EXTRAS,
             'prestador' => 'resort',
+            'hora' => null,
         ],
     ];
 
@@ -357,12 +369,51 @@ final class CrearActividadesResortCommand extends Command
                 ->setModo(ComponenteModoEnum::INCLUIDO)
                 ->setDia(1)
                 ->setOrden(1);
+
+            if ($def['hora'] !== null) {
+                $rel->setHora(new \DateTimeImmutable($def['hora']));
+            }
             $this->em->persist($rel);
 
             if ($servicioTravel !== null) {
                 $servicioTravel->addSegmento($segmento);
                 $servicioTravel->addComponente($componente);
             }
+        }
+
+        // Las horas son lo que coloca cada bloque en la cronología del día: sin ellas la guía
+        // cae al desempate por `orden`, que es frágil cuando un mismo servicio aparece dos veces
+        // en un día —justo lo que pasa al partir el día para intercalar una excursión—.
+        // Se sincronizan también en los que ya existían, pero SIN pisar una hora ya puesta.
+        $io->section('Horas');
+        $puestas = 0;
+
+        foreach (self::SEGMENTOS as $def) {
+            if ($def['hora'] === null) {
+                continue;
+            }
+
+            $segmento = $this->em->getRepository(TravelSegmento::class)->findOneBy(['slug' => $def['slug']]);
+            if ($segmento === null) {
+                continue;
+            }
+
+            foreach ($segmento->getSegmentoComponentes() as $rel) {
+                if ($rel->getHora() !== null) {
+                    continue;
+                }
+
+                ++$puestas;
+                $io->text(sprintf('  %s · %-26s %s', $simula ? 'pondría' : 'puesta ', $def['slug'], $def['hora']));
+
+                if (!$simula) {
+                    $rel->setHora(new \DateTimeImmutable($def['hora']));
+                }
+            }
+        }
+
+        if ($puestas === 0) {
+            $io->text('  todas tenían hora ya.');
         }
 
         if (!$simula) {
