@@ -416,6 +416,39 @@ revés. **Sumar las dos cifras no significa nada**, y por eso nunca se pintan ju
 El filtro de cobros va por fecha de **creación** a propósito: filtrando por fecha de pago
 desaparecerían justo los que nadie pagó, que son el motivo de mirar esta pantalla.
 
+### Anular desde aquí, y por qué hacía falta (28/08/2026)
+
+`anular` vivía **sólo** en `ReservaEnlacesPagoSection.vue`, o sea sólo en el panel de una
+reserva. Para un cobro con origen eso era incómodo —«ir al origen» y anular allí— pero para
+un **manual** era una puerta cerrada: nace sin `origenId`, así que **no aparece en el panel
+de ninguna reserva**, y sólo se crea desde esta pantalla. Un manual emitido por error se
+quedaba vigente y pagable hasta caducar; con `vigenciaDias = 0`, para siempre.
+
+El backend nunca tuvo esa limitación: `POST /finanzas/enlaces-pago/{id}/anular` va por id y
+no mira el origen. Era la vista la que no tenía el botón.
+
+Ahora está en los **dos** sitios de la pestaña Cobros, los dos sólo sobre un cobro `vigente`:
+
+| Dónde | Forma | Por qué así |
+|---|---|---|
+| Fila de la tabla | Icono 🚫 junto a «copiar», con `@click.stop` | Sin `.stop` la fila abriría además la ficha |
+| Pie de la ficha | Botón de ancho completo, **debajo** de «Copiar», en tono neutro | Copiar es lo que se viene a hacer; anular casi nunca. Dos botones iguales en la misma línea se pulsan por proximidad |
+
+⚠️ **La confirmación NOMBRA el cobro** —importe y concepto— en vez de preguntar «¿seguro?».
+En una tabla de hasta 500 filas con los botones pegados, un «¿Anular este enlace?» a secas
+no deja comprobar que se pulsó el de la fila que se quería: quien confirma no tiene delante
+ningún dato del que va a anular. Con el importe dentro, un clic en la fila de al lado se ve
+antes de aceptar.
+
+`cajaStore.anularCobro()` **sustituye su fila** con el enlace que devuelve el backend, no
+recarga: recargar traería la consulta entera con sus filtros para cambiar una etiqueta de
+estado, y devolvería el scroll al principio con la ficha abierta encima. Si la ficha está
+abierta sobre ese mismo cobro, se refresca también — si no, seguiría ofreciendo «Copiar
+enlace de pago» de uno que acaba de morir.
+
+⚠️ Es **gemelo de `enlacesPagoStore.anular()`**: dos listas distintas, cada store mantiene la
+suya. Si cambia el endpoint o su respuesta, hay que tocar los dos.
+
 ### Cobro manual: el origen es OPCIONAL
 
 `origenTipo` y `origenId` son ambos **nullable**, y son dos cosas separables:
@@ -1230,6 +1263,8 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar la pasarela por defecto | `.env` / `.env.local` | `FINANZAS_PASARELA_POR_DEFECTO` |
 | Tocar el selector de pasarela del operador | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `eligePasarela` |
 | Mover la sección de enlaces dentro del panel | `util/src/components/reservas/ReservaFinanzasPanel.vue` | acordeón `seccionAbierta === 'enlaces'` |
+| Cambiar el texto de la confirmación al anular (vista global) | `util/src/views/Finanzas/FinanzasView.vue` | `anularCobro()` — nombra importe y concepto a propósito |
+| Cambiar qué pasa con la fila al anular | `util/src/stores/finanzas/cajaStore.ts` | `anularCobro()` — **gemelo** de `enlacesPagoStore.anular()` |
 | Cambiar quién puede emitir o anular un enlace | el backend (`#[IsGranted]` de `FinEnlacePagoApiController`) | **no** un `readOnly` en el front — ver §11 bis |
 | Cambiar qué datos del cobro se ven sin desplegar | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | bloque `estado === 'pagado'` |
 | Tocar la vista de auditoría de la respuesta | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `alternarAuditoria()` |

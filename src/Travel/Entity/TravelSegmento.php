@@ -353,6 +353,7 @@ class TravelSegmento
     public function getVirtualGaleria(): string { return ''; }
     public function getVirtualContenido(): string { return ''; }
     public function getVirtualCadenaFotos(): string { return ''; }
+    public function getVirtualUsoEnCotizaciones(): string { return ''; }
 
     #[Assert\Callback]
     public function validateTituloEspanol(ExecutionContextInterface $context, mixed $payload): void

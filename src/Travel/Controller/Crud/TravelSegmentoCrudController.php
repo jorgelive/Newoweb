@@ -11,6 +11,7 @@ use App\Panel\Form\Type\TranslationHtmlType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelItinerario;
 use App\Travel\Entity\TravelSegmento;
+use Doctrine\DBAL\Connection;
 use App\Travel\Entity\TravelSegmentoComponente;
 use App\Travel\Entity\TravelSegmentoImagen;
 use App\Travel\Enum\ComponenteModoEnum;
@@ -45,7 +46,8 @@ class TravelSegmentoCrudController extends BaseCrudController
         private readonly string $uploadPath,
         private readonly CacheManager $imagineCacheManager,
         protected AdminUrlGenerator $adminUrlGenerator,
-        protected RequestStack $requestStack
+        protected RequestStack $requestStack,
+        private readonly Connection $conexion,
     ) {
         parent::__construct($this->adminUrlGenerator, $this->requestStack);
     }
@@ -148,6 +150,38 @@ class TravelSegmentoCrudController extends BaseCrudController
     /**
      * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
      */
+    /**
+     * Cuántos idiomas tiene un campo traducible, y si eso es normal o sospechoso.
+     *
+     * ⚠️ `#[AutoTranslate]` sólo corre al guardar **por el ORM**. Una fila cargada por SQL se
+     * queda con el español solo, y hoy eso no lo dice ninguna pantalla: el campo se ve lleno.
+     * Ver el reparto migración vs. comando en CLAUDE.md.
+     *
+     * @param list<array{language?: string, content?: string|null}> $traducciones
+     */
+    private function selloDeIdiomas(array $traducciones): string
+    {
+        $idiomas = [];
+
+        foreach ($traducciones as $item) {
+            if (isset($item['language'], $item['content']) && trim((string) $item['content']) !== '') {
+                $idiomas[] = strtoupper((string) $item['language']);
+            }
+        }
+
+        if (count($idiomas) >= 7) {
+            return sprintf(
+                '<span class="badge bg-success-subtle text-success-emphasis border">%d idiomas</span>',
+                count($idiomas),
+            );
+        }
+
+        return sprintf(
+            '<span class="badge bg-warning-subtle text-warning-emphasis border" title="AutoTranslate no corrió, o la fila se cargó por SQL">⚠ sólo %s</span>',
+            htmlspecialchars(implode(' ', $idiomas) ?: 'sin contenido'),
+        );
+    }
+
     public function configureFields(string $pageName): iterable
     {
         yield FormField::addPanel('Configuración de la Pieza')->setIcon('fa fa-puzzle-piece');
@@ -181,6 +215,45 @@ class TravelSegmentoCrudController extends BaseCrudController
         yield TextField::new('nombreInterno', 'Nombre del Segmento')->setColumns(6);
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')->onlyOnForms()->setColumns(6);
+
+        // ⚠️ Cuántas cotizaciones tienen ya congelado este segmento.
+        //
+        // Cambia cómo se edita: los snapshots ya emitidos NO se tocan, pero saber que la pieza
+        // está viva en doce propuestas evita retoques a la ligera. Va `onlyOnDetail` a propósito:
+        // en el índice sería una consulta por fila.
+        //
+        // ⚠️ `cotizacion_segmento.segmento_maestro_id` es `varchar(36)` CON guiones y
+        // `travel_segmento.id` es `binary(16)`. Comparar en crudo devuelve **cero filas y ningún
+        // error**, que es la peor forma de fallar: parece «no se usa en ninguna».
+        yield TextField::new('virtualUsoEnCotizaciones', 'Congelado en cotizaciones')
+            ->onlyOnDetail()
+            ->formatValue(function ($value, TravelSegmento $entity) {
+                $id = $entity->getId();
+
+                if ($id === null) {
+                    return '<span class="text-muted small">sin guardar</span>';
+                }
+
+                $usos = (int) $this->conexion->fetchOne(
+                    'SELECT COUNT(DISTINCT cs.cotizacion_id)
+                       FROM cotizacion_segmento sg
+                       JOIN cotizacion_cotservicio cs ON cs.id = sg.cotservicio_id
+                      WHERE sg.segmento_maestro_id = :id',
+                    ['id' => (string) $id],
+                );
+
+                if ($usos === 0) {
+                    return '<span class="badge bg-light text-muted border">Todavía en ninguna</span>';
+                }
+
+                return sprintf(
+                    '<span class="badge bg-info-subtle text-info-emphasis border">%d cotizaci%s</span> '
+                    . '<span class="text-muted small">— lo ya emitido no cambia al editar aquí.</span>',
+                    $usos,
+                    $usos === 1 ? 'ón' : 'ones',
+                );
+            })
+            ->renderAsHtml();
 
         yield FormField::addPanel('Uso en Plantillas (Itinerarios)')->setIcon('fa fa-route');
 
@@ -262,14 +335,17 @@ class TravelSegmentoCrudController extends BaseCrudController
         // 🔥 LECTURA (Getter Virtual)
         yield TextField::new('virtualTitulo', 'Título del Segmento')
             ->hideOnForm()
-            ->formatValue(static function ($value, $entity) {
-                if (is_iterable($entity->getTitulo())) {
-                    foreach ($entity->getTitulo() as $item) {
-                        if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
-                            return sprintf('<span class="fw-bold">%s</span>', htmlspecialchars(strip_tags($item['content'])));
-                        }
+            ->formatValue(function ($value, TravelSegmento $entity) {
+                foreach ($entity->getTitulo() as $item) {
+                    if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
+                        return sprintf(
+                            '<span class="fw-bold">%s</span> %s',
+                            htmlspecialchars(strip_tags((string) $item['content'])),
+                            $this->selloDeIdiomas($entity->getTitulo()),
+                        );
                     }
                 }
+
                 return '<span class="text-muted small"><i class="fas fa-language"></i> Sin título en español</span>';
             })
             ->renderAsHtml();
@@ -292,36 +368,22 @@ class TravelSegmentoCrudController extends BaseCrudController
         // Ver el aviso de migración vs. comando en CLAUDE.md.
         yield TextField::new('virtualContenido', 'Cuerpo del Relato')
             ->hideOnForm()
-            ->formatValue(static function ($value, TravelSegmento $entity) {
+            ->formatValue(function ($value, TravelSegmento $entity) {
                 $español = null;
-                $idiomas = [];
 
                 foreach ($entity->getContenido() as $item) {
-                    if (!isset($item['language'], $item['content']) || trim((string) $item['content']) === '') {
-                        continue;
-                    }
-
-                    $idiomas[] = strtoupper((string) $item['language']);
-
-                    if ($item['language'] === 'es') {
+                    if (isset($item['language'], $item['content']) && $item['language'] === 'es') {
                         $español = (string) $item['content'];
                     }
                 }
 
-                if ($español === null) {
+                if ($español === null || trim($español) === '') {
                     return '<span class="text-muted small"><i class="fas fa-language"></i> Sin cuerpo en español</span>';
                 }
 
-                $sello = count($idiomas) >= 7
-                    ? sprintf('<span class="badge bg-success-subtle text-success-emphasis border">%d idiomas</span>', count($idiomas))
-                    : sprintf(
-                        '<span class="badge bg-warning-subtle text-warning-emphasis border" title="AutoTranslate no corrió o se cargó por SQL">⚠ sólo %s</span>',
-                        htmlspecialchars(implode(' ', $idiomas)),
-                    );
-
                 return sprintf(
                     '<div class="mb-1">%s</div><div class="border rounded p-2 bg-light" style="font-size:13px; max-height:340px; overflow:auto;">%s</div>',
-                    $sello,
+                    $this->selloDeIdiomas($entity->getContenido()),
                     $español,
                 );
             })

@@ -239,6 +239,56 @@ function cerrarFicha(): void {
     fichaError.value = null;
 }
 
+// ============================================================================
+// ANULAR UN COBRO
+//
+// Estuvo sólo en el panel de la reserva, y dejaba fuera justo los que no tienen panel: un
+// cobro MANUAL nace sin `origenId`, así que no aparece en ninguna reserva y sólo se crea
+// desde aquí. Uno emitido por error se quedaba vigente y pagable hasta caducar — y con
+// vigencia 0, para siempre.
+//
+// ⚠️ Anular NO llega a la pasarela, y no hace falta: el cargo lo crea nuestro servidor y
+// `estaVigente()` cierra las dos puertas públicas. Ver docs/FinanzasEnlacesPago.md §5.
+// ============================================================================
+
+/** Id del cobro que se está anulando: bloquea su botón y pinta el spinner en ESA fila. */
+const anulandoId = ref<string | null>(null);
+const errorAnular = ref<string | null>(null);
+
+/**
+ * La confirmación NOMBRA el cobro (importe y concepto), no pregunta «¿seguro?».
+ *
+ * En una tabla de hasta 500 filas con los botones pegados unos a otros, un «¿Anular este
+ * enlace?» a secas no permite comprobar que se pulsó el de la fila que se quería: el que
+ * confirma no tiene delante ningún dato del que va a anular. Con el importe y el concepto
+ * dentro, un clic en la fila de al lado se ve antes de aceptar.
+ */
+async function anularCobro(cobro: FinEnlacePago): Promise<void> {
+    if (anulandoId.value) return;
+
+    const quien = [
+        `${cobro.monedaSimbolo ?? ''} ${cobro.montoTotal}`.trim(),
+        cobro.concepto || cobro.origenReferencia || 'sin concepto',
+    ].join(' — ');
+
+    if (!window.confirm(`¿Anular este cobro?\n\n${quien}\n\nEl cliente ya no podrá pagar con él.`)) return;
+
+    errorAnular.value = null;
+    anulandoId.value = cobro.id;
+    try {
+        const actualizado = await store.anularCobro(cobro.id);
+
+        // Si la ficha está abierta sobre ESTE cobro, se refresca también: si no, el panel
+        // seguiría ofreciendo «Copiar enlace de pago» de uno que acaba de morir.
+        if (fichaCobro.value?.id === cobro.id) fichaCobro.value = actualizado;
+    } catch (err) {
+        const data = (err as { response?: { data?: { error?: string } } })?.response?.data;
+        errorAnular.value = data?.error || 'No se pudo anular el cobro.';
+    } finally {
+        anulandoId.value = null;
+    }
+}
+
 /** Fecha con hora: en una ficha sí importa a qué hora se emitió o se pagó. */
 function fechaLarga(iso?: string | null): string {
     if (!iso) return '—';
@@ -367,6 +417,12 @@ function fechaLarga(iso?: string | null): string {
                     Hay más registros de los que caben. Estrecha el rango de fechas para verlos todos.
                 </p>
                 <p v-if="store.error" class="mt-2 text-[11px] font-bold text-rose-600">{{ store.error }}</p>
+                <!-- El fallo al anular se pinta AQUÍ además de en la ficha: desde la tabla no
+                     hay ficha abierta donde enseñarlo, y un botón que no hace nada sin decir
+                     por qué es lo que hace repetir la acción. -->
+                <p v-if="errorAnular" class="mt-2 text-[11px] font-bold text-rose-600">
+                    <i class="fas fa-ban mr-1"></i>{{ errorAnular }}
+                </p>
             </div>
 
             <!-- ================= FORMULARIO DE COBRO MANUAL ================= -->
@@ -540,11 +596,26 @@ function fechaLarga(iso?: string | null): string {
                                         neto {{ c.montoNeto }} · com. {{ c.montoRecargo }}
                                     </span>
                                 </td>
+                                <!-- Las dos acciones sólo sobre un cobro VIGENTE: sobre uno
+                                     pagado, expirado o ya anulado no hay nada que copiar ni
+                                     que cerrar. `@click.stop` en las dos, o la fila abriría
+                                     además la ficha. -->
                                 <td class="px-3 py-2 text-right whitespace-nowrap">
-                                    <button v-if="c.vigente" type="button" @click.stop="copiar(c)"
-                                        class="px-2 py-1 border border-slate-200 rounded text-[10px] font-black text-slate-500 hover:text-[#376875]">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
+                                    <span v-if="c.vigente" class="inline-flex items-center gap-1">
+                                        <button type="button" @click.stop="copiar(c)"
+                                            title="Copiar el enlace de pago"
+                                            class="px-2 py-1 border border-slate-200 rounded text-[10px] font-black text-slate-500 hover:text-[#376875]">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button type="button" @click.stop="anularCobro(c)"
+                                            :disabled="anulandoId !== null"
+                                            title="Anular: el cliente ya no podrá pagar con él"
+                                            class="px-2 py-1 border border-slate-200 rounded text-[10px] font-black
+                                                   text-slate-500 hover:text-rose-600 hover:border-rose-200
+                                                   disabled:opacity-40 disabled:cursor-not-allowed">
+                                            <i class="fas" :class="anulandoId === c.id ? 'fa-circle-notch fa-spin' : 'fa-ban'"></i>
+                                        </button>
+                                    </span>
                                 </td>
                             </tr>
                         </tbody>
@@ -757,11 +828,24 @@ function fechaLarga(iso?: string | null): string {
                 </section>
             </div>
 
-            <!-- Copiar el enlace sigue siendo la acción más usada; aquí también. -->
-            <footer v-if="fichaCobro.vigente" class="shrink-0 px-4 py-3 border-t border-slate-100 bg-slate-50">
+            <!-- Copiar el enlace sigue siendo la acción más usada; aquí también, y por eso se
+                 queda con el botón de color y el ancho completo.
+
+                 Anular va DEBAJO y en tono neutro, no a su lado: son la acción que se viene a
+                 hacer y la que casi nunca se hace, y dos botones iguales en la misma línea se
+                 pulsan por proximidad. La confirmación nombra el cobro (ver el script). -->
+            <footer v-if="fichaCobro.vigente" class="shrink-0 px-4 py-3 border-t border-slate-100 bg-slate-50 space-y-2">
+                <p v-if="errorAnular" class="text-[11px] font-bold text-rose-600">{{ errorAnular }}</p>
                 <button type="button" @click="copiar(fichaCobro)"
                     class="w-full py-2 rounded-xl bg-[#376875] hover:bg-[#2d5660] text-white text-xs font-black">
                     <i class="fas fa-copy mr-1"></i> Copiar enlace de pago
+                </button>
+                <button type="button" @click="anularCobro(fichaCobro)" :disabled="anulandoId !== null"
+                    class="w-full py-2 rounded-xl border border-slate-200 bg-white text-xs font-black
+                           text-slate-500 hover:text-rose-600 hover:border-rose-200
+                           disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fas mr-1" :class="anulandoId === fichaCobro.id ? 'fa-circle-notch fa-spin' : 'fa-ban'"></i>
+                    Anular cobro
                 </button>
             </footer>
         </aside>

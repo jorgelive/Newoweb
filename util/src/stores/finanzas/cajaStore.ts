@@ -70,6 +70,34 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
         return data.enlace;
     };
 
+    /**
+     * Anula un cobro y sustituye SU fila con lo que devuelve el backend.
+     *
+     * ── Por qué se anula desde aquí y no sólo desde la reserva ─────────────────
+     * Un cobro **manual** nace sin `origenId` —es lo que lo define— así que no aparece en el
+     * panel de ninguna reserva, y sólo se crea desde esta pantalla. Sin este botón, un manual
+     * emitido por error se quedaba vigente y pagable hasta caducar; y con vigencia 0 no
+     * caducaba nunca. El endpoint siempre lo permitió: va por id y no mira el origen.
+     *
+     * ── Se sustituye la fila, no se recarga la lista ───────────────────────────
+     * Recargar traería la consulta entera con sus filtros —hasta 500 filas— para cambiar una
+     * etiqueta de estado, y devolvería el scroll al principio con la ficha abierta encima. El
+     * backend responde el enlace ya serializado, así que la verdad de la fila sigue siendo
+     * suya: aquí no se compone ningún estado a mano.
+     *
+     * ⚠️ Gemelo de `enlacesPagoStore.anular()`, que hace lo mismo sobre la lista del panel de
+     * una reserva. Son dos listas distintas y cada store mantiene la suya; si cambia el
+     * endpoint o su respuesta, hay que tocar los dos.
+     */
+    const anularCobro = async (id: string): Promise<FinEnlacePago> => {
+        const { data } = await apiClient.post<{ enlace: FinEnlacePago }>(
+            `/finanzas/enlaces-pago/${id}/anular`, {},
+        );
+        cobros.value = cobros.value.map(c => (c.id === id ? data.enlace : c));
+
+        return data.enlace;
+    };
+
     const fetchCobros = async (filtros: FinCajaFiltros): Promise<void> => {
         isLoading.value = true;
         error.value = null;
@@ -141,5 +169,6 @@ export const useCajaStore = defineStore('finanzasCajaStore', () => {
         fetchCobroDetalle,
         fetchMovimientos,
         crearManual,
+        anularCobro,
     };
 });

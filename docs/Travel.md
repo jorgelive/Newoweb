@@ -1811,6 +1811,22 @@ muchas que le subas, y no da error en ningún sitio.**
 
 Si el segmento tiene galería propia, no recorre nada: dice que manda la suya, que es la regla 1.
 
+### Dos avisos más en la ficha
+
+**Sello de idiomas** en título y cuerpo, del mismo helper (`selloDeIdiomas()`): verde a partir de
+siete, ámbar listando los que hay. ⚠️ Existe porque `#[AutoTranslate]` sólo corre al guardar **por
+el ORM**: una fila cargada por SQL se queda en español y **el campo se ve lleno igual**.
+
+**Congelado en N cotizaciones.** Cambia cómo se edita: lo ya emitido no se toca, pero saber que la
+pieza está viva en doce propuestas evita retoques a la ligera. Va `onlyOnDetail` a propósito —en el
+índice sería una consulta por fila—.
+
+⚠️ `cotizacion_segmento.segmento_maestro_id` es **`varchar(36)` con guiones** y
+`travel_segmento.id` es **`binary(16)`**. La comparación va contra el UUID en texto
+(`(string) $entity->getId()`, que es justo el formato guardado). Comparar los dos tipos en crudo
+devuelve **cero filas y ningún error**, que es la peor forma de fallar aquí: se lee como «no se usa
+en ninguna». Comprobado con datos reales: Pisac → 5, un segmento nuevo → 0.
+
 ⚠️ **Los campos `virtualX` necesitan un getter-muñón en la entidad** (`getVirtualX(): string
 { return ''; }`), aunque todo el trabajo lo haga el `formatValue` del controlador. Sin él,
 EasyAdmin no tiene propiedad que leer. `getVirtualPuntos()` es la excepción: hace el render
