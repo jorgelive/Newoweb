@@ -39,8 +39,8 @@ final class PaxCrearTextosCobroCommand extends Command
 
     /**
      * Sólo lo que NO existe ya. Se reutiliza a propósito `res_recargo_nota` («incluye X% de
-     * comisión») y `res_pagar_online` en vez de inventar gemelos: dos claves que dicen lo
-     * mismo acaban diciendo cosas distintas en el idioma número cinco.
+     * comisión») en vez de inventar un gemelo: dos claves que dicen lo mismo acaban diciendo
+     * cosas distintas en el idioma número cinco.
      *
      * @var array<string, string>
      */
@@ -63,6 +63,11 @@ final class PaxCrearTextosCobroCommand extends Command
         // La nota del asterisco, fuera del cuadro del prepago.
         'res_con_tarjeta' => 'Con tarjeta de crédito',
         'res_con_estos_medios' => 'Con estos medios de pago',
+
+        // ⚠️ Faltaba y nadie lo había notado: la vista lleva meses cayendo al respaldo en
+        // castellano, así que un huésped con la ficha en inglés leía «Pagar ahora» en medio
+        // de todo lo demás traducido. El respaldo del `||` no falla — y por eso no se ve.
+        'res_pagar_online' => 'Pagar ahora',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

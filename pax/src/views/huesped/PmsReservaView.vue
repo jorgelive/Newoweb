@@ -730,18 +730,27 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
               </span>
 
               <!-- Un bloque POR MONEDA. Con una sola —lo normal— es una cifra; con dos, cada
-                   una dice lo suyo y NO se suman: el huésped debe en las dos. -->
-              <span class="shrink-0 flex items-center gap-2 text-right">
-                <span>
-                  <span v-for="imp in situacion.importes" :key="imp.moneda"
-                        class="block text-lg font-black tabular-nums text-gray-900 leading-none">
-                    {{ imp.simbolo || imp.moneda }} {{ imp.importe }}
-                    <span v-if="imp.enSoles" class="block mt-0.5 text-[11px] font-bold text-slate-400">
-                      S/ {{ imp.enSoles }}
-                    </span>
+                   una dice lo suyo y NO se suman: el huésped debe en las dos.
+
+                   La MONEDA va encima y pequeña, la cifra debajo y grande. Con «US$ 54.08»
+                   en una línea, la columna se lleva un ancho que el rótulo necesita: en
+                   inglés —«Advance payment to secure your reservation»— eso lo partía en
+                   tres renglones. Apilada ocupa lo que mide el número.
+
+                   Y sin flecha: el cuadro entero ya es el enlace, y una flecha compitiendo
+                   con el importe le quita al número el sitio que necesita. -->
+              <span class="shrink-0 text-right">
+                <span v-for="imp in situacion.importes" :key="imp.moneda" class="block">
+                  <span class="block text-[11px] font-black uppercase tracking-wide text-slate-400 leading-none">
+                    {{ imp.simbolo || imp.moneda }}
+                  </span>
+                  <span class="block text-xl font-black tabular-nums text-gray-900 leading-tight">
+                    {{ imp.importe }}
+                  </span>
+                  <span v-if="imp.enSoles" class="block text-[11px] font-bold text-slate-400 leading-none">
+                    S/ {{ imp.enSoles }}
                   </span>
                 </span>
-                <i v-if="enlaceDelImporte" class="fas fa-arrow-right text-[11px] text-[#376875]/60"></i>
               </span>
             </component>
 
