@@ -38,8 +38,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * ── De dónde salen las fotos de cada una, y por qué NO es lo mismo ──────────
  *
  * **Isla Saona es un LUGAR**: la playa es la misma la opere quien la opere, así que sus fotos
- * van en el propio segmento — la regla 1 de la galería, el caso de Paracas. Por eso sus
- * tarifas nacen sin prestador: falta decidir el operador, y para las fotos no hace falta.
+ * van en el propio segmento — la regla 1 de la galería, el caso de Paracas. Su prestador,
+ * Solarena, existe para OPERAR y está oculto al cliente, así que no aporta ninguna imagen.
  *
  * **Coco Bongo es una MARCA con locales en varias ciudades**, así que sigue el patrón del
  * resort: el segmento es genérico y el local concreto entra por el servicio del prestador.
@@ -61,6 +61,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class CrearExcursionesPuntaCanaCommand extends Command
 {
     private const ORG_COCO = 'Grupo Coco Bongo';
+    private const ORG_SOLARENA = 'Solarena Tours';
     private const MONEDA = 'USD';
 
     /**
@@ -87,7 +88,7 @@ final class CrearExcursionesPuntaCanaCommand extends Command
     /**
      * @var list<array{slug: string, servicio: string, nombre: string, titulo: string,
      *                 contenido: string, tipo: ComponenteTipoEnum, hora: string,
-     *                 prestadorCoco: string|null}>
+     *                 prestadorCoco: string|null, monto: string, prestadorSaona: bool}>
      */
     private const SEGMENTOS = [
         [
@@ -101,6 +102,8 @@ final class CrearExcursionesPuntaCanaCommand extends Command
             'tipo' => ComponenteTipoEnum::EXCURSION_POOL,
             'hora' => '08:00',
             'prestadorCoco' => null,
+            'monto' => '75.00',
+            'prestadorSaona' => true,
         ],
         [
             'slug' => 'VIS-SAONA-VIP',
@@ -113,6 +116,8 @@ final class CrearExcursionesPuntaCanaCommand extends Command
             'tipo' => ComponenteTipoEnum::EXCURSION_POOL,
             'hora' => '08:00',
             'prestadorCoco' => null,
+            'monto' => '0.00',
+            'prestadorSaona' => true,
         ],
         [
             'slug' => 'VIS-COCO_BONGO-GENERAL',
@@ -125,6 +130,8 @@ final class CrearExcursionesPuntaCanaCommand extends Command
             'tipo' => ComponenteTipoEnum::TICKET_HORARIO_VAR,
             'hora' => '22:00',
             'prestadorCoco' => 'general',
+            'monto' => '0.00',
+            'prestadorSaona' => false,
         ],
         [
             'slug' => 'VIS-COCO_BONGO-FIESTA_BLANCA',
@@ -137,6 +144,8 @@ final class CrearExcursionesPuntaCanaCommand extends Command
             'tipo' => ComponenteTipoEnum::TICKET_HORARIO_VAR,
             'hora' => '22:00',
             'prestadorCoco' => 'blanca',
+            'monto' => '0.00',
+            'prestadorSaona' => false,
         ],
     ];
 
@@ -182,6 +191,29 @@ final class CrearExcursionesPuntaCanaCommand extends Command
             }
         } else {
             $io->text(sprintf('Organización · ya existe%s', $orgCoco->isVisibleParaCliente() ? '' : ' ⚠ NO es visible para el cliente'));
+        }
+
+        // 1.bis Solarena opera Saona y además nos VENDE Coco Bongo: dos papeles distintos.
+        //
+        // ⚠️ Nace OCULTA al cliente, al revés que Coco Bongo. Es nuestro operador local, no una
+        // marca que el pasajero quiera ver: el prestador se asigna para OPERAR —a quién se le
+        // pide, con qué teléfono— sin publicarlo. Coco Bongo sí se enseña porque es el atractivo.
+        $solarena = $this->em->getRepository(TravelOrganizacion::class)
+            ->findOneBy(['nombreComercial' => self::ORG_SOLARENA]);
+
+        if ($solarena === null) {
+            $io->text(sprintf('  %s · %s (oculta al cliente: es nuestro operador)', $simula ? 'crearía' : 'creada ', self::ORG_SOLARENA));
+
+            if (!$simula) {
+                $solarena = (new TravelOrganizacion())
+                    ->setNombreComercial(self::ORG_SOLARENA)
+                    ->setTitulo([['language' => 'es', 'content' => self::ORG_SOLARENA]])
+                    ->setVisibleParaCliente(false);
+                $this->em->persist($solarena);
+                $this->em->flush();
+            }
+        } else {
+            $io->text(sprintf('  %s · ya existe', self::ORG_SOLARENA));
         }
 
         // 2. Un buzón de fotos por modalidad: son alternativas, nunca coinciden en un viaje.
@@ -290,13 +322,8 @@ final class CrearExcursionesPuntaCanaCommand extends Command
             $tarifa->setNombreInterno($def['nombre']);
             $tarifa->setTitulo([['language' => 'es', 'content' => $def['titulo']]]);
             $tarifa->setMoneda($moneda);
-            $tarifa->setMonto('0.00');
-
-            if ($def['prestadorCoco'] !== null) {
-                $tarifa->setPrestador($orgCoco);
-                $tarifa->setPrestadorServicio($serviciosCoco[$def['prestadorCoco']] ?? null);
-            }
-
+            $tarifa->setMonto($def['monto']);
+            $this->aplicarPapeles($tarifa, $def, $orgCoco, $solarena, $serviciosCoco);
             $this->em->persist($tarifa);
 
             $rel = (new TravelSegmentoComponente())
@@ -320,15 +347,103 @@ final class CrearExcursionesPuntaCanaCommand extends Command
             $this->em->flush();
         }
 
+        // Los papeles y el precio se sincronizan también en lo que ya existía: la primera versión
+        // de este comando creó las tarifas antes de saber quién era el operador de Saona.
+        //
+        // ⚠️ Un monto distinto de cero NO se pisa. Es un precio que alguien puso a mano, y el
+        // catálogo no tiene forma de saber si está más al día que la constante de aquí.
+        $io->section('Papeles y precios');
+        $tocadas = 0;
+
+        foreach (self::SEGMENTOS as $def) {
+            $segmento = $this->em->getRepository(TravelSegmento::class)->findOneBy(['slug' => $def['slug']]);
+            if ($segmento === null) {
+                continue;
+            }
+
+            foreach ($segmento->getSegmentoComponentes() as $rel) {
+                $tarifa = $rel->getTarifaPredeterminada();
+                if ($tarifa === null) {
+                    continue;
+                }
+
+                $antes = sprintf('%s|%s|%s', $tarifa->getMonto(), $tarifa->getPrestador()?->getNombreComercial() ?? '', $tarifa->getComprador()?->getNombreComercial() ?? '');
+
+                if (!$simula) {
+                    $this->aplicarPapeles($tarifa, $def, $orgCoco, $solarena, $serviciosCoco);
+
+                    if ((float) $tarifa->getMonto() === 0.0 && $def['monto'] !== '0.00') {
+                        $tarifa->setMonto($def['monto']);
+                    }
+                }
+
+                $despues = sprintf('%s|%s|%s', $def['monto'], $def['prestadorSaona'] ? self::ORG_SOLARENA : self::ORG_COCO, self::ORG_SOLARENA);
+
+                if ($antes !== $despues) {
+                    ++$tocadas;
+                    $io->text(sprintf(
+                        '  %s · %-30s %6s USD  presta %-18s  compra %s',
+                        $simula ? 'pondría' : 'puesto ',
+                        $def['slug'],
+                        $def['monto'],
+                        $def['prestadorSaona'] ? self::ORG_SOLARENA : self::ORG_COCO,
+                        self::ORG_SOLARENA,
+                    ));
+                }
+            }
+        }
+
+        if ($tocadas === 0) {
+            $io->text('  ya estaban al día.');
+        }
+
+        if (!$simula) {
+            $this->em->flush();
+        }
+
         $io->newLine();
         $io->success(sprintf('%s %d segmento(s).', $simula ? 'Se crearían' : 'Creados', $creados));
         $io->warning('Las tarifas nacen a 0: son el vehículo del prestador, no un precio. Ponles el suyo antes de cotizar.');
-        $io->note('Isla Saona nace sin prestador a propósito: es un lugar, y sus fotos van en el propio segmento.');
+        $io->note(sprintf(
+            '%s opera Saona y nos vende Coco Bongo, pero está OCULTA al cliente: las fotos de Saona van en el propio segmento.',
+            self::ORG_SOLARENA,
+        ));
 
         if ($simula) {
             $io->note('Ensayo: no se escribió nada. Quita --dry-run para aplicarlo.');
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Quién presta y quién nos vende, que aquí NO son el mismo.
+     *
+     * En Saona, Solarena hace las dos cosas: opera la excursión y nos la factura. En Coco Bongo
+     * se separan —el prestador es la marca que el pasajero ve, el comprador es a quién le
+     * mandamos el encargo—, y es justo el caso para el que existen los dos campos.
+     *
+     * @param array{prestadorCoco: string|null, prestadorSaona: bool, ...} $def
+     * @param array<string, TravelOrganizacionServicio> $serviciosCoco
+     */
+    private function aplicarPapeles(
+        TravelTarifa $tarifa,
+        array $def,
+        ?TravelOrganizacion $orgCoco,
+        ?TravelOrganizacion $solarena,
+        array $serviciosCoco,
+    ): void {
+        $tarifa->setComprador($solarena);
+
+        if ($def['prestadorSaona']) {
+            $tarifa->setPrestador($solarena);
+
+            return;
+        }
+
+        if ($def['prestadorCoco'] !== null) {
+            $tarifa->setPrestador($orgCoco);
+            $tarifa->setPrestadorServicio($serviciosCoco[$def['prestadorCoco']] ?? null);
+        }
     }
 }

@@ -1719,7 +1719,7 @@ normal —«Alojamiento» aparece 12 veces en una propuesta real—.
 
 | | De dónde salen sus fotos | Por qué |
 |---|---|---|
-| **Isla Saona** | del **propio segmento** (regla 1) | Es un **lugar**: la playa es la misma la opere quien la opere. Es el caso de Paracas. Sus tarifas nacen **sin prestador**. |
+| **Isla Saona** | del **propio segmento** (regla 1) | Es un **lugar**: la playa es la misma la opere quien la opere. Es el caso de Paracas. Su prestador existe para **operar** y está oculto, así que no aporta imágenes. |
 | **Coco Bongo** | del **servicio del prestador** | Es una **marca con locales en varias ciudades**: el segmento es genérico y el local concreto entra por la tarifa, igual que un resort. |
 
 ⚠️ **Las dos modalidades de Coco Bongo NO comparten servicio de prestador**, al revés que el lobby
@@ -1728,6 +1728,33 @@ deduplicación de la galería no las taparía nunca y separarlas sí gana fotos 
 completa: se comparte buzón cuando las fotos coincidirían; se separa cuando son excluyentes.
 
 ⚠️ Sus tarifas nacen **a 0**: son el vehículo para colgar prestador y servicio, no un precio.
+
+### Prestador y comprador NO son el mismo, y este caso es para lo que existen los dos
+
+Solarena Tours nos opera Isla Saona **y además nos vende Coco Bongo**. Son dos papeles distintos y
+el modelo ya los separa:
+
+| Tarifa | Prestador (quién lo presta) | Comprador (a quién le pedimos) |
+|---|---|---|
+| Isla Saona clásico · **75 USD** | Solarena Tours | Solarena Tours |
+| Isla Saona VIP | Solarena Tours | Solarena Tours |
+| Coco Bongo general | **Grupo Coco Bongo** | Solarena Tours |
+| Coco Bongo fiesta blanca | **Grupo Coco Bongo** | Solarena Tours |
+
+En Saona coinciden; en Coco Bongo no, y ahí se ve para qué sirve la distinción: el prestador es la
+marca que el pasajero ve, el comprador es a quién se le manda el encargo.
+
+⚠️ **Solarena nace OCULTA al cliente y Coco Bongo visible**, y la asimetría es deliberada. Un
+operador local se asigna para **operar** —a quién se le pide, con qué teléfono— sin publicarlo;
+Coco Bongo se enseña porque es el atractivo que se está vendiendo. Es el caso que la ficha del
+normalizer describe como «asignar un prestador sólo para operar».
+
+Consecuencia directa: como Solarena está oculta, **no aporta ni una foto**, y por eso las de Saona
+siguen yendo en el propio segmento.
+
+⚠️ **El comando sincroniza papeles y precio también en tarifas ya creadas, pero NO pisa un monto
+distinto de cero.** Un precio puesto a mano gana siempre: el catálogo no sabe si la constante del
+comando está más al día que lo que alguien acaba de negociar.
 
 ### Las horas no son decorado: colocan el bloque en el día
 
