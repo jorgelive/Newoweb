@@ -633,7 +633,10 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
               <span v-else-if="!detalleCuentaAbierto"
                     class="inline-flex items-center gap-1.5 bg-orange-50 text-[#E07845] border border-orange-200 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">
                 <i class="fas fa-hourglass-half"></i> {{ maestroStore.t('res_saldo_pendiente') || 'Saldo pendiente' }}
-                <span class="pl-1.5 ml-0.5 border-l border-orange-200 normal-case tracking-normal tabular-nums">
+                <!-- La cifra, un punto por encima del rótulo: es el dato, y el rótulo sólo
+                     dice de qué es. Al mismo cuerpo se leían como una sola frase y había que
+                     buscar el número dentro de ella. -->
+                <span class="pl-1.5 ml-0.5 border-l border-orange-200 normal-case tracking-normal tabular-nums text-[13px] leading-none">
                   {{ marcaAprox }}{{ formatMonto(finSaldo) }}
                 </span>
               </span>
