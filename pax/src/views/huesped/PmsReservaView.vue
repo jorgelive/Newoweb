@@ -212,14 +212,69 @@ const enlaceDelImporte = computed(() => {
     return exacto ?? enlaces[0];
 });
 
+/**
+ * Qué ficha de medio está abierta, si alguna. `null` = ninguna.
+ *
+ * Uno a la vez: dos cuadros de cuentas abiertos a la vez en un móvil es una pantalla de
+ * números donde había que elegir uno.
+ */
+const fichaAbierta = ref<string | null>(null);
+
+/** Los datos del medio abierto, ya listos para pintar. */
+const fichasDelAbierto = computed(() => {
+    const codigo = fichaAbierta.value;
+
+    if (!codigo) return [];
+
+    const grupo = situacion.value?.medios.find(g => g.codigos.includes(codigo));
+
+    return grupo?.fichas?.[codigo] ?? [];
+});
+
+/**
+ * El titular, cuando es el MISMO en todas las fichas del medio abierto.
+ *
+ * «Transferencia bancaria» son ocho cuentas —cuatro bancos por dos monedas— y todas están a
+ * nombre de la misma persona. Repetirlo ocho veces convierte el cuadro en una pared: se dice
+ * una vez al pie y ya. Si algún día hubiera dos titulares distintos, devuelve `null` y cada
+ * ficha vuelve a decir el suyo.
+ */
+const titularComun = computed(() => {
+    const nombres = new Set(fichasDelAbierto.value.map(f => f.titular ?? ''));
+
+    return nombres.size === 1 ? (fichasDelAbierto.value[0]?.titular ?? null) : null;
+});
+
+/** El nombre del medio abierto, traducido. */
+const nombreDelAbierto = computed(() => {
+    const codigo = fichaAbierta.value;
+
+    if (!codigo) return '';
+
+    const grupo = situacion.value?.medios.find(g => g.codigos.includes(codigo));
+    const i = grupo?.codigos.indexOf(codigo) ?? -1;
+
+    return maestroStore.t('res_medio_' + codigo) || (i >= 0 ? grupo?.etiquetas[i] : '') || codigo;
+});
+
+/**
+ * Los medios que valen el importe SIN recargo, uno a uno.
+ *
+ * Devuelve una lista y no una cadena unida porque cada uno lleva ahora su «i»: la que
+ * abre sus cuentas. Con `.join(' · ')` no había dónde colgarla.
+ */
 const mediosSinTarjeta = computed(() => {
     const grupo = situacion.value?.medios.find(g => !g.recargoPorcentaje);
 
-    if (!grupo) return '';
+    if (!grupo) return [];
 
-    return grupo.codigos
-        .map((codigo, i) => maestroStore.t('res_medio_' + codigo) || grupo.etiquetas[i] || codigo)
-        .join(' · ');
+    return grupo.codigos.map((codigo, i) => ({
+        codigo,
+        etiqueta: maestroStore.t('res_medio_' + codigo) || grupo.etiquetas[i] || codigo,
+        // Sin ficha no hay «i»: un icono que abre un cuadro vacío enseña a no pulsarlo.
+        // Efectivo es el caso normal — se paga en recepción, no hay número que dar.
+        tieneFicha: (grupo.fichas?.[codigo]?.length ?? 0) > 0,
+    }));
 });
 
 const todoPagado = computed(() => soloProgreso.value || finSaldo.value <= 0);
@@ -695,24 +750,25 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
           <div v-if="situacion?.hayAlgoQuePedir" class="mt-4">
 
             <!-- ═══ EL CUADRO: qué se pide, a cuánto, y por dónde ═══
-                 Es el CTA principal y por eso es un enlace, no un párrafo: lo que el huésped
-                 quiere hacer con esta cifra es pagarla.
-
                  En DOS COLUMNAS y no apilado: el rótulo es largo —«Adelanto para asegurar tu
                  reserva»— y debajo del importe partía la tarjeta en cinco renglones. Con el
                  texto a la izquierda y la cifra a la derecha son tres, y el ojo encuentra el
                  número donde ya lo busca en cualquier factura.
 
                  La tarjeta NO está aquí: cuesta otra cosa, y mezclarla obligaría a leer dos
-                 cifras dentro del mismo cuadro. Va fuera, con su asterisco. -->
-            <component
-                :is="enlaceDelImporte ? 'router-link' : 'div'"
-                v-bind="enlaceDelImporte
-                  ? { to: { name: 'pago_enlace', params: { token: enlaceDelImporte.token } } }
-                  : {}"
-                class="flex items-center justify-between gap-3 rounded-2xl border border-[#376875]/25 bg-[#376875]/5 px-4 py-3 transition-colors"
-                :class="enlaceDelImporte ? 'hover:bg-[#376875]/10 active:scale-[0.99]' : ''"
-            >
+                 cifras dentro del mismo cuadro. Va fuera, con su asterisco.
+
+                 ⚠️ NO es un enlace, y lo fue: el cuadro entero llevaba al enlace de pago.
+                 Se cruzaban DOS cosas. La de bulto, que dentro viven ahora las «i» de cada
+                 medio, y un icono dentro de un enlace es un icono que navega. Y la de fondo,
+                 que ya estaba mal antes: el cuadro dice 54.08 —lo que cuesta por Yape— y el
+                 enlace cobra 57.05, porque es de tarjeta y lleva el recargo. Pulsar el
+                 importe de un medio para acabar pagando el de otro es la trampa exacta que el
+                 agrupado por precio venía a deshacer.
+
+                 Pagar con tarjeta se hace desde «Pagar ahora», que está debajo, junto a SU
+                 cifra. Un solo camino, y lleva a lo que dice. -->
+            <div class="flex items-center justify-between gap-3 rounded-2xl border border-[#376875]/25 bg-[#376875]/5 px-4 py-3">
               <span class="min-w-0">
                 <span class="block text-[11px] font-black uppercase tracking-widest text-[#376875] leading-tight">
                   {{ situacion.queSePide === 'ADELANTO'
@@ -720,10 +776,22 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                     : (maestroStore.t('res_pide_total') || 'Total a pagar') }}
                 </span>
 
-                <!-- Con qué medios vale ESE importe. En una línea, no en lista: son
-                     alternativas del mismo precio, no opciones que comparar. -->
-                <span v-if="mediosSinTarjeta" class="mt-0.5 block text-[12px] font-bold text-slate-500 leading-snug">
-                  {{ mediosSinTarjeta }}
+                <!-- Con qué medios vale ESE importe. Fluido y en una sola corrida, no en
+                     lista: son alternativas del mismo precio, no opciones que comparar.
+
+                     Cada uno con su «i» cuando hay cuentas que dar: el huésped que elige Yape
+                     necesita el número, y el que elige efectivo no necesita nada. Preguntarlo
+                     por WhatsApp era el paso que sobraba. -->
+                <span v-if="mediosSinTarjeta.length" class="mt-0.5 block text-[12px] font-bold text-slate-500 leading-snug">
+                  <span v-for="(m, i) in mediosSinTarjeta" :key="m.codigo">
+                    <span v-if="i > 0" class="text-slate-300"> · </span>{{ m.etiqueta }}<button
+                        v-if="m.tieneFicha"
+                        type="button"
+                        class="ml-1 align-middle text-[#376875]/70 transition-colors hover:text-[#376875]"
+                        :aria-label="m.etiqueta"
+                        @click="fichaAbierta = fichaAbierta === m.codigo ? null : m.codigo"
+                    ><i class="fa-solid fa-circle-info text-[11px]"></i></button>
+                  </span>
                 </span>
 
                 <span v-if="situacion.queSePide === 'ADELANTO' && finanzas?.prepago"
@@ -755,7 +823,70 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                   </span>
                 </span>
               </span>
-            </component>
+            </div>
+
+            <!-- ═══ LA FICHA DEL MEDIO ═══
+                 Debajo del cuadro y no encima, flotando: un tooltip absoluto sobre un móvil
+                 tapa justo el importe que lo motivó, y se sale de la tarjeta por el lado.
+                 Aquí empuja lo de abajo, que es lo que el huésped ya espera de un desplegable.
+
+                 Con X, porque en táctil no hay «quitar el ratón de encima»: sin un cierre
+                 explícito, un cuadro abierto se queda abierto. Pulsar la misma «i» también lo
+                 cierra, para quien lo intente por ahí.
+
+                 Se pinta con `v-for` sobre las fichas porque un medio puede tener VARIAS:
+                 «transferencia bancaria» son tres cuentas de tres bancos. -->
+            <div v-if="fichaAbierta && fichasDelAbierto.length"
+                 class="mt-2 rounded-xl border border-[#376875]/20 bg-white px-3 py-2.5 shadow-sm">
+              <div class="flex items-start justify-between gap-2">
+                <span class="text-[11px] font-black uppercase tracking-widest text-[#376875] leading-tight">
+                  {{ nombreDelAbierto }}
+                </span>
+                <button type="button"
+                        class="-mr-1 -mt-0.5 shrink-0 px-1 text-slate-400 transition-colors hover:text-slate-700"
+                        :aria-label="maestroStore.t('res_cerrar') || 'Cerrar'"
+                        @click="fichaAbierta = null">
+                  <i class="fa-solid fa-xmark text-[13px]"></i>
+                </button>
+              </div>
+
+              <!-- Una FILA por cuenta, no un bloque: con ocho cuentas de por medio, cuatro
+                   renglones cada una son treinta y dos, y el huésped sólo busca la suya. El
+                   banco a la izquierda es por lo que la busca; el número a la derecha es lo
+                   que se lleva. -->
+              <div v-for="(f, i) in fichasDelAbierto" :key="i"
+                   class="mt-1.5 flex items-baseline justify-between gap-3"
+                   :class="i > 0 ? 'border-t border-slate-100 pt-1.5' : ''">
+                <span v-if="f.banco || f.moneda" class="shrink-0 text-[11px] font-black uppercase tracking-wide text-slate-500 leading-snug">
+                  {{ f.banco }}<span v-if="f.moneda" class="ml-1 font-bold text-slate-400">{{ f.moneda }}</span>
+                </span>
+
+                <span class="min-w-0 text-right">
+                  <!-- `select-all`: el gesto de un dedo encima selecciona el número entero, que
+                       es lo único que el huésped va a hacer aquí. -->
+                  <span v-if="f.numero" class="block select-all text-[13px] font-black tabular-nums text-gray-900 leading-snug break-all">
+                    {{ f.numero }}
+                  </span>
+                  <span v-if="f.cci" class="block select-all text-[11px] font-bold tabular-nums text-slate-400 leading-snug break-all">
+                    CCI {{ f.cci }}
+                  </span>
+                  <!-- El titular sólo aquí cuando difiere entre cuentas; si es el mismo en
+                       todas, se dice una vez al pie. -->
+                  <span v-if="!titularComun && f.titular" class="block text-[11px] font-medium text-slate-500 leading-snug">
+                    {{ f.titular }}
+                  </span>
+                  <span v-if="f.nota" class="block text-[11px] font-medium text-slate-400 leading-snug">
+                    {{ f.nota }}
+                  </span>
+                </span>
+              </div>
+
+              <!-- A nombre de quién, una vez. Es lo que la app de destino le enseña antes de
+                   confirmar, y verlo coincidir es lo que le dice que no se equivocó. -->
+              <p v-if="titularComun" class="mt-2 border-t border-slate-100 pt-1.5 text-[11px] font-medium text-slate-500 leading-snug">
+                {{ titularComun }}<span v-if="fichasDelAbierto[0]?.titularAlterno"> · {{ fichasDelAbierto[0].titularAlterno }}</span>
+              </p>
+            </div>
 
             <!-- ═══ LA TARJETA, FUERA DEL CUADRO ═══
                  Cuesta más, así que no puede ir dentro: dos cifras en el mismo cuadro obligan

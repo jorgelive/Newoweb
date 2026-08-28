@@ -112,6 +112,41 @@ final class PmsSituacionCobroCommand extends Command
                 ],
                 $situacion->mediosPorImporte(),
             ));
+
+            // Y las FICHAS, que es lo que la app enseña detrás de la «i». Van aquí porque
+            // son parte de lo que recibe el huésped: un medio ofrecido cuyo `FinMedioCobro`
+            // está sin número es una «i» que abre un cuadro vacío, y eso no lo dice ninguna
+            // otra pantalla — el catálogo se edita en el panel, lejos de la reserva.
+            $sinFicha = [];
+
+            foreach ($situacion->medios as $medio) {
+                if ($medio->fichas === []) {
+                    $sinFicha[] = $medio->etiqueta;
+                    continue;
+                }
+
+                foreach ($medio->fichas as $ficha) {
+                    $io->writeln(sprintf(
+                        '  <info>%s</info>  %s',
+                        $medio->etiqueta,
+                        implode(' · ', array_filter([
+                            $ficha->getBanco(),
+                            $ficha->getNumero(),
+                            $ficha->getCci() !== null ? 'CCI ' . $ficha->getCci() : null,
+                            $ficha->getTitular(),
+                            $ficha->getMoneda(),
+                        // Vacía = la ficha existe en el catálogo pero no lleva ni un dato.
+                        // El huésped no ve «i»: `PmsReservaPaxProvider::conFichas()` la
+                        // descarta antes de mandarla, para no abrirle un cuadro en blanco.
+                        ])) ?: '<comment>ficha vacía — sin «i» en la app</comment>',
+                    ));
+                }
+            }
+
+            if ($sinFicha !== []) {
+                // No siempre es un fallo: efectivo se paga en recepción y no tiene cuenta.
+                $io->writeln(sprintf('  <comment>Sin ficha (no llevan «i»):</comment> %s', implode(', ', $sinFicha)));
+            }
         }
 
         // La proyección del equipo tiene que DECIDIR lo mismo: sólo cambia qué campos lleva.

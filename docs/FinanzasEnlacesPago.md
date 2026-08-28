@@ -1745,6 +1745,25 @@ cobro, y escribirla a mano en el catálogo sería congelar un enlace que caduca.
 Mientras `FINANZAS_ENLACES_PREPAGO=0`, la skill responde `pago_con_tarjeta.disponible: false`
 con la orden explícita de no ofrecer ninguna URL. Ver `docs/Mensajeria.md` §16.
 
+### 14.2b Quién ve las cuentas, y dónde
+
+Los datos de un `FinMedioCobro` —titular, banco, número, CCI— se publican en **dos** superficies
+del huésped, y las dos son autenticadas sólo por el localizador de su reserva:
+
+| Dónde | Quién lo compone | Forma |
+|---|---|---|
+| Guía del huésped, sección «cómo pagar» | `PmsGuiaHuespedProvider::mediosPago()` | el catálogo aplanado |
+| Ficha de la reserva, tras la «i» de cada medio | `PmsReservaPaxProvider::conFichas()` | por grupo de importe |
+
+**Son cuentas para RECIBIR dinero, no credenciales**, y ése es el criterio: publicarlas no
+habilita a nadie a sacar nada. Lo que **no** sale de aquí es la audiencia ni la ventana de días
+—`dias_minimos`, `dias_maximos`—, que describen *a quién le ofrecemos qué* y son reglas nuestras.
+Por eso las dos superficies serializan **campo a campo y nunca la entidad**.
+
+⚠️ **Una ficha sin ningún dato no se publica.** «Efectivo» existe en el catálogo para llevar su
+ventana de días, pero no tiene nada que enseñar. Si se publicara, la app del pax le pintaría su
+icono de información y abriría un cuadro en blanco. Ver `docs/PmsBeds24ReservasSync.md` §12.5.2.
+
 ### 14.3 La audiencia es dinero, no permisos
 
 `FinAudienciaCobro` (`todos` / `peru` / `internacional`) existe porque ofrecer el medio

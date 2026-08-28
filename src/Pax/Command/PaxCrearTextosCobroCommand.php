@@ -68,6 +68,11 @@ final class PaxCrearTextosCobroCommand extends Command
         // castellano, así que un huésped con la ficha en inglés leía «Pagar ahora» en medio
         // de todo lo demás traducido. El respaldo del `||` no falla — y por eso no se ve.
         'res_pagar_online' => 'Pagar ahora',
+
+        // La X de la ficha de cuentas. En táctil no hay «quitar el ratón de encima»: el
+        // cierre tiene que ser un botón, y un botón necesita nombre para el lector de
+        // pantalla aunque sólo se vea un aspa.
+        'res_cerrar' => 'Cerrar',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

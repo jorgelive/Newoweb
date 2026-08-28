@@ -104,6 +104,21 @@ export interface PmsSituacionDeCobro {
         codigos: string[];
         /** Respaldo en español, por si falta la cadena traducida. */
         etiquetas: string[];
+        /**
+         * Los datos para ejecutar cada medio, indexados por código.
+         *
+         * Un medio puede tener VARIAS —«transferencia» son tres cuentas de tres bancos— y por
+         * eso es una lista. Se enseñan detrás de una «i», no en la primera pantalla.
+         */
+        fichas: Record<string, {
+            titular?: string;
+            titularAlterno?: string;
+            banco?: string;
+            numero?: string;
+            cci?: string;
+            moneda?: string;
+            nota?: string;
+        }[]>;
     }[];
 }
 

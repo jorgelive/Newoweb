@@ -2213,15 +2213,56 @@ a multiplicar por 1.055 habría dos verdades otra vez.
   el panel agrupen igual.
 - **El recargo va DENTRO del importe**: efectivo 259.72, tarjeta 274.00. El porcentaje se dice
   como matiz —«incluye 5.5% de comisión»— no como una operación que el huésped tenga que hacer.
-- Las cuentas bancarias concretas son del **detalle**, y no viajan al pax.
+- **Las cuentas viven detrás de una «i»**, una por medio que las tenga. Ver más abajo.
 - **Un bloque por moneda** cuando hay dos. No se suman ni se convierte: el cuadre con `≈` es
   para el panel interno, no para pedirle dinero a alguien.
 - **Los soles entre paréntesis** sólo si consta que paga desde Perú (`pagaDesdePeru()` es
   ternaria; su `null` es «no se sabe»).
 
-⚠️ **Las fichas de cada medio NO viajan al pax.** `PmsReservaPaxProvider::comoResumen()` toma
-lo que el resumen pinta y nada más: serializar el objeto entero pondría titular, banco, número
-y CCI en la primera pantalla de todo el mundo.
+#### La «i» de cada medio: las cuentas, detrás de un clic
+
+Las fichas —titular, banco, número, CCI— **estuvieron excluidas a propósito** mientras la idea
+era pintarlas: volcar ocho cuentas en la primera pantalla de todo el mundo es el abrumamiento
+que el agrupado por precio venía a deshacer. Viajan desde el 28/08/2026 porque cambia **dónde
+se enseñan**: tras una «i» que hay que pulsar son lo que el huésped que ya eligió Yape necesita
+para ejecutar el pago, y le ahorran el «¿a qué número te lo mando?» por WhatsApp.
+
+Las compone `PmsReservaPaxProvider::conFichas()`, que cruza por código los grupos de
+`mediosPorImporte()` con `PmsSituacionDeCobro::$medios`.
+
+- **Campo a campo, no la entidad.** `FinMedioCobro` lleva además audiencia, `dias_minimos` y
+  `dias_maximos`, que son reglas nuestras: no le dicen nada al huésped y describen a quién le
+  ofrecemos qué.
+- **La ficha sin ningún dato NO viaja.** «Efectivo» tiene la suya en el catálogo —la necesita
+  para llevar su ventana de días— pero no tiene nada que enseñar: se paga en recepción. Si
+  viajara, la app le pintaría su «i» y abriría un cuadro en blanco, que es peor que no tener
+  icono: enseña que los iconos de esta pantalla no llevan a nada. `pms:situacion-cobro` marca
+  esas fichas como *vacía — sin «i» en la app*.
+- **Un medio puede tener varias**: «transferencia bancaria» son ocho, cuatro bancos por dos
+  monedas. Por eso es una lista, y por eso el cuadro se pinta en filas de una línea con el
+  titular dicho **una sola vez** al pie (`titularComun`): repetido ocho veces convierte el
+  desplegable en una pared.
+- **El cierre es una X.** En táctil no hay «quitar el ratón de encima», así que sin cierre
+  explícito un cuadro abierto se queda abierto. Y empuja lo de abajo en vez de flotar: un
+  tooltip absoluto en un móvil tapa justo el importe que lo motivó.
+
+⚠️ **Viajan aunque nadie pulse, y es una decisión.** Esta vista se abre con el localizador, así
+que están al alcance de quien tenga el enlace. Son cuentas para **recibir** dinero, no
+credenciales — el mismo criterio por el que la guía del huésped ya las publica.
+
+#### ⚠️ El cuadro del importe NO es un enlace
+
+Lo fue: el cuadro entero llevaba al enlace de pago. Se cruzaban dos cosas.
+
+La de bulto es que dentro viven ahora las «i», y un icono dentro de un enlace es un icono que
+navega. La de fondo ya estaba mal antes: el cuadro dice **259.72** —lo que cuesta por Yape— y
+el enlace cobra **274.00**, porque es de tarjeta y lleva el 5.5 %. Pulsar el importe de un
+medio para acabar pagando el de otro es exactamente la trampa que el agrupado por precio venía
+a deshacer, y estaba dentro del propio arreglo.
+
+Pagar con tarjeta se hace desde **«Pagar ahora»**, que está debajo junto a *su* cifra.
+`enlaceDelImporte` sigue eligiendo cuál —por importe, no el primero— porque pueden convivir el
+del adelanto y el del total. Un solo camino, y lleva a lo que dice.
 
 ⚠️ **`resumenFinancieroCliente` es un `?array` sin `openapiContext`**, así que la
 introspección no ve su forma y `api.d.ts` no cambia al añadirle claves. Por eso
@@ -4590,7 +4631,10 @@ sobre una reserva con contenido habría dado la misma falsa tranquilidad.
 | Podar filas `success` viejas de una cola que creció (§2, §8.1) | `app:exchange:vigilar-colas` (cron min 25) | ahí va el `DELETE ... status='success' AND created_at < ...` |
 | Cambiar cuándo se puede borrar una estancia (§12.12.1) | `PmsEventoCalendario` | `getMotivoNoBorrable()` — fuente única; `util` sólo tipa el campo serializado en `PmsBorrableInfo`, no reimplementa la regla |
 | Cambiar qué se le pide a una reserva y por qué | `src/Pms/Finanzas/PmsSituacionDeCobroResolver.php` | el pipeline de `componer()` — ver `docs/Mensajeria.md` |
-| Auditar esa decisión en producción | — | `php bin/console pms:situacion-cobro` |
+| Auditar esa decisión en producción | — | `php bin/console pms:situacion-cobro` (lista las fichas y marca las vacías) |
+| Cambiar qué datos de cuenta ve el huésped tras la «i» | `src/Api/Provider/Pms/PmsReservaPaxProvider.php` | `conFichas()` — campo a campo, nunca la entidad |
+| Cambiar cómo se pinta esa ficha | `pax/src/views/huesped/PmsReservaView.vue` | `fichaAbierta` / `fichasDelAbierto` / `titularComun` |
+| Editar las cuentas en sí (número, banco, CCI) | — | el catálogo `FinMedioCobro`, desde el panel |
 | Cambiar cuándo se puede borrar un PAGO | `PmsPagoFinanciero` | `getMotivoNoBorrable()` — dos motivos: depósito del canal y cobro por enlace (`enlacePagoId`) |
 | Que el borrado de la reserva arrastre una tabla nueva (§12.12.3) | `PmsReserva` | declarar el lado inverso con `cascade: ['remove']`; una FK sin mapear = 1451 |
 | Tocar el desenganche de colas al borrar un link (§12.11.b) | `Beds24BookingsPushQueueCreator` | `detachQueuesFromLink()` |

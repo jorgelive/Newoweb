@@ -242,8 +242,74 @@ final class PmsReservaPaxProvider implements ProviderInterface
             ], $situacion->importes),
             // Agrupados POR IMPORTE, no por medio: seis líneas diciendo dos cifras es el
             // mismo abrumamiento que el resumen viene a evitar. Ver `mediosPorImporte()`.
-            'medios' => $situacion->mediosPorImporte(),
+            //
+            // Y con las FICHAS de cada uno —titular, banco, número, CCI—, que la app enseña
+            // detrás de un clic. Estuvieron excluidas mientras la idea era pintarlas: volcarlas
+            // en la primera pantalla de todo el mundo es otra cosa. Tras una «i» que hay que
+            // pulsar, son lo que el huésped necesita para ejecutar el pago que ya eligió.
+            //
+            // ⚠️ Viajan en el payload aunque nadie pulse, y es una decisión: esta vista se abre
+            // con el localizador, así que están al alcance de quien tenga el enlace. Son
+            // cuentas para RECIBIR dinero, no credenciales — el mismo criterio por el que la
+            // guía del huésped ya las publica.
+            'medios' => $this->conFichas($situacion),
         ];
+    }
+
+    /**
+     * Los grupos de importe, con la ficha de cada medio para el desplegable de la app.
+     *
+     * La ficha se toma del objeto de dominio (`PmsSituacionDeCobro::$medios`) y se cruza por
+     * código con los grupos, que es donde ya está resuelto el «qué cuesta cada cosa».
+     *
+     * ⚠️ Se serializa **campo a campo y no la entidad**: `FinMedioCobro` lleva además
+     * audiencia, días y orden, que son reglas nuestras y no le dicen nada al huésped. Lo que
+     * viaja es lo que hace falta para pagar.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function conFichas(PmsSituacionDeCobro $situacion): array
+    {
+        /** @var array<string, array<string, mixed>> $porCodigo */
+        $porCodigo = [];
+
+        foreach ($situacion->medios as $medio) {
+            foreach ($medio->fichas as $ficha) {
+                $datos = array_filter([
+                    'titular' => $ficha->getTitular(),
+                    'titularAlterno' => $ficha->getTitularAlterno(),
+                    'banco' => $ficha->getBanco(),
+                    'numero' => $ficha->getNumero(),
+                    'cci' => $ficha->getCci(),
+                    'moneda' => $ficha->getMoneda(),
+                    'nota' => $ficha->getNotaEsVisual() !== '' ? $ficha->getNotaEsVisual() : null,
+                ], static fn ($v): bool => $v !== null && $v !== '');
+
+                // ⚠️ Una ficha SIN NINGÚN campo no viaja. Existe —«efectivo» tiene la suya en
+                // el catálogo, para llevar audiencia y ventana de días— pero no tiene nada que
+                // enseñar: se paga en recepción, no hay número que copiar. Si viajara, la app
+                // le pintaría su «i» y el huésped abriría un cuadro en blanco, que es peor que
+                // no tener icono: enseña que los iconos de esta pantalla no llevan a nada.
+                if ($datos === []) {
+                    continue;
+                }
+
+                $porCodigo[$medio->codigo][] = $datos;
+            }
+        }
+
+        return array_map(
+            static function (array $grupo) use ($porCodigo): array {
+                $grupo['fichas'] = [];
+
+                foreach ($grupo['codigos'] as $codigo) {
+                    $grupo['fichas'][$codigo] = $porCodigo[$codigo] ?? [];
+                }
+
+                return $grupo;
+            },
+            $situacion->mediosPorImporte(),
+        );
     }
 
     /**
