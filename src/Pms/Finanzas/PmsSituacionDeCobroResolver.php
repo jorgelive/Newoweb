@@ -98,15 +98,24 @@ final readonly class PmsSituacionDeCobroResolver
             return $this->nada(PmsMotivoSinCobro::DATOS_INCOMPLETOS, $paraHuesped);
         }
 
-        if (!$totales->hayCargos()) {
-            return $this->nada(PmsMotivoSinCobro::SIN_CARGOS, $paraHuesped);
-        }
-
         // ── 2 · VIGENCIA ────────────────────────────────────────────────────
         // Cancelada: los cargos de la estancia se conservan pero no suman; sólo cuenta la
         // penalización (§12.7). Si no queda saldo, no hay nada que reclamar.
+        //
+        // ⚠️ Va ANTES que `hayCargos()`, y el orden importa aunque el huésped vea lo mismo
+        // —en los dos casos no hay nada que pagar—. Al revés, una cancelada sin cargos salía
+        // como SIN_CARGOS y **tapaba que estaba cancelada**: en una auditoría de 250 reservas,
+        // siete canceladas se contaron como «reservas vivas a las que les falta el precio», que
+        // es una conclusión falsa sobre datos ciertos. El motivo es para explicar, y explicar
+        // de menos es explicar mal.
         if ($info->isActiva() === false && !$totales->quedaAlgoPorCobrar()) {
             return $this->nada(PmsMotivoSinCobro::CANCELADA, $paraHuesped);
+        }
+
+        // Viva y sin un solo cargo: a nadie se le ha puesto precio todavía. Esto sí es un
+        // hueco que alguien tiene que rellenar, y por eso no debe confundirse con lo de arriba.
+        if (!$totales->hayCargos()) {
+            return $this->nada(PmsMotivoSinCobro::SIN_CARGOS, $paraHuesped);
         }
 
         // ── 3 · CANAL ───────────────────────────────────────────────────────

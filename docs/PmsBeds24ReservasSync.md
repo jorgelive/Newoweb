@@ -2204,6 +2204,13 @@ Lo decide `PmsSituacionDeCobro` y llega en `resumenFinanciero.situacion`. La vis
 calcula nada**: ni qué se pide, ni qué medios valen, ni cuánto sale con tarjeta. Si volviera
 a multiplicar por 1.055 habría dos verdades otra vez.
 
+⚠️ **La vigencia se comprueba ANTES que los cargos, y el orden importa.** Al revés, una reserva
+cancelada sin cargos salía como `SIN_CARGOS` en vez de `CANCELADA`. Al huésped le da igual —en
+los dos casos no hay nada que pagar— pero deja ciega la auditoría: sobre 250 reservas, siete
+canceladas se contaron como «reservas vivas a las que les falta el precio», y esa conclusión
+falsa se sacó de datos ciertos. `SIN_CARGOS` significa ahora lo que dice: viva y sin precio,
+que sí es un hueco que alguien tiene que rellenar.
+
 - **Una línea por PRECIO, no por medio.** Agrupar por tipo bajó de doce filas del catálogo a
   cinco medios y **seguía sobrando**: «Yape 164.10 · Plin 164.10 · Efectivo 164.10 ·
   Transferencia 164.10 · Tarjeta 173.13» son cinco líneas para decir **dos cifras**, que es el
@@ -4685,6 +4692,7 @@ sobre una reserva con contenido habría dado la misma falsa tranquilidad.
 | Cambiar cuándo se puede borrar una estancia (§12.12.1) | `PmsEventoCalendario` | `getMotivoNoBorrable()` — fuente única; `util` sólo tipa el campo serializado en `PmsBorrableInfo`, no reimplementa la regla |
 | Cambiar qué se le pide a una reserva y por qué | `src/Pms/Finanzas/PmsSituacionDeCobroResolver.php` | el pipeline de `componer()` — ver `docs/Mensajeria.md` |
 | Auditar esa decisión en producción | — | `php bin/console pms:situacion-cobro` (lista las fichas y marca las vacías) |
+| Entender por qué una reserva no pide nada | `src/Pms/Finanzas/PmsSituacionDeCobroResolver.php` | el orden de `componer()`: **vigencia antes que cargos** |
 | Cambiar qué datos de cuenta ve el huésped tras la «i» | `src/Api/Provider/Pms/PmsReservaPaxProvider.php` | `conFichas()` — campo a campo, nunca la entidad |
 | Cambiar cómo se pinta esa ficha | `pax/src/views/huesped/PmsReservaView.vue` | `fichaAbierta` / `fichasDelAbierto` / `titularComun` |
 | Editar las cuentas en sí (número, banco, CCI) | — | el catálogo `FinMedioCobro`, desde el panel |
