@@ -161,6 +161,15 @@ const finSaldo  = computed(() => Number(finanzas.value?.saldo ?? 0));
  */
 const soloProgreso = computed(() => finanzas.value?.soloProgreso === true);
 
+/**
+ * El resumen ya decidido por `PmsSituacionDeCobro` (backend).
+ *
+ * ⚠️ **Aquí no se decide nada ni se calcula nada.** Ni qué se pide, ni qué medios valen, ni
+ * cuánto sale con tarjeta: todo llega resuelto. Es la mitad del punto de tener una fuente
+ * única — si esta vista volviera a multiplicar por 1.055, habría dos verdades otra vez.
+ */
+const situacion = computed(() => finanzas.value?.situacion ?? null);
+
 const todoPagado = computed(() => soloProgreso.value || finSaldo.value <= 0);
 
 /** Saldo pagando con tarjeta: saldo + comisión, redondeado a 2 decimales. */
@@ -303,15 +312,16 @@ const marcaAprox = computed(() => (mixta.value ? '≈ ' : ''));
 /**
  * Las dos caras del estado de cuenta: RESUMEN (por defecto) y DETALLADO.
  *
- * ── Por qué pestañas y no el plegable de antes ──────────────────────────────
- * Era un «Mostrar más» y tenía dos problemas. El primero, de uso: la mayoría de
- * huéspedes se abruma con el desglose —el cálculo del recargo, el tipo de cambio,
- * los cargos línea a línea— y sólo quiere saber cuánto y por dónde; los que piden
- * detalle son minoría. El segundo, técnico: **un plegable no se puede enlazar**.
- * Cuando el equipo contesta a alguien que pregunta de qué se compone su cuenta,
- * quiere mandarle el desglose, no una página donde tenga que buscar el botón.
+ * ── Un toggle, y no dos pestañas ────────────────────────────────────────────
+ * El plegable «Mostrar más» tenía un problema real —**no se puede enlazar**— y se
+ * probó a resolverlo con pestañas. Fue peor: elegir «Detallado» **escondía el
+ * resumen**, y el resumen es justo lo que hay que tener delante mientras se mira el
+ * desglose, porque es el total al que se refieren esas líneas.
  *
- * Con pestañas hay ancla, y el ancla viaja en el enlace. **Las DOS son explícitas**:
+ * Así que se vuelve al plegable y se le añade lo único que le faltaba: el ancla. A
+ * primera vista sólo el resumen; el detalle se AÑADE debajo cuando se pide.
+ *
+ * El ancla viaja en el enlace, y **las dos son explícitas**:
  *
  *   /huesped/reserva/{localizador}#resumen    → Resumen
  *   /huesped/reserva/{localizador}#detalle    → Detallado
@@ -647,6 +657,56 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
             </router-link>
           </div>
 
+          <!-- ═══ RESUMEN ═══
+               Lo que se lee de un vistazo: UNA cifra por opción que el huésped puede
+               ejecutar, con el recargo ya dentro. El desglose —base, comisión, tipo de
+               cambio, cargos línea a línea— vive en el detalle, que se despliega.
+
+               La experiencia es la que manda aquí: a la mayoría le abruma el cálculo y
+               sólo quiere saber cuánto y por dónde. Quien pide el porqué es minoría, y
+               para ésos está el toggle. -->
+          <div v-if="situacion?.hayAlgoQuePedir" class="mt-5">
+            <p class="text-[11px] font-black uppercase tracking-widest text-slate-400">
+              {{ situacion.queSePide === 'ADELANTO'
+                ? (maestroStore.t('res_pide_adelanto') || 'Adelanto para asegurar tu reserva')
+                : (maestroStore.t('res_pide_total') || 'Total a pagar') }}
+            </p>
+
+            <!-- Un bloque POR MONEDA. Con una sola —lo normal— se lee igual que antes; con
+                 dos, cada una dice lo suyo y NO se suman: el huésped debe en las dos. -->
+            <p v-for="imp in situacion.importes" :key="imp.moneda"
+               class="mt-1 text-2xl font-black tabular-nums text-gray-900 leading-none">
+              {{ imp.simbolo || imp.moneda }} {{ imp.importe }}
+              <span v-if="imp.enSoles" class="ml-1 text-sm font-bold text-slate-400">
+                (S/ {{ imp.enSoles }})
+              </span>
+            </p>
+
+            <!-- Las formas de pago, cada una con lo que se entrega por ella. El 5.5 % de la
+                 tarjeta está DENTRO de su importe; el porcentaje se dice como matiz, no como
+                 una operación que el huésped tenga que hacer. -->
+            <ul class="mt-4 divide-y divide-slate-100 border-t border-slate-100">
+              <li v-for="medio in situacion.medios" :key="medio.codigo"
+                  class="flex items-baseline justify-between gap-3 py-2.5">
+                <span class="min-w-0 text-[13px] font-bold text-slate-600">
+                  {{ medio.etiqueta }}
+                  <span v-if="medio.recargoPorcentaje" class="text-[11px] font-medium text-slate-400">
+                    ({{ maestroStore.t('res_incluye_comision', { pct: String(Number(medio.recargoPorcentaje)) })
+                        || `incluye ${Number(medio.recargoPorcentaje)}% de comisión` }})
+                  </span>
+                </span>
+                <span class="shrink-0 text-right">
+                  <span class="block text-[15px] font-black tabular-nums text-gray-900 leading-none">
+                    {{ situacion.importes[0]?.simbolo || situacion.importes[0]?.moneda }} {{ medio.importe }}
+                  </span>
+                  <span v-if="medio.enSoles" class="block text-[11px] font-bold text-slate-400 tabular-nums">
+                    S/ {{ medio.enSoles }}
+                  </span>
+                </span>
+              </li>
+            </ul>
+          </div>
+
           <!-- ═══ DETALLE PLEGABLE ═══
                El truco de grid-rows 0fr -> 1fr anima la altura sin conocerla de
                antemano (lo que `max-height` obliga a adivinar y recortaría el
@@ -768,36 +828,28 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
           </div>
           <!-- ═══ FIN DETALLE PLEGABLE ═══ -->
 
-          <!-- ═══ PESTAÑAS ═══
-               Sustituyen al «Mostrar más». Van ABAJO y no arriba a propósito: el
-               resumen se lee entero sin tocarlas, y quien necesita el desglose lo
-               busca al final, que es donde ya miraba el botón anterior.
+          <!-- ═══ VER DETALLE ═══
+               Un toggle, no dos pestañas. Se probaron pestañas y estaba peor: elegir
+               «Detallado» **escondía el resumen**, y el resumen es lo que el huésped
+               necesita tener delante mientras mira el desglose —el total al que se
+               refieren las líneas de arriba—. Aquí el detalle se AÑADE debajo.
 
-               `soloProgreso` (Airbnb sin extras) no enseña cifras, así que no hay
-               dos caras entre las que elegir y las pestañas no se pintan. -->
-          <div v-if="!soloProgreso"
-               class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1"
-               role="tablist"
-               :aria-label="maestroStore.t('res_cuenta_vistas') || 'Vistas del estado de cuenta'">
-            <button type="button" role="tab"
-                    :aria-selected="!detalleCuentaAbierto"
-                    @click="verCuenta(false)"
-                    class="flex-1 rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-widest transition-colors"
-                    :class="!detalleCuentaAbierto
-                      ? 'bg-[#376875]/8 text-[#376875] ring-1 ring-[#376875]/20'
-                      : 'text-slate-400 hover:text-slate-600'">
-              {{ maestroStore.t('res_cuenta_resumen') || 'Resumen' }}
-            </button>
-            <button type="button" role="tab"
-                    :aria-selected="detalleCuentaAbierto"
-                    @click="verCuenta(true)"
-                    class="flex-1 rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-widest transition-colors"
-                    :class="detalleCuentaAbierto
-                      ? 'bg-[#376875]/8 text-[#376875] ring-1 ring-[#376875]/20'
-                      : 'text-slate-400 hover:text-slate-600'">
-              {{ maestroStore.t('res_cuenta_detalle') || 'Detallado' }}
-            </button>
-          </div>
+               A primera vista, sólo el resumen. Quien quiera el porqué, lo despliega.
+
+               `soloProgreso` (Airbnb sin extras) no enseña cifras: no hay detalle. -->
+          <button
+              v-if="!soloProgreso"
+              type="button"
+              @click="verCuenta(!detalleCuentaAbierto)"
+              :aria-expanded="detalleCuentaAbierto"
+              class="w-full mt-3 pt-2.5 -mb-1 border-t border-slate-100 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#376875]/70 hover:text-[#376875] transition-colors"
+          >
+            {{ detalleCuentaAbierto
+              ? (maestroStore.t('res_ver_menos') || 'Ocultar detalle')
+              : (maestroStore.t('res_ver_mas') || 'Ver detalle') }}
+            <i class="fas fa-chevron-down transition-transform duration-300"
+               :class="{ 'rotate-180': detalleCuentaAbierto }"></i>
+          </button>
         </div>
       </section>
 

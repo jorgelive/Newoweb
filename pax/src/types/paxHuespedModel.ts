@@ -52,6 +52,49 @@ export type PmsEventoCalendario = components['schemas']['PmsEventoCalendario-pax
  * moneda de la cabecera financiera. Solo el agregado: el detalle de cargos y
  * pagos nunca viaja al cliente.
  */
+/**
+ * El RESUMEN, tal como lo decide `PmsSituacionDeCobro` en el backend.
+ *
+ * Es la parte que se lee de un vistazo —cuánto y por qué medios— y no sustituye a
+ * `total`/`porMoneda`/`lineas`, que siguen alimentando el detalle desplegable.
+ *
+ * ⚠️ **Espejo del método `PmsReservaPaxProvider::comoResumen()`**, no del objeto de dominio:
+ * las fichas de cada medio (titular, banco, número, CCI) NO viajan aquí — son del detalle, y
+ * volcarlas pondría cuentas bancarias en la primera pantalla de todo el mundo.
+ *
+ * `motivo` llega como identificador (`SALDADA`, `CRUCE_DE_MONEDAS`…), no como frase: el
+ * read-model devuelve hechos y el texto lo pone quien rinde.
+ */
+export interface PmsSituacionDeCobro {
+    /** `ADELANTO` · `TOTAL` · `NADA`. */
+    queSePide: string;
+    /** Sólo con `queSePide: 'NADA'`. Identificador de `PmsMotivoSinCobro`. */
+    motivo?: string | null;
+    hayAlgoQuePedir: boolean;
+    /** Una entrada POR MONEDA y sin convertir: con dos, se enseñan dos totales. */
+    importes: {
+        moneda: string;
+        simbolo?: string | null;
+        importe: string;
+        /** Equivalencia orientativa. `null` si no consta que pague desde Perú. */
+        enSoles?: string | null;
+    }[];
+    /**
+     * Cómo puede pagarlo, con **lo que entrega por cada medio**.
+     *
+     * El recargo va DENTRO del importe, no en una línea aparte: es lo que evita que el
+     * huésped tenga que sumar el 5.5 % de cabeza. Agrupados por tipo, no por cuenta.
+     */
+    medios: {
+        codigo: string;
+        etiqueta: string;
+        importe: string;
+        enSoles?: string | null;
+        /** `null` en los medios sin recargo. Sólo se enseña como matiz, no como cálculo. */
+        recargoPorcentaje?: string | null;
+    }[];
+}
+
 export interface PmsResumenFinanciero {
     moneda: string;
     simbolo?: string | null;
@@ -64,6 +107,8 @@ export interface PmsResumenFinanciero {
      * Cuando viene `true`, `total`/`pagado`/`saldo` NO llegan.
      */
     soloProgreso?: boolean;
+    /** El resumen ya decidido. No llega con `soloProgreso`. */
+    situacion?: PmsSituacionDeCobro | null;
     /**
      * El CUADRE, no la suma de una moneda: los saldos de todas llevados a `monedaCuadre` con el
      * tipo de cambio de la reserva.

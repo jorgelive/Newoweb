@@ -2153,26 +2153,25 @@ el saldo pagando con tarjeta. Reglas que no se ven en el código:
 - El lookup de la cabecera usa `findOneBy(['reserva' => $reserva])` con el objeto — un
   SearchFilter sobre la relación devolvería vacío en silencio por el UUID binario (§12.6).
 
-#### Resumen / Detallado, y el ancla que los enlaza (28/08/2026)
+#### El resumen delante, el detalle desplegable, y el ancla (28/08/2026)
 
-La tarjeta tenía un plegable «Mostrar más». Ahora son **dos pestañas**, y el estado viaja en
-la URL:
+La tarjeta enseña **el resumen siempre**, y debajo un toggle **«Ver detalle»** que añade el
+desglose. El estado viaja en la URL:
 
 ```
-/huesped/reserva/{localizador}#resumen    → Resumen (por defecto)
-/huesped/reserva/{localizador}#detalle    → Detallado
+/huesped/reserva/{localizador}#resumen    → sólo el resumen
+/huesped/reserva/{localizador}#detalle    → con el desglose desplegado
 ```
 
-**Por qué pestañas y no el plegable.** Dos motivos, y el segundo es el que manda:
+⚠️ **Se probaron pestañas y estaba peor.** Elegir «Detallado» **escondía el resumen**, y el
+resumen es justo lo que hay que tener delante mientras se mira el desglose: es el total al
+que se refieren esas líneas. Así que se volvió al plegable y se le añadió lo único que le
+faltaba —el ancla—, que es lo que resuelve el problema de verdad: **un plegable no se puede
+enlazar**, y cuando el equipo contesta a quien pregunta de qué se compone su cuenta quiere
+mandarle el desglose, no una página donde buscar el botón.
 
-1. **De uso:** la mayoría de huéspedes se abruma con el desglose —recargo, tipo de cambio,
-   cargos línea a línea— y sólo quiere saber cuánto y por dónde. Quien pide detalle es minoría.
-2. **Técnico: un plegable no se puede enlazar.** Cuando el equipo contesta a alguien que
-   pregunta de qué se compone su cuenta, quiere mandarle el desglose, no una página donde
-   tenga que buscar el botón.
-
-⚠️ **Y de ahí sale que la plantilla de WhatsApp no necesite variantes.** Fuera de la ventana
-de 24 h sólo se puede mandar plantilla aprobada; con el ancla, el mensaje aprobado es **uno
+**De ahí sale que la plantilla de WhatsApp no necesite variantes.** Fuera de la ventana de
+24 h sólo se puede mandar plantilla aprobada; con el ancla, el mensaje aprobado es **uno
 solo** —un empujón con botón de URL— y lo único que cambia entre «te recuerdo que debes» y
 «aquí tienes el desglose» es el `#`. Sin esto haría falta una plantilla por variante, y las
 variantes son cientos (política × momento × procedencia × monedas × idiomas). Ver
@@ -2181,26 +2180,48 @@ variantes son cientos (política × momento × procedencia × monedas × idiomas
 **Las dos anclas son explícitas**, incluida la del resumen que es el estado por defecto: el
 enlace tiene que decir a qué lleva. Quien lo recibe por WhatsApp no ve la página, ve la URL.
 
-⚠️ **El ancla también trae la tarjeta a la vista.** El router de `pax` **no declara
-`scrollBehavior`**, así que un hash abría la pestaña correcta y dejaba al huésped mirando el
-principio de la página —la cuenta es una sección entre varias—. Se resuelve en el componente
-y no en el router a propósito: un `scrollBehavior` global cambiaría el comportamiento de
-todas las rutas de `pax` para arreglar una.
+#### Qué enseña el resumen, y de dónde sale
 
-⚠️ Y el desplazamiento se hace **también al montar**, no sólo en el `watch` del hash: llegando
-por enlace el hash ya está puesto y nunca *cambia*, así que el `watch` no dispara. Es el
-camino más frecuente —el huésped abre lo que le mandamos— y era justo el que se quedaba sin
+Lo decide `PmsSituacionDeCobro` y llega en `resumenFinanciero.situacion`. La vista **no
+calcula nada**: ni qué se pide, ni qué medios valen, ni cuánto sale con tarjeta. Si volviera
+a multiplicar por 1.055 habría dos verdades otra vez.
+
+- **Una cifra por opción ejecutable**, con el recargo YA DENTRO: efectivo 259.72, tarjeta
+  274.00. El porcentaje se dice como matiz —«incluye 5.5% de comisión»— no como una operación
+  que el huésped tenga que hacer.
+- **Los medios van agrupados por tipo**, no por cuenta: sin agrupar, una reserva real listaba
+  doce opciones. Las cuentas concretas son del detalle.
+- **Un bloque por moneda** cuando hay dos. No se suman ni se convierte: el cuadre con `≈` es
+  para el panel interno, no para pedirle dinero a alguien.
+- **Los soles entre paréntesis** sólo si consta que paga desde Perú (`pagaDesdePeru()` es
+  ternaria; su `null` es «no se sabe»).
+
+⚠️ **Las fichas de cada medio NO viajan al pax.** `PmsReservaPaxProvider::comoResumen()` toma
+lo que el resumen pinta y nada más: serializar el objeto entero pondría titular, banco, número
+y CCI en la primera pantalla de todo el mundo.
+
+⚠️ **`resumenFinancieroCliente` es un `?array` sin `openapiContext`**, así que la
+introspección no ve su forma y `api.d.ts` no cambia al añadirle claves. Por eso
+`PmsResumenFinanciero` se declara a mano en `pax/src/types/paxHuespedModel.ts` — es la
+excepción del tipo inyectado por el provider, no un descuido. Al tocar `comoResumen()` hay
+que tocar ese espejo.
+
+#### El ancla trae la tarjeta a la vista
+
+El router de `pax` **no declara `scrollBehavior`**, así que un hash abría el estado correcto y
+dejaba al huésped mirando el principio de la página —la cuenta es una sección entre varias—.
+Se resuelve en el componente y no en el router a propósito: un `scrollBehavior` global
+cambiaría el comportamiento de todas las rutas de `pax` para arreglar una.
+
+⚠️ Y el desplazamiento va **también al montar**, no sólo en el `watch` del hash: llegando por
+enlace el hash ya está puesto y nunca *cambia*, así que el `watch` no dispara. Es el camino
+más frecuente —el huésped abre lo que le mandamos— y era justo el que se quedaba sin
 desplazar. Va después de `cargar()`, porque la sección se pinta con `v-if="finanzas"`.
 
-**El «atrás» del móvil:** cambiar de pestaña usa `replace`, no `push`. Con `push`, atrás
-alternaría pestañas en vez de salir de la reserva.
+**El «atrás» del móvil:** desplegar usa `replace`, no `push`. Con `push`, atrás cerraría el
+detalle en vez de salir de la reserva.
 
-Con `soloProgreso` no se pintan las pestañas: no hay cifras, así que no hay dos caras.
-
-> **Pendiente:** el contenido de la pestaña Resumen sigue siendo el de antes (barra, saldo y
-> botones de pago). Le faltan los campos del mensaje —Total y las formas de pago con su
-> importe final— y eso necesita que `pax` reciba los medios de cobro, que hoy sólo lee el
-> agente.
+Con `soloProgreso` no hay resumen ni detalle: esa reserva no enseña una sola cifra.
 
 ### 12.0.2c Canales que cobran por nosotros: qué ve el huésped
 

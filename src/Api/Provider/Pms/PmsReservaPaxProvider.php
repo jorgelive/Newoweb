@@ -13,6 +13,8 @@ use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Finanzas\PmsPrepagoEnlaceService;
+use App\Pms\Finanzas\PmsSituacionDeCobro;
+use App\Pms\Finanzas\PmsSituacionDeCobroResolver;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use App\Pms\Service\Finance\TipoCambioDelDia;
 use Doctrine\ORM\EntityManagerInterface;
@@ -42,6 +44,7 @@ final class PmsReservaPaxProvider implements ProviderInterface
         private readonly TipoCambioDelDia $tipoCambioDelDia,
         private readonly PmsPrepagoCalculador $prepagoCalculador,
         private readonly PmsPrepagoEnlaceService $prepagoEnlaces,
+        private readonly PmsSituacionDeCobroResolver $situacion,
     ) {
     }
 
@@ -84,6 +87,17 @@ final class PmsReservaPaxProvider implements ProviderInterface
             if ($enlaces !== []) {
                 $cifras['enlacesPago'] = $enlaces;
             }
+
+            // 💡 EL RESUMEN, tal como lo decide la fuente única.
+            //
+            // Va junto a las cifras y no las sustituye: `total`, `porMoneda` y `lineas` siguen
+            // alimentando el DETALLE, que es la misma información desglosada. Esto es lo que
+            // se lee de un vistazo — cuánto y por qué medios— y su forma la fija
+            // `PmsSituacionDeCobro`, no esta vista.
+            //
+            // ⚠️ Proyección de HUÉSPED: sin comisión interna ni coste teórico. La decisión es
+            // la misma que ve el equipo; lo que cambia es qué campos lleva.
+            $cifras['situacion'] = $this->comoResumen($this->situacion->paraHuesped($reserva));
         }
 
         $reserva->setResumenFinancieroCliente($base + $cifras);
@@ -198,6 +212,41 @@ final class PmsReservaPaxProvider implements ProviderInterface
             // dentro de `pendiente()`, no aquí: la comparten el panel y la skill
             // `consultar_cuenta` del agente, y escrita tres veces se separa a la primera.
             'prepago' => $this->prepagoCalculador->pendiente($finanzas),
+        ];
+    }
+
+    /**
+     * La situación de cobro en la forma mínima que necesita la app.
+     *
+     * ⚠️ **No se serializa el objeto entero.** `PmsSituacionDeCobro` lleva las fichas de cada
+     * medio —titular, banco, número, CCI— y eso es del DETALLE, no del resumen: volcarlo aquí
+     * pondría cuentas bancarias en la primera pantalla de todo el mundo. Se toma lo que el
+     * resumen pinta y nada más.
+     *
+     * El `motivo` viaja como su `name` —un identificador, no una frase— y lo traduce la app:
+     * el read-model devuelve hechos y el texto es de quien rinde.
+     *
+     * @return array<string, mixed>
+     */
+    private function comoResumen(PmsSituacionDeCobro $situacion): array
+    {
+        return [
+            'queSePide' => $situacion->queSePide->name,
+            'motivo' => $situacion->motivo?->name,
+            'hayAlgoQuePedir' => $situacion->hayAlgoQuePedir(),
+            'importes' => array_map(static fn ($i): array => [
+                'moneda' => $i->moneda,
+                'simbolo' => $i->simbolo,
+                'importe' => $i->importe,
+                'enSoles' => $i->enSoles,
+            ], $situacion->importes),
+            'medios' => array_map(static fn ($m): array => [
+                'codigo' => $m->codigo,
+                'etiqueta' => $m->etiqueta,
+                'importe' => $m->importe,
+                'enSoles' => $m->enSoles,
+                'recargoPorcentaje' => $m->llevaRecargo() ? $m->recargoPorcentaje : null,
+            ], $situacion->medios),
         ];
     }
 
