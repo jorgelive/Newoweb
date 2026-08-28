@@ -1223,7 +1223,28 @@ donde el día se llama igual que el servicio.
 Sticks», que se nombran perfectamente solos. Al revés, «Transporte Aeropuerto Cusco - Hotel Cusco»
 sí tiene lugar y es específico.
 
-##### Qué se le contrata exactamente (27/08/2026)
+##### Previsualizar no falla por lo que impide mandar (27/08/2026)
+
+`OperacionOrdenEnvio::previsualizar()` abría el hilo del proveedor **sólo para saber los canales**,
+y abrirlo exige teléfono o correo. Con un proveedor sin contacto —Sonesta Miraflores— eso reventaba
+y se llevaba por delante el documento entero: donde debía estar el texto salía **«Internal Server
+Error»**, y ni el motivo ni los botones apagados que el panel ya sabe pintar.
+
+Ahora se degrada: el documento se enseña completo, todos los canales apagados con motivo
+`sin_datos_o_vetado`, y el porqué redactado en `motivoSinCanal` —en ámbar, no en rojo: no es un
+error, es algo que falta y se arregla en la ficha del proveedor—.
+
+`enviar()` sigue negándose, que es donde corresponde.
+
+⚠️ **La regla, que vale más allá de este caso: mirar no puede romperse por algo que sólo impide
+actuar.** Una previsualización que falla deja al operador sin la información con la que arreglarlo.
+
+⚠️ Y el 500 de origen: `AperturaDeHilo` lanza `RuntimeException`, que no está en el mapa de
+`api_platform.yaml`. Se traduce a `DomainException` en la frontera —ya mapeada a 422— y **no** se
+mapea `RuntimeException` en la configuración: es la excepción genérica de PHP, la lanza medio
+mundo, y convertirla en «error del usuario» escondería como 422 fallos que sí son nuestros.
+
+#### Qué se le contrata exactamente (27/08/2026)
 
 La línea de la orden lleva ahora un cuarto dato, después de la variante:
 

@@ -90,6 +90,13 @@ export interface DocumentoDeOrden {
      * en una. Se avisa ANTES de elegir WhatsApp, no después de leer todo el documento.
      */
     ventanaWhatsappAbierta: boolean;
+    /**
+     * Por qué no hay ningún canal, ya redactado. `null` cuando sí los hay.
+     *
+     * Previsualizar no falla por esto: se enseña el documento entero con los canales apagados y
+     * este motivo arriba. Mirar no puede romperse por algo que sólo impide MANDAR.
+     */
+    motivoSinCanal: string | null;
 }
 
 /** Un medio de pago del selector, tal como lo publica `OperacionEnumAjaxController`. */

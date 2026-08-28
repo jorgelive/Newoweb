@@ -94,7 +94,8 @@ final readonly class OperacionOrdenEnvio
      *
      * @return array{
      *     asunto: string, cuerpo: string, lineas: int, destinatario: string,
-     *     canales: list<array{id: string, nombre: string, disponible: bool, motivo: string|null}>
+     *     canales: list<array{id: string, nombre: string, disponible: bool, motivo: string|null}>,
+     *     motivoSinCanal: string|null
      * }
      */
     public function previsualizar(OperacionOrdenServicio $orden): array
@@ -103,7 +104,29 @@ final readonly class OperacionOrdenEnvio
         // Lo que se previsualiza tiene que ser exactamente lo que se manda: si aquí faltara, el
         // operador aprobaría un texto y saldría otro.
         $doc = $this->documento->para($orden, $this->enlace($orden));
-        $hilo = $this->hiloDelProveedor($orden);
+
+        // ⚠️ **Previsualizar NUNCA falla por no poder abrir el hilo.**
+        //
+        // El hilo sólo hace falta para saber los canales, pero abrirlo exige que el proveedor
+        // tenga teléfono o correo. Cuando no los tiene, esto reventaba y se llevaba por delante el
+        // documento entero: el operador veía «Internal Server Error» donde debía estar el texto, y
+        // ni el motivo ni los botones apagados que ya sabe pintar el panel.
+        //
+        // Mirar no puede fallar por algo que impide MANDAR. Se degrada: se enseña el documento con
+        // todos los canales apagados y el motivo arriba, y `enviar()` sigue negándose —ahí sí
+        // corresponde— si alguien lo intenta igual.
+        try {
+            $hilo = $this->hiloDelProveedor($orden);
+        } catch (DomainException $e) {
+            return $doc + [
+                'destinatario' => (string) $orden->getCompradorNombre(),
+                'canales' => $this->canales->ningunoDisponible('sin_datos_o_vetado'),
+                'enlace' => $this->enlace($orden),
+                'ventanaWhatsappAbierta' => false,
+                // El motivo REDACTADO, para enseñarlo tal cual: dice qué falta y qué hacer.
+                'motivoSinCanal' => $e->getMessage(),
+            ];
+        }
 
         return $doc + [
             'destinatario' => (string) $orden->getCompradorNombre(),
@@ -112,6 +135,7 @@ final readonly class OperacionOrdenEnvio
             // Para que el panel avise ANTES de que el operador elija WhatsApp y se lleve el
             // rechazo después de haber leído todo el documento.
             'ventanaWhatsappAbierta' => $hilo->isWhatsappSessionActive(),
+            'motivoSinCanal' => null,
         ];
     }
 

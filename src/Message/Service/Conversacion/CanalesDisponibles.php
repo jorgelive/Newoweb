@@ -50,6 +50,32 @@ final readonly class CanalesDisponibles
     }
 
     /**
+     * Todos los canales activos, ninguno disponible, con el mismo motivo.
+     *
+     * Para cuando **no hay hilo que consultar**: sin teléfono ni correo no se puede abrir, y sin
+     * hilo `para()` no tiene contra qué preguntar. Antes eso hacía reventar la previsualización
+     * entera, así que el operador no veía ni el documento ni por qué no podía mandarlo — sólo un
+     * error. Enseñar los canales apagados con su motivo dice lo mismo y deja leer el resto.
+     *
+     * @return list<array{id: string, nombre: string, disponible: bool, motivo: ?string}>
+     */
+    public function ningunoDisponible(string $motivo): array
+    {
+        /** @var list<MessageChannel> $canales */
+        $canales = $this->em->getRepository(MessageChannel::class)->findBy(['isActive' => true], ['id' => 'ASC']);
+
+        return array_map(
+            static fn (MessageChannel $c): array => [
+                'id'         => (string) $c->getId(),
+                'nombre'     => (string) $c->getName(),
+                'disponible' => false,
+                'motivo'     => $motivo,
+            ],
+            $canales
+        );
+    }
+
+    /**
      * @return list<array{id: string, nombre: string, disponible: bool, motivo: ?string}>
      */
     public function para(

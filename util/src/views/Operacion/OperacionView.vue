@@ -4014,7 +4014,15 @@ onMounted(async () => {
                             </p>
                         </div>
 
-                        <!-- ⚠️ Fuera de la ventana de 24 h, Meta sólo admite plantillas aprobadas
+                                                <!-- Sin teléfono ni correo no hay por dónde mandarla. Se dice arriba y en ámbar
+                             —no en rojo—: no es un error, es algo que falta y se arregla en la ficha
+                             del proveedor. El documento se sigue leyendo entero. -->
+                        <p v-if="documento.motivoSinCanal"
+                           class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-snug">
+                          <i class="fas fa-address-book mr-1"></i>{{ documento.motivoSinCanal }}
+                        </p>
+
+<!-- ⚠️ Fuera de la ventana de 24 h, Meta sólo admite plantillas aprobadas
                              y una orden con varias líneas no cabe en una. Se dice ANTES de elegir
                              canal, no después de leer todo el documento. -->
                         <p v-if="!documento.ventanaWhatsappAbierta"
