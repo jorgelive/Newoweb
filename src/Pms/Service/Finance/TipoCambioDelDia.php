@@ -22,6 +22,27 @@ use Throwable;
  */
 final class TipoCambioDelDia
 {
+    /**
+     * El registro ya resuelto, por día. Se rellena a la primera y no vuelve a preguntarse.
+     *
+     * ── Por qué hace falta ──────────────────────────────────────────────────
+     * `getTipodecambio()` consulta a SUNAT cuando no tiene la tasa del día, y esta clase no
+     * cacheaba nada: **cada llamada era una consulta**. Con un solo consumidor por petición
+     * no se notaba, pero al componer una lista —20 reservas × su importe y su equivalencia
+     * con tarjeta— salían decenas de consultas para pedir el MISMO número, el de hoy. Se ve
+     * en el log: «Consulta mensual SUNAT vacía. Intentando diaria», repetido.
+     *
+     * La memoria es **por instancia**, o sea por petición. No es una caché con caducidad: la
+     * tasa del día no cambia dentro de una petición, y persistirla más allá sería inventarse
+     * una política de invalidación para un dato que ya vive en `MaestroTipocambio`.
+     *
+     * ⚠️ Se guarda también el fallo (`false`): si SUNAT no responde, reintentarlo cincuenta
+     * veces en la misma petición no lo va a arreglar y multiplica la latencia.
+     *
+     * @var array<string, MaestroTipocambio|false>
+     */
+    private array $memoria = [];
+
     public function __construct(
         private readonly TipocambioManager $manager,
         private readonly LoggerInterface   $logger
@@ -53,7 +74,13 @@ final class TipoCambioDelDia
                 ? new DateTime($fecha->format('Y-m-d'), new DateTimeZone('America/Lima'))
                 : new DateTime('now', new DateTimeZone('America/Lima'));
 
-            return $this->manager->getTipodecambio($dia);
+            $clave = $dia->format('Y-m-d');
+
+            if (array_key_exists($clave, $this->memoria)) {
+                return $this->memoria[$clave] ?: null;
+            }
+
+            return $this->memoria[$clave] = ($this->manager->getTipodecambio($dia) ?? false) ?: null;
         } catch (Throwable $e) {
             $this->logger->warning('No se pudo obtener el tipo de cambio del día: ' . $e->getMessage());
             return null;

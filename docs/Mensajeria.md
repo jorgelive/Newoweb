@@ -10007,3 +10007,108 @@ devolver `null`.
 
 Verificado en `var/probar-por-asunto.php`: la firma es `Response`, el controlador se instancia
 con su normalizador, y el cuerpo trae las dos claves.
+
+---
+
+## La fuente única sobre el dinero: `PmsSituacionDeCobro` (28/08/2026)
+
+Responde a **una** pregunta: *¿qué se le puede decir a este actor sobre el dinero de esta
+reserva, ahora?* Y devuelve **hechos, nunca prosa**.
+
+### El desorden del que sale
+
+Había **seis** productores de mensajes/datos sobre dinero al huésped y **cero** plantillas de
+dinero para el cliente (las únicas de `msg_template` que hablan de cobros son `staff`):
+
+| # | Productor | Componía el texto |
+|---|---|---|
+| 1 | `ConsultarCuentaSkill` | no — datos |
+| 2 | `ConsultarMediosPagoSkill` | no — datos del catálogo |
+| 3 | `GenerarMensajePrepagoSkill` | **sí, 400 líneas de PHP** |
+| 4 | `GenerarEnlacePrepagoSkill` | no — una URL |
+| 5 | `PmsPrepagoEnlaceService::emitirPorCambioDeCargos()` | automático, sin avisar |
+| 6 | `PmsReservaPaxProvider` | la ficha del huésped |
+
+Y una contradicción literal: §11 de este documento dice «el texto lo compone el modelo, por
+eso no existe un `enviar_estado_de_cuenta`», y el productor 3 es exactamente eso con otro
+nombre — con los medios de pago **hardcodeados en strings**, ignorando el catálogo y su
+`llegaATiempo()`, y con el enlace de pago comentado.
+
+⚠️ **Lo que se repetía no era el cálculo, era la COMPOSICIÓN.** `PmsPrepagoCalculador`,
+`PmsTotalesPorMoneda` y `ofrecibles()` ya eran únicos y correctos. Juntarlos era lo que cada
+uno hacía a su manera, y por eso derivó.
+
+### El pipeline, y por qué en ese orden
+
+```
+0 · ACTOR        no es rama: decide QUÉ objeto se construye
+1 · COHERENCIA   ⛔ corta — cargos sin TC: no se dan cifras
+2 · VIGENCIA     ⛔ corta — cancelada sin saldo
+3 · CANAL        FILTRA los cargos reclamables; NO corta
+4 · PAGOS        por moneda, sin convertir
+5 · POLÍTICA     adelanto antes del check-in, TOTAL desde ese día
+6 · CÓMO PAGAR   medios ofrecibles + enlace vivo
+```
+
+⚠️ **Canal no puede ir primero.** «Airbnb → nada que pedir» es falso: en un canal espejo hay
+extras nuestros que sí se reclaman, y eso ya lo resolvió
+`ConsultarCuentaSkill::cuentaDeCanalQueCobra()`. Ponerlo de puerta reintroduce ese bug.
+
+⚠️ **Actor no es una rama, es la proyección.** `paraHuesped()` y `paraEquipo()` construyen
+objetos distintos; el del huésped **no tiene** los campos internos. Un objeto único con mapa
+de visibilidad acaba serializado entero por alguien — ya pasó con `BuscarReservaSkill`.
+
+### La regla nueva: desde el día de check-in se pide el TOTAL
+
+Decidida el 28/08/2026 y **no existía**: `PmsPrepagoCalculador::pendiente()` nunca ha mirado
+fechas. El corte es **el día de llegada incluido** — un adelanto pierde sentido cuando el
+huésped ya está entrando, y pedirlo invita a que pague dos veces.
+
+### El join que no hacía nadie
+
+`consultar_cuenta` daba los importes y `consultar_medios_pago` los medios, y **nadie los
+cruzaba**: el huésped recibía el total por un lado y una lista de bancos por otro, y sumaba el
+5.5 % de cabeza. Ahora cada medio lleva **lo que se entrega por ese medio**, con el recargo ya
+dentro: efectivo 259.72, tarjeta 274.00.
+
+⚠️ **Agrupado por TIPO, no por fila del catálogo.** `ofrecibles()` devuelve una fila por
+cuenta —tres bancos son tres «transferencia»— y sin agrupar una reserva real listaba **doce
+opciones**, que es justo el abrumamiento que el resumen viene a evitar. Las cuentas concretas
+viajan dentro (`fichas`) y son del **detalle**.
+
+### Los soles, y por qué a veces no van
+
+Equivalencia entre paréntesis **sólo si sabemos que paga desde Perú**.
+`PmsProcedenciaHuesped::pagaDesdePeru()` es **ternaria**: su `null` significa «no se sabe»
+—el saneador antepone `51` a cualquier móvil de 9 dígitos— y ahí **no se pone equivalencia**,
+porque convertirle a quien no paga en soles confunde más de lo que ayuda.
+
+Es presentación, no contabilidad: no toca el saldo.
+
+### Qué NO entra, y es deliberado
+
+- **El detalle línea a línea**, las `explicacion_para_huesped` y las notas al modelo: son de
+  cada consumidor, y **son prosa**. Si entraran, «hechos, nunca prosa» duraría un día.
+- **El formato.** Quien rinde es `MessageTemplate` con sus cuatro cuerpos por canal, la ficha
+  del pax o el panel. El motivo por el que no se pide nada viaja como enum
+  (`PmsMotivoSinCobro`), no como frase.
+
+### Auditarlo
+
+```bash
+php bin/console pms:situacion-cobro              # las 25 más recientes
+php bin/console pms:situacion-cobro XTHRMQ       # una, con su detalle
+```
+
+Solo lectura. Es un **comando y no un `var/probar-*.php`** porque el resolver y sus seis
+dependencias son privados, y sobre todo porque esta decisión hay que poder auditarla en
+producción, que es donde están los casos raros.
+
+### Lo que falta
+
+- Los consumidores todavía no lo usan: `consultar_cuenta`, el pax, el panel y las plantillas
+  siguen componiendo por su cuenta. El read-model existe, la sustitución no está hecha.
+- **`cobraPorNosotros` sigue siendo la constante** `PmsChannel::CANAL_PAGO_TOTAL`, aislada en
+  un método del resolver para que el día que sea columna haya un solo sitio que tocar.
+- Las ramas de **dos monedas** y **cancelada con penalización** están escritas y sin
+  ejercitar: no hay ningún caso así en local.

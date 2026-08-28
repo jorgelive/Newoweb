@@ -1,0 +1,174 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Pms\Command;
+
+use App\Pms\Entity\PmsReserva;
+use App\Pms\Enum\PmsQueSePide;
+use App\Pms\Finanzas\PmsSituacionDeCobro;
+use App\Pms\Finanzas\PmsSituacionDeCobroResolver;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+/**
+ * Qué decide {@see PmsSituacionDeCobroResolver} sobre reservas reales.
+ *
+ * ── Por qué un comando y no un `var/probar-*.php` ───────────────────────────
+ * El resolver y sus seis dependencias son servicios privados: un script suelto no puede
+ * construirlos sin reimplementar el grafo de inyección, que es exactamente el tipo de
+ * andamio que se rompe al primer cambio de constructor. Un comando los recibe inyectados.
+ *
+ * Y sobre todo: esto **no es un andamio**. El read-model decide qué se le pide a un huésped,
+ * y esa decisión hay que poder auditarla en producción, que es donde están los casos raros
+ * —canales espejo, dos monedas, canceladas con penalización— y donde no hay más herramienta
+ * que la consola. Es el mismo motivo que `pms:reserva:auditar`.
+ *
+ * Es **solo lectura**: ni escribe, ni recalcula, ni emite enlaces.
+ *
+ *   php bin/console pms:situacion-cobro              # las 25 más recientes
+ *   php bin/console pms:situacion-cobro XTHRMQ       # una, con su detalle
+ *   php bin/console pms:situacion-cobro --limite=100
+ */
+#[AsCommand(
+    name: 'pms:situacion-cobro',
+    description: 'Qué se le pide a cada reserva y por qué. Solo lectura.',
+)]
+final class PmsSituacionCobroCommand extends Command
+{
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly PmsSituacionDeCobroResolver $resolver,
+    ) {
+        parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $this
+            ->addArgument('localizador', InputArgument::OPTIONAL, 'Una reserva concreta, con su detalle')
+            ->addOption('limite', null, InputOption::VALUE_REQUIRED, 'Cuántas revisar en el listado', '25');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $localizador = $input->getArgument('localizador');
+
+        if (is_string($localizador) && $localizador !== '') {
+            return $this->unaReserva($io, $localizador);
+        }
+
+        return $this->listado($io, max(1, (int) $input->getOption('limite')));
+    }
+
+    private function unaReserva(SymfonyStyle $io, string $localizador): int
+    {
+        $reserva = $this->em->getRepository(PmsReserva::class)->findOneBy(['localizador' => $localizador]);
+
+        if (!$reserva instanceof PmsReserva) {
+            $io->error(sprintf('No existe la reserva %s.', $localizador));
+
+            return Command::FAILURE;
+        }
+
+        $io->title(sprintf('%s · %s', $localizador, $reserva->getNombreApellido() ?? 'sin titular'));
+
+        $situacion = $this->resolver->paraHuesped($reserva);
+
+        $io->definitionList(
+            ['Canal' => $reserva->getChannel()?->getId() ?? 'directo'],
+            ['Llegada' => $reserva->getFechaLlegada()?->format('Y-m-d') ?? '—'],
+            ['Se pide' => $this->queSePide($situacion->queSePide)],
+            ['Motivo' => $situacion->motivo->name ?? '—'],
+            ['Enlace vivo' => $situacion->enlacePago ?? '—'],
+        );
+
+        if ($situacion->importes !== []) {
+            $io->section('Importes (por moneda, sin convertir)');
+            $io->table(['Moneda', 'Importe', 'En soles'], array_map(
+                static fn ($i): array => [$i->moneda, $i->importe, $i->enSoles ?? '—'],
+                $situacion->importes,
+            ));
+        }
+
+        if ($situacion->medios !== []) {
+            $io->section('Cómo puede pagarlo');
+            $io->table(['Medio', 'Entrega', 'En soles', 'Recargo'], array_map(
+                static fn ($m): array => [
+                    $m->etiqueta,
+                    $m->importe,
+                    $m->enSoles ?? '—',
+                    $m->llevaRecargo() ? $m->recargoPorcentaje . ' %' : '—',
+                ],
+                $situacion->medios,
+            ));
+        }
+
+        // La proyección del equipo tiene que DECIDIR lo mismo: sólo cambia qué campos lleva.
+        $equipo = $this->resolver->paraEquipo($reserva);
+
+        if ($equipo->queSePide !== $situacion->queSePide) {
+            $io->warning('La decisión difiere entre huésped y equipo. No debería: la proyección no decide.');
+        }
+
+        return Command::SUCCESS;
+    }
+
+    private function listado(SymfonyStyle $io, int $limite): int
+    {
+        $reservas = $this->em->getRepository(PmsReserva::class)
+            ->findBy([], ['createdAt' => 'DESC'], $limite);
+
+        $filas = [];
+        $reparto = [];
+
+        foreach ($reservas as $reserva) {
+            $s = $this->resolver->paraHuesped($reserva);
+
+            $detalle = $s->hayAlgoQuePedir()
+                ? implode(' + ', array_map(
+                    static fn ($i): string => $i->moneda . ' ' . $i->importe,
+                    $s->importes,
+                ))
+                : ($s->motivo->name ?? '—');
+
+            $clave = $s->hayAlgoQuePedir() ? $this->queSePide($s->queSePide) : ($s->motivo->name ?? '—');
+            $reparto[$clave] = ($reparto[$clave] ?? 0) + 1;
+
+            $filas[] = [
+                $reserva->getLocalizador() ?? '—',
+                $reserva->getChannel()?->getId() ?? 'directo',
+                $this->queSePide($s->queSePide),
+                $detalle,
+                (string) count($s->medios),
+                $s->enlacePago !== null ? 'sí' : '—',
+            ];
+        }
+
+        $io->table(['Localizador', 'Canal', 'Se pide', 'Importes / motivo', 'Medios', 'Enlace'], $filas);
+
+        arsort($reparto);
+        $io->section('Reparto');
+        foreach ($reparto as $clave => $n) {
+            $io->writeln(sprintf('  %-22s %d', $clave, $n));
+        }
+
+        return Command::SUCCESS;
+    }
+
+    private function queSePide(PmsQueSePide $q): string
+    {
+        return match ($q) {
+            PmsQueSePide::ADELANTO => 'ADELANTO',
+            PmsQueSePide::TOTAL => 'TOTAL',
+            PmsQueSePide::NADA => 'nada',
+        };
+    }
+}

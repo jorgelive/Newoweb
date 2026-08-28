@@ -3113,6 +3113,23 @@ Cómo se abre y cómo se cierra:
   retira** —hay que devolverlo antes al automático—. `getMotivoNoBorrable()` da un texto para
   cada caso; con uno solo, el tooltip del basurero daba una instrucción que no funcionaba.
 
+#### `TipoCambioDelDia` memoriza por día (28/08/2026)
+
+No cacheaba nada: **cada llamada consultaba**, y `TipocambioManager` va a SUNAT cuando no
+tiene la tasa del día. Con un consumidor por petición no se notaba; componiendo una lista
+—20 reservas, cada una con su importe y su equivalencia con tarjeta— salían decenas de
+consultas para pedir **el mismo número**. Se veía en el log: «Consulta mensual SUNAT vacía.
+Intentando diaria», repetido. Medido con `pms:situacion-cobro --limite=20`: **6 consultas
+antes, 1 después**.
+
+La memoria es **por instancia, o sea por petición**, y guarda también el fallo: si SUNAT no
+responde, reintentarlo cincuenta veces en la misma petición no lo arregla y multiplica la
+latencia.
+
+⚠️ **No es una caché con caducidad**, y no debe convertirse en una: la tasa ya vive en
+`MaestroTipocambio`, y persistirla más allá de la petición sería inventarse una política de
+invalidación para un dato que ya tiene su sitio.
+
 #### El segundo pago que no se borra: el que vino de una pasarela (28/08/2026)
 
 `getMotivoNoBorrable()` tiene desde el 28/08/2026 **dos** motivos, y conviene no confundirlos
@@ -4528,6 +4545,8 @@ sobre una reserva con contenido habría dado la misma falsa tranquilidad.
 | Cambiar el paso/horizonte del barrido de tarifas (§8.1) | `Beds24RatesPushJob` | `getStepInterval()` (`P2W`) / `getHorizonteMaximo()` |
 | Podar filas `success` viejas de una cola que creció (§2, §8.1) | `app:exchange:vigilar-colas` (cron min 25) | ahí va el `DELETE ... status='success' AND created_at < ...` |
 | Cambiar cuándo se puede borrar una estancia (§12.12.1) | `PmsEventoCalendario` | `getMotivoNoBorrable()` — fuente única; `util` sólo tipa el campo serializado en `PmsBorrableInfo`, no reimplementa la regla |
+| Cambiar qué se le pide a una reserva y por qué | `src/Pms/Finanzas/PmsSituacionDeCobroResolver.php` | el pipeline de `componer()` — ver `docs/Mensajeria.md` |
+| Auditar esa decisión en producción | — | `php bin/console pms:situacion-cobro` |
 | Cambiar cuándo se puede borrar un PAGO | `PmsPagoFinanciero` | `getMotivoNoBorrable()` — dos motivos: depósito del canal y cobro por enlace (`enlacePagoId`) |
 | Que el borrado de la reserva arrastre una tabla nueva (§12.12.3) | `PmsReserva` | declarar el lado inverso con `cascade: ['remove']`; una FK sin mapear = 1451 |
 | Tocar el desenganche de colas al borrar un link (§12.11.b) | `Beds24BookingsPushQueueCreator` | `detachQueuesFromLink()` |
