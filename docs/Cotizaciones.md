@@ -3073,6 +3073,32 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.v El chequeo sólo avisa de lo que se puede arreglar (28/08/2026)
+
+`CoherenciaCatalogoChecker` reparte en dos bloques: lo que repara solo y lo que deja para una
+persona. El segundo bloque **tiene que poder vaciarse**, o deja de leerse.
+
+⚠️ El chequeo `orden-congelada-incompleta` estaba pidiendo lo imposible: listaba líneas de órdenes
+**canceladas**. Su propio consejo es «se corrigen reemitiendo», y una orden cancelada no se
+reemite. Cuatro líneas de las dos órdenes de prueba del 22/08 salían **en cada inspección** desde
+que `nombre_componente` nació el 27/08.
+
+Ahora se acota a órdenes **vivas**: `estado_os NOT IN ('completada','cancelada')`.
+
+La frontera no es nueva. `OperacionOrdenServicio::getEdicionPermitida()` ya llama **cerrada** a
+completada o cancelada, con el motivo escrito: *«a toro pasado no completa nada, sólo reescribe
+historia»*. El chequeo reusa esa misma línea en vez de inventar otra.
+
+### La regla que sale de aquí
+
+**Un aviso sobre el que no se puede actuar es peor que ninguno**, porque enseña a saltarse el
+bloque donde viven los que sí importan. Es lo mismo que llevó a desactivar las reglas cosméticas de
+ESLint —ver la sección «Frontend» de CLAUDE.md—: mil quejas de formato sepultaban los errores de
+verdad.
+
+Al añadir un chequeo, la pregunta no es «¿esto está mal?» sino **«¿quién lo lee puede hacer algo
+hoy?»**. Si la respuesta es no, o se acota o no se añade.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |

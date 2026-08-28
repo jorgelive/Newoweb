@@ -203,11 +203,22 @@ final class CoherenciaCatalogoChecker
                 'set'     => null,
                 'deCotizacion' => 'k.cotservicio_id IN (SELECT sv.id FROM cotizacion_cotservicio sv WHERE sv.cotizacion_id = :cot)',
             ],
+            // ⚠️ Sólo órdenes VIVAS. Una completada o cancelada no se puede reemitir, así que
+            // avisar de ella es pedir algo imposible — y un aviso sobre el que no se puede actuar
+            // entrena a saltarse el bloque entero, que es como se pierden los que sí importan.
+            //
+            // La frontera no es nueva: `OperacionOrdenServicio::getEdicionPermitida()` ya llama
+            // «cerrada» a completada o cancelada, con el motivo escrito —«a toro pasado no
+            // completa nada, sólo reescribe historia»—. Aquí se reusa esa misma línea.
+            //
+            // Las dos órdenes de prueba del 22/08, canceladas, salían en cada inspección desde
+            // que `nombre_componente` nació el 27/08: cuatro líneas de ruido permanente.
             'orden-congelada-incompleta' => [
                 'titulo'  => 'Líneas de Orden emitida sin datos que el Centro de Operaciones sí tiene',
                 'detalle' => 'NO se reparan: dicen lo que se le mandó al proveedor. Se corrigen reemitiendo.',
-                'desde'   => 'operacion_orden_servicio_item i JOIN operacion_servicio s ON s.id = UNHEX(REPLACE(i.operacion_servicio_id, "-", ""))',
-                'donde'   => '((i.nombre_componente IS NULL AND s.nombre_componente IS NOT NULL)
+                'desde'   => 'operacion_orden_servicio_item i JOIN operacion_servicio s ON s.id = UNHEX(REPLACE(i.operacion_servicio_id, "-", "")) JOIN operacion_orden_servicio os ON os.id = i.orden_id',
+                'donde'   => 'os.estado_os NOT IN ("completada", "cancelada")
+                            AND ((i.nombre_componente IS NULL AND s.nombre_componente IS NOT NULL)
                             OR (i.prestador_servicio_nombre IS NULL AND s.prestador_servicio_nombre IS NOT NULL))',
                 'set'     => null,
                 'deCotizacion' => 's.cotizacion_componente_id IN (SELECT k.id FROM cotizacion_cotcomponente k
