@@ -10071,10 +10071,19 @@ cruzaba**: el huésped recibía el total por un lado y una lista de bancos por o
 5.5 % de cabeza. Ahora cada medio lleva **lo que se entrega por ese medio**, con el recargo ya
 dentro: efectivo 259.72, tarjeta 274.00.
 
-⚠️ **Agrupado por TIPO, no por fila del catálogo.** `ofrecibles()` devuelve una fila por
-cuenta —tres bancos son tres «transferencia»— y sin agrupar una reserva real listaba **doce
-opciones**, que es justo el abrumamiento que el resumen viene a evitar. Las cuentas concretas
-viajan dentro (`fichas`) y son del **detalle**.
+⚠️ **Y se agrupa DOS veces, por motivos distintos.** Primero por TIPO —`ofrecibles()` devuelve
+una fila por cuenta, y tres bancos son tres «transferencia»—, lo que bajó de doce opciones a
+cinco. Y seguía sobrando: cinco líneas diciendo **dos cifras** es el mismo ruido en otro
+formato. La segunda agrupación, `mediosPorImporte()`, es **por precio**:
+
+```
+Yape · Plin · Transferencia · Efectivo ...... 259.72
+Tarjeta de Crédito (incluye 5.5%) ........... 274.00
+```
+
+Lo que el huésped decide no es «¿por dónde pago?» sino «¿me cuesta lo mismo?». Vive en el
+read-model y no en cada vista para que el mensaje, el pax y el panel agrupen igual. Las cuentas
+concretas viajan dentro (`fichas`) y son del **detalle**.
 
 ### Los soles, y por qué a veces no van
 

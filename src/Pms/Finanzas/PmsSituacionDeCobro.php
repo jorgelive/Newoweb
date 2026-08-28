@@ -60,6 +60,53 @@ final readonly class PmsSituacionDeCobro
     }
 
     /**
+     * Los medios agrupados **por importe**, que es lo único que los distingue para el huésped.
+     *
+     * ── El abrumamiento vuelve si se listan uno a uno ───────────────────────────
+     * Se agrupó por TIPO —de doce filas del catálogo a cinco medios— y seguía sobrando:
+     * «Western Union 164.10 · Efectivo 164.10 · Yape 164.10 · Plin 164.10 · Transferencia
+     * 164.10 · Tarjeta 173.13» son seis líneas que dicen **dos cifras**. Repetir el mismo
+     * número cinco veces es el mismo ruido en otro formato.
+     *
+     * Lo que de verdad hay que decidir no es «¿por dónde pago?» sino «¿me cuesta lo mismo?».
+     * Y sólo hay dos respuestas: el precio normal, y el de tarjeta con su recargo. Por eso se
+     * agrupa por importe y no por medio:
+     *
+     *   Efectivo, Yape, Plin o transferencia ...... 164.10
+     *   Tarjeta / Enlace (incluye 5.5%) ........... 173.13
+     *
+     * Es exactamente la forma del mensaje que el equipo ya escribía a mano.
+     *
+     * ⚠️ El orden se conserva —`ofrecibles()` ya viene ordenado y la tarjeta va al final—
+     * porque abrir por la opción cara empuja a pagar de más a quien podía transferir.
+     *
+     * @return list<array{importe: string, enSoles: string|null, recargoPorcentaje: string|null, etiquetas: list<string>}>
+     */
+    public function mediosPorImporte(): array
+    {
+        $grupos = [];
+
+        foreach ($this->medios as $medio) {
+            // La clave incluye el recargo: dos medios con el mismo importe pero uno con
+            // comisión no son el mismo caso, aunque hoy no pueda pasar.
+            $clave = $medio->importe . '|' . $medio->recargoPorcentaje;
+
+            if (!isset($grupos[$clave])) {
+                $grupos[$clave] = [
+                    'importe' => $medio->importe,
+                    'enSoles' => $medio->enSoles,
+                    'recargoPorcentaje' => $medio->llevaRecargo() ? $medio->recargoPorcentaje : null,
+                    'etiquetas' => [],
+                ];
+            }
+
+            $grupos[$clave]['etiquetas'][] = $medio->etiqueta;
+        }
+
+        return array_values($grupos);
+    }
+
+    /**
      * ¿Se debe en más de una moneda?
      *
      * Importa para el FORMATO: con dos monedas el resumen enseña dos bloques de total y no

@@ -2155,8 +2155,26 @@ el saldo pagando con tarjeta. Reglas que no se ven en el código:
 
 #### El resumen delante, el detalle desplegable, y el ancla (28/08/2026)
 
-La tarjeta enseña **el resumen siempre**, y debajo un toggle **«Ver detalle»** que añade el
-desglose. El estado viaja en la URL:
+La tarjeta tiene **tres peldaños**, y el orden es el de la atención del huésped:
+
+```
+cerrada           sólo la barra de progreso  →  «¿voy bien?»
++ Ver mi cuenta   el RESUMEN                 →  cuánto y a qué precio
+  + Ver detalle   el DETALLE                 →  de qué se compone
+```
+
+⚠️ **El resumen va DENTRO del primer plegable, no fuera.** Estuvo fuera y rompía lo que la
+tarjeta ya hacía bien: cerrada enseña sólo la barra, y en móvil eso es lo que impide que la
+cuenta empuje las unidades fuera de pantalla.
+
+El botón de detalle vive **dentro** del resumen, pegado a las cifras que abre — un botón que
+despliega algo escondido dentro de otra cosa cerrada no se entiende. Cerrar el resumen cierra
+también el detalle, para que no quede colgando.
+
+Lo que cambia entre resumen y detalle son los **subtotales**: el resumen da una cifra por
+precio; el detalle la abre en cargos, pagos, tipo de cambio y comisión.
+
+El estado viaja en la URL:
 
 ```
 /huesped/reserva/{localizador}#resumen    → sólo el resumen
@@ -2186,11 +2204,16 @@ Lo decide `PmsSituacionDeCobro` y llega en `resumenFinanciero.situacion`. La vis
 calcula nada**: ni qué se pide, ni qué medios valen, ni cuánto sale con tarjeta. Si volviera
 a multiplicar por 1.055 habría dos verdades otra vez.
 
-- **Una cifra por opción ejecutable**, con el recargo YA DENTRO: efectivo 259.72, tarjeta
-  274.00. El porcentaje se dice como matiz —«incluye 5.5% de comisión»— no como una operación
-  que el huésped tenga que hacer.
-- **Los medios van agrupados por tipo**, no por cuenta: sin agrupar, una reserva real listaba
-  doce opciones. Las cuentas concretas son del detalle.
+- **Una línea por PRECIO, no por medio.** Agrupar por tipo bajó de doce filas del catálogo a
+  cinco medios y **seguía sobrando**: «Yape 164.10 · Plin 164.10 · Efectivo 164.10 ·
+  Transferencia 164.10 · Tarjeta 173.13» son cinco líneas para decir **dos cifras**, que es el
+  mismo ruido en otro formato. Lo que el huésped decide no es «¿por dónde pago?» sino «¿me
+  cuesta lo mismo?», y a eso sólo hay dos respuestas. Lo agrupa
+  `PmsSituacionDeCobro::mediosPorImporte()`, en la fuente única, para que el mensaje, el pax y
+  el panel agrupen igual.
+- **El recargo va DENTRO del importe**: efectivo 259.72, tarjeta 274.00. El porcentaje se dice
+  como matiz —«incluye 5.5% de comisión»— no como una operación que el huésped tenga que hacer.
+- Las cuentas bancarias concretas son del **detalle**, y no viajan al pax.
 - **Un bloque por moneda** cuando hay dos. No se suman ni se convierte: el cuadre con `≈` es
   para el panel interno, no para pedirle dinero a alguien.
 - **Los soles entre paréntesis** sólo si consta que paga desde Perú (`pagaDesdePeru()` es

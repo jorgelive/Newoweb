@@ -80,18 +80,23 @@ export interface PmsSituacionDeCobro {
         enSoles?: string | null;
     }[];
     /**
-     * Cómo puede pagarlo, con **lo que entrega por cada medio**.
+     * Cómo puede pagarlo, agrupado **POR IMPORTE**.
      *
-     * El recargo va DENTRO del importe, no en una línea aparte: es lo que evita que el
-     * huésped tenga que sumar el 5.5 % de cabeza. Agrupados por tipo, no por cuenta.
+     * Espejo de `PmsSituacionDeCobro::mediosPorImporte()`. No es una lista de medios: es una
+     * lista de **precios**, cada uno con los medios que lo comparten. Listar los medios uno a
+     * uno daba seis líneas para decir dos cifras —«Yape 164.10 · Plin 164.10 · Efectivo
+     * 164.10…»— que es el mismo ruido que el resumen viene a quitar.
+     *
+     * Lo que el huésped decide no es «¿por dónde pago?» sino «¿me cuesta lo mismo?», y sólo
+     * hay dos respuestas: el precio normal y el de tarjeta con su recargo dentro.
      */
     medios: {
-        codigo: string;
-        etiqueta: string;
         importe: string;
         enSoles?: string | null;
-        /** `null` en los medios sin recargo. Sólo se enseña como matiz, no como cálculo. */
+        /** `null` sin recargo. Se dice como matiz, no como un cálculo que hacer. */
         recargoPorcentaje?: string | null;
+        /** Los medios que cuestan eso. Se enumeran en una línea. */
+        etiquetas: string[];
     }[];
 }
 

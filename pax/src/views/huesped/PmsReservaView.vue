@@ -355,12 +355,29 @@ const CUENTA_RESUMEN = 'resumen';
 const CUENTA_DETALLE = 'detalle';
 
 const cuentaRef = ref<HTMLElement | null>(null);
+
+/**
+ * TRES estados, no dos, y el orden es el de la atención del huésped:
+ *
+ *   cerrado            sólo la barra de progreso — «¿voy bien?»
+ *   + cuentaAbierta    el RESUMEN: cuánto y por qué medios
+ *   + detalleAbierto   el DETALLE: de qué se compone
+ *
+ * Lo que cambia entre resumen y detalle son los **subtotales**: el resumen da una cifra
+ * por opción ejecutable; el detalle la abre en cargos, pagos, tipo de cambio y comisión.
+ *
+ * ⚠️ El resumen va DENTRO del primer plegable, no fuera. Estuvo fuera un rato y rompía lo
+ * que la tarjeta hacía bien: cerrada enseñaba sólo la barra, y en móvil eso es lo que
+ * impide que la cuenta empuje las unidades fuera de pantalla.
+ */
+const cuentaAbierta = ref(route.hash === '#' + CUENTA_RESUMEN || route.hash === '#' + CUENTA_DETALLE);
 const detalleCuentaAbierto = ref(route.hash === '#' + CUENTA_DETALLE);
 
-/** El hash manda al entrar: es lo que permite enlazar directamente al desglose. */
+/** El hash manda al entrar: es lo que permite enlazar directamente a uno de los dos. */
 watch(() => route.hash, (h) => {
     if (h !== '#' + CUENTA_RESUMEN && h !== '#' + CUENTA_DETALLE) return;
 
+    cuentaAbierta.value = true;
     detalleCuentaAbierto.value = h === '#' + CUENTA_DETALLE;
     void enfocarCuenta();
 });
@@ -376,9 +393,21 @@ async function enfocarCuenta(): Promise<void> {
     cuentaRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function verCuenta(detalle: boolean): void {
-    detalleCuentaAbierto.value = detalle;
-    void router.replace({ hash: '#' + (detalle ? CUENTA_DETALLE : CUENTA_RESUMEN) });
+/** Abre o cierra el RESUMEN. Al cerrarlo se cierra también el detalle: no queda colgando. */
+function verResumen(abrir: boolean): void {
+    cuentaAbierta.value = abrir;
+
+    if (!abrir) {
+        detalleCuentaAbierto.value = false;
+    }
+
+    void router.replace({ hash: abrir ? '#' + CUENTA_RESUMEN : '' });
+}
+
+/** Abre o cierra el DETALLE, que vive dentro del resumen. */
+function verDetalle(abrir: boolean): void {
+    detalleCuentaAbierto.value = abrir;
+    void router.replace({ hash: '#' + (abrir ? CUENTA_DETALLE : CUENTA_RESUMEN) });
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -665,7 +694,7 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
                La experiencia es la que manda aquí: a la mayoría le abruma el cálculo y
                sólo quiere saber cuánto y por dónde. Quien pide el porqué es minoría, y
                para ésos está el toggle. -->
-          <div v-if="situacion?.hayAlgoQuePedir" class="mt-5">
+          <div v-if="situacion?.hayAlgoQuePedir && cuentaAbierta" class="mt-5">
             <p class="text-[11px] font-black uppercase tracking-widest text-slate-400">
               {{ situacion.queSePide === 'ADELANTO'
                 ? (maestroStore.t('res_pide_adelanto') || 'Adelanto para asegurar tu reserva')
@@ -685,26 +714,44 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
             <!-- Las formas de pago, cada una con lo que se entrega por ella. El 5.5 % de la
                  tarjeta está DENTRO de su importe; el porcentaje se dice como matiz, no como
                  una operación que el huésped tenga que hacer. -->
+            <!-- Una línea por PRECIO, no por medio. Los que cuestan lo mismo van juntos:
+                 repetir la misma cifra cinco veces es el ruido que esto viene a quitar.
+                 Casi siempre son dos líneas — el precio normal y el de tarjeta. -->
             <ul class="mt-4 divide-y divide-slate-100 border-t border-slate-100">
-              <li v-for="medio in situacion.medios" :key="medio.codigo"
+              <li v-for="(grupo, i) in situacion.medios" :key="i"
                   class="flex items-baseline justify-between gap-3 py-2.5">
                 <span class="min-w-0 text-[13px] font-bold text-slate-600">
-                  {{ medio.etiqueta }}
-                  <span v-if="medio.recargoPorcentaje" class="text-[11px] font-medium text-slate-400">
-                    ({{ maestroStore.t('res_incluye_comision', { pct: String(Number(medio.recargoPorcentaje)) })
-                        || `incluye ${Number(medio.recargoPorcentaje)}% de comisión` }})
+                  {{ grupo.etiquetas.join(' · ') }}
+                  <span v-if="grupo.recargoPorcentaje" class="block text-[11px] font-medium text-slate-400">
+                    {{ maestroStore.t('res_incluye_comision', { pct: String(Number(grupo.recargoPorcentaje)) })
+                        || `incluye ${Number(grupo.recargoPorcentaje)}% de comisión` }}
                   </span>
                 </span>
                 <span class="shrink-0 text-right">
                   <span class="block text-[15px] font-black tabular-nums text-gray-900 leading-none">
-                    {{ situacion.importes[0]?.simbolo || situacion.importes[0]?.moneda }} {{ medio.importe }}
+                    {{ situacion.importes[0]?.simbolo || situacion.importes[0]?.moneda }} {{ grupo.importe }}
                   </span>
-                  <span v-if="medio.enSoles" class="block text-[11px] font-bold text-slate-400 tabular-nums">
-                    S/ {{ medio.enSoles }}
+                  <span v-if="grupo.enSoles" class="block text-[11px] font-bold text-slate-400 tabular-nums">
+                    S/ {{ grupo.enSoles }}
                   </span>
                 </span>
               </li>
             </ul>
+
+            <!-- El segundo peldaño. Va aquí, pegado a las cifras que abre, y no al pie de la
+                 tarjeta: lo que despliega es el porqué de estos números. -->
+            <button
+                type="button"
+                @click="verDetalle(!detalleCuentaAbierto)"
+                :aria-expanded="detalleCuentaAbierto"
+                class="mt-3 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-[#376875]/70 hover:text-[#376875] transition-colors"
+            >
+              {{ detalleCuentaAbierto
+                ? (maestroStore.t('res_ocultar_detalle') || 'Ocultar detalle')
+                : (maestroStore.t('res_ver_detalle') || 'Ver detalle') }}
+              <i class="fas fa-chevron-down text-[9px] transition-transform duration-300"
+                 :class="{ 'rotate-180': detalleCuentaAbierto }"></i>
+            </button>
           </div>
 
           <!-- ═══ DETALLE PLEGABLE ═══
@@ -712,7 +759,7 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
                antemano (lo que `max-height` obliga a adivinar y recortaría el
                contenido si crece). El hijo necesita overflow-hidden para que el
                recorte ocurra durante la transición. -->
-          <div v-if="!soloProgreso"
+          <div v-if="!soloProgreso && cuentaAbierta"
                class="grid transition-[grid-template-rows] duration-500 ease-in-out"
                :class="detalleCuentaAbierto ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
             <div class="overflow-hidden">
@@ -828,27 +875,32 @@ const importeEnlace = (monto: string, simbolo?: string | null, moneda?: string |
           </div>
           <!-- ═══ FIN DETALLE PLEGABLE ═══ -->
 
-          <!-- ═══ VER DETALLE ═══
-               Un toggle, no dos pestañas. Se probaron pestañas y estaba peor: elegir
-               «Detallado» **escondía el resumen**, y el resumen es lo que el huésped
-               necesita tener delante mientras mira el desglose —el total al que se
-               refieren las líneas de arriba—. Aquí el detalle se AÑADE debajo.
+          <!-- ═══ LOS DOS PELDAÑOS ═══
+               Cerrada, la tarjeta enseña sólo la barra: en móvil es lo que impide que la
+               cuenta empuje las unidades fuera de pantalla, y responde de un vistazo a la
+               única pregunta que casi todos se hacen — «¿voy bien?».
 
-               A primera vista, sólo el resumen. Quien quiera el porqué, lo despliega.
+               El primer botón abre el RESUMEN (cuánto y por qué medios). El segundo, ya
+               dentro, abre el DETALLE. Lo que cambia entre uno y otro son los subtotales:
+               el resumen da una cifra por opción; el detalle la abre en cargos, pagos,
+               tipo de cambio y comisión.
 
-               `soloProgreso` (Airbnb sin extras) no enseña cifras: no hay detalle. -->
+               El de detalle sólo existe con el resumen abierto: un botón que despliega algo
+               que está escondido dentro de otra cosa cerrada no se entiende.
+
+               `soloProgreso` (Airbnb sin extras) no enseña cifras: no hay nada que abrir. -->
           <button
               v-if="!soloProgreso"
               type="button"
-              @click="verCuenta(!detalleCuentaAbierto)"
-              :aria-expanded="detalleCuentaAbierto"
+              @click="verResumen(!cuentaAbierta)"
+              :aria-expanded="cuentaAbierta"
               class="w-full mt-3 pt-2.5 -mb-1 border-t border-slate-100 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#376875]/70 hover:text-[#376875] transition-colors"
           >
-            {{ detalleCuentaAbierto
-              ? (maestroStore.t('res_ver_menos') || 'Ocultar detalle')
-              : (maestroStore.t('res_ver_mas') || 'Ver detalle') }}
+            {{ cuentaAbierta
+              ? (maestroStore.t('res_ver_menos') || 'Ocultar')
+              : (maestroStore.t('res_ver_mas') || 'Ver mi cuenta') }}
             <i class="fas fa-chevron-down transition-transform duration-300"
-               :class="{ 'rotate-180': detalleCuentaAbierto }"></i>
+               :class="{ 'rotate-180': cuentaAbierta }"></i>
           </button>
         </div>
       </section>

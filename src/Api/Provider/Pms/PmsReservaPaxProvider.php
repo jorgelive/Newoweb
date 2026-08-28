@@ -240,13 +240,9 @@ final class PmsReservaPaxProvider implements ProviderInterface
                 'importe' => $i->importe,
                 'enSoles' => $i->enSoles,
             ], $situacion->importes),
-            'medios' => array_map(static fn ($m): array => [
-                'codigo' => $m->codigo,
-                'etiqueta' => $m->etiqueta,
-                'importe' => $m->importe,
-                'enSoles' => $m->enSoles,
-                'recargoPorcentaje' => $m->llevaRecargo() ? $m->recargoPorcentaje : null,
-            ], $situacion->medios),
+            // Agrupados POR IMPORTE, no por medio: seis líneas diciendo dos cifras es el
+            // mismo abrumamiento que el resumen viene a evitar. Ver `mediosPorImporte()`.
+            'medios' => $situacion->mediosPorImporte(),
         ];
     }
 

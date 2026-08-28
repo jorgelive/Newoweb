@@ -99,15 +99,18 @@ final class PmsSituacionCobroCommand extends Command
         }
 
         if ($situacion->medios !== []) {
+            // Agrupado por IMPORTE, igual que lo ve el huésped: si aquí saliera una fila por
+            // medio, la consola diría algo distinto de la pantalla y esta auditoría dejaría
+            // de servir para lo que se hizo.
             $io->section('Cómo puede pagarlo');
-            $io->table(['Medio', 'Entrega', 'En soles', 'Recargo'], array_map(
-                static fn ($m): array => [
-                    $m->etiqueta,
-                    $m->importe,
-                    $m->enSoles ?? '—',
-                    $m->llevaRecargo() ? $m->recargoPorcentaje . ' %' : '—',
+            $io->table(['Cuesta', 'En soles', 'Recargo', 'Por estos medios'], array_map(
+                static fn (array $g): array => [
+                    $g['importe'],
+                    $g['enSoles'] ?? '—',
+                    $g['recargoPorcentaje'] !== null ? $g['recargoPorcentaje'] . ' %' : '—',
+                    implode(' · ', $g['etiquetas']),
                 ],
-                $situacion->medios,
+                $situacion->mediosPorImporte(),
             ));
         }
 
