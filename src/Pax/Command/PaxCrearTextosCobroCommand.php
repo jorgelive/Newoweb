@@ -81,6 +81,16 @@ final class PaxCrearTextosCobroCommand extends Command
         // reservas directas. Ver `PmsChannel::CHAT_SIN_IMAGENES`.
         'res_aviso_pago' => 'Avísanos por este chat cuando lo hayas hecho y el equipo lo confirma. Si quieres, mándanos la captura.',
         'res_aviso_pago_sin_imagenes' => 'Avísanos por este chat cuando lo hayas hecho y el equipo lo confirma. Si quieres mandarnos la captura, hazlo por WhatsApp: este chat no admite imágenes.',
+
+        // En qué moneda es la cuenta, con palabras. El símbolo a secas —«S/. +51 958191965»—
+        // se lee como el prefijo de un precio que no está, no como «esta cuenta es en soles»:
+        // en la columna del importe el símbolo es lo correcto, y como rótulo de una fila no.
+        'res_en_soles' => 'En soles',
+        'res_en_dolares' => 'En dólares',
+
+        // El titular de la cuenta. Sin rótulo era un nombre suelto bajo unos números y no
+        // decía su papel — que es el que el huésped tiene que teclear en su banca.
+        'res_a_nombre_de' => 'A nombre de',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

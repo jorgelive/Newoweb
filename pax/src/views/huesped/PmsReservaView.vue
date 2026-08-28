@@ -282,16 +282,37 @@ const notaComun = computed(() => {
     return distintos.size === 1 && textos[0] ? textos[0] : null;
 });
 
-/** El nombre del medio abierto, traducido. */
+/** El nombre de un medio por su código, traducido, con respaldo a la etiqueta del catálogo. */
+function nombreDeMedio(codigo: string): string {
+    const grupo = situacion.value?.medios.find(g => g.codigos.includes(codigo));
+    const i = grupo?.codigos.indexOf(codigo) ?? -1;
+
+    return maestroStore.t('res_medio_' + codigo) || (i >= 0 ? grupo?.etiquetas[i] : '') || codigo;
+}
+
+/**
+ * El título del cuadro abierto: TODOS los medios que comparten esa misma cuenta.
+ *
+ * Yape y Plin son dos entradas del catálogo con el mismo número —son dos apps sobre el mismo
+ * teléfono—, y el cuadro se titulaba con el que se hubiera pulsado. Quien abría por Yape leía
+ * «YAPE» y no tenía forma de saber que ese número también le vale por Plin, que es justo lo
+ * que el huésped quiere saber cuando sólo tiene una de las dos apps.
+ *
+ * Se agrupa comparando la FICHA, no una lista de pares conocidos: el día que dos cuentas dejen
+ * de coincidir, el título se separa solo.
+ */
 const nombreDelAbierto = computed(() => {
     const codigo = fichaAbierta.value;
 
     if (!codigo) return '';
 
     const grupo = situacion.value?.medios.find(g => g.codigos.includes(codigo));
-    const i = grupo?.codigos.indexOf(codigo) ?? -1;
+    const mia = JSON.stringify(grupo?.fichas?.[codigo] ?? []);
 
-    return maestroStore.t('res_medio_' + codigo) || (i >= 0 ? grupo?.etiquetas[i] : '') || codigo;
+    const hermanos = (grupo?.codigos ?? [])
+        .filter(c => JSON.stringify(grupo?.fichas?.[c] ?? []) === mia);
+
+    return (hermanos.length ? hermanos : [codigo]).map(nombreDeMedio).join(' / ');
 });
 
 /**
@@ -300,6 +321,25 @@ const nombreDelAbierto = computed(() => {
  * Devuelve una lista y no una cadena unida porque cada uno lleva ahora su «i»: la que
  * abre sus cuentas. Con `.join(' · ')` no había dónde colgarla.
  */
+/**
+ * Cadena i18n del rótulo «en qué moneda es esta cuenta», por código ISO.
+ *
+ * Con palabras y no con el símbolo: en la columna del importe «S/.» es lo correcto, pero como
+ * rótulo de una fila —«S/.  +51 958191965»— se lee como el prefijo de un precio que no está.
+ * Una moneda que no esté aquí cae a su símbolo, que es peor rótulo pero sigue diciendo algo.
+ */
+const ETIQUETA_MONEDA: Record<string, string> = {
+    PEN: 'res_en_soles',
+    USD: 'res_en_dolares',
+};
+
+/** El rótulo de moneda de una ficha: «En soles», o el símbolo si no hay cadena. */
+function rotuloMoneda(codigo?: string, simbolo?: string): string {
+    const clave = codigo ? ETIQUETA_MONEDA[codigo.toUpperCase()] : undefined;
+
+    return (clave ? maestroStore.t(clave) : '') || simbolo || codigo || '';
+}
+
 const mediosSinTarjeta = computed(() => {
     const grupo = situacion.value?.medios.find(g => !g.recargoPorcentaje);
 
@@ -824,7 +864,7 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                     <span v-if="i > 0" class="text-slate-300"> · </span>{{ m.etiqueta }}<button
                         v-if="m.tieneFicha"
                         type="button"
-                        class="ml-1 inline-block align-middle text-[#376875]/70 transition-colors hover:text-[#376875]"
+                        class="ml-1 inline-block align-middle text-[#14A5A5] transition-colors hover:text-[#0E8585]"
                         :class="{ 'i-late': !yaDescubrio }"
                         :aria-label="m.etiqueta"
                         @click="alternarFicha(m.codigo)"
@@ -895,8 +935,9 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
               <div v-for="(f, i) in fichasDelAbierto" :key="i"
                    class="mt-1.5 flex items-baseline justify-between gap-3"
                    :class="i > 0 ? 'border-t border-slate-100 pt-1.5' : ''">
-                <span v-if="f.banco || f.moneda" class="shrink-0 text-[11px] font-black uppercase tracking-wide text-slate-500 leading-snug">
-                  {{ f.banco }}<span v-if="f.moneda" class="ml-1 font-bold text-slate-400">{{ f.moneda }}</span>
+                <span v-if="f.banco || f.moneda" class="min-w-0 text-[11px] leading-snug">
+                  <span v-if="f.banco" class="font-black uppercase tracking-wide text-slate-500">{{ f.banco }}</span>
+                  <span v-if="f.moneda" class="block font-bold text-slate-400">{{ rotuloMoneda(f.moneda, f.monedaSimbolo) }}</span>
                 </span>
 
                 <span class="min-w-0 text-right">
@@ -918,7 +959,7 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                   <!-- El titular sólo aquí cuando difiere entre cuentas; si es el mismo en
                        todas, se dice una vez al pie. Igual con la nota. -->
                   <span v-if="!titularComun && f.titular" class="block text-[11px] font-medium text-slate-500 leading-snug">
-                    {{ f.titular }}
+                    <span class="text-slate-400">{{ maestroStore.t('res_a_nombre_de') || 'A nombre de' }}</span> {{ f.titular }}
                   </span>
                   <span v-if="!notaComun && f.nota" class="block text-[11px] font-medium text-slate-500 leading-snug">
                     {{ maestroStore.traducir(f.nota) }}
@@ -928,8 +969,11 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
 
               <!-- A nombre de quién, una vez. Es lo que la app de destino le enseña antes de
                    confirmar, y verlo coincidir es lo que le dice que no se equivocó. -->
-              <p v-if="titularComun" class="mt-2 border-t border-slate-100 pt-1.5 text-[11px] font-medium text-slate-500 leading-snug">
-                {{ titularComun }}<span v-if="fichasDelAbierto[0]?.titularAlterno"> · {{ fichasDelAbierto[0].titularAlterno }}</span>
+              <!-- Con rótulo: suelto era un nombre bajo unos números y no decía su papel —que
+                   es el que el huésped teclea en su banca y coteja antes de confirmar—. -->
+              <p v-if="titularComun" class="mt-2 border-t border-slate-100 pt-1.5 text-[11px] leading-snug">
+                <span class="font-bold text-slate-400">{{ maestroStore.t('res_a_nombre_de') || 'A nombre de' }}</span>
+                <span class="ml-1 font-medium text-slate-600">{{ titularComun }}<span v-if="fichasDelAbierto[0]?.titularAlterno"> · {{ fichasDelAbierto[0].titularAlterno }}</span></span>
               </p>
 
               <!-- La nota, al final y a lo ancho: se lee DESPUÉS del nombre y del destino,
@@ -1278,11 +1322,11 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
  * El `transform` obliga a `inline-block`: en un `inline` no tiene efecto.
  */
 @keyframes i-late {
-  0%, 100% { transform: scale(1);    opacity: 0.7; }
+  0%, 100% { transform: scale(1);    opacity: 0.85; }
   3%       { transform: scale(1.45); opacity: 1; }
-  6%       { transform: scale(1);    opacity: 0.7; }
+  6%       { transform: scale(1);    opacity: 0.85; }
   9%       { transform: scale(1.3);  opacity: 1; }
-  12%      { transform: scale(1);    opacity: 0.7; }
+  12%      { transform: scale(1);    opacity: 0.85; }
 }
 
 .i-late {

@@ -117,13 +117,14 @@ export interface PmsSituacionDeCobro {
             numero?: string;
             cci?: string;
             /**
-             * El SÍMBOLO ya resuelto («S/.», «US$»), no el código ISO.
+             * El código ISO («PEN»), con el que la app elige el rótulo en palabras.
              *
-             * Lo resuelve el provider contra `MaestroMoneda`, igual que el resto de cifras de
-             * esta tarjeta. El huésped compara cuentas para elegir la suya y lee el símbolo en
-             * su propia banca, no «PEN».
+             * La fila se rotula «En soles», no «S/.»: en esa posición el símbolo se lee como
+             * el prefijo de un precio que no está. Ver `ETIQUETA_MONEDA` en la vista.
              */
             moneda?: string;
+            /** El símbolo («S/.»), respaldo para una moneda sin cadena propia. */
+            monedaSimbolo?: string;
             /**
              * El array i18n crudo, que traduce `maestroStore.traducir()`.
              *

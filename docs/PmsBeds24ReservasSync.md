@@ -2265,11 +2265,21 @@ Las compone `PmsReservaPaxProvider::conFichas()`, que cruza por código los grup
   `formatValue()` del CRUD—. Usarlo filtraba la nota entera sin dar un solo error: el huésped de
   Western Union veía un nombre y una ciudad, y ninguna instrucción. Es la trampa de «un atributo
   mal puesto no falla, deja de hacer su trabajo», con un getter.
-- **La moneda va como SÍMBOLO, no como código ISO.** «BCP PEN» pide traducir mentalmente en la
-  única pantalla donde el huésped compara cuentas para elegir la suya; «BCP S/.» es lo que lee
-  en su propia banca. Lo resuelve `simboloMoneda()` contra `MaestroMoneda`, que es de donde ya
-  salen el conmutador, los importes y el cuadre — la ficha era la única que mandaba el código
-  crudo, porque `FinMedioCobro::$moneda` es una columna de texto suelta y no una relación.
+- **La fila se rotula con PALABRAS: «En soles», no «PEN» ni «S/.»** En la columna del importe
+  el símbolo es lo correcto; como rótulo de una fila —«S/.  +51 958191965»— se lee como el
+  prefijo de un precio que no está, no como «esta cuenta es en soles». Viajan el código ISO y el
+  símbolo: el código elige la cadena (`ETIQUETA_MONEDA` en la vista → `res_en_soles`), y el
+  símbolo queda de respaldo para una moneda sin cadena propia. El símbolo lo resuelve
+  `simboloMoneda()` contra `MaestroMoneda`, porque `FinMedioCobro::$moneda` es una columna de
+  texto suelta y no una relación.
+- **El titular lleva su rótulo, «A nombre de».** Suelto era un nombre bajo unos números que no
+  decía su papel — y es el que el huésped teclea en su banca y coteja antes de confirmar.
+- **El título del cuadro nombra a TODOS los medios que comparten esa cuenta.** Yape y Plin son
+  dos entradas del catálogo con el mismo número —dos apps sobre el mismo teléfono— y el cuadro
+  se titulaba con el que se hubiera pulsado: quien abría por Yape leía «YAPE» y no tenía cómo
+  saber que ese número también le vale por Plin, que es lo que quiere saber justamente quien
+  sólo tiene una de las dos apps. Se agrupa comparando la ficha, no una lista de pares
+  conocidos: el día que dos cuentas dejen de coincidir, el título se separa solo.
 - **`tabular-nums` sólo si hay dígitos.** Western Union no tiene cuenta: su «número» es el
   destino del giro —«Cusco, Perú»—, y en cifras monoespaciadas se lee como un código que copiar.
 - **El titular alterno sólo sale si aporta.** Casi siempre es el mismo nombre sin tildes

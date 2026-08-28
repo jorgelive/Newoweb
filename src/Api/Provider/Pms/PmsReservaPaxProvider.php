@@ -301,13 +301,19 @@ final class PmsReservaPaxProvider implements ProviderInterface
                     'banco' => $ficha->getBanco(),
                     'numero' => $ficha->getNumero(),
                     'cci' => $ficha->getCci(),
-                    // El SÍMBOLO, no el código ISO. «BCP PEN» pide traducir mentalmente en
-                    // la única pantalla donde el huésped compara cuentas para elegir la suya;
-                    // «BCP S/.» es lo que lee en su propia banca. Sale de `MaestroMoneda`,
-                    // que es de donde ya salen todas las demás cifras de esta tarjeta —el
-                    // conmutador, los importes, el cuadre—: la ficha era la única que mandaba
-                    // el código crudo.
-                    'moneda' => $this->simboloMoneda($ficha->getMoneda()),
+                    // Van los DOS: el código y el símbolo.
+                    //
+                    // El código porque la app rotula esta fila con palabras —«En soles»—, y
+                    // para eso necesita saber cuál es: en esta posición el símbolo solo se lee
+                    // como el prefijo de un precio que no está («S/. +51 958191965»), no como
+                    // «esta cuenta es en soles».
+                    //
+                    // Y el símbolo como respaldo, para una moneda que no tenga su cadena: mejor
+                    // «US$» que un hueco donde debería decir en qué moneda es la cuenta. Sale
+                    // de `MaestroMoneda`, de donde ya salen el conmutador, los importes y el
+                    // cuadre de esta misma tarjeta.
+                    'moneda' => $ficha->getMoneda(),
+                    'monedaSimbolo' => $this->simboloMoneda($ficha->getMoneda()),
                     // El ARRAY i18n entero, y lo traduce el cliente — mismo trato que
                     // `PmsGuiaHuespedProvider::mediosPago()` le da a esta misma nota.
                     //
