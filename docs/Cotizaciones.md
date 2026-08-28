@@ -3014,6 +3014,51 @@ no describe, **posiciona**. Es contraintuitivo y por eso está escrito.
 La regla que sale de las dos: **si un segmento tiene que caer en un sitio concreto del día, dale
 hora.** Dejarla vacía no es «sin preferencia», es «al final».
 
+### Estadía = PERNOCTE, y por eso cierra el día
+
+```js
+esEstadia = !horaInicio && !horaFin && finPeriodo > base
+```
+
+Un segmento **sin horas** cuyos componentes terminan en fecha posterior. No se pinta una vez: se
+**repite cada día** del periodo `[check-in .. check-out)` con su contador `noche N de M`, y el día
+de salida no lleva ninguna — se recorren **noches**, no días.
+
+Por eso «siempre al final» es correcto: **la tarjeta es la noche**, no el hotel como lugar. Y
+encaja mejor desde que existe `ACT-RESORT-CHECKIN_PM`: el *momento* de registrarse tiene su bloque
+a su hora, y la tarjeta de estadía queda como «dónde duermes».
+
+### ⚠️ Un alojamiento con hora deja de ser estadía, y rompe dos cosas a la vez
+
+Si `horaInicio` existe, `esEstadia` es `false` y pasa esto, sin un solo error:
+
+1. **deja de repetirse**: `fechas = [base]`, así que sale sólo el primer día y las demás noches
+   desaparecen del itinerario;
+2. **baja a tier 0** y se coloca a esa hora, en mitad de la tarde, en vez de cerrar el día.
+
+Un hotel de tres noches se ve como una actividad suelta de las 15:00.
+
+Había uno en el catálogo —`ALO-MACHU`, con 15:00, el único de 19 relaciones de alojamiento—. No
+llegó a morder porque las cotizaciones que lo usan traen `sin_horario = 1` y `compConHora()` mira
+ese flag antes que la hora, pero era una trampa para el siguiente que lo copiara.
+
+Hoy hay tres defensas: la migración que lo limpió, la validación
+`TravelSegmentoComponente::validarAlojamientoSinHora()` y el chequeo `alojamiento-con-hora` de
+`CoherenciaCatalogoChecker`, que repara marcando `sin_horario` — un hotel nunca se vende por hora,
+así que sólo hay una respuesta posible.
+
+### ⚠️ La hora de llegada al hotel SÍ existe: es otro campo
+
+Es la pregunta que surge sola, y el modelo ya la tenía resuelta con dos campos en La Biblia:
+
+| Campo | Qué es | Editable | Viaja al cliente |
+|---|---|---|---|
+| `horaComponente` | la hora **como se vendió** | no | sí (es la de la cotización) |
+| `horaRecojo` | la que fija **el operador** | **sí**, en línea | **no**, ni se snapshotea |
+
+Avisar al hotel de a qué hora llega el huésped es `horaRecojo`. Meterlo en el catálogo lo publica
+en la propuesta *y* rompe la estadía: dos efectos indeseados por usar el campo equivocado.
+
 ### Lo que sí funciona sin tocar nada
 
 - **Empates**: dos bloques a la misma hora dentro del grupo desempatan por `orden`, de forma

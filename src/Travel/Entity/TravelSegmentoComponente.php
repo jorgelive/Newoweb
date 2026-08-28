@@ -7,6 +7,7 @@ namespace App\Travel\Entity;
 use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use App\Travel\Enum\ComponenteModoEnum;
+use App\Travel\Enum\ComponenteTipoEnum;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -345,6 +346,42 @@ class TravelSegmentoComponente
      * y el horario de una excursión es propio de cada tour. Se valida en toda
      * vía basada en el validador (CRUD suelto, CRUD anidado y API).
      */
+    /**
+     * Un ALOJAMIENTO no lleva hora, y no es una preferencia de estilo: la rompe.
+     *
+     * En la guía del pasajero, `esEstadia` se deduce de **no tener horas** y terminar en fecha
+     * posterior (`itinerarioVista` en `PaxCotizacionGuiaView.vue`). Ponerle hora hace dos cosas
+     * a la vez, las dos malas y las dos mudas:
+     *
+     *   1. deja de repetirse cada noche —se pinta sólo el primer día, y las demás noches
+     *      desaparecen del itinerario—;
+     *   2. baja a tier 0 y se coloca a esa hora, en mitad de la tarde, en vez de cerrar el día.
+     *
+     * Un hotel de tres noches se ve como una actividad suelta de las 15:00. Sin error.
+     *
+     * ⚠️ **La hora de llegada al hotel SÍ existe, pero es otro campo**: `OperacionServicio::
+     * $horaRecojo`, que fija el operador desde La Biblia, es editable y **no se snapshotea**.
+     * Ésa es la que sirve para avisar al hotel; la del catálogo viaja a la propuesta del cliente
+     * y por eso no puede llevarla.
+     *
+     * Ver `docs/Cotizaciones.md` §6.u.
+     */
+    #[Assert\Callback]
+    public function validarAlojamientoSinHora(ExecutionContextInterface $context): void
+    {
+        if ($this->hora === null || $this->componente?->getTipo() !== ComponenteTipoEnum::ALOJAMIENTO) {
+            return;
+        }
+
+        $context->buildViolation(
+            'Un alojamiento no puede llevar hora: la guía del huésped deduce de ahí que es una '
+            . 'estadía, y con hora dejaría de repetirse cada noche. La hora de llegada al hotel '
+            . 'se pone en «Hora de recojo» desde La Biblia.',
+        )
+            ->atPath('hora')
+            ->addViolation();
+    }
+
     #[Assert\Callback]
     public function validarPromocionRequierePlantilla(ExecutionContextInterface $context): void
     {

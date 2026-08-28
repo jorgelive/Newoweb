@@ -143,6 +143,23 @@ final class CoherenciaCatalogoChecker
                 'set'     => 'g.nombre_interno_snapshot = JSON_ARRAY(JSON_OBJECT("language", "es", "content", t.nombre_interno))',
                 'deCotizacion' => 'g.cotservicio_id IN (SELECT sv.id FROM cotizacion_cotservicio sv WHERE sv.cotizacion_id = :cot)',
             ],
+            // ⚠️ Un alojamiento con hora deja de ser «estadía» en la guía del huésped: no se
+            // repite cada noche —sale sólo el primer día— y se coloca a media tarde en vez de
+            // cerrar el día. Un hotel de tres noches se ve como una actividad suelta.
+            //
+            // Se repara marcando `sin_horario`, que es lo que mira `compConHora()` antes que la
+            // hora: no hay más que una respuesta posible, porque un alojamiento nunca se vende
+            // por hora. La hora de llegada al hotel es otro campo —`horaRecojo` de La Biblia—
+            // y no se toca aquí. Ver docs/Cotizaciones.md §6.u.
+            'alojamiento-con-hora' => [
+                'titulo'  => 'Alojamientos con hora, que romperían la estadía en la guía',
+                'detalle' => 'Se marcan como sin horario: un hotel no se vende por hora.',
+                'desde'   => 'cotizacion_cotcomponente k JOIN travel_componente m ON HEX(m.id) = UPPER(REPLACE(k.componente_maestro_id, "-", ""))',
+                'donde'   => 'm.tipo = "alojamiento" AND k.sin_horario = 0
+                            AND k.fecha_hora_inicio IS NOT NULL AND TIME(k.fecha_hora_inicio) <> "00:00:00"',
+                'set'     => 'k.sin_horario = 1',
+                'deCotizacion' => $delComponente,
+            ],
             // ⚠️ EL ÚLTIMO A PROPÓSITO: arrastra a La Biblia lo que los anteriores acaban de
             // arreglar. Y sincroniza sin pasar por la reconciliación: son campos VACÍOS que se
             // rellenan, no cambios que alguien deba aprobar.

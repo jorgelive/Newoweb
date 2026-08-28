@@ -87,6 +87,11 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
                 . 'todo lo suyo se pinta seguido. Un servicio con desayuno (07:00) y cena (19:00) '
                 . 'se mete ENTERO delante de una excursión de las 08:00. Para intercalar algo, hay '
                 . 'que <strong>partir el día en dos cotservicios</strong>.<br>'
+                . '⚠️ <strong>Un ALOJAMIENTO no puede llevar hora</strong> y está validado: la guía '
+                . 'deduce de «sin horas» que es una estadía, y con hora dejaría de repetirse cada '
+                . 'noche —saldría sólo el primer día—. La hora de llegada al hotel va en '
+                . '<strong>«Hora de recojo»</strong> de La Biblia, que es del operador y no viaja '
+                . 'a la propuesta.<br>'
                 . 'Ver «Cómo se ordena un día» en <code>docs/Cotizaciones.md</code> §6.u.'
             ))
             ->setFormat('HH:mm')
