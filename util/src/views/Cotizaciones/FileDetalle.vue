@@ -509,6 +509,12 @@ const datosDelFile = computed(() => {
             rotulo: 'Estado',
             valor: (ESTADO_FILE_LABELS as Record<string, string>)[String(f.estado)] ?? String(f.estado ?? ''),
         },
+        // El modo va aquí y no en una tarjeta aparte: es un DATO del expediente, del mismo rango
+        // que el estado o el idioma, y tenerlo suelto arriba lo hacía parecer una sección.
+        {
+            rotulo: 'Modo',
+            valor: FILE_MODO_CONFIG[f.modo || 'estandar']?.label ?? String(f.modo ?? ''),
+        },
         {
             rotulo: 'Idioma',
             valor: idiomasDisponibles.value.find(i => i.id === (f.idiomaCliente || 'es'))?.nombre ?? (f.idiomaCliente || 'es'),
@@ -1781,6 +1787,22 @@ const eliminarDocumento = async (iri?: string) => {
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nombre Grupo</label>
                 <input v-model="file.nombreGrupo" type="text" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none">
               </div>
+              <!-- ⚠️ El modo NO espera al «Guardar» del formulario: se aplica al elegirlo.
+                   De él cuelga si hay padrón, si el precio es por persona y si se exige documento,
+                   así que media pantalla cambia con él. Guardarlo junto al nombre del titular haría
+                   que el resto del formulario se reconfigurara al pulsar Guardar, que es justo
+                   cuando nadie lo está mirando. -->
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Modo del expediente</label>
+                <select :value="file.modo || 'estandar'" @change="cambiarModo(($event.target as HTMLSelectElement).value)"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:border-[#E07845]">
+                  <option v-for="(cfg, valor) in FILE_MODO_CONFIG" :key="valor" :value="valor">{{ cfg.label }}</option>
+                </select>
+                <p class="text-[10px] font-bold text-slate-400 mt-1 leading-snug">
+                  {{ FILE_MODO_CONFIG[file.modo || 'estandar']?.ayuda }}
+                </p>
+              </div>
+
               <div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Titular</label>
                 <input v-model="file.pasajeroPrincipal" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none">
@@ -1904,26 +1926,6 @@ const eliminarDocumento = async (iri?: string) => {
         <section class="space-y-8 min-w-0">
 
           <div>
-            <!-- ── Qué clase de expediente es ────────────────────────────────
-                 UNA decisión de la que cuelga todo lo demás: padrón, precio por persona y acceso
-                 identificado. Va en el EXPEDIENTE y no en la versión porque es propiedad del
-                 negocio: la v2 de un viaje de colegio sigue siendo un viaje de colegio. -->
-            <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-3 justify-between">
-              <div class="min-w-0">
-                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">
-                  <i class="fas mr-2 text-slate-400" :class="FILE_MODO_CONFIG[file.modo || 'estandar']?.icon"></i>
-                  Modo del expediente
-                </h2>
-                <p class="text-[10px] font-bold text-slate-400 mt-1 leading-snug max-w-lg">
-                  {{ FILE_MODO_CONFIG[file.modo || 'estandar']?.ayuda }}
-                </p>
-              </div>
-              <select :value="file.modo || 'estandar'" @change="cambiarModo(($event.target as HTMLSelectElement).value)"
-                      class="border rounded-lg px-3 py-2 text-sm font-bold outline-none focus:border-teal-500 shrink-0">
-                <option v-for="(cfg, valor) in FILE_MODO_CONFIG" :key="valor" :value="valor">{{ cfg.label }}</option>
-              </select>
-            </div>
-
             <!-- ⚠️ Las cuatro secciones de abajo van PLEGADAS y con su resumen en el rótulo.
                  Un expediente de grupo son 131 personas, 16 vuelos y 109 subgrupos: desplegado todo,
                  llegar a lo de abajo son seis pantallas de scroll. Quien abre un expediente viene a

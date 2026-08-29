@@ -3322,6 +3322,18 @@ bandera con `v-if`.
 Es un fallo fácil de no ver revisando el código —`v-if`/`v-else` parece lo correcto— y evidente en
 cuanto se usa.
 
+### El modo es un dato, no una sección
+
+Estaba en una tarjeta suelta encabezando la columna derecha, y eso lo hacía parecer una sección más
+—del rango de «Manifiesto» o «Vuelos»— cuando es **un campo del expediente**, del mismo rango que
+el estado o el idioma. Vive en «Datos del Expediente»: en la cara de lectura como una fila más, y
+en la de edición como su desplegable.
+
+⚠️ **Pero no espera al «Guardar» del formulario: se aplica al elegirlo.** De él cuelga si hay
+padrón, si el precio es por persona y si se exige documento, así que media pantalla se reconfigura
+con el cambio. Guardarlo junto al nombre del titular haría que el resto del formulario cambiara al
+pulsar Guardar, que es justo cuando nadie lo está mirando.
+
 ### Todo lo que ENTRA va junto, y al final
 
 La carga estaba partida: la hoja arriba, y en medio la tabla de vuelos que separaba el rótulo de su
