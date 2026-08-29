@@ -129,7 +129,26 @@ final class RefrescarNombresMaestrosCommand extends Command
             }
 
             $maestro = $repo->find($id);
-            $actual = $maestro?->getNombreInterno();
+
+            if ($maestro === null) {
+                continue;
+            }
+
+            // ⚠️ Y el NOMBRE PARA EL PROVEEDOR con él. Es el peldaño 1 de resolverDescripcion(),
+            // el texto que de verdad lee quien hace el servicio: dejarlo atrás mientras se
+            // refresca el interno sería actualizar justo el que él no ve.
+            $paraProveedor = trim((string) $maestro->getNombreParaPrestador());
+
+            if ($paraProveedor !== '' && $paraProveedor !== $linea->getNombreParaProveedorSnapshot()) {
+                ++$tocados;
+                $io->text(sprintf('  proveedor · %-34s → %s', (string) $linea->getNombreParaProveedorSnapshot(), $paraProveedor));
+
+                if (!$simula) {
+                    $linea->setNombreParaProveedorSnapshot($paraProveedor);
+                }
+            }
+
+            $actual = $maestro->getNombreInterno();
 
             if ($actual === null || $actual === $linea->getNombreInternoSnapshot()) {
                 continue;

@@ -1233,6 +1233,32 @@ Se arregló exponiendo los textos ya resueltos (`tituloParaProveedor`, `variante
 `diaParaProveedor`) en los grupos `operacion:read`, para que el front **pinte** en vez de decidir.
 Cuatro superficies, una regla, un solo sitio donde equivocarse.
 
+##### El peldaño 1, que estaba vacío en 859 de 863 tarifas (29/08/2026)
+
+`nombreParaPrestador` es el texto con el que el proveedor reconoce lo que se le encarga, y era el
+gran hueco: sin él la orden caía al peldaño 3 —el nombre interno de la tarifa— y le llegaba «Auto
+a Miraflores Noche», que es **jerga nuestra**: una etiqueta para elegir en un desplegable, no para
+que alguien reconozca un servicio.
+
+Rellenado en 207 tarifas de rutas bidireccionales:
+
+```
+*Transporte desde el Aeropuerto de Lima al hotel en Lima*   ← el segmento: hacia dónde va HOY
+Traslado Aeropuerto Lima ↔ Miraflores · Auto Noche          ← su tarifa, como él la cobra
+Transporte en Lima
+```
+
+⚠️ **Bidireccional también para él, y no es una concesión: es cómo tarifa.** Cobra lo mismo por
+llevar al aeropuerto que por traer de él. Repetirle la dirección aquí sería decirla dos veces
+—ya está arriba, en grande— y quitarle la ruta entera le dejaría sólo «Auto Noche».
+
+⚠️ **Sólo los componentes con `↔`.** Uno que aún nombra un sentido —«Transporte Ollanta - Cusco»—
+no se toca: ahí la ruta con dirección sigue siendo correcta, y meterle un «↔» sería afirmar algo
+que su tarifa no dice.
+
+Y `RefrescarNombresMaestrosCommand` propaga ahora **los dos** nombres. Refrescar sólo el interno
+sería actualizar justo el que el proveedor no ve.
+
 ##### ⚠️ `descripcion` no es «la variante de tarifa»
 
 Es **el nombre para el proveedor**, con su propia cascada en `BibliaSnapshotService::resolverDescripcion()`:
