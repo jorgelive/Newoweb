@@ -46,15 +46,6 @@ use Symfony\Component\Validator\Constraints as Assert;
  * La regla, por si vuelve a plantearse: *va a JSON lo que se lee entero y no se filtra; va a
  * tabla lo que el motor tiene que garantizar.*
  *
- * ## `emitido`: pagado no es lo mismo que emitido
- *
- * Una reserva puede estar pagada y sin billete, y entonces la aerolínea aún no ha dado el
- * localizador definitivo: en el expediente de Punta Cana hay dos códigos provisionales de Sky
- * con 44 pasajeros cada uno.
- *
- * ⚠️ Y un código provisional **no se distingue de uno real mirándolo**: `AAAAA` es una cadena
- * tan válida como `YMFLHB`. Sin esta bandera, «pagado sin emitir» sólo vive en una nota que
- * nadie puede consultar — y son 88 personas a las que hay que perseguir un billete.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_vuelo')]
@@ -94,11 +85,6 @@ class CotizacionVuelo
     #[Groups(['file:item:read'])]
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $aerolinea = null;
-
-    /** Pagado no es emitido: sin billete, el localizador de arriba es provisional. */
-    #[Groups(['file:item:read'])]
-    #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    private bool $emitido = true;
 
     /**
      * El itinerario, entero. Uno o dos saltos.
@@ -155,9 +141,6 @@ class CotizacionVuelo
 
     public function getAerolinea(): ?string { return $this->aerolinea; }
     public function setAerolinea(?string $aerolinea): self { $this->aerolinea = $aerolinea; return $this; }
-
-    public function isEmitido(): bool { return $this->emitido; }
-    public function setEmitido(bool $emitido): self { $this->emitido = $emitido; return $this; }
 
     /** @return list<array{numero: string, origen: string, destino: string, salida: string, llegada: string}> */
     public function getSegmentos(): array { return $this->segmentos; }

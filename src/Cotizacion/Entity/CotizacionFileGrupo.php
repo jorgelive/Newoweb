@@ -152,6 +152,25 @@ class CotizacionFileGrupo
      *
      * `text` y no `string`: son dos líneas hoy y pueden ser cuatro con escalas.
      */
+    /**
+     * ¿La reserva está emitida, o pagada y esperando billete?
+     *
+     * ⚠️ Va aquí y no en el vuelo, aunque al principio lo puse allí. El `H2 5002` es un vuelo
+     * perfectamente real y emitido para quien tenga su billete; lo que está pagado sin emitir
+     * son **estos 44 billetes**. Un mismo vuelo puede llevar reservas emitidas y sin emitir a
+     * la vez, así que en el vuelo la bandera no significaba nada.
+     *
+     * Mientras es `false`, la `clave` de arriba es un localizador **provisional** —«AAAAA»— y
+     * eso no se distingue mirándolo de uno real. De ahí que haga falta guardarlo: son 88
+     * personas a las que hay que perseguir un billete antes del 17/09.
+     *
+     * Sólo tiene sentido en `reserva_aerea`; en una habitación o un salón se queda en `true`
+     * y nadie lo mira.
+     */
+    #[Groups(['file:item:read', 'file:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    private bool $emitido = true;
+
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $detalle = null;
@@ -225,6 +244,9 @@ class CotizacionFileGrupo
 
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $v): self { $this->nombre = $v !== null ? (trim($v) ?: null) : null; return $this; }
+
+    public function isEmitido(): bool { return $this->emitido; }
+    public function setEmitido(bool $emitido): self { $this->emitido = $emitido; return $this; }
 
     public function getDetalle(): ?string { return $this->detalle; }
     public function setDetalle(?string $v): self { $this->detalle = $v !== null ? (trim($v) ?: null) : null; return $this; }
