@@ -3099,6 +3099,90 @@ verdad.
 Al añadir un chequeo, la pregunta no es «¿esto está mal?» sino **«¿quién lo lee puede hacer algo
 hoy?»**. Si la respuesta es no, o se acota o no se añade.
 
+## 6.w Los vuelos dejan de ser texto (28/08/2026)
+
+Un vuelo vivía dentro de `cotizacion_file_grupo.detalle`, en texto libre:
+
+```
+* Retorno JA7013 · LIM 23/09 06:30 → CUZ 23/09 07:55
+```
+
+Con eso, comprobar si una aerolínea movió un horario es **comparar cadenas** —lo hice a mano el
+28/08, cotejando 16 segmentos para encontrar el único que había cambiado— y «¿a quién afecta?» no
+se puede preguntar.
+
+### El reparto: qué va a tabla y qué a JSON
+
+```
+cotizacion_vuelo                     cotizacion_grupo_vuelo
+· numero, fecha   ⊙ identidad        · vuelo_id ──► cotizacion_vuelo
+· aerolinea, emitido                 · grupo_id ──► cotizacion_file_grupo
+· segmentos  JSON                    (N:M, con FK)
+· notas      JSON
+```
+
+**La identidad es `(numero, fecha)`** y la fecha no sobra: medido, 14 claves para 14 vuelos, y el
+`JA7027` vuela el 25 **y** el 27 de septiembre.
+
+**Los segmentos van en JSON** porque se leen enteros y no se filtran; un vuelo es uno o dos saltos
+—Copa hace `LIM → PTY → PUJ` bajo un billete—.
+
+⚠️ **El vínculo con los localizadores NO va en JSON.** Un vuelo lo comparten varios códigos —ocho
+comparten el `DM6771`— y guardarlos como array de cadenas dejaría que un localizador mal tecleado
+casara con cero grupos **sin dar error**: la misma familia de fallo que los grupos fantasma del
+padrón. La regla: *a JSON lo que se lee entero y no se filtra; a tabla lo que el motor tiene que
+garantizar.*
+
+**`emitido`** existe porque pagado no es emitido: hay dos códigos provisionales de Sky con 44 pax
+cada uno, y `AAAAA` no se distingue de `YMFLHB` mirándolo.
+
+### El cargador
+
+`app:cotizacion:cargar-vuelos <archivo.json>` — **ensaya por defecto**, escribe con `--aplicar`.
+Lo dispara un correo de la aerolínea y los correos se leen con prisa.
+
+Es **parcial**: un archivo con un solo vuelo toca ese vuelo. Un campo que no viene se deja como
+estaba, igual que en el padrón. Nunca borra.
+
+```
+cambia   JA7013 · 23/09   (5 códigos · 29 pax)
+           JA7013 LIM 06:10 → CUZ 07:30  ⟶  JA7013 LIM 05:55 → CUZ 07:15
+```
+
+Ese `(5 códigos · 29 pax)` es la razón de ser del modelo: decide si un cambio de horario es una
+anécdota o una llamada a 29 personas, y antes había que leer las 133 filas del padrón.
+
+⚠️ **Un localizador desconocido no se crea**: se avisa. Hoy salta con `YMFLHB` y `YMATXY`, porque
+en el sistema esos códigos de Sky aún son `AAAAA`/`BBBBB`.
+
+### ⚠️ Gotcha: MySQL reordena las claves de un JSON
+
+Comparar el itinerario nuevo con el guardado daba «cambia» en los catorce vuelos, con el antes y
+el después **idénticos en pantalla**.
+
+MySQL normaliza las claves de un objeto JSON al guardarlo —por longitud y luego alfabéticamente—,
+así que lo que vuelve no conserva el orden con que se escribió:
+
+```
+escrito    numero, origen, destino, salida, llegada
+devuelto   numero, origen, salida, destino, llegada
+```
+
+Y el `!==` de PHP sobre arrays **sí mira el orden de las claves**. Por eso
+`CotizacionCargarVuelosCommand::canonico()` hace `ksort` antes de comparar.
+
+Aplica a **cualquier** columna JSON con objetos dentro: comparar en crudo lo que salió de la base
+contra lo que se acaba de calcular siempre dará distinto.
+
+### Lo que NO cambia
+
+`cotizacion_file_grupo.detalle` **se queda como está**, y libre. Hoy sólo tiene vuelos —24 de 24
+grupos aéreos, 0 de los otros 85— pero es un campo genérico y puede servir para describir una
+habitación. El cargador de vuelos no lo toca.
+
+⚠️ Ojo si se le da ese uso: lleva `pax_file:read`, así que **viaja al navegador del pasajero**
+aunque hoy ninguna vista lo pinte. Para notas internas, quitar ese grupo primero.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |
