@@ -87,16 +87,10 @@
                 <tr>
                     <td class="fecha">{{ item.hora|default('—') }}</td>
                     <td>
-                        {# QUÉ hay que hacer, grande; y debajo el día del itinerario, pequeño.
-                           Los DOS, no uno u otro: con sólo la variante de tarifa esta línea le
-                           decía «Auto» a quien hacía el traslado Ollantaytambo→Cusco. #}
+                        {# QUÉ hay que hacer. UNO de los dos nombres, el que gane por tipo: el
+                           segmento en un traslado, el componente en lo demás. El que pierde se
+                           queda en La Biblia — al proveedor no le añade nada. #}
                         <span class="servicio">{{ item.tituloParaProveedor }}</span>
-                        {# EL OTRO de los dos. Cuál sea lo decide el TIPO: en un traslado manda
-                           el segmento —es quien dice a dónde se va— y aquí baja el componente;
-                           en una entrada manda el componente y aquí baja el segmento. #}
-                        {% if item.secundarioParaProveedor %}
-                            <br><span class="momento">{{ item.secundarioParaProveedor }}</span>
-                        {% endif %}
                         {% if item.varianteParaProveedor %}
                             <span class="variante">{{ item.varianteParaProveedor }}</span>
                         {% endif %}

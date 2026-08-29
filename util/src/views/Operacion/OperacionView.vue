@@ -3604,17 +3604,22 @@ onMounted(async () => {
                                          class="bg-slate-50 rounded-lg px-2 py-1.5">
                                         <div class="flex items-start justify-between gap-2">
                                             <div class="min-w-0">
-                                                <!-- Las mismas dos ranuras que en el cuadro: el encargo grande y el
-                                                     día del itinerario pequeño. `descripcion` es SÓLO la variante de
-                                                     tarifa, y sola era lo que le llegaba al proveedor como «Auto». -->
+                                                <!-- ⚠️ Los textos vienen RESUELTOS del backend
+                                                     (`tituloParaProveedor`, `varianteParaProveedor`,
+                                                     `diaParaProveedor`), no se recomponen aquí. Antes esta
+                                                     lista reimplementaba la regla —`nombreComponente ||
+                                                     descripcion`— ignorando el tipo, así que era una CUARTA
+                                                     copia: enseñaba el componente en grande incluso en un
+                                                     traslado, donde manda el segmento. La orden que se
+                                                     envía y la que se lista decían cosas distintas. -->
                                                 <p class="text-[11px] font-black text-slate-800 leading-snug">
-                                                    {{ it.nombreComponente || it.descripcion }}
-                                                    <span v-if="it.nombreComponente && it.descripcion && it.descripcion !== it.nombreComponente"
-                                                          class="font-bold text-slate-400">· {{ it.descripcion }}</span>
+                                                    {{ it.tituloParaProveedor }}
+                                                    <span v-if="it.varianteParaProveedor"
+                                                          class="font-bold text-slate-400">· {{ it.varianteParaProveedor }}</span>
                                                 </p>
-                                                <p v-if="it.contextoServicio && it.contextoServicio !== (it.nombreComponente || it.descripcion)"
+                                                <p v-if="it.diaParaProveedor"
                                                    class="text-[10px] text-slate-400 leading-snug">
-                                                    <i class="fas fa-map-signs text-[8px] mr-1 text-slate-300"></i>{{ it.contextoServicio }}
+                                                    <i class="fas fa-map-signs text-[8px] mr-1 text-slate-300"></i>{{ it.diaParaProveedor }}
                                                 </p>
                                                 <p class="text-[10px] text-slate-400 leading-snug">
                                                     <span v-if="it.hora">{{ it.hora }}</span>

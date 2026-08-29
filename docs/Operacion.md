@@ -1206,6 +1206,49 @@ Inmersión Colonial» no le dice al Arzobispado qué se le compró.
 un documento emitido se leyera distinto el día que el catálogo cambiara de opinión. Nulo en las
 emitidas antes de esa fecha → manda el componente, que es como se leían entonces.
 
+##### El secundario es de La Biblia, no de la orden (29/08/2026)
+
+Al proveedor le va **UNO** de los dos nombres, el que gane por tipo. El que pierde se queda en la
+pantalla interna.
+
+```
+La Biblia   Transporte desde el Aeropuerto de Lima al hotel en Lima
+              Transporte Aeropuerto Lima ↔ Miraflores (ida o vuelta)   ← el operador lo usa para buscar
+              Auto a Miraflores Noche
+
+la orden    Transporte desde el Aeropuerto de Lima al hotel en Lima · Auto a Miraflores Noche · Transporte en Lima
+```
+
+Al operador le sirve saber de qué componente del catálogo salió la fila — es como la busca. Al
+proveedor **no le añade nada**, y desde la fusión por sentido es literalmente **menos preciso**:
+debajo del encargo ponía la misma ruta sin el sentido.
+
+##### ⚠️ La lista de órdenes era una CUARTA copia de la regla
+
+`OperacionView.vue` reimplementaba la línea con `nombreComponente || descripcion`, ignorando el
+tipo. Resultado: **la orden que se enviaba y la que se listaba decían cosas distintas** — en un
+traslado la lista enseñaba el componente en grande y el mensaje el segmento.
+
+Se arregló exponiendo los textos ya resueltos (`tituloParaProveedor`, `varianteParaProveedor`,
+`diaParaProveedor`) en los grupos `operacion:read`, para que el front **pinte** en vez de decidir.
+Cuatro superficies, una regla, un solo sitio donde equivocarse.
+
+##### ⚠️ `descripcion` no es «la variante de tarifa»
+
+Es **el nombre para el proveedor**, con su propia cascada en `BibliaSnapshotService::resolverDescripcion()`:
+
+```
+0  servicio del prestador          «Habitación suite superior»
+1  nombreParaProveedorSnapshot     cómo llama ÉL a ese servicio
+2  nombre interno del componente   sólo los manuales lo tienen
+3  nombre interno de la tarifa     «Auto a Miraflores Noche»
+4  título público en español
+```
+
+Por eso en un traslado sale «Auto a Miraflores Noche»: nadie llenó los tres primeros peldaños y
+cayó al nombre de la tarifa. **No es un campo de relleno: es el que está escrito para que el
+proveedor lo reconozca**, y llenar el peldaño 1 mejora la orden más que cualquier regla de display.
+
 ##### Una sola regla para las cuatro ranuras: callarse si repites
 
 `OperacionOrdenServicioItem::calladoSiRepite()`. Cada texto se calla si repite **alguno de los que

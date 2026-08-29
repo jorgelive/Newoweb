@@ -414,6 +414,7 @@ class OperacionOrdenServicioItem
      * La cascada conserva los casos que no son un tramo —los bastones de Vinicunca no tienen
      * segmento— cayendo al componente y luego a la variante.
      */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getTituloParaProveedor(): string
     {
         $componente = trim($this->nombreComponente ?? '');
@@ -475,6 +476,15 @@ class OperacionOrdenServicioItem
     /**
      * El OTRO de los dos nombres, o null si no añade nada.
      *
+     * ⚠️ **Sólo para La Biblia, no para el proveedor** (29/08/2026). Al operador le sirve saber
+     * de qué componente del catálogo salió la fila —es como lo busca—; al proveedor no le dice
+     * nada que no diga ya el encargo, y desde la fusión por sentido es **literalmente menos
+     * preciso**: debajo de «Transporte desde el Aeropuerto de Lima al hotel en Lima» ponía
+     * «Transporte Aeropuerto Lima ↔ Miraflores (ida o vuelta)», que es la misma ruta sin el
+     * sentido. Dos textos donde uno ya era el bueno.
+     *
+     * La regla de prioridad decide cuál gana; el que pierde se queda dentro.
+     *
      * Cuál sea lo decide el tipo: en un traslado manda el segmento y aquí baja el componente; en
      * una entrada, al revés. Así la línea lleva siempre los dos datos —el encargo y el momento—
      * y nunca dos veces el mismo.
@@ -503,12 +513,10 @@ class OperacionOrdenServicioItem
         return $this->calladoSiRepite($secundario, [$this->getTituloParaProveedor()]);
     }
 
+    #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getVarianteParaProveedor(): ?string
     {
-        return $this->calladoSiRepite($this->descripcion, [
-            $this->getTituloParaProveedor(),
-            $this->getSecundarioParaProveedor(),
-        ]);
+        return $this->calladoSiRepite($this->descripcion, [$this->getTituloParaProveedor()]);
     }
 
     /**
@@ -518,11 +526,11 @@ class OperacionOrdenServicioItem
      * cuenta — antes sólo miraban contra el título, así que un contexto igual al componente salía
      * duplicado en el PDF.
      */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getDiaParaProveedor(): ?string
     {
         return $this->calladoSiRepite($this->contextoServicio, [
             $this->getTituloParaProveedor(),
-            $this->getSecundarioParaProveedor(),
             $this->getVarianteParaProveedor(),
         ]);
     }

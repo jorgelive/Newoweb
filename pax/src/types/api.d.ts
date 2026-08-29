@@ -17487,6 +17487,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
         };
         "OperacionOrdenServicioItem-operacion.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
@@ -17540,6 +17545,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
         };
         "OperacionOrdenServicioItem.html-operacion.item.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
@@ -17593,6 +17603,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
         };
         "OperacionOrdenServicioItem.html-operacion.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
@@ -17646,6 +17661,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
         };
         "OperacionOrdenServicioItem.jsonld-operacion.item.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
@@ -17699,6 +17719,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
         };
         "OperacionOrdenServicioItem.jsonld-operacion.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
@@ -17752,6 +17777,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
         };
         "OperacionOrdenServicioItem.multipart-operacion.item.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
@@ -17805,6 +17835,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
         };
         "OperacionOrdenServicioItem.multipart-operacion.read_timestamp.read": {
             /** @description Soft-link a la fila de La Biblia. Ver el docblock de la clase. */
@@ -17858,6 +17893,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** @description El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante. */
+            readonly tituloParaProveedor?: string;
+            readonly varianteParaProveedor?: string | null;
+            /** @description El DÍA del itinerario, o null si repite algo de lo ya dicho. */
+            readonly diaParaProveedor?: string | null;
         };
         /** @description Un pago a cuenta hecho al proveedor por una Orden de Servicio. */
         "OperacionPago-operacion.pago.read_timestamp.read": {

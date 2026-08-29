@@ -172,14 +172,6 @@ final readonly class OperacionOrdenDocumento
         // como calificador de un encargo, no como el encargo.
         $partes[] = sprintf('*%s*', $item->getTituloParaProveedor());
 
-        // EL OTRO de los dos, justo debajo del encargo. Cuál sea depende del TIPO: en un
-        // traslado manda el segmento y aquí baja el componente; en una entrada, al revés. La
-        // línea lleva siempre los dos y nunca dos veces el mismo. Va antes que la variante,
-        // que sólo matiza.
-        if (($secundario = $item->getSecundarioParaProveedor()) !== null) {
-            $partes[] = $secundario;
-        }
-
         if (($variante = $item->getVarianteParaProveedor()) !== null) {
             $partes[] = $variante;
         }
