@@ -44,8 +44,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * ⚠️ **Por grupo, no por persona.** Un traslado se contrata por vehículo: con el precio por
  * pasajero, un grupo de 40 en un bus saldría cuarenta veces el precio del bus.
  *
- * ⚠️ Y **sin capacidad**, que es lo único que no se puede deducir del nombre. Es además lo que
- * decide qué vehículo se usa para 131 personas, así que conviene ponerla pronto.
+ * La capacidad sí va puesta —Auto 4, Van 8, Minibús 25, Bus 45— porque es lo que decide qué
+ * vehículo se usa para un grupo de 131. Lo que falta es el precio.
  */
 #[AsCommand(
     name: 'app:travel:crear-traslados-punta-cana',
@@ -72,13 +72,19 @@ final class CrearTrasladosPuntaCanaCommand extends Command
      * ⚠️ Todas **por grupo**, no por persona: un traslado se contrata por vehículo. Con el precio
      * por pasajero, un grupo de 40 en un bus saldría cuarenta veces el precio del bus.
      *
-     * ⚠️ Y **sin capacidad**: cuántos caben en el minibús de Punta Cana es un dato del operador.
-     * Los de Lima la tienen —Auto 4, Van 8, Master 14— y conviene ponerla, porque es lo que
-     * decide qué vehículo se elige para 131 personas.
+     * La capacidad es lo que decide qué vehículo se usa para un grupo de 131, así que no es un
+     * adorno. De dónde sale cada número:
      *
-     * @var list<string>
+     * | Vehículo | Capacidad | Origen |
+     * |---|---|---|
+     * | Auto    |  4 | las tarifas de Lima, que ya la tenían |
+     * | Van     |  8 | las tarifas de Lima |
+     * | Minibús | 25 | el operador de Punta Cana |
+     * | Bus     | 45 | el operador de Punta Cana |
+     *
+     * @var array<string, int>
      */
-    private const FLOTA = ['Auto', 'Van', 'Minibús', 'Bus'];
+    private const FLOTA = ['Auto' => 4, 'Van' => 8, 'Minibús' => 25, 'Bus' => 45];
 
     /**
      * @var list<array{slug: string, nombre: string, titulo: string, contenido: string,
@@ -234,9 +240,8 @@ final class CrearTrasladosPuntaCanaCommand extends Command
 
         if ($creados > 0) {
             $io->warning(sprintf(
-                'Las %d tarifas nacen a 0 y SIN capacidad. El precio y cuántos caben en cada '
-                . 'vehículo los pone el operador; la capacidad es lo que decide qué se usa para '
-                . 'un grupo grande. En Lima: Auto 4, Van 8, Master 14.',
+                'Las %d tarifas nacen a 0: el precio lo pone el operador. La capacidad sí va '
+                . 'puesta (Auto 4, Van 8, Minibús 25, Bus 45).',
                 count(self::FLOTA) * count(self::SEGMENTOS),
             ));
         }
@@ -274,11 +279,22 @@ final class CrearTrasladosPuntaCanaCommand extends Command
         $titulo = $this->textoEspanol($componente->getTitulo());
         $flota = [];
 
-        foreach (self::FLOTA as $vehiculo) {
+        foreach (self::FLOTA as $vehiculo => $capacidad) {
             $nombre = sprintf('%s · %s', $vehiculo, $titulo);
 
             if (isset($existentes[$nombre])) {
-                $flota[] = $existentes[$nombre];
+                $tarifa = $existentes[$nombre];
+                $flota[] = $tarifa;
+
+                // La capacidad se sincroniza también en las que ya existían: nacieron sin ella.
+                if ($tarifa->getCapacidadMaxima() !== $capacidad) {
+                    $io->text(sprintf('  %s · %s hasta %d pax', $simula ? 'pondría' : 'puesta ', $nombre, $capacidad));
+
+                    if (!$simula) {
+                        $tarifa->setCapacidadMaxima($capacidad);
+                    }
+                }
+
                 continue;
             }
 
@@ -297,6 +313,7 @@ final class CrearTrasladosPuntaCanaCommand extends Command
             $tarifa->setMonto('0.00');
             $tarifa->setModalidad(TarifaModalidadEnum::PRIVADO);
             $tarifa->setCostoPorGrupo(true);
+            $tarifa->setCapacidadMaxima($capacidad);
             $this->em->persist($tarifa);
 
             $flota[] = $tarifa;

@@ -1600,10 +1600,18 @@ Punta Cana lleva **cuatro vehículos por sentido** —Auto, Van, Minibús y Bus�
 ⚠️ **Por grupo, no por persona.** Un traslado se contrata por vehículo: con el precio por pasajero,
 un grupo de 40 en un bus saldría cuarenta veces el precio del bus.
 
-⚠️ Nacen **a 0 y sin capacidad**. El precio lo pone el operador, y la capacidad es lo que decide
-qué vehículo se usa para 131 personas —en Lima: Auto 4, Van 8, Master 14—. Inventar cualquiera de
-los dos habría sido peor que dejarlos vacíos: una tarifa con una cifra inventada se cotiza igual
-de bien y nadie nota el error hasta el día del traslado.
+Nacen **a 0**, que lo pone el operador, pero **con capacidad**, que es lo que decide qué vehículo
+se usa para un grupo de 131:
+
+| Vehículo | Capacidad | De dónde sale |
+|---|---|---|
+| Auto | 4 | las tarifas de Lima, que ya la tenían |
+| Van | 8 | las tarifas de Lima |
+| Minibús | 25 | el operador de Punta Cana |
+| Bus | 45 | el operador de Punta Cana |
+
+⚠️ El precio sigue vacío **a propósito**: una tarifa con una cifra inventada se cotiza igual de
+bien y nadie nota el error hasta el día del traslado.
 
 ⚠️ Al sustituir la tarifa de relleno por la flota, el enlace se quedaba **sin predeterminada** —y
 un enlace así obliga a elegir tarifa a mano cada vez que se arrastra el segmento—. El comando lo
