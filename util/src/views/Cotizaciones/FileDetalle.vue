@@ -722,15 +722,12 @@ const EJEMPLO_VUELOS = `[
         "numero": "H2 5002",
         "fecha": "2026-09-17",
         "aerolinea": "Sky Airline",
-        "segmentos": [
-          {
-            "numero": "H2 5002",
-            "origen": "CUZ",
-            "destino": "LIM",
-            "salida": "2026-09-17 06:50",
-            "llegada": "2026-09-17 08:35"
-          }
-        ]
+        "leg": {
+          "origen": "CUZ",
+          "destino": "LIM",
+          "salida": "2026-09-17 06:50",
+          "llegada": "2026-09-17 08:35"
+        }
       }
     ]
   }
@@ -2727,10 +2724,10 @@ const eliminarDocumento = async (iri?: string) => {
                       class="w-full text-left flex items-center gap-2 py-1 rounded-lg hover:bg-slate-50 active:bg-slate-100">
                 <i class="fas text-[10px] text-slate-400 w-3"
                    :class="pnrsAbiertos.has(String(v.clave)) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                <span class="text-sm min-w-0">
+                <span class="text-sm min-w-0 flex flex-wrap items-baseline gap-x-1.5">
                   <span class="font-bold text-sky-600">{{ v.tramo }}</span>
-                  <span class="text-slate-700 font-bold"> {{ v.nombre }}</span>
-                  <span class="text-slate-400 font-mono"> · {{ v.clave }}</span>
+                  <span class="text-slate-700 font-bold">{{ v.nombre }}</span>
+                  <span class="text-slate-400 font-mono">· {{ v.clave }}</span>
                 </span>
                 <!-- Pagado no es emitido, y eso se ve sin abrir: es lo que hay que perseguir. -->
                 <span v-if="!v.emitido"
@@ -3178,8 +3175,8 @@ const eliminarDocumento = async (iri?: string) => {
               aparece se queda como está. Nunca borra.</p>
             <p><b>El PNR debe existir</b> en el expediente: si no, se avisa y no se crea. Para renombrar
               uno provisional usa <code class="font-mono">pnr_nuevo</code>.</p>
-            <p><b>Un vuelo es un tramo.</b> Una conexión son dos vuelos, cada uno con su número; lo que
-              los une es que comparten PNR.</p>
+            <p><b>Un vuelo es un <code class="font-mono">leg</code>.</b> Una conexión son dos vuelos,
+              cada uno con su número; lo que los une es que comparten PNR.</p>
             <p><code class="font-mono">emitido: false</code> marca la reserva pagada y sin billete.</p>
           </div>
         </details>

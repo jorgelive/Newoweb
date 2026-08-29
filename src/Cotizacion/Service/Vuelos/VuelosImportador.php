@@ -23,8 +23,8 @@ use Doctrine\ORM\EntityManagerInterface;
  *        "emitido":     true,              // opcional
  *        "vuelos": [{
  *          "numero": "H2 5002", "fecha": "2026-09-17", "aerolinea": "Sky Airline",
- *          "segmentos": [{ "numero": "H2 5002", "origen": "CUZ", "destino": "LIM",
- *                          "salida": "2026-09-17 06:50", "llegada": "2026-09-17 08:35" }],
+ *          "leg": { "origen": "CUZ", "destino": "LIM",
+ *                   "salida": "2026-09-17 06:50", "llegada": "2026-09-17 08:35" },
  *          "notas": ["…"]
  *        }] }]
  *
@@ -36,7 +36,7 @@ use Doctrine\ORM\EntityManagerInterface;
  *
  * | Lo que pasó | Qué hace esto |
  * |---|---|
- * | cambia el horario | actualiza los segmentos del vuelo; sus otros PNRs no se tocan |
+ * | cambia el horario | actualiza el leg del vuelo; sus otros PNRs no se tocan |
  * | el PNR se reubica en otro vuelo | el vínculo pasa al otro; el vuelo sigue igual |
  * | **el vuelo se traslada de fecha** | el PNR apunta al vuelo nuevo, y el viejo queda sin nadie |
  *
@@ -227,25 +227,39 @@ final class VuelosImportador
 
         $numero = trim((string) $def['numero']);
 
-        // Un vuelo es UN tramo. El generador lo manda como lista de uno; también se aceptan los
-        // campos sueltos, que es lo que escribiría alguien a mano.
-        $tramo = $def;
+        // ⚠️ La palabra es **leg**, no «segmento».
+        //
+        // En este sistema un `TravelSegmento` es un capítulo del relato de un viaje —«Parque
+        // Kennedy», «Piscina y playa»—, y un vuelo no es eso. El término del sector para un salto
+        // entre dos aeropuertos es *leg*, y usarlo evita que dos cosas distintas compartan nombre
+        // en el mismo modelo.
+        //
+        // Se acepta como objeto o con los campos sueltos, que es lo que escribiría alguien a mano.
+        $leg = $def;
 
-        if (isset($def['segmentos']) && is_array($def['segmentos'])) {
-            if (count($def['segmentos']) !== 1 || !isset($def['segmentos'][0]) || !is_array($def['segmentos'][0])) {
+        if (isset($def['leg'])) {
+            if (!is_array($def['leg']) || array_is_list($def['leg'])) {
                 $r->problema(sprintf(
-                    '%s trae %d segmentos: un vuelo es UN tramo, con su número. Pártelo.',
+                    '%s: «leg» es un objeto, no una lista. Un vuelo es UN leg; una conexión son dos vuelos.',
                     $numero,
-                    count($def['segmentos']),
                 ));
 
                 return null;
             }
 
-            $tramo = $def['segmentos'][0];
+            $leg = $def['leg'];
         }
 
-        $salida = $this->momento($tramo['salida'] ?? $def['fecha'] ?? null);
+        if (isset($def['segmentos'])) {
+            $r->problema(sprintf(
+                '%s usa «segmentos», que aquí significa otra cosa. Renómbralo a «leg» y ponlo como objeto.',
+                $numero,
+            ));
+
+            return null;
+        }
+
+        $salida = $this->momento($leg['salida'] ?? $def['fecha'] ?? null);
 
         if ($salida === null) {
             $r->problema(sprintf('%s: sin «salida» legible.', $numero));
@@ -271,17 +285,17 @@ final class VuelosImportador
 
         $antes = $this->pinta($vuelo);
 
-        if (isset($tramo['origen'])) {
-            $vuelo->setOrigen(strtoupper(trim((string) $tramo['origen'])));
+        if (isset($leg['origen'])) {
+            $vuelo->setOrigen(strtoupper(trim((string) $leg['origen'])));
         }
 
-        if (isset($tramo['destino'])) {
-            $vuelo->setDestino(strtoupper(trim((string) $tramo['destino'])));
+        if (isset($leg['destino'])) {
+            $vuelo->setDestino(strtoupper(trim((string) $leg['destino'])));
         }
 
         $vuelo->setSalida($salida);
 
-        $llegada = $this->momento($tramo['llegada'] ?? null);
+        $llegada = $this->momento($leg['llegada'] ?? null);
 
         if ($llegada !== null) {
             $vuelo->setLlegada($llegada);

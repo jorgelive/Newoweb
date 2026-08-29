@@ -3153,9 +3153,18 @@ La aerolínea no escribe «el DM6771 se movió»: escribe **sobre un localizador
    }] }]
 ```
 
-`pnr` es el nombre bueno; `localizador` se acepta porque así se llamó al principio. `segmentos`
-llega como lista de **uno** —un vuelo es un tramo— y **más de uno se rechaza** en vez de aplanarse:
-sería el billete de Copa otra vez. También se aceptan los campos sueltos sin envolver.
+`pnr` es el nombre bueno; `localizador` se acepta porque así se llamó al principio.
+
+### ⚠️ Se llama `leg`, no «segmento»
+
+En este sistema un `TravelSegmento` es un **capítulo del relato** de un viaje —«Parque Kennedy»,
+«Piscina y playa»— y un vuelo no es eso. El término del sector para un salto entre dos aeropuertos
+es **leg**, y usarlo evita que dos cosas distintas compartan nombre en el mismo modelo.
+
+`leg` es un **objeto**, no una lista: un vuelo es un leg y una conexión son **dos vuelos**. Una
+lista se rechaza, y un `segmentos` se rechaza también con un mensaje que dice cómo renombrarlo —no
+se acepta en silencio, porque volvería a colar el billete de Copa disfrazado de vuelo. También se
+aceptan los campos sueltos sin envolver.
 
 ⚠️ Las **notas del PNR** no son decoración: de la carga real de Sky salieron el plazo del portal de
 grupos (12/09), el número de solicitud y un cambio de nombre en curso con su ticket. Sin sitio
