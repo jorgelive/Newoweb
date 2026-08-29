@@ -267,6 +267,23 @@ el comando sólo ejecuta la decisión.
 ⚠️ La palabra se quita con **límites de palabra** (`\bdesde\b`), no con un `str_replace`: éste
 mordería cualquier nombre que la contenga dentro de otra.
 
+### Copias exactas: siempre queda una (29/08/2026)
+
+`Pool By Car` tenía **siete** «Pool Bickmar» idénticas a 40 USD, ninguna en uso. Siete filas
+iguales en un desplegable no son un catálogo: son ruido, y esconden si alguna de ellas era la
+buena.
+
+`app:travel:limpiar-tarifas-repetidas` quita las copias **exactas** —mismo componente, nombre,
+importe y moneda—. Si difieren en algo, se quedan las dos: en cuanto hay una diferencia deja de
+ser un duplicado y pasa a ser una decisión de negocio.
+
+⚠️ **Siempre queda UNA, aunque ninguna esté en uso.** Un componente sin tarifas no se puede
+cotizar: entra sin precio y no falla en ninguna parte hasta que alguien mira el total. Vaciarlo
+sería cambiar «tiene siete copias» por «no se puede vender», que es peor.
+
+Quedan otras repetidas fuera de transporte —`Alojamiento en Ollantaytambo`, `Cena en Valle
+Sagrado`, `Transporte Xcaret Rountrip`—, todas ×2. El comando las coge sin `--componente`.
+
 ### 🔜 PENDIENTE: revisar las capacidades de todo el catálogo
 
 Arequipa declaraba la `Van` con **4 plazas, igual que el `Auto`**. Se corrigió con los números
@@ -535,4 +552,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:resolver-tarifas-divergentes` | aplicar una decisión de negocio dejando por escrito la que no se tomó |
 | `app:travel:consolidar-transporte-aeropuerto-lima` | consolidar con cuadro explícito · reapuntar componente Y tarifa en cotizaciones hechas |
 | `app:travel:fusionar-tarifas-por-sentido` | distinguir un eje falso (el sentido) de uno verdadero (el sector) en el mismo nombre |
+| `app:travel:limpiar-tarifas-repetidas` | borrar copias exactas sin dejar nunca un componente sin precio |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
