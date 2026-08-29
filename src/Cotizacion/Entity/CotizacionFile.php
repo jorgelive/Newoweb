@@ -190,6 +190,19 @@ class CotizacionFile
     private Collection $filearchivos;
 
     /**
+     * Los vuelos del viaje, en orden cronológico.
+     *
+     * ⚠️ Ordenados por `salida` y no por número: lo que se mira en un expediente es «qué pasa
+     * el día 23», y un `JA7027` que vuela el 25 y el 27 no significa nada junto.
+     *
+     * @var Collection<int, CotizacionVuelo>
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionVuelo::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['salida' => 'ASC'])]
+    private Collection $vuelos;
+
+    /**
      * Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas.
      *
      * Cuelgan de aquí y no del sistema: el «Grupo 5» de un viaje no es el de otro. Ver
@@ -237,6 +250,7 @@ class CotizacionFile
         $this->filepasajeros = new ArrayCollection();
         $this->filearchivos = new ArrayCollection();
         $this->grupos = new ArrayCollection();
+        $this->vuelos = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -469,6 +483,9 @@ class CotizacionFile
 
     public function getContacto(): ?MaestroContacto { return $this->contacto; }
     public function setContacto(?MaestroContacto $contacto): self { $this->contacto = $contacto; return $this; }
+
+    /** @return Collection<int, CotizacionVuelo> */
+    public function getVuelos(): Collection { return $this->vuelos; }
 
     /** @return Collection<int, CotizacionFileGrupo> */
     public function getGrupos(): Collection { return $this->grupos; }

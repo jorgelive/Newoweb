@@ -3212,11 +3212,61 @@ para cualquier columna JSON con objetos dentro**.
 propio `CM264`, y al aplicar reventaba el índice único. El importador mantiene un índice en
 memoria de los vuelos del expediente y lo actualiza con lo que crea.
 
+### Se carga desde el expediente, pegando el JSON
+
+El padrón llega en Excel porque lo llena el colegio; los vuelos llegan en un **correo de la
+aerolínea**, y pedir que alguien los pase a una hoja para volver a subirlos es trabajo inventado.
+Por eso en la ficha del expediente hay un botón **«Cargar vuelos»** que abre un cuadro de texto
+donde se pega el JSON, con su ayuda plegada y un ejemplo de un clic.
+
+`VuelosCargaController` es una envoltura sobre el mismo `VuelosImportador` que usa el comando: no
+hay una segunda copia de las reglas.
+
+⚠️ **El ensayo escribe y deshace**, como el del padrón: se abre transacción, se hace `flush` y se
+revierte. Un ensayo más permisivo que la carga no sirve de nada — así se comprueban el índice
+único y las claves foráneas, que es donde falla lo que no se ve leyendo el archivo. Y en HTTP no
+vale `em->clear()`: desengancharía el propio expediente que el controlador tiene en la mano.
+
+**«Aplicar» sólo se habilita tras un ensayo con cambios y sin problemas**, así que no hay forma de
+escribir sin haber visto antes el diff.
+
+Los vuelos se pintan en el expediente en **orden cronológico** —así se mira un expediente: «qué
+pasa el día 23»— con sus PNRs al lado y un aviso de «+1 día» cuando la llegada cruza medianoche.
+
+⚠️ `CotizacionVuelo::getPnrs()` publica los códigos como **texto**, no la colección: serializar los
+grupos arrastra `grupo → file → vuelos → grupo` y el serializador corta con
+`CircularReferenceException`.
+
+### El agente lee lo mismo que el operador
+
+`ConsultarPadronSkill` sacaba los horarios de `$grupo->getDetalle()`. Ahora los compone desde los
+vuelos (`itinerarioDe()`), así que **no hay dos versiones que puedan discrepar**.
+
+Añade además dos cosas que el texto no podía decir:
+
+- **`sin_emitir`**, y sólo cuando lo está: decir «emitido: sí» en las 22 normales es ruido.
+- **los avisos del PNR** —plazos, trámites— cuando se pregunta por alguien concreto.
+
+⚠️ Y el «llega al día siguiente» **se dice con palabras** en vez de dejar que el modelo reste dos
+fechas: es de lo que más se equivoca al resumir un itinerario nocturno.
+
+Los horarios siguen saliendo **sólo al preguntar por una persona**, no al listar 40: en una lista
+son miles de tokens que nadie pidió.
+
+### El texto libre se retiró
+
+Con el itinerario en dos sitios, el que se quedaría viejo sería justo el que ve el operador. La
+migración `Version20260829010000` vació el `detalle` de los **24 grupos aéreos** que ya tienen sus
+vuelos cargados.
+
+⚠️ Sólo de esos. Un grupo aéreo **sin** vuelos conserva su texto —es lo único que se sabe de él— y
+los otros 85 grupos ni se tocan.
+
 ### Lo que NO cambia
 
-`cotizacion_file_grupo.detalle` **se queda como está**, y libre. Hoy sólo tiene vuelos —24 de 24
-grupos aéreos, 0 de los otros 85— pero es un campo genérico y puede servir para describir una
-habitación. El importador de vuelos no lo toca.
+`cotizacion_file_grupo.detalle` **sigue existiendo**, y libre. Era el único sitio donde vivían los vuelos y ha dejado de
+serlo, pero es un campo genérico y puede servir para describir una habitación. El importador de
+vuelos no lo toca fuera de los grupos aéreos.
 
 ⚠️ Ojo si se le da ese uso: lleva `pax_file:read`, así que **viaja al navegador del pasajero**
 aunque hoy ninguna vista lo pinte. Para notas internas, quitar ese grupo primero.

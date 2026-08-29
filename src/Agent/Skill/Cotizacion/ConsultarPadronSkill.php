@@ -590,6 +590,47 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
         return null;
     }
 
+    /**
+     * El itinerario de una reserva, en una línea por tramo.
+     *
+     * ⚠️ Antes esto salía de `CotizacionFileGrupo::$detalle`, un texto libre que alguien tecleaba.
+     * Ahora sale de los vuelos, así que el agente lee **lo mismo que el operador ve** y no una
+     * copia que se quedó vieja el día que la aerolínea movió un horario.
+     *
+     * Se escribe para el modelo, no para pantalla: una línea por vuelo, con la fecha delante
+     * porque «a qué hora sale mi vuelo» es siempre relativo a un día.
+     *
+     * @return list<string>
+     */
+    private function itinerarioDe(CotizacionFileGrupo $grupo): array
+    {
+        $lineas = [];
+
+        foreach ($grupo->getVuelos() as $v) {
+            $salida = $v->getSalida();
+            $llegada = $v->getLlegada();
+
+            if ($salida === null || $llegada === null) {
+                continue;
+            }
+
+            $lineas[] = sprintf(
+                '%s · %s sale de %s a las %s y llega a %s a las %s%s',
+                $salida->format('d/m'),
+                (string) $v->getNumero(),
+                (string) $v->getOrigen(),
+                $salida->format('H:i'),
+                (string) $v->getDestino(),
+                $llegada->format('H:i'),
+                // El día siguiente se DICE, no se deja deducir de dos fechas que el modelo tendría
+                // que restar: es de lo que más se equivoca al resumir un itinerario nocturno.
+                $llegada->format('Y-m-d') !== $salida->format('Y-m-d') ? ' del día siguiente' : '',
+            );
+        }
+
+        return $lineas;
+    }
+
     /** @return array<string, mixed> */
     private function describirPersona(CotizacionFilepasajero $p, bool $conHorarios = false): array
     {
@@ -620,7 +661,11 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
                     // ⚠️ Los HORARIOS sólo cuando preguntan por alguien concreto. Son varias líneas
                     // por vuelo: en una lista de 40 personas son miles de tokens que nadie pidió, y
                     // volverían a inflar el turno que tanto costó adelgazar.
-                    'horarios' => $conHorarios ? $g->getDetalle() : null,
+                    'horarios' => $conHorarios ? $this->itinerarioDe($g) : null,
+                    // Pagado no es emitido. Sólo se dice cuando NO lo está: decir «emitido: sí» en
+                    // los 22 normales es ruido, y lo que hay que contestar es lo que falta.
+                    'sin_emitir' => $g->isEmitido() ? null : 'La reserva está pagada pero el billete aún no se ha emitido.',
+                    'avisos' => $conHorarios && $g->getNotas() !== [] ? $g->getNotas() : null,
                 ], static fn (mixed $v): bool => $v !== null && $v !== '');
 
                 $vuelos[] = $vuelo;

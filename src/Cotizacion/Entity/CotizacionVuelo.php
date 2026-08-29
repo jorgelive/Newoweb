@@ -192,6 +192,35 @@ class CotizacionVuelo
     /** @param list<string> $notas */
     public function setNotas(array $notas): self { $this->notas = $notas; return $this; }
 
+    /**
+     * Los PNRs que viajan en este vuelo, como texto.
+     *
+     * ⚠️ Se publica esto y no la colección: serializar los grupos arrastra
+     * `grupo → file → vuelos → grupo` y el serializador corta con una `CircularReferenceException`.
+     * Es el mismo motivo por el que `CotizacionFileGrupo` acota sus grupos de normalización.
+     *
+     * Y es lo único que la pantalla necesita: el código, para leerlo y buscarlo.
+     *
+     * @return list<string>
+     */
+    #[Groups(['file:item:read'])]
+    public function getPnrs(): array
+    {
+        $claves = [];
+
+        foreach ($this->grupos as $grupo) {
+            $clave = $grupo->getClave();
+
+            if ($clave !== null) {
+                $claves[] = $clave;
+            }
+        }
+
+        sort($claves);
+
+        return $claves;
+    }
+
     /** @return Collection<int, CotizacionFileGrupo> */
     public function getGrupos(): Collection { return $this->grupos; }
 

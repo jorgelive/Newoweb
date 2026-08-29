@@ -86,10 +86,28 @@ final class VuelosImportador
 
         $this->avisarVuelosVacios($file, $r);
 
-        if ($aplicar && $r->hayAlgoQueHacer()) {
+        // ⚠️ El ensayo ESCRIBE y deshace, no se limita a mirar.
+        //
+        // Es el patrón de `PadronImportador`, y por el mismo motivo: un ensayo más permisivo que
+        // la carga no sirve de nada. Escribiendo de verdad se comprueban el índice único de
+        // `(file, numero, fecha)` y las claves foráneas del puente, que es justo donde falla lo
+        // que no se ve leyendo el archivo.
+        //
+        // Y en HTTP no vale `em->clear()`: desengancharía el propio expediente que el
+        // controlador tiene en la mano.
+        $this->em->getConnection()->beginTransaction();
+
+        try {
             $this->em->flush();
-        } elseif (!$aplicar) {
-            $this->em->clear();
+
+            if ($aplicar) {
+                $this->em->getConnection()->commit();
+            } else {
+                $this->em->getConnection()->rollBack();
+            }
+        } catch (\Throwable $e) {
+            $this->em->getConnection()->rollBack();
+            $r->problema('No se pudo guardar: ' . $e->getMessage());
         }
 
         return $r;

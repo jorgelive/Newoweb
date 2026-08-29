@@ -384,6 +384,46 @@ export interface paths {
         patch: operations["api_salescotizacions_id_patch"];
         trace?: never;
     };
+    "/platform/sales/cotizacions/{id}/coherencia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a Cotizacion resource.
+         * @description Creates a Cotizacion resource.
+         */
+        post: operations["api_salescotizacions_idcoherencia_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacions/{id}/coherencia/reparar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a Cotizacion resource.
+         * @description Creates a Cotizacion resource.
+         */
+        post: operations["api_salescotizacions_idcoherenciareparar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/sales/cotizacions/{id}/operacion/aplicar": {
         parameters: {
             query?: never;
@@ -4978,6 +5018,30 @@ export interface components {
             aprobados?: {
                 [key: string]: string[];
             };
+        };
+        "Cotizacion.InformeCoherencia-coherencia.read": {
+            reparables?: components["schemas"]["HallazgoCoherencia-coherencia.read"][];
+            avisos?: components["schemas"]["HallazgoCoherencia-coherencia.read"][];
+            /** @description Si esta llamada ya reparó, para que la pantalla no ofrezca hacerlo otra vez. */
+            reparado?: boolean;
+        };
+        "Cotizacion.InformeCoherencia.html-coherencia.read": {
+            reparables?: components["schemas"]["HallazgoCoherencia.html-coherencia.read"][];
+            avisos?: components["schemas"]["HallazgoCoherencia.html-coherencia.read"][];
+            /** @description Si esta llamada ya reparó, para que la pantalla no ofrezca hacerlo otra vez. */
+            reparado?: boolean;
+        };
+        "Cotizacion.InformeCoherencia.jsonld-coherencia.read": components["schemas"]["HydraItemBaseSchema"] & {
+            reparables?: components["schemas"]["HallazgoCoherencia.jsonld-coherencia.read"][];
+            avisos?: components["schemas"]["HallazgoCoherencia.jsonld-coherencia.read"][];
+            /** @description Si esta llamada ya reparó, para que la pantalla no ofrezca hacerlo otra vez. */
+            reparado?: boolean;
+        };
+        "Cotizacion.InformeCoherencia.multipart-coherencia.read": {
+            reparables?: components["schemas"]["HallazgoCoherencia.multipart-coherencia.read"][];
+            avisos?: components["schemas"]["HallazgoCoherencia.multipart-coherencia.read"][];
+            /** @description Si esta llamada ya reparó, para que la pantalla no ofrezca hacerlo otra vez. */
+            reparado?: boolean;
         };
         "Cotizacion.PlanReconciliacion-operacion.plan.read": {
             firma?: string;
@@ -9615,6 +9679,7 @@ export interface components {
             cotizaciones?: string[];
             filepasajeros?: string[];
             filearchivos?: string[];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
             /**
@@ -9679,6 +9744,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo-file.read_file.item.read_timestamp.read"][];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
@@ -9890,6 +9956,7 @@ export interface components {
             cotizaciones?: string[];
             filepasajeros?: string[];
             filearchivos?: string[];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.html"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
             /**
@@ -9954,6 +10021,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion.html-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.html-file.read_file.item.read_timestamp.read"][];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.html-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
@@ -10083,36 +10151,8 @@ export interface components {
             readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
-        "CotizacionFile.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreGrupo?: string;
-            pasajeroPrincipal?: string | null;
-            email?: string | null;
-            telefono?: string | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            pais?: string | null;
-            contacto?: components["schemas"]["MaestroContacto.jsonld"] | null;
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            idioma?: string | null;
-            /** @default es */
-            idiomaCliente: string;
-            /**
-             * @default abierto
-             * @enum {string}
-             */
-            estado: "abierto" | "cerrado" | "archivado";
-            /**
-             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
-             *     usa queries escalares); el editor la sigue usando con file:item:read.
-             */
-            cotizaciones?: string[];
-            filepasajeros?: string[];
-            filearchivos?: string[];
+        "CotizacionFile.jsonld": {
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
             /**
@@ -10152,7 +10192,37 @@ export interface components {
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
-        };
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string | null;
+            contacto?: components["schemas"]["MaestroContacto.jsonld"] | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            idioma?: string | null;
+            /** @default es */
+            idiomaCliente: string;
+            /**
+             * @default abierto
+             * @enum {string}
+             */
+            estado: "abierto" | "cerrado" | "archivado";
+            /**
+             * @description EXTRA_LAZY: la vista pública nunca hidrata esta colección (el provider
+             *     usa queries escalares); el editor la sigue usando con file:item:read.
+             */
+            cotizaciones?: string[];
+            filepasajeros?: string[];
+            filearchivos?: string[];
+        });
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** Format: date-time */
@@ -10163,6 +10233,7 @@ export interface components {
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": {
             filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read"][];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
@@ -10340,6 +10411,7 @@ export interface components {
             cotizaciones?: string[];
             filepasajeros?: string[];
             filearchivos?: string[];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.multipart"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
             /**
@@ -10404,6 +10476,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion.multipart-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.multipart-file.read_file.item.read_timestamp.read"][];
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.multipart-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
@@ -10532,7 +10605,6 @@ export interface components {
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
         };
-        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         CotizacionFileGrupo: {
             /**
              * Format: iri-reference
@@ -10550,9 +10622,15 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
             miembros?: components["schemas"]["CotizacionPasajeroGrupo"][];
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10577,8 +10655,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10602,8 +10686,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10629,8 +10719,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
@@ -10647,11 +10743,16 @@ export interface components {
             clave?: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
         };
-        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.html": {
             /**
              * Format: iri-reference
@@ -10669,9 +10770,15 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
             miembros?: components["schemas"]["CotizacionPasajeroGrupo.html"][];
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10696,8 +10803,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10721,8 +10834,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10736,11 +10855,7 @@ export interface components {
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            file?: string;
+            file?: components["schemas"]["CotizacionFile.jsonld"];
             /** @enum {string} */
             tipo: "grupo" | "habitacion" | "reserva_aerea" | "servicio";
             /**
@@ -10752,14 +10867,19 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
-            miembros?: components["schemas"]["CotizacionPasajeroGrupo.jsonld"][];
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
-            createdAt?: string;
+            readonly createdAt?: string;
             /** Format: date-time */
-            updatedAt?: string | null;
+            readonly updatedAt?: string | null;
             /** @description «Vuelo Nacional», «Habitación». Lo que va en la cabecera de la columna y en la pantalla. */
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
@@ -10779,8 +10899,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10805,8 +10931,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10818,7 +10950,6 @@ export interface components {
             readonly etiqueta?: string;
             readonly totalMiembros?: number;
         };
-        /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.multipart": {
             /**
              * Format: iri-reference
@@ -10836,9 +10967,15 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
             miembros?: components["schemas"]["CotizacionPasajeroGrupo.multipart"][];
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10863,8 +11000,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10888,8 +11031,14 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
-            /** @description El detalle largo, opcional y de varias líneas. No cabe en una píldora y no se pinta en una. */
+            /**
+             * @description ¿La reserva está emitida, o pagada y esperando billete?
+             * @default true
+             */
+            emitido: boolean;
             detalle?: string | null;
+            /** @description Lo que hay que saber de esta reserva y no cabe en ningún campo. */
+            notas?: string[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -13287,6 +13436,262 @@ export interface components {
             notasSnapshot?: (string | null)[];
             id?: string;
         };
+        CotizacionVuelo: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            grupos?: components["schemas"]["CotizacionFileGrupo"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo-file.read_file.item.read_timestamp.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            grupos?: components["schemas"]["CotizacionFileGrupo.html"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo.html-file.read_file.item.read_timestamp.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo.jsonld": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            grupos?: components["schemas"]["CotizacionFileGrupo.jsonld"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo.jsonld-file.read_file.item.read_timestamp.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            grupos?: components["schemas"]["CotizacionFileGrupo.multipart"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
+        "CotizacionVuelo.multipart-file.read_file.item.read_timestamp.read": {
+            /** @description Tal como lo escribe la aerolínea. Copa manda los dos: «CM264 / CM177». */
+            numero: string;
+            /**
+             * Format: date-time
+             * @description La de SALIDA del primer segmento: es la mitad de la identidad del vuelo.
+             */
+            readonly fecha: string;
+            /** @description Texto, no relación, **por ahora**. */
+            aerolinea?: string | null;
+            origen?: string;
+            destino?: string;
+            /**
+             * Format: date-time
+             * @description Fecha-hora completas, no fecha + hora por separado.
+             */
+            salida?: string;
+            /** Format: date-time */
+            llegada?: string;
+            /** @description De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar». */
+            notas?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Los PNRs que viajan en este vuelo, como texto. */
+            readonly pnrs?: string[];
+        };
         CuentaCentro: {
             readonly id?: number;
             nombre?: string;
@@ -13949,6 +14354,34 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        "HallazgoCoherencia-coherencia.read": {
+            clave?: string;
+            titulo?: string;
+            /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
+            detalle?: string;
+            filas?: number;
+        };
+        "HallazgoCoherencia.html-coherencia.read": {
+            clave?: string;
+            titulo?: string;
+            /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
+            detalle?: string;
+            filas?: number;
+        };
+        "HallazgoCoherencia.jsonld-coherencia.read": {
+            clave?: string;
+            titulo?: string;
+            /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
+            detalle?: string;
+            filas?: number;
+        };
+        "HallazgoCoherencia.multipart-coherencia.read": {
+            clave?: string;
+            titulo?: string;
+            /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
+            detalle?: string;
+            filas?: number;
         };
         HydraCollectionBaseSchema: components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
             /**
@@ -21808,6 +22241,10 @@ export interface components {
             horaCheckOut: string | null;
             timezone?: string | null;
             codigoCajaPrincipal?: string | null;
+            /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
+            telefonoAtencion?: string | null;
+            /** @description El móvil asociado a Yape, para cobrar. */
+            telefonoYape?: string | null;
             codigoCajaSecundaria?: string | null;
             unidades?: components["schemas"]["PmsUnidad"][];
             reservas?: components["schemas"]["PmsReserva"][];
@@ -21848,6 +22285,10 @@ export interface components {
             horaCheckOut: string | null;
             timezone?: string | null;
             codigoCajaPrincipal?: string | null;
+            /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
+            telefonoAtencion?: string | null;
+            /** @description El móvil asociado a Yape, para cobrar. */
+            telefonoYape?: string | null;
             codigoCajaSecundaria?: string | null;
             unidades?: components["schemas"]["PmsUnidad.html"][];
             reservas?: components["schemas"]["PmsReserva.html"][];
@@ -21888,6 +22329,10 @@ export interface components {
             horaCheckOut: string | null;
             timezone?: string | null;
             codigoCajaPrincipal?: string | null;
+            /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
+            telefonoAtencion?: string | null;
+            /** @description El móvil asociado a Yape, para cobrar. */
+            telefonoYape?: string | null;
             codigoCajaSecundaria?: string | null;
             unidades?: components["schemas"]["PmsUnidad.jsonld"][];
             reservas?: components["schemas"]["PmsReserva.jsonld"][];
@@ -21928,6 +22373,10 @@ export interface components {
             horaCheckOut: string | null;
             timezone?: string | null;
             codigoCajaPrincipal?: string | null;
+            /** @description El móvil al que se le dice a un huésped que llame o escriba cuando algo se atasca. */
+            telefonoAtencion?: string | null;
+            /** @description El móvil asociado a Yape, para cobrar. */
+            telefonoYape?: string | null;
             codigoCajaSecundaria?: string | null;
             unidades?: components["schemas"]["PmsUnidad.multipart"][];
             reservas?: components["schemas"]["PmsReserva.multipart"][];
@@ -27842,6 +28291,9 @@ export interface components {
             readonly virtualNotas?: string;
             readonly virtualItinerarios?: string;
             readonly virtualGaleria?: string;
+            readonly virtualContenido?: string;
+            readonly virtualCadenaFotos?: string;
+            readonly virtualUsoEnCotizaciones?: string;
             /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
             readonly virtualPuntos?: string;
         };
@@ -27946,6 +28398,9 @@ export interface components {
             readonly virtualNotas?: string;
             readonly virtualItinerarios?: string;
             readonly virtualGaleria?: string;
+            readonly virtualContenido?: string;
+            readonly virtualCadenaFotos?: string;
+            readonly virtualUsoEnCotizaciones?: string;
             /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
             readonly virtualPuntos?: string;
         };
@@ -28038,6 +28493,9 @@ export interface components {
             readonly virtualNotas?: string;
             readonly virtualItinerarios?: string;
             readonly virtualGaleria?: string;
+            readonly virtualContenido?: string;
+            readonly virtualCadenaFotos?: string;
+            readonly virtualUsoEnCotizaciones?: string;
             /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
             readonly virtualPuntos?: string;
         };
@@ -28130,6 +28588,9 @@ export interface components {
             readonly virtualNotas?: string;
             readonly virtualItinerarios?: string;
             readonly virtualGaleria?: string;
+            readonly virtualContenido?: string;
+            readonly virtualCadenaFotos?: string;
+            readonly virtualUsoEnCotizaciones?: string;
             /** @description 🔥 VIRTUAL PARA EASYADMIN — «recojo → entrega» de un vistazo. */
             readonly virtualPuntos?: string;
         };
@@ -33532,6 +33993,140 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacions_idcoherencia_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "application/json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "text/html": components["schemas"]["Cotizacion-cotizacion.write"];
+                "multipart/form-data": components["schemas"]["Cotizacion-cotizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.InformeCoherencia.jsonld-coherencia.read"];
+                    "application/json": components["schemas"]["Cotizacion.InformeCoherencia-coherencia.read"];
+                    "text/html": components["schemas"]["Cotizacion.InformeCoherencia.html-coherencia.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.InformeCoherencia.multipart-coherencia.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacions_idcoherenciareparar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "application/json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "text/html": components["schemas"]["Cotizacion-cotizacion.write"];
+                "multipart/form-data": components["schemas"]["Cotizacion-cotizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.InformeCoherencia.jsonld-coherencia.read"];
+                    "application/json": components["schemas"]["Cotizacion.InformeCoherencia-coherencia.read"];
+                    "text/html": components["schemas"]["Cotizacion.InformeCoherencia.html-coherencia.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.InformeCoherencia.multipart-coherencia.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

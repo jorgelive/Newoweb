@@ -231,6 +231,18 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    interface ResultadoVuelos {
+        expediente: string;
+        grupo: string | null;
+        /** Lo que va a pasar (o pasó). */
+        cambios: string[];
+        /** Cosas que mirar, pero que no impiden guardar: un vuelo sin nadie dentro. */
+        avisos: string[];
+        /** Lo que NO se hizo: un PNR que no existe, un JSON ilegible. */
+        problemas: string[];
+        hayCambios: boolean;
+    }
+
     /** Lo que devuelve una carga de padrón, en ensayo o de verdad. */
     interface ResultadoPadron {
         expediente: string;
@@ -246,6 +258,38 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         avisos: string[];
         errores: string[];
     }
+
+    /**
+     * Carga vuelos desde un JSON pegado a mano. En ENSAYO por defecto.
+     *
+     * Mismo trato que el padrón —el backend escribe dentro de una transacción y la deshace—, así
+     * que el informe incluye lo que fallaría al guardar.
+     *
+     * ⚠️ El 422 trae el motivo dentro y se devuelve en vez de tirarlo: cuando el JSON viene de
+     * pegar un correo, «falta una coma en la línea 40» es lo único accionable.
+     */
+    const cargarVuelos = async (
+        fileId: string,
+        json: string,
+        ensayo = true,
+    ): Promise<ResultadoVuelos | null> => {
+        error.value = null;
+
+        try {
+            const { data } = await apiClient.post(
+                `/cotizacion/user/vuelos/cargar/${fileId}?ensayo=${ensayo ? 1 : 0}`,
+                { json },
+            );
+            return data as ResultadoVuelos;
+        } catch (err: unknown) {
+            const cuerpo = (err as { response?: { data?: { error?: string } } })?.response?.data;
+            if (cuerpo?.error) {
+                return { expediente: '', grupo: '', cambios: [], avisos: [], problemas: [cuerpo.error], hayCambios: false };
+            }
+            error.value = extractApiErrorMessage(err, 'No se pudieron cargar los vuelos.');
+            return null;
+        }
+    };
 
     /**
      * Carga un padrón. En ENSAYO por defecto.
@@ -539,6 +583,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         crearGrupo,
         actualizarGrupo,
         cargarPadron,
+        cargarVuelos,
         eliminarGrupo,
         planificarOperacion,
         revisarCoherencia,

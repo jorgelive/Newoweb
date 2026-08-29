@@ -683,6 +683,16 @@ const cambiarModo = async (modo: 'estandar' | 'grupo' | string) => {
 const descargandoPlantilla = ref(false);
 
 // ── Carga del padrón: siempre ensayo antes de escribir ─────────────────────
+/** Espejo de lo que devuelve `VuelosCargaController`. */
+interface ResultadoVuelos {
+  expediente: string;
+  grupo: string | null;
+  cambios: string[];
+  avisos: string[];
+  problemas: string[];
+  hayCambios: boolean;
+}
+
 interface ResultadoPadron {
   expediente: string; ensayo: boolean; filasLeidas: number;
   pasajerosCreados: number; pasajerosActualizados: number; identificacionesCreadas: number;
@@ -691,6 +701,86 @@ interface ResultadoPadron {
 }
 
 const archivoPadron = ref<File | null>(null);
+/* ── VUELOS: se pegan, no se suben ──────────────────────────────────────────
+   El padrón llega en Excel porque lo llena el colegio; los vuelos llegan en un correo de la
+   aerolínea, y pedir que alguien los pase a una hoja para volver a subirlos es trabajo inventado.
+   Por eso aquí se PEGA el JSON.
+   ⚠️ Ensayo siempre primero: el backend escribe dentro de una transacción y la deshace, así que
+   el informe incluye lo que fallaría al guardar. */
+const modalVuelos = ref(false);
+const jsonVuelos = ref('');
+const cargandoVuelos = ref(false);
+const ensayoVuelos = ref<ResultadoVuelos | null>(null);
+
+const EJEMPLO_VUELOS = `[
+  {
+    "pnr": "YMFLHB",
+    "emitido": false,
+    "notas": ["Lista de nombres pendiente en el portal de Sky (plazo 12/09/2026)"],
+    "vuelos": [
+      {
+        "numero": "H2 5002",
+        "fecha": "2026-09-17",
+        "aerolinea": "Sky Airline",
+        "segmentos": [
+          {
+            "numero": "H2 5002",
+            "origen": "CUZ",
+            "destino": "LIM",
+            "salida": "2026-09-17 06:50",
+            "llegada": "2026-09-17 08:35"
+          }
+        ]
+      }
+    ]
+  }
+]`;
+
+const abrirVuelos = () => {
+  jsonVuelos.value = '';
+  ensayoVuelos.value = null;
+  modalVuelos.value = true;
+};
+
+const ensayarVuelos = async () => {
+  if (!file.value || !jsonVuelos.value.trim()) return;
+
+  cargandoVuelos.value = true;
+  ensayoVuelos.value = await fileStore.cargarVuelos(
+    extractIdStr(file.value.id || file.value['@id']) || '', jsonVuelos.value, true,
+  );
+  cargandoVuelos.value = false;
+
+  if (!ensayoVuelos.value) { alert(fileStore.error || 'No se pudo leer el JSON.'); }
+};
+
+const aplicarVuelos = async () => {
+  if (!file.value || !jsonVuelos.value.trim()) return;
+
+  cargandoVuelos.value = true;
+  const r = await fileStore.cargarVuelos(
+    extractIdStr(file.value.id || file.value['@id']) || '', jsonVuelos.value, false,
+  );
+  cargandoVuelos.value = false;
+
+  if (r && r.problemas.length === 0) {
+    modalVuelos.value = false;
+    await cargarFile();
+  } else {
+    ensayoVuelos.value = r;
+    alert(fileStore.error || 'No se guardó nada: hay reservas con problemas.');
+  }
+};
+
+/** Vuelos del expediente, ya ordenados por el backend (`OrderBy salida`). */
+const vuelos = computed(() => file.value?.vuelos ?? []);
+
+const horaDe = (iso?: string | null): string => (iso ?? '').slice(11, 16);
+const diaDe = (iso?: string | null): string => {
+  const d = (iso ?? '').slice(0, 10);
+  return d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '';
+};
+
 const cargandoPadron = ref(false);
 const ensayoPadron = ref<ResultadoPadron | null>(null);
 const inputPadron = ref<HTMLInputElement | null>(null);
@@ -2017,8 +2107,54 @@ const eliminarDocumento = async (iri?: string) => {
                     <i class="fas fa-file-pen"></i>
                     Descargar con lo cargado ({{ file.filepasajeros.length }})
                   </button>
+                  <!-- Los vuelos NO se suben: se pegan. Llegan en un correo de la aerolínea, y
+                       pedir que alguien los pase a una hoja para volver a subirlos es trabajo
+                       inventado. -->
+                  <button @click="abrirVuelos"
+                          title="Pega el JSON de reservas que manda la aerolínea"
+                          class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold hover:bg-slate-50">
+                    <i class="fas fa-plane-departure"></i>
+                    Cargar vuelos
+                  </button>
                 </div>
               </div>
+              <!-- ── Los vuelos del viaje ─────────────────────────────────
+                   En orden cronológico, que es como se mira un expediente: «qué pasa el día 23».
+                   El PNR es el que agrupa a la gente, así que va delante de los pasajeros. -->
+              <div v-if="vuelos.length" class="mb-4 border border-slate-200 rounded-2xl overflow-hidden">
+                <div class="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                  <p class="text-[11px] font-black text-slate-700 uppercase tracking-widest">
+                    <i class="fas fa-plane-departure mr-1 text-sky-500"></i> Vuelos ({{ vuelos.length }})
+                  </p>
+                </div>
+                <table class="w-full text-[11px]">
+                  <tbody>
+                    <tr v-for="v in vuelos" :key="`${v.numero}|${v.salida}`"
+                        class="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
+                      <td class="px-3 py-2 font-black text-slate-800 whitespace-nowrap">{{ v.numero }}</td>
+                      <td class="px-2 py-2 text-slate-500 font-bold whitespace-nowrap">{{ v.aerolinea }}</td>
+                      <td class="px-2 py-2 font-mono text-slate-700 whitespace-nowrap">
+                        {{ diaDe(v.salida) }}
+                        <span class="font-black">{{ horaDe(v.salida) }}</span>
+                        {{ v.origen }}
+                        <i class="fas fa-arrow-right text-[8px] text-slate-300 mx-1"></i>
+                        <span class="font-black">{{ horaDe(v.llegada) }}</span>
+                        {{ v.destino }}
+                        <!-- Un vuelo que llega al día siguiente no se avisa con una bandera: se ve. -->
+                        <span v-if="diaDe(v.llegada) !== diaDe(v.salida)"
+                              class="text-[9px] text-amber-600 font-bold ml-1">+1 día</span>
+                      </td>
+                      <td class="px-2 py-2 text-right">
+                        <span v-for="pnr in (v.pnrs || [])" :key="pnr"
+                              class="inline-block bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 ml-1 font-mono text-[10px]">
+                          {{ pnr }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
               <!-- ── Cargar el padrón ──────────────────────────────────────
                    Siempre ENSAYO primero, y el informe dice en qué expediente va a escribir: cargar
                    133 personas en el que no toca es un error caro y silencioso. -->
@@ -2949,6 +3085,96 @@ const eliminarDocumento = async (iri?: string) => {
       :titulo="planOperacionTitulo"
       @cerrar="planOperacionId = null"
   />
+
+  <!-- ══ MODAL: cargar vuelos pegando el JSON ══════════════════════════════
+       Se pega y no se sube porque el origen es un correo, no un archivo que alguien mantenga.
+       Ensayo primero, siempre: el backend escribe en transacción y la deshace. -->
+  <div v-if="modalVuelos" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="modalVuelos = false"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+
+      <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest">
+          <i class="fas fa-plane-departure mr-2 text-sky-500"></i> Cargar vuelos
+        </h3>
+        <button @click="modalVuelos = false" class="text-slate-400 hover:text-slate-700">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto">
+        <!-- La ayuda va plegada: quien ya sabe el formato no la quiere delante cada vez, y quien
+             no lo sabe necesita que el resumen de arriba ya le diga lo esencial. -->
+        <details class="mb-3 text-[11px]">
+          <summary class="cursor-pointer font-bold text-slate-600">
+            Una lista de reservas, cada una con su <code class="font-mono">pnr</code> y sus vuelos
+            <span class="text-slate-400">— ver detalle</span>
+          </summary>
+          <div class="mt-2 text-slate-500 leading-relaxed space-y-1">
+            <p><b>Se toca sólo lo que traes.</b> Un archivo con un vuelo cambia ese vuelo; lo que no
+              aparece se queda como está. Nunca borra.</p>
+            <p><b>El PNR debe existir</b> en el expediente: si no, se avisa y no se crea. Para renombrar
+              uno provisional usa <code class="font-mono">pnr_nuevo</code>.</p>
+            <p><b>Un vuelo es un tramo.</b> Una conexión son dos vuelos, cada uno con su número; lo que
+              los une es que comparten PNR.</p>
+            <p><code class="font-mono">emitido: false</code> marca la reserva pagada y sin billete.</p>
+          </div>
+        </details>
+
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">JSON</label>
+          <button @click="jsonVuelos = EJEMPLO_VUELOS" class="text-[10px] font-bold text-sky-600 hover:underline">
+            <i class="fas fa-file-code mr-1"></i>Pegar un ejemplo
+          </button>
+        </div>
+        <textarea v-model="jsonVuelos" rows="12" spellcheck="false"
+                  placeholder="[{ &quot;pnr&quot;: &quot;YMFLHB&quot;, &quot;vuelos&quot;: [ … ] }]"
+                  class="w-full font-mono text-[11px] border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-sky-200 focus:border-sky-400"></textarea>
+
+        <!-- El informe del ensayo -->
+        <div v-if="ensayoVuelos" class="mt-4 border border-slate-200 rounded-xl p-4 bg-slate-50/60">
+          <p class="text-[10px] font-black uppercase tracking-widest mb-2"
+             :class="ensayoVuelos.problemas.length ? 'text-red-600' : 'text-slate-500'">
+            {{ ensayoVuelos.problemas.length ? 'No se puede cargar' : 'Ensayo' }}
+            <span v-if="ensayoVuelos.expediente" class="text-slate-700">· {{ ensayoVuelos.expediente }}</span>
+          </p>
+
+          <p v-if="!ensayoVuelos.hayCambios && !ensayoVuelos.problemas.length"
+             class="text-[11px] font-bold text-emerald-600">
+            <i class="fas fa-check-circle mr-1"></i>Nada que cambiar: coincide con lo que ya había.
+          </p>
+
+          <ul v-if="ensayoVuelos.cambios.length" class="text-[11px] font-mono text-slate-700 space-y-0.5 mb-2">
+            <li v-for="(c, i) in ensayoVuelos.cambios" :key="i">{{ c }}</li>
+          </ul>
+
+          <ul v-if="ensayoVuelos.avisos.length" class="text-[11px] text-amber-700 space-y-0.5 mb-2">
+            <li v-for="(c, i) in ensayoVuelos.avisos" :key="i"><i class="fas fa-triangle-exclamation mr-1"></i>{{ c }}</li>
+          </ul>
+
+          <ul v-if="ensayoVuelos.problemas.length" class="text-[11px] text-red-600 font-bold space-y-0.5">
+            <li v-for="(c, i) in ensayoVuelos.problemas" :key="i"><i class="fas fa-circle-xmark mr-1"></i>{{ c }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2">
+        <button @click="modalVuelos = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">
+          Cancelar
+        </button>
+        <button @click="ensayarVuelos" :disabled="cargandoVuelos || !jsonVuelos.trim()"
+                class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 disabled:opacity-40">
+          <i class="fas mr-1" :class="cargandoVuelos ? 'fa-spinner fa-spin' : 'fa-eye'"></i>Ensayar
+        </button>
+        <!-- Aplicar sólo tras un ensayo con algo que hacer: obliga a ver el diff antes de escribir. -->
+        <button @click="aplicarVuelos"
+                :disabled="cargandoVuelos || !ensayoVuelos || !ensayoVuelos.hayCambios || ensayoVuelos.problemas.length > 0"
+                class="bg-sky-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-sky-700 disabled:opacity-40">
+          <i class="fas fa-check mr-1"></i>Aplicar
+        </button>
+      </div>
+    </div>
+  </div>
 
 </template>
 

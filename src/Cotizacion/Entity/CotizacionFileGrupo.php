@@ -153,6 +153,18 @@ class CotizacionFileGrupo
      * `text` y no `string`: son dos líneas hoy y pueden ser cuatro con escalas.
      */
     /**
+     * Los vuelos de esta reserva, en orden.
+     *
+     * Lado inverso del puente que posee {@see CotizacionVuelo}: no añade tabla ni columna, sólo
+     * permite preguntar desde el PNR —que es como se pregunta— en vez de recorrer los vuelos.
+     *
+     * @var Collection<int, CotizacionVuelo>
+     */
+    #[ORM\ManyToMany(targetEntity: CotizacionVuelo::class, mappedBy: 'grupos')]
+    #[ORM\OrderBy(['salida' => 'ASC'])]
+    private Collection $vuelos;
+
+    /**
      * ¿La reserva está emitida, o pagada y esperando billete?
      *
      * ⚠️ Va aquí y no en el vuelo, aunque al principio lo puse allí. El `H2 5002` es un vuelo
@@ -199,6 +211,7 @@ class CotizacionFileGrupo
     {
         $this->initializeId();
         $this->miembros = new ArrayCollection();
+        $this->vuelos = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -258,6 +271,9 @@ class CotizacionFileGrupo
     #[Groups(['file:item:read', 'file:write'])]
     #[ORM\Column(type: 'json')]
     private array $notas = [];
+
+    /** @return Collection<int, CotizacionVuelo> */
+    public function getVuelos(): Collection { return $this->vuelos; }
 
     public function isEmitido(): bool { return $this->emitido; }
     /** @return list<string> */
