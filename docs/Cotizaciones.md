@@ -3088,6 +3088,31 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.y El título del componente también dejó de decir la dirección (29/08/2026)
+
+Al fusionar ida y vuelta se decidió **no tocar `titulo`** por ser prosa de cliente. Fue un error a
+medias: el nombre operativo pasó a «Vuelo Cusco ↔ Arequipa (ida o vuelta)» y el título público se
+quedó congelado en un sentido —«Vuelo desde la ciudad de Cusco a la ciudad de Arequipa»—.
+
+Y `pax` lo pinta **con prioridad sobre el título del segmento**, así que un huésped con el tramo
+de vuelta leería la dirección al revés. No se dejó de decir algo: **se dejó diciendo lo contrario**,
+que es peor.
+
+La corrección es aplicar allí el **mismo criterio de prioridad** que en el despacho: en los tipos
+que nombran una ruta manda el segmento. `PaxCotizacionGuiaView.vue::tituloDeComponente()`, espejo
+de `ComponenteTipoEnum::mandaElSegmento()` — **son TRES espejos ahora**: el enum, `util` y `pax`.
+
+⚠️ **Manda por un motivo distinto en cada lado, y conviene no confundirlos.** En La Biblia porque
+el nombre OPERATIVO ya no dice la dirección; en `pax` porque el TÍTULO PÚBLICO tampoco puede
+decirla y encima lo intenta. Misma regla, dos razones — si algún día una de las dos cambia, la
+otra no se mueve sola.
+
+El título del segmento sí sirve porque **hay uno por sentido**: «Vuelo Cusco – Arequipa», «Viaje
+en tren desde Ollantaytambo». Los segmentos no se fusionaron; sólo los componentes.
+
+⚠️ Las cotizaciones ya hechas están a salvo: congelaron el título viejo, que para ellas era
+correcto. Esto sólo afectaba a las nuevas.
+
 ## 6.x Guardar reemplaza el árbol, y el historial se queda atrás (29/08/2026)
 
 Reportado como **dos** fallos intermitentes del editor: «añado una tarifa y no aparece — guardo y

@@ -842,7 +842,8 @@ const tituloDeFila = (s: OperacionServicio): string => {
  * primero porque algo tiene que sostener la tarifa, pero cubre el día entero. Enseñar ese primer
  * segmento hace que «Pool Paracas y Huacachina» parezca sólo el traslado de ida.
  */
-const ocultaElSegmento = (tipo?: string | null): boolean => tipo === 'pool' || tipo === 'privada';
+const ocultaElSegmento = (tipo?: string | null): boolean =>
+    tipo === 'pool' || tipo === 'privada' || tipo === 'transporte_excursion';
 
 const secundarioDeFila = (s: OperacionServicio): string | null => {
     if (ocultaElSegmento(s.tipoComponente)) {

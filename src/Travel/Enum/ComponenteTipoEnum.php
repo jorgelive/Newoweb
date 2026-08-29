@@ -14,6 +14,26 @@ enum ComponenteTipoEnum: string
     case TICKET_HORARIO_VAR = 'ticket_variable';
     case GUIADO = 'guiado';
     case TRANSPORTE = 'transporte';
+
+    /**
+     * El transporte que forma parte de una EXCURSIÓN privada, no un traslado con ruta.
+     *
+     * «Transporte Valle Sagrado», «Transporte Super Valle», «Transporte Maras», «Transporte
+     * Combinada»: son `transporte` de verdad —un vehículo, un chofer— pero **no nombran una
+     * ruta**, nombran la excursión. Sus segmentos son anclas: «Recojo en el Hotel (Servicio
+     * Privado)», idéntico en todas.
+     *
+     * ⚠️ Nació el 29/08/2026 de un fallo que casi se cuela. Estaban como `TRANSPORTE`, y
+     * `mandaElSegmento()` es true para todo `TRANSPORTE`, así que el día que se vendiera una de
+     * estas excursiones el proveedor habría leído **«Recojo en el Hotel (Servicio Privado)»** en
+     * grande y el encargo debajo. La simulación sobre las 47 filas de La Biblia no lo detectó
+     * porque ninguna de las cuatro está viva hoy: **la prueba salió limpia sobre un hueco**.
+     *
+     * Se resuelve con un tipo y no con una excepción porque la diferencia es real y declarable:
+     * se compra la excursión entera, no el trayecto. Y así {@see self::ocultaElSegmento()} las
+     * cubre por el mismo motivo que a `pool` y `privada`.
+     */
+    case TRANSPORTE_EXCURSION = 'transporte_excursion';
     case ALOJAMIENTO = 'alojamiento';
 
     case ALIMENTACION_HORARIO_FIJO = 'alimentacion_fijo';
@@ -78,7 +98,7 @@ enum ComponenteTipoEnum: string
     public function puntosDeServicio(): PuntosDeServicio
     {
         return match ($this) {
-            self::TRANSPORTE, self::TREN, self::VUELO,
+            self::TRANSPORTE, self::TRANSPORTE_EXCURSION, self::TREN, self::VUELO,
             self::EXCURSION_POOL, self::EXCURSION_PRIVADA => PuntosDeServicio::INICIO_Y_FIN,
 
             self::GUIADO, self::CONTACTO => PuntosDeServicio::SOLO_INICIO,
@@ -166,6 +186,7 @@ enum ComponenteTipoEnum: string
             self::TREN,
             self::VUELO,
             self::TRANSPORTE,
+            self::TRANSPORTE_EXCURSION,
             self::TICKET_HORARIO_FIJO,
             self::ALIMENTACION_HORARIO_FIJO,
             self::EXCURSION_POOL,
@@ -193,7 +214,7 @@ enum ComponenteTipoEnum: string
             // El contacto va PRIMERO: es lo que ocurre antes que nada ese día, y en el manifiesto
             // del proveedor tiene que leerse antes que el servicio al que da paso.
             self::CONTACTO => 0,
-            self::GUIADO, self::TRANSPORTE, self::EXCURSION_POOL, self::EXCURSION_PRIVADA, self::TREN => 1,
+            self::GUIADO, self::TRANSPORTE, self::TRANSPORTE_EXCURSION, self::EXCURSION_POOL, self::EXCURSION_PRIVADA, self::TREN => 1,
             self::ALOJAMIENTO, self::VUELO => 2,
             self::ALIMENTACION_HORARIO_FIJO,  self::ALIMENTACION_HORARIO_VAR=> 3,
             self::TICKET_HORARIO_FIJO, self::TICKET_HORARIO_VAR => 4,
@@ -218,7 +239,7 @@ enum ComponenteTipoEnum: string
     {
         return match ($this) {
             // Llegar y moverse abre la jornada: es lo que pasa primero de verdad.
-            self::VUELO, self::TREN, self::TRANSPORTE => 10,
+            self::VUELO, self::TREN, self::TRANSPORTE, self::TRANSPORTE_EXCURSION => 10,
             // El contacto es de la llegada: quien recibe, recibe al principio.
             self::CONTACTO => 20,
             // El cuerpo del día.
@@ -302,7 +323,9 @@ enum ComponenteTipoEnum: string
      */
     public function ocultaElSegmento(): bool
     {
-        return $this === self::EXCURSION_POOL || $this === self::EXCURSION_PRIVADA;
+        return $this === self::EXCURSION_POOL
+            || $this === self::EXCURSION_PRIVADA
+            || $this === self::TRANSPORTE_EXCURSION;
     }
 
 }

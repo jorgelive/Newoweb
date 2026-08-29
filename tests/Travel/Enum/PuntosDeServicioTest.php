@@ -106,10 +106,15 @@ final class PuntosDeServicioTest extends TestCase
         }
 
         self::assertSame(
-            // 22/08/2026: SOLO_INICIO pasa de 1 a 2 al entrar CONTACTO. El número se sube
-            // reconociendo el caso, no para que el test calle: si vuelve a saltar es porque hay
-            // otro tipo nuevo sin clasificar, y ése es justo el aviso que se quiere.
-            [P::INICIO_Y_FIN->value => 5, P::SOLO_INICIO->value => 2, P::NINGUNO->value => 7],
+            // 22/08/2026: SOLO_INICIO pasa de 1 a 2 al entrar CONTACTO.
+            // 29/08/2026: INICIO_Y_FIN pasa de 5 a 6 al entrar TRANSPORTE_EXCURSION — recoge en
+            // el hotel y devuelve, como cualquier excursión.
+            //
+            // El número se sube reconociendo el caso, no para que el test calle: si vuelve a
+            // saltar es porque hay otro tipo nuevo sin clasificar, y ése es justo el aviso que se
+            // quiere. Hoy hizo su trabajo: el tipo nuevo se añadió por otro motivo —quién manda
+            // en el display— y este test obligó a decidir también dónde empieza y acaba.
+            [P::INICIO_Y_FIN->value => 6, P::SOLO_INICIO->value => 2, P::NINGUNO->value => 7],
             $cuenta
         );
     }

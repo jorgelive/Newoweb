@@ -364,6 +364,35 @@ const compsConHora = (b: BloqueVista) =>
         .sort((a, b2) => (a.fechaHoraInicio ?? '').localeCompare(b2.fechaHoraInicio ?? ''));
 
 
+/**
+ * ¿Manda el SEGMENTO sobre el componente? **Espejo de `ComponenteTipoEnum::mandaElSegmento()`** —
+ * si cambia la regla, se tocan LOS TRES: aquí, `util` y el enum de PHP.
+ *
+ * ⚠️ Aquí manda por un motivo DISTINTO al del despacho, y conviene no confundirlos. En La Biblia
+ * es porque el nombre operativo del componente ya no dice la dirección; aquí es porque su TÍTULO
+ * PÚBLICO tampoco puede decirla y encima lo intenta: al fusionar ida y vuelta —«Vuelo Cusco ↔
+ * Arequipa (ida o vuelta)»— el título quedó congelado en un sentido, «Vuelo desde la ciudad de
+ * Cusco a la ciudad de Arequipa». En el tramo de vuelta el huésped leería la dirección al revés.
+ *
+ * El título del segmento sí la dice —«Vuelo Cusco – Arequipa», «Viaje en tren desde
+ * Ollantaytambo»— porque hay uno por sentido.
+ *
+ * En los demás tipos el componente nombra lo comprado y su título es la prosa buena: se queda.
+ */
+const mandaElSegmento = (tipo?: string | null): boolean =>
+    tipo === 'transporte' || tipo === 'tren' || tipo === 'vuelo';
+
+/** El texto de la línea de horarios: el que de verdad identifica ese momento del día. */
+const tituloDeComponente = (c: PaxCotComponente, segmento: { tituloSnapshot?: unknown }): string => {
+  const delSegmento = store.traducir(segmento?.tituloSnapshot as never) || '';
+
+  if (mandaElSegmento(c.tipo) && delSegmento !== '') {
+    return delSegmento;
+  }
+
+  return store.traducir(c.tituloSnapshot) || delSegmento;
+};
+
 const horaRango = (c: PaxCotComponente) => {
   if (!compConHora(c)) return null;
   const hi = hhmm(c.fechaHoraInicio);
@@ -1482,7 +1511,7 @@ const adelantoVista = computed(() => {
                   >
                     <i class="far fa-clock text-[#E07845] shrink-0"></i>
                     <span class="tabular-nums text-[#376875] font-black text-sm shrink-0 whitespace-nowrap">{{ horaRango(c) }}</span>
-                    <span class="truncate">{{ store.traducir(c.tituloSnapshot) || store.traducir(item.segmento.tituloSnapshot) }}</span>
+                    <span class="truncate">{{ tituloDeComponente(c, item.segmento) }}</span>
                   </p>
                 </div>
 

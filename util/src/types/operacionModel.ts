@@ -126,6 +126,9 @@ export const TIPO_COMPONENTE_CONFIG: Record<string, TipoComponenteConfig> = {
     // en la estación o el hotel, a cuatro horas. Icono distinto a propósito.
     contacto:               { label: 'Contacto',     icon: 'fas fa-handshake-angle',   text: 'text-emerald-600' },
     transporte:             { label: 'Transporte',   icon: 'fas fa-van-shuttle',       text: 'text-sky-600' },
+    // El transporte que ES una excursión privada, no un traslado con ruta. Icono distinto para
+    // poder distinguirlos de un vistazo: comparten vehículo pero no se despachan igual.
+    transporte_excursion:   { label: 'Transp. excursión', icon: 'fas fa-route',          text: 'text-sky-700' },
     guiado:                 { label: 'Guiado',       icon: 'fas fa-person-chalkboard', text: 'text-indigo-600' },
     pool:                   { label: 'Pool',         icon: 'fas fa-people-group',      text: 'text-teal-600' },
     privada:                { label: 'Privada',      icon: 'fas fa-user-group',        text: 'text-teal-700' },
