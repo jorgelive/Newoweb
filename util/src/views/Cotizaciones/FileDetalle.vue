@@ -1009,8 +1009,39 @@ const vuelosDe = (pax: ApiCotizacionFilepasajero) =>
             tramo: tramoDe(g),
             nombre: g.nombre ?? '',
             clave: g.clave,
-            detalle: g.detalle ?? '',
+            emitido: g.emitido !== false,
+            notas: g.notas ?? [],
+            /* El itinerario ya no sale del texto del grupo: sale de los vuelos, que es lo que
+               carga el JSON de la aerolínea. Se cruza por el PNR, que es el que los une. */
+            tramos: vuelos.value
+                .filter(v => (v.pnrs ?? []).includes(String(g.clave)))
+                .map(v => ({
+                    numero: v.numero,
+                    ruta: `${v.origen} → ${v.destino}`,
+                    dia: diaDe(v.salida),
+                    sale: horaDe(v.salida),
+                    llega: horaDe(v.llegada),
+                    /* «+1 día» se DICE. Dejar que quien lee reste dos fechas es de lo que más se
+                       equivoca uno mirando un itinerario nocturno. */
+                    otroDia: diaDe(v.llegada) !== diaDe(v.salida),
+                })),
         }));
+
+/* Qué PNRs están desplegados en la ficha. Se abre con clic o toque —un `Set` y un botón, sin
+   `hover`, que en un móvil no existe—. */
+const pnrsAbiertos = ref<Set<string>>(new Set());
+
+const alternarPnr = (clave: string) => {
+    const abiertos = new Set(pnrsAbiertos.value);
+
+    if (abiertos.has(clave)) {
+        abiertos.delete(clave);
+    } else {
+        abiertos.add(clave);
+    }
+
+    pnrsAbiertos.value = abiertos;
+};
 
 /**
  * El orden del manifiesto: por JERARQUÍA, no por como vinieran en la hoja.
@@ -2684,19 +2715,51 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
           </div>
 
-          <!-- Aquí sí va el ITINERARIO. En la lista basta la aerolínea y el localizador —es para
-               reconocer—, pero abierta una persona lo que se consulta es a qué hora sale. -->
+          <!-- ── VUELOS ─────────────────────────────────────────────────────
+               Plegado por defecto: la mayoría de las veces se abre una ficha para ver quién es,
+               no a qué hora vuela, y desplegar cuatro tramos por persona entierra el resto.
+               Se abre con CLIC o TOQUE —un botón, sin `hover`, que en un móvil no existe—. -->
           <div v-if="vuelosDe(paxEnFoco).length">
             <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Vuelos</p>
+
             <div v-for="v in vuelosDe(paxEnFoco)" :key="v.id" class="mb-2 last:mb-0">
-              <p class="text-sm">
-                <span class="font-bold text-sky-600">{{ v.tramo }}</span>
-                <span class="text-slate-700 font-bold"> {{ v.nombre }}</span>
-                <span class="text-slate-400"> · {{ v.clave }}</span>
-              </p>
-              <!-- eslint-disable-next-line vue/no-v-html -- Lo escribe el operador y `formatoAHtml()` escapa ANTES de aplicar marcas. -->
-              <p v-if="v.detalle" v-html="formatoAHtml(v.detalle)"
-                 class="text-[11px] font-medium text-slate-500 whitespace-pre-line leading-snug bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 mt-1"></p>
+              <button type="button" @click="alternarPnr(String(v.clave))"
+                      class="w-full text-left flex items-center gap-2 py-1 rounded-lg hover:bg-slate-50 active:bg-slate-100">
+                <i class="fas text-[10px] text-slate-400 w-3"
+                   :class="pnrsAbiertos.has(String(v.clave)) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                <span class="text-sm min-w-0">
+                  <span class="font-bold text-sky-600">{{ v.tramo }}</span>
+                  <span class="text-slate-700 font-bold"> {{ v.nombre }}</span>
+                  <span class="text-slate-400 font-mono"> · {{ v.clave }}</span>
+                </span>
+                <!-- Pagado no es emitido, y eso se ve sin abrir: es lo que hay que perseguir. -->
+                <span v-if="!v.emitido"
+                      class="ml-auto shrink-0 text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5">
+                  sin emitir
+                </span>
+              </button>
+
+              <div v-if="pnrsAbiertos.has(String(v.clave))"
+                   class="ml-5 mt-1 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 space-y-1">
+                <p v-for="(t, i) in v.tramos" :key="i" class="text-[11px] leading-snug">
+                  <span class="font-mono font-black text-slate-700">{{ t.numero }}</span>
+                  <span class="text-slate-400 mx-1">{{ t.dia }}</span>
+                  <span class="font-black text-slate-800">{{ t.sale }}</span>
+                  <span class="text-slate-500"> {{ t.ruta }} </span>
+                  <span class="font-black text-slate-800">{{ t.llega }}</span>
+                  <span v-if="t.otroDia" class="text-amber-600 font-bold ml-1">+1 día</span>
+                </p>
+
+                <p v-if="!v.tramos.length" class="text-[11px] text-slate-400 italic">
+                  Sin vuelos cargados en esta reserva.
+                </p>
+
+                <!-- Plazos y trámites: lo que antes vivía en la bandeja de correo de alguien. -->
+                <p v-for="(n, i) in v.notas" :key="`n${i}`"
+                   class="text-[10px] text-amber-700 leading-snug">
+                  <i class="fas fa-circle-info mr-1 opacity-60"></i>{{ n }}
+                </p>
+              </div>
             </div>
           </div>
 

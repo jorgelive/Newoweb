@@ -3233,6 +3233,19 @@ escribir sin haber visto antes el diff.
 Los vuelos se pintan en el expediente en **orden cronológico** —así se mira un expediente: «qué
 pasa el día 23»— con sus PNRs al lado y un aviso de «+1 día» cuando la llegada cruza medianoche.
 
+### En la ficha del pasajero, plegado
+
+⚠️ Vaciar el `detalle` dejó **muda** la ficha de cada persona, que era la única que pintaba el
+itinerario. Ahora lo compone cruzando los vuelos del expediente con el PNR del pasajero.
+
+Va **plegado**: la mayoría de las veces se abre una ficha para ver quién es, no a qué hora vuela, y
+desplegar cuatro tramos por persona entierra el resto. Se abre con **clic o toque** —un `<button>`
+y un `Set`, sin `hover`, que en un móvil no existe—.
+
+Lo que se ve **sin abrir** es lo que hay que perseguir: el sello **«sin emitir»**. Y al abrir, los
+tramos con su «+1 día» y las notas del PNR —plazos y trámites que antes vivían en una bandeja de
+correo—.
+
 ⚠️ `CotizacionVuelo::getPnrs()` publica los códigos como **texto**, no la colección: serializar los
 grupos arrastra `grupo → file → vuelos → grupo` y el serializador corta con
 `CircularReferenceException`.
