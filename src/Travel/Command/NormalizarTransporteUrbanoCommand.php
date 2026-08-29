@@ -66,7 +66,7 @@ final class NormalizarTransporteUrbanoCommand extends Command
                 'Transporte Rest - Htl Cusco',
             ],
             'canonicoAeropuerto' => 'Transporte Hotel Cusco ↔ Aeropuerto Cusco',
-            'nombreAeropuerto' => 'Transporte Aeropuerto Cusco ↔ Cusco',
+            'nombreAeropuerto' => 'Transporte Aeropuerto Cusco ↔ Cusco (ida o vuelta)',
             'urbano' => [
                 'Auto' => ['monto' => '25.00', 'cap' => 4],
                 'Van' => ['monto' => '35.00', 'cap' => 8],

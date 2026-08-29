@@ -53,6 +53,19 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class FusionarTransportesBidireccionalesCommand extends Command
 {
+    /**
+     * ⚠️ Va en el nombre OPERATIVO, y es una guarda contra cómo se lee de verdad una orden.
+     *
+     * El proveedor ve el nombre del componente en grande y el del segmento debajo. Si sólo lee
+     * el de arriba, «Transporte Cusco ↔ Ollanta» no le dice cuál de los dos es el destino de hoy
+     * — y una flecha de dos puntas invita a suponer, que es peor que no decir nada: se puede
+     * presentar en el extremo equivocado. El paréntesis le obliga a bajar la vista.
+     *
+     * NO va en el `titulo`: ése es prosa de cliente, y «(ida o vuelta)» ahí no significa nada
+     * para quien viaja.
+     */
+    private const MARCA_SENTIDO = '(ida o vuelta)';
+
     public function __construct(private readonly EntityManagerInterface $em)
     {
         parent::__construct();
@@ -108,13 +121,9 @@ final class FusionarTransportesBidireccionalesCommand extends Command
             $pares[] = [$canonico, $secundario, $a, $b];
         }
 
-        if ($pares === []) {
-            $io->success('No quedan pares direccionales: nada que fusionar.');
-
-            return Command::SUCCESS;
+        if ($pares !== []) {
+            $io->title(sprintf('%d pares direccionales', count($pares)));
         }
-
-        $io->title(sprintf('%d pares direccionales', count($pares)));
 
         $discrepancias = [];
         $capacidadesAjustadas = [];
@@ -130,7 +139,6 @@ final class FusionarTransportesBidireccionalesCommand extends Command
 
             if (!$simula) {
                 $canonico->setNombreInterno($nombreFusion);
-                $canonico->setTitulo([['language' => 'es', 'content' => $nombreFusion]]);
 
                 // Fuera de los pools: deja de ofrecerse sin dejar de existir.
                 foreach ($secundario->getServicios() as $servicio) {
@@ -139,6 +147,8 @@ final class FusionarTransportesBidireccionalesCommand extends Command
             }
         }
 
+        $this->marcarSentido($todos, $io, $simula);
+
         if (!$simula) {
             $this->em->flush();
         }
@@ -146,6 +156,40 @@ final class FusionarTransportesBidireccionalesCommand extends Command
         $this->resumen($io, $capacidadesAjustadas, $discrepancias, $simula);
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Marca con «(ida o vuelta)» todo componente bidireccional que aún no lo lleve.
+     *
+     * Va aparte del bucle de pares para que **también alcance a los fusionados en una corrida
+     * anterior**: cuando ya no quedan pares que fusionar, ésta sigue siendo la única pasada que
+     * hace falta, y el comando puede volver a correrse sin efectos.
+     *
+     * @param list<TravelComponente> $componentes
+     */
+    private function marcarSentido(array $componentes, SymfonyStyle $io, bool $simula): void
+    {
+        $marcados = 0;
+
+        foreach ($componentes as $componente) {
+            $nombre = $componente->getNombreInterno() ?? '';
+
+            if (!str_contains($nombre, '↔') || str_contains($nombre, self::MARCA_SENTIDO)) {
+                continue;
+            }
+
+            ++$marcados;
+            $io->text(sprintf('  marca sentido · %s %s', $nombre, self::MARCA_SENTIDO));
+
+            if (!$simula) {
+                $componente->setNombreInterno(trim($nombre) . ' ' . self::MARCA_SENTIDO);
+            }
+        }
+
+        if ($marcados > 0) {
+            $io->newLine();
+            $io->text(sprintf('  %d componentes bidireccionales marcados', $marcados));
+        }
     }
 
     /**
@@ -332,7 +376,7 @@ final class FusionarTransportesBidireccionalesCommand extends Command
             return $nombre;
         }
 
-        return sprintf('Transporte %s ↔ %s', trim($partes[0]), trim($partes[1]));
+        return sprintf('Transporte %s ↔ %s %s', trim($partes[0]), trim($partes[1]), self::MARCA_SENTIDO);
     }
 
     /** «Cusco → Ollanta», leído del nombre original del componente antes de fusionarlo. */

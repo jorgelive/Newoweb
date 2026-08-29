@@ -144,6 +144,16 @@ al vacío**. No falla nada —el snapshot conserva nombre e importe, la cotizaci
 simplemente la línea deja de poder volver al maestro, y eso no duele hasta que alguien recalcula.
 Se cazó comparando el conteo contra producción, que tenía 0. Ver `reapuntarCotizaciones()`.
 
+⚠️ **Un nombre bidireccional lleva «(ida o vuelta)», y sólo en el nombre OPERATIVO.**
+
+El proveedor ve el nombre del componente en grande y el del segmento debajo. Si sólo lee el de
+arriba, «Transporte Cusco ↔ Ollanta» no le dice cuál de los dos extremos es el destino de hoy —
+y una flecha de dos puntas **invita a suponer**, que es peor que no decir nada: se puede
+presentar en el extremo equivocado. El paréntesis le obliga a bajar la vista al segmento.
+
+No va en el `titulo`: ése es prosa de cliente, y «(ida o vuelta)» no significa nada para quien
+viaja. Es la misma separación de siempre — operativo para despachar, público para vender.
+
 ⚠️ **Las divergencias de precio son el hallazgo, no el estorbo.** Salieron 7, y dos eran un error:
 en el urbano de Cusco la Van del aeropuerto y la del terminal estaban **intercambiadas**. Nadie
 lo vio en cinco componentes por cinco tarifas.
