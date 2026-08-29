@@ -61,6 +61,10 @@ final readonly class OperacionOrdenEmision
                     // El MOMENTO: sin él, el componente tiene que cargar con la ruta en su
                     // nombre, y eso es lo que multiplicó las tarifas por destino.
                     ->setNombreSegmento($servicio->getNombreSegmento())
+                    // El TIPO decide cuál de los dos nombres va en grande, así que se congela
+                    // con ellos: leerlo del maestro al pintar haría que una orden emitida se
+                    // leyera distinta el día que el catálogo cambie de opinión.
+                    ->setTipoComponente($servicio->getTipoComponente())
                     ->setContextoServicio($servicio->getContextoServicio())
                     ->setFechaServicio($servicio->getFechaServicio())
                     // La hora que se pidió: la pactada si la hay, si no la vendida.

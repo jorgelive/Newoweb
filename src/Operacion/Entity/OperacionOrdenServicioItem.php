@@ -9,6 +9,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use DateTimeInterface;
 use App\Operacion\Enum\VisibilidadPuntoEnum;
+use App\Travel\Enum\ComponenteTipoEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
@@ -104,6 +105,21 @@ class OperacionOrdenServicioItem
     #[Groups(['operacion:read', 'operacion:item:read'])]
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $nombreSegmento = null;
+
+    /**
+     * Qué NATURALEZA tiene lo contratado, congelada.
+     *
+     * No es decorativo: decide cuál de los dos nombres va en grande
+     * ({@see ComponenteTipoEnum::mandaElSegmento()}). Congelarlo, y no leerlo del maestro al
+     * pintar, es lo que hace que una orden emitida siga leyéndose igual dentro de un año aunque
+     * el catálogo cambie de opinión.
+     *
+     * Nulo en las emitidas antes del 29/08/2026 que no se hayan rellenado; en ese caso manda el
+     * componente, que es como se leían entonces.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
+    private ?string $tipoComponente = null;
 
     /**
      * DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia.
@@ -368,6 +384,9 @@ class OperacionOrdenServicioItem
     public function getNombreComponente(): ?string { return $this->nombreComponente; }
     public function setNombreComponente(?string $v): self { $this->nombreComponente = $v; return $this; }
 
+    public function getTipoComponente(): ?string { return $this->tipoComponente; }
+    public function setTipoComponente(?string $v): self { $this->tipoComponente = $v; return $this; }
+
     public function getNombreSegmento(): ?string { return $this->nombreSegmento; }
     public function setNombreSegmento(?string $v): self { $this->nombreSegmento = $v; return $this; }
 
@@ -375,14 +394,42 @@ class OperacionOrdenServicioItem
     public function setContextoServicio(?string $v): self { $this->contextoServicio = $v; return $this; }
 
     /**
-     * El encargo tal y como se lee: el componente, y si no lo hay la variante.
+     * El encargo tal y como se lee: **el SEGMENTO**, y si no lo hay el componente o la variante.
      *
      * Una sola fuente para las TRES superficies —la web, el PDF y el texto de WhatsApp—, que es
      * lo que evita que se arreglen dos y la tercera siga diciendo «Auto».
+     *
+     * ## Por qué el segmento y no el componente (29/08/2026)
+     *
+     * Estuvo al revés hasta ese día, y era correcto mientras cada componente se nombrara solo. El
+     * refactor de transporte lo volvió falso: los componentes pasaron a ser rutas genéricas
+     * —«Transporte Cusco ↔ Ollanta (ida o vuelta)», que sirve a tres segmentos distintos— porque
+     * el origen y el destino los guarda el segmento, no ellos.
+     *
+     * Con el genérico arriba, al proveedor le llegaba en grande un nombre con **una flecha de dos
+     * puntas** y el destino de hoy en letra pequeña. El paréntesis «(ida o vuelta)» tapaba el
+     * agujero avisando de que había que bajar la vista; esto lo cierra poniendo arriba el dato que
+     * de verdad identifica el encargo.
+     *
+     * La cascada conserva los casos que no son un tramo —los bastones de Vinicunca no tienen
+     * segmento— cayendo al componente y luego a la variante.
      */
     public function getTituloParaProveedor(): string
     {
-        return trim($this->nombreComponente ?? '') ?: $this->descripcion;
+        $componente = trim($this->nombreComponente ?? '');
+        $segmento = trim($this->nombreSegmento ?? '');
+
+        if ($this->mandaElSegmento() && $segmento !== '') {
+            return $segmento;
+        }
+
+        return $componente ?: ($segmento ?: $this->descripcion);
+    }
+
+    /** El tipo congelado decide. Sin tipo —órdenes viejas— manda el componente, como entonces. */
+    private function mandaElSegmento(): bool
+    {
+        return ComponenteTipoEnum::tryFrom((string) $this->tipoComponente)?->mandaElSegmento() ?? false;
     }
 
     /**
@@ -392,22 +439,29 @@ class OperacionOrdenServicioItem
      * «Traslado a la Huacachina — Traslado a la Huacachina» enseña a no leer la línea.
      */
     /**
-     * El MOMENTO concreto del programa, o null si no añade nada.
+     * QUÉ se contrató: el componente, o null si no añade nada.
+     *
+     * Bajó de la ranura grande el 29/08/2026 — ver `getTituloParaProveedor()`. Sigue haciendo
+     * falta: dice qué vehículo y a qué proveedor corresponde el encargo, que el segmento no dice.
      *
      * Se calla cuando repite el encargo o la variante — con los componentes de un solo uso el
      * segmento y el componente se llaman casi igual, y «Transporte Cusco - Ollanta · Transporte
      * Cusco - Ollanta» enseña a no leer la línea, que es el mismo error que ya costó caro con
      * la variante de tarifa.
      */
-    public function getMomentoParaProveedor(): ?string
+    public function getSecundarioParaProveedor(): ?string
     {
-        $momento = trim($this->nombreSegmento ?? '');
+        // El que NO subió: si manda el segmento, aquí va el componente, y al revés. Así la línea
+        // siempre lleva los dos datos y nunca dos veces el mismo.
+        $secundario = $this->mandaElSegmento()
+            ? trim($this->nombreComponente ?? '')
+            : trim($this->nombreSegmento ?? '');
 
-        if ($momento === '' || $momento === $this->getTituloParaProveedor() || $momento === trim($this->descripcion)) {
+        if ($secundario === '' || $secundario === $this->getTituloParaProveedor() || $secundario === trim($this->descripcion)) {
             return null;
         }
 
-        return $momento;
+        return $secundario;
     }
 
     public function getVarianteParaProveedor(): ?string

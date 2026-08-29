@@ -75,6 +75,9 @@ final class RefrescarOrdenesEmitidasCommand extends Command
                 'nombreSegmento' => [$item->getNombreSegmento(), $biblia->getNombreSegmento()],
                 'contextoServicio' => [$item->getContextoServicio(), $biblia->getContextoServicio()],
                 'descripcion' => [$item->getDescripcion(), $biblia->getDescripcionServicio()],
+                // Sin él, una orden vieja seguiría poniendo el componente en grande aunque su
+                // tipo diga que manda el segmento. Ver ComponenteTipoEnum::mandaElSegmento().
+                'tipoComponente' => [$item->getTipoComponente(), $biblia->getTipoComponente()],
             ] as $campo => [$antes, $ahora]) {
                 // Un vacío en La Biblia no borra lo que la orden ya dice: sería perder texto por
                 // un recálculo incompleto, que es peor que quedarse con el nombre viejo.
@@ -105,6 +108,7 @@ final class RefrescarOrdenesEmitidasCommand extends Command
                     'nombreSegmento' => $item->setNombreSegmento($ahora),
                     'contextoServicio' => $item->setContextoServicio($ahora),
                     'descripcion' => $item->setDescripcion((string) $ahora),
+                    'tipoComponente' => $item->setTipoComponente($ahora),
                 };
             }
         }

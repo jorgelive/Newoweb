@@ -802,39 +802,50 @@ const nombreComponenteDe = (s: OperacionServicio): string | null => operacionSto
  * Título y variante de una fila. **Espejo de `OperacionOrdenServicioItem::getTituloParaProveedor()`
  * y `getVarianteParaProveedor()`** — si cambia la regla, se tocan LOS DOS.
  *
- * El título nunca cae al itinerario: ése tiene su propia ranura pequeña, y dejarle ocupar ésta es
- * lo que hacía que un traslado se anunciara como «Full Day HUAYNA: MAPI OLLA CUZ». Cae a la
- * VARIANTE, que sí habla de esta fila — en los componentes `pool` es lo único que la identifica
- * («Cultur (Base 1, 2 pax)», «Americana Royal Class»), porque no tienen nombre propio.
+ * Quién manda lo decide el TIPO, arriba. La cascada cubre el resto: si el que manda está vacío
+ * baja al otro, luego a la VARIANTE —en los `pool` es lo único que identifica la fila, «Cultur
+ * (Base 1, 2 pax)»— y por último al tipo, que es genérico pero nunca miente.
  *
- * Y cuando el título ya ES la variante, `varianteDeFila` devuelve null: repetirla debajo del
- * título enseña a no leer la línea.
+ * ⚠️ Y NUNCA cae al día del itinerario: cuando podía, un traslado de Ollantaytambo a Cusco se
+ * anunciaba como «Full Day HUAYNA: MAPI OLLA CUZ» y salía duplicado en la ficha.
  */
-const tituloDeFila = (s: OperacionServicio): string =>
-    nombreComponenteDe(s) || s.descripcionServicio || getTipoComponenteConfig(s.tipoComponente).label;
+/**
+ * ¿Quién identifica la fila: el SEGMENTO o el componente? **Espejo de
+ * `ComponenteTipoEnum::mandaElSegmento()`** — si cambia la regla, se tocan LOS DOS.
+ *
+ * Sólo el transporte, y no por preferencia: `travel_componente` no tiene columnas de origen ni
+ * destino —las tiene el segmento—, así que un componente de transporte **no puede** decir a dónde
+ * va hoy. En todo lo demás el componente nombra lo comprado y la variante lo termina de
+ * distinguir: «Guiado Machu Picchu» + «Privado Circuito 3» no necesita el segmento.
+ */
+const mandaElSegmento = (tipo?: string | null): boolean => tipo === 'transporte';
+
+const tituloDeFila = (s: OperacionServicio): string => {
+    const segmento = (nombreSegmentoDe(s) || '').trim();
+
+    if (mandaElSegmento(s.tipoComponente) && segmento !== '') {
+        return segmento;
+    }
+
+    return nombreComponenteDe(s) || segmento || s.descripcionServicio || getTipoComponenteConfig(s.tipoComponente).label;
+};
+
+/**
+ * El OTRO de los dos, en la ranura pequeña. Se calla si repite el título: cuando la fila no tiene
+ * segmento el componente sube a mandar, y repetirlo debajo enseña a no leer la línea.
+ */
+const secundarioDeFila = (s: OperacionServicio): string | null => {
+    const secundario = (mandaElSegmento(s.tipoComponente)
+        ? (nombreComponenteDe(s) || '')
+        : (nombreSegmentoDe(s) || '')).trim();
+
+    return secundario !== '' && secundario !== tituloDeFila(s) ? secundario : null;
+};
 
 const varianteDeFila = (s: OperacionServicio): string | null => {
     const variante = (s.descripcionServicio ?? '').trim();
 
     return variante !== '' && variante !== tituloDeFila(s) ? variante : null;
-};
-
-/**
- * El MOMENTO del programa: el nombre del segmento. **Espejo de
- * `OperacionOrdenServicioItem::getMomentoParaProveedor()`** — si cambia la regla, se tocan LOS DOS.
- *
- * Antes iba fundido con el día en un solo hueco (`segmento || contextoServicio`), y eso escondía
- * el dato justo cuando más falta hace: con el componente convertido en ruta genérica
- * —«Transporte Cusco - Ollanta», que sirve a tres segmentos distintos— el segmento es LO ÚNICO
- * que dice de cuál de los tres se trata. Fundido, el operador no sabía si estaba leyendo el
- * momento o el día.
- *
- * Se calla si repite el título, como la variante.
- */
-const momentoDeFila = (s: OperacionServicio): string | null => {
-    const momento = (nombreSegmentoDe(s) || '').trim();
-
-    return momento !== '' && momento !== tituloDeFila(s) ? momento : null;
 };
 
 /**
@@ -846,7 +857,7 @@ const momentoDeFila = (s: OperacionServicio): string | null => {
 const diaDeFila = (s: OperacionServicio): string | null => {
     const dia = (s.contextoServicio || '').trim();
 
-    return dia !== '' && dia !== tituloDeFila(s) && dia !== momentoDeFila(s) ? dia : null;
+    return dia !== '' && dia !== tituloDeFila(s) && dia !== secundarioDeFila(s) ? dia : null;
 };
 
 // ============================================================================
@@ -3118,36 +3129,32 @@ onMounted(async () => {
                                             <i :class="[getTipoComponenteConfig(servicio.tipoComponente).icon,
                                                        getTipoComponenteConfig(servicio.tipoComponente).text, 'text-sm mt-0.5 shrink-0']"
                                                :title="getTipoComponenteConfig(servicio.tipoComponente).label"></i>
-                                            <!-- ⚠️ El título es el COMPONENTE y sólo el componente. El itinerario tiene su
-                                                 propia ranura pequeña más abajo: son dos datos, no dos intentos
-                                                 del mismo. Cuando el itinerario podía subir aquí de respaldo, un
+                                            <!-- ⚠️ El título es el SEGMENTO, y NUNCA el día del itinerario. La
+                                                 distinción importa: cuando el DÍA podía subir aquí de respaldo, un
                                                  traslado de Ollantaytambo a Cusco se anunciaba como «Full Day
-                                                 HUAYNA: MAPI OLLA CUZ» y salía DUPLICADO en la ficha —arriba y
-                                                 abajo—, que es la única señal que lo delataba. El último recurso
-                                                 es el tipo («Transporte»): genérico, pero nunca miente. -->
+                                                 HUAYNA: MAPI OLLA CUZ» y salía duplicado en la ficha. La cascada
+                                                 baja al componente —los bastones de Vinicunca no tienen tramo— y
+                                                 de ahí a la variante; el último recurso es el tipo
+                                                 («Transporte»): genérico, pero nunca miente. -->
                                             <span>{{ tituloDeFila(servicio) }}</span>
                                         </p>
                                         <p v-if="varianteDeFila(servicio)" class="text-[11px] font-bold text-slate-500 leading-tight mt-1">
                                             <i class="fas fa-tag text-[8px] mr-1 text-slate-300"></i>{{ varianteDeFila(servicio) }}
                                         </p>
-                                        <!-- ── EL ITINERARIO, PEGADO AL TÍTULO Y SIN APAGAR ────
-                                             Estaba abajo del todo y en gris, con el resto de datos
-                                             de contexto. Funciona mientras el componente se nombre
-                                             solo; deja de funcionar en cuanto el nombre es
-                                             GENÉRICO —«Ticket aereo», «Transporte»—, porque
-                                             entonces lo único que dice qué vuelo es está al pie y
-                                             atenuado. Aquí manda el caso peor.
+                                        <!-- ── EL COMPONENTE, ahora debajo ─────────────────────
+                                             Se ven LOS DOS, como siempre; lo que cambió el
+                                             29/08/2026 es cuál va en grande. El componente pasó a
+                                             ser una ruta genérica —«Transporte Cusco ↔ Ollanta
+                                             (ida o vuelta)», que sirve a tres segmentos— porque el
+                                             origen y el destino los guarda el segmento. Con el
+                                             nombre genérico arriba, lo único que decía de cuál de
+                                             los tres se trataba estaba aquí, pequeño.
 
-                                             ⚠️ Y se ven LOS DOS: se descartó el flag que habría
-                                             dejado a la plantilla ocupar la ranura grande. Cabe un
-                                             segmento «Vuelo Cusco a Lima», pero no uno «Walking
-                                             Sticks en Vinicunca» —los bastones son un extra, no un
-                                             tramo—, así que ningún campo único carga el «qué» y el
-                                             «dónde» de todos los componentes. Sustituir uno por
-                                             otro acierta en el vuelo y pierde en los bastones, y
-                                             eso último no se nota. Ver docs/Operacion.md. -->
-                                        <p v-if="momentoDeFila(servicio)" class="text-[11px] font-bold text-slate-600 leading-tight mt-1">
-                                            <i class="fas fa-map-signs text-[9px] mr-1 text-slate-400"></i>{{ momentoDeFila(servicio) }}
+                                             El icono de TIPO se queda arriba: es lo que deja
+                                             barrer la lista de un vistazo. Aquí va el cubo, que
+                                             dice «esto es lo contratado». -->
+                                        <p v-if="secundarioDeFila(servicio)" class="text-[11px] font-bold text-slate-600 leading-tight mt-1">
+                                            <i class="fas fa-cube text-[9px] mr-1 text-slate-400"></i>{{ secundarioDeFila(servicio) }}
                                         </p>
                                         <!-- El día, más apagado: es referencia, no encargo. -->
                                         <p v-if="diaDeFila(servicio)" class="text-[10px] font-bold text-slate-400 leading-tight">
@@ -4741,8 +4748,8 @@ onMounted(async () => {
                 <span v-else>—</span>
                 <span class="ml-1 text-slate-400">· {{ servicioFicha.cantidadPax }} pax</span>
               </p>
-              <p v-if="momentoDeFila(servicioFicha)" class="text-[11px] font-bold text-slate-500 truncate">
-                <i class="fas fa-map-signs w-4 text-slate-400"></i>{{ momentoDeFila(servicioFicha) }}
+              <p v-if="secundarioDeFila(servicioFicha)" class="text-[11px] font-bold text-slate-500 truncate">
+                <i class="fas fa-cube w-4 text-slate-400"></i>{{ secundarioDeFila(servicioFicha) }}
               </p>
               <p v-if="diaDeFila(servicioFicha)" class="text-[11px] font-bold text-slate-400 truncate">
                 <i class="fas fa-calendar-day w-4 text-slate-300"></i>{{ diaDeFila(servicioFicha) }}

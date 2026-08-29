@@ -1176,6 +1176,52 @@ Se refresca con `app:cotizacion:refrescar-nombres-maestros` y después
 | importes | **no** — el precio congelado es lo que se vendió |
 | órdenes emitidas | **no** — un documento dice lo que dijo |
 
+#### Quién va en grande: lo decide el TIPO (29/08/2026)
+
+```
+GRANDE   el segmento SI es transporte, y el componente en todo lo demás
+debajo   el otro de los dos
+al lado  la variante de tarifa
+pequeño  el día del itinerario
+```
+
+`ComponenteTipoEnum::mandaElSegmento()` devuelve `true` **sólo para `TRANSPORTE`**, y no es una
+preferencia de diseño: `travel_componente` **no tiene columnas de origen ni de destino** —las
+tiene el segmento— así que un componente de transporte *no puede* decir a dónde va hoy. Desde el
+refactor ni lo intenta: `Transporte Cusco ↔ Ollanta (ida o vuelta)` sirve a tres segmentos a
+propósito.
+
+En todo lo demás el componente nombra lo comprado y **la variante lo termina de distinguir**:
+
+```
+ticket    Ingreso a Catedral          + Adulto Extranjero
+guiado    Guiado Machu Picchu         + Privado Circuito 3     ← el circuito va en la variante
+pool      Pool Paracas y Huacachina   + Cultur (Base 1, 2 pax)
+```
+
+Ahí el segmento es prosa de **itinerario, escrita para el cliente**: «La Catedral: Encuentro e
+Inmersión Colonial» no le dice al Arzobispado qué se le compró.
+
+⚠️ **`tipoComponente` se congela en la línea de la orden.** Leerlo del maestro al pintar haría que
+un documento emitido se leyera distinto el día que el catálogo cambiara de opinión. Nulo en las
+emitidas antes de esa fecha → manda el componente, que es como se leían entonces.
+
+##### Dos caminos que se descartaron, y por qué
+
+**Contar a cuántos segmentos sirve cada componente.** Da la misma respuesta con los datos de hoy,
+pero es una **observación, no una declaración**: en cuanto alguien enganche un segundo segmento a
+un componente, dos filas idénticas empezarían a pintarse distinto sin que nada visible haya
+cambiado. El tipo se declara al crear el componente y no se mueve solo.
+
+**Poner el segmento arriba SIEMPRE.** Se simuló sobre las **47 filas reales** antes de decidir, y
+habría encabezado un `Pool Valle Sagrado` y un `Boleto Turístico Parcial` con «Recojo e inicio de
+excursión (Servicio Grupal)» —el ancla, idéntica en todas las excursiones y que ni siquiera habla
+de esa fila—. Un retroceso en 21 de 47.
+
+La simulación es el método, no una anécdota: **una regla de display se prueba rindiéndola sobre
+los datos reales**, porque el caso que la rompe nunca es el que se tenía en la cabeza al
+escribirla.
+
 #### La secuencia para propagar un renombrado, y por qué ese orden
 
 ```

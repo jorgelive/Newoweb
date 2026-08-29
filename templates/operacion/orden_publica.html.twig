@@ -91,11 +91,11 @@
                            Los DOS, no uno u otro: con sólo la variante de tarifa esta línea le
                            decía «Auto» a quien hacía el traslado Ollantaytambo→Cusco. #}
                         <span class="servicio">{{ item.tituloParaProveedor }}</span>
-                        {# EL MOMENTO: a dónde se va en este tramo concreto. El componente es la
-                           ruta genérica y no puede decirlo; el segmento sí, porque es quien
-                           guarda inicio y fin. #}
-                        {% if item.momentoParaProveedor %}
-                            <br><span class="momento">{{ item.momentoParaProveedor }}</span>
+                        {# EL OTRO de los dos. Cuál sea lo decide el TIPO: en un traslado manda
+                           el segmento —es quien dice a dónde se va— y aquí baja el componente;
+                           en una entrada manda el componente y aquí baja el segmento. #}
+                        {% if item.secundarioParaProveedor %}
+                            <br><span class="momento">{{ item.secundarioParaProveedor }}</span>
                         {% endif %}
                         {% if item.varianteParaProveedor %}
                             <span class="variante">{{ item.varianteParaProveedor }}</span>

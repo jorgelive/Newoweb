@@ -206,4 +206,47 @@ enum ComponenteTipoEnum: string
             self::ALOJAMIENTO => 90,
         };
     }
+
+    /**
+     * ¿Quién identifica la fila: el SEGMENTO o el componente?
+     *
+     * Decide qué nombre va en grande en La Biblia y en la Orden que lee el proveedor. **Espejo de
+     * `mandaElSegmento()` en `util/src/views/Operacion/OperacionView.vue`** — si cambia la regla,
+     * se tocan LOS DOS.
+     *
+     * **Sólo `TRANSPORTE`**, y el motivo no es una preferencia de diseño: es un hueco del modelo.
+     * `travel_componente` **no tiene columnas de origen ni de destino** —las tiene el segmento,
+     * en `inicioPunto`/`finPunto`, y a veces como *modo*: «acaba en el alojamiento del
+     * pasajero»—. Un componente de transporte **no puede** decir a dónde va hoy, y desde el
+     * refactor del 29/08/2026 ni siquiera lo intenta: `Transporte Cusco ↔ Ollanta (ida o vuelta)`
+     * sirve a tres segmentos a propósito.
+     *
+     * En todo lo demás el componente **sí** nombra lo comprado, y con la variante de tarifa al
+     * lado no queda nada por distinguir:
+     *
+     * ```
+     * ticket    Ingreso a Catedral              + Adulto Extranjero
+     * guiado    Guiado Machu Picchu             + Privado Circuito 3      ← el circuito va en la variante
+     * pool      Pool Paracas y Huacachina       + Cultur (Base 1, 2 pax)
+     * vuelo     Vuelo Lima Cusco                + PR Expedition Adulto
+     * ```
+     *
+     * Ahí el segmento es prosa de ITINERARIO, escrita para el cliente: «La Catedral: Encuentro e
+     * Inmersión Colonial» no le dice al Arzobispado qué se le compró, y `Ingreso a Catedral` sí.
+     *
+     * ⚠️ **Se descartó decidirlo contando** a cuántos segmentos sirve cada componente. Da la
+     * misma respuesta con los datos de hoy, pero es una **observación, no una declaración**: el
+     * día que alguien enganche un segundo segmento a un componente, dos filas idénticas
+     * empezarían a pintarse distinto sin que nada visible haya cambiado. El tipo se declara al
+     * crear el componente y no se mueve solo.
+     *
+     * ⚠️ Y se probó antes de decidir, sobre las 47 filas reales de La Biblia: poner el segmento
+     * arriba en todas habría encabezado un `Pool Valle Sagrado` y un `Boleto Turístico Parcial`
+     * con «Recojo e inicio de excursión (Servicio Grupal)», que ni siquiera habla de esa fila.
+     */
+    public function mandaElSegmento(): bool
+    {
+        return $this === self::TRANSPORTE;
+    }
+
 }
