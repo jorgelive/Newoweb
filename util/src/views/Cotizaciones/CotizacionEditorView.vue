@@ -2535,9 +2535,16 @@ store.$onAction(({ name, args }) => {
 
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Inicio Exacto *</label>
+                  <!-- ⚠️ Sin «x». Un componente sin inicio o sin fin no existe —la etiqueta ya lo
+                       marca obligatorio— y ese botón sólo servía para dejar el formulario en un
+                       estado que el backend rechaza, con el error a dos pantallas de distancia.
+                       Es la misma decisión que `borrable=false` en FechaHoraPicker, sólo que aquí
+                       se usa VueDatePicker directo y `clearable` viene a true por defecto. Ver
+                       docs/UI_Componentes_Compartidos.md §1.5. -->
                   <VueDatePicker
                       teleport="body"
                       :teleport-center="esEstrecha"
+                      :clearable="false"
                       :model-value="store.componenteActivo.fechaHoraInicio"
                       @update:model-value="onInicioChange"
                       :is-24="true"
@@ -2571,9 +2578,11 @@ store.$onAction(({ name, args }) => {
 
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Fin Exacto *</label>
+                  <!-- Sin «x», por lo mismo que el de inicio. -->
                   <VueDatePicker
                       teleport="body"
                       :teleport-center="esEstrecha"
+                      :clearable="false"
                       :key="finPickerKey"
                       v-model="store.componenteActivo.fechaHoraFin"
                       @update:model-value="store.onComponenteFechasChange()"

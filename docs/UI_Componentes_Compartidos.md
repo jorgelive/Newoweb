@@ -330,6 +330,17 @@ que el backend rechaza. El resto de usos (Operación) siguen pudiendo limpiar el
 Junto a `diaBloqueado` (§ del doc de sincronización, 7.1.b) son las dos formas de acotar el
 campo: una prohíbe cambiar el día, la otra prohíbe dejarlo vacío.
 
+⚠️ **Y hay que acordarse también donde NO se usa este componente.** «Inicio Exacto» y «Fin
+Exacto» del editor de cotización montan `VueDatePicker` **directo**, no `FechaHoraPicker`, así que
+no heredaban nada: `clearable` viene a `true` por defecto y la «x» seguía ahí. Los dos campos
+están marcados obligatorios con `*` y un componente sin inicio o sin fin no existe — el botón sólo
+servía para dejar el formulario en un estado que el backend rechaza, con el error a dos pantallas
+de distancia. Corregido el 29/08/2026 con `:clearable="false"` en los dos.
+
+**La lección es sobre el envoltorio, no sobre la fecha:** una decisión que vive en un componente
+compartido no alcanza a quien usa la librería por debajo. Al añadir una regla a `FechaHoraPicker`,
+comprobar quién sigue montando `VueDatePicker` a pelo.
+
 ### 1.6 ⚠️ `min-date` con hora arrastra la hora del otro campo
 
 `minPicker` propaga a `VueDatePicker` la hora que venga en `minDate`, y ese componente la usa
