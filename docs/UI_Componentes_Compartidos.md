@@ -260,6 +260,37 @@ Detalles que no se ven leyendo el componente:
   lista, y se reposiciona en `scroll`/`resize` mientras está abierta. Es un componente muy
   reutilizado (tarifas, prestador, comprador, servicios): cualquier cambio ahí se prueba en varias
   pantallas.
+
+### ⚠️ La factura del teletransporte: la `z` deja de ser relativa (2026-08-29)
+
+Sacar la lista al `body` arregla el recorte y **crea un problema nuevo**: fuera del modal ya no
+hereda su contexto de apilamiento, así que pasa a competir con él **de tú a tú**.
+
+Nació con `z-[200]`, y los modales de la app van de `z-1000` a `z-1500`. Resultado: dentro de
+cualquier modal la lista se abría **detrás de un panel opaco**.
+
+**El síntoma engaña**: un selector que no lista nada. Ni error en consola, ni fallo en la API —
+parecía que el catálogo estaba vacío. Se fue a buscar al backend (grupos de serialización, caché
+de metadatos, la plantilla en producción) antes de mirar la capa que lo tapaba. Costó una sesión.
+
+Y **es general, no de una pantalla**: son 13 instancias dentro de modales — 8 en el editor de
+cotizaciones, 3 en la ficha de expediente, 2 en Operación.
+
+La escalera de la app, que ahora vive escrita en el propio componente:
+
+```
+10–50       adornos dentro de una tarjeta
+100–500     cabeceras pegajosas, barras de totales
+1000–1500   modales a pantalla completa
+5000        la lista de SearchableSelect     ← por encima de cualquier modal que la contenga
+9999        avisos globales: toasts, sesión caducada, banner de PWA
+```
+
+**La regla que sale de aquí:** todo lo que se teletransporte al `body` tiene que declarar una `z`
+por encima de la capa más alta que pueda contenerlo. Un componente teletransportado no puede
+razonar «estoy dentro de X»; ya no lo está.
+
+⚠️ Si algún día hace falta un modal por encima de 5000, hay que **subir la lista con él**.
 - **`limpiable` — la «×» para soltar la selección** (2026-08-23). Opt-in y por buenas razones: la
   mayoría de estos selectores son **obligatorios** —un servicio maestro, una moneda— y ahí un botón
   de limpiar sólo sirve para dejar el formulario inválido. Se activa donde desvincular es una

@@ -241,6 +241,21 @@ no por el genérico. Cómo está hoy:
 - Hacer editable el nombre interno del servicio en la cotización, con la plantilla como valor
   sembrado y el servicio como fallback — igual que ya funciona el título público.
 
+### Una plantilla sólo entra en un servicio VACÍO
+
+`puedeAplicarPlantilla = !servicioActivo?.cotsegmentos?.length`
+(`CotizacionEditorView.vue`). Con un solo párrafo en el panel, «Aplicar» queda deshabilitado —
+aplicar encima duplicaría lo que ya está.
+
+La consecuencia: si el servicio se armó a mano desde el pool, o la plantilla se creó después, el
+servicio se queda en «Sin plantilla» para siempre, porque `itinerarioNombreInternoSnapshot` sólo
+lo escribe `aplicarPlantilla()`. Para ponérsela hay que vaciar los párrafos y volver a aplicarla,
+perdiendo los retoques de texto hechos a mano.
+
+⚠️ **Esto NO explica un desplegable que no lista nada.** Si las plantillas no aparecen siquiera,
+el botón gris es un síntoma aparte y se está mirando el sitio equivocado: ver la trampa del
+`z-index` de `SearchableSelect` en `docs/UI_Componentes_Compartidos.md`.
+
 Dónde vive cada pieza: se aplica la plantilla en `cotizacionEditorStore.aplicarPlantilla()`
 (copia título → `itinerarioNombreSnapshot` y `tituloSnapshot`, NO `nombreInternoSnapshot`); el
 nombre interno lo lee `BibliaSnapshotService::calcularValores()` (`contextoServicio`).

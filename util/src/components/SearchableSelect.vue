@@ -34,12 +34,27 @@
 
     <!-- La lista va teletransportada al body con posición fija: dentro del panel la recortaba
          el contenedor con `overflow-y-auto` y la tapaba la barra de totales. `posicionar()` la
-         ancla al disparador y la abre hacia arriba si no cabe abajo. -->
+         ancla al disparador y la abre hacia arriba si no cabe abajo.
+
+         ⚠️ `z-[5000]` y no un número pequeño, y el motivo es el teletransporte mismo. Al salir
+         al `body` la lista deja de heredar el contexto de apilamiento del modal que la contiene
+         y pasa a competir con él de tú a tú. Con `z-[200]` quedaba DEBAJO de todos los modales
+         —el de storytelling es `z-1000`— y el desplegable se abría detrás de un panel opaco: el
+         operador veía un selector que no listaba nada, sin error en consola ni fallo en la API.
+
+         La escalera de la app, para no volver a cruzarla:
+             10–50      adornos dentro de una tarjeta
+             100–500    cabeceras pegajosas y barras de totales
+             1000–1500  modales a pantalla completa
+             5000       ESTA lista (por encima de cualquier modal que la contenga)
+             9999       avisos globales: toasts, sesión caducada, banner de PWA
+
+         Si algún día hace falta un modal por encima de 5000, hay que subir esto con él. -->
     <Teleport to="body">
     <div
         v-if="isOpen"
         ref="dropdownRef"
-        class="fixed z-[200] rounded-2xl shadow-2xl border overflow-hidden animate-fade-in"
+        class="fixed z-[5000] rounded-2xl shadow-2xl border overflow-hidden animate-fade-in"
         :class="darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'"
         :style="dropdownStyle"
     >
