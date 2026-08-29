@@ -3088,6 +3088,40 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.x Guardar reemplaza el árbol, y el historial se queda atrás (29/08/2026)
+
+Reportado como **dos** fallos intermitentes del editor: «añado una tarifa y no aparece — guardo y
+sí» y «el basurero a veces no borra». Es **uno**, y sólo pasa después de guardar sin salir del
+componente:
+
+```
+1. abres componente     el historial guarda ESE objeto
+2. abres una tarifa     el historial guarda el componente
+3. GUARDAS              cotizacion.value = savedData   ← árbol nuevo entero
+                        dataActiva SÍ se revincula…
+                        …historialNavegacion NO
+4. vuelves atrás        dataActiva = copia vieja, desconectada del árbol
+```
+
+Desde ahí `agregarTarifa()` y `eliminarTarifa()` buscan por id en el **árbol vivo** y aciertan —
+pero la vista está pintando **otro objeto**. Por eso la tarifa aparecía al guardar: el árbol sí
+la tenía.
+
+**El arreglo es un resolutor único**, `revincularNodo()`, que devuelve el nodo vivo equivalente y
+lo usan los dos sitios: el post-guardado —que antes repetía el rebusque a mano en tres bucles— y
+`retrocederNivel()`, que ahora resuelve al sacar del historial en vez de confiar en la referencia.
+Si el nodo ya no existe, sigue retrocediendo en vez de dejar el inspector sobre un fantasma.
+
+⚠️ **Revincular al sacar, y no al guardar.** El historial tiene muchas entradas y la mayoría no se
+llegan a usar; recorrerlas todas en cada guardado sería pagar por lo que no se pide. Además cubre
+cualquier otra causa de desconexión, no sólo el guardado.
+
+⚠️ **Y dos comparaciones de id en crudo.** `agregarTarifa` hacía `c.id === componenteId` y
+`eliminarTarifa` `t.id !== tarifaId`, mientras `findServicioByComponenteId` ya normalizaba con
+`extractIdStr`. El id llega unas veces como IRI y otras como uuid pelado: con uno de cada lado,
+`agregarTarifa` **salía del método sin añadir nada y sin decir nada**. Así se ve un botón que «a
+veces no funciona».
+
 ## 6.w El chequeo vigila la duplicación del catálogo (29/08/2026)
 
 El refactor de transporte dejó las tarifas en 239 partiendo de 336, con 25 rutas bidireccionales

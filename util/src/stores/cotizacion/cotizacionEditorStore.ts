@@ -2506,26 +2506,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             // Restauración del foco de inspección si es necesario
             if (inspectorActivo.value !== 'resumen' && dataActiva.value) {
-                const oldId = dataActiva.value.id;
-                let relinked: CotServicio | ComponenteCompleto | TarifaSnapshot | undefined = undefined;
-
-                if (inspectorActivo.value === 'servicio') {
-                    relinked = savedData.cotservicios.find((s: CotServicio) => s.id === oldId);
-
-                } else if (inspectorActivo.value === 'componente') {
-                    savedData.cotservicios.forEach((s: CotServicio) => {
-                        const found = s.cotcomponentes?.find((c: ComponenteCompleto) => c.id === oldId);
-                        if (found) relinked = found;
-                    });
-
-                } else if (inspectorActivo.value === 'tarifa') {
-                    savedData.cotservicios.forEach((s: CotServicio) => {
-                        s.cotcomponentes?.forEach((c: ComponenteCompleto) => {
-                            const found = c.cottarifas?.find((t: TarifaSnapshot) => t.id === oldId);
-                            if (found) relinked = found;
-                        });
-                    });
-                }
+                const relinked = revincularNodo(inspectorActivo.value, dataActiva.value);
 
                 if (relinked) {
                     dataActiva.value = relinked;
@@ -2630,11 +2611,60 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    /**
+     * El nodo VIVO equivalente a uno que puede haberse quedado atrás, o null si ya no existe.
+     *
+     * ⚠️ Hace falta porque **guardar reemplaza el árbol entero** (`cotizacion.value = savedData`)
+     * y todo lo que apuntara a un nodo pasa a apuntar a una copia desconectada. Mutarla no se ve
+     * en pantalla, y mutar el árbol no se ve tampoco porque la pantalla pinta la copia.
+     *
+     * Los dos síntomas que reportó el operador salían de aquí, y parecían dos bugs:
+     * «añado una tarifa y no aparece —guardo y sí—» y «el basurero a veces no borra». Es el
+     * mismo: `agregarTarifa`/`eliminarTarifa` buscan por id en el árbol vivo y aciertan; la vista
+     * está pintando otro objeto.
+     *
+     * Se compara con `extractIdStr` porque un mismo nodo llega unas veces como IRI y otras como
+     * uuid pelado, y una comparación en crudo falla en silencio — que es como se ve un botón que
+     * «a veces no funciona».
+     */
+    const revincularNodo = (nivel: NivelInspector, nodo: NodoInspector | null): NodoInspector | null => {
+        if (!nodo || !cotizacion.value?.cotservicios) return nodo;
+
+        const id = extractIdStr(nodo.id ?? '');
+        if (!id) return nodo;
+
+        for (const servicio of cotizacion.value.cotservicios) {
+            if (nivel === 'servicio' && extractIdStr(servicio.id ?? '') === id) return servicio;
+
+            for (const componente of servicio.cotcomponentes || []) {
+                if (nivel === 'componente' && extractIdStr(componente.id ?? '') === id) return componente;
+
+                if (nivel === 'tarifa') {
+                    const tarifa = componente.cottarifas?.find(t => extractIdStr(t.id ?? '') === id);
+                    if (tarifa) return tarifa;
+                }
+            }
+        }
+
+        return null;
+    };
+
     const retrocederNivel = (): void => {
         if (historialNavegacion.value.length > 0) {
             const previo = historialNavegacion.value.pop()!;
+
+            // El historial NO se revincula al guardar —son muchas entradas y la mayoría no se
+            // llegan a usar—, así que se resuelve al sacarlas. Si el nodo ya no existe se sigue
+            // retrocediendo en vez de dejar el inspector sobre un fantasma.
+            const vivo = revincularNodo(previo.nivel, previo.data);
+
+            if (vivo === null && previo.data !== null) {
+                retrocederNivel();
+                return;
+            }
+
             inspectorActivo.value = previo.nivel;
-            dataActiva.value = previo.data;
+            dataActiva.value = vivo;
         } else {
             inspectorActivo.value = 'resumen';
             dataActiva.value = null;
@@ -3069,9 +3099,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const agregarTarifa = (componenteId: string): void => {
         if (!cotizacion.value) return;
 
+        // Por `extractIdStr` y no en crudo: el id llega unas veces como IRI y otras pelado, y
+        // una comparación estricta salía del método sin añadir nada y sin decir nada.
         const componente = cotizacion.value.cotservicios
             ?.flatMap(s => s.cotcomponentes || [])
-            .find(c => c.id === componenteId) as unknown as ComponenteCompleto;
+            .find(c => extractIdStr(c.id ?? '') === extractIdStr(componenteId)) as unknown as ComponenteCompleto;
 
         if (!componente) return;
 
@@ -3164,9 +3196,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const componente = servicio.cotcomponentes.find((c: ComponenteCompleto) => c.id === componenteId);
 
             if (componente && componente.cottarifas) {
-                componente.cottarifas = componente.cottarifas.filter((t: TarifaSnapshot) => t.id !== tarifaId);
+                componente.cottarifas = componente.cottarifas.filter(
+                    (t: TarifaSnapshot) => extractIdStr(t.id ?? '') !== extractIdStr(tarifaId)
+                );
 
-                if (dataActiva.value?.id === tarifaId) {
+                if (extractIdStr(dataActiva.value?.id ?? '') === extractIdStr(tarifaId)) {
                     retrocederNivel();
                 }
             }
