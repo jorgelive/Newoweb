@@ -24,6 +24,14 @@ type ApiTemplateWA = ApiTemplate & { whatsappLinkContent?: boolean };
 
 const props = defineProps<{
     reservaId: string;
+    /**
+     * Canal de la reserva (`booking`, `airbnb`, `directo`…), para acotar por `allowedSources`.
+     *
+     * Opcional a propósito: sin él **no se acota**, siguiendo la regla de la casa de que una
+     * lista vacía significa «sin acotar». Un consumidor que olvide pasarlo enseña una plantilla
+     * de más —molesto pero visible— en vez de esconder las que sí valen, que no se descubre.
+     */
+    origen?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -39,11 +47,29 @@ const reservasStore = useReservasStore();
 const cargando = ref(false);
 
 /**
- * La restricción de canal: sólo salen las plantillas con cuerpo de enlace. Una plantilla
- * de Beds24 o de la API de Meta no tiene `whatsappLinkTmpl` y aquí no significa nada —
- * este menú abre wa.me, no encola un envío.
+ * Qué plantillas salen. Tres criterios, y hasta el 29/08/2026 sólo estaba el primero.
+ *
+ * 1. **Cuerpo de enlace.** Una plantilla de Beds24 o de la API de Meta no tiene
+ *    `whatsappLinkTmpl` y aquí no significa nada — este menú abre wa.me, no encola un envío.
+ * 2. **Contexto.** Las de `staff` no son para el huésped. Una sin contexto vale en todos.
+ * 3. **Canal.** `allowedSources` ya estaba bien puesto en base —`welcome_booking` a
+ *    `["booking"]`, `welcome_airbnb` a `["airbnb"]`— y este menú lo ignoraba: en una reserva de
+ *    Airbnb salían las dos bienvenidas, y elegir la de Booking le habla al huésped de un canal
+ *    por el que no vino y le pide el PDF de una reserva que no existe.
+ *
+ * Son los mismos criterios 2 y 3 que aplica `chatStore.validTemplates`, pero no se reutiliza
+ * porque aquél parte de la conversación abierta y aquí sólo hay una reserva. Si los criterios
+ * cambian, se tocan los dos sitios — están citados el uno al otro a propósito.
  */
-const plantillas = computed(() => (chatStore.templates as ApiTemplateWA[]).filter(t => t.whatsappLinkContent));
+const plantillas = computed(() => {
+    const origen = props.origen ?? null;
+
+    return (chatStore.templates as ApiTemplateWA[]).filter(t =>
+        t.whatsappLinkContent
+        && (!t.contextType || t.contextType === 'pms_reserva')
+        && (!origen || !t.allowedSources?.length || t.allowedSources.includes(origen))
+    );
+});
 
 // ============================================================================
 // POR QUÉ EL ENLACE SE RESUELVE ANTES DE PINTARLO

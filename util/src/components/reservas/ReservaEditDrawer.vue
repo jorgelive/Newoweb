@@ -1799,6 +1799,7 @@ async function ejecutarBorrado(): Promise<void> {
                 <div class="border-t border-slate-100"></div>
                 <WhatsappPlantillasLista v-if="reservaId"
                     :reserva-id="reservaId"
+                    :origen="reservaInfo.channelId"
                     @elegido="cerrarPlantillas"
                     @error="onErrorPlantillas"
                 />

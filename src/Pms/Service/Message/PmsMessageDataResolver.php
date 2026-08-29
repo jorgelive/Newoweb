@@ -180,6 +180,20 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'guest_country'         => $pais ? $pais->getNombre() : '',
             'guide_url'             => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador,
             'guide_path'            => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador,
+
+            // El estado de cuenta. Es **la misma página** que `guide_url` —la tarjeta de cuenta
+            // es su primera sección— y lo que cambia es el ancla, o sea a qué llega abierto.
+            //
+            // Existen como marcadores propios y no como «guide_url más un ancla escrita a mano en
+            // la plantilla» porque una plantilla no debería saber cómo se navega el pax: el día
+            // que el ancla cambie de nombre habría que perseguirla por siete idiomas de cada
+            // plantilla que la use.
+            //
+            // ⚠️ El ancla del resumen es EXPLÍCITA aunque sea el estado por defecto: quien
+            // recibe esto por WhatsApp no ve la página, ve la URL, y un enlace tiene que decir a
+            // qué lleva. Ver `docs/PmsBeds24ReservasSync.md` §12.5.2.
+            'account_url'           => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador . '#resumen',
+            'account_detail_url'    => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador . '#detalle',
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
         ];
@@ -218,6 +232,11 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'guest_country'         => 'Perú',
             'guide_url'             => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator,
             'guide_path'            => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $dummyLocator,
+            // ⚠️ Los marcadores nuevos van TAMBIÉN aquí. Este array alimenta el `example`
+            // obligatorio al crear plantillas en Meta: uno que falte se envía vacío y Meta
+            // rechaza la plantilla, o peor, la aprueba con un ejemplo que no se parece a nada.
+            'account_url'           => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator . '#resumen',
+            'account_detail_url'    => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator . '#detalle',
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
         ];

@@ -1432,6 +1432,7 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
                          enlace) las pone el componente compartido con ReservaEditDrawer. -->
                     <WhatsappPlantillasLista v-if="menu.eventProps?.reservaId"
                         :reserva-id="menu.eventProps.reservaId"
+                        :origen="menu.eventProps.canalId"
                         @elegido="cerrarMenu"
                         @error="avisar"
                     />

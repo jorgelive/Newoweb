@@ -999,8 +999,29 @@ plantillas» cuando lo que falta es elegir por dónde enviar.
 
 ⚠️ El equivalente de EasyAdmin (`MessageCrudController::getValidTemplateIds()`) **sigue sin
 filtrar por canal**, y ahí es defendible: los canales se eligen en el propio formulario, después
-de la plantilla. El de la reserva (`ReservasView.vue`) filtra por `whatsappLinkContent`, que es
-su criterio correcto — ése es el enlace manual, no un canal.
+de la plantilla.
+
+### El desplegable de la RESERVA también acota por origen (desde 2026-08-29)
+
+`WhatsappPlantillasLista.vue` —compartido por el menú contextual del calendario y la subbarra de
+`ReservaEditDrawer`— tenía **un solo criterio**: `whatsappLinkContent`. Correcto para lo que
+mira (ése es el enlace manual, no un canal) pero incompleto, y se veía: en una reserva de Airbnb
+salían **las dos bienvenidas**, y elegir la de Booking le habla al huésped de un canal por el que
+no vino y le pide el PDF de una reserva que no existe.
+
+El dato para acotar ya estaba en base y bien puesto —`welcome_booking` a `["booking"]`,
+`welcome_airbnb` a `["airbnb"]`, las despedidas igual—; sólo faltaba mirarlo. Ahora filtra por
+los tres: cuerpo de enlace, `contextType` (las de `staff` no son para el huésped) y
+`allowedSources` contra el canal de la reserva, que llega por la prop `origen`
+(`eventProps.canalId` en el calendario, `reservaInfo.channelId` en el drawer).
+
+**`origen` es opcional y sin él NO se acota**, siguiendo la regla de la casa: un consumidor que
+olvide pasarlo enseña una plantilla de más —molesto pero visible— en vez de esconder las que sí
+valen, que no se descubre nunca.
+
+🔁 Son los mismos criterios que `chatStore.validTemplates`, y **no se reutiliza** porque aquél
+parte de la conversación abierta y aquí sólo hay una reserva. Los dos se citan mutuamente: si el
+criterio cambia, se tocan los dos.
 
 ### El menú caduca
 
