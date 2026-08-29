@@ -1176,6 +1176,36 @@ Se refresca con `app:cotizacion:refrescar-nombres-maestros` y después
 | importes | **no** — el precio congelado es lo que se vendió |
 | órdenes emitidas | **no** — un documento dice lo que dijo |
 
+#### La secuencia para propagar un renombrado, y por qué ese orden
+
+```
+1. app:cotizacion:refrescar-nombres-maestros     la cotización recoge el nombre nuevo
+2. operacion:resincronizar --todas --force       La Biblia lo copia de la cotización
+3. app:operacion:refrescar-ordenes-emitidas      las órdenes lo copian de La Biblia
+```
+
+Al revés no funciona: cada paso **copia del anterior**, así que empezar por el final propaga los
+nombres viejos.
+
+⚠️ **El `--force` del paso 2 no es un atajo: es un falso positivo sistemático.** La
+reconciliación decide «¿quién se movió?» comparando contra `OperacionServicio::$snapshotOrigen`,
+y `nombreComponente` **no existía** cuando se escribieron esas filas — 46 de 47 lo tienen ausente.
+Sin poder probar que lo escribió ella, asume conservadoramente que lo editó una persona y pide
+aprobación. Se verificó que no era cierto antes de forzar: **cero filas** en las que
+`descripcionServicio` difiriera de lo que el snapshot escribió.
+
+**Compruébalo igual la próxima vez.** El día que alguien SÍ haya editado a mano, `--force` se lo
+lleva por delante y el aviso habrá sido correcto.
+
+⚠️⚠️ **El paso 3 reescribe documentos emitidos, y normalmente NO se hace.** Fue legítimo el
+29/08/2026 por una condición concreta: **ninguna de esas órdenes se había enviado**. Estaban
+emitidas en el sistema pero no habían salido a ningún proveedor, así que no había nadie con una
+versión distinta en la mano. Esa condición no se cumple sola: si una sola orden salió, lo
+correcto es **anular y reemitir**, no reescribir.
+
+Un vacío en La Biblia **no borra** lo que la orden ya dice: perder texto por un recálculo
+incompleto es peor que quedarse con un nombre viejo.
+
 #### Tres ranuras: el segmento entra en la orden (2026-08-29)
 
 Hasta aquí eran dos, y **al proveedor sólo le llegaban dos**. `nombreSegmento` se calculaba en
