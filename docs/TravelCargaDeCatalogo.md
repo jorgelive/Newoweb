@@ -113,6 +113,41 @@ bueno, y las correcciones se aplican a uno solo.
 ⚠️ **El slug lleva el servicio dentro**, así que una mudanza obliga a renombrarlo:
 `DES-WALK_MIR-AEROPUERTO` afirmaba una pertenencia que ya no era cierta.
 
+### ⚠️ Un componente por RUTA, no por sentido (29/08/2026)
+
+`Transporte Cusco - Ollanta` y `Transporte Ollanta - Cusco` eran el mismo vehículo, el mismo
+proveedor y el mismo precio, duplicados. **Existían porque el nombre del componente era lo único
+que le decía al proveedor a dónde ir** — `travel_componente` no tiene columnas de origen ni
+destino; las tiene el segmento (`inicioPunto`/`finPunto`, y a veces como *modo*).
+
+Desde que el nombre del segmento viaja con la orden (`docs/Operacion.md` §5, «Tres ranuras»), esa
+muleta sobra: un componente por ruta, y la dirección la pone el segmento.
+
+**Lo que la duplicación costaba, medido:** 94 componentes de transporte, **336 tarifas** para
+**39 líneas de cotización** reales. Y divergía en silencio — el mismo `Auto` a 150 con capacidad
+3 en un sentido y 4 en el otro.
+
+`app:travel:fusionar-transportes-bidireccionales` fusionó 25 pares y dejó las tarifas en 269.
+Sus reglas, que valen para cualquier fusión de catálogo:
+
+| Situación | Qué hace | Por qué |
+|---|---|---|
+| Canónico del par | el más usado, empate → alfabético | mover pocos enlaces es menos superficie de error |
+| Capacidades distintas | **la menor** | un `Auto` que dice 4 cuando caben 3 vende una plaza que no existe, y eso se descubre en el aeropuerto |
+| Capacidad nula vs. número | gana el número | un nulo no es «menor», es «sin medir» |
+| **Importes distintos** | **NO fusiona**: conserva las dos, cada una con su sentido en el nombre | elegir uno sería inventar dinero |
+| El componente que sobra | 0 enlaces, fuera de los pools, **no se borra** | una cotización histórica que lo cite sigue contando lo que se vendió |
+
+⚠️ **Borrar una tarifa obliga a reapuntar quien la cita.** La primera versión repuntaba
+`tarifaPredeterminada` y se olvidó de `cotizacion_cottarifa.tarifaMaestraId`: dejó **13 enlaces
+al vacío**. No falla nada —el snapshot conserva nombre e importe, la cotización se sirve igual—,
+simplemente la línea deja de poder volver al maestro, y eso no duele hasta que alguien recalcula.
+Se cazó comparando el conteo contra producción, que tenía 0. Ver `reapuntarCotizaciones()`.
+
+⚠️ **Las divergencias de precio son el hallazgo, no el estorbo.** Salieron 7, y dos eran un error:
+en el urbano de Cusco la Van del aeropuerto y la del terminal estaban **intercambiadas**. Nadie
+lo vio en cinco componentes por cinco tarifas.
+
 ## 3. Pool o plantilla
 
 | | Pool | Itinerario |
@@ -349,4 +384,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:crear-escala-miraflores` | ancla + segmentos que sólo cuentan · con plantilla |
 | `app:travel:crear-segmentos-vuelo` | segmento por ruta · puntos fijos · pool masivo |
 | `app:travel:crear-varios-aeropuerto-lima` | retirar un ancla traspasando la hora promovida · mudar un segmento de servicio |
+| `app:travel:fusionar-transportes-bidireccionales` | fusionar duplicados sin inventar precios · reapuntar lo que citaba lo borrado |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
