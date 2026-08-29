@@ -1206,6 +1206,34 @@ Inmersión Colonial» no le dice al Arzobispado qué se le compró.
 un documento emitido se leyera distinto el día que el catálogo cambiara de opinión. Nulo en las
 emitidas antes de esa fecha → manda el componente, que es como se leían entonces.
 
+##### Una sola regla para las cuatro ranuras: callarse si repites
+
+`OperacionOrdenServicioItem::calladoSiRepite()`. Cada texto se calla si repite **alguno de los que
+ya salieron antes** en la línea: el secundario mira al título, la variante al título y al
+secundario, el día a los tres.
+
+Sustituye a cuatro comparaciones sueltas que no coincidían entre sí ni con su espejo en `util`. La
+peor: la variante se callaba comparando contra el **componente**, que desde que manda el segmento
+ya no es lo que hay arriba. Fallaba **en los dos sentidos y en superficies distintas**:
+
+| Caso | PHP (WhatsApp, PDF, web) | `util` (La Biblia) |
+|---|---|---|
+| variante = segmento | **imprimía el mismo texto dos veces** | se callaba ✓ |
+| variante = componente | se callaba ✓ | **lo enseñaba junto al secundario, que era ese mismo texto** |
+
+Es lo que pasa cuando dos espejos comparan contra cosas **parecidas pero no iguales**. Una regla
+acumulativa no tiene ese problema: no hay contra qué equivocarse.
+
+⚠️ **El día también subió a la entidad** (`getDiaParaProveedor()`). Antes el documento y el twig
+repetían la comparación cada uno por su cuenta y sólo miraban al título, así que un día igual al
+componente salía duplicado en el PDF. Una regla en un sitio, tres superficies que la consumen.
+
+⚠️ **Y el último peldaño del título ya no puede quedar vacío.** Caía a `descripcion`, que admite
+cadena vacía: con todo en blanco la línea salía como un `**` sin nada dentro. Ahora cae al tipo,
+genérico pero nunca mentiroso — el mismo criterio que ya tenía el espejo de `util`.
+
+Verificado sobre las 14 líneas emitidas reales: ninguna repite un texto.
+
 ##### Y una tercera pregunta: ¿el segmento pinta algo?
 
 `ComponenteTipoEnum::ocultaElSegmento()` — **true en las excursiones** (`pool` y `privada`). Su

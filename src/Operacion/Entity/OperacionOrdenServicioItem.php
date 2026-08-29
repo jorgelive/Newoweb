@@ -423,13 +423,53 @@ class OperacionOrdenServicioItem
             return $segmento;
         }
 
-        return $componente ?: ($segmento ?: $this->descripcion);
+        // ⚠️ El último peldaño NO puede quedar vacío: `descripcion` admite cadena vacía, y con
+        // todo en blanco la línea salía como un `**` sin nada dentro en el WhatsApp. Se cae al
+        // tipo, que es genérico pero nunca miente — el mismo criterio que el espejo de `util`.
+        return $componente
+            ?: ($segmento
+            ?: (trim($this->descripcion) ?: ((string) $this->tipoComponente ?: 'Servicio')));
     }
 
     /** El tipo congelado decide. Sin tipo —órdenes viejas— manda el componente, como entonces. */
     private function mandaElSegmento(): bool
     {
         return ComponenteTipoEnum::tryFrom((string) $this->tipoComponente)?->mandaElSegmento() ?? false;
+    }
+
+    /**
+     * La regla que gobierna las cuatro ranuras: **cada una se calla si repite alguna de las que
+     * ya salieron antes en la línea**.
+     *
+     * Sustituye a cuatro comparaciones sueltas que no coincidían entre sí ni con su espejo en
+     * `util`. La variante, por ejemplo, se callaba comparando contra el **componente** — que
+     * desde que manda el segmento ya no es lo que hay arriba—, así que:
+     *
+     * - variante = segmento → PHP la imprimía y quedaba **el mismo texto dos veces** en el
+     *   WhatsApp y en el PDF;
+     * - variante = componente → `util` la enseñaba junto al secundario, que era ese mismo texto.
+     *
+     * Fallaba en los dos sentidos y en superficies distintas, que es lo que pasa cuando dos
+     * espejos comparan contra cosas parecidas pero no iguales. Una sola regla acumulativa no
+     * tiene ese problema: no hay contra qué equivocarse.
+     *
+     * @param list<string|null> $anteriores
+     */
+    private function calladoSiRepite(?string $texto, array $anteriores): ?string
+    {
+        $limpio = trim((string) $texto);
+
+        if ($limpio === '') {
+            return null;
+        }
+
+        foreach ($anteriores as $previo) {
+            if ($limpio === trim((string) $previo)) {
+                return null;
+            }
+        }
+
+        return $limpio;
     }
 
     /**
@@ -461,25 +501,32 @@ class OperacionOrdenServicioItem
             return null;
         }
 
-        $secundario = $this->mandaElSegmento()
-            ? trim($this->nombreComponente ?? '')
-            : trim($this->nombreSegmento ?? '');
+        $secundario = $this->mandaElSegmento() ? $this->nombreComponente : $this->nombreSegmento;
 
-        if ($secundario === '' || $secundario === $this->getTituloParaProveedor() || $secundario === trim($this->descripcion)) {
-            return null;
-        }
-
-        return $secundario;
+        return $this->calladoSiRepite($secundario, [$this->getTituloParaProveedor()]);
     }
 
     public function getVarianteParaProveedor(): ?string
     {
-        $variante = trim($this->descripcion);
+        return $this->calladoSiRepite($this->descripcion, [
+            $this->getTituloParaProveedor(),
+            $this->getSecundarioParaProveedor(),
+        ]);
+    }
 
-        if ($variante === '' || $variante === trim($this->nombreComponente ?? '')) {
-            return null;
-        }
-
-        return $variante;
+    /**
+     * El DÍA del itinerario, o null si repite algo de lo ya dicho.
+     *
+     * Existe para que el documento y el twig no tengan que repetir la comparación cada uno por su
+     * cuenta — antes sólo miraban contra el título, así que un contexto igual al componente salía
+     * duplicado en el PDF.
+     */
+    public function getDiaParaProveedor(): ?string
+    {
+        return $this->calladoSiRepite($this->contextoServicio, [
+            $this->getTituloParaProveedor(),
+            $this->getSecundarioParaProveedor(),
+            $this->getVarianteParaProveedor(),
+        ]);
     }
 }

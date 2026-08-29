@@ -860,7 +860,11 @@ const secundarioDeFila = (s: OperacionServicio): string | null => {
 const varianteDeFila = (s: OperacionServicio): string | null => {
     const variante = (s.descripcionServicio ?? '').trim();
 
-    return variante !== '' && variante !== tituloDeFila(s) ? variante : null;
+    // Contra el título Y el secundario: **espejo de `calladoSiRepite()`**. Comparar sólo con el
+    // título dejaba salir la variante junto a un secundario que era ese mismo texto.
+    return variante !== '' && variante !== tituloDeFila(s) && variante !== secundarioDeFila(s)
+        ? variante
+        : null;
 };
 
 /**
@@ -872,7 +876,9 @@ const varianteDeFila = (s: OperacionServicio): string | null => {
 const diaDeFila = (s: OperacionServicio): string | null => {
     const dia = (s.contextoServicio || '').trim();
 
-    return dia !== '' && dia !== tituloDeFila(s) && dia !== secundarioDeFila(s) ? dia : null;
+    return dia !== '' && dia !== tituloDeFila(s) && dia !== secundarioDeFila(s) && dia !== varianteDeFila(s)
+        ? dia
+        : null;
 };
 
 // ============================================================================

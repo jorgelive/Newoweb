@@ -108,8 +108,9 @@
                               and item.prestadorServicioNombre != item.tituloParaProveedor %}
                             <br><span class="servicio-prestador">{{ item.prestadorServicioNombre }}</span>
                         {% endif %}
-                        {% if item.contextoServicio and item.contextoServicio != item.tituloParaProveedor %}
-                            <br><span class="contexto">{{ item.contextoServicio }}</span>
+                        {# La regla de callarlo vive en la entidad: aquí sólo se pinta. #}
+                        {% if item.diaParaProveedor %}
+                            <br><span class="contexto">{{ item.diaParaProveedor }}</span>
                         {% endif %}
                         {# El recojo sólo si DIFIERE de la hora: en los datos reales coinciden casi
                            siempre, y repetirlo enseña a no leerlo. #}

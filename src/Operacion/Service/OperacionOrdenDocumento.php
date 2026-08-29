@@ -228,12 +228,13 @@ final readonly class OperacionOrdenDocumento
         // El reloj marca dónde empieza cada servicio, que es lo que se busca al repasar el día.
         // Un icono y no un guion porque en una lista de cinco el ojo salta a la forma, no al signo.
         // El día del itinerario, sin negrita y al final: sitúa el servicio sin competir con él.
-        // Se calla cuando repetiría el título —en un traslado suelto el día se llama igual—,
-        // porque decir dos veces lo mismo es lo que hacía dudar de cuál era el encargo.
-        $contexto = trim((string) $item->getContextoServicio());
-
-        if ($contexto !== '' && $contexto !== $item->getTituloParaProveedor()) {
-            $partes[] = $contexto;
+        //
+        // La decisión de callarlo vive en la ENTIDAD (`getDiaParaProveedor()`), no aquí: antes se
+        // comparaba sólo contra el título y el twig hacía lo mismo por su cuenta, así que un día
+        // igual al componente salía duplicado. Una regla en un sitio, tres superficies que la
+        // consumen.
+        if (($dia = $item->getDiaParaProveedor()) !== null) {
+            $partes[] = $dia;
         }
 
         $linea = '🕐 ' . implode('  ·  ', $partes);
