@@ -148,6 +148,24 @@ Se cazó comparando el conteo contra producción, que tenía 0. Ver `reapuntarCo
 en el urbano de Cusco la Van del aeropuerto y la del terminal estaban **intercambiadas**. Nadie
 lo vio en cinco componentes por cinco tarifas.
 
+### Cerrar una divergencia: quién decide y con qué regla (29/08/2026)
+
+La fusión conserva las dos tarifas cuando los importes no coinciden, y las deja marcadas con su
+sentido. Cerrarlas es una decisión de negocio, no del comando.
+
+Se cerraron **quedándose con la MÁS ALTA**, y el motivo importa más que la regla: las de bus
+**son referenciales**, no precios pactados. Se usan para cotizar y el pasajero compra su pasaje
+al precio del día; quedarse corto obliga a pedir la diferencia después, pasarse deja margen.
+
+⚠️ **Con un precio PACTADO la regla sería la contraria.** «La más alta» no es una regla general
+de catálogo: es la que corresponde a una tarifa de referencia.
+
+Y una se dejó **sin resolver a propósito**: `Auto · Paracas → Ica` a 300 contra `Ica → Paracas` a
+200 — el mismo tramo con 100 soles de diferencia no es una referencia, es un error, y coger el
+alto sería tan arbitrario como coger el bajo. Vive en
+`ResolverTarifasDivergentesCommand::PENDIENTES` con el porqué escrito al lado, que es mejor sitio
+que la cabeza de alguien.
+
 ### Dos componentes por ciudad: urbano y aeropuerto (29/08/2026)
 
 Fase 2. En Cusco había **cinco** componentes urbanos —terminal, paradero, restaurante ida,
@@ -419,4 +437,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:crear-varios-aeropuerto-lima` | retirar un ancla traspasando la hora promovida · mudar un segmento de servicio |
 | `app:travel:fusionar-transportes-bidireccionales` | fusionar duplicados sin inventar precios · reapuntar lo que citaba lo borrado |
 | `app:travel:normalizar-transporte-urbano` | un cuadro de precios como fuente de verdad · absorber copias |
+| `app:travel:resolver-tarifas-divergentes` | aplicar una decisión de negocio dejando por escrito la que no se tomó |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
