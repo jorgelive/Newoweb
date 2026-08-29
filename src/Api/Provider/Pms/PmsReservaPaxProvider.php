@@ -209,6 +209,18 @@ final class PmsReservaPaxProvider implements ProviderInterface
             'saldo'  => $espejo ? number_format($total - $pagado, 2, '.', '') : $totales->cuadre,
             'monedaCuadre' => $totales->monedaCuadre,
             'mixta' => !$espejo && $totales->esMixta(),
+
+            // ¿Es un cruce de monedas YA SALDADO —pagó en soles una cuenta en dólares—?
+            //
+            // Lo decide `sugiereImputacion()`, que es mixta + cruce + cuadre DENTRO DE LA
+            // TOLERANCIA. Se manda ya resuelto en vez de dejar que la app lo deduzca: allí sólo
+            // había `saldo <= 0`, y eso deja fuera a XTHRMQ, cuyo cruce deja 0.10 de residuo
+            // —el cambio del mostrador nunca es el de SUNAT— y que estaba pintando 176.90 en
+            // el naranja de «se debe» sobre una cuenta cerrada.
+            //
+            // La tolerancia vive en `PmsTotalesPorMoneda` con su porqué y su calibración;
+            // reimplementarla en TypeScript sería la segunda vara de medir el mismo dinero.
+            'cruceSaldado' => !$espejo && $totales->sugiereImputacion(),
             // La verdad, para el detalle: una fila por moneda con lo suyo.
             'porMoneda' => $espejo ? [] : $this->desglosePorMoneda($totales),
             'cargos' => $cargos,

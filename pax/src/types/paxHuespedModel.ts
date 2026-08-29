@@ -181,6 +181,14 @@ export interface PmsResumenFinanciero {
      */
     mixta?: boolean;
     /**
+     * Cruce de monedas ya saldado: pagó en una moneda una cuenta emitida en otra.
+     *
+     * Lo decide `PmsTotalesPorMoneda::sugiereImputacion()` —mixta + cruce + cuadre dentro de la
+     * tolerancia—, **no la vista**: deducirlo aquí con `saldo <= 0` deja fuera los cruces con
+     * residuo de cambio y sería una segunda vara de medir el mismo dinero.
+     */
+    cruceSaldado?: boolean;
+    /**
      * Lo que se debe y lo que se ha pagado **en cada moneda**, sin convertir.
      *
      * Es la verdad de la tarjeta: quien pagó S/ 223.70 por Yape tiene que ver S/ 223.70, no una

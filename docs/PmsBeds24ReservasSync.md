@@ -2221,9 +2221,16 @@ La tarjeta se contradecía: arriba «saldo 0.00, todo pagado» y tres centímetr
 importe en el naranja reservado a lo que se debe. El huésped no tiene por qué saber cuál de las
 dos cifras manda.
 
-Con `cruceSaldado` (`mixta && todoPagado`) el bloque deja de enseñar **saldos** y enseña **qué
-pasó**: «Cuenta US$ 65.97 · Pagaste S/. 223.70», sin color de alarma. El saldo por moneda sigue
-pintándose tal cual cuando de verdad queda algo pendiente, que es cuando significa lo que dice.
+Con `cruceSaldado` el bloque deja de enseñar **saldos** y enseña **qué pasó**: «Cuenta US$ 65.97
+· Pagaste S/. 223.70», sin color de alarma. El saldo por moneda sigue pintándose tal cual cuando
+de verdad queda algo pendiente, que es cuando significa lo que dice.
+
+⚠️ **`cruceSaldado` lo decide el backend**, con `PmsTotalesPorMoneda::sugiereImputacion()` —mixta
++ cruce + cuadre dentro de la tolerancia—, y la vista sólo lo pinta. Estuvo un rato deducido en
+TypeScript como `mixta && todoPagado`, y ese `saldo <= 0` es una **segunda vara de medir el mismo
+dinero**: deja fuera los cruces con residuo. `XTHRMQ` cuadra con 0.10 de diferencia —el cambio
+del mostrador nunca es el de SUNAT, y por eso la tolerancia existe y está calibrada— y seguía
+pintando `PEN 176.90` en naranja sobre una cuenta cerrada.
 
 ⚠️ **El resolver ya se negaba a pedir dinero en este caso** (`PmsMotivoSinCobro::CRUCE_DE_MONEDAS`,
 `hayAlgoQuePedir: false`), así que el fallo nunca fue pedir el cobro dos veces: era el bloque de

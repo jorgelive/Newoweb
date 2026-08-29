@@ -493,13 +493,19 @@ const mixta = computed(() => finanzas.value?.mixta === true);
  * Es el caso de un peruano que yapea soles contra una reserva en dólares, y es frecuente. La
  * contabilidad va por moneda y sin convertir (§12.2b), así que las dos líneas son ciertas por
  * separado —`PEN −223.70`, `USD +65.97`— y **juntas no son dos deudas**: son las dos mitades de
- * una misma transacción cerrada. El cuadre entre monedas ya lo sabe y da saldo cero.
+ * una misma transacción cerrada.
  *
  * Sin esto la tarjeta se contradecía: arriba «saldo 0.00, todo pagado» y tres centímetros más
  * abajo el mismo importe en el naranja que esta tarjeta usa para lo que se debe. El huésped no
  * tiene por qué saber cuál de las dos cifras manda.
+ *
+ * ⚠️ **Lo decide el backend** (`PmsTotalesPorMoneda::sugiereImputacion()`), no esta vista. Aquí
+ * llegó a estar como `mixta && todoPagado`, y ese `saldo <= 0` es una SEGUNDA vara de medir el
+ * mismo dinero: deja fuera los cruces con residuo —el cambio del mostrador nunca es el de
+ * SUNAT— y XTHRMQ, que cuadra con 0.10 de diferencia, seguía pintando 176.90 en naranja sobre
+ * una cuenta cerrada. La tolerancia vive en un solo sitio, con su calibración y su porqué.
  */
-const cruceSaldado = computed(() => mixta.value && todoPagado.value);
+const cruceSaldado = computed(() => finanzas.value?.cruceSaldado === true);
 
 /** Las filas por moneda, sólo cuando de verdad hay más de una que enseñar. */
 const porMoneda = computed(() => (mixta.value ? finanzas.value?.porMoneda ?? [] : []));
