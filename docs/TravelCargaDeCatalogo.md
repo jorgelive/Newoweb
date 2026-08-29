@@ -69,6 +69,50 @@ excursión y les pones componente a todos, la estás modelando mal.
 Las **comidas son la excepción** en una excursión: se compran aparte y pueden ir incluidas o no,
 así que llevan componente propio.
 
+### ⚠️ Cuando el ancla se queda corta: retirarla sin perder la hora (29/08/2026)
+
+El ancla resuelve «se compra el programa entero», pero **fija una sola forma de venderlo**.
+`WALK_MIR` colgaba sus dos traslados de un componente llamado *«Escala en Lima · traslados y
+caminata por Miraflores»*: el vehículo y el paseo dentro de la misma pieza. Con eso un grupo de
+40 y una pareja contratan exactamente lo mismo, porque **no hay dónde elegir movilidad**: las
+modalidades (Auto / Van / Minibús / Bus) son tarifas del componente de transporte, y ahí no había
+componente de transporte.
+
+La corrección es dar a **cada sentido** su componente `TRANSPORTE` con su flota, como los
+traslados de Lima y Punta Cana. El ancla deja de hacer falta.
+
+**Al retirar un ancla hay que traspasarle al sustituto sus DOS relaciones**, no una:
+
+| Relación | `itinerarioContexto` | Hora | `horaServicioCompleto` | Para qué |
+|---|---|---|---|---|
+| global | `null` | — | `false` | que el componente exista en el pool y aporte su tarifa |
+| plantilla | el itinerario | 08:30 | `true` | que el día entero salga encabezado a esa hora |
+
+⚠️ **Si sólo se copia la global, no falla nada y el día pierde su hora de cabecera.** Cae al
+desempate por `orden` y nadie lo nota hasta ver la guía. La promoción **exige**
+`itinerarioContexto` (`validarPromocionRequierePlantilla`), así que la segunda relación no es
+opcional: es la única que puede llevarla.
+
+El ancla vieja **se queda con cero enlaces, no se borra** —regla general del proyecto—: si mañana
+aparece una cotización histórica que la citaba, sigue contando lo que se vendió.
+
+Referencia: `app:travel:crear-varios-aeropuerto-lima`, método `retirarAncla()`.
+
+### Un servicio no es un lugar: es lo que se compra junto (29/08/2026)
+
+Las comidas del aeropuerto de Lima vivían dentro de `WALK_MIR` porque allí nacieron, con la
+caminata por Miraflores. Pero comer en el aeropuerto pasa en una escala, en una espera de
+conexión o en una salida de madrugada — casi siempre **sin caminata**. Metidas en el walking
+sólo se podían usar arrastrando la escala entera.
+
+Se creó `VAR_APT_LIM` («Varios en el aeropuerto de Lima») con desayuno, almuerzo y cena. El
+desayuno **se mudó** —mismo segmento, nuevo slug `DES-APT_LIM`, fuera del pool de `WALK_MIR`—
+en lugar de duplicarse: dos desayunos con el mismo texto dejan al operador sin saber cuál es el
+bueno, y las correcciones se aplican a uno solo.
+
+⚠️ **El slug lleva el servicio dentro**, así que una mudanza obliga a renombrarlo:
+`DES-WALK_MIR-AEROPUERTO` afirmaba una pertenencia que ya no era cierta.
+
 ## 3. Pool o plantilla
 
 | | Pool | Itinerario |
@@ -294,6 +338,8 @@ Las tres últimas son las que se olvidan.
 | Ver si un segmento saldrá con fotos | panel, ficha del segmento | `virtualCadenaFotos` |
 | Reparar datos a medias | `src/Cotizacion/Service/CoherenciaCatalogoChecker.php` | `definiciones()` |
 | Renombrar un componente | — | `app:travel:renombrar-componente` |
+| Cambiar un ancla por componentes propios | `src/Travel/Command/CrearVariosAeropuertoLimaCommand.php` | `retirarAncla()` |
+| Mover un segmento a otro servicio | idem | `comidas()` — reslug + `removeSegmento`/`addSegmento` |
 
 ### Comandos de referencia
 
@@ -302,4 +348,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:crear-actividades-resort` | un componente por segmento · pool sin plantilla |
 | `app:travel:crear-escala-miraflores` | ancla + segmentos que sólo cuentan · con plantilla |
 | `app:travel:crear-segmentos-vuelo` | segmento por ruta · puntos fijos · pool masivo |
+| `app:travel:crear-varios-aeropuerto-lima` | retirar un ancla traspasando la hora promovida · mudar un segmento de servicio |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
