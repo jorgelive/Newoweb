@@ -31,13 +31,21 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Medido sobre el itinerario real: 14 claves para 14 vuelos. **El número solo no basta** —el
  * `JA7027` vuela el 25 y el 27 de septiembre—, y de ahí que la unicidad lleve la fecha.
  *
- * ## Los segmentos van en JSON; los códigos NO
+ * ## ⚠️ Un vuelo es UN TRAMO, no un billete
  *
- * Un vuelo puede ser un salto o dos: Copa hace `LIM → PTY → PUJ` bajo un mismo billete. Esos
- * segmentos **se leen siempre enteros y no se filtran**, así que una tabla propia sólo serviría
- * para volver a juntarlos en cada consulta. Van en JSON, como `detallesOperativos`.
+ * Al principio guardé Copa como un vuelo «CM264 / CM177» con dos segmentos en JSON, y estaba
+ * mal: eso no es un vuelo, es un **billete**. `CM264` va de Lima a Panamá y `CM177` de Panamá a
+ * Punta Cana; son dos vuelos, cada uno con su número, su avión y su horario.
  *
- * ⚠️ El vínculo con los localizadores es lo contrario: **tabla con clave foránea**. Un vuelo lo
+ * Lo que los une —que se compraron juntos y hay que llegar a la conexión— **es el PNR**, y eso
+ * ya está en el puente. No hacía falta inventar un nivel intermedio.
+ *
+ * Por eso no hay `segmentos`: el origen, el destino y las horas son columnas, y así se puede
+ * preguntar «¿qué sale de LIM el 23?», que con un JSON no se podía.
+ *
+ * ## Los códigos van a tabla, no a JSON
+ *
+ * El vínculo con los localizadores es **tabla con clave foránea**. Un vuelo lo
  * comparten varios códigos —ocho comparten el `DM6771`— y un código lleva ida y vuelta, así que
  * es N:M. Guardarlo como un array de cadenas dentro del JSON dejaría que un localizador mal
  * tecleado casara con cero grupos **sin dar error**, que es justo la familia de fallo que este
@@ -86,18 +94,28 @@ class CotizacionVuelo
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $aerolinea = null;
 
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(type: 'string', length: 3)]
+    private ?string $origen = null;
+
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(type: 'string', length: 3)]
+    private ?string $destino = null;
+
     /**
-     * El itinerario, entero. Uno o dos saltos.
+     * Fecha-hora completas, no fecha + hora por separado.
      *
-     * `salida` y `llegada` son fecha-hora completas a propósito: una bandera «llega al día
-     * siguiente» junto a las dos fechas es el mismo hecho dos veces, y el día que alguien
-     * corrija una y no la otra el dato se contradice sin que nada falle.
-     *
-     * @var list<array{numero: string, origen: string, destino: string, salida: string, llegada: string}>
+     * ⚠️ Una bandera «llega al día siguiente» junto a las dos fechas es el mismo hecho dos
+     * veces: basta que alguien corrija una para que se contradigan. El `DM6770` sale el 22 y
+     * llega el 23, y eso se lee solo.
      */
     #[Groups(['file:item:read'])]
-    #[ORM\Column(type: 'json')]
-    private array $segmentos = [];
+    #[ORM\Column(type: 'datetime_immutable')]
+    private ?\DateTimeImmutable $salida = null;
+
+    #[Groups(['file:item:read'])]
+    #[ORM\Column(type: 'datetime_immutable')]
+    private ?\DateTimeImmutable $llegada = null;
 
     /**
      * De dónde salió el dato: «actualizado por JetSMART el 28/08», «pendiente de confirmar».
@@ -136,17 +154,37 @@ class CotizacionVuelo
     public function getNumero(): ?string { return $this->numero; }
     public function setNumero(?string $numero): self { $this->numero = $numero; return $this; }
 
+    /** Se deriva de `salida`; ver {@see setSalida()}. */
     public function getFecha(): ?\DateTimeImmutable { return $this->fecha; }
-    public function setFecha(?\DateTimeImmutable $fecha): self { $this->fecha = $fecha; return $this; }
 
     public function getAerolinea(): ?string { return $this->aerolinea; }
     public function setAerolinea(?string $aerolinea): self { $this->aerolinea = $aerolinea; return $this; }
 
-    /** @return list<array{numero: string, origen: string, destino: string, salida: string, llegada: string}> */
-    public function getSegmentos(): array { return $this->segmentos; }
+    public function getOrigen(): ?string { return $this->origen; }
+    public function setOrigen(?string $origen): self { $this->origen = $origen; return $this; }
 
-    /** @param list<array{numero: string, origen: string, destino: string, salida: string, llegada: string}> $segmentos */
-    public function setSegmentos(array $segmentos): self { $this->segmentos = $segmentos; return $this; }
+    public function getDestino(): ?string { return $this->destino; }
+    public function setDestino(?string $destino): self { $this->destino = $destino; return $this; }
+
+    public function getSalida(): ?\DateTimeImmutable { return $this->salida; }
+
+    /**
+     * ⚠️ Fija también `fecha`, que es la mitad de la identidad del vuelo.
+     *
+     * Guardar la fecha aparte y dejar que alguien la ponga a mano sería la misma redundancia
+     * que se le quitó al archivo: dos campos para un hecho acaban discrepando. Aquí sólo hay
+     * una forma de escribirla.
+     */
+    public function setSalida(?\DateTimeImmutable $salida): self
+    {
+        $this->salida = $salida;
+        $this->fecha = $salida?->setTime(0, 0);
+
+        return $this;
+    }
+
+    public function getLlegada(): ?\DateTimeImmutable { return $this->llegada; }
+    public function setLlegada(?\DateTimeImmutable $llegada): self { $this->llegada = $llegada; return $this; }
 
     /** @return list<string> */
     public function getNotas(): array { return $this->notas; }

@@ -3143,15 +3143,23 @@ localizador **provisional** —«AAAAA»—, y eso no se distingue mirándolo de
 La aerolínea no escribe «el DM6771 se movió»: escribe **sobre un localizador**.
 
 ```json
-[{ "localizador": "AAAAA",
-   "pnr_nuevo":   "YMFLHB",
-   "emitido":     true,
+[{ "pnr":       "YMFLHB",
+   "emitido":   false,
+   "notas":     ["Lista de nombres aún no cargada en el portal de Sky (plazo 12/09/2026)"],
    "vuelos": [{
      "numero": "H2 5002", "fecha": "2026-09-17", "aerolinea": "Sky Airline",
      "segmentos": [{ "numero": "H2 5002", "origen": "CUZ", "destino": "LIM",
                      "salida": "2026-09-17 06:50", "llegada": "2026-09-17 08:35" }]
    }] }]
 ```
+
+`pnr` es el nombre bueno; `localizador` se acepta porque así se llamó al principio. `segmentos`
+llega como lista de **uno** —un vuelo es un tramo— y **más de uno se rechaza** en vez de aplanarse:
+sería el billete de Copa otra vez. También se aceptan los campos sueltos sin envolver.
+
+⚠️ Las **notas del PNR** no son decoración: de la carga real de Sky salieron el plazo del portal de
+grupos (12/09), el número de solicitud y un cambio de nombre en curso con su ticket. Sin sitio
+donde ponerlas, viven en la bandeja de correo de alguien.
 
 ⚠️ **El expediente no va en el archivo**: se importa desde él, así que lo pone el contexto. Así
 «localizador» significa una sola cosa —el PNR—, que es lo que significa en el sector. La primera
@@ -3195,10 +3203,10 @@ prisa.
 ### ⚠️ Dos gotchas que costaron rato
 
 **MySQL reordena las claves de un objeto JSON** al guardarlo —por longitud y luego
-alfabéticamente— y el `!==` de PHP sobre arrays **sí mira ese orden**. Comparar el itinerario
-nuevo con el guardado daba «cambia» en los catorce vuelos, con el antes y el después **idénticos
-en pantalla**. De ahí `VuelosImportador::canonico()`, que hace `ksort` antes de comparar. Aplica a
-cualquier columna JSON con objetos dentro.
+alfabéticamente— y el `!==` de PHP sobre arrays **sí mira ese orden**. Cuando los segmentos eran
+JSON, comparar el itinerario nuevo con el guardado daba «cambia» en los catorce vuelos con el antes
+y el después **idénticos en pantalla**. Dejó de aplicar al pasar a columnas, pero **sigue valiendo
+para cualquier columna JSON con objetos dentro**.
 
 **`findOneBy()` no ve lo que aún no se ha volcado.** Los cuatro PNRs de Copa creaban cada uno su
 propio `CM264`, y al aplicar reventaba el índice único. El importador mantiene un índice en

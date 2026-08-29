@@ -100,10 +100,11 @@ final class VuelosImportador
      */
     private function aplicarReserva(CotizacionFile $file, array $reserva, ResultadoVuelos $r): void
     {
-        $clave = trim((string) ($reserva['localizador'] ?? ''));
+        // `pnr` es el nombre bueno; `localizador` se acepta porque así se llamó al principio.
+        $clave = trim((string) ($reserva['pnr'] ?? $reserva['localizador'] ?? ''));
 
         if ($clave === '') {
-            $r->problema('Una reserva sin «localizador»: se salta.');
+            $r->problema('Una reserva sin «pnr»: se salta.');
 
             return;
         }
@@ -126,6 +127,15 @@ final class VuelosImportador
                 $reserva['emitido'] ? 'sí' : 'no',
             ));
             $grupo->setEmitido((bool) $reserva['emitido']);
+        }
+
+        if (isset($reserva['notas']) && is_array($reserva['notas'])) {
+            $notas = array_values(array_map(static fn ($n): string => (string) $n, $reserva['notas']));
+
+            if ($notas !== $grupo->getNotas()) {
+                $r->cambio(sprintf('%s · %d nota(s)', $grupo->getClave(), count($notas)));
+                $grupo->setNotas($notas);
+            }
         }
 
         if (!isset($reserva['vuelos']) || !is_array($reserva['vuelos'])) {
@@ -181,49 +191,88 @@ final class VuelosImportador
     }
 
     /**
+     * Busca o crea el vuelo y le vuelca lo que el archivo trae.
+     *
+     * ⚠️ La fecha de identidad sale de `salida`, no de un campo aparte. El archivo trae los dos
+     * —`fecha` y `salida`— y son el mismo hecho: dejar que se escriban por separado es pedir que
+     * un día discrepen. Aquí manda `salida` y `fecha` se deriva.
+     *
      * @param array<string, mixed> $def
      */
     private function upsertVuelo(CotizacionFile $file, array $def, ResultadoVuelos $r): ?CotizacionVuelo
     {
-        if (!isset($def['numero'], $def['fecha'])) {
-            $r->problema('Un vuelo sin «numero» o «fecha»: se salta.');
+        if (!isset($def['numero'])) {
+            $r->problema('Un vuelo sin «numero»: se salta.');
 
             return null;
         }
 
         $numero = trim((string) $def['numero']);
 
-        try {
-            $fecha = new \DateTimeImmutable((string) $def['fecha']);
-        } catch (\Exception) {
-            $r->problema(sprintf('%s: fecha ilegible «%s».', $numero, (string) $def['fecha']));
+        // Un vuelo es UN tramo. El generador lo manda como lista de uno; también se aceptan los
+        // campos sueltos, que es lo que escribiría alguien a mano.
+        $tramo = $def;
+
+        if (isset($def['segmentos']) && is_array($def['segmentos'])) {
+            if (count($def['segmentos']) !== 1 || !isset($def['segmentos'][0]) || !is_array($def['segmentos'][0])) {
+                $r->problema(sprintf(
+                    '%s trae %d segmentos: un vuelo es UN tramo, con su número. Pártelo.',
+                    $numero,
+                    count($def['segmentos']),
+                ));
+
+                return null;
+            }
+
+            $tramo = $def['segmentos'][0];
+        }
+
+        $salida = $this->momento($tramo['salida'] ?? $def['fecha'] ?? null);
+
+        if ($salida === null) {
+            $r->problema(sprintf('%s: sin «salida» legible.', $numero));
 
             return null;
         }
 
+        $fecha = $salida->setTime(0, 0);
         $llave = $this->llave($numero, $fecha);
         $vuelo = $this->indice[$llave] ?? null;
+        $esNuevo = $vuelo === null;
 
         if ($vuelo === null) {
-            $vuelo = (new CotizacionVuelo())->setFile($file)->setNumero($numero)->setFecha($fecha);
+            $vuelo = (new CotizacionVuelo())->setFile($file)->setNumero($numero)->setSalida($salida);
             $this->em->persist($vuelo);
             $this->indice[$llave] = $vuelo;
             $r->cambio(sprintf('vuelo nuevo: %s · %s', $numero, $fecha->format('d/m')));
         }
 
-        if (isset($def['aerolinea']) && (string) $def['aerolinea'] !== (string) $vuelo->getAerolinea()) {
+        if (isset($def['aerolinea'])) {
             $vuelo->setAerolinea((string) $def['aerolinea']);
         }
 
-        if (isset($def['segmentos']) && is_array($def['segmentos'])) {
-            $nuevos = $this->normalizarSegmentos($def['segmentos']);
+        $antes = $this->pinta($vuelo);
 
-            if ($this->canonico($nuevos) !== $this->canonico($vuelo->getSegmentos())) {
-                foreach ($this->compararItinerarios($vuelo->getSegmentos(), $nuevos) as $linea) {
-                    $r->cambio(sprintf('%s · %s   %s', $numero, $fecha->format('d/m'), $linea));
-                }
-                $vuelo->setSegmentos($nuevos);
-            }
+        if (isset($tramo['origen'])) {
+            $vuelo->setOrigen(strtoupper(trim((string) $tramo['origen'])));
+        }
+
+        if (isset($tramo['destino'])) {
+            $vuelo->setDestino(strtoupper(trim((string) $tramo['destino'])));
+        }
+
+        $vuelo->setSalida($salida);
+
+        $llegada = $this->momento($tramo['llegada'] ?? null);
+
+        if ($llegada !== null) {
+            $vuelo->setLlegada($llegada);
+        }
+
+        $despues = $this->pinta($vuelo);
+
+        if (!$esNuevo && $antes !== $despues) {
+            $r->cambio(sprintf('%s · %s   %s  ⟶  %s', $numero, $fecha->format('d/m'), $antes, $despues));
         }
 
         if (isset($def['notas']) && is_array($def['notas'])) {
@@ -231,6 +280,19 @@ final class VuelosImportador
         }
 
         return $vuelo;
+    }
+
+    private function momento(mixed $texto): ?\DateTimeImmutable
+    {
+        if (!is_string($texto) || trim($texto) === '') {
+            return null;
+        }
+
+        try {
+            return new \DateTimeImmutable(trim($texto));
+        } catch (\Exception) {
+            return null;
+        }
     }
 
     /**
@@ -288,6 +350,21 @@ final class VuelosImportador
         return $numero . '|' . ($fecha?->format('Y-m-d') ?? '');
     }
 
+    private function pinta(CotizacionVuelo $v): string
+    {
+        if ($v->getSalida() === null) {
+            return '(vacío)';
+        }
+
+        return sprintf(
+            '%s %s → %s %s',
+            $v->getOrigen(),
+            $v->getSalida()->format('H:i'),
+            $v->getDestino(),
+            $v->getLlegada()?->format('H:i') ?? '?',
+        );
+    }
+
     private function buscarGrupo(CotizacionFile $file, string $clave): ?CotizacionFileGrupo
     {
         foreach ($file->getGrupos() as $grupo) {
@@ -299,83 +376,6 @@ final class VuelosImportador
         return null;
     }
 
-    /**
-     * @param array<int|string, mixed> $crudos
-     * @return list<array{numero: string, origen: string, destino: string, salida: string, llegada: string}>
-     */
-    private function normalizarSegmentos(array $crudos): array
-    {
-        $salida = [];
 
-        foreach ($crudos as $s) {
-            if (!is_array($s)) {
-                continue;
-            }
 
-            $salida[] = [
-                'numero' => trim((string) ($s['numero'] ?? '')),
-                'origen' => strtoupper(trim((string) ($s['origen'] ?? ''))),
-                'destino' => strtoupper(trim((string) ($s['destino'] ?? ''))),
-                'salida' => trim((string) ($s['salida'] ?? '')),
-                'llegada' => trim((string) ($s['llegada'] ?? '')),
-            ];
-        }
-
-        return $salida;
-    }
-
-    /**
-     * ⚠️ **MySQL reordena las claves de un objeto JSON al guardarlo** —por longitud y luego
-     * alfabéticamente— y el `!==` de PHP sobre arrays sí mira ese orden. Comparar en crudo daba
-     * «cambia» en los catorce vuelos con el antes y el después idénticos en pantalla.
-     *
-     * @param list<array{numero: string, origen: string, destino: string, salida: string, llegada: string}> $segmentos
-     */
-    private function canonico(array $segmentos): string
-    {
-        $ordenados = array_map(
-            static function (array $s): array {
-                ksort($s);
-
-                return $s;
-            },
-            $segmentos,
-        );
-
-        return json_encode($ordenados, JSON_THROW_ON_ERROR);
-    }
-
-    /**
-     * @param list<array{numero: string, origen: string, destino: string, salida: string, llegada: string}> $antes
-     * @param list<array{numero: string, origen: string, destino: string, salida: string, llegada: string}> $ahora
-     * @return list<string>
-     */
-    private function compararItinerarios(array $antes, array $ahora): array
-    {
-        $pinta = static fn (array $s): string => sprintf(
-            '%s %s → %s %s',
-            $s['origen'],
-            substr($s['salida'], 11) ?: $s['salida'],
-            $s['destino'],
-            substr($s['llegada'], 11) ?: $s['llegada'],
-        );
-
-        if ($antes === []) {
-            return [];
-        }
-
-        $lineas = [];
-
-        foreach ($ahora as $i => $s) {
-            $viejo = $antes[$i] ?? null;
-
-            if ($viejo === null) {
-                $lineas[] = 'segmento nuevo: ' . $pinta($s);
-            } elseif ($viejo !== $s) {
-                $lineas[] = sprintf('%s  ⟶  %s', $pinta($viejo), $pinta($s));
-            }
-        }
-
-        return $lineas;
-    }
 }

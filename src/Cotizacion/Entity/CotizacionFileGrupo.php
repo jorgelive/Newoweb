@@ -245,7 +245,27 @@ class CotizacionFileGrupo
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $v): self { $this->nombre = $v !== null ? (trim($v) ?: null) : null; return $this; }
 
+    /**
+     * Lo que hay que saber de esta reserva y no cabe en ningún campo.
+     *
+     * No es decoración: son plazos y trámites con consecuencia. De la carga real de Sky salieron
+     * «lista de nombres aún no cargada en el portal (plazo 12/09/2026)», el número de solicitud
+     * de grupo y un cambio de nombre en curso con su ticket. Sin un sitio donde ponerlas, esas
+     * tres cosas viven en la bandeja de correo de una persona.
+     *
+     * @var list<string>
+     */
+    #[Groups(['file:item:read', 'file:write'])]
+    #[ORM\Column(type: 'json')]
+    private array $notas = [];
+
     public function isEmitido(): bool { return $this->emitido; }
+    /** @return list<string> */
+    public function getNotas(): array { return $this->notas; }
+
+    /** @param list<string> $notas */
+    public function setNotas(array $notas): self { $this->notas = $notas; return $this; }
+
     public function setEmitido(bool $emitido): self { $this->emitido = $emitido; return $this; }
 
     public function getDetalle(): ?string { return $this->detalle; }
