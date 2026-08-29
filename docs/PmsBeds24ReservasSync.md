@@ -13,7 +13,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
     · [4.1.b La query se monta a mano (y por qué no llegaban las canceladas)](#41b--la-query-se-monta-a-mano-y-no-es-un-capricho)
     · [4.1.c Qué se pide y qué NO: aquí se traen reservas, no cargos](#41c-qué-se-pide-y-qué-no-aquí-se-traen-reservas-no-cargos)
 5. [Persister Compartido — BookingPullPersister](#5-persister-compartido--bookingpullpersister)
-    · [5.4 Una reserva que llega como `new` se QUEDA en `new` — es intencional](#54--una-reserva-que-llega-como-new-se-queda-en-new--es-intencional)
+    · [5.4 La verificación del equipo es para los canales que NO cobran](#54--la-verificación-del-equipo-es-para-los-canales-que-no-cobran)
 6. [El Mecanismo de Espejo Virtual](#6-el-mecanismo-de-espejo-virtual)
     · [6.3.b Cambiar de casita: qué link se mueve y cuál se recrea](#63b-cambiar-de-casita-qué-link-se-mueve-y-cuál-se-recrea)
     · [6.3.c Los estados del link: cuáles se usan de verdad](#63c-los-estados-del-link-cuáles-se-usan-de-verdad)
@@ -522,7 +522,7 @@ BookingPullPersister::upsert(Beds24Config $config, Beds24BookingDto $dto)
    → SOLO si $isLinkPrincipal (un espejo no escribe la estancia compartida, §6.4):
        Asigna: inicio/fin con horas del establecimiento, estado, channel,
                cantidadAdultos, monto, comision, tituloCache...
-       resolveEstado(): lógica OTA (Airbnb/pago total → fuerza CONFIRMADA)
+       resolveEstado(): Airbnb/pago total → CONFIRMADA; el resto, como llegó (§5.4)
        resolveEstadoPago(): pago total si canal en PmsChannel::CANAL_PAGO_TOTAL
    → Siempre: refresca lastSeenAt del link entrante
    → em->persist($evento)
@@ -559,62 +559,78 @@ botón de WhatsApp** para ese huésped.
 **internacional al que le falta el `+`**. El segundo intento exige 8-15 dígitos para no convertir
 notas de texto en teléfonos; un `012345` o un "no tiene" siguen sin botón, que es lo correcto.
 
-### 5.4 ⚠️ Una reserva que llega como `new` se QUEDA en `new` — es intencional
+### 5.4 ⚠️ La verificación del equipo es para los canales que NO cobran
 
-**Regla de negocio: el canal no confirma solo. Lo que llega como `new` o `request` se guarda tal
-cual, y es el equipo local quien verifica la reserva antes de darla por buena.**
+**Regla de negocio: un canal que no garantiza el pago no confirma solo; uno que ya cobró, sí.**
 
-Ese estado intermedio **es el aviso**: mientras la estancia no esté confirmada, alguien tiene que
-mirarla. Si se auto-confirmara al entrar, la verificación dejaría de ocurrir — no porque se
-decidiera quitarla, sino porque nadie vería la diferencia entre una reserva revisada y una que
-acaba de aterrizar.
+- **Booking y los canales que no cobran** — lo que llega como `new` o `request` se guarda tal
+  cual. Ese estado intermedio **es el aviso**: la reserva todavía puede caerse y alguien tiene que
+  mirarla. Si se auto-confirmara al entrar, la verificación dejaría de ocurrir — no porque se
+  decidiera quitarla, sino porque nadie vería la diferencia entre una revisada y una recién
+  aterrizada.
+- **`PmsChannel::CANAL_PAGO_TOTAL` (Airbnb, VRBO)** — entra **confirmada**. El dinero ya está
+  cobrado por el canal; no hay nada que verificar antes de darla por buena.
 
-Aplica también a los canales de pago total (Airbnb, VRBO): que el dinero esté cobrado en el canal
-no equivale a que la estancia esté verificada de nuestro lado.
+Intocables en los dos casos: `cancelada` (terminal), `abierto` (un *inquiry* no es una venta, y
+§11.2.b depende de que se quede así para no estrenar línea financiera) y `bloqueo`.
 
-> No confundir con **§9.5**, que es otra regla y sí confirma sola: allí el disparador es un
-> **pago registrado en el PMS**, y además está explícitamente desactivada durante el Pull
-> (`SyncContext::MODE_PULL`). Son dos caminos distintos hacia `confirmada`; el del canal no
-> existe.
+> No confundir con **§9.5**, que es otra regla: allí el disparador es un **pago registrado en el
+> PMS**, y está desactivada durante el Pull (`SyncContext::MODE_PULL`).
 
-#### La trampa: el código dice lo contrario, y no hay que «arreglarlo»
+#### ⚠️ Esta sección decía lo contrario hasta el 29/08/2026
 
-`BookingPullPersister::resolveEstado()` abre así:
+Decía que la regla alcanzaba **también** a Airbnb y VRBO —«que el dinero esté cobrado en el canal
+no equivale a que la estancia esté verificada de nuestro lado»— y lo marcaba con un 🚨.
+
+Esa frase se escribió en `857bd4fc` (18/08/2026) documentando la trampa del cast de la v1 que hay
+más abajo, y **extendía a los canales de pago total una regla que no los cubría**: era inferencia
+sobre un comportamiento accidental, no la política del negocio. Queda anotado porque el error no
+fue el código sino el documento, y un doc que declara intencional lo que es un accidente es más
+caro que no tenerlo — se cita después como si fuera una decisión.
+
+#### Lo que costaba: una confirmación duraba 20 minutos
+
+`upsertEvento()` hace `setEstado(resolveEstado(...))` **en cada pasada** del pull, sin condición.
+Confirmar una reserva de Airbnb a mano en `/util` la dejaba confirmada hasta la siguiente pasada
+—cada 20 minutos—, que la devolvía a `pendiente`. Y §9.5, que la habría re-confirmado por tener
+`pago-total`, está apagada en `MODE_PULL`.
+
+Sobrevivía **sólo** si el push lograba poner `confirmed` en Beds24 antes de esa pasada: entonces
+el pull ya traía `confirmed` y se sostenía sola. Medido el 29/08/2026:
+
+| | local | Beds24 | n |
+|---|---|---|---|
+| futuras (dentro del barrido) | `pendiente` | `new` | **11 de 11** |
+| ya pasadas (fuera del barrido) | `confirmada` | `new` | 11 de 13 |
+
+Ninguna futura sobrevivía confirmada. Las pasadas sí, porque el barrido va **por rango de
+llegadas** y, cuando la estancia queda atrás, deja de tocarlas y se congelan en lo que tuvieran.
+
+⚠️ **`PmsEventoCalendario::$estadoPushSolicitado` no protege de esto y no es su trabajo.** Ese
+flag resuelve la carrera del **otro sentido** —el cron re-imponiendo un estado viejo cuando el
+pull venía atrasado, que resucitaba cancelaciones— y se consulta en tres sitios, los tres del
+push. El pull no lo mira nunca.
+
+#### La trampa del cast, que sigue ahí
+
+`resolveEstado()` termina con:
 
 ```php
-if ((int)$statusApi === 0 || $estadoBase->getId() === CODIGO_CANCELADA) {
-    return $estadoBase;                 // ← devuelve el estado del canal, tal cual
+if ((int)$statusApi === 0) {
+    return $estadoBase;                 // ← el estado del canal, tal cual
 }
 ```
 
 Ese `(int)$statusApi === 0` viene de la **API v1**, donde el estado era numérico y `0` significaba
 cancelada. En la **v2 los estados son texto** (`cancelled`, `confirmed`, `new`, `request`,
-`black`, `inquiry`) y `(int)"new"` es `0`, así que **la condición se cumple siempre**:
+`black`, `inquiry`) y `(int)"new"` es `0`, así que la condición se cumple siempre y la rama entra
+siempre. **Para Booking es justo lo que se quiere**, y por eso se conserva.
 
-```
-(int)"cancelled" = 0     (int)"confirmed" = 0     (int)"new"     = 0
-(int)"request"   = 0     (int)"black"     = 0     (int)"inquiry" = 0
-```
-
-Consecuencia: la función **siempre sale por esa primera rama**, y las dos siguientes —la
-protección del *inquiry* y la que forzaría `Confirmada` en canales de pago total— **no se ejecutan
-nunca**.
-
-**Eso es exactamente el comportamiento que se quiere**, aunque se consiga por un camino que parece
-un descuido. Quien lea la rama 3 verá escrito «si es Airbnb, forzamos Confirmada» y pensará que
-hay un bug en el cast.
-
-> 🚨 **Quitar ese cast reactiva la rama 3 y pone a confirmarse solas las reservas de Airbnb y
-> VRBO, saltándose la verificación del equipo local.** El fallo no daría ningún error: las
-> reservas simplemente empezarían a entrar ya confirmadas y la revisión se volvería invisible.
-
-Las ramas 2 y 3 se conservan en vez de borrarse porque documentan la intención original, y porque
-el día que Beds24 cambie el contrato del campo hay que decidir a conciencia qué se quiere — no
-descubrirlo porque de pronto empiecen a ejecutarse.
+Las ramas van en este orden a propósito —intocables, canal que ya cobró, cast— para que la regla
+de Airbnb **no dependa de ese cast**, que es de la v1 y algún día cambiará.
 
 Este comportamiento **no está cubierto por tests**: `resolveEstado()` es privado y consulta el
-maestro `PmsEventoEstado` en base de datos, así que hoy no hay forma de fijarlo con un test
-unitario puro. Se verifica mirando datos reales.
+maestro `PmsEventoEstado` en base de datos. Se verifica mirando datos reales.
 
 ## 6. El Mecanismo de Espejo Virtual
 
@@ -1421,11 +1437,9 @@ Puntos finos:
 - Se dispara ante un cambio de `estadoPago` **o** de `estado`: si solo se mirara el pago,
   bastaba con bajar a "pendiente" una reserva ya pagada para dejarla inconsistente.
 - Es **asimétrica**: registrar un pago confirma; volver a "no pagado" NO degrada el estado.
-- En **Pull** no se aplica: ahí manda el canal y `BookingPullPersister::resolveEstado()` guarda
-  el estado que llegó, tal cual. Ojo, que es fácil leerlo al revés: **el Pull no confirma nada**
-  —ni siquiera en canales de pago total—, porque lo que llega como `new`/`request` se deja así
-  a propósito para que el equipo local lo verifique. Ver **§5.4**, que explica además por qué el
-  código parece decir lo contrario.
+- En **Pull** no se aplica: ahí manda `BookingPullPersister::resolveEstado()`, que tiene su
+  propia política —Airbnb y VRBO entran confirmadas; Booking se queda como llegó—. Son dos
+  caminos distintos a `confirmada` y no se solapan. Ver **§5.4**.
 - Al mutar en `preUpdate` un campo que ya venía en el changeSet, hay que corregirlo con
   `PreUpdateEventArgs::setNewValue()`: Doctrine recalcula por diferencia contra
   `originalEntityData` y **fusiona**, así que una entrada vieja sobreviviría al recálculo.
@@ -4733,7 +4747,7 @@ sobre una reserva con contenido habría dado la misma falsa tranquilidad.
 | Cambiar cómo nacen los cargos de horario extra (hoy en 0.00) | `PmsCargosAutomaticosService` | `sincronizarExtras()` |
 | Cambiar ventana anti-dup | `Beds24WebhookController` | `600` (seg) y `15000` (ms) |
 | Añadir o quitar un estado del pull de reservas | `BookingsPullMappingStrategy` | `ESTADOS_CONSULTADOS` — **repetido en la URL, nunca en el `payload`**: §4.1.b |
-| Cambiar si el canal puede confirmar una estancia solo | `BookingPullPersister` | `resolveEstado()` — **lee §5.4 antes**: hoy NO confirma a propósito, y el `(int)$status === 0` que lo consigue parece un bug y no lo es |
+| Cambiar si el canal puede confirmar una estancia solo | `BookingPullPersister` | `resolveEstado()` — **lee §5.4 antes**: los que ya cobraron (Airbnb, VRBO) sí confirman; Booking no. El `(int)$status === 0` del final parece un bug y no lo es |
 | Añadir un parámetro multivaluado a cualquier GET de Beds24 | `BookingsPullMappingStrategy`, `Beds24InvoiceReceiveMappingStrategy` | montarlo en `fullUrl`; un array en el `payload` sale como `x[0]=` y Beds24 lo ignora |
 | Tocar cascadas del grafo evento/link/cola de push | `Beds24BookingsPushQueueCreator` | `enqueueForLink()` — **lee §12.11 antes** |
 | Que el refresco de tarifas deje de re-encolar lo idéntico (§8.1) | `Beds24RatesPushQueueCreator` | `enqueueForInterval()` — añadir dedupe por valor contra el último `success` de la unidad+fecha |

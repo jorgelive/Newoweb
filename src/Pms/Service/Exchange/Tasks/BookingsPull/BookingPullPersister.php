@@ -618,21 +618,20 @@ final class BookingPullPersister implements ResetInterface
     /**
      * Resuelve el estado de la estancia a partir del que reporta el canal.
      *
-     * ⚠️ LO QUE LLEGA COMO `new` O `request` SE QUEDA ASÍ, Y ES INTENCIONAL. No se auto-confirma
-     * aunque el canal sea de pago total: el equipo local tiene que verificar la reserva antes de
-     * darla por buena. Ese estado intermedio ES el aviso de que hay algo pendiente de revisar; si
-     * se confirmara sola, la verificación dejaría de ocurrir porque nadie vería la diferencia.
+     * ⚠️ LA VERIFICACIÓN DEL EQUIPO ES PARA LOS CANALES QUE **NO** COBRAN. En Booking, un `new`
+     * significa que la reserva todavía puede caerse, y ese estado intermedio ES el aviso de que
+     * alguien tiene que mirarla: se guarda tal cual. En un canal de pago total —Airbnb, VRBO— el
+     * dinero ya está cobrado y no hay nada que verificar antes de darla por buena: entra
+     * CONFIRMADA.
      *
-     * ⚠️⚠️ EL `(int)$statusApi === 0` DE LA RAMA 1 NO ES UN FALLO — NO LO «ARREGLES».
+     * ⚠️⚠️ EL `(int)$statusApi === 0` DE LA RAMA 3 NO ES UN FALLO — NO LO «ARREGLES».
      * Viene de la API v1, donde el estado era numérico y `0` significaba cancelada. Con la v2 los
-     * estados son texto (`cancelled`, `confirmed`, `new`…) y `(int)"new"` es `0`, así que la rama
-     * entra SIEMPRE y devuelve el estado mapeado tal cual. Ése es justo el comportamiento que se
-     * quiere, y por eso las ramas 2 y 3 de abajo no llegan a ejecutarse nunca.
+     * estados son texto (`cancelled`, `confirmed`, `new`…) y `(int)"new"` es `0`, así que esa rama
+     * entra siempre y devuelve el estado mapeado tal cual. Para Booking es justo lo que se quiere.
      *
-     * Quitar ese cast «porque parece un bug» reactivaría la rama 3 y pondría a confirmar solas
-     * las reservas de Airbnb y VRBO, saltándose la verificación del equipo. Se conservan las
-     * ramas 2 y 3 —en vez de borrarlas— porque documentan la intención original y el día que
-     * Beds24 cambie de contrato hay que decidir a conciencia, no descubrirlo por accidente.
+     * Las ramas van en este orden a propósito: primero los estados intocables (cancelada, inquiry,
+     * bloqueo), después el canal que ya cobró, y el cast al final. Así la regla de Airbnb no
+     * depende de ese cast, que es de la v1 y algún día cambiará.
      *
      * Detalle y motivo en `docs/PmsBeds24ReservasSync.md` §5.4.
      */
@@ -663,30 +662,56 @@ final class BookingPullPersister implements ResetInterface
                 ?? throw new RuntimeException('CRÍTICO: Maestro corrupto (falta PENDIENTE).');
         }
 
-        // 1. Se respeta el estado del canal tal cual. Con la API v2 esta rama entra SIEMPRE
-        //    —ver el aviso del docblock—, y es lo que mantiene `new`/`request` sin auto-confirmar
-        //    para que el equipo local verifique la reserva.
-        if ((int)$statusApi === 0 || $estadoBase->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
+        // 1. ESTADOS QUE NO SE TOCAN, venga del canal que venga.
+        //
+        // `cancelada` es terminal. `abierto` es un inquiry —una pre-reserva de Airbnb, sin venta
+        // ni dinero— y §11.2.b depende de que se quede así para que no estrene línea financiera.
+        // `bloqueo` no es una reserva. Ninguno de los tres puede promoverse a confirmada.
+        if (in_array($estadoBase->getId(), [
+            PmsEventoEstado::CODIGO_CANCELADA,
+            PmsEventoEstado::CODIGO_ABIERTO,
+            PmsEventoEstado::CODIGO_BLOQUEO,
+        ], true)) {
             return $estadoBase;
         }
 
-        // ⬇️ INALCANZABLE con la API v2 (statuses de texto). Se conserva a propósito: ver docblock.
-
-        // 2. PROTECCIÓN ESTRICTA DE PRE-RESERVAS (INQUIRY):
-        // El único estado que NO se toca ni se auto-confirma es ABIERTO.
-        if ($estadoBase->getId() === PmsEventoEstado::CODIGO_ABIERTO) {
-            return $estadoBase;
-        }
-
-        // 3. REGLA DE NEGOCIO OTA (Pago Total):
-        // Si llegó hasta aquí (es new, request, etc.) y es canal tipo Airbnb, forzamos Confirmada.
+        // 2. CANALES QUE YA COBRARON (Airbnb, VRBO): la reserva entra CONFIRMADA.
+        //
+        // La verificación del equipo es para los canales que **no garantizan el pago** —Booking,
+        // donde un `new` todavía puede caerse—. Cuando el canal ya cobró, no hay nada que
+        // verificar antes de darla por buena: el dinero está.
+        //
+        // ⚠️ Esto reemplaza lo que decía §5.4 sobre Airbnb y VRBO. Aquella frase la escribí yo el
+        // 18/08/2026 (857bd4fc) documentando la trampa del cast de abajo, y de paso declaré que
+        // la regla alcanzaba también a los canales de pago total. **Eso era inferencia mía sobre
+        // un comportamiento que era accidental**, no la regla del negocio. La regla es ésta.
+        //
+        // Sin esto, una reserva de Airbnb confirmada a mano duraba hasta la siguiente pasada del
+        // pull —20 minutos— porque `setEstado()` reescribe el estado del canal en cada una, y la
+        // auto-confirmación por pago (§9.5) está apagada en `MODE_PULL`. Sobrevivía sólo si el
+        // push lograba poner `confirmed` en Beds24 antes. Medido: de once estancias futuras que
+        // Beds24 daba como `new`, **cero** estaban confirmadas en local; de las ya pasadas —que
+        // el barrido por rango de llegadas deja de tocar— once de trece sí.
         $channelCode = strtolower(trim((string) ($dto->channel ?? '')));
+
         if (in_array($channelCode, PmsChannel::CANAL_PAGO_TOTAL, true)) {
             return $this->em->find(PmsEventoEstado::class, PmsEventoEstado::CODIGO_CONFIRMADA)
                 ?? throw new RuntimeException('CRÍTICO: Maestro corrupto (falta CONFIRMADA).');
         }
 
-        // Si no es OTA de pago total, devuelve el estado natural mapeado (Pendiente, Requerimiento, etc.)
+        // 3. El resto —Booking y los canales que no cobran— se queda como llegó.
+        //
+        // ⚠️⚠️ EL `(int)$statusApi === 0` NO ES UN FALLO — NO LO «ARREGLES». Viene de la API v1,
+        // donde el estado era numérico y `0` era cancelada; con la v2 los estados son texto y
+        // `(int)"new"` es `0`, así que esta rama entra siempre y devuelve el estado del canal tal
+        // cual. Es justo lo que se quiere aquí: en Booking, `new` significa que la reserva aún
+        // puede caerse, y ese estado intermedio ES el aviso de que alguien tiene que mirarla.
+        if ((int)$statusApi === 0) {
+            return $estadoBase;
+        }
+
+        // Inalcanzable con la v2. Se conserva por lo mismo que antes: el día que Beds24 cambie el
+        // contrato del campo, que haya que decidir a conciencia y no descubrirlo por accidente.
         return $estadoBase;
     }
 

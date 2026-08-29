@@ -268,7 +268,7 @@ renombrar un campo que venga de una API externa, comprueba el payload real.
 | Campo | Por qué NO se toca |
 |---|---|
 | `Beds24BookingDto::$country2` | Beds24 manda `country` (minúsculas) **y** `country2` (mayúsculas). El DTO expone sólo la segunda porque `MaestroPais` usa mayúsculas. Cambiarlo a `country` dejó muerta la inferencia de idioma por país, sin un solo error. Ver `docs/PmsBeds24ReservasSync.md` §3.3. |
-| `BookingPullPersister::resolveEstado()` → `(int)$statusApi === 0` | Resto de la API v1, donde el estado era numérico. Con la v2 los estados son texto y `(int)"new"` es `0`, así que la rama entra **siempre** — y eso es lo que se quiere: lo que llega como `new`/`request` **se queda así a propósito**, para que el equipo local verifique la reserva. «Arreglar» el cast reactiva la rama que auto-confirma Airbnb y VRBO, y la verificación desaparece sin un solo error. Ver `docs/PmsBeds24ReservasSync.md` §5.4. |
+| `BookingPullPersister::resolveEstado()` → `(int)$statusApi === 0` | Resto de la API v1, donde el estado era numérico. Con la v2 los estados son texto y `(int)"new"` es `0`, así que la rama entra **siempre** y devuelve el estado del canal tal cual. Para **Booking** es justo lo que se quiere: un `new` todavía puede caerse y ese estado intermedio es el aviso de que alguien la revise. Los canales que ya cobraron (Airbnb, VRBO) se resuelven **antes**, en su propia rama, para no depender del cast. Ver `docs/PmsBeds24ReservasSync.md` §5.4. |
 
 ---
 
