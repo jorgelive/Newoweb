@@ -1594,10 +1594,20 @@ De ese par sale el «dónde recojo / dónde dejo» de la orden de servicio.
 Lo siguen Lima (`TRF_LIM`), Cusco (`TRF_CUZ`) y Punta Cana (`TRF_PUJ`), con la misma forma de slug
 —`TRANS-APT_<IATA>-HOTEL_<IATA>` y su inverso— para que se ordenen juntos.
 
-⚠️ Los de Punta Cana nacen con **una tarifa a 0 por sentido**, no con las ocho de Lima
-—Auto/Van/Sprinter/Master × día y noche, con su capacidad—. Esa flota es un dato del operador
-local: inventarla habría sido peor que dejarla vacía, porque una tarifa con un vehículo que no
-existe se cotiza igual.
+Punta Cana lleva **cuatro vehículos por sentido** —Auto, Van, Minibús y Bus—, todos `privado` y
+**por grupo**.
+
+⚠️ **Por grupo, no por persona.** Un traslado se contrata por vehículo: con el precio por pasajero,
+un grupo de 40 en un bus saldría cuarenta veces el precio del bus.
+
+⚠️ Nacen **a 0 y sin capacidad**. El precio lo pone el operador, y la capacidad es lo que decide
+qué vehículo se usa para 131 personas —en Lima: Auto 4, Van 8, Master 14—. Inventar cualquiera de
+los dos habría sido peor que dejarlos vacíos: una tarifa con una cifra inventada se cotiza igual
+de bien y nadie nota el error hasta el día del traslado.
+
+⚠️ Al sustituir la tarifa de relleno por la flota, el enlace se quedaba **sin predeterminada** —y
+un enlace así obliga a elegir tarifa a mano cada vez que se arrastra el segmento—. El comando lo
+repunta a la primera de la flota; cuál es la habitual lo sabe quien vende.
 
 ### ⚠️ Un segmento de vuelo describe el TRAYECTO, no el momento del viaje
 

@@ -39,12 +39,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * De ahí sale el «dónde recojo / dónde dejo» de la orden de servicio.
  *
- * ## Las tarifas nacen a 0
+ * ## Cuatro vehículos por sentido, todos por grupo y a 0
  *
- * Las de Lima son ocho —Auto, Van, Sprinter y Master, cada una en versión día y noche, con su
- * capacidad—. Esa flota es un dato del operador de Punta Cana que aquí no se conoce, y
- * **inventarla sería peor que dejarla vacía**: una tarifa con un vehículo que no existe se
- * cotiza igual. Se crea una por sentido, a 0, para que el componente sea usable.
+ * ⚠️ **Por grupo, no por persona.** Un traslado se contrata por vehículo: con el precio por
+ * pasajero, un grupo de 40 en un bus saldría cuarenta veces el precio del bus.
+ *
+ * ⚠️ Y **sin capacidad**, que es lo único que no se puede deducir del nombre. Es además lo que
+ * decide qué vehículo se usa para 131 personas, así que conviene ponerla pronto.
  */
 #[AsCommand(
     name: 'app:travel:crear-traslados-punta-cana',
@@ -56,6 +57,28 @@ final class CrearTrasladosPuntaCanaCommand extends Command
     private const SERVICIO_NOMBRE = 'Transporte en Punta Cana';
     private const AEROPUERTO = 'Aeropuerto de Punta Cana';
     private const MONEDA = 'USD';
+
+    /**
+     * Cuántas tarifas se crearon (o se crearían) en esta pasada.
+     *
+     * ⚠️ No se puede contar el array que devuelve `asegurarFlota()`: en ensayo no hay entidad que
+     * meter dentro, así que salía «la flota ya estaba completa» después de listar ocho.
+     */
+    private int $flotaCreada = 0;
+
+    /**
+     * La flota, una tarifa por vehículo y sentido.
+     *
+     * ⚠️ Todas **por grupo**, no por persona: un traslado se contrata por vehículo. Con el precio
+     * por pasajero, un grupo de 40 en un bus saldría cuarenta veces el precio del bus.
+     *
+     * ⚠️ Y **sin capacidad**: cuántos caben en el minibús de Punta Cana es un dato del operador.
+     * Los de Lima la tienen —Auto 4, Van 8, Master 14— y conviene ponerla, porque es lo que
+     * decide qué vehículo se elige para 131 personas.
+     *
+     * @var list<string>
+     */
+    private const FLOTA = ['Auto', 'Van', 'Minibús', 'Bus'];
 
     /**
      * @var list<array{slug: string, nombre: string, titulo: string, contenido: string,
@@ -167,27 +190,53 @@ final class CrearTrasladosPuntaCanaCommand extends Command
                 ->setTipo(ComponenteTipoEnum::TRANSPORTE);
             $this->em->persist($componente);
 
-            // Los setters de TravelTarifa devuelven void: aquí no se encadena.
-            $tarifa = new TravelTarifa();
-            $tarifa->setComponente($componente);
-            $tarifa->setNombreInterno($def['nombre']);
-            $tarifa->setTitulo([['language' => 'es', 'content' => $def['titulo']]]);
-            $tarifa->setMoneda($moneda);
-            $tarifa->setMonto('0.00');
-            $tarifa->setModalidad(TarifaModalidadEnum::PRIVADO);
-            $this->em->persist($tarifa);
+            $porDefecto = $this->asegurarFlota($componente, $moneda, $io, false)[0] ?? null;
 
             $this->em->persist(
                 (new TravelSegmentoComponente())
                     ->setSegmento($segmento)
                     ->setComponente($componente)
-                    ->setTarifaPredeterminada($tarifa)
+                    ->setTarifaPredeterminada($porDefecto)
                     ->setModo(ComponenteModoEnum::INCLUIDO)
                     ->setOrden(1),
             );
 
             $servicio?->addSegmento($segmento);
             $servicio?->addComponente($componente);
+        }
+
+        // Los segmentos que ya existían se saltan arriba, así que la flota se asegura aparte:
+        // la primera versión de este comando creaba UNA tarifa de relleno por sentido.
+        $io->section('Flota');
+
+        foreach (self::SEGMENTOS as $def) {
+            $componente = $this->em->getRepository(TravelComponente::class)
+                ->findOneBy(['nombreInterno' => $def['nombre']]);
+
+            if ($componente === null) {
+                continue;
+            }
+
+            $flota = $this->asegurarFlota($componente, $moneda, $io, $simula);
+
+            // ⚠️ Retirar la tarifa de relleno deja el enlace SIN predeterminada, y un enlace así
+            // obliga a elegir tarifa a mano cada vez que se arrastra el segmento. Se repunta a la
+            // primera de la flota; cuál es la habitual lo sabe quien vende.
+            foreach ($componente->getSegmentoComponentesInyectados() as $rel) {
+                if ($rel->getTarifaPredeterminada() !== null || $flota === []) {
+                    continue;
+                }
+
+                $io->text(sprintf('  predeterminada · %s', (string) $flota[0]->getNombreInterno()));
+
+                if (!$simula) {
+                    $rel->setTarifaPredeterminada($flota[0]);
+                }
+            }
+        }
+
+        if ($this->flotaCreada === 0) {
+            $io->text('  la flota ya estaba completa.');
         }
 
         if (!$simula) {
@@ -198,10 +247,12 @@ final class CrearTrasladosPuntaCanaCommand extends Command
         $io->success(sprintf('%s %d segmento(s).', $simula ? 'Se crearían' : 'Creados', $creados));
 
         if ($creados > 0) {
-            $io->warning(
-                'Las tarifas nacen a 0 y con una sola por sentido: la flota de Punta Cana '
-                . '—qué vehículos y a qué precio— es un dato del operador. Los de Lima tienen ocho.',
-            );
+            $io->warning(sprintf(
+                'Las %d tarifas nacen a 0 y SIN capacidad. El precio y cuántos caben en cada '
+                . 'vehículo los pone el operador; la capacidad es lo que decide qué se usa para '
+                . 'un grupo grande. En Lima: Auto 4, Van 8, Master 14.',
+                count(self::FLOTA) * count(self::SEGMENTOS),
+            ));
         }
 
         if ($simula) {
@@ -209,5 +260,81 @@ final class CrearTrasladosPuntaCanaCommand extends Command
         }
 
         return Command::SUCCESS;
+    }
+    /**
+     * Una tarifa por vehículo, todas privadas y **por grupo**.
+     *
+     * Devuelve las que había o acaba de crear, en el orden de {@see FLOTA}, para que quien crea
+     * el enlace pueda tomar la primera como predeterminada.
+     *
+     * ⚠️ Se retira de paso la tarifa de relleno que creó la primera versión de este comando —la
+     * que se llamaba igual que el componente—: dejarla sería un quinto vehículo sin nombre que
+     * alguien acabaría cotizando.
+     *
+     * @return list<TravelTarifa>
+     */
+    private function asegurarFlota(
+        TravelComponente $componente,
+        MaestroMoneda $moneda,
+        SymfonyStyle $io,
+        bool $simula,
+    ): array {
+        $existentes = [];
+
+        foreach ($componente->getTarifas() as $t) {
+            $existentes[(string) $t->getNombreInterno()] = $t;
+        }
+
+        $titulo = $this->textoEspanol($componente->getTitulo());
+        $flota = [];
+
+        foreach (self::FLOTA as $vehiculo) {
+            $nombre = sprintf('%s · %s', $vehiculo, $titulo);
+
+            if (isset($existentes[$nombre])) {
+                $flota[] = $existentes[$nombre];
+                continue;
+            }
+
+            $io->text(sprintf('  %s · %s', $simula ? 'crearía' : 'creada ', $nombre));
+            ++$this->flotaCreada;
+
+            if ($simula) {
+                continue;
+            }
+
+            $tarifa = new TravelTarifa();
+            $tarifa->setComponente($componente);
+            $tarifa->setNombreInterno($nombre);
+            $tarifa->setTitulo([['language' => 'es', 'content' => $vehiculo]]);
+            $tarifa->setMoneda($moneda);
+            $tarifa->setMonto('0.00');
+            $tarifa->setModalidad(TarifaModalidadEnum::PRIVADO);
+            $tarifa->setCostoPorGrupo(true);
+            $this->em->persist($tarifa);
+
+            $flota[] = $tarifa;
+        }
+
+        $relleno = $existentes[(string) $componente->getNombreInterno()] ?? null;
+
+        if ($relleno !== null && !$simula) {
+            $io->text(sprintf('  retirada · tarifa de relleno «%s»', (string) $relleno->getNombreInterno()));
+            $this->em->remove($relleno);
+        }
+
+        return $flota;
+    }
+
+    /** @param list<array{language?: string, content?: string|null}> $i18n */
+    private function textoEspanol(array $i18n): string
+    {
+        foreach ($i18n as $t) {
+            if (($t['language'] ?? '') === 'es') {
+                return (string) ($t['content'] ?? '');
+            }
+        }
+
+        return '';
     }
 }
