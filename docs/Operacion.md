@@ -1144,6 +1144,38 @@ Son tres nombres distintos y es fácil coger el que no es:
 El público parece buen candidato porque en muchos componentes es descriptivo, pero en éste es
 «Transporte» a secas — y con él la ficha decía «Transporte» sin más. La regla es el operativo.
 
+#### ⚠️ El nombre viaja congelado, y hay que refrescarlo a mano (29/08/2026)
+
+`resolverNombreComponente()` lee el snapshot de la COTIZACIÓN, no el maestro. La cadena entera
+es de copias:
+
+```
+TravelComponente.nombreInterno            ← el catálogo, vivo
+        ↓ (uuid, sí se reapunta)
+CotizacionCotcomponente.nombreInternoSnapshot   ← CONGELADO al cotizar
+        ↓
+OperacionServicio.nombreComponente        ← copia el snapshot, NO el maestro
+        ↓
+OperacionOrdenServicioItem                ← congelado al emitir
+```
+
+Por eso, tras renombrar 25 componentes en el refactor de transporte, La Biblia seguía diciendo
+«Transporte Cusco - Ollanta»: **no estaba desfasada respecto a su fuente**, estaba copiando
+fielmente una cotización que sí lo estaba. Buscar el fallo en Operación habría sido buscar en el
+sitio equivocado.
+
+Se refresca con `app:cotizacion:refrescar-nombres-maestros` y después
+`operacion:resincronizar --todas`, que sí trae `nombreComponente` entre sus campos reconciliables.
+
+**Qué se refresca y qué no**, que es lo que hace segura la operación:
+
+| | |
+|---|---|
+| `nombreInternoSnapshot` | **sí** — es operativo, y un nombre que ya no existe obliga a buscar a ciegas |
+| `tituloSnapshot` | **no** — es prosa de cliente, se edita a mano por cotización, y refrescarlo destruiría esas ediciones y cambiaría lo que un cliente ya leyó |
+| importes | **no** — el precio congelado es lo que se vendió |
+| órdenes emitidas | **no** — un documento dice lo que dijo |
+
 #### Tres ranuras: el segmento entra en la orden (2026-08-29)
 
 Hasta aquí eran dos, y **al proveedor sólo le llegaban dos**. `nombreSegmento` se calculaba en
