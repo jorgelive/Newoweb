@@ -102,11 +102,10 @@ final class NormalizarTransporteUrbanoCommand extends Command
                 'Transporte Hotel Arequipa - Aeropuerto de Arequipa',
             ],
             'urbano' => [
-                // ⚠️ La Van dice 4 plazas, igual que el Auto, en los TRES componentes. No es una
-                // divergencia de fusión —es coherente consigo misma— así que no la toco: o es un
-                // error de origen o allí llaman «Van» a otra cosa. Queda anotado.
-                'Auto' => ['monto' => '17.00', 'cap' => 4],
-                'Van' => ['monto' => '17.00', 'cap' => 4],
+                // Capacidades dictadas por el operador el 29/08/2026. Venían las dos a 4 —Van y
+                // Auto igual—, que fue lo que hizo sospechar. Las de verdad son 3 y 5.
+                'Auto' => ['monto' => '17.00', 'cap' => 3],
+                'Van' => ['monto' => '17.00', 'cap' => 5],
                 'Master' => ['monto' => '23.00', 'cap' => 14],
                 'Sprinter' => ['monto' => '28.00', 'cap' => 14],
             ],
@@ -148,10 +147,14 @@ final class NormalizarTransporteUrbanoCommand extends Command
         foreach (self::CUADROS as $ciudad => $cuadro) {
             $io->title($ciudad);
 
-            $urbano = $this->componente($cuadro['canonicoUrbano']);
+            // ⚠️ Por el nombre VIEJO y también por el NUEVO. Si sólo se busca el viejo, el
+            // comando deja de encontrarse a sí mismo en cuanto renombra, y el cuadro deja de ser
+            // la fuente de verdad: un cambio de precio o de capacidad ya no se puede aplicar
+            // volviendo a correrlo. Se descubrió al corregir las plazas de Arequipa.
+            $urbano = $this->componente($cuadro['canonicoUrbano']) ?? $this->componente($cuadro['nombreUrbano']);
 
             if ($urbano === null) {
-                $io->text(sprintf('  <fg=yellow>ya normalizada</> — no existe «%s»', $cuadro['canonicoUrbano']));
+                $io->text(sprintf('  <fg=red>no encontrada</> — ni «%s» ni «%s»', $cuadro['canonicoUrbano'], $cuadro['nombreUrbano']));
                 continue;
             }
 
@@ -164,10 +167,10 @@ final class NormalizarTransporteUrbanoCommand extends Command
                 continue;
             }
 
-            $aeropuerto = $this->componente($cuadro['canonicoAeropuerto']);
+            $aeropuerto = $this->componente($cuadro['canonicoAeropuerto']) ?? $this->componente($cuadro['nombreAeropuerto']);
 
             if ($aeropuerto === null) {
-                $io->text(sprintf('  <fg=yellow>sin componente de aeropuerto</> — «%s» no existe', $cuadro['canonicoAeropuerto']));
+                $io->text(sprintf('  <fg=red>no encontrada</> — ni «%s» ni «%s»', $cuadro['canonicoAeropuerto'], $cuadro['nombreAeropuerto']));
                 continue;
             }
 

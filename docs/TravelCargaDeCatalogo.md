@@ -243,10 +243,35 @@ Puno es el caso que más fácil se estropea: por nombre parece «el aeropuerto d
 el componente urbano habría metido un tramo de 45 km —150 a 600 soles— junto a traslados de 25.
 Lo que decide no es cómo se llama, sino **dónde está**.
 
-⚠️ Y una anomalía que se deja ANOTADA y no se toca: en Arequipa la `Van` declara **4 plazas**,
-igual que el `Auto`, en los tres componentes. Al ser coherente consigo misma no es una
-divergencia de fusión: o es un error de origen o allí llaman «Van» a otra cosa. Corregirla sin
-saberlo sería inventar capacidad, que es como inventar precio.
+⚠️ **El cuadro tiene que poder re-correrse, y casi no podía.** El comando buscaba el canónico
+sólo por su nombre VIEJO, así que en cuanto renombraba dejaba de encontrarse a sí mismo: un
+cambio de precio o de capacidad ya no se podía aplicar volviendo a lanzarlo, que es justo para lo
+que sirve tener un cuadro. Se descubrió al corregir las plazas de Arequipa. Ahora busca por los
+dos nombres.
+
+### 🔜 PENDIENTE: revisar las capacidades de todo el catálogo
+
+Arequipa declaraba la `Van` con **4 plazas, igual que el `Auto`**. Se corrigió con los números
+reales —Auto 3, Van 5— y al mirar si era un caso aislado, no lo era:
+
+```
+vehículo    capacidades declaradas        tarifas
+Van         sin medir, 3, 4, 5, 6, 8         65
+Auto        sin medir, 2, 3, 4, 5, 6         42
+Bus         sin medir, 25, 27, 45            42
+Master      10, 14                           40
+Sprinter    sin medir, 10, 14, 18            34
+```
+
+Parte de esa dispersión es legítima —cada proveedor tiene su flota— pero una «Van» de 3 plazas y
+otra de 8 bajo la misma palabra no es una flota distinta: es **vocabulario sin acordar**. Y el
+«sin medir» es peor que un número equivocado, porque no se puede contrastar con nada.
+
+**Por qué importa más que un precio mal:** una capacidad de más **vende una plaza que no existe**,
+y eso se descubre en el aeropuerto, con el grupo delante. Un precio mal se corrige en la factura.
+
+Queda pendiente de revisar con los números reales. Mientras tanto, la regla de la fusión sigue
+siendo **la menor**, que es la que falla del lado seguro.
 
 Y `Traslado a Restaurante con espera Cusco` **no se toca**: cuesta más porque el vehículo espera.
 Es otro servicio, no una copia.
