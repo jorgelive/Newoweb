@@ -228,9 +228,25 @@ Van estaban **intercambiadas** entre el componente de terminal y el de aeropuert
 dos cosas se ve leyendo un componente: sólo aparecen al poner los cinco cuadros uno al lado del
 otro.
 
-⚠️ **Sólo está hecho Cusco.** Lima, Arequipa, Puno, Ica, Paracas y Quillabamba repiten la misma
-forma, pero su cuadro de precios no se sabe, y extrapolar el de Cusco sería inventar dinero. Se
-añaden a `NormalizarTransporteUrbanoCommand::CUADROS` cuando alguien los dicte.
+### ⚠️ «Aeropuerto» no significa lo mismo en tres ciudades
+
+La forma NO es única, y asumirla habría estropeado dos de las tres. El bloque de aeropuerto de
+`CUADROS` es opcional justo por esto:
+
+| Ciudad | Qué pasa con el aeropuerto | Resultado |
+|---|---|---|
+| **Cusco** | cobra recargo por entrar a la terminal aérea | **dos** componentes, urbano y aeropuerto |
+| **Arequipa** | cuesta **lo mismo** que el terminal | **uno**: «Aeropuerto o Terminal ↔ Arequipa» |
+| **Puno** | está en **Juliaca, a casi una hora** | el urbano va solo; Juliaca es **interurbano** y no se toca |
+
+Puno es el caso que más fácil se estropea: por nombre parece «el aeropuerto de Puno» y meterlo en
+el componente urbano habría metido un tramo de 45 km —150 a 600 soles— junto a traslados de 25.
+Lo que decide no es cómo se llama, sino **dónde está**.
+
+⚠️ Y una anomalía que se deja ANOTADA y no se toca: en Arequipa la `Van` declara **4 plazas**,
+igual que el `Auto`, en los tres componentes. Al ser coherente consigo misma no es una
+divergencia de fusión: o es un error de origen o allí llaman «Van» a otra cosa. Corregirla sin
+saberlo sería inventar capacidad, que es como inventar precio.
 
 Y `Traslado a Restaurante con espera Cusco` **no se toca**: cuesta más porque el vehículo espera.
 Es otro servicio, no una copia.

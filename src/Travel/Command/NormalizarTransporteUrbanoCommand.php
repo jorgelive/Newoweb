@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
+use App\Cotizacion\Entity\CotizacionCotcomponente;
 use App\Cotizacion\Entity\CotizacionCottarifa;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelSegmentoComponente;
@@ -54,7 +55,16 @@ final class NormalizarTransporteUrbanoCommand extends Command
      * ⚠️ La diferencia ES el estacionamiento del aeropuerto, no un margen: por eso el recargo no
      * es ni plano ni porcentual —+5, +5, +2, +4, +5— y no se puede calcular, hay que preguntarlo.
      *
-     * @var array<string, array{urbano: array<string, array{monto: string, cap: int}>, aeropuerto: array<string, array{monto: string, cap: int}>, canonicoUrbano: string, absorbidos: list<string>, canonicoAeropuerto: string, nombreUrbano: string, nombreAeropuerto: string}>
+     * ⚠️ El bloque de aeropuerto es **opcional**, y las tres ciudades enseñan por qué no se puede
+     * asumir una forma única:
+     *
+     * - **Cusco** cobra un recargo por entrar a la terminal aérea → dos componentes.
+     * - **Arequipa** cobra lo MISMO por aeropuerto y por terminal → uno solo, y el aeropuerto se
+     *   absorbe como un destino urbano más.
+     * - **Puno** tiene su aeropuerto en **Juliaca, a casi una hora** → eso no es urbano con
+     *   recargo, es un tramo interurbano, y se queda como componente aparte sin tocarlo.
+     *
+     * @var array<string, array{urbano: array<string, array{monto: string, cap: int}>, aeropuerto?: array<string, array{monto: string, cap: int}>, canonicoUrbano: string, absorbidos: list<string>, canonicoAeropuerto?: string, nombreUrbano: string, nombreAeropuerto?: string}>
      */
     private const CUADROS = [
         'Cusco' => [
@@ -82,6 +92,42 @@ final class NormalizarTransporteUrbanoCommand extends Command
                 'Bus' => ['monto' => '25.00', 'cap' => 25],
             ],
         ],
+        // Mismo precio por aeropuerto y por terminal: no hay recargo que separar, así que un
+        // solo componente y el nombre lo dice. En USD, a diferencia del resto.
+        'Arequipa' => [
+            'canonicoUrbano' => 'Transporte Hotel Arequipa ↔ Terminal Terrestre Arequipa (ida o vuelta)',
+            'nombreUrbano' => 'Transporte Aeropuerto o Terminal ↔ Arequipa (ida o vuelta)',
+            'absorbidos' => [
+                'Transporte Aeropuerto Arequipa - Hotel Arequipa',
+                'Transporte Hotel Arequipa - Aeropuerto de Arequipa',
+            ],
+            'urbano' => [
+                // ⚠️ La Van dice 4 plazas, igual que el Auto, en los TRES componentes. No es una
+                // divergencia de fusión —es coherente consigo misma— así que no la toco: o es un
+                // error de origen o allí llaman «Van» a otra cosa. Queda anotado.
+                'Auto' => ['monto' => '17.00', 'cap' => 4],
+                'Van' => ['monto' => '17.00', 'cap' => 4],
+                'Master' => ['monto' => '23.00', 'cap' => 14],
+                'Sprinter' => ['monto' => '28.00', 'cap' => 14],
+            ],
+        ],
+
+        // Sin bloque de aeropuerto A PROPÓSITO: el de Puno está en Juliaca, a casi una hora.
+        // `Transporte Aeropuerto Juliaca ↔ Hotel Puno` es interurbano y no se toca.
+        'Puno' => [
+            'canonicoUrbano' => 'Transporte Htl Puno - Terminal Terrestre Puno',
+            'nombreUrbano' => 'Transporte urbano en Puno',
+            'absorbidos' => [
+                'Transporte Htl Puno - Estacion Tren Puno',
+            ],
+            'urbano' => [
+                'Auto' => ['monto' => '25.00', 'cap' => 4],
+                'Van' => ['monto' => '35.00', 'cap' => 8],
+                'Master' => ['monto' => '50.00', 'cap' => 14],
+                'Sprinter' => ['monto' => '70.00', 'cap' => 18],
+                'Bus' => ['monto' => '100.00', 'cap' => 25],
+            ],
+        ],
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -103,10 +149,9 @@ final class NormalizarTransporteUrbanoCommand extends Command
             $io->title($ciudad);
 
             $urbano = $this->componente($cuadro['canonicoUrbano']);
-            $aeropuerto = $this->componente($cuadro['canonicoAeropuerto']);
 
-            if ($urbano === null || $aeropuerto === null) {
-                $io->error(sprintf('Falta el componente canónico de %s: ya se normalizó, o cambió de nombre.', $ciudad));
+            if ($urbano === null) {
+                $io->text(sprintf('  <fg=yellow>ya normalizada</> — no existe «%s»', $cuadro['canonicoUrbano']));
                 continue;
             }
 
@@ -114,6 +159,17 @@ final class NormalizarTransporteUrbanoCommand extends Command
             $this->absorber($urbano, $cuadro['absorbidos'], $io, $simula);
             $this->ajustarAlCuadro($urbano, $cuadro['urbano'], $io, $simula);
             $this->renombrar($urbano, $cuadro['nombreUrbano'], $io, $simula);
+
+            if (!isset($cuadro['canonicoAeropuerto'], $cuadro['aeropuerto'], $cuadro['nombreAeropuerto'])) {
+                continue;
+            }
+
+            $aeropuerto = $this->componente($cuadro['canonicoAeropuerto']);
+
+            if ($aeropuerto === null) {
+                $io->text(sprintf('  <fg=yellow>sin componente de aeropuerto</> — «%s» no existe', $cuadro['canonicoAeropuerto']));
+                continue;
+            }
 
             $io->section('Aeropuerto');
             $this->ajustarAlCuadro($aeropuerto, $cuadro['aeropuerto'], $io, $simula);
@@ -158,9 +214,17 @@ final class NormalizarTransporteUrbanoCommand extends Command
                 }
             }
 
-            $io->text(sprintf('  absorbe · %s (%d enlaces)', $nombre, count($relaciones)));
+            $citas = $this->em->getRepository(CotizacionCotcomponente::class)
+                ->findBy(['componenteMaestroId' => (string) $sobra->getId()]);
+
+            $io->text(sprintf('  absorbe · %s (%d enlaces, %d líneas de cotización)', $nombre, count($relaciones), count($citas)));
 
             if (!$simula) {
+                foreach ($citas as $cita) {
+                    // El snapshot no se toca: dice lo que se vendió. Sólo el puntero al maestro.
+                    $cita->setComponenteMaestroId((string) $canonico->getId());
+                }
+
                 foreach ($sobra->getServicios() as $servicio) {
                     $servicio->removeComponente($sobra);
                 }
