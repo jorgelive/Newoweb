@@ -354,7 +354,19 @@ const mediosSinTarjeta = computed(() => {
     }));
 });
 
-const todoPagado = computed(() => soloProgreso.value || finSaldo.value <= 0);
+/**
+ * ¿La cuenta está cerrada?
+ *
+ * ⚠️ Lo dice el backend (`PmsTotalesPorMoneda::cuadra()`), que es la pregunta **con
+ * tolerancia**. El `saldo <= 0` que había aquí dejaba a XTHRMQ anunciando «SALDO PENDIENTE
+ * ≈ S/. 0,10» encima de un bloque que decía «no queda nada pendiente»: diez céntimos no son
+ * una deuda, son que el cambio del mostrador no es el de SUNAT.
+ *
+ * El `??` cubre un payload viejo servido de caché; el criterio bueno es el de arriba.
+ */
+const todoPagado = computed(() =>
+    soloProgreso.value || (finanzas.value?.cuadra ?? finSaldo.value <= 0)
+);
 
 /** Saldo pagando con tarjeta: saldo + comisión, redondeado a 2 decimales. */
 const finSaldoTarjeta = computed(() =>

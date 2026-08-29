@@ -221,6 +221,14 @@ final class PmsReservaPaxProvider implements ProviderInterface
             // La tolerancia vive en `PmsTotalesPorMoneda` con su porqué y su calibración;
             // reimplementarla en TypeScript sería la segunda vara de medir el mismo dinero.
             'cruceSaldado' => !$espejo && $totales->sugiereImputacion(),
+
+            // ¿La cuenta está cerrada? La pregunta con TOLERANCIA, no el `saldo <= 0` crudo.
+            //
+            // XTHRMQ cuadra dejando 0.10 de residuo, y la tarjeta anunciaba «SALDO PENDIENTE
+            // ≈ S/. 0,10» justo encima de un bloque que decía «no queda nada pendiente». Diez
+            // céntimos no son una deuda: son que el cambio del mostrador no es el de SUNAT, que
+            // es exactamente lo que la tolerancia existe para absorber.
+            'cuadra' => $espejo || $totales->cuadra(),
             // La verdad, para el detalle: una fila por moneda con lo suyo.
             'porMoneda' => $espejo ? [] : $this->desglosePorMoneda($totales),
             'cargos' => $cargos,

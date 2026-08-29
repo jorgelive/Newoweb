@@ -189,6 +189,13 @@ export interface PmsResumenFinanciero {
      */
     cruceSaldado?: boolean;
     /**
+     * La cuenta está cerrada, con la TOLERANCIA del cuadre aplicada.
+     *
+     * `PmsTotalesPorMoneda::cuadra()`. No es `saldo <= 0`: un cruce de monedas deja residuo
+     * porque el cambio del mostrador no es el de SUNAT, y diez céntimos no son una deuda.
+     */
+    cuadra?: boolean;
+    /**
      * Lo que se debe y lo que se ha pagado **en cada moneda**, sin convertir.
      *
      * Es la verdad de la tarjeta: quien pagó S/ 223.70 por Yape tiene que ver S/ 223.70, no una

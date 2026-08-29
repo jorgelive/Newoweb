@@ -2232,6 +2232,12 @@ dinero**: deja fuera los cruces con residuo. `XTHRMQ` cuadra con 0.10 de diferen
 del mostrador nunca es el de SUNAT, y por eso la tolerancia existe y está calibrada— y seguía
 pintando `PEN 176.90` en naranja sobre una cuenta cerrada.
 
+⚠️ **Y `todoPagado` también sale del cuadre, no de `saldo <= 0`.** Con el residuo de 0.10, la
+tarjeta anunciaba «SALDO PENDIENTE ≈ S/. 0,10» justo encima del bloque que decía «no queda nada
+pendiente». Diez céntimos no son una deuda: son que el cambio del mostrador no es el de SUNAT,
+que es literalmente para lo que `PmsTotalesPorMoneda::tolerancia()` existe. El provider manda
+`cuadra` y la vista lo usa para el badge y para ocultar la sección de pago.
+
 ⚠️ **El resolver ya se negaba a pedir dinero en este caso** (`PmsMotivoSinCobro::CRUCE_DE_MONEDAS`,
 `hayAlgoQuePedir: false`), así que el fallo nunca fue pedir el cobro dos veces: era el bloque de
 dos monedas contradiciendo a la cabecera. Son dos capas distintas y conviene no confundirlas al
