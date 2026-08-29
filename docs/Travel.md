@@ -1576,6 +1576,29 @@ que crear doce aeropuertos; sólo existían Lima y Cusco.
 de verdad —«el ascenso a los Andes»— y eso no lo escribe un comando: es trabajo de quien vende el
 viaje. El comando lo avisa al terminar.
 
+### Traslados aeropuerto ↔ hotel: un extremo FIJO y el otro «alojamiento»
+
+Es lo que hace que un solo par de segmentos sirva para **cualquier hotel** de la ciudad:
+
+```
+llegada   inicio = FIJO (aeropuerto)     fin = ALOJAMIENTO
+salida    inicio = ALOJAMIENTO           fin = FIJO (aeropuerto)
+```
+
+⚠️ **`ALOJAMIENTO` no lleva punto**: se resuelve al emitir la orden, con el hotel que de verdad
+reservó el pasajero. Poner un punto fijo ahí ataría el segmento a un resort concreto y habría que
+duplicarlo por cada uno — que es exactamente lo que el modo existe para evitar.
+
+De ese par sale el «dónde recojo / dónde dejo» de la orden de servicio.
+
+Lo siguen Lima (`TRF_LIM`), Cusco (`TRF_CUZ`) y Punta Cana (`TRF_PUJ`), con la misma forma de slug
+—`TRANS-APT_<IATA>-HOTEL_<IATA>` y su inverso— para que se ordenen juntos.
+
+⚠️ Los de Punta Cana nacen con **una tarifa a 0 por sentido**, no con las ocho de Lima
+—Auto/Van/Sprinter/Master × día y noche, con su capacidad—. Esa flota es un dato del operador
+local: inventarla habría sido peor que dejarla vacía, porque una tarifa con un vehículo que no
+existe se cotiza igual.
+
 ### ⚠️ Un segmento de vuelo describe el TRAYECTO, no el momento del viaje
 
 El texto de `VUELO-CUZ-LIM` decía *«con el corazón lleno de recuerdos… una aventura inolvidable»*.
