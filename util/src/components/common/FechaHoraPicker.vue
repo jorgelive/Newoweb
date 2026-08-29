@@ -21,8 +21,14 @@
 // ============================================================================
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
+import { usePantallaEstrecha } from '@/composables/usePantallaEstrecha';
 import '@vuepic/vue-datepicker/dist/main.css';
 import IMask from 'imask';
+
+
+/* El calendario se teletransporta al `body`: dentro del componente lo recorta el header
+   pegajoso del editor, y en el móvil se centra porque no hay hueco donde desplegarlo. */
+const { esEstrecha } = usePantallaEstrecha();
 
 const props = withDefaults(defineProps<{
     /** Hora de pared "YYYY-MM-DDTHH:mm" (se admiten segundos y se ignoran). */
@@ -243,6 +249,8 @@ onBeforeUnmount(() => {
 
 <template>
     <VueDatePicker
+        teleport="body"
+        :teleport-center="esEstrecha"
         :model-value="valorPicker"
         @update:model-value="onPickerChange"
         :is-24="true"

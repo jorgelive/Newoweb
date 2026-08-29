@@ -991,3 +991,32 @@ lo que esa pantalla enseña?
 | Que «atrás» cierre un modal en vez de salir de la pantalla (§3.k) | La vista que lo monta | `useCapasEnHistorial()` — `abrir(nombre, alCerrar)` / `cerrar(nombre)`. ⚠️ TODOS los cierres pasan por `cerrar()`, incluida la ✕ |
 | Que una ficha abra leyendo y se gire para editar (§3.j) | La vista que la monta | `modoVista` + `girar()`, y las clases `.panel-giratorio` / `.cara` / `.de-canto`. ⚠️ Media vuelta, NO dos caras |
 | Que un modal no quede tapado por el teclado del móvil (§3.i) | La tarjeta del modal | `flex flex-col max-h-[calc(100dvh-2rem)]` + `shrink-0` en la cabecera + `overflow-y-auto` en el cuerpo. ⚠️ `dvh`, nunca `vh` |
+
+## 🐛 El calendario se escondía bajo la cabecera (29/08/2026)
+
+`VueDatePicker` renderiza su menú **dentro del DOM del componente**, así que lo recorta cualquier
+padre con `overflow` y lo tapa cualquier cosa con más `z-index`. En el editor de cotizaciones, con
+su cabecera pegajosa, el calendario abría hacia arriba y **la mitad de arriba quedaba debajo del
+header**: sólo se veían las últimas semanas del mes.
+
+Dos props lo arreglan, y hacen falta las dos:
+
+```vue
+<VueDatePicker teleport="body" :teleport-center="esEstrecha" …>
+```
+
+- **`teleport="body"`** saca el menú del contexto de apilamiento del componente. Con eso deja de
+  recortarse y se coloca respecto al campo, volteando solo si no cabe.
+- **`:teleport-center`** en pantallas estrechas lo centra como un modal. Hace falta porque en un
+  móvil con el teclado abierto **no hay hueco arriba ni abajo**, y voltear no resuelve nada.
+
+⚠️ Estaba sin poner en **los tres** sitios que usan el componente. Se veía sólo en el editor porque
+es el único con cabecera pegajosa — los otros dos tenían el mismo fallo esperando su turno.
+
+### `usePantallaEstrecha()`
+
+`util/src/composables/usePantallaEstrecha.ts`. Existe para lo que hay que pasar como **prop**, que
+es donde CSS no llega; lo que se pueda resolver con una clase de Tailwind se resuelve con la clase.
+
+⚠️ El umbral es **640 px, el `sm` de Tailwind**, a propósito: con otro número el comportamiento
+salta a un ancho distinto del que salta el diseño, y nadie entiende por qué.

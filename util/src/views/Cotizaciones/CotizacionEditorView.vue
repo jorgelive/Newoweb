@@ -14,6 +14,7 @@ import PlanOperacionModal from '@/components/operacion/PlanOperacionModal.vue';
 
 // 🔥 IMPORTS DEL DATEPICKER Y MÁSCARAS
 import { VueDatePicker } from '@vuepic/vue-datepicker';
+import { usePantallaEstrecha } from '@/composables/usePantallaEstrecha';
 import '@vuepic/vue-datepicker/dist/main.css';
 import IMask from 'imask';
 import {
@@ -42,6 +43,11 @@ defineProps<{
   fileId?: string;
   cotizacionId?: string;
 }>();
+
+
+/* El calendario se teletransporta al `body`: dentro del componente lo recorta el header
+   pegajoso del editor, y en el móvil se centra porque no hay hueco donde desplegarlo. */
+const { esEstrecha } = usePantallaEstrecha();
 
 /**
  * ¿Está desplegado el bloque «Catálogo Maestro» de la ficha de servicio?
@@ -2530,6 +2536,8 @@ store.$onAction(({ name, args }) => {
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Inicio Exacto *</label>
                   <VueDatePicker
+                      teleport="body"
+                      :teleport-center="esEstrecha"
                       :model-value="store.componenteActivo.fechaHoraInicio"
                       @update:model-value="onInicioChange"
                       :is-24="true"
@@ -2564,6 +2572,8 @@ store.$onAction(({ name, args }) => {
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Fin Exacto *</label>
                   <VueDatePicker
+                      teleport="body"
+                      :teleport-center="esEstrecha"
                       :key="finPickerKey"
                       v-model="store.componenteActivo.fechaHoraFin"
                       @update:model-value="store.onComponenteFechasChange()"
