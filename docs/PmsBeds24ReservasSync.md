@@ -1553,6 +1553,17 @@ lo que la hace inerte: no mueve ningún total.
   clasificación (`tipoCargo`) es una **capa encima** que estandariza, no reemplaza esos datos crudos.
 - **Dedupe:** índice único `uq_cargo_info_item (informacion_id, beds24_item_id)`. Reejecutar el
   pull es idempotente (stats `skipped`).
+- ⚠️ **En la cola, `last_request_raw` es del LOTE y `last_response_raw` es de la FILA.** El
+  enqueuer agrupa hasta diez `bookingId` en una sola llamada, y cada fila guarda la petición
+  completa pero **sólo la porción de respuesta de su propio `target_book_id`**. Cinco filas del
+  mismo instante con la misma URL pueden traer `260`, `260`, `[]`, `[]` y `837` bytes, y las tres
+  cifras son correctas.
+
+  Leer una fila entera invita a la conclusión equivocada —«pedimos cinco reservas y no vino
+  nada»— y desde ahí se diagnostica un fallo del lote que no existe. Para saber si una reserva
+  concreta tiene facturas, se mira **su** fila, no la URL. Comprobado el 28/08/2026 depurando por
+  qué una reserva no tenía cargos: el lote respondía bien y esa reserva, de verdad, no tenía
+  ninguna en Beds24.
 - **FKs unidireccionales:** `Beds24InvoiceReceiveQueue` apunta a `Beds24Config`/`ExchangeEndpoint`
   sin `inversedBy`, a propósito, para no tocar esas entidades del módulo Exchange.
 - **Endpoint requerido:** fila `ExchangeEndpoint` provider `beds24`, `accion='GET_INVOICES'`,
