@@ -90,6 +90,14 @@ final class RellenarNombreSegmentoCommand extends Command
 
             if (!$simula) {
                 $item->setNombreSegmento($momento);
+
+                // ⚠️ Y el TIPO con él. Sin tipo, `ocultaElSegmento()` no aplica: en una orden
+                // vieja de excursión este comando añadiría justo el segmento-capítulo que esa
+                // regla existe para no enseñar. Rellenar la mitad de un par que se lee junto es
+                // peor que no rellenar nada.
+                if ($item->getTipoComponente() === null) {
+                    $item->setTipoComponente($biblia->getTipoComponente());
+                }
             }
         }
 

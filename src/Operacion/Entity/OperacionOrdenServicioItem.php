@@ -473,21 +473,18 @@ class OperacionOrdenServicioItem
     }
 
     /**
-     * El calificador que acompaña al título, o null si repetiría lo mismo.
+     * El OTRO de los dos nombres, o null si no añade nada.
      *
-     * En los componentes manuales la variante suele ser el mismo texto que el nombre, y
-     * «Traslado a la Huacachina — Traslado a la Huacachina» enseña a no leer la línea.
-     */
-    /**
-     * QUÉ se contrató: el componente, o null si no añade nada.
+     * Cuál sea lo decide el tipo: en un traslado manda el segmento y aquí baja el componente; en
+     * una entrada, al revés. Así la línea lleva siempre los dos datos —el encargo y el momento—
+     * y nunca dos veces el mismo.
      *
-     * Bajó de la ranura grande el 29/08/2026 — ver `getTituloParaProveedor()`. Sigue haciendo
-     * falta: dice qué vehículo y a qué proveedor corresponde el encargo, que el segmento no dice.
+     * Sigue haciendo falta aunque el título ya identifique la fila: dice qué vehículo y de qué
+     * proveedor es, que el segmento no dice.
      *
-     * Se calla cuando repite el encargo o la variante — con los componentes de un solo uso el
-     * segmento y el componente se llaman casi igual, y «Transporte Cusco - Ollanta · Transporte
-     * Cusco - Ollanta» enseña a no leer la línea, que es el mismo error que ya costó caro con
-     * la variante de tarifa.
+     * ⚠️ El docblock que había aquí describía **la variante de tarifa**, no este método: quedó
+     * apilado encima al renombrarlo. Un comentario que describe otra cosa es peor que ninguno,
+     * porque se lee como si fuera cierto.
      */
     public function getSecundarioParaProveedor(): ?string
     {

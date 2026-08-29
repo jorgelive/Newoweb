@@ -119,31 +119,38 @@ enum ComponenteTipoEnum: string
     }
 
     /**
-     * ¿Cambia de ciudad, partiendo el día en dos?
-     *
-     * Un vuelo o un tren dividen la jornada: lo que ocurre antes termina en su punto de salida
-     * —el aeropuerto, la estación— y lo posterior empieza en el de llegada. Sin esto, un
-     * traslado de la mañana se leería como si terminara en el hotel de destino, que está en otra
-     * ciudad.
-     */
-    /**
      * ¿El servicio se comparte con otros pasajeros, o va sólo para este grupo?
      *
      * Decide **dónde se les deja al terminar**, y la regla es del negocio, no del código: lo
      * privado devuelve al hotel de cada uno; lo compartido deja a todos en el centro de la
      * ciudad, porque un bus con doce pasajeros de nueve hoteles no puede hacer nueve paradas.
      *
-     * ⚠️ **`TRANSPORTE` cuenta como privado y no es un descuido.** En este catálogo las
-     * versiones privadas de una excursión se montan con un componente de transporte propio
-     * —«Transporte Vinicunca», «Transporte Combinada»— y no con `EXCURSION_PRIVADA`, del que
-     * sólo hay dos en todo el maestro. Clasificar por el nombre del caso en vez de por cómo se
-     * usa habría dejado a los privados devolviendo al centro.
+     * ⚠️ **Sólo `EXCURSION_POOL` comparte. Todo lo demás devuelve al hotel**, incluidos los dos
+     * tipos de transporte, y no es un descuido.
+     *
+     * El aviso que había aquí decía que las versiones privadas de una excursión se montaban como
+     * `TRANSPORTE` —«Transporte Vinicunca», «Transporte Combinada»— porque de `EXCURSION_PRIVADA`
+     * sólo hay dos en el maestro. Seguía siendo cierto y era el síntoma de otra cosa: el
+     * 29/08/2026 esos cuatro pasaron a {@see self::TRANSPORTE_EXCURSION}, que nació justo de ahí.
+     * La clasificación no cambia —privados los dos— pero ya no hay que deducirlo del uso.
      */
     public function esCompartido(): bool
     {
         return $this === self::EXCURSION_POOL;
     }
 
+    /**
+     * ¿Cambia de ciudad, partiendo el día en dos?
+     *
+     * Un vuelo o un tren dividen la jornada: lo que ocurre antes termina en su punto de salida
+     * —el aeropuerto, la estación— y lo posterior empieza en el de llegada. Sin esto, un traslado
+     * de la mañana se leería como si terminara en el hotel de destino, que está en otra ciudad.
+     *
+     * ⚠️ Este docblock estuvo **huérfano**: quedó flotando encima del de `esCompartido()` y
+     * `esSalto()` sin ninguno. Es el patrón contra el que avisa CLAUDE.md —insertar un miembro
+     * «justo antes» de otro— y aquí salió barato porque no había atributos de por medio; con un
+     * `#[Groups]` en el bloque, el campo habría desaparecido del esquema sin un solo error.
+     */
     public function esSalto(): bool
     {
         return $this === self::VUELO || $this === self::TREN;
