@@ -3088,6 +3088,47 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.w El chequeo vigila la duplicación del catálogo (29/08/2026)
+
+El refactor de transporte dejó las tarifas en 239 partiendo de 336, con 25 rutas bidireccionales
+donde había 48 componentes. **Nada impedía que volviera a crecer igual** — y crecerá: cada copia
+se creó por una razón razonable en su momento. Lo que faltaba era algo que lo dijera mientras son
+dos y no veinte.
+
+Cuatro chequeos nuevos, con el comando que los resuelve en el propio `detalle`:
+
+| clave | qué caza | se arregla con |
+|---|---|---|
+| `tarifas-repetidas` | copias exactas dentro de un componente | `app:travel:limpiar-tarifas-repetidas` |
+| `transporte-direccional` | un componente por sentido en vez de por ruta | `app:travel:fusionar-transportes-bidireccionales` |
+| `tarifas-por-sentido` | «desde»/«hasta» dentro de un componente ya bidireccional | `app:travel:fusionar-tarifas-por-sentido` |
+| `bidireccional-sin-marca` | un «↔» que no avisa de que lo es | **se repara solo** |
+
+**Sólo el último se repara**, y es la aplicación literal de la regla de §6.v: añadir «(ida o
+vuelta)» no cambia lo que el componente es, sólo lo dice, así que no hay segunda lectura. Los
+otros tres **tocan dinero** —borrar o fundir tarifas— y eso no lo decide un chequeo.
+
+### ⚠️ Un chequeo que nunca encuentra nada no se distingue de uno que funciona
+
+El propio docblock del checker ya avisaba de que un JOIN mal escrito da **cero filas sin error**.
+Escribir cuatro consultas nuevas y verlas devolver 0 sobre un catálogo recién limpiado no prueba
+absolutamente nada.
+
+Por eso se probaron **fabricando cada caso en una transacción y deshaciéndola**, con el patrón
+`var/probar-*.php` del proyecto —local, porque `var/` no se versiona—: medir antes, insertar un
+duplicado exacto, un par direccional, un par desde/hasta y un bidireccional sin marca, comprobar
+que los cuatro contadores suben, y `rollback`.
+
+```
+tarifas-repetidas          0 → 1   ✅
+transporte-direccional     0 → 2   ✅
+tarifas-por-sentido        0 → 2   ✅
+bidireccional-sin-marca    0 → 1   ✅
+```
+
+Es la forma barata de distinguir «no hay nada» de «no lo estoy mirando». **Repítela al añadir un
+chequeo**: es lo único que separa una consulta correcta de una que devuelve cero para siempre.
+
 ## 6.v El chequeo sólo avisa de lo que se puede arreglar (28/08/2026)
 
 `CoherenciaCatalogoChecker` reparte en dos bloques: lo que repara solo y lo que deja para una

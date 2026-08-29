@@ -160,6 +160,25 @@ final class CoherenciaCatalogoChecker
                 'set'     => 'k.sin_horario = 1',
                 'deCotizacion' => $delComponente,
             ],
+            // ⚠️ Un componente bidireccional que no avisa de que lo es. El proveedor lee el
+            // nombre en grande y el del segmento debajo; si sólo lee el de arriba, «Transporte
+            // Cusco ↔ Ollanta» no le dice cuál de los dos extremos es el destino de hoy — y una
+            // flecha de dos puntas invita a suponer, que es peor que no decir nada: se puede
+            // presentar en el extremo equivocado.
+            //
+            // Se REPARA porque no hay segunda lectura: añadir «(ida o vuelta)» no cambia lo que
+            // el componente es, sólo lo dice. Y va sólo en el nombre operativo — el `titulo` es
+            // prosa de cliente y ahí el paréntesis no significa nada para quien viaja.
+            'bidireccional-sin-marca' => [
+                'titulo'  => 'Transportes con «↔» que no avisan de que sirven en los dos sentidos',
+                'detalle' => 'Se les añade «(ida o vuelta)»: la flecha sola invita a suponer el destino.',
+                'desde'   => 'travel_componente c',
+                'donde'   => 'c.tipo = "transporte" AND c.nombre_interno LIKE "%↔%"
+                            AND c.nombre_interno NOT LIKE "%(ida o vuelta)%"',
+                'set'     => 'c.nombre_interno = CONCAT(TRIM(c.nombre_interno), " (ida o vuelta)")',
+                'deCotizacion' => 'HEX(c.id) IN (SELECT UPPER(REPLACE(k.componente_maestro_id, "-", "")) FROM cotizacion_cotcomponente k
+                                                   JOIN cotizacion_cotservicio sv ON k.cotservicio_id = sv.id WHERE sv.cotizacion_id = :cot)',
+            ],
             // ⚠️ EL ÚLTIMO A PROPÓSITO: arrastra a La Biblia lo que los anteriores acaban de
             // arreglar. Y sincroniza sin pasar por la reconciliación: son campos VACÍOS que se
             // rellenan, no cambios que alguien deba aprobar.
@@ -202,6 +221,65 @@ final class CoherenciaCatalogoChecker
                 'donde'   => 'k.prestador_visible = 0 AND o.visible_para_cliente = 1',
                 'set'     => null,
                 'deCotizacion' => 'k.cotservicio_id IN (SELECT sv.id FROM cotizacion_cotservicio sv WHERE sv.cotizacion_id = :cot)',
+            ],
+            // ── La duplicación del catálogo, que vuelve sola ────────────────────────────
+            //
+            // El 29/08/2026 el transporte tenía 94 componentes y 336 tarifas para 39 líneas de
+            // cotización reales, con divergencias que nadie había visto en meses: el mismo «Auto»
+            // con capacidad 3 en un sentido y 4 en el otro, las Van del aeropuerto y del terminal
+            // intercambiadas, siete «Pool Bickmar» idénticas. Se dejó en 239 tarifas.
+            //
+            // ⚠️ **Nada impide que vuelva a crecer igual**, y crecerá: cada una de esas copias se
+            // creó por una razón razonable en su momento. Lo que faltaba era algo que lo dijera
+            // mientras son dos y no veinte. Ninguno se REPARA solo salvo el último: borrar o
+            // fundir tarifas toca dinero, y eso no lo decide un chequeo.
+            'tarifas-repetidas' => [
+                'titulo'  => 'Tarifas repetidas exactas dentro del mismo componente',
+                'detalle' => 'Mismo nombre, importe y moneda. Se limpian con `app:travel:limpiar-tarifas-repetidas`.',
+                'desde'   => 'travel_tarifa t',
+                'donde'   => 'EXISTS (SELECT 1 FROM travel_tarifa d WHERE d.componente_id = t.componente_id
+                                        AND d.id <> t.id
+                                        AND d.nombre_interno = t.nombre_interno
+                                        AND d.monto = t.monto
+                                        AND d.moneda_id <=> t.moneda_id
+                                        AND d.id > t.id)',
+                'set'     => null,
+                'deCotizacion' => 'HEX(t.componente_id) IN (SELECT UPPER(REPLACE(k.componente_maestro_id, "-", "")) FROM cotizacion_cotcomponente k
+                                                              JOIN cotizacion_cotservicio sv ON k.cotservicio_id = sv.id WHERE sv.cotizacion_id = :cot)',
+            ],
+            // Un componente por SENTIDO en vez de por ruta. El origen y el destino los guarda el
+            // segmento —`travel_componente` no tiene esas columnas—, así que el par sólo duplica
+            // el precio, y al duplicarlo lo deja divergir.
+            'transporte-direccional' => [
+                'titulo'  => 'Transportes con su gemelo en sentido contrario',
+                'detalle' => 'Un componente por RUTA, no por sentido: `app:travel:fusionar-transportes-bidireccionales`.',
+                'desde'   => 'travel_componente a',
+                'donde'   => 'a.tipo = "transporte" AND a.nombre_interno LIKE "Transporte % - %"
+                            AND EXISTS (SELECT 1 FROM travel_componente b
+                                         WHERE b.tipo = "transporte" AND b.id <> a.id
+                                           AND b.nombre_interno = CONCAT("Transporte ",
+                                                 TRIM(SUBSTRING_INDEX(SUBSTRING(a.nombre_interno, 12), " - ", -1)), " - ",
+                                                 TRIM(SUBSTRING_INDEX(SUBSTRING(a.nombre_interno, 12), " - ", 1))))',
+                'set'     => null,
+                'deCotizacion' => 'HEX(a.id) IN (SELECT UPPER(REPLACE(k.componente_maestro_id, "-", "")) FROM cotizacion_cotcomponente k
+                                                   JOIN cotizacion_cotservicio sv ON k.cotservicio_id = sv.id WHERE sv.cotizacion_id = :cot)',
+            ],
+            // El sentido metido DENTRO del nombre de la tarifa, en un componente que ya es
+            // bidireccional: «Master hasta sector Aranwa» y «Master desde sector Aranwa».
+            // ⚠️ Lo que NO se toca es el resto del nombre: en ese mismo componente el SECTOR sí
+            // distingue —Urubamba 55, Aranwa 60, Pisac 120— porque es distancia real.
+            'tarifas-por-sentido' => [
+                'titulo'  => 'Tarifas que sólo se diferencian en «desde» / «hasta»',
+                'detalle' => 'En un componente bidireccional no distinguen nada: `app:travel:fusionar-tarifas-por-sentido`.',
+                'desde'   => 'travel_tarifa t JOIN travel_componente c ON c.id = t.componente_id',
+                'donde'   => 'c.nombre_interno LIKE "%↔%"
+                            AND EXISTS (SELECT 1 FROM travel_tarifa d
+                                         WHERE d.componente_id = t.componente_id AND d.id <> t.id
+                                           AND SUBSTRING_INDEX(REPLACE(REPLACE(d.nombre_interno, " desde ", " "), " hasta ", " "), " · ", 1)
+                                             = SUBSTRING_INDEX(REPLACE(REPLACE(t.nombre_interno, " desde ", " "), " hasta ", " "), " · ", 1))',
+                'set'     => null,
+                'deCotizacion' => 'HEX(t.componente_id) IN (SELECT UPPER(REPLACE(k.componente_maestro_id, "-", "")) FROM cotizacion_cotcomponente k
+                                                              JOIN cotizacion_cotservicio sv ON k.cotservicio_id = sv.id WHERE sv.cotizacion_id = :cot)',
             ],
             // ⚠️ Sólo órdenes VIVAS. Una completada o cancelada no se puede reemitir, así que
             // avisar de ella es pedir algo imposible — y un aviso sobre el que no se puede actuar
