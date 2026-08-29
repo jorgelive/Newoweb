@@ -835,7 +835,20 @@ const tituloDeFila = (s: OperacionServicio): string => {
  * El OTRO de los dos, en la ranura pequeña. Se calla si repite el título: cuando la fila no tiene
  * segmento el componente sube a mandar, y repetirlo debajo enseña a no leer la línea.
  */
+/**
+ * ¿El segmento sobra del todo? **Espejo de `ComponenteTipoEnum::ocultaElSegmento()`.**
+ *
+ * En una excursión el componente es el ancla de una plantilla de varios segmentos: se cuelga del
+ * primero porque algo tiene que sostener la tarifa, pero cubre el día entero. Enseñar ese primer
+ * segmento hace que «Pool Paracas y Huacachina» parezca sólo el traslado de ida.
+ */
+const ocultaElSegmento = (tipo?: string | null): boolean => tipo === 'pool' || tipo === 'privada';
+
 const secundarioDeFila = (s: OperacionServicio): string | null => {
+    if (ocultaElSegmento(s.tipoComponente)) {
+        return null;
+    }
+
     const secundario = (mandaElSegmento(s.tipoComponente)
         ? (nombreComponenteDe(s) || '')
         : (nombreSegmentoDe(s) || '')).trim();

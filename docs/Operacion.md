@@ -1206,6 +1206,37 @@ Inmersión Colonial» no le dice al Arzobispado qué se le compró.
 un documento emitido se leyera distinto el día que el catálogo cambiara de opinión. Nulo en las
 emitidas antes de esa fecha → manda el componente, que es como se leían entonces.
 
+##### Y una tercera pregunta: ¿el segmento pinta algo?
+
+`ComponenteTipoEnum::ocultaElSegmento()` — **true en las excursiones** (`pool` y `privada`). Su
+componente es el ANCLA de una plantilla de varios segmentos: se cuelga del primero porque algo
+tiene que sostener la tarifa, pero cubre el día entero.
+
+```
+Pool Paracas y Huacachina
+  Traslado Costero de Lima a Paracas    ← parecía que sólo se contrató el traslado
+  Full Day Paracas y Huacachina
+```
+
+El proveedor lleva el día completo —traslado, almuerzo, Huacachina, retorno— y esa segunda línea
+sugería que no. **No es que estorbara: mentía por omisión**, que es peor que sobrar.
+
+⚠️ Va en un método aparte de `mandaElSegmento()` a propósito. Un `pool` responde «no» a las dos,
+pero por motivos que no se parecen: **no manda** porque el componente ya nombra lo comprado, y
+**no se muestra** porque el segmento es sólo un capítulo de lo comprado. Fundirlas habría
+escondido esa diferencia.
+
+##### Estas reglas NO aplican a la guía del huésped
+
+Y no por decisión, sino porque `pax` **recibe otros campos**: ningún `nombreInternoSnapshot`
+lleva el grupo `pax_cotizacion:read` —ni el del segmento, ni el del componente, ni el del
+servicio—. El huésped ve `tituloSnapshot`, traducido.
+
+Allí la respuesta además es la contraria: el segmento **es el relato del día** y va en grande
+siempre. Al huésped sí le interesa leer «Traslado Costero de Lima a Paracas» como el primer
+momento de su jornada; al proveedor no, porque le encoge lo que se le contrató. **Son dos
+audiencias con dos preguntas distintas, y por eso comparten datos pero no reglas.**
+
 ##### Dos caminos que se descartaron, y por qué
 
 **Contar a cuántos segmentos sirve cada componente.** Da la misma respuesta con los datos de hoy,

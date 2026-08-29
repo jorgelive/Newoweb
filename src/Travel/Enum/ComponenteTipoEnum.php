@@ -275,4 +275,34 @@ enum ComponenteTipoEnum: string
         return $this->nombraUnaRuta();
     }
 
+    /**
+     * ¿El segmento sobra del todo en la ficha y en la orden?
+     *
+     * **Sí en las excursiones.** Su componente es el ANCLA de una plantilla de varios segmentos:
+     * se cuelga del primero por necesidad técnica —algo tiene que sostener la tarifa— pero cubre
+     * el día entero. Enseñar ese primer segmento al lado del componente **encoge el encargo**:
+     *
+     * ```
+     * Pool Paracas y Huacachina
+     *   Traslado Costero de Lima a Paracas    ← parece que sólo se contrató el traslado
+     *   Full Day Paracas y Huacachina
+     * ```
+     *
+     * El proveedor lleva el día completo —traslado, almuerzo, Huacachina, retorno— y esa segunda
+     * línea sugiere que no. No es que estorbe: **miente por omisión**, que es peor que sobrar.
+     *
+     * ⚠️ Es una pregunta distinta de {@see self::mandaElSegmento()} y por eso va aparte. Ahí se
+     * decide **cuál de los dos va en grande**; aquí, si el segmento pinta algo. Un `pool` responde
+     * «no» a las dos, pero por motivos que no se parecen: no manda porque el componente ya nombra
+     * lo comprado, y no se muestra porque el segmento **es sólo un capítulo** de lo comprado.
+     *
+     * ⚠️ Y NO afecta a la guía del huésped. Ahí el segmento es el relato del día y va en grande —
+     * `pax` recibe `tituloSnapshot`, nunca los nombres internos, que no llevan el grupo
+     * `pax_cotizacion:read`. Esta regla es de despacho.
+     */
+    public function ocultaElSegmento(): bool
+    {
+        return $this === self::EXCURSION_POOL || $this === self::EXCURSION_PRIVADA;
+    }
+
 }

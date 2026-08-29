@@ -453,6 +453,14 @@ class OperacionOrdenServicioItem
     {
         // El que NO subió: si manda el segmento, aquí va el componente, y al revés. Así la línea
         // siempre lleva los dos datos y nunca dos veces el mismo.
+        $tipo = ComponenteTipoEnum::tryFrom((string) $this->tipoComponente);
+
+        // En una excursión el segmento es sólo un capítulo de lo comprado: enseñarlo encoge el
+        // encargo. Ver ComponenteTipoEnum::ocultaElSegmento().
+        if ($tipo?->ocultaElSegmento() === true) {
+            return null;
+        }
+
         $secundario = $this->mandaElSegmento()
             ? trim($this->nombreComponente ?? '')
             : trim($this->nombreSegmento ?? '');
