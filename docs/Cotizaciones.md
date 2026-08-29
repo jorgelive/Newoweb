@@ -3343,6 +3343,41 @@ aerolínea manda el JSON— así que van en una sección.
 Al final porque **es el andamio**: se usa al montar el expediente, no al consultarlo. Es el mismo
 criterio que ya tenían los subgrupos.
 
+## 6.y 🐛 Guardar una cotización nueva y verla desaparecer (29/08/2026)
+
+Síntoma, reportado como recurrente: *«guardo, crea la v1, los datos vuelven en blanco, y encima
+aparece v2. Salgo al expediente y la v1 está guardada.»*
+
+Los tres hechos son ciertos a la vez, y uno solo los explica: **tras crear, la URL se quedaba en
+`/cotizacion/:fileId/version/nueva`.**
+
+```
+guardas    →  POST 201, v1 creada · correcta en la base
+              …pero la URL sigue diciendo «nueva»
+recargas   →  inicializarEditor() ve cotizacionId === 'nueva'
+              → crearCotizacionVacia()  → BORRA el árbol de la pantalla
+              → version = maxVersion + 1 = 2   → aparece como V2
+sales      →  el expediente lista la v1, que nunca se perdió
+```
+
+⚠️ **El guardado no tenía nada malo**: 201, el árbol completo en la respuesta, los grupos de
+serialización correctos. Lo roto era la navegación, y por eso el dato sobrevivía —lo que se perdía
+era lo que la persona tenía delante—.
+
+`handleGuardar()` hace ahora `router.replace` al id real cuando el guardado fue una **creación**.
+
+- **`eraNueva` se lee ANTES de guardar**: al terminar, la cotización ya existe y no hay forma de
+  distinguir crear de actualizar.
+- **`replace`, no `push`**: volver atrás a «nueva» llevaría al mismo sitio roto.
+- **No remonta la vista**: los parámetros se leen sólo en `onMounted` y los `props` declarados no
+  se usan en ninguna parte, así que cambiar la URL no toca el estado.
+
+### La lección
+
+Un formulario de creación que no suelta su ruta «nueva» es una bomba de relojería: funciona hasta
+la primera recarga. Y el fallo **no deja rastro** —ni en los logs, ni en la base, ni en el estado
+de la petición— porque técnicamente todo salió bien.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |

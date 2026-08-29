@@ -256,6 +256,10 @@ const handleVolver = () => {
 };
 
 const handleGuardar = async (): Promise<boolean> => {
+  // ⚠️ Se lee ANTES de guardar: al terminar, la cotización ya existe y no habría forma de saber
+  // si este guardado la creó o sólo la actualizó.
+  const eraNueva = route.params.cotizacionId === 'nueva';
+
   const guardado = await store.guardarCotizacion();
 
   // ⚠️ SÓLO SI DE VERDAD SE GUARDÓ. Antes se limpiaba siempre, así que tras un guardado
@@ -264,6 +268,29 @@ const handleGuardar = async (): Promise<boolean> => {
   // una vez; la pérdida, nunca.
   if (guardado) {
     isDirty.value = false;
+
+    // ⚠️ Tras CREAR hay que soltar la ruta «nueva», o la URL sigue apuntando a un formulario en
+    // blanco sobre una cotización que ya existe.
+    //
+    // Sin esto: guardas —se crea la v1, correcta—, recargas la página y `inicializar()` ve
+    // `cotizacionId === 'nueva'`, llama a `crearCotizacionVacia()` y **borra el árbol de la
+    // pantalla**; encima calcula la versión como `maxVersion + 1`, así que el formulario vacío
+    // aparece como v2. La v1 sigue guardada —se ve al salir al expediente— pero quien está
+    // delante ve su trabajo desaparecer y una versión que no pidió.
+    //
+    // `replace` y no `push`: volver atrás a «nueva» llevaría al mismo sitio roto. Y como la vista
+    // lee los parámetros sólo en `onMounted`, cambiar la URL no la remonta ni pierde el estado.
+    if (eraNueva) {
+      const id = store.extractIdStr(store.cotizacion?.id ?? '');
+
+      if (id) {
+        await router.replace({
+          name: route.name ?? undefined,
+          params: { ...route.params, cotizacionId: id },
+          query: route.query,
+        });
+      }
+    }
   }
 
   return guardado;
