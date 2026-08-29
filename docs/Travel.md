@@ -1951,6 +1951,10 @@ que terminan en `ALOJAMIENTO`. Es la razón de que la escala lleve traslados pro
 `app:travel:crear-escala-miraflores` (con `--dry-run`), idempotente por slug. Por comando y no por
 migración: `titulo` y `contenido` llevan `#[AutoTranslate]`.
 
+> **¿Vas a CARGAR contenido?** La receta paso a paso —con los valores por defecto, el disparo
+> de las autotraducciones y las trampas que ya mordieron— está en
+> `docs/TravelCargaDeCatalogo.md`. Este documento explica el porqué; ése, el cómo.
+
 ## 12. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Símbolo |
