@@ -46,12 +46,17 @@ final class ResolverTarifasDivergentesCommand extends Command
     private const MARCA = ' · ';
 
     /**
-     * Grupos que NO se tocan, con el porqué. Se quitan de aquí cuando alguien decida.
+     * Grupos donde la regla general NO aplica, con el importe que dictó el operador.
+     *
+     * ⚠️ Existe porque «la más alta» vale para una tarifa REFERENCIAL y no para un error. El
+     * `Auto` de Paracas↔Ica tenía 300 en un sentido y 200 en el otro: mismo tramo, cien soles de
+     * diferencia. Ahí no hay margen que preservar, hay un dato mal, y el bueno era el bajo — lo
+     * contrario de lo que habría hecho la regla. Por eso la excepción se escribe, no se calcula.
      *
      * @var array<string, string>
      */
-    private const PENDIENTES = [
-        'Transporte Paracas ↔ Ica|Auto' => '300 vs 200 en el mismo tramo: parece un error, no un precio de referencia',
+    private const DECIDIDOS = [
+        'Transporte Paracas ↔ Ica (ida o vuelta)|Auto' => '200.00',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -97,22 +102,28 @@ final class ResolverTarifasDivergentesCommand extends Command
         foreach ($grupos as $clave => $tarifas) {
             [$componente, $vehiculo] = explode('|', $clave, 2);
 
-            if (isset(self::PENDIENTES[$clave])) {
-                $io->text(sprintf('  <fg=yellow>se deja</> · %s · %s — %s', $componente, $vehiculo, self::PENDIENTES[$clave]));
-                continue;
-            }
+            $dictado = self::DECIDIDOS[$clave] ?? null;
 
-            // La más alta. `usort` con comparación numérica: los importes son cadenas decimales
-            // y ordenarlas como texto pondría «9.00» por encima de «65.00».
-            usort($tarifas, static fn (TravelTarifa $a, TravelTarifa $b): int
-                => (float) ($b->getMonto() ?? '0') <=> (float) ($a->getMonto() ?? '0'));
+            if ($dictado !== null) {
+                // Se ordena por CERCANÍA al importe dictado, no por tamaño: el operador nombró
+                // un número, y gana la tarifa que lo lleva, sea la alta o la baja.
+                usort($tarifas, static fn (TravelTarifa $a, TravelTarifa $b): int
+                    => abs((float) ($a->getMonto() ?? '0') - (float) $dictado)
+                    <=> abs((float) ($b->getMonto() ?? '0') - (float) $dictado));
+            } else {
+                // La más alta. `usort` con comparación numérica: los importes son cadenas
+                // decimales y ordenarlas como texto pondría «9.00» por encima de «65.00».
+                usort($tarifas, static fn (TravelTarifa $a, TravelTarifa $b): int
+                    => (float) ($b->getMonto() ?? '0') <=> (float) ($a->getMonto() ?? '0'));
+            }
 
             $gana = $tarifas[0];
             $io->text(sprintf(
-                '  %s · %s → <info>%s</info>  (descarta %s)',
+                '  %s · %s → <info>%s</info>%s  (descarta %s)',
                 $componente,
                 $vehiculo,
                 $gana->getMonto() ?? '',
+                $dictado !== null ? ' <fg=cyan>(dictado)</>' : '',
                 implode(', ', array_map(static fn (TravelTarifa $t): string => $t->getMonto() ?? '', array_slice($tarifas, 1))),
             ));
 
@@ -137,7 +148,7 @@ final class ResolverTarifasDivergentesCommand extends Command
         }
 
         $io->newLine();
-        $io->text(sprintf('  resueltos: %d · pendientes de decisión: %d', $resueltos, count($grupos) - $resueltos));
+        $io->text(sprintf('  resueltos: %d de %d', $resueltos, count($grupos)));
 
         if ($simula) {
             $io->note('Ensayo: no se escribió nada. Quita --dry-run para aplicarlo.');
