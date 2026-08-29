@@ -1144,6 +1144,47 @@ Son tres nombres distintos y es fácil coger el que no es:
 El público parece buen candidato porque en muchos componentes es descriptivo, pero en éste es
 «Transporte» a secas — y con él la ficha decía «Transporte» sin más. La regla es el operativo.
 
+#### Tres ranuras: el segmento entra en la orden (2026-08-29)
+
+Hasta aquí eran dos, y **al proveedor sólo le llegaban dos**. `nombreSegmento` se calculaba en
+`BibliaSnapshotService::calcularValores()` y se congelaba en `OperacionServicio`, pero
+`OperacionOrdenEmision::emitir()` **no lo copiaba a la línea**: se quedaba en la pantalla interna.
+
+```
+GRANDE   nombreComponente   QUÉ hay que hacer   «Transporte Cusco - Ollanta»
+debajo   nombreSegmento     el MOMENTO          «Traslado a la estación de Ollantaytambo»   ← nuevo
+al lado  descripcion        la VARIANTE         «Auto»
+pequeño  contextoServicio   el DÍA              «Full Day MAPI: CUZ OLLA MAPI OLLA CUZ»
+```
+
+**Por qué importa más de lo que parece.** `travel_componente` **no tiene columnas de origen ni de
+destino**: quien las guarda es el segmento (`inicioPunto` / `finPunto`, y a veces como *modo* —
+«acaba en el alojamiento del pasajero», que se resuelve por cotización). Todo lo que el nombre
+del componente dice de la ruta es **prosa duplicada** de un dato que ya vive en otro sitio.
+
+Mientras el segmento no viajaba con la orden, esa prosa era obligatoria: era lo único que le
+decía al proveedor a dónde ir. De ahí salió un componente por destino, cada uno con su juego de
+tarifas repetido — 94 componentes de transporte y 336 tarifas para 39 líneas de cotización
+reales. Y la duplicación divergía en silencio: `Cusco - Ollanta` y `Ollanta - Cusco` tenían el
+mismo «Auto» a 150, uno con capacidad 3 y otro con 4.
+
+Con el segmento en la línea, el componente puede volver a ser lo que es —el vehículo, el
+proveedor y el precio— y dejar la ruta donde ya estaba.
+
+**Símbolos:** `OperacionOrdenServicioItem::$nombreSegmento` y `getMomentoParaProveedor()` (se
+calla si repite el encargo o la variante, misma guarda que `getVarianteParaProveedor()`);
+`OperacionOrdenEmision::emitir()`; `OperacionOrdenDocumento::linea()`;
+`templates/operacion/orden_publica.html.twig`. Espejo en el front: `momentoDeFila()` y
+`diaDeFila()` en `util/src/views/Operacion/OperacionView.vue` — **antes eran un solo hueco con
+`segmento || contextoServicio`**, y fundidos escondían justo el dato que distingue tres segmentos
+que comparten componente. Si cambia la regla, se tocan los dos lados.
+
+⚠️ **Las órdenes ya emitidas se rellenaron a mano**, con
+`app:operacion:rellenar-nombre-segmento`. Es una excepción con fecha a la regla de que un
+documento emitido no se reescribe: el campo no existía y lo añadido **no contradice** lo enviado,
+sólo lo completa. El comando escribe únicamente donde está a nulo —nunca pisa un valor— y deja
+como huérfanas las líneas cuya fila de La Biblia ya no existe.
+
 ⚠️ **Ninguno es respaldo del otro.** Que el itinerario pudiera subir a la ranura grande cuando
 faltaba el componente es el fallo entero: un traslado de Ollantaytambo a Cusco se anunciaba como
 «Full Day HUAYNA: MAPI OLLA CUZ», y Gabriel Aime —que sólo hace ese tramo— aparecía encargado de

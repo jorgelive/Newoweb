@@ -172,6 +172,12 @@ final readonly class OperacionOrdenDocumento
         // como calificador de un encargo, no como el encargo.
         $partes[] = sprintf('*%s*', $item->getTituloParaProveedor());
 
+        // EL MOMENTO, justo debajo del encargo: «Traslado a la estación de Ollantaytambo».
+        // Va antes que la variante porque dice a dónde se va, y la variante sólo en qué.
+        if (($momento = $item->getMomentoParaProveedor()) !== null) {
+            $partes[] = $momento;
+        }
+
         if (($variante = $item->getVarianteParaProveedor()) !== null) {
             $partes[] = $variante;
         }

@@ -46,6 +46,8 @@
         /* Lo contratado —habitación, clase de tren— con el color de la marca: es lo que el
            proveedor busca al abrir el documento, no un matiz. */
         .servicio-prestador { color: #376875; font-weight: bold; font-size: 11px; }
+        /* El momento pesa más que el contexto y menos que el encargo: dice a dónde se va. */
+        .momento { color: #334155; font-size: 11px; font-weight: 600; }
         .contexto { color: #94a3b8; font-size: 10px; }
         .vacio { color: #94a3b8; font-style: italic; }
     </style>
@@ -89,6 +91,12 @@
                            Los DOS, no uno u otro: con sólo la variante de tarifa esta línea le
                            decía «Auto» a quien hacía el traslado Ollantaytambo→Cusco. #}
                         <span class="servicio">{{ item.tituloParaProveedor }}</span>
+                        {# EL MOMENTO: a dónde se va en este tramo concreto. El componente es la
+                           ruta genérica y no puede decirlo; el segmento sí, porque es quien
+                           guarda inicio y fin. #}
+                        {% if item.momentoParaProveedor %}
+                            <br><span class="momento">{{ item.momentoParaProveedor }}</span>
+                        {% endif %}
                         {% if item.varianteParaProveedor %}
                             <span class="variante">{{ item.varianteParaProveedor }}</span>
                         {% endif %}

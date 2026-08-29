@@ -88,6 +88,24 @@ class OperacionOrdenServicioItem
     private ?string $nombreComponente = null;
 
     /**
+     * CUÁNDO y en qué momento del programa: el nombre del segmento.
+     *
+     * «Traslado a la estación de Ollantaytambo». Es el dato que el componente NO puede llevar:
+     * el origen y el destino viven en el segmento —`inicioPunto`/`finPunto`, y a veces como
+     * modo, «acaba en el alojamiento del pasajero»— mientras que `travel_componente` no tiene
+     * esas columnas. Lo que el nombre del componente dice de la ruta es prosa duplicada.
+     *
+     * ⚠️ Hasta el 29/08/2026 se calculaba en La Biblia (`OperacionServicio::$nombreSegmento`) y
+     * **no se copiaba aquí**: al proveedor no le llegaba nunca. Por eso el nombre del componente
+     * tenía que cargar con la ruta, y de ahí salieron veintinueve tarifas que sólo se
+     * diferenciaban en el destino. Nulo en las órdenes emitidas antes de esa fecha que no se
+     * hayan rellenado con `app:operacion:rellenar-nombre-segmento`.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $nombreSegmento = null;
+
+    /**
      * DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia.
      *
      * Se congela junto al nombre del componente y **nunca lo sustituye**. Que pudiera ocupar su
@@ -350,6 +368,9 @@ class OperacionOrdenServicioItem
     public function getNombreComponente(): ?string { return $this->nombreComponente; }
     public function setNombreComponente(?string $v): self { $this->nombreComponente = $v; return $this; }
 
+    public function getNombreSegmento(): ?string { return $this->nombreSegmento; }
+    public function setNombreSegmento(?string $v): self { $this->nombreSegmento = $v; return $this; }
+
     public function getContextoServicio(): ?string { return $this->contextoServicio; }
     public function setContextoServicio(?string $v): self { $this->contextoServicio = $v; return $this; }
 
@@ -370,6 +391,25 @@ class OperacionOrdenServicioItem
      * En los componentes manuales la variante suele ser el mismo texto que el nombre, y
      * «Traslado a la Huacachina — Traslado a la Huacachina» enseña a no leer la línea.
      */
+    /**
+     * El MOMENTO concreto del programa, o null si no añade nada.
+     *
+     * Se calla cuando repite el encargo o la variante — con los componentes de un solo uso el
+     * segmento y el componente se llaman casi igual, y «Transporte Cusco - Ollanta · Transporte
+     * Cusco - Ollanta» enseña a no leer la línea, que es el mismo error que ya costó caro con
+     * la variante de tarifa.
+     */
+    public function getMomentoParaProveedor(): ?string
+    {
+        $momento = trim($this->nombreSegmento ?? '');
+
+        if ($momento === '' || $momento === $this->getTituloParaProveedor() || $momento === trim($this->descripcion)) {
+            return null;
+        }
+
+        return $momento;
+    }
+
     public function getVarianteParaProveedor(): ?string
     {
         $variante = trim($this->descripcion);

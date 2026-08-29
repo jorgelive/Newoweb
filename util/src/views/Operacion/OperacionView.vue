@@ -820,15 +820,33 @@ const varianteDeFila = (s: OperacionServicio): string | null => {
 };
 
 /**
- * DÓNDE encaja la fila: el segmento si lo hay, si no el día del itinerario.
+ * El MOMENTO del programa: el nombre del segmento. **Espejo de
+ * `OperacionOrdenServicioItem::getMomentoParaProveedor()`** — si cambia la regla, se tocan LOS DOS.
  *
- * Se calla cuando repetiría el título —en un traslado suelto el día se llama igual que el
- * servicio— porque decir dos veces lo mismo es lo que hacía dudar de cuál era el encargo.
+ * Antes iba fundido con el día en un solo hueco (`segmento || contextoServicio`), y eso escondía
+ * el dato justo cuando más falta hace: con el componente convertido en ruta genérica
+ * —«Transporte Cusco - Ollanta», que sirve a tres segmentos distintos— el segmento es LO ÚNICO
+ * que dice de cuál de los tres se trata. Fundido, el operador no sabía si estaba leyendo el
+ * momento o el día.
+ *
+ * Se calla si repite el título, como la variante.
  */
-const itinerarioDeFila = (s: OperacionServicio): string | null => {
-    const itinerario = (nombreSegmentoDe(s) || s.contextoServicio || '').trim();
+const momentoDeFila = (s: OperacionServicio): string | null => {
+    const momento = (nombreSegmentoDe(s) || '').trim();
 
-    return itinerario !== '' && itinerario !== tituloDeFila(s) ? itinerario : null;
+    return momento !== '' && momento !== tituloDeFila(s) ? momento : null;
+};
+
+/**
+ * DÓNDE encaja la fila: el día del itinerario.
+ *
+ * Se calla cuando repetiría el título o el momento —en un traslado suelto el día se llama igual
+ * que el servicio— porque decir dos veces lo mismo es lo que hacía dudar de cuál era el encargo.
+ */
+const diaDeFila = (s: OperacionServicio): string | null => {
+    const dia = (s.contextoServicio || '').trim();
+
+    return dia !== '' && dia !== tituloDeFila(s) && dia !== momentoDeFila(s) ? dia : null;
 };
 
 // ============================================================================
@@ -3128,8 +3146,12 @@ onMounted(async () => {
                                              «dónde» de todos los componentes. Sustituir uno por
                                              otro acierta en el vuelo y pierde en los bastones, y
                                              eso último no se nota. Ver docs/Operacion.md. -->
-                                        <p v-if="itinerarioDeFila(servicio)" class="text-[11px] font-bold text-slate-600 leading-tight mt-1">
-                                            <i class="fas fa-map-signs text-[9px] mr-1 text-slate-400"></i>{{ itinerarioDeFila(servicio) }}
+                                        <p v-if="momentoDeFila(servicio)" class="text-[11px] font-bold text-slate-600 leading-tight mt-1">
+                                            <i class="fas fa-map-signs text-[9px] mr-1 text-slate-400"></i>{{ momentoDeFila(servicio) }}
+                                        </p>
+                                        <!-- El día, más apagado: es referencia, no encargo. -->
+                                        <p v-if="diaDeFila(servicio)" class="text-[10px] font-bold text-slate-400 leading-tight">
+                                            <i class="fas fa-calendar-day text-[9px] mr-1 text-slate-300"></i>{{ diaDeFila(servicio) }}
                                         </p>
                                     </div>
 
@@ -4719,9 +4741,11 @@ onMounted(async () => {
                 <span v-else>—</span>
                 <span class="ml-1 text-slate-400">· {{ servicioFicha.cantidadPax }} pax</span>
               </p>
-              <p v-if="nombreSegmentoDe(servicioFicha) || servicioFicha.contextoServicio"
-                 class="text-[11px] font-bold text-slate-500 truncate">
-                <i class="fas fa-map-signs w-4 text-slate-400"></i>{{ nombreSegmentoDe(servicioFicha) || servicioFicha.contextoServicio }}
+              <p v-if="momentoDeFila(servicioFicha)" class="text-[11px] font-bold text-slate-500 truncate">
+                <i class="fas fa-map-signs w-4 text-slate-400"></i>{{ momentoDeFila(servicioFicha) }}
+              </p>
+              <p v-if="diaDeFila(servicioFicha)" class="text-[11px] font-bold text-slate-400 truncate">
+                <i class="fas fa-calendar-day w-4 text-slate-300"></i>{{ diaDeFila(servicioFicha) }}
               </p>
               <p v-if="servicioFicha.tarifaNombre && servicioFicha.tarifaNombre !== servicioFicha.descripcionServicio"
                  class="text-[11px] font-bold text-slate-400 truncate" title="Nombre interno de la tarifa">

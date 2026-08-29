@@ -58,6 +58,9 @@ final readonly class OperacionOrdenEmision
                     // variante de tarifa, y sola le decía «Auto» al que hace el traslado.
                     ->setDescripcion($servicio->getDescripcionServicio())
                     ->setNombreComponente($servicio->getNombreComponente())
+                    // El MOMENTO: sin él, el componente tiene que cargar con la ruta en su
+                    // nombre, y eso es lo que multiplicó las tarifas por destino.
+                    ->setNombreSegmento($servicio->getNombreSegmento())
                     ->setContextoServicio($servicio->getContextoServicio())
                     ->setFechaServicio($servicio->getFechaServicio())
                     // La hora que se pidió: la pactada si la hay, si no la vendida.
