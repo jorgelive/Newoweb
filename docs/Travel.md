@@ -1561,6 +1561,35 @@ Las cotizaciones que ya usan el genérico **no se repuntan**: dos de ellas son v
 `confirmado` e `historico`, y cambiarles el componente de origen reescribe lo que se vendió. El
 cambio vale hacia adelante; para leerlas, el cuadro ya enseña la ruta desde el segmento.
 
+### Cada ruta con su segmento, y un genérico para lo demás (29/08/2026)
+
+Un componente de vuelo **no se puede meter en un itinerario**: lo que se arrastra a un día es el
+segmento. Las 32 rutas tenían componente y sólo dos tenían quién las contara, así que
+`app:travel:crear-segmentos-vuelo` les da el suyo —`VUELO-<IATA>-<IATA>`, la convención que ya
+seguían `VUELO-LIM-CUZ` y su inverso— y mete los 34 componentes en el pool del servicio `VUELO`.
+
+Los extremos van como **puntos fijos**: un vuelo empieza y acaba en un aeropuerto concreto, nunca
+en «el alojamiento del pasajero», y de ahí sale el «dónde recojo / dónde dejo» de la orden. Hubo
+que crear doce aeropuertos; sólo existían Lima y Cusco.
+
+⚠️ **El texto de los 30 nuevos es un marcador de posición.** Los dos que ya había llevan narración
+de verdad —«el ascenso a los Andes»— y eso no lo escribe un comando: es trabajo de quien vende el
+viaje. El comando lo avisa al terminar.
+
+### «Vuelo»: el genérico que evita fichas de un solo uso
+
+`Ticket aereo` pasa a llamarse **`Vuelo`** y se queda como el componente genérico, para las rutas
+que se venden una vez y no merecen ficha propia. Los dos segmentos de Lima–Cusco siguen colgando
+de él.
+
+⚠️ **El renombrado NO puede ir por migración**: `TravelComponente::$titulo` lleva
+`#[AutoTranslate]`, y un `UPDATE` en SQL dejaría el español en «Vuelo» y los otros seis idiomas en
+«Ticket aereo» — vivo y mintiendo, sin que nada falle. `app:travel:renombrar-componente` pasa por
+el ORM y escribe **sólo el español**, que es lo que el listener espera para rellenar los demás.
+
+El comando es genérico a propósito: uno de un solo uso es un archivo que queda para siempre
+sirviendo para nada.
+
 ## 11.ter Las ferroviarias y sus clases de servicio (27/08/2026)
 
 PeruRail e IncaRail se muestran al cliente (§«A quién se nombra» en `docs/Cotizaciones.md`), y en
