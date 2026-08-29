@@ -2209,6 +2209,32 @@ variantes son cientos (política × momento × procedencia × monedas × idiomas
 **Las dos anclas son explícitas**, incluida la del resumen que es el estado por defecto: el
 enlace tiene que decir a qué lleva. Quien lo recibe por WhatsApp no ve la página, ve la URL.
 
+#### El cruce de monedas saldado
+
+Un peruano que yapea **soles** contra una reserva emitida en **dólares** deja la ficha con dos
+líneas ciertas por separado y engañosas juntas: `PEN −223.70` y `USD +65.97`. La contabilidad va
+por moneda y sin convertir (§12.2b), así que ninguna de las dos está mal — pero **no son dos
+deudas**: son las dos mitades de una misma transacción cerrada, y el cuadre entre monedas ya lo
+sabe y da saldo cero.
+
+La tarjeta se contradecía: arriba «saldo 0.00, todo pagado» y tres centímetros más abajo el mismo
+importe en el naranja reservado a lo que se debe. El huésped no tiene por qué saber cuál de las
+dos cifras manda.
+
+Con `cruceSaldado` (`mixta && todoPagado`) el bloque deja de enseñar **saldos** y enseña **qué
+pasó**: «Cuenta US$ 65.97 · Pagaste S/. 223.70», sin color de alarma. El saldo por moneda sigue
+pintándose tal cual cuando de verdad queda algo pendiente, que es cuando significa lo que dice.
+
+⚠️ **El resolver ya se negaba a pedir dinero en este caso** (`PmsMotivoSinCobro::CRUCE_DE_MONEDAS`,
+`hayAlgoQuePedir: false`), así que el fallo nunca fue pedir el cobro dos veces: era el bloque de
+dos monedas contradiciendo a la cabecera. Son dos capas distintas y conviene no confundirlas al
+diagnosticar.
+
+**El arreglo de fondo es de datos**, y lo dice `pms:reserva:auditar`: imputar el cobro desde el
+panel para que las dos monedas dejen de ir por separado. Lo de arriba es la red para la ventana
+entre que ocurre y alguien lo imputa — que con el enlace al pax en manos del huésped deja de ser
+una nota interna.
+
 #### Qué enseña el resumen, y de dónde sale
 
 Lo decide `PmsSituacionDeCobro` y llega en `resumenFinanciero.situacion`. La vista **no

@@ -487,6 +487,20 @@ const montoEnMoneda = (valor: string, simbolo?: string | null): string =>
  */
 const mixta = computed(() => finanzas.value?.mixta === true);
 
+/**
+ * Un cruce de monedas YA SALDADO: pagó en una moneda una cuenta emitida en otra.
+ *
+ * Es el caso de un peruano que yapea soles contra una reserva en dólares, y es frecuente. La
+ * contabilidad va por moneda y sin convertir (§12.2b), así que las dos líneas son ciertas por
+ * separado —`PEN −223.70`, `USD +65.97`— y **juntas no son dos deudas**: son las dos mitades de
+ * una misma transacción cerrada. El cuadre entre monedas ya lo sabe y da saldo cero.
+ *
+ * Sin esto la tarjeta se contradecía: arriba «saldo 0.00, todo pagado» y tres centímetros más
+ * abajo el mismo importe en el naranja que esta tarjeta usa para lo que se debe. El huésped no
+ * tiene por qué saber cuál de las dos cifras manda.
+ */
+const cruceSaldado = computed(() => mixta.value && todoPagado.value);
+
 /** Las filas por moneda, sólo cuando de verdad hay más de una que enseñar. */
 const porMoneda = computed(() => (mixta.value ? finanzas.value?.porMoneda ?? [] : []));
 
@@ -805,15 +819,40 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                tarjeta sin cuadrar consigo misma. -->
           <div v-if="porMoneda.length" class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
             <p class="text-[11px] font-medium leading-snug text-slate-600">
-              {{ maestroStore.t('res_dos_monedas') || 'Esta reserva tiene movimientos en dos monedas. Arriba ves el equivalente aproximado; aquí, lo exacto de cada una.' }}
+              {{ cruceSaldado
+                ? (maestroStore.t('res_dos_monedas_saldado') || 'Pagaste en una moneda una cuenta emitida en otra. Está saldado: no queda nada pendiente.')
+                : (maestroStore.t('res_dos_monedas') || 'Esta reserva tiene movimientos en dos monedas. Arriba ves el equivalente aproximado; aquí, lo exacto de cada una.') }}
             </p>
-            <div v-for="m in porMoneda" :key="m.moneda" class="mt-2 flex items-center justify-between gap-3">
-              <span class="text-[12px] font-bold text-slate-500">{{ m.moneda }}</span>
-              <span class="text-[12px] font-black tabular-nums"
-                    :class="Number(m.saldo) > 0 ? 'text-[#E07845]' : 'text-emerald-700'">
-                {{ montoEnMoneda(m.saldo, m.simbolo) }}
-              </span>
-            </div>
+
+            <!-- ═══ SALDADO: no se enseñan SALDOS, se enseña QUÉ PASÓ ═══
+                 Con la cuenta cerrada, el saldo por moneda es un número cierto que no significa
+                 nada suelto: «USD 65.97» es lo que costó, no lo que se debe, y «PEN −223.70» es
+                 lo que pagó, no un crédito a su favor. Se nombra cada uno por lo que es y
+                 desaparece el color de alarma, que es lo que hacía leer una cuenta saldada como
+                 una deuda. -->
+            <template v-if="cruceSaldado">
+              <div v-for="m in porMoneda" :key="m.moneda" class="mt-2 flex items-center justify-between gap-3">
+                <span class="text-[12px] font-bold text-slate-500">
+                  {{ Number(m.cargos) > 0
+                    ? (maestroStore.t('res_moneda_cuenta') || 'Cuenta')
+                    : (maestroStore.t('res_moneda_pagaste') || 'Pagaste') }}
+                </span>
+                <span class="text-[12px] font-black tabular-nums text-slate-700">
+                  {{ montoEnMoneda(Number(m.cargos) > 0 ? m.cargos : m.pagado, m.simbolo) }}
+                </span>
+              </div>
+            </template>
+
+            <!-- Con algo pendiente de verdad, el saldo por moneda sí es lo que hay que leer. -->
+            <template v-else>
+              <div v-for="m in porMoneda" :key="m.moneda" class="mt-2 flex items-center justify-between gap-3">
+                <span class="text-[12px] font-bold text-slate-500">{{ m.moneda }}</span>
+                <span class="text-[12px] font-black tabular-nums"
+                      :class="Number(m.saldo) > 0 ? 'text-[#E07845]' : 'text-emerald-700'">
+                  {{ montoEnMoneda(m.saldo, m.simbolo) }}
+                </span>
+              </div>
+            </template>
           </div>
 
           <!-- ═══ RESUMEN ═══

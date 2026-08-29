@@ -91,6 +91,14 @@ final class PaxCrearTextosCobroCommand extends Command
         // El titular de la cuenta. Sin rótulo era un nombre suelto bajo unos números y no
         // decía su papel — que es el que el huésped tiene que teclear en su banca.
         'res_a_nombre_de' => 'A nombre de',
+
+        // El cruce de monedas SALDADO: pagó en soles una cuenta emitida en dólares. La
+        // contabilidad es por moneda y sin convertir (§12.2b), así que las dos líneas son
+        // ciertas por separado —una cuenta en dólares, un pago en soles— y juntas no son dos
+        // deudas: son las dos mitades de una misma transacción ya cerrada.
+        'res_dos_monedas_saldado' => 'Pagaste en una moneda una cuenta emitida en otra. Está saldado: no queda nada pendiente.',
+        'res_moneda_cuenta' => 'Cuenta',
+        'res_moneda_pagaste' => 'Pagaste',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
