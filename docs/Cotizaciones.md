@@ -3293,6 +3293,44 @@ vuelos no lo toca fuera de los grupos aéreos.
 ⚠️ Ojo si se le da ese uso: lleva `pax_file:read`, así que **viaja al navegador del pasajero**
 aunque hoy ninguna vista lo pinte. Para notas internas, quitar ese grupo primero.
 
+## 6.x El expediente, plegado por secciones (29/08/2026)
+
+Un expediente de grupo son **131 personas, 16 vuelos y 109 subgrupos**. Desplegado todo, llegar a
+lo de abajo eran seis pantallas de scroll, y quien abre un expediente viene a **una** cosa.
+
+Cuatro secciones, todas **plegadas por defecto**, con el resumen en el rótulo:
+
+```
+▸ Manifiesto      131 personas
+▸ Vuelos          16 vuelos · 2 sin emitir
+▸ Subgrupos       …
+▸ Cargar datos    padrón en Excel · vuelos en JSON
+```
+
+⚠️ **El resumen es lo que evita abrir para saber si es la que buscas.** Un desplegable cuyo rótulo
+sólo dice «Vuelos» obliga a abrirlo siempre, y entonces plegarlo no ahorró nada.
+
+Y por eso «2 sin emitir» va en el rótulo: es lo único de esa sección que exige perseguir a alguien,
+y esconderlo tras un clic es como no tenerlo.
+
+### ⚠️ El plegado de subgrupos sólo plegaba el formulario
+
+Era un `v-if` sobre el formulario y un `v-else` sobre la lista, así que plegar **enseñaba la
+lista**: la sección no se encogía, cambiaba de contenido. Ahora las dos ramas cuelgan de la misma
+bandera con `v-if`.
+
+Es un fallo fácil de no ver revisando el código —`v-if`/`v-else` parece lo correcto— y evidente en
+cuanto se usa.
+
+### Todo lo que ENTRA va junto, y al final
+
+La carga estaba partida: la hoja arriba, y en medio la tabla de vuelos que separaba el rótulo de su
+propio botón de subida. Son la misma tarea con dos orígenes —el colegio manda el Excel, la
+aerolínea manda el JSON— así que van en una sección.
+
+Al final porque **es el andamio**: se usa al montar el expediente, no al consultarlo. Es el mismo
+criterio que ya tenían los subgrupos.
+
 ## 7. Mapa de vistas (dónde se pinta qué)
 
 | Vista | Archivo | Fuente de datos |

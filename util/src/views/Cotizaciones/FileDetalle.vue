@@ -1405,7 +1405,32 @@ const guardarGrupo = async () => {
     await cargarFile();
 };
 
+/* ── Las cuatro secciones del expediente, plegadas por defecto ─────────────
+   Un expediente de grupo son 131 personas, 16 vuelos y 109 subgrupos. Desplegado todo, llegar a
+   lo de abajo son seis pantallas de scroll, y quien abre un expediente viene a UNA cosa. El
+   resumen del rótulo es lo que evita tener que abrir para saber si es la que busca. */
+const manifiestoAbierto = ref(false);
+const vuelosAbiertos = ref(false);
+const cargaAbierta = ref(false);
 const subgruposAbiertos = ref(false);
+
+const resumenManifiesto = computed(() => {
+    const n = file.value?.filepasajeros?.length ?? 0;
+    return n === 0 ? 'sin pasajeros' : `${n} persona${n === 1 ? '' : 's'}`;
+});
+
+const resumenVuelos = computed(() => {
+    const n = vuelos.value.length;
+    if (n === 0) { return 'sin vuelos'; }
+
+    /* Las reservas sin emitir se cuentan en el rótulo: es lo único de aquí que exige perseguir a
+       alguien, y esconderlo tras un clic es como no tenerlo. */
+    const sinEmitir = (file.value?.grupos ?? []).filter(g => g.emitido === false).length;
+
+    return `${n} vuelo${n === 1 ? '' : 's'}${sinEmitir ? ` · ${sinEmitir} sin emitir` : ''}`;
+});
+
+const resumenCarga = computed(() => 'padrón en Excel · vuelos en JSON');
 
 /** «9 grupos · 66 habitaciones · 23 reservas · 10 servicios», para no tener que abrir. */
 const resumenSubgrupos = computed(() => {
@@ -1899,361 +1924,276 @@ const eliminarDocumento = async (iri?: string) => {
               </select>
             </div>
 
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest"><i class="fas fa-users mr-2 text-indigo-500"></i> Manifiesto de Pasajeros</h2>
-              <button @click="abrirPaxModal" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm">+ Añadir Pax</button>
-            </div>
-
-            <div v-if="!file.filepasajeros?.length" class="bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-3xl p-8 text-center text-indigo-400">
-              <i class="fas fa-user-plus text-3xl mb-3 opacity-50"></i>
-              <p class="text-xs font-bold uppercase tracking-widest">Sin pasajeros registrados</p>
-            </div>
-
-            <!-- ── Filtros ───────────────────────────────────────────────────
-                 Se ACUMULAN: la pregunta real es una intersección —quién del grupo 5 va en el
-                 vuelo de las 07:15—, no una lista de candidatos. -->
-            <div v-else>
-              <div class="mb-3 bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                <div class="flex flex-wrap items-center gap-2">
-                  <div class="relative flex-1 min-w-52">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
-                    <input v-model="busquedaPax" type="search" placeholder="Nombre, documento, JetSmart, HA50…"
-                           class="w-full border rounded-lg pl-8 pr-3 py-2 text-xs outline-none focus:border-indigo-500 placeholder:text-slate-300">
-                  </div>
-
-                  <button type="button" @click="filtrosAbiertos = !filtrosAbiertos"
-                          class="flex items-center gap-1.5 border rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-colors"
-                          :class="hayFiltros
-                            ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
-                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'">
-                    <i class="fas fa-sliders"></i> Filtros
-                    <i class="fas fa-chevron-down text-[9px] transition-transform" :class="filtrosAbiertos ? 'rotate-180' : ''"></i>
-                  </button>
-                </div>
-
-                <!-- ⚠️ El buscador y el contador se quedan SIEMPRE fuera del plegado. Son lo que se
-                     usa cada vez; las facetas son para una pregunta concreta y cinco filas de
-                     píldoras empujaban la lista fuera de la pantalla en un móvil. -->
-                <div v-if="filtrosAbiertos" class="mt-3 pt-3 border-t border-slate-200">
-                  <div class="flex flex-wrap items-center gap-3">
-                  <div class="w-full sm:w-56">
-                    <SearchableSelect
-                        v-model="grupoPorAnadir"
-                        :options="gruposElegibles"
-                        placeholder="+ Añadir subgrupo…"
-                    />
-                  </div>
-
-                  <!-- El número al lado no es adorno: sin él, «ver no participa» es una casilla que
-                       no se sabe si hace algo. Con «(2)» se entiende de qué se está hablando, y con
-                       «(0)» ni se enseña. -->
-                  <label v-if="totalNoParticipa"
-                         class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer">
-                    <input v-model="incluirNoParticipa" type="checkbox" class="accent-indigo-600">
-                    Ver «no participa» ({{ totalNoParticipa }})
-                  </label>
-                  </div>
-
-                <!-- Rol y aerolínea son FACETAS: se marcan varias y suman (O), porque nadie es
-                     participante y coordinador a la vez ni vuela en dos aerolíneas el mismo tramo.
-                     Entre facetas distintas manda la Y. Sólo salen si hay más de una opción. -->
-                <div v-if="Object.keys(conteoPorRol).length > 1" class="flex flex-wrap items-center gap-1.5 mt-2">
-                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">Rol</span>
-                  <button v-for="(n, rol) in conteoPorRol" :key="rol" type="button"
-                          @click="alternarRol(String(rol))"
-                          class="inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
-                          :class="filtroRol.includes(String(rol))
-                            ? PASAJERO_TIPO_CONFIG[String(rol)]?.clase ?? 'bg-slate-100 text-slate-600 border-slate-200'
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'">
-                    <!-- El punto lleva el color aunque la píldora esté apagada: es lo que enseña
-                         a reconocer el color antes de haberlo usado nunca. -->
-                    <span class="w-1.5 h-1.5 rounded-full" :class="PASAJERO_TIPO_CONFIG[String(rol)]?.punto ?? 'bg-slate-400'"></span>
-                    <!-- «sin_rol» es la clave interna de quien no tiene rol —lo normal en un
-                         expediente que no es de grupo—: se rotula, no se enseña cruda. -->
-                    {{ PASAJERO_TIPO_CONFIG[String(rol)]?.label ?? 'Sin rol' }} <span class="opacity-60">{{ n }}</span>
-                  </button>
-                </div>
-
-                <!-- Los tres estados NO son grados del mismo: «sin comprobar» no es «casi vigente»,
-                     es que no sabemos, y es justo lo que hay que mirar antes de un viaje. -->
-                <div v-if="Object.keys(conteoPorDocumento).length" class="flex flex-wrap items-center gap-1.5 mt-2">
-                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">
-                    <i class="far fa-id-card mr-0.5"></i>Documentos
-                  </span>
-                  <button v-for="(cfg, clave) in ETIQUETAS_DOCUMENTO" :key="clave" v-show="conteoPorDocumento[clave]"
-                          type="button" @click="alternarDocumento(String(clave))"
-                          class="inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
-                          :class="filtroDocumento.includes(String(clave))
-                            ? cfg.clase
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'">
-                    <span class="w-1.5 h-1.5 rounded-full" :class="cfg.punto"></span>
-                    {{ cfg.label }} <span class="opacity-60">{{ conteoPorDocumento[clave] }}</span>
-                  </button>
-                </div>
-
-                <div v-for="grupo in aerolineasPorEje" :key="grupo.eje" class="flex flex-wrap items-center gap-1.5 mt-2">
-                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">
-                    <i class="fas fa-plane-departure mr-0.5"></i>{{ grupo.label }}
-                  </span>
-                  <button v-for="nombre in grupo.nombres" :key="nombre" type="button"
-                          @click="alternarAerolinea(`${grupo.eje}|${nombre}`)"
-                          class="rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
-                          :class="filtroAerolinea.includes(`${grupo.eje}|${nombre}`)
-                            ? 'bg-sky-600 text-white border-sky-600'
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-sky-300'">
-                    {{ nombre }}
-                  </button>
-                </div>
-
-                <div v-if="gruposFiltrados.length" class="flex flex-wrap gap-1.5 mt-2">
-                  <span v-for="iri in gruposFiltrados" :key="iri"
-                        class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg pl-2.5 pr-1 py-1 text-[11px] font-black">
-                    {{ [grupoDeIri(iri)?.clave, grupoDeIri(iri)?.nombre].filter(Boolean).join(' · ') }}
-                    <button type="button" @click="quitarFiltro(iri)" class="px-1 hover:text-red-500"><i class="fas fa-times text-[10px]"></i></button>
-                  </span>
-                </div>
-
-                </div>
-
-                <div class="flex items-center justify-between mt-2 flex-wrap gap-2">
-                  <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Mostrando {{ pasajerosFiltrados.length }} de {{ pasajerosConsiderados.length }}
-                    <span v-if="!incluirNoParticipa && totalNoParticipa" class="text-slate-300 normal-case font-bold">
-                      · {{ totalNoParticipa }} no participa{{ totalNoParticipa > 1 ? 'n' : '' }}, fuera de la cuenta
-                    </span>
-                  </p>
-                  <div class="flex items-center gap-3">
-                    <!-- Sólo con filtros puestos: sin ellos ya está «Descargar con lo cargado», y
-                         dos botones que hacen lo mismo obligan a pensar cuál es cuál. -->
-                    <button v-if="hayFiltros && pasajerosFiltrados.length" type="button" @click="descargarFiltrado"
-                            :disabled="descargandoPlantilla"
-                            class="text-[10px] font-black uppercase tracking-widest text-teal-600 hover:text-teal-800 disabled:opacity-40">
-                      <i class="fas mr-1" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
-                      Exportar estos {{ pasajerosFiltrados.length }}
-                    </button>
-                    <button v-if="hayFiltros" type="button" @click="limpiarFiltros"
-                            class="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
-                      Limpiar filtros
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <p v-if="!pasajerosFiltrados.length" class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-6 text-center">
-                Nadie cumple estos filtros.
-              </p>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <!-- La tarjeta ENTERA abre la ficha en lectura: en un móvil el blanco es la mitad de
-                   la tarjeta y apuntar a un icono de 28 px con el pulgar es la parte incómoda.
-                   La plumita entra directa a editar; los dos botones paran la propagación para no
-                   disparar además la apertura de la tarjeta. -->
-              <div v-for="(pax, idx) in pasajerosFiltrados" :key="pax['@id'] ?? pax.id"
-                   @click="abrirEdicionPax(pax)"
-                   class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all">
-                <div class="absolute top-3 right-3 flex items-center gap-1">
-                  <button @click.stop="abrirEdicionPax(pax, true)" title="Editar"
-                          class="text-slate-300 hover:text-indigo-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
-                    <i class="fas fa-pencil-alt text-xs"></i>
-                  </button>
-                  <button @click.stop="eliminarPasajero(pax['@id'])" title="Eliminar"
-                          class="text-slate-300 hover:text-red-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
-                    <i class="fas fa-trash-alt text-xs"></i>
-                  </button>
-                </div>
-                <div class="flex items-start gap-3 pr-16">
-                  <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-black text-xs flex items-center justify-center border border-indigo-200">{{ idx + 1 }}</div>
-                  <div>
-                    <h3 class="text-sm font-black text-slate-800 leading-tight">{{ pax.nombre }} {{ pax.apellido }}</h3>
-                    <div class="flex flex-wrap gap-1 mt-2">
-                      <!-- ⚠️ El ROL primero. «Adulto PR» es la tarifa de PeruRail —adulto o niño para
-                           el tren— y no dice si es coordinador, supervisor o participante, que es
-                           lo que se busca al mirar la lista. Cada rol con su color: en 131 fichas,
-                           encontrar a los 9 coordinadores leyendo texto es imposible. -->
-                      <span v-if="pax.tipo" class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wide"
-                            :class="PASAJERO_TIPO_CONFIG[String(pax.tipo)]?.clase ?? 'bg-slate-100 text-slate-600 border-slate-200'">
-                        {{ PASAJERO_TIPO_CONFIG[String(pax.tipo)]?.label ?? pax.tipo }}
-                      </span>
-                      <span class="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 uppercase">{{ pax.tipopaxperurail === 1 ? 'Adulto' : 'Niño' }} PR</span>
-                      <span v-if="pax.edad" class="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 uppercase">{{ pax.edad }} Años</span>
-                      <!-- El grupo, a primera vista. Es la unidad con la que se opera todos los
-                           días y estaba sólo dentro de la ficha, a dos toques. -->
-                      <span v-for="e in ejesDePax(pax)" :key="e.id"
-                            class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wide"
-                            :class="e.destacado
-                              ? 'bg-teal-600 text-white border-teal-600'
-                              : 'bg-white text-slate-500 border-slate-200'">
-                        <i class="fas mr-0.5 text-[8px]" :class="e.icono"></i>{{ e.texto }}
-                      </span>
-                    </div>
-                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-2">
-                      <i class="fas fa-globe-americas"></i> {{ pax.pais?.nombre }} ({{ getSexoLabel(pax.sexo) }})<br>
-                      <span v-if="pax.telefono" class="block text-[10px] font-bold text-slate-400">
-                        <i class="fas fa-phone text-[9px] mr-1"></i>{{ formatearTelefono(pax.telefono) }}
-                      </span>
-                      <i class="far fa-id-card mt-1"></i>
-                      <span v-for="(ident, i) in (pax.identificaciones ?? [])" :key="ident.id || i">
-                        <span v-if="i"> · </span>{{ getDocIdLabel(ident.tipo) }}: {{ ident.numero }}
-                      </span>
-                    </p>
-                    <!-- El vuelo, en la propia ficha: era el dato que había que ir a buscar abriendo
-                         a cada persona, y es justo el que se mira para armar el aeropuerto. -->
-                    <p v-for="v in vuelosDe(pax)" :key="v.id" class="text-[9px] font-bold text-sky-600 mt-1">
-                      <i class="fas fa-plane-departure text-[8px] mr-1"></i>{{ v.tramo }}
-                      <span class="text-slate-500">{{ v.nombre }}</span>
-                      <span class="text-slate-300"> · </span>{{ v.clave }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              </div>
-            </div>
-          </div>
-
-            <!-- ── PADRÓN: plantilla y carga ────────────────────────────────
-                 ⚠️ FUERA del modo grupo: cargar un namelist de dos personas es tan válido como
-                 cargar 133, y esconderlo en modo normal obligaba a teclear a mano lo que ya está
-                 en una hoja. Lo que sí es exclusivo de un grupo son los SUBGRUPOS, abajo. -->
+            <!-- ⚠️ Las cuatro secciones de abajo van PLEGADAS y con su resumen en el rótulo.
+                 Un expediente de grupo son 131 personas, 16 vuelos y 109 subgrupos: desplegado todo,
+                 llegar a lo de abajo son seis pantallas de scroll. Quien abre un expediente viene a
+                 UNA cosa, y el rótulo ya le dice si está en la que busca. -->
             <div class="mb-8">
-              <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
-                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">
-                  <i class="fas fa-file-import mr-2 text-teal-500"></i> Cargar pasajeros desde una hoja
+              <button type="button" @click="manifiestoAbierto = !manifiestoAbierto"
+                      class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
+                  <i class="fas fa-users mr-2 text-teal-500"></i> Manifiesto
+                  <span class="text-slate-300 font-bold normal-case tracking-normal ml-1">{{ resumenManifiesto }}</span>
                 </h2>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <button @click="descargarPlantilla" :disabled="descargandoPlantilla"
-                          title="En blanco, con hoja de instrucciones y tablas de países, sexo y roles"
-                          class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50">
-                    <i class="fas" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
-                    Plantilla en blanco
-                  </button>
-                  <!-- La descarga con datos es lo que hace cómodo completar un padrón a medias:
-                       trae el `Id` de cada persona, así que al resubirla nadie se duplica aunque
-                       le hayas corregido el nombre o el pasaporte. -->
-                  <button v-if="file.filepasajeros?.length" @click="descargarCargado" :disabled="descargandoPlantilla"
-                          title="La misma hoja, ya rellena con los pasajeros cargados. Complétala y vuelve a subirla."
-                          class="flex items-center gap-2 bg-teal-50 border border-teal-200 text-teal-700 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-teal-100 transition-colors disabled:opacity-50">
-                    <i class="fas fa-file-pen"></i>
-                    Descargar con lo cargado ({{ file.filepasajeros.length }})
-                  </button>
-                  <!-- Los vuelos NO se suben: se pegan. Llegan en un correo de la aerolínea, y
-                       pedir que alguien los pase a una hoja para volver a subirlos es trabajo
-                       inventado. -->
-                  <button @click="abrirVuelos"
-                          title="Pega el JSON de reservas que manda la aerolínea"
-                          class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold hover:bg-slate-50">
-                    <i class="fas fa-plane-departure"></i>
-                    Cargar vuelos
-                  </button>
-                </div>
+                <i class="fas fa-chevron-down text-slate-400 text-xs transition-transform shrink-0 group-hover:text-teal-500"
+                   :class="manifiestoAbierto ? 'rotate-180' : ''"></i>
+              </button>
+              <div v-if="manifiestoAbierto">
+              <div class="flex items-center justify-end mb-4">
+                <button @click="abrirPaxModal" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm">+ Añadir Pax</button>
               </div>
-              <!-- ── Los vuelos del viaje ─────────────────────────────────
-                   En orden cronológico, que es como se mira un expediente: «qué pasa el día 23».
-                   El PNR es el que agrupa a la gente, así que va delante de los pasajeros. -->
-              <div v-if="vuelos.length" class="mb-4 border border-slate-200 rounded-2xl overflow-hidden">
-                <div class="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                  <p class="text-[11px] font-black text-slate-700 uppercase tracking-widest">
-                    <i class="fas fa-plane-departure mr-1 text-sky-500"></i> Vuelos ({{ vuelos.length }})
-                  </p>
+
+              <div v-if="!file.filepasajeros?.length" class="bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-3xl p-8 text-center text-indigo-400">
+                <i class="fas fa-user-plus text-3xl mb-3 opacity-50"></i>
+                <p class="text-xs font-bold uppercase tracking-widest">Sin pasajeros registrados</p>
+              </div>
+
+              <!-- ── Filtros ───────────────────────────────────────────────────
+                   Se ACUMULAN: la pregunta real es una intersección —quién del grupo 5 va en el
+                   vuelo de las 07:15—, no una lista de candidatos. -->
+              <div v-else>
+                <div class="mb-3 bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <div class="relative flex-1 min-w-52">
+                      <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                      <input v-model="busquedaPax" type="search" placeholder="Nombre, documento, JetSmart, HA50…"
+                             class="w-full border rounded-lg pl-8 pr-3 py-2 text-xs outline-none focus:border-indigo-500 placeholder:text-slate-300">
+                    </div>
+
+                    <button type="button" @click="filtrosAbiertos = !filtrosAbiertos"
+                            class="flex items-center gap-1.5 border rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-colors"
+                            :class="hayFiltros
+                              ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+                              : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'">
+                      <i class="fas fa-sliders"></i> Filtros
+                      <i class="fas fa-chevron-down text-[9px] transition-transform" :class="filtrosAbiertos ? 'rotate-180' : ''"></i>
+                    </button>
+                  </div>
+
+                  <!-- ⚠️ El buscador y el contador se quedan SIEMPRE fuera del plegado. Son lo que se
+                       usa cada vez; las facetas son para una pregunta concreta y cinco filas de
+                       píldoras empujaban la lista fuera de la pantalla en un móvil. -->
+                  <div v-if="filtrosAbiertos" class="mt-3 pt-3 border-t border-slate-200">
+                    <div class="flex flex-wrap items-center gap-3">
+                    <div class="w-full sm:w-56">
+                      <SearchableSelect
+                          v-model="grupoPorAnadir"
+                          :options="gruposElegibles"
+                          placeholder="+ Añadir subgrupo…"
+                      />
+                    </div>
+
+                    <!-- El número al lado no es adorno: sin él, «ver no participa» es una casilla que
+                         no se sabe si hace algo. Con «(2)» se entiende de qué se está hablando, y con
+                         «(0)» ni se enseña. -->
+                    <label v-if="totalNoParticipa"
+                           class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer">
+                      <input v-model="incluirNoParticipa" type="checkbox" class="accent-indigo-600">
+                      Ver «no participa» ({{ totalNoParticipa }})
+                    </label>
+                    </div>
+
+                  <!-- Rol y aerolínea son FACETAS: se marcan varias y suman (O), porque nadie es
+                       participante y coordinador a la vez ni vuela en dos aerolíneas el mismo tramo.
+                       Entre facetas distintas manda la Y. Sólo salen si hay más de una opción. -->
+                  <div v-if="Object.keys(conteoPorRol).length > 1" class="flex flex-wrap items-center gap-1.5 mt-2">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">Rol</span>
+                    <button v-for="(n, rol) in conteoPorRol" :key="rol" type="button"
+                            @click="alternarRol(String(rol))"
+                            class="inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
+                            :class="filtroRol.includes(String(rol))
+                              ? PASAJERO_TIPO_CONFIG[String(rol)]?.clase ?? 'bg-slate-100 text-slate-600 border-slate-200'
+                              : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'">
+                      <!-- El punto lleva el color aunque la píldora esté apagada: es lo que enseña
+                           a reconocer el color antes de haberlo usado nunca. -->
+                      <span class="w-1.5 h-1.5 rounded-full" :class="PASAJERO_TIPO_CONFIG[String(rol)]?.punto ?? 'bg-slate-400'"></span>
+                      <!-- «sin_rol» es la clave interna de quien no tiene rol —lo normal en un
+                           expediente que no es de grupo—: se rotula, no se enseña cruda. -->
+                      {{ PASAJERO_TIPO_CONFIG[String(rol)]?.label ?? 'Sin rol' }} <span class="opacity-60">{{ n }}</span>
+                    </button>
+                  </div>
+
+                  <!-- Los tres estados NO son grados del mismo: «sin comprobar» no es «casi vigente»,
+                       es que no sabemos, y es justo lo que hay que mirar antes de un viaje. -->
+                  <div v-if="Object.keys(conteoPorDocumento).length" class="flex flex-wrap items-center gap-1.5 mt-2">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">
+                      <i class="far fa-id-card mr-0.5"></i>Documentos
+                    </span>
+                    <button v-for="(cfg, clave) in ETIQUETAS_DOCUMENTO" :key="clave" v-show="conteoPorDocumento[clave]"
+                            type="button" @click="alternarDocumento(String(clave))"
+                            class="inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
+                            :class="filtroDocumento.includes(String(clave))
+                              ? cfg.clase
+                              : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'">
+                      <span class="w-1.5 h-1.5 rounded-full" :class="cfg.punto"></span>
+                      {{ cfg.label }} <span class="opacity-60">{{ conteoPorDocumento[clave] }}</span>
+                    </button>
+                  </div>
+
+                  <div v-for="grupo in aerolineasPorEje" :key="grupo.eje" class="flex flex-wrap items-center gap-1.5 mt-2">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">
+                      <i class="fas fa-plane-departure mr-0.5"></i>{{ grupo.label }}
+                    </span>
+                    <button v-for="nombre in grupo.nombres" :key="nombre" type="button"
+                            @click="alternarAerolinea(`${grupo.eje}|${nombre}`)"
+                            class="rounded-lg border px-2 py-1 text-[10px] font-black transition-colors"
+                            :class="filtroAerolinea.includes(`${grupo.eje}|${nombre}`)
+                              ? 'bg-sky-600 text-white border-sky-600'
+                              : 'bg-white text-slate-500 border-slate-200 hover:border-sky-300'">
+                      {{ nombre }}
+                    </button>
+                  </div>
+
+                  <div v-if="gruposFiltrados.length" class="flex flex-wrap gap-1.5 mt-2">
+                    <span v-for="iri in gruposFiltrados" :key="iri"
+                          class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg pl-2.5 pr-1 py-1 text-[11px] font-black">
+                      {{ [grupoDeIri(iri)?.clave, grupoDeIri(iri)?.nombre].filter(Boolean).join(' · ') }}
+                      <button type="button" @click="quitarFiltro(iri)" class="px-1 hover:text-red-500"><i class="fas fa-times text-[10px]"></i></button>
+                    </span>
+                  </div>
+
+                  </div>
+
+                  <div class="flex items-center justify-between mt-2 flex-wrap gap-2">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Mostrando {{ pasajerosFiltrados.length }} de {{ pasajerosConsiderados.length }}
+                      <span v-if="!incluirNoParticipa && totalNoParticipa" class="text-slate-300 normal-case font-bold">
+                        · {{ totalNoParticipa }} no participa{{ totalNoParticipa > 1 ? 'n' : '' }}, fuera de la cuenta
+                      </span>
+                    </p>
+                    <div class="flex items-center gap-3">
+                      <!-- Sólo con filtros puestos: sin ellos ya está «Descargar con lo cargado», y
+                           dos botones que hacen lo mismo obligan a pensar cuál es cuál. -->
+                      <button v-if="hayFiltros && pasajerosFiltrados.length" type="button" @click="descargarFiltrado"
+                              :disabled="descargandoPlantilla"
+                              class="text-[10px] font-black uppercase tracking-widest text-teal-600 hover:text-teal-800 disabled:opacity-40">
+                        <i class="fas mr-1" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
+                        Exportar estos {{ pasajerosFiltrados.length }}
+                      </button>
+                      <button v-if="hayFiltros" type="button" @click="limpiarFiltros"
+                              class="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700">
+                        Limpiar filtros
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <table class="w-full text-[11px]">
-                  <tbody>
-                    <tr v-for="v in vuelos" :key="`${v.numero}|${v.salida}`"
-                        class="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
-                      <td class="px-3 py-2 font-black text-slate-800 whitespace-nowrap">{{ v.numero }}</td>
-                      <td class="px-2 py-2 text-slate-500 font-bold whitespace-nowrap">{{ v.aerolinea }}</td>
-                      <td class="px-2 py-2 font-mono text-slate-700 whitespace-nowrap">
-                        {{ diaDe(v.salida) }}
-                        <span class="font-black">{{ horaDe(v.salida) }}</span>
-                        {{ v.origen }}
-                        <i class="fas fa-arrow-right text-[8px] text-slate-300 mx-1"></i>
-                        <span class="font-black">{{ horaDe(v.llegada) }}</span>
-                        {{ v.destino }}
-                        <!-- Un vuelo que llega al día siguiente no se avisa con una bandera: se ve. -->
-                        <span v-if="diaDe(v.llegada) !== diaDe(v.salida)"
-                              class="text-[9px] text-amber-600 font-bold ml-1">+1 día</span>
-                      </td>
-                      <td class="px-2 py-2 text-right">
-                        <span v-for="pnr in (v.pnrs || [])" :key="pnr"
-                              class="inline-block bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 ml-1 font-mono text-[10px]">
-                          {{ pnr }}
+
+                <p v-if="!pasajerosFiltrados.length" class="text-[11px] text-slate-400 italic border border-dashed border-slate-200 rounded-2xl px-4 py-6 text-center">
+                  Nadie cumple estos filtros.
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- La tarjeta ENTERA abre la ficha en lectura: en un móvil el blanco es la mitad de
+                     la tarjeta y apuntar a un icono de 28 px con el pulgar es la parte incómoda.
+                     La plumita entra directa a editar; los dos botones paran la propagación para no
+                     disparar además la apertura de la tarjeta. -->
+                <div v-for="(pax, idx) in pasajerosFiltrados" :key="pax['@id'] ?? pax.id"
+                     @click="abrirEdicionPax(pax)"
+                     class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative group cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all">
+                  <div class="absolute top-3 right-3 flex items-center gap-1">
+                    <button @click.stop="abrirEdicionPax(pax, true)" title="Editar"
+                            class="text-slate-300 hover:text-indigo-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
+                      <i class="fas fa-pencil-alt text-xs"></i>
+                    </button>
+                    <button @click.stop="eliminarPasajero(pax['@id'])" title="Eliminar"
+                            class="text-slate-300 hover:text-red-500 transition-colors bg-slate-50 w-7 h-7 rounded-full flex items-center justify-center">
+                      <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                  </div>
+                  <div class="flex items-start gap-3 pr-16">
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-black text-xs flex items-center justify-center border border-indigo-200">{{ idx + 1 }}</div>
+                    <div>
+                      <h3 class="text-sm font-black text-slate-800 leading-tight">{{ pax.nombre }} {{ pax.apellido }}</h3>
+                      <div class="flex flex-wrap gap-1 mt-2">
+                        <!-- ⚠️ El ROL primero. «Adulto PR» es la tarifa de PeruRail —adulto o niño para
+                             el tren— y no dice si es coordinador, supervisor o participante, que es
+                             lo que se busca al mirar la lista. Cada rol con su color: en 131 fichas,
+                             encontrar a los 9 coordinadores leyendo texto es imposible. -->
+                        <span v-if="pax.tipo" class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wide"
+                              :class="PASAJERO_TIPO_CONFIG[String(pax.tipo)]?.clase ?? 'bg-slate-100 text-slate-600 border-slate-200'">
+                          {{ PASAJERO_TIPO_CONFIG[String(pax.tipo)]?.label ?? pax.tipo }}
                         </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- ── Cargar el padrón ──────────────────────────────────────
-                   Siempre ENSAYO primero, y el informe dice en qué expediente va a escribir: cargar
-                   133 personas en el que no toca es un error caro y silencioso. -->
-              <div class="mb-4 border border-dashed border-teal-300 bg-teal-50/50 rounded-2xl p-4">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                  <div class="min-w-0">
-                    <p class="text-[11px] font-black text-teal-700 uppercase tracking-widest">
-                      <i class="fas fa-file-import mr-1"></i> Cargar padrón
-                    </p>
-                    <p class="text-[10px] font-bold text-teal-600/70 mt-0.5">
-                      Crea pasajeros, documentos y subgrupos de una vez. Se ensaya antes de guardar.
-                    </p>
-                  </div>
-                  <input ref="inputPadron" type="file" accept=".xlsx,.xls" class="hidden" @change="elegirPadron">
-                  <button @click="inputPadron?.click()" :disabled="cargandoPadron"
-                          class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 shadow-sm disabled:opacity-50 shrink-0">
-                    <i class="fas mr-1" :class="cargandoPadron ? 'fa-spinner fa-spin' : 'fa-upload'"></i>
-                    Elegir archivo…
-                  </button>
-                </div>
-
-                <!-- El informe del ensayo -->
-                <div v-if="ensayoPadron" class="mt-4 bg-white border border-slate-200 rounded-xl p-4">
-                  <p class="text-[10px] font-black uppercase tracking-widest mb-2"
-                     :class="ensayoPadron.errores.length ? 'text-red-600' : 'text-slate-500'">
-                    {{ ensayoPadron.errores.length ? 'No se puede cargar' : 'Ensayo' }} ·
-                    <span class="text-slate-700">{{ ensayoPadron.expediente }}</span>
-                  </p>
-
-                  <div v-if="!ensayoPadron.errores.length" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-                    <p v-for="[etiqueta, valor] in [
-                         ['Filas leídas', ensayoPadron.filasLeidas],
-                         ['Pasajeros nuevos', ensayoPadron.pasajerosCreados],
-                         ['Actualizados', ensayoPadron.pasajerosActualizados],
-                         ['Documentos', ensayoPadron.identificacionesCreadas],
-                         ['Subgrupos nuevos', ensayoPadron.gruposCreados],
-                         ['Pertenencias', ensayoPadron.pertenenciasCreadas],
-                       ]" :key="etiqueta" class="text-[11px] font-bold text-slate-500">
-                      {{ etiqueta }}: <span class="text-slate-800 font-black tabular-nums">{{ valor }}</span>
-                    </p>
-                  </div>
-
-                  <p v-if="ensayoPadron.pertenenciasQuitadas" class="text-[10px] font-bold text-amber-600 mb-2">
-                    <i class="fas fa-arrow-right-from-bracket mr-1"></i>
-                    {{ ensayoPadron.pertenenciasQuitadas }} pertenencia(s) se quitarán: el archivo dice que ya no participan.
-                  </p>
-
-                  <p v-for="e in ensayoPadron.errores" :key="e" class="text-[11px] font-bold text-red-600 leading-snug mb-1">
-                    <i class="fas fa-circle-exclamation mr-1"></i>{{ e }}
-                  </p>
-                  <p v-for="a in ensayoPadron.avisos" :key="a" class="text-[10px] font-bold text-slate-400 leading-snug mb-1">
-                    <i class="fas fa-circle-info mr-1"></i>{{ a }}
-                  </p>
-                  <p v-if="ensayoPadron.noEstanEnElArchivo.length" class="text-[10px] font-bold text-amber-600 leading-snug mb-1">
-                    <i class="fas fa-user-slash mr-1"></i>
-                    {{ ensayoPadron.noEstanEnElArchivo.length }} persona(s) están aquí y no en el archivo.
-                    <b>No se borran</b>: {{ ensayoPadron.noEstanEnElArchivo.slice(0, 5).join(', ') }}{{ ensayoPadron.noEstanEnElArchivo.length > 5 ? '…' : '' }}
-                  </p>
-
-                  <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
-                    <button @click="aplicarPadron" :disabled="cargandoPadron || ensayoPadron.errores.length > 0"
-                            class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed">
-                      <i class="fas fa-check mr-1"></i> Procesar carga
-                    </button>
-                    <button @click="cancelarPadron" class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg hover:bg-slate-50">
-                      Cancelar
-                    </button>
+                        <span class="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 uppercase">{{ pax.tipopaxperurail === 1 ? 'Adulto' : 'Niño' }} PR</span>
+                        <span v-if="pax.edad" class="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 uppercase">{{ pax.edad }} Años</span>
+                        <!-- El grupo, a primera vista. Es la unidad con la que se opera todos los
+                             días y estaba sólo dentro de la ficha, a dos toques. -->
+                        <span v-for="e in ejesDePax(pax)" :key="e.id"
+                              class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wide"
+                              :class="e.destacado
+                                ? 'bg-teal-600 text-white border-teal-600'
+                                : 'bg-white text-slate-500 border-slate-200'">
+                          <i class="fas mr-0.5 text-[8px]" :class="e.icono"></i>{{ e.texto }}
+                        </span>
+                      </div>
+                      <p class="text-[9px] text-slate-400 font-bold uppercase mt-2">
+                        <i class="fas fa-globe-americas"></i> {{ pax.pais?.nombre }} ({{ getSexoLabel(pax.sexo) }})<br>
+                        <span v-if="pax.telefono" class="block text-[10px] font-bold text-slate-400">
+                          <i class="fas fa-phone text-[9px] mr-1"></i>{{ formatearTelefono(pax.telefono) }}
+                        </span>
+                        <i class="far fa-id-card mt-1"></i>
+                        <span v-for="(ident, i) in (pax.identificaciones ?? [])" :key="ident.id || i">
+                          <span v-if="i"> · </span>{{ getDocIdLabel(ident.tipo) }}: {{ ident.numero }}
+                        </span>
+                      </p>
+                      <!-- El vuelo, en la propia ficha: era el dato que había que ir a buscar abriendo
+                           a cada persona, y es justo el que se mira para armar el aeropuerto. -->
+                      <p v-for="v in vuelosDe(pax)" :key="v.id" class="text-[9px] font-bold text-sky-600 mt-1">
+                        <i class="fas fa-plane-departure text-[8px] mr-1"></i>{{ v.tramo }}
+                        <span class="text-slate-500">{{ v.nombre }}</span>
+                        <span class="text-slate-300"> · </span>{{ v.clave }}
+                      </p>
+                    </div>
                   </div>
                 </div>
+                </div>
               </div>
+              </div>
+            </div>
 
+            <!-- El itinerario del viaje. Se consulta, no se edita: se carga abajo. -->
+            <div class="mb-8">
+              <button type="button" @click="vuelosAbiertos = !vuelosAbiertos"
+                      class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
+                  <i class="fas fa-plane-departure mr-2 text-teal-500"></i> Vuelos
+                  <span class="text-slate-300 font-bold normal-case tracking-normal ml-1">{{ resumenVuelos }}</span>
+                </h2>
+                <i class="fas fa-chevron-down text-slate-400 text-xs transition-transform shrink-0 group-hover:text-teal-500"
+                   :class="vuelosAbiertos ? 'rotate-180' : ''"></i>
+              </button>
+              <div v-if="vuelosAbiertos">
+                <!-- ── Los vuelos del viaje ─────────────────────────────────
+                     En orden cronológico, que es como se mira un expediente: «qué pasa el día 23».
+                     El PNR es el que agrupa a la gente, así que va delante de los pasajeros. -->
+                <div v-if="vuelos.length" class="mb-4 border border-slate-200 rounded-2xl overflow-hidden">
+                  <table class="w-full text-[11px]">
+                    <tbody>
+                      <tr v-for="v in vuelos" :key="`${v.numero}|${v.salida}`"
+                          class="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
+                        <td class="px-3 py-2 font-black text-slate-800 whitespace-nowrap">{{ v.numero }}</td>
+                        <td class="px-2 py-2 text-slate-500 font-bold whitespace-nowrap">{{ v.aerolinea }}</td>
+                        <td class="px-2 py-2 font-mono text-slate-700 whitespace-nowrap">
+                          {{ diaDe(v.salida) }}
+                          <span class="font-black">{{ horaDe(v.salida) }}</span>
+                          {{ v.origen }}
+                          <i class="fas fa-arrow-right text-[8px] text-slate-300 mx-1"></i>
+                          <span class="font-black">{{ horaDe(v.llegada) }}</span>
+                          {{ v.destino }}
+                          <!-- Un vuelo que llega al día siguiente no se avisa con una bandera: se ve. -->
+                          <span v-if="diaDe(v.llegada) !== diaDe(v.salida)"
+                                class="text-[9px] text-amber-600 font-bold ml-1">+1 día</span>
+                        </td>
+                        <td class="px-2 py-2 text-right">
+                          <span v-for="pnr in (v.pnrs || [])" :key="pnr"
+                                class="inline-block bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 ml-1 font-mono text-[10px]">
+                            {{ pnr }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
             <!-- ── Subgrupos ─────────────────────────────────────────────────
@@ -2337,7 +2277,7 @@ const eliminarDocumento = async (iri?: string) => {
                    Con 66 habitaciones había 66 botones de borrar al alcance del pulgar, en la
                    misma píldora que se toca para leer el conteo. Un roce y se va un subgrupo con
                    sus pertenencias. En modo lectura la píldora no hace nada. -->
-              <div v-else class="space-y-3">
+              <div v-if="subgruposAbiertos" class="space-y-3">
                 <div class="flex items-center justify-end">
                   <button type="button" @click="modoGestionGrupos = !modoGestionGrupos"
                           class="text-[10px] font-black uppercase tracking-widest transition-colors"
@@ -2388,8 +2328,134 @@ const eliminarDocumento = async (iri?: string) => {
               </div>
             </div>
 
+            <!-- ⚠️ TODO lo que entra al expediente, junto y AL FINAL.
+                 Estaba partido —la hoja arriba, los vuelos en medio— y son la misma tarea con dos
+                 orígenes: el colegio manda el Excel, la aerolínea manda el JSON. Va al final porque
+                 es el andamio: se usa al montar el expediente, no al consultarlo. -->
+            <div class="mb-8">
+              <button type="button" @click="cargaAbierta = !cargaAbierta"
+                      class="w-full flex items-center justify-between gap-3 mb-4 text-left group">
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest min-w-0">
+                  <i class="fas fa-file-import mr-2 text-teal-500"></i> Cargar datos
+                  <span class="text-slate-300 font-bold normal-case tracking-normal ml-1">{{ resumenCarga }}</span>
+                </h2>
+                <i class="fas fa-chevron-down text-slate-400 text-xs transition-transform shrink-0 group-hover:text-teal-500"
+                   :class="cargaAbierta ? 'rotate-180' : ''"></i>
+              </button>
+              <div v-if="cargaAbierta">
+              <!-- ── PADRÓN: plantilla y carga ────────────────────────────────
+                   ⚠️ FUERA del modo grupo: cargar un namelist de dos personas es tan válido como
+                   cargar 133, y esconderlo en modo normal obligaba a teclear a mano lo que ya está
+                   en una hoja. Lo que sí es exclusivo de un grupo son los SUBGRUPOS, abajo. -->
+              <div class="mb-8">
+                <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <button @click="descargarPlantilla" :disabled="descargandoPlantilla"
+                            title="En blanco, con hoja de instrucciones y tablas de países, sexo y roles"
+                            class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50">
+                      <i class="fas" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
+                      Plantilla en blanco
+                    </button>
+                    <!-- La descarga con datos es lo que hace cómodo completar un padrón a medias:
+                         trae el `Id` de cada persona, así que al resubirla nadie se duplica aunque
+                         le hayas corregido el nombre o el pasaporte. -->
+                    <button v-if="file.filepasajeros?.length" @click="descargarCargado" :disabled="descargandoPlantilla"
+                            title="La misma hoja, ya rellena con los pasajeros cargados. Complétala y vuelve a subirla."
+                            class="flex items-center gap-2 bg-teal-50 border border-teal-200 text-teal-700 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-teal-100 transition-colors disabled:opacity-50">
+                      <i class="fas fa-file-pen"></i>
+                      Descargar con lo cargado ({{ file.filepasajeros.length }})
+                    </button>
+                    <!-- Los vuelos NO se suben: se pegan. Llegan en un correo de la aerolínea, y
+                         pedir que alguien los pase a una hoja para volver a subirlos es trabajo
+                         inventado. -->
+                    <button @click="abrirVuelos"
+                            title="Pega el JSON de reservas que manda la aerolínea"
+                            class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold hover:bg-slate-50">
+                      <i class="fas fa-plane-departure"></i>
+                      Cargar vuelos
+                    </button>
+                  </div>
+                </div>
+
+                <!-- ── Cargar el padrón ──────────────────────────────────────
+                     Siempre ENSAYO primero, y el informe dice en qué expediente va a escribir: cargar
+                     133 personas en el que no toca es un error caro y silencioso. -->
+                <div class="mb-4 border border-dashed border-teal-300 bg-teal-50/50 rounded-2xl p-4">
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <p class="text-[11px] font-black text-teal-700 uppercase tracking-widest">
+                        <i class="fas fa-file-import mr-1"></i> Cargar padrón
+                      </p>
+                      <p class="text-[10px] font-bold text-teal-600/70 mt-0.5">
+                        Crea pasajeros, documentos y subgrupos de una vez. Se ensaya antes de guardar.
+                      </p>
+                    </div>
+                    <input ref="inputPadron" type="file" accept=".xlsx,.xls" class="hidden" @change="elegirPadron">
+                    <button @click="inputPadron?.click()" :disabled="cargandoPadron"
+                            class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 shadow-sm disabled:opacity-50 shrink-0">
+                      <i class="fas mr-1" :class="cargandoPadron ? 'fa-spinner fa-spin' : 'fa-upload'"></i>
+                      Elegir archivo…
+                    </button>
+                  </div>
+
+                  <!-- El informe del ensayo -->
+                  <div v-if="ensayoPadron" class="mt-4 bg-white border border-slate-200 rounded-xl p-4">
+                    <p class="text-[10px] font-black uppercase tracking-widest mb-2"
+                       :class="ensayoPadron.errores.length ? 'text-red-600' : 'text-slate-500'">
+                      {{ ensayoPadron.errores.length ? 'No se puede cargar' : 'Ensayo' }} ·
+                      <span class="text-slate-700">{{ ensayoPadron.expediente }}</span>
+                    </p>
+
+                    <div v-if="!ensayoPadron.errores.length" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                      <p v-for="[etiqueta, valor] in [
+                           ['Filas leídas', ensayoPadron.filasLeidas],
+                           ['Pasajeros nuevos', ensayoPadron.pasajerosCreados],
+                           ['Actualizados', ensayoPadron.pasajerosActualizados],
+                           ['Documentos', ensayoPadron.identificacionesCreadas],
+                           ['Subgrupos nuevos', ensayoPadron.gruposCreados],
+                           ['Pertenencias', ensayoPadron.pertenenciasCreadas],
+                         ]" :key="etiqueta" class="text-[11px] font-bold text-slate-500">
+                        {{ etiqueta }}: <span class="text-slate-800 font-black tabular-nums">{{ valor }}</span>
+                      </p>
+                    </div>
+
+                    <p v-if="ensayoPadron.pertenenciasQuitadas" class="text-[10px] font-bold text-amber-600 mb-2">
+                      <i class="fas fa-arrow-right-from-bracket mr-1"></i>
+                      {{ ensayoPadron.pertenenciasQuitadas }} pertenencia(s) se quitarán: el archivo dice que ya no participan.
+                    </p>
+
+                    <p v-for="e in ensayoPadron.errores" :key="e" class="text-[11px] font-bold text-red-600 leading-snug mb-1">
+                      <i class="fas fa-circle-exclamation mr-1"></i>{{ e }}
+                    </p>
+                    <p v-for="a in ensayoPadron.avisos" :key="a" class="text-[10px] font-bold text-slate-400 leading-snug mb-1">
+                      <i class="fas fa-circle-info mr-1"></i>{{ a }}
+                    </p>
+                    <p v-if="ensayoPadron.noEstanEnElArchivo.length" class="text-[10px] font-bold text-amber-600 leading-snug mb-1">
+                      <i class="fas fa-user-slash mr-1"></i>
+                      {{ ensayoPadron.noEstanEnElArchivo.length }} persona(s) están aquí y no en el archivo.
+                      <b>No se borran</b>: {{ ensayoPadron.noEstanEnElArchivo.slice(0, 5).join(', ') }}{{ ensayoPadron.noEstanEnElArchivo.length > 5 ? '…' : '' }}
+                    </p>
+
+                    <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                      <button @click="aplicarPadron" :disabled="cargandoPadron || ensayoPadron.errores.length > 0"
+                              class="bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fas fa-check mr-1"></i> Procesar carga
+                      </button>
+                      <button @click="cancelarPadron" class="px-4 py-2 text-xs font-bold text-slate-500 border rounded-lg hover:bg-slate-50">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              </div>
+            </div>
+
+
 
           <div>
+          </div>
             <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4"><i class="fas fa-code-branch mr-2 text-[#E07845]"></i> Historial de Versiones</h2>
 
             <div v-if="!file.cotizaciones || file.cotizaciones.length === 0" class="bg-white border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400">
