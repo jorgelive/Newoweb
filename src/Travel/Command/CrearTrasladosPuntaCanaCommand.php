@@ -217,22 +217,8 @@ final class CrearTrasladosPuntaCanaCommand extends Command
                 continue;
             }
 
-            $flota = $this->asegurarFlota($componente, $moneda, $io, $simula);
+            $this->asegurarFlota($componente, $moneda, $io, $simula);
 
-            // ⚠️ Retirar la tarifa de relleno deja el enlace SIN predeterminada, y un enlace así
-            // obliga a elegir tarifa a mano cada vez que se arrastra el segmento. Se repunta a la
-            // primera de la flota; cuál es la habitual lo sabe quien vende.
-            foreach ($componente->getSegmentoComponentesInyectados() as $rel) {
-                if ($rel->getTarifaPredeterminada() !== null || $flota === []) {
-                    continue;
-                }
-
-                $io->text(sprintf('  predeterminada · %s', (string) $flota[0]->getNombreInterno()));
-
-                if (!$simula) {
-                    $rel->setTarifaPredeterminada($flota[0]);
-                }
-            }
         }
 
         if ($this->flotaCreada === 0) {
@@ -317,6 +303,28 @@ final class CrearTrasladosPuntaCanaCommand extends Command
         }
 
         $relleno = $existentes[(string) $componente->getNombreInterno()] ?? null;
+
+        // ⚠️ El repunte va AQUÍ y no en el llamador, y compara contra `$relleno` en vez de mirar
+        // si la predeterminada es null.
+        //
+        // `em->remove()` no vacía la referencia hasta el flush: al preguntar después,
+        // `getTarifaPredeterminada()` seguía devolviendo la tarifa que está a punto de morir, así
+        // que el enlace se quedaba sin ninguna. En local no se vio porque el comando se ejecutó
+        // dos veces —la segunda encontraba el null y lo arreglaba—; en producción, a la primera,
+        // los dos enlaces quedaron vacíos.
+        foreach ($componente->getSegmentoComponentesInyectados() as $rel) {
+            $actual = $rel->getTarifaPredeterminada();
+
+            if ($flota === [] || ($actual !== null && $actual !== $relleno)) {
+                continue;
+            }
+
+            $io->text(sprintf('  predeterminada · %s', (string) $flota[0]->getNombreInterno()));
+
+            if (!$simula) {
+                $rel->setTarifaPredeterminada($flota[0]);
+            }
+        }
 
         if ($relleno !== null && !$simula) {
             $io->text(sprintf('  retirada · tarifa de relleno «%s»', (string) $relleno->getNombreInterno()));
