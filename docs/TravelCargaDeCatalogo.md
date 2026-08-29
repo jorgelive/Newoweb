@@ -284,107 +284,36 @@ sería cambiar «tiene siete copias» por «no se puede vender», que es peor.
 Quedan otras repetidas fuera de transporte —`Alojamiento en Ollantaytambo`, `Cena en Valle
 Sagrado`, `Transporte Xcaret Rountrip`—, todas ×2. El comando las coge sin `--componente`.
 
-### 🔜 PENDIENTE: revisar las capacidades de todo el catálogo
+### Una plaza por vehículo, la misma en todo el catálogo (29/08/2026)
 
-Arequipa declaraba la `Van` con **4 plazas, igual que el `Auto`**. Se corrigió con los números
-reales —Auto 3, Van 5— y al mirar si era un caso aislado, no lo era:
+La misma palabra declaraba cosas distintas según dónde se mirara: `Van` entre 3 y 8 plazas, `Auto`
+entre 2 y 6, y unas cuantas «sin medir» —peor que un número equivocado, porque no se puede
+contrastar con nada—.
 
 ```
-vehículo    capacidades declaradas        tarifas
-Van         sin medir, 3, 4, 5, 6, 8         65
-Auto        sin medir, 2, 3, 4, 5, 6         42
-Bus         sin medir, 25, 27, 45            42
-Master      10, 14                           40
-Sprinter    sin medir, 10, 14, 18            34
+Auto 3 · Van 5 · Master 10 · Sprinter 15
 ```
 
-Parte de esa dispersión es legítima —cada proveedor tiene su flota— pero una «Van» de 3 plazas y
-otra de 8 bajo la misma palabra no es una flota distinta: es **vocabulario sin acordar**. Y el
-«sin medir» es peor que un número equivocado, porque no se puede contrastar con nada.
+152 tarifas ajustadas: **129 bajan, 15 suben, 8 estaban sin medir**.
 
-**Por qué importa más que un precio mal:** una capacidad de más **vende una plaza que no existe**,
-y eso se descubre en el aeropuerto, con el grupo delante. Un precio mal se corrige en la factura.
+⚠️ **Sólo entran las `privado` + por grupo.** Son las que significan «alquilo el vehículo
+entero», y ahí la capacidad ES la del vehículo. En una `compartido` se vende asiento —Cruz del
+Sur, Bus Bimodal, los pools— y ponerle la capacidad del vehículo limitaría el grupo por un número
+que no tiene nada que ver.
 
-Queda pendiente de revisar con los números reales. Mientras tanto, la regla de la fusión sigue
-siendo **la menor**, que es la que falla del lado seguro.
+⚠️ **Se separa lo que SUBE de lo que baja, y no es cosmético.** Que una capacidad baje es
+inofensivo: se vende de menos. Que suba **permite meter gente donde antes no cabía**, y eso hay
+que mirarlo una a una — son 15 y están listadas al aplicar.
 
-Y `Traslado a Restaurante con espera Cusco` **no se toca**: cuesta más porque el vehículo espera.
-Es otro servicio, no una copia.
+### 🔜 PENDIENTE: `Bus` y `Minibús` son un problema de vocabulario, no de número
 
-## 3. Pool o plantilla
+Quedaron fuera **a propósito**, y no por falta de datos: hay tarifas donde al **Sprinter se le
+llama «minibús» de cara al cliente**, así que hoy los dos nombres no describen el mismo vehículo
+en todo el catálogo. `Bus` sigue con 25, 27 y 45 declaradas.
 
-| | Pool | Itinerario |
-|---|---|---|
-| Qué es | repertorio del que se toma lo que haga falta | guion con día y orden |
-| Cuándo | el operador arma a medida | el programa tiene secuencia fija |
-| Ejemplo | `ALO`, `TRF_LIM`, `VUELO`, `ACT_RESORT` | `CITY_LIM`, `WALK_MIR` |
-
-**Siempre se llenan los pools.** El itinerario es opcional y se añade encima.
-
-⚠️ **Una excursión necesita plantilla aunque el pool baste técnicamente.** Sus segmentos narrativos
-no llevan componente, luego no llevan hora, luego en la guía se ordenan por `orden` — y ese orden
-**vive en `travel_itinerario_segmento_rel`**, no en el segmento. Sin plantilla habría que recordar
-a mano, en cada cotización, que el malecón va después del Parque Kennedy.
-
-## 4. La receta
-
-Va **siempre por comando** en `src/<Modulo>/Command/`, idempotente por clave natural y con
-`--dry-run`. El porqué está en §6.
-
-```php
-// 1 · El servicio contenedor
-$servicio = (new TravelServicio())
-    ->setCodigo('ACT_RESORT')
-    ->setNombreInterno('Actividades en resort')
-    ->setTitulo([['language' => 'es', 'content' => 'Actividades en resort']]);
-$this->em->persist($servicio);
-$this->em->flush();                       // se necesita su id para los pools
-
-// 2 · El segmento
-$segmento = (new TravelSegmento())
-    ->setSlug('ACT-RESORT-PISCINA_PLAYA') // TIPO-CONTEXTO-VARIANTE, mayúsculas
-    ->setNombreInterno('Piscina y playa en resort')
-    ->setTitulo([['language' => 'es', 'content' => 'Piscina y playa']])
-    ->setContenido([['language' => 'es', 'content' => '…']])
-    ->setInicioModo(PuntoModoEnum::SIN_DEFINIR)   // o FIJO + setInicioPunto()
-    ->setFinModo(PuntoModoEnum::SIN_DEFINIR);
-$this->em->persist($segmento);
-
-// 3 · El componente
-$componente = (new TravelComponente())
-    ->setNombreInterno('Piscina y playa en resort')
-    ->setTitulo([['language' => 'es', 'content' => 'Piscina y playa']])
-    ->setTipo(ComponenteTipoEnum::EXTRAS);
-$this->em->persist($componente);
-
-// 4 · La tarifa  ⚠️ sus setters devuelven void: NO se encadena
-$tarifa = new TravelTarifa();
-$tarifa->setComponente($componente);
-$tarifa->setNombreInterno('Occidental Caribe · Piscina y playa');
-$tarifa->setTitulo([['language' => 'es', 'content' => 'Piscina y playa']]);
-$tarifa->setMoneda($moneda);              // obligatorio
-$tarifa->setMonto('0.00');
-$tarifa->setPrestador($organizacion);     // quién lo presta
-$tarifa->setPrestadorServicio($servicioDelPrestador);   // de aquí salen las FOTOS
-$this->em->persist($tarifa);
-
-// 5 · El enlace, que es donde viven los defaults
-$rel = (new TravelSegmentoComponente())
-    ->setSegmento($segmento)
-    ->setComponente($componente)
-    ->setTarifaPredeterminada($tarifa)    // ⚠️ §5
-    ->setModo(ComponenteModoEnum::INCLUIDO)
-    ->setDia(1)
-    ->setOrden(1)
-    ->setHora(new \DateTimeImmutable('10:00'));   // ⚠️ §5
-$this->em->persist($rel);
-
-// 6 · A los pools
-$servicio->addSegmento($segmento);
-$servicio->addComponente($componente);
-
-$this->em->flush();
-```
+Fijarles una capacidad ahora **congelaría la confusión en un número**, que es justo lo que costó
+caro con las Van intercambiadas de Cusco. Primero se acuerda qué vehículo es cada uno; los
+números vienen después.
 
 ### Slug
 
@@ -553,4 +482,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:consolidar-transporte-aeropuerto-lima` | consolidar con cuadro explícito · reapuntar componente Y tarifa en cotizaciones hechas |
 | `app:travel:fusionar-tarifas-por-sentido` | distinguir un eje falso (el sentido) de uno verdadero (el sector) en el mismo nombre |
 | `app:travel:limpiar-tarifas-repetidas` | borrar copias exactas sin dejar nunca un componente sin precio |
+| `app:travel:normalizar-capacidades-vehiculo` | separar lo que sube de lo que baja · dejar fuera lo que aún no tiene nombre acordado |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
