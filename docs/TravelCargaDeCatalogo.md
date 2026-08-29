@@ -336,6 +336,38 @@ que no tiene nada que ver.
 inofensivo: se vende de menos. Que suba **permite meter gente donde antes no cabía**, y eso hay
 que mirarlo una a una — son 15 y están listadas al aplicar.
 
+### ⚠️ El tipo decide si la hora CUENTA, y una comida mal tipada hunde el servicio entero
+
+`ComponenteTipoEnum::sinHorario()` decide si la UI pide hora. Y sin hora, el servicio cae al
+escalón de «sin horario» del ordenamiento y **se va detrás de todo lo que sí la tiene** — el
+servicio completo, no sólo la comida.
+
+```
+alimentacion_fijo       exige hora    el desayuno de las 07:00 antes de un vuelo
+alimentacion_variable   sin hora      «almuerzo en algún momento del recorrido»
+```
+
+Las comidas del aeropuerto de Lima estaban en el segundo con hora puesta en el catálogo —07:00,
+12:30, 19:00— que no contaba para nada. Corregidas con `app:travel:retipar-componente`.
+
+⚠️ **Lo que NO se hizo**: cambiar `sinHorario()` para que `alimentacion_variable` exigiera hora.
+Ese tipo existe justo para la comida que no la tiene, y tocarlo se habría llevado por delante los
+almuerzos de excursión, que son la mayoría. **El tipo estaba bien definido; lo que estaba mal era
+a cuál pertenecían estas tres.**
+
+🔜 **Y quedan seis más con la misma forma**, sin tocar porque ahí la duda es real y sólo la
+resuelve el operador:
+
+```
+Desayuno / Almuerzo / Cena buffet en resort    07:00 · 12:30 · 19:00
+Cena en restaurante temático de resort         19:30
+Almuerzo en Larcomar · Almuerzo en Urubamba    12:30
+```
+
+El buffet de un resort abre de 07:00 a 10:00 y el pasajero baja cuando quiere: esa hora es
+**orientativa**. La del aeropuerto es una **cita**, porque hay un vuelo después. Misma columna,
+dos significados.
+
 ### 🔜 PENDIENTE: `Bus` y `Minibús` son un problema de vocabulario, no de número
 
 Quedaron fuera **a propósito**, y no por falta de datos: hay tarifas donde al **Sprinter se le
