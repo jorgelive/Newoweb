@@ -130,6 +130,31 @@ enum ComponenteTipoEnum: string
     }
 
     /**
+     * ¿El componente nombra una RUTA, o la cosa comprada?
+     *
+     * Es la propiedad de la que cuelga {@see self::mandaElSegmento()}, y merece nombre propio
+     * porque es lo que de verdad se está preguntando.
+     *
+     * ```
+     * ruta      transporte · tren · vuelo      «Transporte Cusco - Ollanta», «Vuelo Lima Cusco»
+     * cosa      ticket · alojamiento · pool…   «Ingreso a Catedral», «Pool Valle Sagrado»
+     * ```
+     *
+     * ⚠️ **No es lo mismo que {@see self::puntosDeServicio()}.** Una excursión `pool` también
+     * recoge y deja —tiene `INICIO_Y_FIN`— pero su componente se llama «Pool Valle Sagrado», que
+     * es la cosa comprada. Tener puntos y nombrarse por ellos son preguntas distintas.
+     *
+     * **La consecuencia práctica:** un componente que nombra una ruta se puede fusionar por
+     * sentido —una sola ficha para ida y vuelta, que es donde deja de haber dos precios que
+     * mantener a mano y divergen sin avisar—. Uno que nombra una cosa, no: fusionarlo no
+     * ahorraría nada y perdería el nombre.
+     */
+    public function nombraUnaRuta(): bool
+    {
+        return $this === self::TRANSPORTE || $this->esSalto();
+    }
+
+    /**
      * Define si la UI (Vue) debe exigir y mostrar un selector de hora específica (H:i).
      * Si retorna false, el backend debe forzar la hora a '00:00:00' al persistir.
      *
@@ -214,39 +239,40 @@ enum ComponenteTipoEnum: string
      * `mandaElSegmento()` en `util/src/views/Operacion/OperacionView.vue`** — si cambia la regla,
      * se tocan LOS DOS.
      *
-     * **Sólo `TRANSPORTE`**, y el motivo no es una preferencia de diseño: es un hueco del modelo.
-     * `travel_componente` **no tiene columnas de origen ni de destino** —las tiene el segmento,
-     * en `inicioPunto`/`finPunto`, y a veces como *modo*: «acaba en el alojamiento del
-     * pasajero»—. Un componente de transporte **no puede** decir a dónde va hoy, y desde el
-     * refactor del 29/08/2026 ni siquiera lo intenta: `Transporte Cusco ↔ Ollanta (ida o vuelta)`
-     * sirve a tres segmentos a propósito.
+     * **Manda el segmento exactamente donde el componente {@see self::nombraUnaRuta()}**, y las
+     * dos cosas son la misma decisión tomada dos veces: en cuanto una ruta se fusiona por sentido
+     * —una ficha para ida y vuelta— su nombre deja de decir hacia dónde se va hoy, y el único que
+     * lo sabe es el segmento. Fusionar sin mover el display deja al proveedor una flecha de dos
+     * puntas en grande y el destino escondido debajo.
      *
-     * En todo lo demás el componente **sí** nombra lo comprado, y con la variante de tarifa al
-     * lado no queda nada por distinguir:
+     * En lo demás el componente nombra lo comprado y la variante lo termina de distinguir:
      *
      * ```
-     * ticket    Ingreso a Catedral              + Adulto Extranjero
-     * guiado    Guiado Machu Picchu             + Privado Circuito 3      ← el circuito va en la variante
-     * pool      Pool Paracas y Huacachina       + Cultur (Base 1, 2 pax)
-     * vuelo     Vuelo Lima Cusco                + PR Expedition Adulto
+     * ticket    Ingreso a Catedral          + Adulto Extranjero
+     * guiado    Guiado Machu Picchu         + Privado Circuito 3     ← el circuito va en la variante
+     * pool      Pool Paracas y Huacachina   + Cultur (Base 1, 2 pax)
      * ```
      *
-     * Ahí el segmento es prosa de ITINERARIO, escrita para el cliente: «La Catedral: Encuentro e
-     * Inmersión Colonial» no le dice al Arzobispado qué se le compró, y `Ingreso a Catedral` sí.
+     * Ahí el segmento es prosa de ITINERARIO escrita para el cliente: «La Catedral: Encuentro e
+     * Inmersión Colonial» no le dice al Arzobispado qué se le compró.
      *
-     * ⚠️ **Se descartó decidirlo contando** a cuántos segmentos sirve cada componente. Da la
-     * misma respuesta con los datos de hoy, pero es una **observación, no una declaración**: el
-     * día que alguien enganche un segundo segmento a un componente, dos filas idénticas
-     * empezarían a pintarse distinto sin que nada visible haya cambiado. El tipo se declara al
-     * crear el componente y no se mueve solo.
+     * ⚠️ **Se descartó decidirlo contando** a cuántos segmentos sirve cada componente. Da la misma
+     * respuesta con los datos de hoy, pero es una **observación, no una declaración**: el día que
+     * alguien enganche un segundo segmento a un componente, dos filas idénticas empezarían a
+     * pintarse distinto sin que nada visible haya cambiado.
      *
-     * ⚠️ Y se probó antes de decidir, sobre las 47 filas reales de La Biblia: poner el segmento
-     * arriba en todas habría encabezado un `Pool Valle Sagrado` y un `Boleto Turístico Parcial`
-     * con «Recojo e inicio de excursión (Servicio Grupal)», que ni siquiera habla de esa fila.
+     * ⚠️ **Y se descartó el precio como criterio.** Parecía que un tren costaba 105 de subida y 60
+     * de bajada, hasta que se supo que son tarifas REFERENCIALES: la diferencia no decía que
+     * fueran productos distintos, decía que alguien actualizó un sentido y no el otro. Que es
+     * justamente el argumento a favor de fusionarlos.
+     *
+     * ⚠️ Probado sobre las 47 filas reales antes de decidir: poner el segmento arriba en TODAS
+     * habría encabezado un `Pool Valle Sagrado` con «Recojo e inicio de excursión (Servicio
+     * Grupal)», que ni siquiera habla de esa fila.
      */
     public function mandaElSegmento(): bool
     {
-        return $this === self::TRANSPORTE;
+        return $this->nombraUnaRuta();
     }
 
 }

@@ -1185,7 +1185,7 @@ al lado  la variante de tarifa
 pequeño  el día del itinerario
 ```
 
-`ComponenteTipoEnum::mandaElSegmento()` devuelve `true` **sólo para `TRANSPORTE`**, y no es una
+`ComponenteTipoEnum::mandaElSegmento()` devuelve exactamente `nombraUnaRuta()` —**transporte, tren y vuelo**—, y no es una
 preferencia de diseño: `travel_componente` **no tiene columnas de origen ni de destino** —las
 tiene el segmento— así que un componente de transporte *no puede* decir a dónde va hoy. Desde el
 refactor ni lo intenta: `Transporte Cusco ↔ Ollanta (ida o vuelta)` sirve a tres segmentos a

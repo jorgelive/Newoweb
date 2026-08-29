@@ -813,12 +813,13 @@ const nombreComponenteDe = (s: OperacionServicio): string | null => operacionSto
  * ¿Quién identifica la fila: el SEGMENTO o el componente? **Espejo de
  * `ComponenteTipoEnum::mandaElSegmento()`** — si cambia la regla, se tocan LOS DOS.
  *
- * Sólo el transporte, y no por preferencia: `travel_componente` no tiene columnas de origen ni
- * destino —las tiene el segmento—, así que un componente de transporte **no puede** decir a dónde
- * va hoy. En todo lo demás el componente nombra lo comprado y la variante lo termina de
- * distinguir: «Guiado Machu Picchu» + «Privado Circuito 3» no necesita el segmento.
+ * Manda el segmento donde el componente nombra una RUTA —transporte, tren, vuelo—: en cuanto esa
+ * ruta se fusiona por sentido, su nombre deja de decir hacia dónde se va hoy y el único que lo
+ * sabe es el segmento. En lo demás el componente nombra la COSA comprada y la variante lo termina
+ * de distinguir: «Guiado Machu Picchu» + «Privado Circuito 3» no necesita el segmento.
  */
-const mandaElSegmento = (tipo?: string | null): boolean => tipo === 'transporte';
+const mandaElSegmento = (tipo?: string | null): boolean =>
+    tipo === 'transporte' || tipo === 'tren' || tipo === 'vuelo';
 
 const tituloDeFila = (s: OperacionServicio): string => {
     const segmento = (nombreSegmentoDe(s) || '').trim();

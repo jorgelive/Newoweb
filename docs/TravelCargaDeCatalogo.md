@@ -202,6 +202,37 @@ el mapa de destinos con las entidades que crea… y en ensayo no crea ninguna, a
 miente es peor que no tenerlo**, porque es justo lo que se mira para decidir si aplicar. El
 conjunto de nombres se llena siempre, escriba o no.
 
+### Trenes y vuelos: emparejar por PUNTOS, no por nombre (29/08/2026)
+
+18 pares más fusionados —2 de tren, 16 de vuelo— con `app:travel:fusionar-rutas-por-puntos`.
+Comando aparte del de transporte por un motivo concreto: **allí el par se detecta por el nombre y
+aquí no se puede**. «Transporte Cusco - Ollanta» se parte por el « - »; «Tren San Pedro Mapi» no
+se parte por nada —¿San / Pedro Mapi?— y «Vuelo Cusco Puerto Maldonado» tampoco.
+
+El par sale de `travel_segmento.inicioPunto` / `finPunto`, que es donde el origen y el destino
+viven **como dato**. Y ya que la verdad son los puntos, **el nombre nuevo también sale de ellos**:
+`Tren Ollantaytambo ↔ Machu Picchu`, no `Tren Ollanta Mapi ↔ …`.
+
+⚠️ **El argumento para fusionarlos no fue el precio: fue el mantenimiento.** «IR 360 Adulto»
+estaba a 105 en un sentido y a 60 en el otro, y durante un rato eso pareció probar que subir
+costaba más que bajar. No: son tarifas **referenciales**, todo subió y **sólo se actualizó un
+lado**. La divergencia no demostraba que fueran productos distintos — demostraba el coste de
+tenerlos por duplicado, que es justo el argumento a favor de unirlos.
+
+⚠️ **Y el desempate es el CONTRARIO que en Paracas↔Ica.** Aquí gana el **mayor** (referencial, el
+bajo es el que se quedó viejo); allí ganó el **menor**, porque 300 contra 200 en el mismo tramo
+era un error, no una referencia. Un comando no puede deducir cuál de los dos casos tiene delante:
+se pregunta.
+
+⚠️ **Fusionar y mostrar son la misma decisión.** Al unir los sentidos el nombre deja de decir
+hacia dónde se va hoy, y quien lo sabe es el segmento. Por eso
+`ComponenteTipoEnum::mandaElSegmento()` cubre exactamente los tipos que `nombraUnaRuta()`
+—transporte, tren, vuelo—. Aplicar una sin la otra deja al proveedor una flecha de dos puntas en
+grande y el destino escondido debajo. Ver `docs/Operacion.md` §5.
+
+Tres se quedan fuera y con motivo: `Tren Hidroeléctrica Mapi` no tiene vuelta, y `Vuelo` y
+`Sobrevuelo` no tienen segmentos, así que no tienen puntos con los que emparejar.
+
 ### Dos componentes por ciudad: urbano y aeropuerto (29/08/2026)
 
 Fase 2. En Cusco había **cinco** componentes urbanos —terminal, paradero, restaurante ida,
@@ -483,4 +514,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:fusionar-tarifas-por-sentido` | distinguir un eje falso (el sentido) de uno verdadero (el sector) en el mismo nombre |
 | `app:travel:limpiar-tarifas-repetidas` | borrar copias exactas sin dejar nunca un componente sin precio |
 | `app:travel:normalizar-capacidades-vehiculo` | separar lo que sube de lo que baja · dejar fuera lo que aún no tiene nombre acordado |
+| `app:travel:fusionar-rutas-por-puntos` | emparejar por dato y no por prosa · construir el nombre desde la fuente de la verdad |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
