@@ -1576,6 +1576,40 @@ que crear doce aeropuertos; sólo existían Lima y Cusco.
 de verdad —«el ascenso a los Andes»— y eso no lo escribe un comando: es trabajo de quien vende el
 viaje. El comando lo avisa al terminar.
 
+### ⚠️ Un segmento de vuelo describe el TRAYECTO, no el momento del viaje
+
+El texto de `VUELO-CUZ-LIM` decía *«con el corazón lleno de recuerdos… una aventura inolvidable»*.
+Da por hecho que el viaje **se acaba ahí** — y el mismo tramo lo usa quien empieza en Cusco y baja
+a Lima para seguir a otro sitio. Entonces el párrafo miente, y encima con nostalgia.
+
+**Lo que siempre es cierto de un vuelo es la geografía**: de dónde se sale, a dónde se llega y
+cuánto se sube o se baja. Eso sirve igual el primer día que el último.
+
+`app:travel:redactar-segmentos-vuelo` compone el texto desde una ficha por ciudad —altitud, qué es
+ese sitio, cómo se sale, qué se ve al llegar— con **dos redacciones distintas**:
+
+| | Cuando… | El relato es… |
+|---|---|---|
+| salto de altura ≥ 800 m | Lima–Cusco, Cusco–Santiago | el ascenso o el descenso, con la cifra |
+| sin salto | Lima–Punta Cana, Lima–Iquitos | la aproximación: qué se ve por la ventanilla |
+
+⚠️ **Dos redacciones, no una con hueco.** Con plantilla única salían frases con relleno —«Volaremos,
+y a la llegada…»— y las 31 quedaban calcadas, que es justo lo que hace que un texto no parezca de
+un itinerario.
+
+### El nombre interno y el texto se tratan aparte
+
+`VUELO-LIM-CUZ` tenía texto escrito a mano —«El ascenso a los Andes»— y a la vez el nombre
+«Vuelo desde la ciudad de Lima a la ciudad de Cusco», que no cabe en ninguna lista.
+
+El comando **respeta el contenido y acorta el nombre**: son dos cosas distintas. El nombre interno
+es con lo que se busca y se ordena; el contenido es lo que lee el pasajero. Proteger uno no es
+razón para proteger el otro.
+
+⚠️ El texto generado es un **primer borrador**. No tiene el oficio de quien vende el viaje; lo que
+hace es que ningún segmento se quede con «Presentación en el aeropuerto con la antelación que
+indique la aerolínea».
+
 ### «Vuelo»: el genérico que evita fichas de un solo uso
 
 `Ticket aereo` pasa a llamarse **`Vuelo`** y se queda como el componente genérico, para las rutas
