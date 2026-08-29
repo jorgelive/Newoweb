@@ -3068,7 +3068,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3114,7 +3114,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3138,7 +3138,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3160,7 +3160,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3182,7 +3182,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3202,7 +3202,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3248,7 +3248,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3272,7 +3272,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3294,7 +3294,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3314,7 +3314,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3360,7 +3360,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3384,7 +3384,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3406,7 +3406,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3426,7 +3426,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3472,7 +3472,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3496,7 +3496,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3518,7 +3518,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -8989,7 +8989,7 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            /** @description ⚠️ **Sin `pax_cotizacion:read`, y es lo que lo separa del título de al lado.** */
             nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
@@ -9043,7 +9043,7 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            /** @description ⚠️ **Sin `pax_cotizacion:read`, y es lo que lo separa del título de al lado.** */
             nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
@@ -9096,7 +9096,7 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            /** @description ⚠️ **Sin `pax_cotizacion:read`, y es lo que lo separa del título de al lado.** */
             nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
@@ -9132,8 +9132,6 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
-            nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -9153,8 +9151,6 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
-            nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -9198,7 +9194,7 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            /** @description ⚠️ **Sin `pax_cotizacion:read`, y es lo que lo separa del título de al lado.** */
             nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
@@ -9252,7 +9248,7 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            /** @description ⚠️ **Sin `pax_cotizacion:read`, y es lo que lo separa del título de al lado.** */
             nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
@@ -9292,8 +9288,6 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
-            nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -9313,8 +9307,6 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
-            nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -9358,7 +9350,7 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            /** @description ⚠️ **Sin `pax_cotizacion:read`, y es lo que lo separa del título de al lado.** */
             nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
@@ -9412,7 +9404,7 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            /** @description ⚠️ **Sin `pax_cotizacion:read`, y es lo que lo separa del título de al lado.** */
             nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
@@ -9452,8 +9444,6 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
-            nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -9473,8 +9463,6 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
-            nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -9518,7 +9506,7 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            /** @description ⚠️ **Sin `pax_cotizacion:read`, y es lo que lo separa del título de al lado.** */
             nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
@@ -9572,7 +9560,7 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
+            /** @description ⚠️ **Sin `pax_cotizacion:read`, y es lo que lo separa del título de al lado.** */
             nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
@@ -9612,8 +9600,6 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
-            nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -9633,8 +9619,6 @@ export interface components {
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
-            /** @description Obtiene el nombre interno operativo de la tarifa. */
-            nombreInternoSnapshot?: string | null;
             modalidadSnapshot?: string | null;
             categoriaSnapshot?: string | null;
             procedenciaSnapshot?: string | null;
@@ -10622,6 +10606,7 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            readonly vuelos?: components["schemas"]["CotizacionVuelo"][];
             /**
              * @description ¿La reserva está emitida, o pagada y esperando billete?
              * @default true
@@ -10770,6 +10755,7 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.html"][];
             /**
              * @description ¿La reserva está emitida, o pagada y esperando billete?
              * @default true
@@ -10967,6 +10953,7 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            readonly vuelos?: components["schemas"]["CotizacionVuelo.multipart"][];
             /**
              * @description ¿La reserva está emitida, o pagada y esperando billete?
              * @default true
@@ -17458,6 +17445,10 @@ export interface components {
             descripcion: string;
             /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
             nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
             contextoServicio?: string | null;
             /** Format: date-time */
@@ -17507,6 +17498,10 @@ export interface components {
             descripcion: string;
             /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
             nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
             contextoServicio?: string | null;
             /** Format: date-time */
@@ -17556,6 +17551,10 @@ export interface components {
             descripcion: string;
             /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
             nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
             contextoServicio?: string | null;
             /** Format: date-time */
@@ -17605,6 +17604,10 @@ export interface components {
             descripcion: string;
             /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
             nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
             contextoServicio?: string | null;
             /** Format: date-time */
@@ -17654,6 +17657,10 @@ export interface components {
             descripcion: string;
             /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
             nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
             contextoServicio?: string | null;
             /** Format: date-time */
@@ -17703,6 +17710,10 @@ export interface components {
             descripcion: string;
             /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
             nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
             contextoServicio?: string | null;
             /** Format: date-time */
@@ -17752,6 +17763,10 @@ export interface components {
             descripcion: string;
             /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
             nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
             contextoServicio?: string | null;
             /** Format: date-time */
@@ -17801,6 +17816,10 @@ export interface components {
             descripcion: string;
             /** @description QUÉ hay que hacer: el nombre del componente. Es el encargo, y va en grande. */
             nombreComponente?: string | null;
+            /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
+            nombreSegmento?: string | null;
+            /** @description Qué NATURALEZA tiene lo contratado, congelada. */
+            tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
             contextoServicio?: string | null;
             /** Format: date-time */

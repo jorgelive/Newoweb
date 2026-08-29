@@ -3088,6 +3088,35 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.z Un campo expuesto que nadie pintaba (29/08/2026)
+
+`CotizacionCottarifa::$nombreInternoSnapshot` llevaba `pax_cotizacion:read`. **Ninguna pantalla de
+`pax` lo pintaba** —verificado: cero usos fuera del `.d.ts` generado— pero viajaba en el JSON de
+cualquier huésped con cotización:
+
+```
+Van (Incluido en paquete externo)
+Hotel 4 estrellas por grupo
+Tacama (Base 2 Pax)
+Xtreme Tourbulencia Adulto
+```
+
+Jerga de compras, nombres de proveedor y bases de cálculo. Los nombres internos del **segmento**,
+el **componente** y el **cotservicio** sí estaban limpios; éste era el único que se había quedado
+con el grupo, y no había motivo.
+
+⚠️ **Exposición sin uso: no da error nunca, así que puede durar años.** No lo delató un síntoma
+—no hay ninguno— sino la incoherencia interna: cuatro campos hermanos con la misma naturaleza y
+uno con un grupo de más. Es exactamente el criterio de `CoherenciaCatalogoChecker`, aplicado a
+mano.
+
+Antes de quitarlo se comprobó que no rompía nada: cero usos en `pax/src`, cero en los modelos,
+cero en la vista cliente de `util`, y en el backend sólo lo leen La Biblia y los comandos, que no
+son contextos de huésped.
+
+⚠️ Y se regeneraron **los dos** `api.d.ts`, como manda CLAUDE.md: el campo desapareció de los 6
+esquemas de tarifa que sirven a `pax`.
+
 ## 6.y El título del componente también dejó de decir la dirección (29/08/2026)
 
 Al fusionar ida y vuelta se decidió **no tocar `titulo`** por ser prosa de cliente. Fue un error a

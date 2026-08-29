@@ -115,7 +115,22 @@ class CotizacionCottarifa
     #[ORM\Column(type: 'json')]
     private array $tituloSnapshot = [];
 
-    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read', 'pax_cotizacion:read'])]
+    /**
+     * ⚠️ **Sin `pax_cotizacion:read`, y es lo que lo separa del título de al lado.**
+     *
+     * Es jerga de compras: «Van (Incluido en paquete externo)», «Hotel 4 estrellas por grupo»,
+     * «Tacama (Base 2 Pax)», «Xtreme Tourbulencia Adulto» — nombres de proveedor y bases de
+     * cálculo dentro.
+     *
+     * Lo llevaba hasta el 29/08/2026. **Ninguna pantalla de `pax` lo pintaba, pero viajaba en el
+     * JSON** de cualquier huésped con cotización: exposición sin uso, que no da error nunca y por
+     * eso puede durar años. Salió al comprobar por qué los nombres internos del segmento, el
+     * componente y el servicio sí estaban limpios y éste no — no había motivo, era el único que
+     * se había quedado con el grupo.
+     *
+     * Lo que el huésped lee es `tituloSnapshot`, que está escrito para él.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombreInternoSnapshot = null;
 
