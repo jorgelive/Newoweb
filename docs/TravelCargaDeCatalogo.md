@@ -176,6 +176,32 @@ alto sería tan arbitrario como coger el bajo. Vive en
 `ResolverTarifasDivergentesCommand::PENDIENTES` con el porqué escrito al lado, que es mejor sitio
 que la cabeza de alguien.
 
+### ⚠️ Una preposición basta para que un par pase desapercibido (29/08/2026)
+
+`Transporte Aeropuerto Lima - Hotel Lima` y `Transporte Hotel Lima - Aeropuerto **de** Lima` son
+el mismo par direccional, y la detección automática **no los vio**: compara los extremos y
+«Aeropuerto Lima» no es «Aeropuerto de Lima».
+
+Por eso la fusión automática **no sustituye a mirar la lista**. Quedaron tres componentes para el
+mismo traslado —los dos con los precios reales y uno tercero, creado el mismo día para meter
+Minibús y Bus, con todo a cero **y quedándose con los enlaces**—. Lo consolidó
+`app:travel:consolidar-transporte-aeropuerto-lima` con un cuadro explícito.
+
+Dos cosas que quedaron escritas ahí y valen para el resto:
+
+- **Las tarifas a 0 pueden ser deliberadas.** Minibús y Bus existen para poder cotizar un grupo
+  grande antes de negociar el precio. Un 0 no siempre es un olvido, y el comando lo dice en voz
+  alta al terminar para que nadie lo «arregle».
+- **La noche era +20% exacto** en los cuatro vehículos con precio (70→84, 110→132, 200→240,
+  280→336). No se calculó: un patrón observado no es una regla de negocio, y convertirlo en
+  código lo vuelve una a espaldas de quien pone los precios.
+
+⚠️ **Y un fallo del propio ensayo, que es el peor sitio donde tenerlo.** El `--dry-run` construía
+el mapa de destinos con las entidades que crea… y en ensayo no crea ninguna, así que informaba
+«sin equivalente» en las 24 tarifas. El mapeo estaba bien; el preview mentía. **Un preview que
+miente es peor que no tenerlo**, porque es justo lo que se mira para decidir si aplicar. El
+conjunto de nombres se llena siempre, escriba o no.
+
 ### Dos componentes por ciudad: urbano y aeropuerto (29/08/2026)
 
 Fase 2. En Cusco había **cinco** componentes urbanos —terminal, paradero, restaurante ida,
@@ -448,4 +474,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:fusionar-transportes-bidireccionales` | fusionar duplicados sin inventar precios · reapuntar lo que citaba lo borrado |
 | `app:travel:normalizar-transporte-urbano` | un cuadro de precios como fuente de verdad · absorber copias |
 | `app:travel:resolver-tarifas-divergentes` | aplicar una decisión de negocio dejando por escrito la que no se tomó |
+| `app:travel:consolidar-transporte-aeropuerto-lima` | consolidar con cuadro explícito · reapuntar componente Y tarifa en cotizaciones hechas |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
