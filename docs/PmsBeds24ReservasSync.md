@@ -63,6 +63,18 @@ El sistema mantiene sincronizadas en tiempo real las reservas entre Beds24 (gest
 
 **Regla de oro del flujo:** Beds24 es la fuente de verdad para fechas y estado en reservas OTA. El PMS es la fuente de verdad para datos del huésped en reservas directas.
 
+⚠️ **Los dos sentidos NO van a la misma velocidad, y confundirlo lleva a diagnósticos falsos:**
+
+| | cuándo |
+|---|---|
+| PMS → Beds24 | **al instante**. `Beds24BookingsPushQueueListener::postFlush()` despacha `RunExchangeTaskDispatch` justo tras el commit y los workers de Messenger lo recogen en segundos. El **cron de push es sólo la red de seguridad** para lo que falle |
+| Beds24 → PMS (webhook) | segundos, con 15 s de retardo deliberado (§ del fast-track) |
+| Beds24 → PMS (pull) | el cron corre cada 20 min, pero **cada pasada cubre una ventana de llegadas distinta y avanza**: una reserva concreta se repasa una vez por **ciclo de ~5 h** |
+
+Así que «lo cambié en `/util` y el pull me lo pisó antes de que llegara a Beds24» es un cuento que
+no cuadra: son segundos contra cinco horas. Si un cambio local no está en Beds24, el motivo es
+otro — no una carrera.
+
 ---
 
 ## 2. Entidades Clave
@@ -588,28 +600,31 @@ sobre un comportamiento accidental, no la política del negocio. Queda anotado p
 fue el código sino el documento, y un doc que declara intencional lo que es un accidente es más
 caro que no tenerlo — se cita después como si fuera una decisión.
 
-#### Lo que costaba: una confirmación duraba 20 minutos
+#### Lo que costaba: nadie las confirmaba
 
-`upsertEvento()` hace `setEstado(resolveEstado(...))` **en cada pasada** del pull, sin condición.
-Confirmar una reserva de Airbnb a mano en `/util` la dejaba confirmada hasta la siguiente pasada
-—cada 20 minutos—, que la devolvía a `pendiente`. Y §9.5, que la habría re-confirmado por tener
-`pago-total`, está apagada en `MODE_PULL`.
-
-Sobrevivía **sólo** si el push lograba poner `confirmed` en Beds24 antes de esa pasada: entonces
-el pull ya traía `confirmed` y se sostenía sola. Medido el 29/08/2026:
+`upsertEvento()` hace `setEstado(resolveEstado(...))` **en cada pasada** del pull, sin condición,
+y §9.5 —que la habría re-confirmado por tener `pago-total`— está apagada en `MODE_PULL`. Con la
+regla vieja, una reserva de Airbnb volvía a `pendiente` cada vez que el barrido pasaba por su
+ventana de llegada. Medido el 29/08/2026:
 
 | | local | Beds24 | n |
 |---|---|---|---|
 | futuras (dentro del barrido) | `pendiente` | `new` | **11 de 11** |
 | ya pasadas (fuera del barrido) | `confirmada` | `new` | 11 de 13 |
 
-Ninguna futura sobrevivía confirmada. Las pasadas sí, porque el barrido va **por rango de
-llegadas** y, cuando la estancia queda atrás, deja de tocarlas y se congelan en lo que tuvieran.
+Ninguna futura estaba confirmada; las pasadas sí, porque el barrido va **por rango de llegadas y
+sólo hacia delante**, así que cuando la estancia queda atrás deja de tocarlas.
 
-⚠️ **`PmsEventoCalendario::$estadoPushSolicitado` no protege de esto y no es su trabajo.** Ese
-flag resuelve la carrera del **otro sentido** —el cron re-imponiendo un estado viejo cuando el
-pull venía atrasado, que resucitaba cancelaciones— y se consulta en tres sitios, los tres del
-push. El pull no lo mira nunca.
+⚠️ **Esto NO era una carrera contra el push, y conviene no contarlo así.** Un cambio local llega a
+Beds24 **al instante**: `Beds24BookingsPushQueueListener::postFlush()` despacha
+`RunExchangeTaskDispatch` justo después del commit y lo recogen los workers de Messenger en
+segundos. El **cron de push es sólo la red de seguridad** para lo que falle. Y el barrido del pull
+repasa una reserva concreta una vez por **ciclo de 5 horas** —cada pasada cubre una ventana de
+llegadas distinta y avanza; el ciclo reinicia a las 17:14, 22:14, 03:14—, no cada 20 minutos.
+Segundos contra cinco horas: confirmar a mano funcionaba perfectamente.
+
+Lo que pasaba es más simple y peor: **nadie las confirmaba**, porque la regla decía que el canal
+no confirma solo. Las 11 no eran confirmaciones perdidas; eran confirmaciones que nunca ocurrieron.
 
 #### La trampa del cast, que sigue ahí
 

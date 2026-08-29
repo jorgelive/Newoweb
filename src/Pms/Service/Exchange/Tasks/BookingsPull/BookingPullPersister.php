@@ -686,12 +686,11 @@ final class BookingPullPersister implements ResetInterface
         // la regla alcanzaba también a los canales de pago total. **Eso era inferencia mía sobre
         // un comportamiento que era accidental**, no la regla del negocio. La regla es ésta.
         //
-        // Sin esto, una reserva de Airbnb confirmada a mano duraba hasta la siguiente pasada del
-        // pull —20 minutos— porque `setEstado()` reescribe el estado del canal en cada una, y la
-        // auto-confirmación por pago (§9.5) está apagada en `MODE_PULL`. Sobrevivía sólo si el
-        // push lograba poner `confirmed` en Beds24 antes. Medido: de once estancias futuras que
-        // Beds24 daba como `new`, **cero** estaban confirmadas en local; de las ya pasadas —que
-        // el barrido por rango de llegadas deja de tocar— once de trece sí.
+        // Medido el 29/08/2026 con la regla vieja: de once estancias futuras que Beds24 daba
+        // como `new`, **cero** estaban confirmadas en local; de las ya pasadas —que el barrido
+        // por rango de llegadas, que sólo va hacia delante, deja de tocar— once de trece sí.
+        // No eran confirmaciones perdidas: eran confirmaciones que nunca ocurrieron, porque la
+        // regla decía que el canal no confirma solo.
         $channelCode = strtolower(trim((string) ($dto->channel ?? '')));
 
         if (in_array($channelCode, PmsChannel::CANAL_PAGO_TOTAL, true)) {
