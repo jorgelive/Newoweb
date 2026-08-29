@@ -249,6 +249,24 @@ cambio de precio o de capacidad ya no se podía aplicar volviendo a lanzarlo, qu
 que sirve tener un cuadro. Se descubrió al corregir las plazas de Arequipa. Ahora busca por los
 dos nombres.
 
+### El sentido también se duplica DENTRO de la tarifa (29/08/2026)
+
+`Transporte Valle Sagrado ↔ Ollanta` tenía 21 tarifas y casi la mitad eran pares: «Master
+**hasta** sector Aranwa» y «Master **desde** sector Aranwa», mismo precio, misma capacidad. En un
+componente que ya es bidireccional esas dos palabras no distinguen nada —la dirección la pone el
+segmento— y sólo obligan al operador a elegir entre dos filas idénticas.
+
+`app:travel:fusionar-tarifas-por-sentido` fundió 12 grupos, 24 tarifas en 12. Actúa **sólo en
+componentes con `↔`**: en uno direccional, «desde» y «hasta» sí podrían significar algo.
+
+⚠️ **Y lo que NO se toca, que es la mitad de la lección.** En el mismo nombre convivían un eje
+falso y uno verdadero: el sentido no distingue, pero el **sector sí** —Urubamba 55, Aranwa 60,
+Pisac 120— porque es distancia real. Mirar cuál es cuál **antes** de fusionar es todo el trabajo;
+el comando sólo ejecuta la decisión.
+
+⚠️ La palabra se quita con **límites de palabra** (`\bdesde\b`), no con un `str_replace`: éste
+mordería cualquier nombre que la contenga dentro de otra.
+
 ### 🔜 PENDIENTE: revisar las capacidades de todo el catálogo
 
 Arequipa declaraba la `Van` con **4 plazas, igual que el `Auto`**. Se corrigió con los números
@@ -516,4 +534,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:normalizar-transporte-urbano` | un cuadro de precios como fuente de verdad · absorber copias |
 | `app:travel:resolver-tarifas-divergentes` | aplicar una decisión de negocio dejando por escrito la que no se tomó |
 | `app:travel:consolidar-transporte-aeropuerto-lima` | consolidar con cuadro explícito · reapuntar componente Y tarifa en cotizaciones hechas |
+| `app:travel:fusionar-tarifas-por-sentido` | distinguir un eje falso (el sentido) de uno verdadero (el sector) en el mismo nombre |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |

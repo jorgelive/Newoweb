@@ -64,7 +64,7 @@ final class NormalizarTransporteUrbanoCommand extends Command
      * - **Puno** tiene su aeropuerto en **Juliaca, a casi una hora** → eso no es urbano con
      *   recargo, es un tramo interurbano, y se queda como componente aparte sin tocarlo.
      *
-     * @var array<string, array{urbano: array<string, array{monto: string, cap: int}>, aeropuerto?: array<string, array{monto: string, cap: int}>, canonicoUrbano: string, absorbidos: list<string>, canonicoAeropuerto?: string, nombreUrbano: string, nombreAeropuerto?: string}>
+     * @var array<string, array{urbano: array<string, array{monto: string, cap: int}>, aeropuerto?: array<string, array{monto: string, cap: int}>, canonicoUrbano: string, absorbidos: list<string>, canonicoAeropuerto?: string, absorbidosAeropuerto?: list<string>, nombreUrbano: string, nombreAeropuerto?: string}>
      */
     private const CUADROS = [
         'Cusco' => [
@@ -108,6 +108,37 @@ final class NormalizarTransporteUrbanoCommand extends Command
                 'Van' => ['monto' => '17.00', 'cap' => 5],
                 'Master' => ['monto' => '23.00', 'cap' => 14],
                 'Sprinter' => ['monto' => '28.00', 'cap' => 14],
+            ],
+        ],
+
+        // El Valle no es una ciudad, pero tiene exactamente la misma forma: un traslado desde
+        // Cusco y otro desde su aeropuerto. Hoy cuestan lo mismo —40/73/99/120/160— y aun así
+        // van separados, porque **el ingreso al aeropuerto es un caso aparte**: es donde aparece
+        // el coste de entrada, igual que en Cusco. Tenerlos separados desde ya evita repetir la
+        // fusión el día que ese coste se cobre.
+        'Valle Sagrado' => [
+            'canonicoUrbano' => 'Transporte Cusco ↔ Valle Sagrado (ida o vuelta)',
+            'nombreUrbano' => 'Transporte Cusco ↔ Valle Sagrado (ida o vuelta)',
+            'absorbidos' => [],
+            'urbano' => [
+                'Auto' => ['monto' => '40.00', 'cap' => 4],
+                'Van' => ['monto' => '73.00', 'cap' => 8],
+                'Master' => ['monto' => '99.00', 'cap' => 14],
+                'Sprinter' => ['monto' => '120.00', 'cap' => 18],
+                'Bus' => ['monto' => '160.00', 'cap' => 25],
+            ],
+            // ⚠️ Ojo al DOBLE ESPACIO: «Transporte  Aeropuerto». Es la razón de que la fusión
+            // automática no lo emparejara con «Transporte Valle Sagrado - Aeropuerto», igual que
+            // en Lima lo impidió una preposición. Los nombres se comparan literalmente.
+            'canonicoAeropuerto' => 'Transporte  Aeropuerto Cusco - Valle Sagrado',
+            'absorbidosAeropuerto' => ['Transporte Valle Sagrado - Aeropuerto'],
+            'nombreAeropuerto' => 'Transporte Aeropuerto Cusco ↔ Valle Sagrado (ida o vuelta)',
+            'aeropuerto' => [
+                'Auto' => ['monto' => '40.00', 'cap' => 4],
+                'Van' => ['monto' => '73.00', 'cap' => 8],
+                'Master' => ['monto' => '99.00', 'cap' => 14],
+                'Sprinter' => ['monto' => '120.00', 'cap' => 18],
+                'Bus' => ['monto' => '160.00', 'cap' => 25],
             ],
         ],
 
@@ -175,6 +206,7 @@ final class NormalizarTransporteUrbanoCommand extends Command
             }
 
             $io->section('Aeropuerto');
+            $this->absorber($aeropuerto, $cuadro['absorbidosAeropuerto'] ?? [], $io, $simula);
             $this->ajustarAlCuadro($aeropuerto, $cuadro['aeropuerto'], $io, $simula);
             $this->renombrar($aeropuerto, $cuadro['nombreAeropuerto'], $io, $simula);
         }
