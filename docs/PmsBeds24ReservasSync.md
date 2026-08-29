@@ -69,7 +69,7 @@ El sistema mantiene sincronizadas en tiempo real las reservas entre Beds24 (gest
 |---|---|
 | PMS → Beds24 | **al instante**. `Beds24BookingsPushQueueListener::postFlush()` despacha `RunExchangeTaskDispatch` justo tras el commit y los workers de Messenger lo recogen en segundos. El **cron de push es sólo la red de seguridad** para lo que falle |
 | Beds24 → PMS (webhook) | segundos, con 15 s de retardo deliberado (§ del fast-track) |
-| Beds24 → PMS (pull) | el cron corre cada 20 min, pero **cada pasada cubre una ventana de llegadas distinta y avanza**: una reserva concreta se repasa una vez por **ciclo de ~5 h** |
+| Beds24 → PMS (pull) | el cron corre cada 20 min, pero **cada pasada cubre una ventana de llegadas distinta y avanza**: una reserva concreta se repasa una vez por **ciclo de ~5 h**. El ciclo arranca en `hoy − 1`, así que lo anterior a ayer queda fuera y no se vuelve a tocar |
 
 Así que «lo cambié en `/util` y el pull me lo pisó antes de que llegara a Beds24» es un cuento que
 no cuadra: son segundos contra cinco horas. Si un cambio local no está en Beds24, el motivo es
@@ -586,6 +586,26 @@ notas de texto en teléfonos; un `012345` o un "no tiene" siguen sin botón, que
 Intocables en los dos casos: `cancelada` (terminal), `abierto` (un *inquiry* no es una venta, y
 §11.2.b depende de que se quede así para no estrenar línea financiera) y `bloqueo`.
 
+#### Cómo se lleva con la regla de transiciones OTA (§12.13.b)
+
+Dos preguntas que salen solas al leer esto, y las dos tienen respuesta en el código:
+
+- **¿La confirmación del pull pasa por `transicionOtaPermitida()`?** No, y no debe.
+  `PmsEventoCalendarioSecurityListener::preUpdate()` sale en su primera línea con
+  `if ($this->syncContext->isPull()) return;`. Esa regla gobierna **mutaciones locales** —lo que
+  el PMS quiere imponerle al canal—; aquí el cambio lo origina el canal, así que no hay nada que
+  autorizar. Aun así la transición sería legal: `pendiente ⇄ confirmada` está permitida, porque
+  moverse entre los tres estados vivos no le quita la habitación a nadie.
+- **¿Se lo devolvemos a Beds24?** Tampoco.
+  `Beds24BookingsPushQueueListener::onFlush()` sólo pone `estadoPushSolicitado` cuando el cambio
+  de `estado` ocurre **fuera** de contexto pull (`!$this->syncContext->isPull()`), justamente para
+  no devolverle al canal lo que vino de él. Resultado estable y esperado: local `confirmada`,
+  `estado_beds24` sigue en `new`, y cada pasada recalcula lo mismo sin generar changeset.
+
+Que una estancia quede `confirmada` con `estado_beds24 = new` **no es una desincronización**: es
+esta regla funcionando. La desincronización sería lo contrario — `pendiente` con el dinero ya
+cobrado.
+
 > No confundir con **§9.5**, que es otra regla: allí el disparador es un **pago registrado en el
 > PMS**, y está desactivada durante el Pull (`SyncContext::MODE_PULL`).
 
@@ -612,8 +632,10 @@ ventana de llegada. Medido el 29/08/2026:
 | futuras (dentro del barrido) | `pendiente` | `new` | **11 de 11** |
 | ya pasadas (fuera del barrido) | `confirmada` | `new` | 11 de 13 |
 
-Ninguna futura estaba confirmada; las pasadas sí, porque el barrido va **por rango de llegadas y
-sólo hacia delante**, así que cuando la estancia queda atrás deja de tocarlas.
+Ninguna dentro del barrido estaba confirmada; las de fuera sí. El barrido va **por rango de
+llegadas** y cada ciclo arranca en **ayer** (`arrival_from = hoy − 1`), así que alcanza las
+estancias en curso y las recién pasadas, pero deja de tocar las anteriores: se congelan en lo que
+tuvieran. Por eso las viejas aparecían confirmadas y las vivas no.
 
 ⚠️ **Esto NO era una carrera contra el push, y conviene no contarlo así.** Un cambio local llega a
 Beds24 **al instante**: `Beds24BookingsPushQueueListener::postFlush()` despacha
