@@ -148,6 +148,39 @@ Se cazó comparando el conteo contra producción, que tenía 0. Ver `reapuntarCo
 en el urbano de Cusco la Van del aeropuerto y la del terminal estaban **intercambiadas**. Nadie
 lo vio en cinco componentes por cinco tarifas.
 
+### Dos componentes por ciudad: urbano y aeropuerto (29/08/2026)
+
+Fase 2. En Cusco había **cinco** componentes urbanos —terminal, paradero, restaurante ida,
+restaurante vuelta— con las mismas cuatro tarifas repetidas y **ninguno con enlaces**. Cinco
+copias del mismo precio es donde se esconden los errores.
+
+```
+             Auto  Van  Master  Sprinter  Bus
+urbano        25    35    14      16       20
+aeropuerto    30    40    16      20       25
+recargo       +5    +5    +2      +4       +5     ← el estacionamiento de la terminal aérea
+```
+
+⚠️ **El recargo no es plano ni porcentual, así que no se puede calcular: hay que preguntarlo.**
+Es un coste real —lo que cobran por entrar—, no un margen.
+
+**Por qué DOS componentes y no uno con una tarifa de recargo.** Lo segundo es más fiel al dato
+—un solo componente, «Van» y «Van · con ingreso al aeropuerto»— y se descartó a propósito:
+obliga al operador a acordarse de elegir la correcta, y **equivocarse ahí lo paga la operación**.
+Con dos componentes hay que equivocarse de componente, que es mucho más difícil.
+
+**Lo que destapó:** el `Auto` urbano cobraba 30, el precio del aeropuerto, en todas partes. Y las
+Van estaban **intercambiadas** entre el componente de terminal y el de aeropuerto. Ninguna de las
+dos cosas se ve leyendo un componente: sólo aparecen al poner los cinco cuadros uno al lado del
+otro.
+
+⚠️ **Sólo está hecho Cusco.** Lima, Arequipa, Puno, Ica, Paracas y Quillabamba repiten la misma
+forma, pero su cuadro de precios no se sabe, y extrapolar el de Cusco sería inventar dinero. Se
+añaden a `NormalizarTransporteUrbanoCommand::CUADROS` cuando alguien los dicte.
+
+Y `Traslado a Restaurante con espera Cusco` **no se toca**: cuesta más porque el vehículo espera.
+Es otro servicio, no una copia.
+
 ## 3. Pool o plantilla
 
 | | Pool | Itinerario |
@@ -385,4 +418,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:crear-segmentos-vuelo` | segmento por ruta · puntos fijos · pool masivo |
 | `app:travel:crear-varios-aeropuerto-lima` | retirar un ancla traspasando la hora promovida · mudar un segmento de servicio |
 | `app:travel:fusionar-transportes-bidireccionales` | fusionar duplicados sin inventar precios · reapuntar lo que citaba lo borrado |
+| `app:travel:normalizar-transporte-urbano` | un cuadro de precios como fuente de verdad · absorber copias |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
