@@ -130,6 +130,12 @@ final class CalendarResourceCatalog
             ? explode('.', $associationPath)[0]
             : $associationPath;
 
+        // `getManagerForClass()` pide `class-string`, y esto viene de la configuración del
+        // calendario: una clase que no existe se comprueba aquí, no dentro de Doctrine.
+        if (!class_exists($ownerClass)) {
+            return null;
+        }
+
         $em = $this->managerRegistry->getManagerForClass($ownerClass);
         if (!$em instanceof EntityManagerInterface) {
             return null;

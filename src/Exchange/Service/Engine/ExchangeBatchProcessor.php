@@ -48,7 +48,10 @@ final class ExchangeBatchProcessor
             'method'  => $mapping->method,
             'url'     => $mapping->fullUrl,
             'payload' => $mapping->payload,
-        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+            // Para auditar la petición: si no se puede serializar se guarda el motivo, no
+            // un `false` que en la columna se ve igual que «no se mandó nada».
+            ?: '{"_error":"la petición no se pudo serializar"}';
 
         foreach ($batch->getItems() as $item) {
             $item->setLastRequestRaw($jsonRequest);

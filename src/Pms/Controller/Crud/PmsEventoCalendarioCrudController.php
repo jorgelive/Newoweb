@@ -368,7 +368,10 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         if ($isBloqueo) $fIsOta->hideOnForm();
         yield $fIsOta;
 
-        if ($pageName === Crud::PAGE_EDIT || $pageName === Crud::PAGE_NEW || !empty($entity?->getReferenciaCanal())) {
+        // `$entity` llega como `object` desde EasyAdmin; el método es de PmsEventoCalendario.
+        $tieneRefCanal = $entity instanceof PmsEventoCalendario && !empty($entity->getReferenciaCanal());
+
+        if ($pageName === Crud::PAGE_EDIT || $pageName === Crud::PAGE_NEW || $tieneRefCanal) {
             yield TextField::new('referenciaCanal', 'Ref. OTA')->setFormTypeOption('disabled', true);
         }
 
