@@ -383,6 +383,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
      * 🔒 El contexto manda: si quien habla es el huésped, es SU conversación y punto. El
      * parámetro sólo sirve al equipo desde el panel, donde no hay contexto de chat.
      */
+    /** @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface. */
     private function conversacionDe(array $entrada, ActorInterface $actor): ?MessageConversation
     {
         $repo = $this->em->getRepository(MessageConversation::class);

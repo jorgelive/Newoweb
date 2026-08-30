@@ -291,6 +291,7 @@ final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDomini
      *
      * Aprobar «se enviará la plantilla enviar_guia» a ciegas no es aprobar nada: hay que ver el
      * texto. Se muestra el del primer canal, que es el que más se parece a lo que llega.
+     * @param list<string> $canales Los canales pedidos, por su identificador.
      */
     private function cuerpo(MessageTemplate $plantilla, array $canales, string $idioma): ?string
     {

@@ -29,6 +29,7 @@ class AutoResponderRule
     #[ORM\Column(type: 'string', length: 50)]
     private string $actionType;
 
+    /** @var array<string, mixed>|null Los parámetros de la acción, con la forma que pida cada una. */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $actionParameters = [];
 
@@ -87,6 +88,7 @@ class AutoResponderRule
      * Obtiene los parámetros dinámicos de la acción en formato Array nativo de PHP.
      * Usado internamente por el Router y los Handlers para ejecutar la lógica.
      */
+    /** @return array<string, mixed>|null */
     public function getActionParameters(): ?array
     {
         return $this->actionParameters;
@@ -95,6 +97,7 @@ class AutoResponderRule
     /**
      * Establece los parámetros dinámicos de la acción desde un Array nativo de PHP.
      */
+    /** @param array<string, mixed>|null $actionParameters */
     public function setActionParameters(?array $actionParameters): self
     {
         $this->actionParameters = $actionParameters;

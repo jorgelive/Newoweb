@@ -614,7 +614,8 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
     /**
      * Una sola frase que el modelo pueda trasladar tal cual, con las dos dudas juntas.
      *
-     * @param list<string> $faltan
+     * @param list<string> $faltan Los campos que el modelo no rellenó.
+     * @param list<User> $candidatos Los cobradores que encajan con lo que dijo el huésped.
      */
     private function pregunta(
         array $faltan,
@@ -752,6 +753,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         return $principales[0] ?? null;
     }
 
+    /** @return list<User> Los usuarios con rol de cobrador, por nombre. */
     private function cobradoresPosibles(string $busqueda = ''): array
     {
         $qb = $this->em->getRepository(User::class)->createQueryBuilder('u')

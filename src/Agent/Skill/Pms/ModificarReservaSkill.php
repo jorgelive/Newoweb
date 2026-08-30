@@ -254,6 +254,7 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
     }
 
     /** ¿Se pide algo que vive en la estancia y no en la reserva? */
+    /** @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface. */
     private function pidenAlgoDeLaEstancia(array $entrada): bool
     {
         foreach (['adultos', 'ninos', 'estado_pago'] as $campo) {
@@ -268,7 +269,8 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
     /**
      * Teléfono, correo e idioma: son del huésped, así que viven en la reserva.
      *
-     * @param list<string> $cambios
+     * @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface.
+     * @param list<string> $cambios Acumulador: una frase por cambio, para contárselo al operador.
      */
     private function camposDelHuesped(array $entrada, PmsReserva $reserva, array &$cambios): void
     {
@@ -308,6 +310,9 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
      * @param list<string> $cambios
      * @param list<string> $consecuencias
      * @return string|null Mensaje de error, o null si todo bien.
+     * @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface.
+     * @param list<string> $cambios Acumulador: una frase por cambio.
+     * @param list<string> $consecuencias Acumulador: lo que ese cambio arrastra.
      */
     private function camposDeLaEstancia(
         array $entrada,

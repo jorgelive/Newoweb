@@ -34,6 +34,7 @@ final readonly class AgentActor implements ActorInterface
         private ?string $conversacionId = null,
         private VinculoComercial $vinculo = VinculoComercial::Ninguno,
         private RestriccionCanal $restriccion = RestriccionCanal::Ninguna,
+        /** @var list<string> Los dominios que el actor puede tocar. Vacío ⇒ sin acotar. */
         private array $dominios = [],
     ) {}
 
@@ -53,6 +54,7 @@ final readonly class AgentActor implements ActorInterface
      * dominio **no es un permiso**: lo que se puede hacer lo siguen decidiendo los roles, y un
      * actor de más en un catálogo no abre ningún dato de nadie.
      */
+    /** @return list<string> */
     public function dominios(): array
     {
         return $this->dominios;
@@ -87,6 +89,8 @@ final readonly class AgentActor implements ActorInterface
      * abierto. Misma familia que una sesión robada. Por eso el control se escala con el daño en
      * {@see NivelRiesgo} en vez de blindar el canal entero: para este negocio —el activo son
      * fechas de reservas— es proporcionado.
+     *
+     * @param list<string>|null $rolesEfectivos Ver el aviso de `delPanel()`.
      */
     public static function delEquipoPorChat(
         User $usuario,
@@ -99,7 +103,11 @@ final readonly class AgentActor implements ActorInterface
         return new self($usuario, $origen, $rolesEfectivos ?? $usuario->getRoles(), $tipo, $id, $conversacionId);
     }
 
-    /** Quien escribe por el chat sin ser del equipo. Acotado a su propia reserva. */
+    /**
+     * Quien escribe por el chat sin ser del equipo. Acotado a su propia reserva.
+     *
+     * @param list<string> $dominios
+     */
     public static function huesped(
         string $origen,
         ?string $contextoTipo,
@@ -137,6 +145,7 @@ final readonly class AgentActor implements ActorInterface
      * —su único camino para no ser un callejón sin salida— y con él no se le abre ninguna
      * skill acotada, porque todas miran el contexto y ese sigue en `null`.
      */
+    /** @param list<string> $dominios */
     public static function prospecto(string $origen, ?string $conversacionId = null, array $dominios = []): self
     {
         return new self(

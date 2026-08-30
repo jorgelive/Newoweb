@@ -229,6 +229,7 @@ final readonly class CrearEstanciaSkill implements SkillInterface, SkillDominioI
         return $this->conDatosCompletos($entrada, $reserva, $unidad, $desde, $hasta, $adultos);
     }
 
+    /** @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface. */
     private function conDatosCompletos(
         array $entrada,
         PmsReserva $reserva,

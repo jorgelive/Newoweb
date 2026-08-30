@@ -266,6 +266,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
 
     /**
      * @return SkillResult
+     * @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface.
      */
     private function conDatosCompletos(
         array $entrada,
@@ -363,6 +364,7 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
      * operador confirmaba 36.00 menos de lo que luego veía—.
      *
      * @return array{lineas: list<array{concepto: string, importe: string, origen: string, tipo: PmsTipoCargo}>, total: float, moneda: string}
+     * @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface.
      */
     private function cargosPrevistos(
         array $entrada,
@@ -475,6 +477,8 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
      * lo que separa «¿creo la reserva?» de «¿retiro esta casita de la venta en Booking y
      * programo dos mensajes al huésped?».
      *
+     * @param array<string, mixed> $resumen El resumen de la reserva que se acaba de armar.
+     *
      * @return list<string>
      */
     private function consecuencias(
@@ -521,7 +525,10 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
         return $lista;
     }
 
-    /** @param array<string,mixed> $resumen */
+    /**
+     * @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface.
+     * @param array<string, mixed> $resumen
+     */
     private function crear(
         array $entrada,
         PmsUnidad $unidad,

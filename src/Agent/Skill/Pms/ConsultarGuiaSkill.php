@@ -347,6 +347,8 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
      * @param list<string> $categoriasBloqueadas Hoy siempre vacío —un prospecto llega por
      *        canal propio—, pero se pasa igual: dejar una puerta al árbol sin la resta es
      *        cómo se cuela la fuga el día que exista un prospecto de canal restringido.
+     * @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface.
+     * @param list<string> $categoriasBloqueadas
      */
     private function guiaPublica(
         array $entrada,

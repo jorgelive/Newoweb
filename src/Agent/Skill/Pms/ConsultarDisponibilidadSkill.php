@@ -391,7 +391,11 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
         ], static fn ($v) => $v !== null));
     }
 
-    /** La casita libre que corresponde a «2», «casita 2» o «Casita 2». */
+    /**
+     * La casita libre que corresponde a «2», «casita 2» o «Casita 2».
+     *
+     * @param list<object> $libres Las unidades libres, tal cual las da el servicio de disponibilidad.
+     */
     private function emparejar(array $libres, string $nombre): ?object
     {
         $aguja = mb_strtolower(trim($nombre));

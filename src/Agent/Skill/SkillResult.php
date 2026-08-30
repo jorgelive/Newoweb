@@ -13,11 +13,21 @@ namespace App\Agent\Skill;
  */
 final readonly class SkillResult
 {
+    /**
+     * @param array<array-key, mixed> $datos Lo que se le devuelve al modelo, ya serializable.
+     *
+     * ⚠️ **`array-key` y no `string`: una skill PUEDE devolver una lista.** Lo anoté primero como
+     * mapa y PHPStan tumbó el `array_is_list()` de `GoogleAISkillAdapter` por «siempre falso» —
+     * pero ese guarda existe porque `functionResponse.response` de Google tiene que ser un objeto
+     * JSON, y una lista da 400. La anotación estrecha no sólo era falsa: apagaba la defensa que
+     * demostraba que era falsa.
+     */
     private function __construct(
         public array $datos,
         public ?string $error,
     ) {}
 
+    /** @param array<array-key, mixed> $datos */
     public static function ok(array $datos): self
     {
         return new self($datos, null);
