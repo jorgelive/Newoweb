@@ -1023,7 +1023,7 @@ valen, que no se descubre nunca.
 parte de la conversación abierta y aquí sólo hay una reserva. Los dos se citan mutuamente: si el
 criterio cambia, se tocan los dos.
 
-### La ventana del humano al mando: 20 minutos, y por qué
+### La ventana del humano al mando: 15 minutos, y por qué
 
 `AiConversationProcessor::HUMANO_AL_MANDO` calla al bot si una persona del alojamiento escribió
 hace poco. Es el guardia más importante: nada deja peor al hotel que un bot pisando a quien ya
@@ -1090,6 +1090,25 @@ Lo recoge `agent:recalentar-hilos` (`src/Agent/Command/AgentRecalentarHilosComma
 (2) **son el último mensaje del hilo** —nada después, ni entrante ni saliente—, (3) llevan más de
 17 minutos y (4) menos de `--maximo-horas`. Los seis guardias se vuelven a aplicar enteros.
 
+⚠️ **«Nada después» excluye las plantillas programadas a futuro**, espejando
+`Message::isScheduledForFuture()`. Es el mismo guardia que `yaSeRespondio()` documenta, y el
+comando lo reintrodujo el día que nació: los mensajes del motor de reglas llevan la hora de
+inserción aunque salgan en tres días, así que un recordatorio de llegada contaba como respuesta y
+**el hilo no se recalentaba nunca**. Medido: 140 mensajes con `scheduled_at` futuro en 23
+conversaciones, frente a 36 abiertas — quedaba fuera la mayoría de los hilos activos.
+
+⚠️ **Al terminar, el comando CIERRA la intención y hace flush**, replicando lo que
+`IntentRouter::marcarResuelto()` hace en el camino normal. Sin eso pasan dos cosas y ninguna da
+error: la respuesta muere con la unidad de trabajo —`encolarRespuesta()` sólo hace `persist()`—
+y el candidato se vuelve a elegir en cada pasada, o sea ~140 llamadas al modelo o ~140 subidas
+del contador de no leídos por mensaje. La resolución se guarda **prefijada** (`recalentado:…`)
+para que el filtro deje de casar por construcción y para poder medir después qué contestó el
+recalentado y qué el camino normal.
+
+⚠️ **El cron lleva `flock -n`**: una pasada con varios candidatos puede pasar de 5 minutos —20-60 s
+de modelo cada uno— y la siguiente arrancaría encima, vería los mismos candidatos (lo del otro
+proceso aún no está en la base) y mandaría una **segunda respuesta al mismo huésped**.
+
 **Corre en el cron de `www-data` cada 5 minutos**, en el minuto 4 de cada tramo para no apilarse
 con los `exchange:run`. El huésped espera entre **17 y 22 minutos** — el suelo más el intervalo.
 
@@ -1112,6 +1131,11 @@ teléfono o en recepción, aquí no consta y el bot contestará igual. Es el rie
 
 #### Y si el agente sigue sin poder: escalado silencioso
 
+⚠️ **Ojo con el nombre: «silencioso» significa aquí lo contrario que en `escalar_al_equipo`.**
+El `silencioso: true` de esa skill calla ante el HUÉSPED y **sí** hace sonar el WhatsApp de la
+guardia. El de aquí es al revés: no suena nada y sólo queda la marca de no leído. Dos conceptos
+con el mismo adjetivo en el mismo documento, así que conviene decir cuál se está usando.
+
 Recalentar y que tampoco salga nada dejaría al huésped igual de solo. Cuando la resolución es de
 las que significan «no pudo» —`ia_sin_respuesta`, `error_ia`, `ia_desactivada`,
 `ia_sin_credenciales`, `fuera_de_ventana_24h`, `canal_deshabilitado`— la conversación queda **sin
@@ -1126,7 +1150,18 @@ el agente con `escalar_al_equipo` cuando lee una emergencia.
 
 `ya_respondido`, `rafaga_superada` y `humano_atendiendo` quedan **fuera** de esa lista a
 propósito: ahí hay un mensaje más nuevo o una persona encima, y marcar el hilo sería llamar la
-atención sobre algo que no está parado.
+atención sobre algo que no está parado. Igual que `humano_atendiendo_al_responder` y
+`rafaga_superada_al_responder`, que son la segunda mirada del procesador tras generar.
+
+⚠️ **`fuera_de_ventana_24h` está en la lista y hoy es inalcanzable desde aquí.** El candidato es
+un entrante de hace ≤12 h (`--maximo-horas`), y ese mismo entrante dejó la sesión de WhatsApp
+válida 24 h, así que nunca cae por esa rama. Se conserva porque describe bien la intención —el
+bot no puede alcanzar al huésped y sólo una persona puede mandarle plantilla— y porque subir el
+techo por encima de 24 la haría alcanzable. Que quede escrito para que nadie la lea como prueba
+de un caso que ocurre.
+
+⚠️ **`conversacion_no_abierta` NO está**, y es deliberado: una conversación cerrada a mano suele
+significar «resuelto por otro canal», y marcarla resucitaría algo que alguien cerró a propósito.
 
 ⚠️ **Recalienta también los «Gracias»**, y el agente contestará «¡De nada!» media hora tarde. El
 rastro no distingue un «gracias» de una pregunta —todos son `free_text` / `TXT_FREE`, y ese
@@ -8081,7 +8116,7 @@ duchas y «Calefactor». Varios necesitan las dos cosas: pasos **y** partirse.
 - ~~Entrar directo al peldaño 1.~~ **Hecho**, ver §22.9.
 - ~~Enfriamiento del escalado.~~ **Hecho**, ver §22.8.
 - **El huésped que vuelve tras hablar con una persona recibe el peldaño 0.** El operador contesta
-  «te mandamos un balón» (`SENDER_HOST`) → la cuenta se reinicia por diseño → pasan los 30 minutos
+  «te mandamos un balón» (`SENDER_HOST`) → la cuenta se reinicia por diseño → pasan los 15 minutos
   de `HUMANO_AL_MANDO` → el huésped escribe «sigue igual» → el bot le explica otra vez la manija,
   a alguien cuya avería ya está en manos del equipo. Reiniciar es correcto para no **subir**
   peldaños; servir el 0 de nuevo es peor que las dos cosas. No tiene arreglo barato dentro de la
@@ -8118,7 +8153,7 @@ sin prometer plazo.
 | Se mira en los **avisos que salieron** (`escalado_de` con el id del origen), no en una marca de la conversación | El enfriamiento se apoya en que el aviso EXISTIÓ, no en que alguien recordara anotarlo |
 | Los avisos `FAILED`/`CANCELLED` **no enfrían** | Si el aviso se quedó en el sitio —plantilla sin aprobar por Meta, por ejemplo— hay que volver a intentarlo |
 | El filtro por origen se hace **en PHP** | Son unas pocas filas en media hora; una consulta sobre JSON ataría esto a la versión de MySQL |
-| 30 minutos | La misma ventana que `HUMANO_AL_MANDO`, y por el mismo motivo: es el tiempo en que se da por hecho que la guardia ya lo tiene delante |
+| 30 minutos | Cuánto tarda la guardia en mirar el móvil. ⚠️ **Ya NO es la misma ventana que `HUMANO_AL_MANDO`**, que bajó a 15 el 30/08/2026 con datos: aquélla pregunta si el humano sigue en ESE chat, ésta cuánto tarda la guardia en enterarse. Que coincidieran era conveniencia |
 | `emergencia` lo decide **el modelo** | Asimetría deliberada: un falso positivo cuesta un WhatsApp de más; un falso negativo silencia una emergencia real. Ante la duda, que suene |
 
 Verificado con `php var/probar-enfriamiento.php`: no enfría sin avisos previos, ni con un aviso de

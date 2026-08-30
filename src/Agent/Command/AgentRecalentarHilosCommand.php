@@ -205,6 +205,29 @@ final class AgentRecalentarHilosCommand extends Command
             // El procesador vuelve a aplicar sus seis guardias, incluida la del humano: si entre
             // la consulta y este momento alguien escribió, se descarta ahí y no aquí.
             $resolucion = $this->procesador->process($mensaje);
+
+            // ⚠️ CERRAR LA INTENCIÓN Y HACER FLUSH. Las dos cosas, y las dos hacen falta.
+            //
+            // En el camino normal esto lo hace `IntentRouter::marcarResuelto()` justo después de
+            // `process()`. Aquí se llama al procesador directamente, así que si no se replica:
+            //
+            // 1. **La respuesta no sale.** `encolarRespuesta()` sólo hace `persist()`; sin flush
+            //    el `Message` muere con la unidad de trabajo, `MessageEnqueuerEntityListener` no
+            //    llega a dispararse y el huésped no recibe nada — con el log diciendo que sí.
+            // 2. **El mensaje se reelige cada 5 minutos.** El filtro de arriba mira
+            //    `resolution === 'humano_atendiendo'`; si nadie la reescribe, el candidato vuelve
+            //    a salir en cada pasada durante las 12 horas de `--maximo-horas`: ~140 llamadas
+            //    al modelo por mensaje, o ~140 subidas del contador de no leídos.
+            //
+            // La resolución va PREFIJADA. Así el filtro deja de casar —el bucle se corta por
+            // construcción, no por que el resultado resulte ser otro— y en la auditoría se puede
+            // separar lo que contestó el recalentado de lo que contestó el camino normal.
+            $intent = $mensaje->getInboundIntent() ?? [];
+            $intent['resolved'] = true;
+            $intent['resolution'] = 'recalentado:' . $resolucion;
+            $intent['resolved_at'] = (new DateTimeImmutable())->format('Y-m-d\TH:i:sP');
+            $mensaje->setInboundIntent($intent);
+
             $escalado = '';
 
             if (in_array($resolucion, self::SIN_SALIDA, true) && $conversacion !== null) {
@@ -223,9 +246,13 @@ final class AgentRecalentarHilosCommand extends Command
                 // Si el caso era urgente, el camino ruidoso sigue existiendo: lo llama el propio
                 // agente con `escalar_al_equipo` cuando lee una emergencia.
                 $conversacion->incrementUnreadCount();
-                $this->em->flush();
                 $escalado = '  · escalado silencioso';
             }
+
+            // Un flush por candidato: cierra la intención, saca la respuesta y, si lo hubo,
+            // asienta el no leído. Dentro del bucle y no al final a propósito — una excepción
+            // en el candidato siguiente no debe llevarse por delante lo ya resuelto.
+            $this->em->flush();
 
             $io->writeln(sprintf('       → %s%s', $resolucion, $escalado));
             ++$recalentados;
@@ -262,6 +289,19 @@ final class AgentRecalentarHilosCommand extends Command
      * ⚠️ Se consulta a la TABLA y no a `$conversacion->getMessages()`, por lo mismo que lo hace
      * `hayHumanoAtendiendo()`: la colección puede venir de una carga anterior del turno, y aquí
      * un mensaje que no se vea significa contestar encima de alguien.
+     *
+     * ⚠️⚠️ **UNA PLANTILLA PROGRAMADA A FUTURO NO CUENTA COMO «ALGO DESPUÉS».** Es el mismo
+     * guardia que `AiConversationProcessor::yaSeRespondio()` tiene documentado, y esta clase lo
+     * reintrodujo el día que se escribió: los mensajes del motor de reglas nacen con la hora de
+     * inserción aunque salgan dentro de tres días, así que un recordatorio de llegada programado
+     * para mañana contaba como respuesta y **el hilo no se recalentaba nunca**.
+     *
+     * No es un caso raro. Medido el 30/08/2026: 140 mensajes con `scheduled_at` futuro en 23
+     * conversaciones, frente a 36 abiertas. La mayoría de los hilos activos de huéspedes con
+     * reserva —justo la población para la que existe este comando— quedaba fuera en silencio.
+     *
+     * Se excluyen espejando `Message::isScheduledForFuture()` y NO quitando el `COALESCE`: para
+     * un mensaje ya enviado, su `scheduledAt` pasado sí es el momento bueno para ordenar.
      */
     private function esElUltimo(Message $mensaje): bool
     {
@@ -276,9 +316,16 @@ final class AgentRecalentarHilosCommand extends Command
             ->andWhere('m.conversation = :conversacion')
             ->andWhere('m.status != :cancelado')
             ->andWhere('COALESCE(m.scheduledAt, m.createdAt) > :cuando')
+            ->andWhere('NOT (m.scheduledAt > :ahora AND m.status IN (:pendientes))')
             ->setParameter('conversacion', $conversacion->getId(), 'uuid')
             ->setParameter('cancelado', Message::STATUS_CANCELLED)
             ->setParameter('cuando', $mensaje->getCreatedAt())
+            ->setParameter('ahora', new DateTimeImmutable())
+            ->setParameter('pendientes', [
+                Message::STATUS_PENDING,
+                Message::STATUS_QUEUED,
+                Message::STATUS_FAILED,
+            ])
             ->getQuery()
             ->getSingleScalarResult();
 
