@@ -1250,6 +1250,35 @@ cuesta más que el problema, y quien lo lee es una persona.
 Verificado sobre datos reales, en transacción con `rollback`: con los 7 párrafos de un servicio
 puestos a mano, los extremos pasan de `alojamiento`/heredado a `fijo` con el texto tecleado.
 
+## 6.e bis 🔥 Reemplazar un segmento no movía el puntero al maestro (30/08/2026)
+
+`procesarInsercionSegmento()`, rama `replace`: copiaba los cinco snapshots del maestro nuevo
+—título, nombre interno, contenido, notas, imágenes— y **dejaba `segmentoMaestroId` apuntando al
+viejo**. La rama `insert` sí lo asigna, porque el segmento nace con él; sólo fallaba al
+reemplazar.
+
+**El síntoma llega mucho después del fallo, y por eso costó verlo.** El párrafo se queda con el
+texto nuevo y todo parece bien. Hasta que alguien pulsa **«Actualizar»** —que relee del maestro
+por si cambió—, y esa relectura hace `mapaMaestros.get(cotSeg.segmentoMaestroId)`: **devuelve el
+contenido ANTERIOR y deshace el reemplazo sin decir nada.**
+
+Los cinco snapshots son la FOTO; `segmentoMaestroId` es la fuente de la que se vuelve a sacar. Al
+reemplazar hay que mover las dos cosas o la foto y su negativo dejan de ser del mismo sujeto.
+
+⚠️ **La comprobación de daño tiene un límite que conviene conocer.** Un desajuste se detecta
+comparando `nombre_interno_snapshot` con el `nombre_interno` del maestro al que apunta:
+
+```sql
+SELECT ... FROM cotizacion_segmento cs
+JOIN travel_segmento ts ON ts.id = cs.segmento_maestro_id
+WHERE JSON_UNQUOTE(JSON_EXTRACT(cs.nombre_interno_snapshot,'$[0].content')) <> ts.nombre_interno
+```
+
+El 30/08/2026 daba **cero sobre 256 segmentos**. Pero eso **no prueba que no haya pasado**: en
+cuanto alguien pulsa «Actualizar», el snapshot se reescribe al del maestro viejo y la
+discrepancia desaparece **junto con el reemplazo perdido**. La consulta encuentra el fallo
+pendiente, no el que ya revirtió.
+
 ## 6.f Insertar un segmento ANTES de otro (22/08/2026)
 
 El modal «¿Dónde ubicar el segmento?» tenía tres opciones —al final, después de, reemplazar— y le

@@ -4014,6 +4014,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 );
             }
 
+            // ⚠️ EL PUNTERO AL MAESTRO, LO PRIMERO. Sin esto el párrafo se queda enseñando el
+            // texto nuevo y apuntando al maestro VIEJO, y el fallo no se ve hasta mucho después:
+            // «Actualizar» relee `mapaMaestros.get(cotSeg.segmentoMaestroId)` y **devuelve el
+            // texto anterior**, deshaciendo el reemplazo sin decir nada.
+            //
+            // La rama `insert` de abajo sí lo asignaba —nace con `segmentoMaestroId`—, así que
+            // sólo fallaba al reemplazar. Los cinco snapshots de aquí abajo son la FOTO; ésta es
+            // la fuente de la que se vuelve a sacar.
+            segAfectado.segmentoMaestroId = extractIdStr(segmentoMaestro);
+
             segAfectado.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro)));
             segAfectado.nombreInternoSnapshot = nombreOperativoComoI18n(segmentoMaestro.nombreInterno);
             segAfectado.contenidoSnapshot = JSON.parse(JSON.stringify(segmentoMaestro.contenido || []));
