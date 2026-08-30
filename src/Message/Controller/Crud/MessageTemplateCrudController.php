@@ -542,7 +542,13 @@ class MessageTemplateCrudController extends BaseCrudController
         // rechazado devuelve a PENDING seis que ya estaban aprobadas y no se pueden usar
         // fuera de la ventana de 24 h hasta que Meta las mire otra vez.
         $peticion = $context->getRequest();
-        $idiomas = (array) $peticion->request->all('idiomas');
+        // Del formulario llega un array con las claves que ponga el navegador; abajo se pide
+        // una lista de códigos, así que se filtra a textos y se reindexa. Un idioma vacío o un
+        // valor que no sea texto no es un idioma.
+        $idiomas = array_values(array_filter(
+            $peticion->request->all('idiomas'),
+            static fn ($v): bool => is_string($v) && $v !== '',
+        ));
 
         if (!$peticion->isMethod('POST')) {
             $cuerpos = $template->getWhatsappMetaTmpl()['body'] ?? [];

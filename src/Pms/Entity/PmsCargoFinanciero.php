@@ -349,7 +349,13 @@ class PmsCargoFinanciero
     public function getDescripcion(): ?string { return $this->descripcion; }
     public function setDescripcion(?string $descripcion): self { $this->descripcion = $descripcion; return $this; }
 
-    /** @return list<array{content: string, language: string}> Vacío si nadie la redactó. */
+    /**
+     * La misma forma que la propiedad: las claves son OPCIONALES. Prometerlas obligatorias
+     * aquí era falso — quien lee no puede fiarse de que estén, porque nada al escribir lo
+     * garantiza.
+     *
+     * @return list<array{language?: string, content?: string|null}> Vacío si nadie la redactó.
+     */
     public function getDescripcionCliente(): array { return $this->descripcionCliente ?? []; }
 
     /** @param list<array{language?: string, content?: string|null}>|null $descripcionCliente */

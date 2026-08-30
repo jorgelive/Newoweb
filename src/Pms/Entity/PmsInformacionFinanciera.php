@@ -296,7 +296,11 @@ class PmsInformacionFinanciera
     #[Groups(['pms_finanzas:read'])]
     public function getPrepagoPendiente(): ?array { return $this->prepagoPendiente; }
     /**
-     * @param array<string, mixed>|null $prepago
+     * La misma forma que declara la propiedad: con `array<string, mixed>` se podía guardar un
+     * prepago sin `monto`, y el getter promete que lo trae.
+     *
+     * @param array{monto: string, politica: string, politicaEtiqueta: string, politicaCorta: string,
+     *      concepto: string}|null $prepago
      */
     public function setPrepagoPendiente(?array $prepago): self { $this->prepagoPendiente = $prepago; return $this; }
 

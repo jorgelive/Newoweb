@@ -216,7 +216,7 @@ class FinMedioCobro
     public function getAudiencia(): FinAudienciaCobro { return $this->audiencia; }
     public function setAudiencia(FinAudienciaCobro $audiencia): self { $this->audiencia = $audiencia; return $this; }
 
-    /** @return array<int, array{language: string, content: string}> */
+    /** @return list<array{language?: string, content?: string|null}> Misma forma que la propiedad: las claves son opcionales. */
     public function getNota(): array { return $this->nota ?? []; }
 
     /** @param list<array{language?: string, content?: string|null}>|null $nota */

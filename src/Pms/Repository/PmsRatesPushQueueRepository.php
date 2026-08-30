@@ -47,7 +47,7 @@ final class PmsRatesPushQueueRepository extends AbstractExchangeRepository
      * Busca colas pendientes que solapan con el intervalo dado.
      * Criterio de Solape: (StartA < EndB) AND (EndA > StartB)
      *
-     * @return PmsRatesPushQueue[]
+     * @return list<PmsRatesPushQueue>
      */
     public function findPendingForUnit(string $unidadId, \DateTimeInterface $start, \DateTimeInterface $end): array
     {
