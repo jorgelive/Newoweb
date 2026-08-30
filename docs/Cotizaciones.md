@@ -4152,6 +4152,40 @@ pasando a perdido sin que nada avisara.
 🔁 **Espejo:** `FileEstadoEnum::getLabel()` ↔ `ESTADO_FILE_LABELS` y `ESTADO_FILE_CONFIG` en
 `util/src/types/cotizacionEditorModel.ts`. Si se toca uno, se toca el otro.
 
+#### Y la COTIZACIÓN tenía la otra mitad del choque: su `archivado` → `cerrado` (30/08/2026)
+
+Arreglar el expediente dejó las dos palabras a un nivel de distancia: `FileEstadoEnum::ARCHIVADO`
+= venta ganada, y `CotizacionEstadoEnum::ARCHIVADO` = la propuesta que se aparta **sin** vender.
+Conviven en la misma pantalla —el expediente arriba, sus versiones debajo—, así que «archivado»
+seguía sin decir si algo había salido bien: había que mirar a qué fila pertenecía.
+
+`CotizacionEstadoEnum::ARCHIVADO` pasa a **`CERRADO = 'cerrado'`**, que es lo que el chat y el
+expediente ya llaman a lo que no prosperó. El significado no cambia en nada: sigue cancelando las
+filas de operación por `CotizacionConfirmadaEventListener`, exactamente igual que antes.
+
+Aquí sí se renombró el **valor guardado**, no sólo la etiqueta, y por eso lleva migración
+(`Version20260830060000`). En producción no había ni una fila en ese estado —los once registros
+estaban en enviado, confirmado, operado e histórico—, pero la migración va igual: el `UPDATE`
+tiene que existir para cualquier entorno que sí las tenga.
+
+⚠️ **La migración es SQL a propósito.** Pasarlo por el ORM dispararía el listener, que al ver un
+cambio en `estado` volvería a cancelar las filas de operación de esas cotizaciones — trabajo ya
+hecho el día que entraron en el estado, y que reabriría el historial de cada fila sin motivo.
+Aquí no cambia el estado: cambia la palabra.
+
+🔁 **Espejo:** `CotizacionEstadoEnum` ↔ `ESTADO_COTIZACION_CONFIG` (`cotizacionEditorModel.ts`).
+Ese `Record<CotizacionEstadoValue, …>` está anclado al esquema generado, así que **al renombrar el
+caso el typecheck falla hasta que se regenera `api.d.ts` y se corrige la clave**: es el único
+sitio de este cambio donde no hacía falta acordarse de nada.
+
+**Cómo queda el vocabulario, en los tres módulos:**
+
+| | Vivo | Salió bien | Salió mal |
+|---|---|---|---|
+| Chat (`MessageConversation`) | `open` | `archived` | `closed` |
+| Expediente (`FileEstadoEnum`) | `abierto` | `archivado` | `cerrado` |
+| Cotización (`CotizacionEstadoEnum`) | `pendiente`/`enviado` | `confirmado`/`operado` | **`cerrado`**/`cancelado` |
+
 ### Arranca acotado a los abiertos
 
 El dashboard traía todo y ordenaba por fecha de creación, así que un expediente ganado en marzo

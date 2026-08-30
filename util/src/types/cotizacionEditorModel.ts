@@ -173,7 +173,10 @@ export type Item = components['schemas']['TravelComponenteItem-componente.item.r
 export const ESTADO_COTIZACION_CONFIG: Record<CotizacionEstadoValue, EstadoUIConfig> = {
     pendiente: { label: 'Pendiente', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: 'fa-clock' },
     enviado: { label: 'Enviado', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', icon: 'fa-paper-plane' },
-    archivado: { label: 'Archivado', bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-200', icon: 'fa-box-archive' },
+    // Espejo de `CotizacionEstadoEnum::CERRADO`. Se llamaba `archivado` y chocaba de frente con
+    // el `archivado` del EXPEDIENTE, que es la venta ganada. Mismo gris y mismo icono que
+    // `ESTADO_FILE_CONFIG.cerrado`: es lo mismo un nivel más abajo.
+    cerrado: { label: 'Cerrado', bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-200', icon: 'fa-folder-closed' },
     confirmado: { label: 'Confirmado', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'fa-check' },
     operado: { label: 'Operado', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', icon: 'fa-plane-departure' },
     cancelado: { label: 'Cancelado', bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', icon: 'fa-times-circle' },

@@ -12,7 +12,18 @@ enum CotizacionEstadoEnum: string
 {
     case PENDIENTE = 'pendiente';
     case ENVIADO = 'enviado';
-    case ARCHIVADO = 'archivado';
+    /**
+     * La propuesta que se aparta: no se vendió, y sus filas de operación se cancelan.
+     *
+     * ⚠️ Se llamaba `ARCHIVADO` hasta el 30/08/2026, y era la misma palabra que en el expediente
+     * (`FileEstadoEnum::ARCHIVADO`) significa lo CONTRARIO: allí archivar es la venta ganada. Con
+     * las dos vivas en la misma pantalla —el expediente arriba, sus versiones debajo— «archivado»
+     * no decía si algo había salido bien sin mirar a qué fila pertenecía.
+     *
+     * El vocabulario es el del chat, que es el que más se usa: **lo bueno es archivado, lo malo es
+     * cerrado.** Ver `docs/Cotizaciones.md` §6.k.
+     */
+    case CERRADO = 'cerrado';
     case CONFIRMADO = 'confirmado';
     case OPERADO = 'operado';
     case CANCELADO = 'cancelado';
@@ -40,7 +51,7 @@ enum CotizacionEstadoEnum: string
     {
         return match($this) {
             self::ENVIADO, self::CONFIRMADO => true,
-            self::PENDIENTE, self::ARCHIVADO, self::OPERADO, self::CANCELADO,
+            self::PENDIENTE, self::CERRADO, self::OPERADO, self::CANCELADO,
             self::HISTORICO => false,
         };
     }
@@ -67,7 +78,7 @@ enum CotizacionEstadoEnum: string
             self::ENVIADO => 'sky',        // 🔥 faltaba, causaba UnhandledMatchError
             self::CONFIRMADO => 'emerald',
             self::OPERADO => 'blue',
-            self::ARCHIVADO => 'slate',
+            self::CERRADO => 'slate',
             self::CANCELADO => 'rose',
             self::HISTORICO => 'violet',
         };

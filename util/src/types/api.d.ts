@@ -4382,7 +4382,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -4473,7 +4473,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 20.00 */
@@ -4574,7 +4574,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 20.00 */
@@ -4661,7 +4661,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 20.00 */
@@ -4736,7 +4736,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -4807,7 +4807,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -4882,7 +4882,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -4942,7 +4942,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5094,7 +5094,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5185,7 +5185,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 20.00 */
@@ -5274,7 +5274,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5345,7 +5345,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5420,7 +5420,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5480,7 +5480,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5540,7 +5540,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5631,7 +5631,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 20.00 */
@@ -5720,7 +5720,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5791,7 +5791,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5866,7 +5866,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5926,7 +5926,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -5986,7 +5986,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -6077,7 +6077,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 20.00 */
@@ -6166,7 +6166,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -6237,7 +6237,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -6312,7 +6312,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
@@ -6372,7 +6372,7 @@ export interface components {
              * @default pendiente
              * @enum {string}
              */
-            estado: "pendiente" | "enviado" | "archivado" | "confirmado" | "operado" | "cancelado" | "historico";
+            estado: "pendiente" | "enviado" | "cerrado" | "confirmado" | "operado" | "cancelado" | "historico";
             /** @default 1 */
             numPax: number;
             /** @default 0.00 */
