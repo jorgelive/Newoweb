@@ -73,7 +73,10 @@ final class RefrescarTextosMaestrosCommand extends Command
             ->from(CotizacionSegmento::class, 'seg')
             ->join('seg.cotservicio', 'cs')
             ->where('cs.cotizacion = :cot')
-            ->setParameter('cot', Uuid::fromString($cotizacionId))
+            // ⚠️ El tipo va explícito. El id es `type: 'uuid'` (bridge de symfony/uid) y sin
+            // decírselo Doctrine no acierta a convertir el objeto: la consulta devuelve VACÍO en
+            // vez de fallar, que es la peor forma de equivocarse.
+            ->setParameter('cot', Uuid::fromString($cotizacionId), 'uuid')
             ->getQuery()
             ->getResult();
 
