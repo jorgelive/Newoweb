@@ -14,6 +14,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TimeField;
+use App\Service\Config\Parametro;
 
 /**
  * Controlador CRUD encargado de gestionar la relación asociativa entre Segmentos de Itinerario
@@ -38,7 +39,7 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
      */
     public function configureFields(string $pageName): iterable
     {
-        $apiHostUrl = rtrim($this->getParameter('api_host_url'), '/');
+        $apiHostUrl = rtrim(Parametro::texto($this->getParameter('api_host_url'), 'api_host_url'), '/');
         $endpointUrl = $apiHostUrl . '/platform/travel/tarifas';
 
         /* ====================================================================

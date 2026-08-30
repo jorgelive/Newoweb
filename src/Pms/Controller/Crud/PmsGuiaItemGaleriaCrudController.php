@@ -28,6 +28,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Vich\UploaderBundle\Form\Type\VichImageType;
+use App\Service\Config\Parametro;
 
 /**
  * @extends BaseCrudController<PmsGuiaItemGaleria>
@@ -154,7 +155,7 @@ class PmsGuiaItemGaleriaCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        $pathRelativo = $this->params->get('pms.path.galeria_images');
+        $pathRelativo = Parametro::texto($this->params->get('pms.path.galeria_images'), 'pms.path.galeria_images');
         $basePath = '/' . ltrim($pathRelativo, '/');
 
         if ($this->isEmbedded()) {

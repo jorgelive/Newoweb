@@ -47,6 +47,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Service\Config\Parametro;
 
 /**
  * @extends BaseCrudController<PmsReserva>
@@ -545,7 +546,7 @@ TXT;
                         // Si Doctrine lo devuelve en formato binario (16 bytes), lo convertimos a string. Si ya es string, se queda igual.
                         $convIdStr = strlen($convIdRaw) === 16 ? Uuid::fromBinary($convIdRaw)->toRfc4122() : (string) $convIdRaw;
 
-                        $baseUrl = $this->params->get('util_host_url');
+                        $baseUrl = Parametro::texto($this->params->get('util_host_url'), 'util_host_url');
                         $chatUrl = rtrim($baseUrl, '/') . '/chat?id=' . $convIdStr;
                     }
                 } catch (\Exception $e) {

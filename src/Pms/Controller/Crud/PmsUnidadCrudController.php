@@ -27,6 +27,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Vich\UploaderBundle\Form\Type\VichImageType;
+use App\Service\Config\Parametro;
 
 /**
  * @extends BaseCrudController<PmsUnidad>
@@ -103,9 +104,9 @@ final class PmsUnidadCrudController extends BaseCrudController
         yield TextField::new('nombre', 'Nombre');
 
         // 1. Resolver rutas para el ImageField nativo
-        $pathRelativo = $this->params->get('pms.path.unidad_images');
+        $pathRelativo = Parametro::texto($this->params->get('pms.path.unidad_images'), 'pms.path.unidad_images');
         $basePath = '/' . ltrim($pathRelativo, '/');
-        $uploadDir = $this->params->get('app.public_dir') . '/' . ltrim($pathRelativo, '/');
+        $uploadDir = Parametro::texto($this->params->get('app.public_dir'), 'app.public_dir') . '/' . ltrim($pathRelativo, '/');
 
         // --- COLUMNA 1: VISTA PREVIA (Index) ---
         yield LiipImageField::new('imageUrl', 'Vista Previa')

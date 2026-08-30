@@ -17,6 +17,7 @@ use App\Pms\Entity\PmsUnidad;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Pms\Service\Tarifa\PmsTarifaCalculadora;
 use App\Security\Roles;
+use App\Entity\Maestro\MaestroMoneda;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
@@ -546,7 +547,7 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
      *
      * @param array<string, array{currency: ?string}> $afectadas
      */
-    private function monedaEntidad(array $afectadas, PmsUnidad $unidad): ?object
+    private function monedaEntidad(array $afectadas, PmsUnidad $unidad): ?MaestroMoneda
     {
         $id = $this->monedaDe($afectadas, $unidad);
 

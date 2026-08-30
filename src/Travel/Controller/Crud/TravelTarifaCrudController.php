@@ -30,6 +30,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
+use App\Service\Config\Parametro;
 
 /**
  * @extends BaseCrudController<TravelTarifa>
@@ -153,7 +154,7 @@ class TravelTarifaCrudController extends BaseCrudController
     public function configureFields(string $pageName): iterable
     {
         $isEmbedded = $this->isEmbedded();
-        $apiHostUrl = rtrim($this->getParameter('api_host_url'), '/');
+        $apiHostUrl = rtrim(Parametro::texto($this->getParameter('api_host_url'), 'api_host_url'), '/');
         // Endpoint PROPIO, no la colección de API Platform: su SearchFilter no puede filtrar por
         // UUID —ids binarios, parámetro enlazado como texto— así que `?organizacion=<uuid>` devuelve
         // siempre cero. Ver TravelOrganizacionServicioOpcionesController.

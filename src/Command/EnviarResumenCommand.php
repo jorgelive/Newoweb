@@ -11,6 +11,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Address;
+use App\Service\Config\Parametro;
 
 
 #[AsCommand(name: 'app:enviar-resumen', description: 'Envia resumen a correo electrónico.')]
@@ -167,7 +168,10 @@ class EnviarResumenCommand extends Command
         unset($qb);
 
         $email = (new TemplatedEmail())
-            ->from(new Address($this->params->get('mailer_sender_email'), $this->params->get('mailer_sender_name')))
+            ->from(new Address(
+                    Parametro::texto($this->params->get('mailer_sender_email'), 'mailer_sender_email'),
+                    Parametro::texto($this->params->get('mailer_sender_name'), 'mailer_sender_name'),
+                ))
 
             ->subject(sprintf('OpenPeru - Resumen del %s', $hoy->format('Y-m-d')))
             ->htmlTemplate('emails/command_enviar_resumen.html.twig')
@@ -178,7 +182,7 @@ class EnviarResumenCommand extends Command
                 'serviciosordenados' => $serviciosOrdenados
             ]);
 
-        $receivers = explode(',', $this->params->get('mailer_alert_receivers'));
+        $receivers = explode(',', Parametro::texto($this->params->get('mailer_alert_receivers'), 'mailer_alert_receivers'));
 
         foreach ($receivers as $key => $receiver){
             if ($key === array_key_first($receivers)) {

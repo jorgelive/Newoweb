@@ -830,7 +830,13 @@ final readonly class MessageRuleEngine
         $message->setScheduledAt($runAt);
 
         // Mapeo de canales destino configurados en la regla
-        $channelIds = $rule->getTargetCommunicationChannels()->map(fn($c) => $c->getId())->toArray();
+        // ⚠️ Se filtran los nulos. `getId()` puede devolver null —un canal recién creado y sin
+        // flush todavía no lo tiene— y ese null acababa en la lista de destinos del envío: no
+        // casa con ningún canal, no da error, y el mensaje sale por menos sitios de los pedidos.
+        $channelIds = array_values(array_filter(
+            $rule->getTargetCommunicationChannels()->map(static fn ($c): ?string => $c->getId())->toArray(),
+            static fn (?string $id): bool => $id !== null && $id !== '',
+        ));
         $message->setTransientChannels($channelIds);
 
         $conversation->addMessage($message);

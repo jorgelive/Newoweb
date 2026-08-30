@@ -304,6 +304,29 @@ Verificación: `cd util && npm run typecheck` (idem en `pax/`) — es `vue-tsc -
 misma comprobación que corre el build. Sin errores, siempre. Ojo: la inspección propia de
 PhpStorm sobre `.vue` es menos fiable que `vue-tsc`; ante una discrepancia, manda el script.
 
+### ⚠️ `getParameter()` no devuelve texto: devuelve seis tipos y un null
+
+`ContainerInterface::getParameter()` declara `array|bool|float|int|string|UnitEnum|null`, y eso
+es la verdad — en `services.yaml` cabe cualquier cosa. El problema es lo que se hacía con ello:
+
+```php
+$baseUrl = $this->params->get('util_host_url');   // ← puede ser null
+$chatUrl = rtrim($baseUrl, '/') . '/chat?id=' . $id;
+```
+
+Si el parámetro no existe, está mal escrito o alguien lo convirtió en lista, **el fallo sale
+dentro de `rtrim()`** sin decir qué parámetro era. Había **ocho** sitios así: URLs de host, rutas
+de subida, el remitente del correo y sus destinatarios.
+
+Se lee con `App\Service\Config\Parametro::texto($valor, 'nombre')`, que no añade
+comportamiento: mueve el fallo al sitio donde se entiende y le pone nombre.
+
+⚠️ **Lanza en vez de devolver `''`.** Un host vacío no da error: construye `/chat?id=…`, que
+parece una URL correcta y lleva al sitio equivocado. Es la familia de fallo que persigue este
+proyecto —el que no se ve—, así que aquí se prefiere que reviente.
+
+Lo destapó **el nivel 7 de PHPStan**, que es el que revisa uniones. El 6 no lo veía.
+
 ### ⚠️ Un atributo mal puesto NO falla: deja de hacer su trabajo
 
 Es el fallo más caro de este código, porque no produce ni un error. Cuatro casos reales, y sólo
