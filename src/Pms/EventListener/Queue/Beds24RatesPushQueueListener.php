@@ -101,10 +101,20 @@ final class Beds24RatesPushQueueListener
     }
 
     /**
-     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
+     * ⚠️ El changeset de Doctrine NO es siempre `[viejo, nuevo]`: cuando lo que cambia es una
+     * colección, el valor es una `PersistentCollection`. Y como ésa implementa `ArrayAccess`,
+     * `$changeSet[$field][0]` devolvía **el primer elemento de la colección** en lugar del valor
+     * anterior — un objeto donde se esperaba una fecha, sin error y sin log.
+     *
+     * Aquí sólo se piden campos escalares, así que lo que no venga como `[viejo, nuevo]` no
+     * tiene «valor anterior» y se contesta `null`.
+     *
+     * @param array<string, array{0: mixed, 1: mixed}|\Doctrine\ORM\PersistentCollection<int, mixed>> $changeSet
      */
     private function getOldValue(array $changeSet, string $field): mixed {
-        return $changeSet[$field][0] ?? null;
+        $cambio = $changeSet[$field] ?? null;
+
+        return is_array($cambio) ? ($cambio[0] ?? null) : null;
     }
 
     private function minDate(?DateTimeInterface $a, ?DateTimeInterface $b): DateTimeInterface {

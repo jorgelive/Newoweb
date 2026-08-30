@@ -7,6 +7,7 @@ namespace App\Api\Provider\Cotizacion;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Cotizacion\Entity\CotizacionFile;
+use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -54,13 +55,17 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
             $files
         );
 
+        // ⚠️ `GROUP BY c.id` y no `c.version`: `estado` y `titulo` dependen funcionalmente de la
+        // clave, y así MySQL los acepta en el SELECT sin meterlos en el GROUP BY —agrupar por una
+        // columna JSON funciona pero es pedirle al motor que compare documentos para nada—.
         $filas = $this->em->createQuery(<<<'DQL'
-            SELECT f.id AS fileId, c.version, MIN(s.fechaInicioAbsoluta) AS fechaInicio
+            SELECT f.id AS fileId, c.id AS cotizacionId, c.version, c.estado, c.titulo,
+                   MIN(s.fechaInicioAbsoluta) AS fechaInicio
             FROM App\Cotizacion\Entity\CotizacionFile f
             JOIN f.cotizaciones c
             LEFT JOIN c.cotservicios s
             WHERE f.id IN (:fileIds)
-            GROUP BY f.id, c.version
+            GROUP BY f.id, c.id
             ORDER BY c.version ASC
         DQL)
             ->setParameter('fileIds', $fileIds)
@@ -69,8 +74,18 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
         $porFile = [];
         foreach ($filas as $f) {
             $fileId = (string) $f['fileId'];
+            $estado = $f['estado'] ?? null;
+
             $porFile[$fileId][] = [
                 'version'     => $f['version'],
+                // El estado y el título de CADA versión: en el dashboard se veía «V1: 30 oct.» y
+                // nada más, así que un expediente con tres propuestas —una confirmada, una
+                // cancelada y un histórico— se leía igual que uno con tres pendientes.
+                'estado'      => $estado instanceof CotizacionEstadoEnum ? $estado->value : (string) $estado,
+                // El i18n crudo: lo traduce el front con el idioma del panel, como el resto de
+                // títulos. Resolverlo aquí obligaría a que el provider supiera qué idioma mira
+                // quien pidió la página.
+                'titulo'      => is_array($f['titulo'] ?? null) ? $f['titulo'] : [],
                 'fechaInicio' => $f['fechaInicio'] instanceof \DateTimeInterface
                     ? $f['fechaInicio']->format('Y-m-d')
                     : ($f['fechaInicio'] ? substr((string) $f['fechaInicio'], 0, 10) : null),

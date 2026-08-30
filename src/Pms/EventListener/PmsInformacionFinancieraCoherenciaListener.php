@@ -246,7 +246,7 @@ final class PmsInformacionFinancieraCoherenciaListener
      * Sólo se anula si TODAS las estancias de la reserva están canceladas: en un grupo, que
      * caiga una casita no anula el cobro de las demás.
      *
-     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
+     * @param array<string, array{0: mixed, 1: mixed}|\Doctrine\ORM\PersistentCollection<int, mixed>> $changeSet
      */
     private function aplicarCancelacion(PmsEventoCalendario $evento, array $changeSet, EntityManagerInterface $em): void
     {
@@ -254,7 +254,15 @@ final class PmsInformacionFinancieraCoherenciaListener
             return;
         }
 
-        [$old, $new] = $changeSet['estado'];
+        $cambio = $changeSet['estado'];
+
+        // Campo escalar: si Doctrine lo trajera como colección no habría «anterior» que
+        // comparar, y desestructurarla daría un valor sin sentido y sin error.
+        if (!is_array($cambio)) {
+            return;
+        }
+
+        [$old, $new] = $cambio;
         $esCancelada = static fn ($e): bool => $e?->getId() === PmsEventoEstado::CODIGO_CANCELADA;
 
         // Sólo la transición hacia cancelada.
@@ -511,7 +519,7 @@ final class PmsInformacionFinancieraCoherenciaListener
      *
      * El propio servicio sí lo mueve, y lo declara con `estaSincronizando()`.
      *
-     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
+     * @param array<string, array{0: mixed, 1: mixed}|\Doctrine\ORM\PersistentCollection<int, mixed>> $changeSet
      */
     private function assertPagoAutomaticoNoEditable(PmsPagoFinanciero $pago, array $changeSet): void
     {
@@ -596,7 +604,7 @@ final class PmsInformacionFinancieraCoherenciaListener
      * moneda en el mismo viaje —«350 soles»—, así que con el importe ya mutado esta excepción
      * no se aplicaría nunca y el candado saltaría justo en el caso para el que se abrió.
      *
-     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
+     * @param array<string, array{0: mixed, 1: mixed}|\Doctrine\ORM\PersistentCollection<int, mixed>> $changeSet
      */
     private function assertMonedaNoBloqueada(PmsCargoFinanciero|PmsPagoFinanciero $entity, array $changeSet): void
     {
@@ -610,7 +618,15 @@ final class PmsInformacionFinancieraCoherenciaListener
             return;
         }
 
-        [$old, $new] = $changeSet['moneda'];
+        $cambio = $changeSet['moneda'];
+
+        // Campo escalar: si Doctrine lo trajera como colección no habría «anterior» que
+        // comparar, y desestructurarla daría un valor sin sentido y sin error.
+        if (!is_array($cambio)) {
+            return;
+        }
+
+        [$old, $new] = $cambio;
 
         if ($old === null || $old === $new) {
             return;
@@ -639,13 +655,14 @@ final class PmsInformacionFinancieraCoherenciaListener
      * Un cargo lleva `totalLinea` y `monto`; un pago sólo `monto`. Se exige que **todo** lo que
      * exista esté en cero: con cualquiera de los dos con importe, ya hay dinero registrado.
      *
-     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
+     * @param array<string, array{0: mixed, 1: mixed}|\Doctrine\ORM\PersistentCollection<int, mixed>> $changeSet
      */
     private function importeAnteriorEnCero(PmsCargoFinanciero|PmsPagoFinanciero $entity, array $changeSet): bool
     {
         $anterior = static function (string $campo, ?string $actual) use ($changeSet): ?string {
+            $cambio = $changeSet[$campo] ?? null;
             /** @var mixed $viejo */
-            $viejo = $changeSet[$campo][0] ?? $actual;
+            $viejo = is_array($cambio) ? ($cambio[0] ?? $actual) : $actual;
 
             return is_scalar($viejo) ? (string) $viejo : null;
         };
@@ -673,7 +690,7 @@ final class PmsInformacionFinancieraCoherenciaListener
      * candado fuera total, la única forma de arreglarlo sería borrarlo y rehacerlo — y en un
      * cargo sincronizado desde Beds24 eso ni siquiera es posible.
      *
-     * @param array<string, array{0: mixed, 1: mixed}> $changeSet
+     * @param array<string, array{0: mixed, 1: mixed}|\Doctrine\ORM\PersistentCollection<int, mixed>> $changeSet
      */
     private function assertTipoCambioNoBloqueado(PmsCargoFinanciero|PmsPagoFinanciero $entity, array $changeSet): void
     {
@@ -685,7 +702,15 @@ final class PmsInformacionFinancieraCoherenciaListener
             return;
         }
 
-        [$old, $new] = $changeSet['tipoCambio'];
+        $cambio = $changeSet['tipoCambio'];
+
+        // Campo escalar: si Doctrine lo trajera como colección no habría «anterior» que
+        // comparar, y desestructurarla daría un valor sin sentido y sin error.
+        if (!is_array($cambio)) {
+            return;
+        }
+
+        [$old, $new] = $cambio;
 
         // null → X es la reparación; X → X es un no-cambio.
         if ($old === null || $old === '' || (float) $old === (float) $new) {

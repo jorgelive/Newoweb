@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
@@ -45,6 +46,9 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
  *   - pax_cotizacion:read → DETALLE: agrega la cotización completa de UNA versión.
  */
 #[ApiFilter(CotizacionFileNombreFilter::class)]
+// El dashboard arranca acotado a los abiertos: sin esto sólo se podía paginar sobre todo, y un
+// expediente ganado en marzo empujaba hacia abajo a los que sí hay que trabajar hoy.
+#[ApiFilter(SearchFilter::class, properties: ['estado' => 'exact'])]
 #[ApiResource(
     shortName: 'CotizacionFile',
     operations: [
@@ -304,7 +308,11 @@ class CotizacionFile
      * escalar batched para toda la página del dashboard (sin N+1), evitando
      * hidratar $cotizaciones/$cotservicios por cada fila.
      *
-     * @var array<int, array{version: int, fechaInicio: ?string}>
+     * Lleva además el ESTADO y el TÍTULO de cada versión: el dashboard enseñaba «V1: 30 oct.» y
+     * nada más, así que un expediente con tres propuestas —una confirmada, una cancelada y un
+     * histórico— se leía igual que uno con tres pendientes.
+     *
+     * @var array<int, array{version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string}>
      */
     private array $versionesFechas = [];
 
@@ -312,7 +320,7 @@ class CotizacionFile
      * La misma forma que declara la propiedad. Con `list<array<string, mixed>>` aquí se podía
      * guardar una fila sin `version`, y el getter promete que la trae.
      *
-     * @param array<int, array{version: int, fechaInicio: ?string}> $versionesFechas
+     * @param array<int, array{version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string}> $versionesFechas
      */
     public function setVersionesFechas(array $versionesFechas): self
     {
