@@ -63,7 +63,7 @@ final class PmsGuiaArbolFiltro
                 continue;
             }
 
-            $seccion->setItemsParaCliente($items);
+            $seccion->setItemsParaCliente(array_values($items));
             $visibles[] = $seccion;
         }
 

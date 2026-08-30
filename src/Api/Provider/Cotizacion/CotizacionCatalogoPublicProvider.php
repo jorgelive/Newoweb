@@ -77,7 +77,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
         // Portadas automáticas: imágenes de los segmentos en orden de itinerario
         $portadas = $this->tarjetas->portadasDerivadas(array_column($filas, 'id'));
 
-        $catalogo->setToursParaCliente(array_map(static function (array $f) use ($portadas): array {
+        $catalogo->setToursParaCliente(array_values(array_map(static function (array $f) use ($portadas): array {
             $oculto = (bool) $f['precioOculto'];
             $estado = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'];
 
@@ -97,7 +97,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
                 'imagenPortada'     => $f['imagenPortada'] ?? $portadas[TourTarjetaResolver::clave($f['id'])] ?? null,
                 'numDias'           => TourTarjetaResolver::numDias($f['fechaMin'], $f['fechaMax']),
             ];
-        }, $filas));
+        }, $filas)));
 
         // ── 2. Detalle: cargar SOLO el tour solicitado ────────────────────────
         if (isset($uriVariables['version'])) {

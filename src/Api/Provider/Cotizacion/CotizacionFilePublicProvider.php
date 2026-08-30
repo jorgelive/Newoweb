@@ -70,7 +70,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             return null;
         }
 
-        $file->setVersionesParaCliente(array_map(static function (array $f): array {
+        $file->setVersionesParaCliente(array_values(array_map(static function (array $f): array {
             $oculto = (bool) $f['precioOculto'];
             $estado = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'];
 
@@ -93,7 +93,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                     ? $f['fechaInicio']->format('Y-m-d')
                     : ($f['fechaInicio'] ? substr((string) $f['fechaInicio'], 0, 10) : null),
             ];
-        }, $filas));
+        }, $filas)));
 
         // ── 2. Detalle: cargar SOLO la versión solicitada ─────────────────────
         if (isset($uriVariables['version'])) {

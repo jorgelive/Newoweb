@@ -22,7 +22,11 @@ final readonly class PmsGuiaContexto
     /**
      * @param array<string, string> $valores   Claves siempre sustituibles (nombre, fechas, unidad).
      * @param array<string, string> $sensibles Claves que exigen ventana abierta (códigos de acceso).
-     * @param array<int, array{ssid: string, password: string, ubicacion: mixed}> $redesWifi
+     * La misma forma que declara `PmsUnidad::getWifiNetworks()`, que es de donde viene: una
+     * sola verdad. Declararla aquí con las claves obligatorias prometía que siempre están, y
+     * son opcionales — una red guardada sin contraseña es un caso real.
+     *
+     * @param list<array{ssid?: string|null, password?: string|null, ubicacion?: list<array{language?: string, content?: string|null}>}> $redesWifi
      */
     public function __construct(
         public array $valores = [],
