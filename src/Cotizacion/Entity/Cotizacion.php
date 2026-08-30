@@ -419,12 +419,23 @@ class Cotizacion
     public function getGanancia(): string
     {
         // ⚠️ `bcsub()` lanza `ValueError` en PHP 8 si el texto no es numérico. Las columnas son
-        // `decimal` y siempre traen dígitos, pero el tipo sólo dice `string`: una fila importada
-        // con '' o con 'N/A' tumbaría la lectura del expediente entero, no sólo esta cifra.
-        $venta = is_numeric($this->totalVenta) ? $this->totalVenta : '0';
-        $costo = is_numeric($this->totalCosto) ? $this->totalCosto : '0';
+        // `decimal` y siempre traen dígitos, pero el tipo sólo dice `string`.
+        //
+        // Se lanza con el nombre del campo en vez de caer a '0': una ganancia calculada sobre un
+        // cero inventado es una cifra PLAUSIBLE y falsa, y ésas son las que nadie revisa. Es el
+        // mismo criterio que en `Parametro::texto()` y en el secreto de Mercure.
+        foreach (['totalVenta' => $this->totalVenta, 'totalCosto' => $this->totalCosto] as $campo => $valor) {
+            if (!is_numeric($valor)) {
+                throw new \LogicException(sprintf(
+                    'La cotización %s tiene «%s» en `%s`, que no es un número: no se puede calcular la ganancia.',
+                    (string) $this->getId(),
+                    (string) $valor,
+                    $campo,
+                ));
+            }
+        }
 
-        return bcsub($venta, $costo, 2);
+        return bcsub($this->totalVenta, $this->totalCosto, 2);
     }
 
     public function getFile(): ?CotizacionFile { return $this->file; }

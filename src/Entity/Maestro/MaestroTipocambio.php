@@ -69,11 +69,25 @@ class MaestroTipocambio
     #[Groups(['tipocambio:read'])]
     public function getPromedio(): string
     {
-        // Mismo motivo que en `Cotizacion::getGanancia()`: `bcadd()` lanza si el texto no es
-        // numérico, y aquí eso dejaría sin tipo de cambio a todo lo que lo consulte.
-        $compra = is_numeric($this->compra) ? (string) $this->compra : '0.000';
-        $venta = is_numeric($this->venta) ? (string) $this->venta : '0.000';
-        $suma = bcadd($compra, $venta, 3);
+        // ⚠️ Aquí SÍ se coalesce, al revés que en `Cotizacion::getGanancia()`, y el motivo es
+        // que las columnas son nullable: «sin compra registrada» es un estado válido y su
+        // promedio razonable es tratarla como cero. Lo que no se admite es un texto que no sea
+        // número, porque eso no es un valor ausente: es un dato corrupto.
+        $compra = $this->compra ?? '0.000';
+        $venta = $this->venta ?? '0.000';
+
+        foreach (['compra' => $compra, 'venta' => $venta] as $campo => $valor) {
+            if (!is_numeric($valor)) {
+                throw new \LogicException(sprintf(
+                    'El tipo de cambio %s tiene «%s» en `%s`, que no es un número.',
+                    (string) $this->getId(),
+                    (string) $valor,
+                    $campo,
+                ));
+            }
+        }
+
+        $suma = bcadd((string) $compra, (string) $venta, 3);
         return bcdiv($suma, '2', 3);
     }
 

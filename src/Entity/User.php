@@ -459,9 +459,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *  2. La columna es `nullable: false`. Aunque PHP lo aceptara, un movimiento contable **sin
      *     usuario no existe**: no es un estado intermedio válido, es una fila rota.
      *
-     * Quitar el movimiento de la colección en memoria es todo lo que esto puede hacer con
-     * honestidad. Si lo que se quiere es borrarlo, se borra la entidad; si es reasignarlo, se le
-     * pone el otro usuario. Ninguna de las dos cosas es responsabilidad de un `remove*()`.
+     * Quitarlo de la colección basta: la relación tiene `orphanRemoval: true`, así que el
+     * `flush` borra la fila. El `setUser(null)` no sólo estaba roto — era además redundante.
      */
     public function removeMovimiento(CuentaMovimiento $movimiento): self
     {
