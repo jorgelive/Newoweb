@@ -1042,7 +1042,45 @@ class OperacionServicio
             return null;
         }
 
-        return $segmento->getDia() * 1000 + $segmento->getOrden();
+        return $segmento->getDia() * 1_000_000
+            + $this->posicionDelServicio() * 1_000
+            + $segmento->getOrden();
+    }
+
+    /**
+     * Dónde va el SERVICIO dentro de su día, para separar servicios antes de ordenar segmentos.
+     *
+     * ⚠️ Sin esto, `ordenItinerario` era `día × 1000 + orden del segmento` y **dos servicios del
+     * mismo día colisionaban**: cada plantilla empieza por su segmento 1, así que ambos valían
+     * `día×1000 + 1` y el cuadro los intercalaba. Es el mismo defecto que tenía la guía del
+     * huésped —un número de ordenar DENTRO usado para comparar ENTRE— y se arregla igual.
+     *
+     * El `orden` manual del servicio si alguien lo puso; si no, la naturaleza de lo que es
+     * ({@see ComponenteTipoEnum::ordenNarrativo()}). **Espejo de `posicionDeServicio()`** en el
+     * editor y en `pax`: los tres cambian juntos.
+     *
+     * Sigue siendo CALCULADO y no columna, por el mismo motivo escrito arriba: una copia abriría
+     * la puerta a que el cuadro y la cotización se contradigan al reordenar.
+     */
+    private function posicionDelServicio(): int
+    {
+        $cotservicio = $this->cotizacionComponente?->getCotservicio();
+
+        if ($cotservicio === null) {
+            return 30;
+        }
+
+        if ($cotservicio->getOrden() > 0) {
+            return $cotservicio->getOrden();
+        }
+
+        $naturales = [];
+
+        foreach ($cotservicio->getCotcomponentes() as $componente) {
+            $naturales[] = ComponenteTipoEnum::tryFrom((string) $componente->getTipo())?->ordenNarrativo() ?? 30;
+        }
+
+        return $naturales === [] ? 30 : min($naturales);
     }
     /**
      * Prioridad de despacho heredada de ComponenteTipoEnum::prioridad().

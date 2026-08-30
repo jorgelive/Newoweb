@@ -65,6 +65,8 @@ final readonly class OperacionOrdenEmision
                     // con ellos: leerlo del maestro al pintar haría que una orden emitida se
                     // leyera distinta el día que el catálogo cambie de opinión.
                     ->setTipoComponente($servicio->getTipoComponente())
+                    // Dónde iba en el itinerario: desempata las líneas sin hora.
+                    ->setOrdenItinerario($servicio->getOrdenItinerario())
                     ->setContextoServicio($servicio->getContextoServicio())
                     ->setFechaServicio($servicio->getFechaServicio())
                     // La hora que se pidió: la pactada si la hay, si no la vendida.

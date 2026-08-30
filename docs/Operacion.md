@@ -1206,6 +1206,43 @@ Inmersión Colonial» no le dice al Arzobispado qué se le compró.
 un documento emitido se leyera distinto el día que el catálogo cambiara de opinión. Nulo en las
 emitidas antes de esa fecha → manda el componente, que es como se leían entonces.
 
+##### El orden del día llega a las cuatro superficies (29/08/2026)
+
+El `orden` manual del servicio no servía de nada si sólo lo veían el editor y la guía. Ahora la
+misma cascada gobierna La Biblia, la orden, el mensaje y la impresión.
+
+**En La Biblia**, `OperacionServicio::getOrdenItinerario()`:
+
+```
+antes    día × 1.000            + orden del segmento
+ahora    día × 1.000.000  +  posición del servicio × 1.000  +  orden del segmento
+```
+
+⚠️ **Tenía el mismo defecto que la guía**: el orden del segmento es un número de ordenar DENTRO de
+un servicio, y se usaba para comparar ENTRE servicios. Cada plantilla empieza por su segmento 1,
+así que dos servicios del mismo día valían ambos `día×1000 + 1` y el cuadro los **intercalaba**.
+
+La posición del servicio es su `orden` manual, o el orden narrativo de su tipo. Sigue **calculado
+y no en columna**, por lo que ya decía su docblock: una copia abriría la puerta a que el cuadro y
+la cotización se contradigan al reordenar.
+
+**En la orden, el mensaje y el PDF**, `OperacionOrdenServicio::getItemsOrdenados()`:
+
+```
+1  la fecha
+2  con hora antes que sin hora        ← ⚠️ esto estaba al revés
+3  la hora
+4  el itinerario congelado
+```
+
+⚠️ **El paso 2 era un fallo abierto.** Se comparaba `(string) getHora()`, y una hora nula es la
+cadena vacía, que ordena **antes** que `04:00`. Al proveedor le encabezaba la jornada justo lo que
+no tiene hora fijada. El cuadro y la guía ya lo tenían bien; la orden no.
+
+`ordenItinerario` se **congela** en la línea al emitir —una orden se lee igual dentro de un año
+aunque el itinerario se haya reordenado— y es nulo en las emitidas antes, que desempatan como
+entonces.
+
 ##### El secundario es de La Biblia, no de la orden (29/08/2026)
 
 Al proveedor le va **UNO** de los dos nombres, el que gane por tipo. El que pierde se queda en la

@@ -107,6 +107,21 @@ class OperacionOrdenServicioItem
     private ?string $nombreSegmento = null;
 
     /**
+     * Dónde iba esta línea en el itinerario, congelado.
+     *
+     * `día × 1.000.000 + posición del servicio × 1.000 + orden del segmento`, tal y como lo
+     * calculaba La Biblia el día de la emisión. Desempata a las líneas **sin hora**, que antes
+     * quedaban a merced del orden de lectura de la colección.
+     *
+     * Congelado y no leído en vivo por lo mismo que el resto: una orden emitida se lee igual
+     * dentro de un año aunque el itinerario se haya reordenado. Nulo en las emitidas antes del
+     * 29/08/2026, y entonces desempata como antes.
+     */
+    #[Groups(['operacion:read', 'operacion:item:read'])]
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $ordenItinerario = null;
+
+    /**
      * Qué NATURALEZA tiene lo contratado, congelada.
      *
      * No es decorativo: decide cuál de los dos nombres va en grande
@@ -383,6 +398,9 @@ class OperacionOrdenServicioItem
 
     public function getNombreComponente(): ?string { return $this->nombreComponente; }
     public function setNombreComponente(?string $v): self { $this->nombreComponente = $v; return $this; }
+
+    public function getOrdenItinerario(): ?int { return $this->ordenItinerario; }
+    public function setOrdenItinerario(?int $v): self { $this->ordenItinerario = $v; return $this; }
 
     public function getTipoComponente(): ?string { return $this->tipoComponente; }
     public function setTipoComponente(?string $v): self { $this->tipoComponente = $v; return $this; }

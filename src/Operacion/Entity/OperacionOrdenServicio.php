@@ -1169,9 +1169,22 @@ class OperacionOrdenServicio
         /** @var list<OperacionOrdenServicioItem> $items */
         $items = $this->items->toArray();
 
+        // ⚠️ Los SIN HORA van al final de su día, no al principio. Antes se comparaba
+        // `(string) getHora()`, y una hora nula es la cadena vacía: ordenaba **antes** que las
+        // 04:00, así que al proveedor le encabezaba la jornada lo que no tiene hora fijada. Es la
+        // misma regla que en el cuadro y en la guía, que ya la tenían bien.
+        //
+        // Y entre dos sin hora manda el itinerario congelado, que separa servicios además de
+        // segmentos. Sin él quedaban en el orden en que la colección los devolviera.
         usort($items, static function (OperacionOrdenServicioItem $a, OperacionOrdenServicioItem $b): int {
-            return [$a->getFechaServicio()?->format('Y-m-d') ?? '', (string) $a->getHora()]
-                <=> [$b->getFechaServicio()?->format('Y-m-d') ?? '', (string) $b->getHora()];
+            $clave = static fn (OperacionOrdenServicioItem $i): array => [
+                $i->getFechaServicio()?->format('Y-m-d') ?? '',
+                $i->getHora() === null || $i->getHora() === '' ? 1 : 0,
+                (string) $i->getHora(),
+                $i->getOrdenItinerario() ?? PHP_INT_MAX,
+            ];
+
+            return $clave($a) <=> $clave($b);
         });
 
         return $items;
