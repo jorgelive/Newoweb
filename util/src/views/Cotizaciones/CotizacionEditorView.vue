@@ -1528,24 +1528,32 @@ store.$onAction(({ name, args }) => {
                  el padding del contenedor (`p-4 md:p-8`): si se queda dentro, el contenido se ve
                  pasar por los costados. El `z-20` la deja por encima de las tarjetas, que llevan
                  `z-10` en sus adornos. -->
-            <div class="flex items-center gap-3 sticky top-0 bg-[#F8FAFC] py-4 -mx-4 px-4 md:-mx-8 md:px-8 z-20 mb-6 border-b border-slate-200/50">
-              <div class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg border border-slate-700">
+            <!-- ⚠️ `flex-wrap` y el `hr` sólo en pantalla ancha. Con el `hr` en `flex-1` los
+                 botones quedaban EMPUJADOS fuera del ancho en un móvil: la fila no podía
+                 encogerse porque la línea reclamaba todo el espacio sobrante. Ahora los botones
+                 bajan a su propio renglón cuando no caben, y la línea decorativa —que sólo
+                 rellena— aparece a partir de `md`. -->
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2 sticky top-0 bg-[#F8FAFC] py-4 -mx-4 px-4 md:-mx-8 md:px-8 z-20 mb-6 border-b border-slate-200/50">
+              <div class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg border border-slate-700 shrink-0">
                 Día {{ dia.diaNumero }}
               </div>
-              <div class="flex flex-col">
+              <div class="flex flex-col min-w-0">
                 <span class="text-[11px] font-black text-[#E07845] uppercase tracking-tighter leading-none mb-1">Cronología Operativa</span>
-                <div class="text-sm font-black text-slate-800 uppercase tracking-tight">
+                <div class="text-sm font-black text-slate-800 uppercase tracking-tight truncate">
                   {{ store.modoCatalogo ? 'Programa del Tour' : formatFecha(dia.fechaAbsoluta) }}
                 </div>
               </div>
-              <hr class="flex-1 border-slate-300 ml-4">
+              <hr class="hidden md:block flex-1 border-slate-300 ml-4">
+              <!-- Los dos botones viajan juntos y se van a la derecha: `ml-auto` los empuja al
+                   final de su renglón, caiga éste donde caiga. -->
+              <div class="flex items-center gap-2 ml-auto shrink-0">
               <!-- ⚠️ POR DÍA de verdad: guarda la fecha, no un booleano. La primera versión era
                    un `ref(false)` global con un comentario que decía «por día» — pulsarlo
                    colapsaba TODOS los días a la vez. El comentario describía la intención y el
                    código hacía otra cosa. -->
               <button @click.stop="diaEnReorden = diaEnReorden === dia.fechaAbsoluta ? null : dia.fechaAbsoluta"
                       :title="diaEnReorden === dia.fechaAbsoluta ? 'Volver a editar' : 'Reordenar los servicios de este día'"
-                      class="shrink-0 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-colors"
+                      class="shrink-0 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-colors"
                       :class="diaEnReorden === dia.fechaAbsoluta
                         ? 'bg-[#376875] text-white border-[#376875]'
                         : 'bg-white text-slate-500 border-slate-200 hover:border-[#376875]/50'">
@@ -1556,9 +1564,10 @@ store.$onAction(({ name, args }) => {
               <button v-if="store.diaOrdenadoAMano(dia.fechaAbsoluta)"
                       @click.stop="soltarOrdenDelDia(dia.fechaAbsoluta)"
                       title="Devolver este día a su orden automático"
-                      class="shrink-0 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors">
+                      class="shrink-0 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors">
                 <i class="fas fa-rotate-left mr-1"></i>Automático
               </button>
+              </div>
             </div>
 
             <div class="space-y-4">

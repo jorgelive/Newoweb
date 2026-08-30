@@ -1055,6 +1055,23 @@ Dos props lo arreglan, y hacen falta las dos:
 ⚠️ Estaba sin poner en **los tres** sitios que usan el componente. Se veía sólo en el editor porque
 es el único con cabecera pegajosa — los otros dos tenían el mismo fallo esperando su turno.
 
+### ⚠️ Un `hr` con `flex-1` empuja lo que venga después fuera de la pantalla
+
+La cabecera de día del editor llevaba `Día N · fecha · <hr flex-1> · botones` en una fila `flex`
+sin `flex-wrap`. En un móvil los botones quedaban **cortados fuera del ancho**: la línea
+decorativa reclamaba todo el espacio sobrante y la fila no tenía por dónde encogerse.
+
+Las tres piezas del arreglo, y ninguna sobra:
+
+- **`flex-wrap`** en el contenedor, para que los botones bajen a su renglón cuando no caben.
+- **El `hr` sólo desde `md`.** Es puro relleno; en estrecho no aporta nada y es justo lo que
+  ocupaba el sitio.
+- **Los botones en su propio `div` con `ml-auto`**, para que sigan yendo a la derecha caiga su
+  renglón donde caiga. Sueltos, al envolver se pegarían a la izquierda.
+
+**La regla:** un separador elástico y un `flex` que no envuelve son incompatibles con una pantalla
+estrecha. Si la fila lleva acciones, el relleno se esconde antes que ellas.
+
 ### `usePantallaEstrecha()`
 
 `util/src/composables/usePantallaEstrecha.ts`. Existe para lo que hay que pasar como **prop**, que
