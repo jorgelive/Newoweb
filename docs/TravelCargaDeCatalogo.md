@@ -271,6 +271,55 @@ Van estaban **intercambiadas** entre el componente de terminal y el de aeropuert
 dos cosas se ve leyendo un componente: sólo aparecen al poner los cinco cuadros uno al lado del
 otro.
 
+### El traslado a Coco Bongo: la ficha es de la CIUDAD, no del destino (30/08/2026)
+
+El servicio Coco Bongo tenía sus dos entradas (general y fiesta blanca) y ningún traslado. Al
+añadirlos, la tentación era crear «Transporte Hotel Punta Cana - Coco Bongo» y su inverso: dos
+componentes más.
+
+Se hizo al revés: **un solo `Transporte urbano en Punta Cana`**, enlazado a los dos segmentos.
+Tres razones, y las tres ya estaban pagadas:
+
+1. **Un componente por ruta, no por sentido** (§ anterior). La dirección la ponen `inicioModo` y
+   `finModo` del segmento —aquí `ALOJAMIENTO` en un extremo y `FIJO` en el otro—, no el nombre.
+2. **En un `TRANSPORTE` manda el segmento.** `ComponenteTipoEnum::mandaElSegmento()` hace que al
+   proveedor y al cliente les llegue el nombre del segmento, no el del componente. Meter «Coco
+   Bongo» en el componente sería escribirlo donde nadie lo lee.
+3. **El coche no cambia según la discoteca.** Es un traslado dentro de Punta Cana, igual que
+   `Transporte urbano en Cusco` y `Transporte urbano en Puno`. El día que haya otro sitio nocturno
+   en la ciudad, reutiliza el mismo componente sin crear nada.
+
+⚠️ **Los nombres dicen «Punta Cana» aunque hoy sobre.** Coco Bongo tiene local en varias ciudades;
+un segmento llamado sólo «Coco Bongo» es correcto hasta el día que entre el de Cancún, y entonces
+ya hay cotizaciones con el nombre ambiguo congelado en su snapshot.
+
+**La flota se clona, no se recopia.** `app:travel:crear-traslado-coco-bongo` lee las tarifas del
+traslado de aeropuerto y duplica vehículo, capacidad, moneda y modalidad. Escribir «Auto 3» a mano
+otra vez es exactamente como divergieron las capacidades que hubo que unificar en fase 2.
+
+⚠️ **El importe NO se clona.** El urbano no cuesta lo mismo que el de aeropuerto —el recargo de la
+terminal es un coste real— así que entra a `0.00` para negociarlo. Heredar el precio del aeropuerto
+habría dado un número plausible y falso, que es el peor tipo de dato.
+
+#### ⚠️ `setComponente()` no llena `getTarifas()`: la tarifa por defecto salió nula
+
+La primera pasada creó los dos enlaces **sin `tarifaPredeterminada`**. El comando leía
+`$componente->getTarifas()` justo después de `persist()`, y como `TravelTarifa::setComponente()`
+no mantiene el lado inverso, la colección estaba vacía y `tarifaPorDefecto()` devolvía `null`.
+
+No falló nada: ni el comando, ni el `flush()`, ni el checker de coherencia. El campo admite null,
+y el síntoma —el componente entra **sin precio**— no aparece hasta que alguien mira el total. Es
+literalmente la trampa que advierte §5 sobre `tarifaPredeterminada`, cometida al implementarla.
+
+Dos reglas:
+
+- **Justo después de `persist()`, la fuente fiable es la lista que acabas de construir**, no la
+  colección de la entidad dueña. Doctrine sólo la sincroniza cuando el setter mantiene el lado
+  inverso a mano.
+- **Idempotente no basta si lo que quedó escrito estaba mal.** Volver a ejecutar el comando habría
+  dicho «ya existe» y seguido de largo. Por eso lleva `repararTarifaPorDefecto()`: al reencontrar
+  un enlace suyo, rellena lo que falte en vez de saltarlo.
+
 ### ⚠️ «Aeropuerto» no significa lo mismo en tres ciudades
 
 La forma NO es única, y asumirla habría estropeado dos de las tres. El bloque de aeropuerto de
@@ -656,4 +705,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:completar-traslados-punta-cana` | poner la ciudad en los **dos** extremos del título · aplanar la dirección de sus tarifas |
 | `app:travel:horario-comidas-resort` | dar franja (inicio **y fin**) a lo que el catálogo dejó con duración cero |
 | `app:travel:quitar-hora-a-extras` | quitar la hora a un tipo que no la usa, **comprobando el tipo antes de escribir** |
+| `app:travel:crear-traslado-coco-bongo` | clonar una flota en vez de recopiarla · reparar lo que una pasada anterior dejó a null |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
