@@ -99,10 +99,15 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
     /**
      * Cuánto se espera antes de volver a hacer sonar los teléfonos por la misma conversación.
      *
-     * Media hora, la misma ventana que `HUMANO_AL_MANDO` en el procesador y por el mismo motivo:
-     * es el tiempo en el que se da por hecho que quien está de guardia ya lo tiene delante. Más
-     * corto no ahorra nada —el huésped insiste en minutos—; más largo se come el aviso de un
-     * problema distinto que aparece en la misma conversación.
+     * Media hora: el tiempo en el que se da por hecho que quien está de guardia ya lo tiene
+     * delante. Más corto no ahorra nada —el huésped insiste en minutos—; más largo se come el
+     * aviso de un problema distinto que aparece en la misma conversación.
+     *
+     * ⚠️ **Ya NO es la misma ventana que `HUMANO_AL_MANDO`**, que bajó a 20 el 30/08/2026 con
+     * datos delante. Se separaron porque miden cosas distintas: aquélla pregunta «¿sigue el
+     * humano atendiendo este chat?» y ésta «¿cuánto tarda la guardia en mirar el móvil?». Que
+     * coincidieran era conveniencia, no una regla — y al medir la primera, la segunda no tenía
+     * por qué moverse.
      */
     private const string ENFRIAMIENTO = '-30 minutes';
 

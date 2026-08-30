@@ -1023,6 +1023,69 @@ valen, que no se descubre nunca.
 parte de la conversación abierta y aquí sólo hay una reserva. Los dos se citan mutuamente: si el
 criterio cambia, se tocan los dos.
 
+### La ventana del humano al mando: 20 minutos, y por qué
+
+`AiConversationProcessor::HUMANO_AL_MANDO` calla al bot si una persona del alojamiento escribió
+hace poco. Es el guardia más importante: nada deja peor al hotel que un bot pisando a quien ya
+está atendiendo.
+
+Estuvo en **30 minutos** hasta el 30/08/2026. Se midió sobre 245 mensajes entrantes de 152
+conversaciones desde junio —qué probabilidad hay de que conteste un humano, según lo que hacía
+que había escrito uno—:
+
+| Desde que escribió el humano | Le contesta un humano |
+|---|---|
+| 0–5 min | **79 %** |
+| 5–10 min | **78 %** |
+| 10–15 min | 57 % |
+| 15–20 min | 61 % |
+| **20–30 min** | **46 %** |
+| 30–45 min | 36 % |
+
+La caída está entre los 10 y los 15. Los 30 silenciaban al bot durante una franja en la que,
+**más de la mitad de las veces, no venía nadie**. Bajar de 20 tampoco: entre 10 y 20 el humano
+todavía contesta 6 de cada 10, y pisarle cuesta más que esperar.
+
+⚠️ Las bandas tienen entre 13 y 23 casos. La diferencia 78 % → 46 % aguanta; la de 10–15 contra
+15–20 es ruido y no se usó para decidir.
+
+⚠️ **`EscalarAlEquipoSkill::ENFRIAMIENTO` se quedó en 30 y ya no es «la misma ventana».** Miden
+cosas distintas: aquélla pregunta «¿sigue el humano atendiendo este chat?» y ésta «¿cuánto tarda
+la guardia en mirar el móvil?». Que coincidieran era conveniencia.
+
+### 🔥 El agente sólo reacciona a mensajes entrantes: lo que calla se queda callado
+
+El guardia anterior descarta el mensaje, y **el agente no vuelve a mirarlo**. Cuando la ventana
+expira, ese mensaje sigue esperando a que el huésped insista — o a nadie.
+
+Medido sobre los 34 descartes por `humano_atendiendo` desde julio: 23 se resolvieron solos
+(el humano seguía ahí). El resto no:
+
+| | Espera |
+|---|---|
+| «¿Y cuánto sería por esas dos noches por 3 personas?» | 112 min, y sólo porque insistió |
+| «could it even be at 10:45?» | **jamás contestada** |
+| «¿El check in podría ser entre 8 y 8:30pm?» | 54 min |
+
+Lo recoge `agent:recalentar-hilos` (`src/Agent/Command/AgentRecalentarHilosCommand.php`), con
+`--dry-run`. Devuelve al procesador los entrantes que (1) se descartaron por `humano_atendiendo`,
+(2) **son el último mensaje del hilo** —nada después, ni entrante ni saliente—, (3) llevan más de
+25 minutos y (4) menos de `--maximo-horas`. Los seis guardias se vuelven a aplicar enteros.
+
+🔑 **Y esto es lo que permite elegir la ventana por los datos.** Sin el recalentado, la ventana
+decidía *si* el huésped recibía respuesta y había que estirarla por miedo a perder mensajes. Con
+él, sólo decide *cuánto espera*. Si algún día se retira el comando, los 20 minutos hay que volver
+a discutirlos.
+
+⚠️ **«Nada después en el chat» no es «nadie lo atendió».** Si el operador lo resolvió por
+teléfono o en recepción, aquí no consta y el bot contestará igual. Es el riesgo asumido.
+
+⚠️ **Recalienta también los «Gracias»**, y el agente contestará «¡De nada!» media hora tarde. El
+rastro no distingue un «gracias» de una pregunta —todos son `free_text` / `TXT_FREE`, y ese
+`resolved: true` significa «el router terminó», no «la duda quedó resuelta»—, así que filtrarlos
+sería una heurística que falla. Decide el agente: un «de nada» tardío cuesta mucho menos que una
+consulta de venta perdida.
+
 ### El menú caduca
 
 `InboundMenuResolver::VENTANA_VALIDEZ` (24 h). Sin ella, un huésped que contesta «2» a un

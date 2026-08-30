@@ -58,8 +58,34 @@ final readonly class AiConversationProcessor
      *
      * Es el guardia más importante de todos: nada enfada más a un huésped —ni deja peor al
      * hotel— que un bot pisando a la persona que ya le está atendiendo.
+     *
+     * ── Por qué 20 y no 30 ──────────────────────────────────────────────────
+     * Medido el 30/08/2026 sobre 245 mensajes entrantes en 152 conversaciones desde junio: la
+     * probabilidad de que un humano conteste, según lo que hacía que había escrito uno.
+     *
+     * ```
+     *    0– 5 min   79 %      ← sigue ahí, sin duda
+     *    5–10 min   78 %
+     *   10–15 min   57 %      ← empieza a irse
+     *   15–20 min   61 %
+     *   20–30 min   46 %      ← por debajo de la mitad: la banda que sobraba
+     *   30–45 min   36 %
+     * ```
+     *
+     * Los 30 minutos silenciaban al bot durante una franja en la que, más de la mitad de las
+     * veces, no venía nadie. Bajar de 20 tampoco: entre los 10 y los 20 el humano todavía
+     * contesta 6 de cada 10, y pisarle cuesta más que esperar.
+     *
+     * ⚠️ **Y esto sólo se puede elegir así porque existe la vuelta.** Sin
+     * `agent:recalentar-hilos`, la ventana decidía si el huésped recibía respuesta —los
+     * descartes se quedaban esperando a que insistiera— y había que estirarla por miedo a
+     * pisar. Con el recalentado, la ventana sólo decide cuánto espera. Si algún día se retira
+     * ese comando, este número hay que volver a discutirlo.
+     *
+     * Las bandas tienen entre 13 y 23 casos: la diferencia 78 % → 46 % aguanta, la de 10–15
+     * contra 15–20 es ruido y no se ha usado para decidir.
      */
-    private const string HUMANO_AL_MANDO = '-30 minutes';
+    private const string HUMANO_AL_MANDO = '-20 minutes';
 
     public function __construct(
         private EntityManagerInterface $em,
