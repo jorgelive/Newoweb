@@ -25,6 +25,9 @@ use App\Pms\Enum\PmsPoliticaPrepago;
 use App\Pms\Enum\PmsTipoCargo;
 use App\Pms\Finanzas\PmsProcedenciaHuesped;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
+use App\Pms\Finanzas\PmsSituacionDeCobro;
+use App\Pms\Finanzas\PmsSituacionDeCobroResolver;
+use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Service\Finance\PmsTotalesPorMoneda;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -69,6 +72,9 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
         private FinEnlacePagoRepository $enlaces,
         private FinEnlacePagoService $enlacesServicio,
         private PmsProcedenciaHuesped $procedencia,
+        // La DECISIÓN de qué se pide sale de aquí y no se recalcula: es la misma que lee la
+        // tarjeta del huésped en `pax`. Ver `prepago()`.
+        private PmsSituacionDeCobroResolver $situacion,
         private LoggerInterface $logger,
     ) {}
 
@@ -199,6 +205,12 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
         // no darle por peruano a quien venía de fuera y esconderle el Western Union.
         $desdePeru = $this->procedencia->pagaDesdePeru($reserva);
 
+        // La decisión de qué se le pide, resuelta UNA vez y compartida por `que_se_pide` y por
+        // `prepago()`. Se pide la proyección del EQUIPO —no la del huésped— porque quien lee
+        // esto es el agente hablando con el operador tanto como con el huésped, y la del equipo
+        // no recorta nada. La decisión es la misma en las dos: la proyección no decide.
+        $situacion = $this->situacion->paraEquipo($reserva);
+
         return SkillResult::ok(array_filter([
             'reserva_id' => $reservaId,
             'huesped' => $this->huesped($reserva),
@@ -230,6 +242,20 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             // US$ 65.97». Con el desglose, el modelo puede decir exactamente lo que pasó.
             'moneda_de_cotizacion' => $moneda,
             'por_moneda' => $this->porMoneda($totales),
+            // ── QUÉ SE LE PIDE, decidido en un solo sitio ───────────────────────────────
+            //
+            // Viaja resuelto para que el modelo no lo deduzca de los saldos. Es la MISMA
+            // decisión que pinta la tarjeta del huésped en `pax`, así que si él la tiene
+            // abierta mientras escribe, las dos dicen lo mismo. Sale de
+            // `PmsSituacionDeCobroResolver`, que conoce reglas que ni los totales ni el
+            // calculador de prepagos tienen: la del día de llegada, el cruce de monedas, el
+            // saldo a favor y los canales que cobran por nosotros.
+            'que_se_pide' => match ($situacion->queSePide) {
+                PmsQueSePide::ADELANTO => 'ADELANTO: el anticipo para asegurar la reserva.',
+                PmsQueSePide::TOTAL => 'TOTAL: todo el saldo. NO le ofrezcas un adelanto.',
+                PmsQueSePide::NADA => 'NADA: no le pidas dinero. Motivo: '
+                    . $situacion->motivo->name,
+            },
             // El saldo es lo que se mira primero, pero un «0.00» significa cosas distintas
             // según si hay cargos: sin cargos no es que esté pagada, es que no se ha cobrado.
             'esta_saldada' => $totales->hayCargos() && $totales->cuadra(),
@@ -245,7 +271,7 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             // Solo viaja si hay algo que pedir; `array_filter` lo quita cuando es null. El
             // saldo total y el prepago responden a preguntas distintas —«cuánto debes» y
             // «cuánto hay que adelantar ahora»— y confundirlos es cobrar de más.
-            'prepago_pendiente' => $this->prepago($info, $moneda),
+            'prepago_pendiente' => $this->prepago($info, $moneda, $situacion),
             // El enlace que YA existe, para poder pasárselo en el chat. Ver `enlaceDePago()`.
             'enlace_de_pago' => $this->enlaceDePago($info),
             // Cuánto PIDE la política, aunque ya esté pagado. Responde «¿cuánto es la primera
@@ -381,9 +407,33 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
         return null;
     }
 
-    /** @return array<string, string>|null */
-    private function prepago(PmsInformacionFinanciera $info, string $moneda): ?array
-    {
+    /**
+     * El adelanto, **sólo si la política sigue pidiendo un adelanto**.
+     *
+     * ⚠️ `PmsPrepagoCalculador::pendiente()` no sabe qué día es —no tiene una sola referencia a
+     * fechas— y por eso sigue devolviendo el adelanto cuando el huésped ya llegó. La regla
+     * «desde el día de check-in se pide el TOTAL» vive en `PmsSituacionDeCobroResolver`, que es
+     * lo que lee la tarjeta del huésped en `pax`.
+     *
+     * Sin este guardia había DOS cifras para la misma persona en el mismo momento: la tarjeta
+     * pidiéndole el total y el agente ofreciéndole pagar la primera noche. Medido el 30/08/2026:
+     * **ocho reservas** ya llegadas, sin ningún pago y con el adelanto todavía vivo — una de
+     * ellas del 5 de agosto. El huésped puede tener las dos delante.
+     *
+     * No se replica la regla aquí: se pregunta. Dos implementaciones de «qué se le pide a esta
+     * persona» son dos respuestas el día que una cambie.
+     *
+     * @return array<string, string>|null
+     */
+    private function prepago(
+        PmsInformacionFinanciera $info,
+        string $moneda,
+        PmsSituacionDeCobro $situacion,
+    ): ?array {
+        if ($situacion->queSePide !== PmsQueSePide::ADELANTO) {
+            return null;
+        }
+
         $prepago = $this->prepagoCalculador->pendiente($info);
 
         if ($prepago === null) {

@@ -4136,11 +4136,27 @@ puede ser ruido o mentira dicho en voz alta por el agente.**
 
 Dos campos más, y los dos existen para que el agente no contradiga a la pantalla del huésped:
 
-- **`prepago_pendiente`** — el adelanto que todavía hay que pedir. La cifra sale de
-  `PmsPrepagoCalculador::pendiente()`, **la misma llamada que alimenta el estado de cuenta de
-  `pax`**. No se recalcula aquí a propósito: dos cálculos son dos cifras, y el huésped tiene
-  una de ellas abierta en el móvil mientras el agente le contesta. Sólo viaja si queda algo
-  que pedir — con cualquier pago registrado, ese pago ERA el prepago y el campo desaparece.
+- **`que_se_pide`** — la decisión, resuelta. `ADELANTO`, `TOTAL` o `NADA` con su motivo, salida
+  de `PmsSituacionDeCobroResolver`, que es **exactamente lo que pinta la tarjeta del huésped en
+  `pax`**. Viaja resuelto para que el modelo no lo deduzca de los saldos: si el huésped tiene la
+  tarjeta abierta mientras escribe, las dos dicen lo mismo.
+- **`prepago_pendiente`** — el adelanto que todavía hay que pedir, y **sólo cuando
+  `que_se_pide` es `ADELANTO`**. La cifra sale de `PmsPrepagoCalculador::pendiente()`. Sólo viaja
+  si queda algo que pedir — con cualquier pago registrado, ese pago ERA el prepago y el campo
+  desaparece.
+
+  🔥 **El guardia de `que_se_pide` es el arreglo del 30/08/2026, y era dinero.**
+  `PmsPrepagoCalculador` **no tiene una sola referencia a fechas**, así que seguía devolviendo el
+  adelanto con el huésped ya alojado. La regla «desde el día de check-in se pide el TOTAL» vive
+  sólo en el resolver. Resultado: **la tarjeta le pedía el total y el agente le ofrecía pagar la
+  primera noche**, a la misma persona y en el mismo momento — y desde que el enlace del pax se
+  manda a todo el que pregunta por pagos, puede tener las dos delante.
+
+  Medido antes de arreglarlo: **ocho reservas** ya llegadas, sin ningún pago y con el adelanto
+  todavía vivo. La más vieja había llegado el 5 de agosto, veinticinco días antes.
+
+  La regla **no se replica** en la skill: se pregunta. Dos implementaciones de «qué se le pide a
+  esta persona» son dos respuestas el día que una cambie — que es justo lo que acababa de pasar.
 - **`explicacion_para_huesped`** en cada cargo — `descripcionClienteEn($idioma)`, la redacción
   que escribió el operador (`docs/FinanzasEnlacesPago.md` §8). `concepto` viene del canal y
   puede ser un código; ésta se le puede repetir tal cual. La mayoría de los cargos no la
