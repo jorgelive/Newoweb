@@ -418,7 +418,13 @@ class Cotizacion
     #[Groups(['cotizacion:read', 'file:item:read'])]
     public function getGanancia(): string
     {
-        return bcsub($this->totalVenta, $this->totalCosto, 2);
+        // ⚠️ `bcsub()` lanza `ValueError` en PHP 8 si el texto no es numérico. Las columnas son
+        // `decimal` y siempre traen dígitos, pero el tipo sólo dice `string`: una fila importada
+        // con '' o con 'N/A' tumbaría la lectura del expediente entero, no sólo esta cifra.
+        $venta = is_numeric($this->totalVenta) ? $this->totalVenta : '0';
+        $costo = is_numeric($this->totalCosto) ? $this->totalCosto : '0';
+
+        return bcsub($venta, $costo, 2);
     }
 
     public function getFile(): ?CotizacionFile { return $this->file; }

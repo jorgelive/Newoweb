@@ -32,6 +32,14 @@ class MercureAuthController extends AbstractController
             return $this->json(['error' => 'No autorizado'], 401);
         }
 
+        // ⚠️ `InMemory::plainText()` exige `non-empty-string`, y con razón: un secreto vacío
+        // firma tokens que cualquiera puede reproducir. Con `MERCURE_JWT_SECRET` sin definir el
+        // contenedor inyecta '' y esto seguía adelante — el fallo se vería como «las
+        // notificaciones no llegan», no como «el canal quedó abierto».
+        if ($this->jwtSecret === '') {
+            throw new \LogicException('MERCURE_JWT_SECRET está vacío: no se pueden firmar tokens.');
+        }
+
         // 2. Configuramos la librería JWT con el secreto inyectado
         $configuration = Configuration::forSymmetricSigner(
             new Sha256(),

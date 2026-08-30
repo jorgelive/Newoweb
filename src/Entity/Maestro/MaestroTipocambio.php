@@ -69,8 +69,10 @@ class MaestroTipocambio
     #[Groups(['tipocambio:read'])]
     public function getPromedio(): string
     {
-        $compra = $this->compra ?? '0.000';
-        $venta = $this->venta ?? '0.000';
+        // Mismo motivo que en `Cotizacion::getGanancia()`: `bcadd()` lanza si el texto no es
+        // numérico, y aquí eso dejaría sin tipo de cambio a todo lo que lo consulte.
+        $compra = is_numeric($this->compra) ? (string) $this->compra : '0.000';
+        $venta = is_numeric($this->venta) ? (string) $this->venta : '0.000';
         $suma = bcadd($compra, $venta, 3);
         return bcdiv($suma, '2', 3);
     }

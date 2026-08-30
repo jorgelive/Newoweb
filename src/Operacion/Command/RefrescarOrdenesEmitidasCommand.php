@@ -105,11 +105,15 @@ final class RefrescarOrdenesEmitidasCommand extends Command
 
             foreach ($cambios as $campo => [, $ahora]) {
                 match ($campo) {
-                    'nombreComponente' => $item->setNombreComponente($ahora),
-                    'nombreSegmento' => $item->setNombreSegmento($ahora),
-                    'contextoServicio' => $item->setContextoServicio($ahora),
+                    // `(string)` en todos: el mapa de cambios trae `int|string` —el orden es
+                    // numérico— y estos setters piden `?string`. Sin el cast, un valor numérico
+                    // entraba tal cual y Doctrine lo guardaba como texto de todas formas: mismo
+                    // resultado, pero sin que nadie lo hubiera decidido.
+                    'nombreComponente' => $item->setNombreComponente((string) $ahora),
+                    'nombreSegmento' => $item->setNombreSegmento((string) $ahora),
+                    'contextoServicio' => $item->setContextoServicio((string) $ahora),
                     'descripcion' => $item->setDescripcion((string) $ahora),
-                    'tipoComponente' => $item->setTipoComponente($ahora),
+                    'tipoComponente' => $item->setTipoComponente((string) $ahora),
                     'ordenItinerario' => $item->setOrdenItinerario((int) $ahora),
                 };
             }
