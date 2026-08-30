@@ -9121,6 +9121,43 @@ retirar un número sería imposible. Con la fila presente, `addIdentidad()` dedu
 vetos vivos es una decisión de persona y se hace mirando la prueba de vida, no dentro de una
 migración.
 
+### Cómo se corrige un número malo, y por qué no hay lápiz
+
+El caso que lo fijó: la reserva `EKFHMC` (Booking) sembró `8651925969679` —un `86` de más
+delante de un número peruano— y Meta devolvió `131026`. El operador abrió el editor buscando
+editar el valor, y **no existe esa opción**.
+
+**Es deliberado.** Esa identidad tiene `origen = contexto`: la sembró el dominio, y
+`upsertFromContext()` re-registra los identificadores del dominio **en cada recálculo**. Un valor
+editado en sitio volvería a su forma mala en el siguiente pull. Por eso la fila sólo ofrece
+⭐ principal, ✓ veto y ✕ retirar, y por eso `retirado_en` es una lápida y no un borrado.
+
+El procedimiento, en este orden:
+
+1. **Añadir** el número bueno en «Añadir identificador».
+2. **Marcarlo principal** (⭐).
+3. **Retirar** el malo (✕).
+
+`EditorDeIdentidades::agregar()` y `::retirar()` llaman los dos a `recalcularBloqueoWhatsapp()`,
+así que la casilla del hilo se levanta sola en cuanto queda un teléfono vivo sin vetar — la regla
+es «todos, no alguno».
+
+⚠️ **No desmarcar la casilla a mano.** `setWhatsappDisabled(false)` levanta el veto de **todos**
+los teléfonos vivos, incluido el que no funciona.
+
+⚠️ **Añadir ANTES de retirar, y el orden no es cosmético.** `TelefonoDeContacto` descarta vetados
+y retirados y cae a la **semilla** —`PmsReserva::$telefono`—, que en este caso es el mismo número
+malo que mandó Booking. Retirar sin añadir devuelve al punto de partida sin avisar.
+
+🔑 **Los mensajes ya programados SÍ salen al número nuevo.** El `destination_phone` de la cola es
+un respaldo: `WhatsappMetaSendMappingStrategy` pregunta el teléfono vivo al enviar y **reescribe
+la fila** si difiere. En `EKFHMC` había dos en cola —`check_out` y `despedida_booking`— con el
+número malo congelado, y se corrigen solos.
+
+El procedimiento vive también en el panel, en un `InfoTooltip` junto a «Identificadores» que
+**sólo aparece cuando hay algún teléfono vetado**: no interesa hasta que hace falta, y una franja
+de ayuda permanente es ruido en el 95 % de las aperturas.
+
 ### El teléfono de la reserva es una SEMILLA
 
 `PmsReserva::$telefono2` y `$telefono2EsPrincipal` **se retiraron** (`Version20260820380000`).

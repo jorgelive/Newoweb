@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useChatStore, type ApiConversation } from '@/stores/chat/chatStore.ts';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { uuidDe } from '@/services/hydra';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 
 const props = defineProps<{ conversation: ApiConversation }>();
 const emit = defineEmits<{ close: [] }>();
@@ -74,6 +75,15 @@ const identidades = computed<IdentidadDelPanel[]>(() => {
     };
   });
 });
+
+/**
+ * ¿Hay algún teléfono vetado y vivo?
+ *
+ * Es lo que decide si se enseña la ayuda de «cómo se corrige un número malo». Sólo cuando hay
+ * uno: el procedimiento no interesa hasta que hace falta, y una franja de ayuda permanente es
+ * ruido en el 95 % de las aperturas del panel.
+ */
+const hayVetados = computed(() => identidades.value.some(i => i.tipo === 'telefono' && i.bloqueado));
 
 /**
  * El teléfono del hilo cuando NO figura entre sus identidades.
@@ -269,7 +279,37 @@ const formatDateTime = (iso?: string | null) => {
                reserva se contradice solo. Ver docs/Mensajeria.md §24. -->
           <div class="pt-4 border-t border-slate-200">
             <div class="flex items-center justify-between mb-2">
-              <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identificadores</h3>
+              <div class="flex items-center gap-1.5">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identificadores</h3>
+
+                <!-- La ayuda aparece SÓLO con algún teléfono vetado, que es cuando hay algo que
+                     hacer. El procedimiento no es evidente —lo natural es buscar un lápiz que no
+                     existe— y equivocarse tiene dos formas de salir mal, las dos silenciosas:
+                     desmarcar la casilla revive el número muerto, y retirar sin añadir cae a la
+                     semilla, que suele ser el mismo número malo. -->
+                <InfoTooltip v-if="hayVetados" lado="derecha">
+                  <b class="text-white">Un número vetado no se edita: se sustituye.</b>
+                  El valor lo sembró el canal (Booking, Airbnb) y el siguiente pull lo
+                  reescribiría, así que no hay lápiz — por eso existe la lápida de «retirado».
+                  <br><br>
+                  <b class="text-white">1.</b> Añade el número bueno abajo, en
+                  «Añadir identificador».<br>
+                  <b class="text-white">2.</b> Márcalo principal con la ⭐.<br>
+                  <b class="text-white">3.</b> Retira el malo con la ✕.
+                  <br><br>
+                  La casilla de <b class="text-white">WhatsApp deshabilitado</b> se levanta sola
+                  al quedar un teléfono vivo sin vetar.
+                  <b class="text-white">No la desmarques a mano</b>: eso levanta el veto de
+                  todos, incluido el que no funciona.
+                  <br><br>
+                  ⚠️ <b class="text-white">Añade antes de retirar.</b> Si sólo retiras el malo, el
+                  sistema cae al teléfono que vino en la reserva — que normalmente es ese mismo
+                  número malo.
+                  <br><br>
+                  Los mensajes ya programados <b class="text-white">sí saldrán al nuevo</b>: el
+                  destino guardado en la cola es sólo un respaldo y se reescribe al enviar.
+                </InfoTooltip>
+              </div>
               <span class="text-[9px] font-bold text-slate-300 uppercase">de la persona, no de la reserva</span>
             </div>
 
