@@ -9,9 +9,33 @@
 # que había, la clasificación real resultó ser:
 #
 #   DEUDA (se salda, y se quita de aquí)
-#      85  missingType.iterableValue   un `array` sin declarar qué lleva dentro
-#      10  arrayValues.list            un `array_values()` que ya devuelve una lista
-#       8  property.unusedType         fuera de `Entity/`, donde la excepción de Doctrine no aplica
+#      10  arrayValues.list     un `array_values()` que ya devuelve una lista
+#       8  property.unusedType  fuera de `Entity/`, donde la excepción de Doctrine no aplica
+#
+# ── ✅ `missingType` SALDADO ENTERO el 30/08/2026 (120 → 0) ──────────────────
+#
+# Hecho POR MÓDULO y leyendo cada sitio, no en tanda, y el precio de hacerlo así quedó medido:
+# **seis veces escribí un tipo mal y el analizador lo tumbó en el acto.** Todas por suponer desde
+# el nombre del parámetro en vez de mirar quién lo llena:
+#
+#   · `ItemResult::$extraData` — `array<string, mixed>` y era una LISTA de mensajes.
+#   · `SkillResult::$datos` — `array<string, mixed>` y una skill SÍ puede devolver lista; la
+#     anotación estrecha apagaba el `array_is_list()` que lo demostraba.
+#   · `$candidatos` de RegistrarPagoSkill — `list<string>` y eran `list<User>`.
+#   · `translateWithDetection()` — `list<string>` y devuelve
+#     `array{translations: …, detectedLanguage: …}`.
+#   · `initBookingIndexPool()` — `array<string, mixed>` y devuelve una tupla.
+#   · `delEquipoPorChat()` — le puse un `@param` de un parámetro que no tiene.
+#
+# Escritas las 120 de golpe, esas seis se habrían quedado. Y un tipo mentiroso es PEOR que
+# ninguno: el analizador se lo cree y deja de mirar — dos veces apagó un guarda real.
+#
+# ⚠️ **Lo que más sorprendió: buena parte del trabajo ya estaba hecho y no contaba.** Anotaciones
+# correctas que no se leían por estar mal colocadas — el `/** * @tag` de una línea, el `@var`
+# dentro del `foreach`, el `@var` sobre un parámetro promovido, el docblock DEBAJO de un
+# `#[Groups]`, un `@phpstan-type` que no se registraba, y varias etiquetas duplicadas
+# (`dispatch()` tenía dos `@return` contradictorios). Antes de escribir un tipo: comprobar que el
+# que ya hay se está leyendo.
 #
 # ── ✅ `missingType.generics` SALDADO ENTERO el 30/08/2026 (29 → 0) ──────────
 #
@@ -323,12 +347,7 @@ parameters:
 			count: 1
 			path: src/Api/Controller/Oweb/ServicioItinerarioController.php
 
-		-
-			message: '#^Method App\\Api\\Controller\\Tipo\\PmsEnumAjaxController\:\:cacheable\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Api/Controller/Tipo/PmsEnumAjaxController.php
-
+	
 	
 	
 	
@@ -344,24 +363,9 @@ parameters:
 
 	
 	
-		-
-			message: '#^Method App\\Calendar\\Dto\\CalendarEventDto\:\:__construct\(\) has parameter \$classNames with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Dto/CalendarEventDto.php
-
-		-
-			message: '#^Method App\\Calendar\\Dto\\CalendarEventDto\:\:__construct\(\) has parameter \$extendedProps with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Dto/CalendarEventDto.php
-
-		-
-			message: '#^Method App\\Calendar\\Dto\\CalendarEventDto\:\:__construct\(\) has parameter \$tooltip with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Calendar/Dto/CalendarEventDto.php
-
+	
+	
+	
 		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsEventoCalendario and App\\Pms\\Entity\\PmsEventoCalendario will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
@@ -397,24 +401,9 @@ parameters:
 			path: src/Calendar/Twig/FullCalendarStimulusExtension.php
 
 	
-		-
-			message: '#^Method App\\Command\\ObtenerReservasCommand\:\:initBookingIndexPool\(\) has parameter \$canal with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Command/ObtenerReservasCommand.php
-
-		-
-			message: '#^Method App\\Command\\ObtenerReservasCommand\:\:initBookingIndexPool\(\) has parameter \$unidad with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Command/ObtenerReservasCommand.php
-
-		-
-			message: '#^Method App\\Command\\ObtenerReservasCommand\:\:initBookingIndexPool\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Command/ObtenerReservasCommand.php
-
+	
+	
+	
 		-
 			message: '#^Property App\\Command\\ObtenerReservasCommand\:\:\$params is never read, only written\.$#'
 			identifier: property.onlyWritten
@@ -427,12 +416,7 @@ parameters:
 			count: 1
 			path: src/Command/ObtenerReservasCommand.php
 
-		-
-			message: '#^Property App\\Cotizacion\\Entity\\Cotizacion\:\:\$imagenPortada type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Cotizacion/Entity/Cotizacion.php
-
+	
 		-
 			message: '#^Comparison operation "\<\=" between int\<13, 17\> and 17 is always true\.$#'
 			identifier: smallerOrEqual.alwaysTrue
@@ -445,12 +429,7 @@ parameters:
 			count: 1
 			path: src/Cotizacion/Entity/CotizacionFilepasajero.php
 
-		-
-			message: '#^Property App\\Cotizacion\\Entity\\CotizacionSegmento\:\:\$notasSnapshot type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Cotizacion/Entity/CotizacionSegmento.php
-
+	
 	
 		-
 			message: '#^Unable to resolve the template type T in call to method Doctrine\\Persistence\\ObjectManager\:\:find\(\)$#'
@@ -512,24 +491,14 @@ parameters:
 			count: 1
 			path: src/Entity/PushSubscription.php
 
-		-
-			message: '#^Method App\\Entity\\User\:\:setRoles\(\) has parameter \$roles with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/User.php
-
+	
 		-
 			message: '#^Parameter \#1 \$user of method App\\Oweb\\Entity\\CuentaMovimiento\:\:setUser\(\) expects App\\Entity\\User, null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Entity/User.php
 
-		-
-			message: '#^Property App\\Entity\\User\:\:\$roles type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Entity/User.php
-
+	
 	
 	
 	
@@ -569,12 +538,7 @@ parameters:
 	
 	
 	
-		-
-			message: '#^Method App\\Finanzas\\Entity\\FinMedioCobro\:\:setNota\(\) has parameter \$nota with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Finanzas/Entity/FinMedioCobro.php
-
+	
 		-
 			message: '#^Offset ''content'' on array\{language\: string, content\: string\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
@@ -587,30 +551,10 @@ parameters:
 			count: 1
 			path: src/Finanzas/Entity/FinMedioCobro.php
 
-		-
-			message: '#^Property App\\Finanzas\\Entity\\FinMedioCobro\:\:\$nota type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Finanzas/Entity/FinMedioCobro.php
-
-		-
-			message: '#^Method App\\Finanzas\\Service\\Culqi\\CulqiClient\:\:comoRespuestaNormalizada\(\) has parameter \$cargo with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Finanzas/Service/Culqi/CulqiClient.php
-
-		-
-			message: '#^Method App\\Finanzas\\Service\\Culqi\\CulqiClient\:\:comoRespuestaNormalizada\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Finanzas/Service/Culqi/CulqiClient.php
-
-		-
-			message: '#^Method App\\Finanzas\\Service\\FinEnlacePagoService\:\:registrarFallo\(\) has parameter \$respuesta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Finanzas/Service/FinEnlacePagoService.php
-
+	
+	
+	
+	
 	
 	
 	
@@ -664,12 +608,7 @@ parameters:
 			count: 1
 			path: src/Message/Entity/Beds24ReceiveQueue.php
 
-		-
-			message: '#^Method App\\Message\\Entity\\MessageConversation\:\:getContextItems\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Entity/MessageConversation.php
-
+	
 		-
 			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
@@ -744,12 +683,7 @@ parameters:
 			count: 1
 			path: src/Message/Service/Exchange/Tasks/WhatsappMetaSend/WhatsappMetaSendMappingStrategy.php
 
-		-
-			message: '#^Method App\\Message\\Service\\MessageDataResolverRegistry\:\:__construct\(\) has parameter \$resolvers with no value type specified in iterable type iterable\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Message/Service/MessageDataResolverRegistry.php
-
+	
 	
 	
 	
@@ -782,12 +716,7 @@ parameters:
 			count: 2
 			path: src/Operacion/Entity/OperacionServicio.php
 
-		-
-			message: '#^Method App\\Operacion\\Service\\BibliaReconciliacionService\:\:valoresActuales\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Operacion/Service/BibliaReconciliacionService.php
-
+	
 		-
 			message: '#^Parameter \#1 \$array \(non\-empty\-list\<App\\Cotizacion\\Entity\\CotizacionCottarifa\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
@@ -796,44 +725,14 @@ parameters:
 
 	
 	
-		-
-			message: '#^Method App\\Panel\\Helper\\AdminFieldHelper\:\:controls\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: src/Panel/Helper/AdminFieldHelper.php
-
-		-
-			message: '#^Method App\\Panel\\Helper\\AdminFieldHelper\:\:controls\(\) has parameter \$field with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Panel/Helper/AdminFieldHelper.php
-
-		-
-			message: '#^Method App\\Panel\\Helper\\AdminFieldHelper\:\:getAttributes\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Panel/Helper/AdminFieldHelper.php
-
 	
 	
-		-
-			message: '#^Method App\\Pax\\Entity\\UiI18n\:\:getContenido\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pax/Entity/UiI18n.php
-
-		-
-			message: '#^Method App\\Pax\\Entity\\UiI18n\:\:setContenido\(\) has parameter \$contenido with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pax/Entity/UiI18n.php
-
-		-
-			message: '#^Property App\\Pax\\Entity\\UiI18n\:\:\$contenido type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pax/Entity/UiI18n.php
-
+	
+	
+	
+	
+	
+	
 	
 	
 	
@@ -939,12 +838,7 @@ parameters:
 			count: 1
 			path: src/Pms/Entity/PmsGuiaSeccion.php
 
-		-
-			message: '#^Method App\\Pms\\Entity\\PmsInformacionFinanciera\:\:getPrepagoPendiente\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Pms/Entity/PmsInformacionFinanciera.php
-
+	
 	
 	
 		-
@@ -1109,108 +1003,23 @@ parameters:
 			path: src/Pms/Service/Tarifa/Engine/TarifaLogicalRangeCompressor.php
 
 	
-		-
-			message: '#^Class App\\Repository\\PushSubscriptionRepository has PHPDoc tag @method for method findBy\(\) parameter \#1 \$criteria with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Repository/PushSubscriptionRepository.php
-
-		-
-			message: '#^Class App\\Repository\\PushSubscriptionRepository has PHPDoc tag @method for method findBy\(\) parameter \#2 \$orderBy with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Repository/PushSubscriptionRepository.php
-
-		-
-			message: '#^Class App\\Repository\\PushSubscriptionRepository has PHPDoc tag @method for method findOneBy\(\) parameter \#1 \$criteria with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Repository/PushSubscriptionRepository.php
-
-		-
-			message: '#^Class App\\Repository\\PushSubscriptionRepository has PHPDoc tag @method for method findOneBy\(\) parameter \#2 \$orderBy with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Repository/PushSubscriptionRepository.php
-
-		-
-			message: '#^Class App\\Repository\\UserRepository has PHPDoc tag @method for method findBy\(\) parameter \#1 \$criteria with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Repository/UserRepository.php
-
-		-
-			message: '#^Class App\\Repository\\UserRepository has PHPDoc tag @method for method findBy\(\) parameter \#2 \$orderBy with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Repository/UserRepository.php
-
-		-
-			message: '#^Class App\\Repository\\UserRepository has PHPDoc tag @method for method findOneBy\(\) parameter \#1 \$criteria with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Repository/UserRepository.php
-
-		-
-			message: '#^Class App\\Repository\\UserRepository has PHPDoc tag @method for method findOneBy\(\) parameter \#2 \$orderBy with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Repository/UserRepository.php
-
-		-
-			message: '#^Method App\\Security\\Roles\:\:getChoices\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Security/Roles.php
-
-		-
-			message: '#^Method App\\Serializer\\Decoder\\MultipartDecoder\:\:decode\(\) has parameter \$context with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Serializer/Decoder/MultipartDecoder.php
-
-		-
-			message: '#^Method App\\Serializer\\Decoder\\MultipartDecoder\:\:decode\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Serializer/Decoder/MultipartDecoder.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\GoogleTranslateService\:\:__construct\(\) has parameter \$googleTranslateCredentials with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/GoogleTranslateService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\GoogleTranslateService\:\:translate\(\) has parameter \$text with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/GoogleTranslateService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\GoogleTranslateService\:\:translate\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/GoogleTranslateService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\GoogleTranslateService\:\:translateWithDetection\(\) has parameter \$text with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/GoogleTranslateService.php
-
-		-
-			message: '#^Method App\\Service\\Translate\\GoogleTranslateService\:\:translateWithDetection\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/Translate/GoogleTranslateService.php
-
-		-
-			message: '#^Method App\\Service\\WebPushNotificationService\:\:sendToUser\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Service/WebPushNotificationService.php
-
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 		-
 			message: '#^Match arm comparison between ''OPCIONAL'' and ''OPCIONAL'' is always true\.$#'
 			identifier: match.alwaysTrue

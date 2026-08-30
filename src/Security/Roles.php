@@ -103,6 +103,7 @@ final class Roles
 
     /**
      * Devuelve los roles filtrados por grupo funcional.
+     * @return array<string, string|array<string, string>> Etiqueta → rol, agrupadas si no se acota.
      */
     public static function getChoices(?string $group = null): array
     {

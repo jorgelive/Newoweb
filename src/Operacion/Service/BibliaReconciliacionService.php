@@ -483,6 +483,7 @@ class BibliaReconciliacionService
     }
 
     /** Estado actual de la fila en el mismo formato escalar que calcularValores(). */
+    /** @return array<string, mixed> Los campos de la fila que se comparan contra la cotización. */
     private function valoresActuales(OperacionServicio $fila): array
     {
         $tarifa = $fila->getCotizacionTarifa();

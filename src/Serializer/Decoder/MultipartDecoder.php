@@ -18,6 +18,9 @@ final class MultipartDecoder implements DecoderInterface
     /**
      * Decodifica la petición multipart/form-data.
      * Alimenta al Serializador SOLO con los datos de texto.
+     * @param array<string, mixed> $context
+     *
+     * @return array<string, mixed>|null
      */
     public function decode(string $data, string $format, array $context = []): ?array
     {

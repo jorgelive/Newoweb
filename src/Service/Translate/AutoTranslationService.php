@@ -345,7 +345,9 @@ class AutoTranslationService
 
                 $res = $this->translator->translate($textoSeguro, $targetCode, $sourceLangNorm, $mimeType);
 
-                if (!empty($res[0]) && is_string($res[0])) {
+                // Sin `is_string($res[0])`: `translate()` devuelve `list<string>` desde que
+                // está tipado. El `!empty()` sí hace falta — una traducción vacía no se guarda.
+                if (!empty($res[0])) {
                     // Si el traductor se comió un centinela, esta traducción NO se guarda: un
                     // texto al que le falta el widget de medios de pago se publica igual de
                     // callado que uno bueno, y nadie lo nota hasta que alguien pregunta cómo

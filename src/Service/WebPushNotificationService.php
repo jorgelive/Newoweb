@@ -65,6 +65,7 @@ class WebPushNotificationService
      * NO lanza excepciones por fallos de entrega: quien llama suele estar
      * recorriendo una lista de destinatarios y un dispositivo caído no debe
      * dejar sin aviso al resto. Los fallos quedan en el log.
+     * @param array<string, mixed> $payload Lo que recibe el service worker, ya serializable.
      */
     public function sendToUser(User $user, array $payload): void
     {

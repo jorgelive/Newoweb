@@ -274,6 +274,10 @@ class PmsInformacionFinanciera
     // La forma se declara a mano: de un `?array` API Platform deduce `string[]`, y el tipo
     // que openapi-typescript genera para `util` sale inservible (`.monto` no existe en un
     // array de strings). Con esto el espejo TS se deriva del esquema como los demás.
+    /**
+     * @return array{monto: string, politica: string, politicaEtiqueta: string, politicaCorta: string,
+     *      concepto: string}|null
+     */
     #[ApiProperty(openapiContext: [
         'type' => 'object',
         'nullable' => true,
@@ -289,11 +293,6 @@ class PmsInformacionFinanciera
             'concepto' => ['type' => 'string', 'example' => 'Adelanto de reserva AB12CD — Casita 4'],
         ],
     ])]
-    /**
-     * @return array<string, mixed>|null
-     *
-     * @return array<string, mixed>|null
-     */
     #[Groups(['pms_finanzas:read'])]
     public function getPrepagoPendiente(): ?array { return $this->prepagoPendiente; }
     /**

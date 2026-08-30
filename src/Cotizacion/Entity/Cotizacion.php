@@ -308,6 +308,7 @@ class Cotizacion
      * imagen elegida). Null = se deriva automáticamente: primera imagen con
      * isPortada recorriendo el itinerario, o la primera disponible.
      */
+    /** @var array<string, mixed>|null El override editorial de la portada. */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $imagenPortada = null;
@@ -476,8 +477,6 @@ class Cotizacion
      */
     public function getImagenPortada(): ?array { return $this->imagenPortada; }
     /**
-     * @param array<string, mixed>|null $imagenPortada
-     *
      * @param array<string, mixed>|null $imagenPortada
      */
     public function setImagenPortada(?array $imagenPortada): self { $this->imagenPortada = $imagenPortada; return $this; }

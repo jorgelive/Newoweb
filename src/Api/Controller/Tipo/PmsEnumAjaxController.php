@@ -171,6 +171,7 @@ class PmsEnumAjaxController extends AbstractController
     /**
      * Cachea 1 hora en el navegador: la estructura de un Enum rara vez cambia
      * (mismo criterio que TravelEnumAjaxController).
+     * @param array<array-key, mixed> $data
      */
     private function cacheable(array $data): JsonResponse
     {

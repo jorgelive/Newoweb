@@ -25,6 +25,7 @@ class GoogleTranslateService
     /**
      * @param TranslationServiceClient $client Cliente oficial de Google V3.
      * @param array $googleTranslateCredentials JSON de autenticación.
+     * @param array<string, mixed> $googleTranslateCredentials Las credenciales del JSON de servicio.
      */
     public function __construct(
         private readonly TranslationServiceClient $client,
@@ -46,6 +47,9 @@ class GoogleTranslateService
      * @param string $mimeType Formato del texto (por defecto text/plain).
      * @return array Lista de strings traducidos.
      * @throws ApiException Si ocurre un error en la comunicación con Google Cloud.
+     * @param string|list<string> $text
+     *
+     * @return list<string> Las traducciones, en el mismo orden.
      */
     public function translate(string|array $text, string $targetLanguage, ?string $sourceLanguage = null, string $mimeType = 'text/plain'): array
     {
@@ -84,6 +88,10 @@ class GoogleTranslateService
      * @param string $mimeType Formato del texto (por defecto text/plain).
      * @return array Contiene 'translations' (array de strings) y 'detectedLanguage' (string ISO).
      * @throws ApiException Si ocurre un error en la comunicación con Google Cloud.
+     * @param string|list<string> $text
+     *
+     * @return array{translations: list<string>, detectedLanguage: string|null} Las traducciones
+     *         y, si la API lo dijo, el idioma que detectó en el primer fragmento.
      */
     public function translateWithDetection(string|array $text, string $targetLanguage, string $mimeType = 'text/plain'): array
     {

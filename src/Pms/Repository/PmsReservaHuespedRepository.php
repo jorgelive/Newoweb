@@ -13,11 +13,6 @@ use Symfony\Component\Uid\Uuid;
  * Repositorio para la gestión de la entidad PmsReservaHuesped.
  *
  * @extends ServiceEntityRepository<PmsReservaHuesped>
- *
- * @method PmsReservaHuesped|null find($id, $lockMode = null, $lockVersion = null)
- * @method PmsReservaHuesped|null findOneBy(array $criteria, array $orderBy = null)
- * @method PmsReservaHuesped[]    findAll()
- * @method PmsReservaHuesped[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
 /** @extends ServiceEntityRepository<PmsReservaHuesped> */
 class PmsReservaHuespedRepository extends ServiceEntityRepository

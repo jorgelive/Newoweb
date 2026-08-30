@@ -17,11 +17,6 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  * controladores y servicios de aplicación.
  *
  * @extends ServiceEntityRepository<PushSubscription>
- *
- * @method PushSubscription|null find($id, $lockMode = null, $lockVersion = null)
- * @method PushSubscription|null findOneBy(array $criteria, array $orderBy = null)
- * @method PushSubscription[]    findAll()
- * @method PushSubscription[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
 class PushSubscriptionRepository extends ServiceEntityRepository
 {

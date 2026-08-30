@@ -22,6 +22,7 @@ class AdminFieldHelper
 
     /**
      * Genera la colección de atributos de datos base para el controlador síncrono estándar.
+     * @return array<string, string> Los `data-*` que lee el controlador Stimulus.
      */
     public static function getAttributes(
         string $childSelector,
@@ -83,17 +84,21 @@ class AdminFieldHelper
      * Vincula el comportamiento dependiente local (síncrono) sobre colecciones precargadas en el DOM.
      */
     public static function controls(
-        $field,
+        // ⚠️ `mixed` y no `FieldInterface`: la interfaz de EasyAdmin declara sólo `new()`,
+        // `getAsDto()` y `__clone()`. `setHtmlAttribute()` la traen los campos CONCRETOS por
+        // `FieldTrait`, así que tipar contra la interfaz compila pero rompe la llamada.
+        mixed $field,
         string $childSelector,
         string $childAttr,
         string $operator = self::OP_STRICT,
         string $parentSource = self::SRC_VALUE,
         ?string $scope = self::SCOPE_EA
-    ) {
+    ): mixed {
         $attrs = self::getAttributes($childSelector, $childAttr, $operator, $parentSource, $scope);
         foreach ($attrs as $key => $value) {
             $field->setHtmlAttribute($key, $value);
         }
+
         return $field;
     }
 }

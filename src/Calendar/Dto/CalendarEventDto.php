@@ -10,7 +10,11 @@ use JsonSerializable;
 /**
  * DTO de Event para FullCalendar.
  * Soporta identificadores de tipo objeto (UUID) para evitar casteos manuales en los proveedores.
- * * @phpstan-type TooltipType string|list<string>|null
+ *
+ * ⚠️ El alias iba escrito `* * @phpstan-type` —en la misma línea y con un asterisco de más—, así
+ * que PHPStan no lo registraba y `$tooltip` seguía sin tipo pese a estar declarado aquí.
+ *
+ * @phpstan-type TooltipType string|list<string>|null
  */
 final class CalendarEventDto implements JsonSerializable
 {
@@ -20,7 +24,10 @@ final class CalendarEventDto implements JsonSerializable
      * @param DateTimeInterface $start Fecha y hora de inicio.
      * @param DateTimeInterface $end Fecha y hora de fin.
      * @param string|int|object|null $resourceId ID de la unidad/recurso (soporta UUID).
-     * @param string|array|null $tooltip Información extra para el hover.
+     * @param TooltipType $tooltip Información extra para el hover.
+     * @param list<string>|null $classNames Clases CSS que FullCalendar pone en el evento.
+     * @param array<string, mixed>|null $extendedProps Diccionario abierto que lee el front; el
+     *        contrato de su forma lo fija quien construye el evento, no este DTO.
      */
     public function __construct(
         public readonly string|int|object $id,
@@ -70,7 +77,9 @@ final class CalendarEventDto implements JsonSerializable
         if ($this->color !== null) $out['color'] = $this->color;
 
         if (!empty($this->classNames)) {
-            $out['classNames'] = array_values($this->classNames);
+            // Sin `array_values()`: `$classNames` ya es `list<string>` desde que está tipado, y
+            // FullCalendar necesita un array JSON, no un objeto. El reindexado sobraba.
+            $out['classNames'] = $this->classNames;
         }
 
         if ($this->urledit !== null) $out['urledit'] = $this->urledit;

@@ -56,6 +56,7 @@ class UiI18n
     /**
      * Array de Objetos: [{"language": "es", "content": "..."}]
      */
+    /** @var list<array{language?: string, content?: string|null}> Forma i18n del proyecto. */
     #[ORM\Column(type: 'json')]
     #[AutoTranslate(sourceLanguage: 'es')]
     private array $contenido = [];
@@ -89,6 +90,7 @@ class UiI18n
         return $this;
     }
 
+    /** @return list<array{language?: string, content?: string|null}> */
     #[Groups(['pax:read'])]
     public function getContenido(): array
     {
@@ -96,6 +98,7 @@ class UiI18n
         return MaestroIdioma::ordenarParaFormulario($this->contenido);
     }
 
+    /** @param list<array{language?: string, content?: string|null}> $contenido */
     public function setContenido(array $contenido): self
     {
         // Validamos y normalizamos el array de objetos antes de guardar

@@ -66,6 +66,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * Listado de roles asignados (JSON).
      * @var array
      */
+    /** @var list<string> Los roles literales de la columna; la jerarquía la resuelve security.yaml. */
     #[ORM\Column(type: 'json')]
     private array $roles = [];
 
@@ -255,6 +256,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return array_unique($roles);
     }
 
+    /**
+     * @param list<string> $roles
+     */
     public function setRoles(array $roles): self
     {
         $this->roles = $roles;

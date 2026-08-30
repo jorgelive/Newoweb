@@ -704,8 +704,8 @@ class MessageConversation
         return $this;
     }
 
-    #[Groups(['conversation:read'])]
     /** @return list<string> */
+    #[Groups(['conversation:read'])]
     public function getContextItems(): array { return $this->contextData['items'] ?? []; }
     /** @param list<string> $items */
     public function setContextItems(array $items): self {

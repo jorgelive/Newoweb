@@ -143,6 +143,7 @@ class FinMedioCobro
      * este mismo campo lo pinta la app del cliente, que no pasa por ningún modelo que lo
      * redacte. Estructura `[{"language": "es", "content": "…"}]`, como el resto de campos i18n.
      */
+    /** @var list<array{language?: string, content?: string|null}> Forma i18n del proyecto. */
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $nota = [];
@@ -218,6 +219,7 @@ class FinMedioCobro
     /** @return array<int, array{language: string, content: string}> */
     public function getNota(): array { return $this->nota ?? []; }
 
+    /** @param list<array{language?: string, content?: string|null}>|null $nota */
     public function setNota(?array $nota): self { $this->nota = $nota ?? []; return $this; }
 
     public function isActivo(): bool { return $this->activo; }

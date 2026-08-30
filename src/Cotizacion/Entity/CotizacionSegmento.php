@@ -137,6 +137,7 @@ class CotizacionSegmento
      * SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar.
      * Estructura: [ {"nombreInterno": "...", "contenido": [...]}, ... ]
      */
+    /** @var list<array<string, mixed>> El historial de notas congelado. */
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'json')]
     private array $notasSnapshot = [];
@@ -277,7 +278,7 @@ class CotizacionSegmento
     /**
      * Establece el snapshot inmutable de notas para este segmento cotizado.
      *
-     * @param array $notasSnapshot Array multidimensional con el historial de notas.
+     * Array multidimensional con el historial de notas.
      * @return self
      *
      * @param list<array<string, mixed>> $notasSnapshot

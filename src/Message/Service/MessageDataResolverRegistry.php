@@ -13,8 +13,8 @@ class MessageDataResolverRegistry
     /** @var iterable<MessageDataResolverInterface> */
     private iterable $resolvers;
 
+    /** @param iterable<MessageDataResolverInterface> $resolvers */
     public function __construct(
-        /** @param iterable<MessageDataResolverInterface> $resolvers */
         #[TaggedIterator('app.message_data_resolver')] iterable $resolvers
     ) {
         $this->resolvers = $resolvers;

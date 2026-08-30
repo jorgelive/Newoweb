@@ -268,7 +268,13 @@ final class CulqiClient implements FinPasarelaClientInterface
         return true;
     }
 
-    /** Traduce el objeto `charge` de Culqi a la forma que espera `FinEnlacePagoService`. */
+    /**
+     * Traduce el objeto `charge` de Culqi a la forma que espera `FinEnlacePagoService`.
+     *
+     * @param array<string, mixed> $cargo El cargo tal cual lo devuelve Culqi.
+     *
+     * @return array<string, mixed> La forma común que consume Finanzas.
+     */
     public function comoRespuestaNormalizada(array $cargo): array
     {
         $tarjeta = $cargo['source'] ?? [];

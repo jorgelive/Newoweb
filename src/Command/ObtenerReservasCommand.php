@@ -101,10 +101,14 @@ class ObtenerReservasCommand extends Command
      *     siguienteIndex (int -> siguiente N libre para ese UID base+unidad+canal)
      *   ]
      */
+    /** @return array{0: list<string>, 1: int} La cola de UID extendidos y el siguiente índice libre. */
     private function initBookingIndexPool(
         EntityManagerInterface $em,
-                               $unidad,
-                               $canal,
+        // Se pasan como `object` porque van directos a `setParameter()` de Doctrine: lo único
+        // que se les pide es ser la entidad que la relación espera, y tiparlas obligaría a
+        // importar dos clases de `Oweb`, que es el módulo que se retira.
+        object $unidad,
+        object $canal,
         string $baseUid
     ): array {
         $repo = $em->getRepository(ReservaReserva::class);

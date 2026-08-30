@@ -241,6 +241,8 @@ final class FinEnlacePagoService
      * la contradicción, no negarla.
      *
      * @param array<string, mixed> $respuesta `kr-answer` ya decodificado y con la firma validada.
+     * @param array<string, mixed> $respuesta Lo que contestó la pasarela.
+     * @param array<string, mixed> $respuesta Lo que contestó la pasarela.
      */
     public function confirmarPago(FinEnlacePago $enlace, array $respuesta): void
     {
@@ -317,7 +319,11 @@ final class FinEnlacePagoService
         $this->avisoDeCobro->notificar($enlace);
     }
 
-    /** Marca el intento fallido sin cerrar el enlace: el cliente puede reintentar. */
+    /**
+     * Marca el intento fallido sin cerrar el enlace: el cliente puede reintentar.
+     *
+     * @param array<string, mixed> $respuesta Lo que contestó la pasarela.
+     */
     public function registrarFallo(FinEnlacePago $enlace, array $respuesta): void
     {
         $enlace->setRespuestaPasarela($respuesta);
