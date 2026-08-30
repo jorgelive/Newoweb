@@ -89,6 +89,14 @@ final class FusionarTransportesBidireccionalesCommand extends Command
         $porRuta = [];
 
         foreach ($todos as $c) {
+            // ⚠️ Un componente RETIRADO no es candidato: es historia. Sin enlaces y fuera de todos
+            // los pools significa que ya lo sustituyó otro —Lima y Arequipa se consolidaron a
+            // mano— y volver a fusionarlo sólo renombra cosas muertas y confunde al que lea la
+            // lista después.
+            if ($this->enlaces($c) === 0 && $c->getServicios()->count() === 0) {
+                continue;
+            }
+
             $extremos = $this->extremos($c->getNombreInterno() ?? '');
 
             if ($extremos !== null) {
@@ -362,7 +370,16 @@ final class FusionarTransportesBidireccionalesCommand extends Command
             return null;
         }
 
-        $normaliza = static fn (string $p): string => mb_strtolower(trim(preg_replace('/\s+/', ' ', $p) ?? $p));
+        // ⚠️ Se quitan artículos y preposiciones sueltos antes de comparar. Sin esto,
+        // «Aeropuerto Punta Cana» y «Aeropuerto **de** Punta Cana» no son el mismo extremo, y el
+        // par no se ve: pasó con Lima —que hubo que consolidar a mano— y con Punta Cana. Una
+        // preposición de más basta para que dos fichas del mismo traslado convivan meses.
+        $normaliza = static function (string $p): string {
+            $limpio = mb_strtolower(trim($p));
+            $sinPalabrasVacias = preg_replace('/\b(de|del|la|el|los|las)\b/u', ' ', $limpio) ?? $limpio;
+
+            return trim(preg_replace('/\s+/', ' ', $sinPalabrasVacias) ?? $sinPalabrasVacias);
+        };
 
         return [$normaliza($partes[0]), $normaliza($partes[1])];
     }

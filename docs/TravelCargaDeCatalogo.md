@@ -182,7 +182,19 @@ que la cabeza de alguien.
 el mismo par direccional, y la detección automática **no los vio**: compara los extremos y
 «Aeropuerto Lima» no es «Aeropuerto de Lima».
 
-Por eso la fusión automática **no sustituye a mirar la lista**. Quedaron tres componentes para el
+⚠️ **Corregido en el detector el 29/08/2026, y no era opcional.** `extremos()` normaliza ahora
+el extremo antes de comparar: pasa a minúsculas y **quita artículos y preposiciones sueltos**
+(`de`, `del`, `la`, `el`, `los`, `las`) con límites de palabra. Con eso «Aeropuerto Lima» y
+«Aeropuerto de Lima» son el mismo extremo. Se arregló porque **volvió a morder**: el mismo fallo
+escondió el par de Punta Cana, y consolidar a mano una vez es una anécdota, dos veces es un
+agujero. Dejar la lección escrita sin tocar el código habría garantizado una tercera.
+
+Y un guarda que sale de lo mismo: un componente **sin enlaces y fuera de todos los pools** ya no
+entra como candidato. Es historia —lo sustituyó otro en una consolidación previa— y volver a
+fusionarlo sólo renombra cosas muertas. Bajó los pares detectados de 4 a 1, y el que quedó era el
+verdadero.
+
+Aun así la fusión automática **no sustituye a mirar la lista**. Quedaron tres componentes para el
 mismo traslado —los dos con los precios reales y uno tercero, creado el mismo día para meter
 Minibús y Bus, con todo a cero **y quedándose con los enlaces**—. Lo consolidó
 `app:travel:consolidar-transporte-aeropuerto-lima` con un cuadro explícito.
@@ -297,6 +309,34 @@ el comando sólo ejecuta la decisión.
 
 ⚠️ La palabra se quita con **límites de palabra** (`\bdesde\b`), no con un `str_replace`: éste
 mordería cualquier nombre que la contenga dentro de otra.
+
+### ⚠️ La dirección también viaja tras un « · », y ahí NO se puede generalizar (29/08/2026)
+
+El traslado de Punta Cana quedó fusionado con **ocho** tarifas donde bastaban cuatro: «Auto · Del
+aeropuerto de Punta Cana al alojamiento» y «Auto · Del alojamiento al aeropuerto de Punta Cana»,
+mismo importe (0.00) y misma capacidad (3). Nacieron así porque el componente era direccional; al
+unificarlo, esa coletilla dejó de distinguir nada —la dirección la pone el segmento— exactamente
+igual que el «desde/hasta» de la sección anterior.
+
+La tentación es evidente y **es la trampa**: cortar por el ` · ` y quedarse con lo de la
+izquierda. No se puede. Ese separador tiene **dos significados** en el catálogo:
+
+| Nombre | Qué separa el « · » | ¿Se puede cortar? |
+|---|---|---|
+| `Auto · Del aeropuerto de Punta Cana al alojamiento` | vehículo · **dirección** | sí, la dirección sobra |
+| `Occidental Caribe - Punta Cana · Almuerzo buffet en resort` | prestador · **servicio** | **no**, se pierde qué se compra |
+| `Escala en Lima · traslados y caminata por Miraflores` | lugar · **contenido** | **no** |
+
+Una regla que cortara por el símbolo destrozaría los otros dos sin un solo error: los nombres
+seguirían existiendo, sólo que diciendo menos, y no se notaría hasta leer una orden ya enviada.
+
+Por eso el aplanado va **acotado al componente y a las dos frases concretas**, dentro de
+`app:travel:completar-traslados-punta-cana`, y no como regla del símbolo. Después,
+`app:travel:limpiar-tarifas-repetidas` junta las copias que quedan iguales: 8 → 4.
+
+**La regla que queda:** cuando una fusión deja tarifas repetidas, lo que se generaliza es *que
+hay que mirarlas*, no el patrón concreto del nombre. `desde/hasta` sí es un eje falso siempre;
+un separador no significa nada por sí mismo.
 
 ### Copias exactas: siempre queda una (29/08/2026)
 
@@ -547,4 +587,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:limpiar-tarifas-repetidas` | borrar copias exactas sin dejar nunca un componente sin precio |
 | `app:travel:normalizar-capacidades-vehiculo` | separar lo que sube de lo que baja · dejar fuera lo que aún no tiene nombre acordado |
 | `app:travel:fusionar-rutas-por-puntos` | emparejar por dato y no por prosa · construir el nombre desde la fuente de la verdad |
+| `app:travel:completar-traslados-punta-cana` | poner la ciudad en los **dos** extremos del título · aplanar la dirección de sus tarifas |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
