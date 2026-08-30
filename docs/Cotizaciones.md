@@ -3088,6 +3088,37 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.ac Dos chequeos para lo que sostiene el orden del día (29/08/2026)
+
+El itinerario coloca cada servicio por la hora más temprana de sus componentes, y los que no
+tienen hora desempatan por el `orden` de sus segmentos. **Dos supuestos de los que depende que el
+día salga bien, y que nadie vigilaba.**
+
+| clave | qué caza | por qué importa |
+|---|---|---|
+| `orden-empatado` | dos párrafos hermanos con el mismo `orden` en el mismo día | cuál sale antes lo decide el azar del guardado |
+| `multidia-sin-noche` | un servicio que abarca días sin llevar alojamiento | o las fechas están mal, o es una forma que el ordenamiento no contempla |
+
+### ⚠️ El supuesto NO es «sólo los hoteles duran varios días»
+
+Es **«lo que dura varios días es porque incluye una noche»**, y la diferencia importa. Hay siete
+servicios de dos días —«Two Day Camino inca», «Skylodge con actividades», «Two Day MAPI»— y
+ninguno es un hotel: **todos llevan alojamiento dentro**, y es la noche la que los hace durar.
+
+La primera formulación habría dado un chequeo que grita con siete casos legítimos. Comprobarlo
+contra el dato antes de escribirlo es lo que lo evitó.
+
+### Los dos nacen en cero, y eso también hubo que comprobarlo
+
+Se probaron **fabricando cada caso en una transacción y deshaciéndola**: clonar un segmento con el
+`dia` y `orden` de su hermano, y estirar un componente un día atrás en un servicio sin noche.
+Ambos contadores suben de 0 a 1 y vuelven.
+
+⚠️ Y una consulta a ojo dijo lo contrario antes de la prueba: agrupando por NOMBRE parecía haber
+un empate real —dos «Transporte desde el hotel en Lima al Aeropuerto»— y eran **cinco cotservicios
+distintos**, cada uno con su segmento en `orden 1`, que es lo normal. Agrupar por lo que se lee en
+vez de por la clave es la forma más fácil de inventarse un hallazgo.
+
 ## 6.ab Colocar es una tarea operativa: el desplegable enseña el nombre interno
 
 El modal «¿Dónde ubicar el segmento?» listaba los párrafos por su **título**. Se usa para

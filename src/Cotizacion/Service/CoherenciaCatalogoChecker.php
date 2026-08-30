@@ -222,6 +222,41 @@ final class CoherenciaCatalogoChecker
                 'set'     => null,
                 'deCotizacion' => 'k.cotservicio_id IN (SELECT sv.id FROM cotizacion_cotservicio sv WHERE sv.cotizacion_id = :cot)',
             ],
+            // ── Lo que sostiene el ordenamiento del día ─────────────────────────────────
+            //
+            // Un servicio se coloca en su día por la hora más temprana de sus componentes; los que
+            // no tienen hora desempatan por el `orden` de sus segmentos. Dos supuestos que nadie
+            // vigilaba, y de los que depende que el itinerario salga en el orden correcto.
+            'orden-empatado' => [
+                'titulo'  => 'Párrafos hermanos con el mismo orden en el mismo día',
+                'detalle' => 'Cuál sale antes lo decide el azar del guardado. Se arregla renumerando en el constructor.',
+                'desde'   => 'cotizacion_segmento g',
+                'donde'   => 'EXISTS (SELECT 1 FROM cotizacion_segmento d
+                                       WHERE d.cotservicio_id = g.cotservicio_id
+                                         AND d.dia = g.dia AND d.orden = g.orden AND d.id > g.id)',
+                'set'     => null,
+                'deCotizacion' => 'g.cotservicio_id IN (SELECT sv.id FROM cotizacion_cotservicio sv WHERE sv.cotizacion_id = :cot)',
+            ],
+            // ⚠️ El supuesto es «lo que dura varios días es porque incluye una noche», y NO es
+            // «sólo los hoteles duran varios días»: hay siete servicios de dos días —«Two Day
+            // Camino inca», «Skylodge con actividades»— y **todos llevan alojamiento dentro**. Es
+            // la noche la que los hace durar.
+            //
+            // Si aparece uno que abarca días SIN noche, o las fechas de sus componentes están mal
+            // —lo más probable— o es una forma nueva que el ordenamiento no sabe colocar: un
+            // servicio aparece en tantos grupos de día como fechas tengan sus componentes, y el
+            // desempate que comparten es uno solo.
+            'multidia-sin-noche' => [
+                'titulo'  => 'Servicios que abarcan varios días sin incluir alojamiento',
+                'detalle' => 'O las fechas están mal, o es una forma que el ordenamiento del día no contempla.',
+                'desde'   => 'cotizacion_cotservicio cs',
+                'donde'   => '(SELECT COUNT(DISTINCT DATE(k.fecha_hora_inicio)) FROM cotizacion_cotcomponente k
+                                WHERE k.cotservicio_id = cs.id AND k.fecha_hora_inicio IS NOT NULL) > 1
+                            AND NOT EXISTS (SELECT 1 FROM cotizacion_cotcomponente k2
+                                             WHERE k2.cotservicio_id = cs.id AND k2.tipo = "alojamiento")',
+                'set'     => null,
+                'deCotizacion' => 'cs.cotizacion_id = :cot',
+            ],
             // ── La duplicación del catálogo, que vuelve sola ────────────────────────────
             //
             // El 29/08/2026 el transporte tenía 94 componentes y 336 tarifas para 39 líneas de
