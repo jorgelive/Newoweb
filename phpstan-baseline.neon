@@ -12,7 +12,6 @@
 #     120  missingType.*        anotaciones de tipo pendientes — ver abajo
 #      10  arrayValues.list     un `array_values()` que ya devuelve una lista
 #       8  property.unusedType  fuera de `Entity/`, donde la excepción de Doctrine no aplica
-#       1  trait.unused         `ExternalMediaTrait`, 145 líneas con columnas ORM y cero usos
 #
 #   NO ES DEUDA: guardas en una FRONTERA DE CONFIANZA que PHPStan no puede modelar
 #      16  instanceof.alwaysTrue      validación de entrada donde llama el framework
@@ -1141,12 +1140,7 @@ parameters:
 			count: 1
 			path: src/Panel/Controller/Crud/BaseCrudController.php
 
-		-
-			message: '#^Trait App\\Panel\\Entity\\Trait\\ExternalMediaTrait is used zero times and is not analysed\.$#'
-			identifier: trait.unused
-			count: 1
-			path: src/Panel/Entity/Trait/ExternalMediaTrait.php
-
+	
 		-
 			message: '#^Method App\\Panel\\Helper\\AdminFieldHelper\:\:controls\(\) has no return type specified\.$#'
 			identifier: missingType.return
