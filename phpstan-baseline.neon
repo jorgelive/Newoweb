@@ -4,7 +4,7 @@
 # salte SÓLO lo nuevo. Si tocas un archivo con entradas aquí dentro, arréglalas y quítalas.
 #
 # ── De qué está hecha ───────────────────────────────────────────────────────
-# ~600 son `missingType.iterableValue` y `missingType.generics`: un `array` o una `Collection`
+# 120 son `missingType.iterableValue` y `missingType.generics`: un `array` o una `Collection`
 # sin declarar qué llevan dentro. Es LA deuda que importa —el fallo del 15/08 salió justo de un
 # `array` pelado— y se salda POR MÓDULO, no en tandas.
 #
@@ -686,12 +686,7 @@ parameters:
 			count: 1
 			path: src/Exchange/Service/Auth/Beds24AuthService.php
 
-		-
-			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ChannelConfigInterface\:\:getCredential\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Exchange/Service/Client/WhatsappMetaClient.php
-
+	
 		-
 			message: '#^Method App\\Exchange\\Service\\Client\\WhatsappMetaClient\:\:editTemplateDefinition\(\) has parameter \$componentsPayload with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
@@ -956,18 +951,8 @@ parameters:
 			count: 1
 			path: src/Message/Controller/Crud/WhatsappMetaSendQueueCrudController.php
 
-		-
-			message: '#^Property App\\Message\\Entity\\Beds24ReceiveQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Message/Entity/Beds24ReceiveQueue.php
-
-		-
-			message: '#^Property App\\Message\\Entity\\Beds24ReceiveQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Message/Entity/Beds24ReceiveQueue.php
-
+	
+	
 		-
 			message: '#^Property App\\Message\\Entity\\Beds24ReceiveQueue\:\:\$lockedAt is never read, only written\.$#'
 			identifier: property.onlyWritten
@@ -1028,12 +1013,7 @@ parameters:
 			count: 1
 			path: src/Message/Factory/MessageConversationFactory.php
 
-		-
-			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ExchangeQueueItemInterface\:\:getTargetBookId\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Message/Service/Exchange/Tasks/Beds24Receive/Beds24ReceiveMappingStrategy.php
-
+	
 		-
 			message: '#^Using nullsafe method call on non\-nullable type App\\Entity\\Maestro\\MaestroIdioma\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
@@ -1298,18 +1278,8 @@ parameters:
 			count: 2
 			path: src/Pms/DispatchHandler/ProcessBeds24WebhookDispatchHandler.php
 
-		-
-			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
-
+	
+	
 		-
 			message: '#^Property App\\Pms\\Entity\\Beds24InvoiceReceiveQueue\:\:\$lockedAt is never read, only written\.$#'
 			identifier: property.onlyWritten
@@ -1322,18 +1292,8 @@ parameters:
 			count: 1
 			path: src/Pms/Entity/Beds24InvoiceReceiveQueue.php
 
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPullQueue.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPullQueue.php
-
+	
+	
 		-
 			message: '#^Property App\\Pms\\Entity\\PmsBookingsPullQueue\:\:\$type is never read, only written\.$#'
 			identifier: property.onlyWritten
@@ -1346,18 +1306,8 @@ parameters:
 			count: 1
 			path: src/Pms/Entity/PmsBookingsPullQueue.php
 
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsBookingsPushQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPushQueue.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsBookingsPushQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/PmsBookingsPushQueue.php
-
+	
+	
 		-
 			message: '#^Offset ''language'' on array\{content\: string, language\: string\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
@@ -1406,18 +1356,8 @@ parameters:
 			count: 1
 			path: src/Pms/Entity/PmsInformacionFinanciera.php
 
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsRatesPushQueue\:\:\$config \(App\\Exchange\\Entity\\Beds24Config\|null\) does not accept App\\Exchange\\Service\\Contract\\ChannelConfigInterface\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/PmsRatesPushQueue.php
-
-		-
-			message: '#^Property App\\Pms\\Entity\\PmsRatesPushQueue\:\:\$endpoint \(App\\Exchange\\Entity\\ExchangeEndpoint\|null\) does not accept App\\Exchange\\Service\\Contract\\EndpointInterface\|null\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Pms/Entity/PmsRatesPushQueue.php
-
+	
+	
 		-
 			message: '#^Parameter \#1 \$array \(non\-empty\-list\<array\{ssid\?\: string\|null, password\?\: string\|null, ubicacion\?\: list\<array\{language\?\: string, content\?\: string\|null\}\>\}\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
@@ -1538,12 +1478,7 @@ parameters:
 			count: 1
 			path: src/Pms/Service/Exchange/Tasks/BookingsPush/BookingsPushMappingStrategy.php
 
-		-
-			message: '#^Call to an undefined method App\\Exchange\\Service\\Contract\\ExchangeQueueItemInterface\:\:getTargetBookId\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/InvoiceReceive/Beds24InvoiceReceiveMappingStrategy.php
-
+	
 		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType

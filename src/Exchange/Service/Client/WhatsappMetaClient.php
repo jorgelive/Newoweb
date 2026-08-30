@@ -33,7 +33,23 @@ final class WhatsappMetaClient implements ExchangeClientInterface
      */
     public function send(MappingResult $mapping): ExchangeNetworkResult
     {
-        $apiKey = $mapping->config->getCredential('apiKey');
+        // `MappingResult::$config` es un `ChannelConfigInterface`, y `getCredential()` NO está en
+        // ese contrato: lo tiene sólo `MetaConfig`. Y está bien que sea así — `EmailConfig` y
+        // `Beds24Config` no guardan credenciales por clave, así que meterlo en el contrato les
+        // obligaría a fingir un método vacío.
+        //
+        // Lo que faltaba era comprobarlo aquí. Sin esto, un lote mal enrutado moría con
+        // «Call to undefined method» y sin decir qué configuración había llegado.
+        $config = $mapping->config;
+
+        if (!$config instanceof MetaConfig) {
+            throw new \RuntimeException(sprintf(
+                'El cliente de Meta necesita una MetaConfig; llegó %s.',
+                $config::class,
+            ));
+        }
+
+        $apiKey = $config->getCredential('apiKey');
 
         if (!$apiKey) {
             throw new \RuntimeException('La API Key (Token permanente) no está configurada en MetaConfig.');

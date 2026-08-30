@@ -12,6 +12,7 @@ use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Exchange\Service\Contract\MemoryCleanableInterface;
+use App\Exchange\Service\Contract\TargetBookAwareInterface;
 use App\Pms\Repository\Beds24InvoiceReceiveQueueRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -32,7 +33,7 @@ use InvalidArgumentException;
 #[ORM\Table(name: 'pms_beds24_invoice_receive_queue')]
 #[ORM\Index(columns: ['status', 'run_at'], name: 'idx_pms_invoice_receive_worker')]
 #[ORM\HasLifecycleCallbacks]
-class Beds24InvoiceReceiveQueue implements ExchangeQueueItemInterface, MemoryCleanableInterface
+class Beds24InvoiceReceiveQueue implements ExchangeQueueItemInterface, TargetBookAwareInterface, MemoryCleanableInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -128,7 +129,23 @@ class Beds24InvoiceReceiveQueue implements ExchangeQueueItemInterface, MemoryCle
 
     public function getId(): ?Uuid { return $this->id; }
     public function getConfig(): ?ChannelConfigInterface { return $this->config; }
-    public function setConfig(?ChannelConfigInterface $config): self { $this->config = $config; return $this; }
+    public function setConfig(?ChannelConfigInterface $config): self
+    {
+        // El contrato admite cualquier configuración de canal; esta cola sólo sabe hablar con
+        // Beds24. Se rechaza aquí, diciendo qué llegó, en vez de dejar que reviente más adelante
+        // al llamar a un método que esa otra configuración no tiene.
+        if ($config !== null && !$config instanceof Beds24Config) {
+            throw new \InvalidArgumentException(sprintf(
+                '%s sólo admite Beds24Config; llegó %s.',
+                self::class,
+                $config::class,
+            ));
+        }
+
+        $this->config = $config;
+
+        return $this;
+    }
     /**
      * Obligatorio: el motor agrupa los lotes por `(config_id, endpoint_id)`. Ver el contrato.
      */
@@ -140,7 +157,21 @@ class Beds24InvoiceReceiveQueue implements ExchangeQueueItemInterface, MemoryCle
 
         return $this->endpoint;
     }
-    public function setEndpoint(?EndpointInterface $endpoint): self { $this->endpoint = $endpoint; return $this; }
+    public function setEndpoint(?EndpointInterface $endpoint): self
+    {
+        // Mismo motivo que en setConfig: el contrato es ancho y la propiedad es estrecha.
+        if ($endpoint !== null && !$endpoint instanceof ExchangeEndpoint) {
+            throw new \InvalidArgumentException(sprintf(
+                '%s sólo admite ExchangeEndpoint; llegó %s.',
+                self::class,
+                $endpoint::class,
+            ));
+        }
+
+        $this->endpoint = $endpoint;
+
+        return $this;
+    }
     public function getRunAt(): ?DateTimeInterface { return $this->runAt; }
     public function setRunAt(?DateTimeInterface $at): self { $this->runAt = $at; return $this; }
     public function getRetryCount(): int { return $this->retryCount; }

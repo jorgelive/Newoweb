@@ -4766,6 +4766,59 @@ respaldo que no se comprueba no es un respaldo: es un nombre de fichero.
 Aquí no costó nada —la fila estaba vacía, verificado antes de borrarla— pero el mismo script
 sobre una reserva con contenido habría dado la misma falsa tranquilidad.
 
+## 12.15 El contrato prometía menos de lo que el código pedía (30/08/2026)
+
+Salió auditando la baseline de PHPStan, no leyendo el código. Ocho `method.notFound` y diez
+`assign.propertyType` congelados desde el 15/08 apuntaban todos al mismo sitio: **la costura entre
+el motor genérico de `Exchange` y las colas concretas de Beds24**.
+
+### Las dos mitades del mismo agujero
+
+| Síntoma | Qué pasaba |
+|---|---|
+| `ExchangeQueueItemInterface::getTargetBookId()` no existe | Dos estrategias de mapeo lo llamaban sobre el contrato. Funcionaba porque el lote **siempre** traía la clase concreta |
+| `Beds24ReceiveQueue::$config` no acepta `ChannelConfigInterface` | El contrato obliga a `setConfig(?ChannelConfigInterface)`, pero la propiedad es `?Beds24Config`. Doctrine nunca se quejó porque siempre llega la concreta |
+
+O sea: **el contrato declara menos de lo que el código exige, y las entidades exigen más de lo que
+el contrato promete**. Con un solo channel manager las dos cosas se cancelan y nada falla.
+
+⚠️ **Y por eso importa, dado que la estrategia es tener CONECTORES EN PARALELO.** El día que entre
+un segundo channel manager, alguien escribirá una clase que implemente `ChannelConfigInterface`
+fielmente —que es literalmente lo que pide la regla de contratos de `CLAUDE.md`— y la primera
+llamada morirá con «Call to undefined method», sin decir qué configuración llegó.
+
+### Lo que NO se hizo, y por qué
+
+**No se metió `getCredential()` en `ChannelConfigInterface`.** Sólo lo tiene `MetaConfig`;
+`EmailConfig` y `Beds24Config` no guardan credenciales por clave. Declararlo en el contrato les
+obligaría a fingir un método vacío, que es cambiar un fallo ruidoso por uno mudo.
+
+**Tampoco se metió `getTargetBookId()`.** Una cola de tarifas empuja precios por unidad y fecha:
+no hay reserva a la que apuntar.
+
+La regla que sale: **cuando sólo algunos implementadores tienen una capacidad, la capacidad va en
+un contrato aparte, y quien la necesita ESTRECHA en la frontera.** Ensanchar el contrato común
+reparte el problema entre todos.
+
+### Lo que sí se hizo
+
+- **`TargetBookAwareInterface`** (`src/Exchange/Service/Contract/`): un solo método,
+  `getTargetBookId(): ?string`, con el identificador tratado como **opaco** para el núcleo. Lo
+  implementan `Beds24SendQueue`, `Beds24ReceiveQueue` y `Beds24InvoiceReceiveQueue`. Las dos
+  estrategias comprueban `instanceof` y saltan el ítem que no lo cumpla.
+- **`WhatsappMetaClient::send()`** estrecha `$mapping->config` a `MetaConfig` y, si no lo es,
+  lanza diciendo **qué clase llegó**. Antes moría con «undefined method» y sin nombre.
+- **Los cinco `setConfig()`/`setEndpoint()` de las colas** aceptan el contrato ancho, como manda
+  la interfaz, y **rechazan** lo que no sea `Beds24Config`/`ExchangeEndpoint` con el nombre de la
+  clase recibida.
+
+Los guardas **no saltan hoy**: se comprobó que los nueve llamadores pasan la clase concreta. Son
+cable trampa para el segundo conector, que es cuando el fallo aparecería.
+
+⚠️ **La duplicación de los cinco guardas es deliberada.** La clase esperada es distinta por
+entidad; el día que una cola sea de otro canal, su guarda tiene que decir *otra* clase. Un trait
+compartido tendría que parametrizarse justo en lo que cambia.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |

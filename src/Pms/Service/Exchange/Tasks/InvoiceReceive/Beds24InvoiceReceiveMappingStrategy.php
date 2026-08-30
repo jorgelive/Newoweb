@@ -8,6 +8,7 @@ use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
+use App\Exchange\Service\Contract\TargetBookAwareInterface;
 
 final readonly class Beds24InvoiceReceiveMappingStrategy implements MappingStrategyInterface
 {
@@ -31,6 +32,14 @@ final readonly class Beds24InvoiceReceiveMappingStrategy implements MappingStrat
         $correlacion = [];
 
         foreach ($batch->getItems() as $job) {
+            // El lote es homogéneo, así que en la práctica siempre llega la cola de Beds24. Se
+            // comprueba igual porque el contrato del lote es `ExchangeQueueItemInterface`, que
+            // NO declara `getTargetBookId()`: una cola de otro canal entraría aquí y moriría con
+            // «undefined method» en vez de decir qué pasó.
+            if (!$job instanceof TargetBookAwareInterface) {
+                continue;
+            }
+
             $bookId = (string) $job->getTargetBookId();
             if ($bookId === '') {
                 continue;

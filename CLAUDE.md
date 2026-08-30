@@ -34,9 +34,17 @@
 
   ⚠️ **Un `array` pelado en una firma nueva ya no pasa.** Escribe el tipo del valor
   (`array<string, string>`) o, mejor, un tipo propio — ver `MomentoDeHito`/`MapaDeHitos` en
-  `docs/Mensajeria.md` §22.16. Quedan ~760 anotaciones viejas en el baseline, y se quitan por
-  módulo al tocarlos: escribir 760 `@var` de golpe garantiza escribir algunos mal, y un tipo
-  mentiroso es peor que ninguno.
+  `docs/Mensajeria.md` §22.16. Quedan **120** anotaciones viejas en el baseline (contadas el
+  30/08/2026; el número que había escrito aquí, ~760, era la foto del día que se instaló y
+  llevaba meses sin actualizarse). Se quitan por módulo al tocarlos: escribirlas de golpe
+  garantiza escribir algunas mal, y un tipo mentiroso es peor que ninguno.
+
+  ⚠️ **La baseline hay que auditarla, no sólo dejar de mirarla.** Auditada entera el 30/08/2026:
+  de 313 ocurrencias, ~90 eran defensas redundantes, ~11 falsos positivos que PHPStan no puede
+  ver (el candado `locked_at` de las colas SÍ se lee, pero en SQL crudo) y **18 eran deuda
+  estructural real** —contratos que declaraban menos de lo que el código les pedía—. Esas 18 se
+  arreglaron ese día. El peligro no era el tamaño: era que las 18 que importaban estaban
+  enterradas entre 295 que no, en un archivo de 1773 líneas que nadie lee entero.
 
   ⚠️ La baseline **no es una lista de perdonados**: es la foto del día que se instaló, para que
   salte sólo lo nuevo. Si tocas un archivo que tiene errores dentro, arréglalos y quítalos de
