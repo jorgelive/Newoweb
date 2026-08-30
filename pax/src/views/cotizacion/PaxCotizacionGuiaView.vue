@@ -345,10 +345,24 @@ const itinerarioVista = computed<DiaVista[]>(() => {
 
     // 3) Ordenar los GRUPOS:
     //    con hora → primero (por su hora más temprana) · sin hora → luego · estadías → al final
+    // ⚠️ **Un día ordenado a mano se ordena SÓLO por su `orden`**, igual que en el editor. Si la
+    // hora siguiera mandando, el operador colocaría el día y el huésped lo leería en otro orden.
+    //
+    // Las ESTADÍAS repetidas se quedan al final igualmente: son la nota de cierre, no una parada
+    // del relato, y no es eso lo que nadie está colocando cuando arrastra.
+    const diaAMano = [...grupos.values()].some(g => (g[0]?.servicio.orden ?? 0) > 0);
+
     const gruposOrdenados = [...grupos.values()].sort((ga, gb) => {
       const ma = metaGrupo(ga), mb = metaGrupo(gb);
       const tier = (m: typeof ma) => (m.horaMin ? 0 : (m.esEstadia ? 2 : 1));
       const ta = tier(ma), tb = tier(mb);
+
+      if (diaAMano) {
+        // La estadía sigue cerrando el día; lo demás va por el orden que puso la persona.
+        if (ta === 2 || tb === 2) return (ta === 2 ? 1 : 0) - (tb === 2 ? 1 : 0);
+        return ma.ordenMin - mb.ordenMin;
+      }
+
       if (ta !== tb) return ta - tb;
       if (ma.horaMin && mb.horaMin) return ma.horaMin.localeCompare(mb.horaMin);
       return ma.ordenMin - mb.ordenMin; // desempate estable entre grupos sin hora

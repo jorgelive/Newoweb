@@ -1676,7 +1676,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         };
 
         Object.keys(grupos).forEach((fecha) => {
+            // ⚠️ **Un día ordenado a mano se ordena SÓLO por su `orden`.** Si la hora siguiera
+            // mandando, arrastrar no haría nada visible: el número se guardaba, la ficha volvía a
+            // su sitio y el gesto parecía roto. Es lo que reportó el operador.
+            //
+            // Todo o nada por día, que es como lo numera `reordenarServicios()`: o el día entero
+            // lo colocó una persona, o lo coloca el reloj. Un día mitad y mitad es un estado que
+            // nadie sabe leer.
+            //
+            // Que esto pueda contradecir al reloj es la decisión que se tomó a sabiendas, y por
+            // eso existe el chequeo `orden-contradice-hora`: la contradicción se avisa, no se
+            // impide. Un chequeo que vigila algo que el código no deja ocurrir no vigila nada.
+            const aMano = grupos[fecha].some((s: CotServicio) => (s.orden ?? 0) > 0);
+
             grupos[fecha].sort((a: CotServicio, b: CotServicio) => {
+                if (aMano) {
+                    return posicionDeServicio(a) - posicionDeServicio(b);
+                }
+
                 const horaA = getHoraClaveServicio(a);
                 const horaB = getHoraClaveServicio(b);
 

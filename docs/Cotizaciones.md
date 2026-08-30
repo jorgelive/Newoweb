@@ -3088,6 +3088,39 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.ah El arrastre guardaba el orden y la ficha volvía a su sitio (29/08/2026)
+
+Reportado por el operador: se arrastra un servicio, se suelta, y **regresa a donde estaba**.
+
+El `orden` **sí** se guardaba. Lo que fallaba es que la cascada seguía poniendo la hora primero,
+así que el número sólo desempataba entre los que no tenían ninguna — y el editor recolocaba al
+instante como si el gesto no hubiera existido.
+
+**Un día ordenado a mano se ordena SÓLO por su `orden`.** Todo o nada, que es como lo numera
+`reordenarServicios()`: o el día entero lo colocó una persona, o lo coloca el reloj.
+
+```
+automático            08:30 Transporte · 12:10 Vuelo · 13:35 Transporte · sin hora Alojamiento
+se arrastra el hotel al primer puesto
+a mano                10 Alojamiento · 20 Transporte · 30 Vuelo · 40 Transporte
+```
+
+⚠️ **Y era una incoherencia mía, no un olvido.** Construí `orden-contradice-hora` —un chequeo que
+sólo tiene sentido si el orden PUEDE contradecir la hora— y a la vez dejé el orden sin poder
+hacerlo. **Un chequeo que vigila algo que el código no deja ocurrir no vigila nada**, y su
+existencia me hizo creer que la pieza estaba completa.
+
+La revisión externa lo había señalado con el nombre exacto —«snap-back»— y aun así no lo arreglé:
+lo leí como un caso borde en vez de como el flujo principal. Lo encontró el operador al primer
+intento.
+
+⚠️ En `pax` se aplica igual, o el operador coloca el día y el huésped lo lee en otro orden. Con
+una excepción: **las estadías repetidas siguen cerrando el día**. Son la nota de «sigues aquí», no
+una parada del relato, y no es eso lo que nadie está colocando cuando arrastra.
+
+**La orden del proveedor NO cambia**: sigue siendo cronológica. Es un horario de trabajo, no un
+relato — allí la hora manda siempre.
+
 ## 6.ag Lo que encontró la revisión externa del ordenamiento (29/08/2026)
 
 Cuatro correcciones sobre la implementación recién desplegada. La primera es la que duele.
