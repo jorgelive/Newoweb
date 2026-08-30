@@ -599,10 +599,44 @@ export const ROL_TARIFA_CONFIG: Record<TarifaRolValue, EstadoUIConfig> = {
 
 export type EstadoFile = CotizacionFileBase['estado'];
 
+/**
+ * Una versión del expediente, tal y como la manda `CotizacionFileCollectionProvider`.
+ *
+ * Lleva `estado` y `titulo` desde el 30/08/2026: antes sólo viajaba la fecha, así que un
+ * expediente con tres propuestas —una confirmada, una cancelada y un histórico— se leía en el
+ * dashboard igual que uno con tres pendientes.
+ */
+export interface VersionDelFile {
+    version: number;
+    estado?: CotizacionEstadoValue | null;
+    /** i18n crudo: lo traduce el panel con su propio idioma. */
+    titulo?: { language?: string; content?: string | null }[] | null;
+    fechaInicio?: string | null;
+}
+
+/**
+ * ⚠️ `archivado` es LO BUENO y `cerrado` LO MALO — al revés de lo que decían estas etiquetas
+ * hasta el 30/08/2026.
+ *
+ * El vocabulario se alinea con el del chat, donde `archived` es el ex-cliente cuya estancia
+ * terminó y `closed` lo pone `isCancelled()`. Antes cada módulo usaba las mismas dos palabras
+ * para resultados opuestos: «cerrado» era la venta hecha aquí y la reserva cancelada allí, así
+ * que la palabra no significaba nada sin saber en qué pantalla estabas.
+ *
+ * El paréntesis se queda: `abierto`/`cerrado`/`archivado` no dicen por sí solos si algo salió
+ * bien, y quien lee el desplegable está decidiendo el destino de un expediente.
+ */
 export const ESTADO_FILE_LABELS: Record<EstadoFile, string> = {
     abierto: 'Abierto',
-    cerrado: 'Cerrado (Ganado)',
-    archivado: 'Archivado (no venta)',
+    archivado: 'Archivado (ganado)',
+    cerrado: 'Cerrado (no venta)',
+};
+
+/** El aspecto de cada estado del expediente: verde lo vivo, azul lo ganado, gris lo perdido. */
+export const ESTADO_FILE_CONFIG: Record<EstadoFile, EstadoUIConfig> = {
+    abierto: { label: 'Abierto', bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', icon: 'fa-folder-open' },
+    archivado: { label: 'Ganado', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-100', icon: 'fa-box-archive' },
+    cerrado: { label: 'No venta', bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-200', icon: 'fa-folder-closed' },
 };
 
 export const getRolTarifaUI = (rol?: string | null): EstadoUIConfig =>

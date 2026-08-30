@@ -4093,3 +4093,56 @@ no comparte código con la vCard de reservas está en `docs/Telefonos.md` §5.
 ⚠️ El endpoint vive en `src/Cotizacion/Controller/Api/`, que **hubo que declarar en
 `config/routes.yaml`**: era el primer controlador del módulo fuera de API Platform y sin esa
 línea las rutas no existen — 404 mudo, no error.
+
+## El dashboard de expedientes (30/08/2026)
+
+### ⚠️ `archivado` es LO BUENO y `cerrado` LO MALO — estaba al revés
+
+`FileEstadoEnum` decía «Cerrado (Ganado)» y «Archivado (no venta)». En el chat
+(`MessageConversation`) es justo al contrario: `archived` es el ex-cliente cuya estancia terminó
+y `closed` lo pone `isCancelled()`.
+
+O sea que **la misma palabra nombraba el mejor y el peor resultado según la pantalla**. Un
+operador —o el agente, o quien lea la base dentro de un año— no podía saber si «cerrado» era una
+venta hecha o una reserva cancelada sin mirar de qué módulo venía.
+
+Se invirtió el **significado**, no los valores, y **se pudo porque no había ni una fila usando
+ninguno de los dos**: los seis expedientes de producción estaban todos en `abierto`. Con datos
+dentro habría hecho falta migrarlos, y el fallo habría sido mudo — cada expediente ganado
+pasando a perdido sin que nada avisara.
+
+🔁 **Espejo:** `FileEstadoEnum::getLabel()` ↔ `ESTADO_FILE_LABELS` y `ESTADO_FILE_CONFIG` en
+`util/src/types/cotizacionEditorModel.ts`. Si se toca uno, se toca el otro.
+
+### Arranca acotado a los abiertos
+
+El dashboard traía todo y ordenaba por fecha de creación, así que un expediente ganado en marzo
+empujaba hacia abajo los que hay que mover hoy. Ahora nace con `estado=abierto` y cuatro pestañas
+—Abiertos · Ganados · No venta · Todos—.
+
+⚠️ **El filtro es del SERVIDOR** (`SearchFilter` sobre `estado`), no del cliente. Filtrando en el
+cliente la paginación traería veinte y enseñaría tres, y «cargar más» pediría la página siguiente
+de una lista que no es la que se está viendo.
+
+### Cada versión enseña su estado y su título
+
+`versionesFechas` llevaba sólo `version` y `fechaInicio`, así que un expediente con tres
+propuestas —una confirmada, una cancelada y un histórico— se leía **igual** que uno con tres
+pendientes: el dato que dice si hay algo que hacer no estaba.
+
+`CotizacionFileCollectionProvider` manda ahora también `estado` y `titulo` en la misma consulta
+batched. **Agrupa por `c.id` y no por `c.version`**: así los dos campos dependen funcionalmente
+de la clave y MySQL los acepta en el `SELECT` sin meter una columna JSON en el `GROUP BY`.
+
+El título viaja como **i18n crudo** y lo resuelve el panel. En `util` se toma siempre el
+**español**: es el panel del operador y no tiene selector de idioma — leer ahí un título en
+francés porque el cliente es de Lyon no ayuda a quien barre su cartera.
+
+Se pintan en **filas y no en pastillas**: el título es texto libre y de largo variable, y
+apretado en una pastilla se recortaba a dos palabras, que es dejar de distinguir una versión de
+otra justo para lo que sirve.
+
+### El icono del expediente decía siempre «Abierto»
+
+Estaba escrito a mano, verde y fijo: un expediente perdido se veía idéntico a uno vivo. Ahora
+sale de `ESTADO_FILE_CONFIG` — verde lo vivo, azul lo ganado, gris lo perdido.

@@ -5,6 +5,48 @@ import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import { useCotizacionFileStore } from '@/stores/cotizacion/fileStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import type { ApiCotizacionFile } from '@/types/fileDetalleModel';
+import {
+    ESTADO_FILE_LABELS,
+    ESTADO_FILE_CONFIG,
+    ESTADO_COTIZACION_CONFIG,
+    type EstadoFile,
+    type VersionDelFile,
+} from '@/types/cotizacionEditorModel';
+
+/** Las tres vistas del dashboard. `null` = todos, para cuando hay que buscar algo viejo. */
+const FILTROS_ESTADO: { valor: EstadoFile | null; etiqueta: string }[] = [
+    { valor: 'abierto', etiqueta: 'Abiertos' },
+    { valor: 'archivado', etiqueta: 'Ganados' },
+    { valor: 'cerrado', etiqueta: 'No venta' },
+    { valor: null, etiqueta: 'Todos' },
+];
+
+/** El aspecto del estado de un expediente, con `abierto` de respaldo si llegara vacío. */
+const uiEstadoFile = (estado?: string | null) =>
+    ESTADO_FILE_CONFIG[(estado ?? 'abierto') as EstadoFile] ?? ESTADO_FILE_CONFIG.abierto;
+
+/** El aspecto del estado de una VERSIÓN, que es otro enum: pendiente, enviado, confirmado… */
+const uiEstadoCotizacion = (estado?: string | null) =>
+    ESTADO_COTIZACION_CONFIG[estado as keyof typeof ESTADO_COTIZACION_CONFIG]
+    ?? ESTADO_COTIZACION_CONFIG.pendiente;
+
+/**
+ * El título de una versión, en español y con caída a lo que haya.
+ *
+ * Español fijo y no el idioma del cliente: `util` es el panel del OPERADOR y no tiene selector
+ * de idioma —el del expediente es el del pasajero, y leer aquí un título en francés porque el
+ * cliente es de Lyon no ayudaría a quien está barriendo su cartera—.
+ *
+ * Devuelve cadena vacía si no hay ninguno: la fila enseña entonces la fecha, que es lo que se
+ * veía antes. Una versión sin título es normal —se pone al redactarla— y dejar el hueco en
+ * blanco haría que la fila pareciera rota.
+ */
+function tituloDeVersion(v: VersionDelFile): string {
+    const entradas = v.titulo ?? [];
+    const elegida = entradas.find(e => e.language === 'es') ?? entradas[0];
+
+    return (elegida?.content ?? '').trim();
+}
 
 /**
  * Normaliza y formatea la fecha provista a estándar regional PE.
@@ -21,7 +63,7 @@ const formatDate = (dateStr?: string): string => {
  * corrimiento de un día que produce `new Date('YYYY-MM-DD')` en zonas
  * horarias negativas (parsea como UTC medianoche).
  */
-const formatFechaInicio = (dateStr: string | null): string => {
+const formatFechaInicio = (dateStr?: string | null): string => {
   if (!dateStr) return 'S/F';
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -198,6 +240,25 @@ const loadMore = (): void => {
                  placeholder="Buscar por grupo o pasajero..."
                  class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#376875]/30 focus:border-[#376875] shadow-sm">
         </div>
+        <!-- ══ QUÉ ESTADOS SE VEN ══
+             Arranca en «Abiertos», que es el estado normal de trabajo: lo ganado y lo perdido
+             son historia, y con el orden por fecha de creación un expediente cerrado en marzo
+             empujaba hacia abajo a los que sí hay que mover hoy.
+
+             Filtra en el SERVIDOR: filtrando aquí, la paginación traería veinte y enseñaría
+             tres, y «cargar más» pediría la página siguiente de una lista que no es la que se
+             está viendo. -->
+        <div class="flex items-center gap-1 bg-slate-100 rounded-xl p-1 shrink-0">
+          <button v-for="op in FILTROS_ESTADO" :key="op.valor ?? 'todos'"
+                  @click="fileStore.setEstadoFiltro(op.valor)"
+                  class="px-3 py-1.5 rounded-lg text-xs font-black transition-colors"
+                  :class="fileStore.estadoFiltro === op.valor
+                    ? 'bg-white text-[#376875] shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'">
+            {{ op.etiqueta }}
+          </button>
+        </div>
+
         <div class="flex items-center gap-2">
           <select v-model="sortKey" class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-[#376875]/30 shadow-sm">
             <option value="createdAt">Ordenar por fecha de cotización</option>
@@ -234,9 +295,13 @@ const loadMore = (): void => {
                     <span class="px-3 py-1 bg-slate-100 text-[#E07845] font-black text-xs rounded-lg tracking-widest border border-slate-200 uppercase">
                         {{ file.localizador || 'S/C' }}
                     </span>
-            <span class="w-8 h-8 rounded-full flex items-center justify-center bg-green-50 text-green-600 border border-green-100" title="Estado Abierto">
-                        <i class="fas fa-folder-open text-xs"></i>
-                    </span>
+            <!-- El icono decía SIEMPRE «Estado Abierto», en verde, mirase lo que mirase: un
+                 expediente perdido se veía idéntico a uno vivo. Ahora sale del estado real. -->
+            <span class="w-8 h-8 rounded-full flex items-center justify-center border shrink-0"
+                  :class="[uiEstadoFile(file.estado).bg, uiEstadoFile(file.estado).text, uiEstadoFile(file.estado).border]"
+                  :title="ESTADO_FILE_LABELS[(file.estado ?? 'abierto') as EstadoFile]">
+              <i class="fas text-xs" :class="uiEstadoFile(file.estado).icon"></i>
+            </span>
           </div>
 
           <h3 class="font-black text-xl text-slate-800 mb-1 group-hover:text-[#376875] transition-colors leading-tight">
@@ -251,12 +316,29 @@ const loadMore = (): void => {
             <i class="fas fa-user-tie opacity-50 ml-1"></i> {{ file.pasajeroPrincipal || 'Pasajero principal sin asignar' }}
           </p>
 
-          <!-- Fechas de primer servicio por versión -->
-          <div v-if="file.versionesFechas?.length" class="flex flex-wrap gap-1.5 mt-3">
-            <span v-for="v in file.versionesFechas" :key="v.version"
-                  class="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500">
-              V{{ v.version }}: {{ formatFechaInicio(v.fechaInicio) }}
-            </span>
+          <!-- ══ UNA FILA POR VERSIÓN, CON SU ESTADO Y SU TÍTULO ══
+               Antes eran pastillas de «V1: 30 oct.» y nada más, así que un expediente con tres
+               propuestas —una confirmada, una cancelada y un histórico— se leía igual que uno
+               con tres pendientes: el dato que decide si hay algo que hacer no estaba.
+
+               En filas y no en pastillas porque el título es texto libre y de largo variable;
+               apretado en una pastilla se recortaba a dos palabras y dejaba de distinguir una
+               versión de otra, que es justo para lo que sirve. -->
+          <div v-if="file.versionesFechas?.length" class="mt-3 space-y-1">
+            <div v-for="v in (file.versionesFechas as VersionDelFile[])" :key="v.version"
+                 class="flex items-center gap-2 px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg">
+              <span class="text-[10px] font-black text-slate-400 shrink-0">V{{ v.version }}</span>
+
+              <span class="min-w-0 flex-1 text-[11px] font-bold text-slate-600 truncate"
+                    :title="tituloDeVersion(v)">
+                {{ tituloDeVersion(v) || formatFechaInicio(v.fechaInicio) }}
+              </span>
+
+              <span v-if="v.estado" class="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide border"
+                    :class="[uiEstadoCotizacion(v.estado).bg, uiEstadoCotizacion(v.estado).text, uiEstadoCotizacion(v.estado).border]">
+                {{ uiEstadoCotizacion(v.estado).label }}
+              </span>
+            </div>
           </div>
 
           <!-- Área inferior de la tarjeta -->

@@ -4428,12 +4428,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /**
              * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
              *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
@@ -4523,12 +4521,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -4626,12 +4622,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -4715,12 +4709,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -4790,12 +4782,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -4863,12 +4853,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -4938,12 +4926,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -5000,12 +4986,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -5156,12 +5140,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /**
              * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
              *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
@@ -5251,12 +5233,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -5340,12 +5320,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -5413,12 +5391,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -5488,12 +5464,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -5550,12 +5524,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -5614,12 +5586,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /**
              * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
              *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
@@ -5709,12 +5679,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -5798,12 +5766,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -5871,12 +5837,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -5946,12 +5910,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -6008,12 +5970,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -6072,12 +6032,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /**
              * @description Portada efectiva del tour para pintar su tarjeta: el override editorial
              *     si existe, y si no la derivada del itinerario. NO se persiste — la llena
@@ -6167,12 +6125,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             clasificacionFinanciera?: {
@@ -6256,12 +6212,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -6329,12 +6283,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             /** @default 1.0000 */
             tipoCambio: string;
             id?: string;
@@ -6404,12 +6356,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -6466,12 +6416,10 @@ export interface components {
              * @default 0
              */
             orden: number;
-            /**
-             * @description Override editorial de la imagen de portada del tour (snapshot de la
-             *     imagen elegida). Null = se deriva automáticamente: primera imagen con
-             *     isPortada recorriendo el itinerario, o la primera disponible.
-             */
-            imagenPortada?: (string | null)[] | null;
+            /** @description El override editorial de la portada. */
+            imagenPortada?: {
+                [key: string]: string | null;
+            } | null;
             clasificacionFinancieraCliente?: {
                 [key: string]: string | null;
             } | null;
@@ -9774,7 +9722,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -9828,7 +9778,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -9867,7 +9819,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -10051,7 +10005,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -10105,7 +10061,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -10144,7 +10102,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -10247,7 +10207,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -10317,7 +10279,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -10372,7 +10336,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -10506,7 +10472,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -10560,7 +10528,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -10599,7 +10569,9 @@ export interface components {
              *     hidratar $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
-                [key: string]: number | string | null;
+                [key: string]: {
+                    [key: string]: string | null;
+                }[] | number | string | null;
             }[];
             /** Format: date-time */
             createdAt?: string;
@@ -12964,8 +12936,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             cotcomponentes?: string[];
             id?: string;
             /** Format: date-time */
@@ -13009,8 +12983,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -13048,8 +13024,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
             /**
              * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
@@ -13076,8 +13054,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
         };
         "CotizacionSegmento-pax_file.read_pax_cotizacion.read": {
@@ -13099,8 +13079,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
         };
         "CotizacionSegmento.html": {
@@ -13134,8 +13116,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             cotcomponentes?: string[];
             id?: string;
             /** Format: date-time */
@@ -13179,8 +13163,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -13211,8 +13197,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
         };
         "CotizacionSegmento.html-pax_file.read_pax_cotizacion.read": {
@@ -13234,8 +13222,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
         };
         "CotizacionSegmento.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
@@ -13269,8 +13259,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             cotcomponentes?: string[];
             id?: string;
             /** Format: date-time */
@@ -13314,8 +13306,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -13346,8 +13340,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
         };
         "CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -13369,8 +13365,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
         };
         "CotizacionSegmento.multipart": {
@@ -13404,8 +13402,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             cotcomponentes?: string[];
             id?: string;
             /** Format: date-time */
@@ -13449,8 +13449,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -13481,8 +13483,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
         };
         "CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read": {
@@ -13504,8 +13508,10 @@ export interface components {
             imagenesSnapshot?: {
                 [key: string]: boolean | number | string;
             }[];
-            /** @description SNAPSHOT: Almacena un array plano con las notas y recomendaciones vigentes al momento de cotizar. */
-            notasSnapshot?: (string | null)[];
+            /** @description El historial de notas congelado. */
+            notasSnapshot?: {
+                [key: string]: string | null;
+            }[];
             id?: string;
         };
         CotizacionVuelo: {
@@ -15992,8 +15998,10 @@ export interface components {
             activo: boolean;
             /** @default https://graph.facebook.com */
             baseUrl: string | null;
-            /** @description Almacena credenciales exclusivas de Meta: apiKey, wabaId, phoneId, verifyToken. */
-            credentials?: (string | null)[];
+            /** @description Las claves del canal: apiKey, wabaId, phoneId, verifyToken. */
+            credentials?: {
+                [key: string]: string | null;
+            };
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue"][];
             establecimientos?: components["schemas"]["PmsEstablecimiento"][];
             /** Format: uuid */
@@ -16021,8 +16029,10 @@ export interface components {
             activo: boolean;
             /** @default https://graph.facebook.com */
             baseUrl: string | null;
-            /** @description Almacena credenciales exclusivas de Meta: apiKey, wabaId, phoneId, verifyToken. */
-            credentials?: (string | null)[];
+            /** @description Las claves del canal: apiKey, wabaId, phoneId, verifyToken. */
+            credentials?: {
+                [key: string]: string | null;
+            };
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.html"][];
             establecimientos?: components["schemas"]["PmsEstablecimiento.html"][];
             /** Format: uuid */
@@ -16050,8 +16060,10 @@ export interface components {
             activo: boolean;
             /** @default https://graph.facebook.com */
             baseUrl: string | null;
-            /** @description Almacena credenciales exclusivas de Meta: apiKey, wabaId, phoneId, verifyToken. */
-            credentials?: (string | null)[];
+            /** @description Las claves del canal: apiKey, wabaId, phoneId, verifyToken. */
+            credentials?: {
+                [key: string]: string | null;
+            };
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.jsonld"][];
             establecimientos?: components["schemas"]["PmsEstablecimiento.jsonld"][];
             /** Format: uuid */
@@ -16079,8 +16091,10 @@ export interface components {
             activo: boolean;
             /** @default https://graph.facebook.com */
             baseUrl: string | null;
-            /** @description Almacena credenciales exclusivas de Meta: apiKey, wabaId, phoneId, verifyToken. */
-            credentials?: (string | null)[];
+            /** @description Las claves del canal: apiKey, wabaId, phoneId, verifyToken. */
+            credentials?: {
+                [key: string]: string | null;
+            };
             whatsappMetaSendQueues?: components["schemas"]["WhatsappMetaSendQueue.multipart"][];
             establecimientos?: components["schemas"]["PmsEstablecimiento.multipart"][];
             /** Format: uuid */
@@ -17532,6 +17546,8 @@ export interface components {
             nombreComponente?: string | null;
             /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
             nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
             /** @description Qué NATURALEZA tiene lo contratado, congelada. */
             tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
@@ -17590,6 +17606,8 @@ export interface components {
             nombreComponente?: string | null;
             /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
             nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
             /** @description Qué NATURALEZA tiene lo contratado, congelada. */
             tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
@@ -17648,6 +17666,8 @@ export interface components {
             nombreComponente?: string | null;
             /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
             nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
             /** @description Qué NATURALEZA tiene lo contratado, congelada. */
             tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
@@ -17706,6 +17726,8 @@ export interface components {
             nombreComponente?: string | null;
             /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
             nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
             /** @description Qué NATURALEZA tiene lo contratado, congelada. */
             tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
@@ -17764,6 +17786,8 @@ export interface components {
             nombreComponente?: string | null;
             /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
             nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
             /** @description Qué NATURALEZA tiene lo contratado, congelada. */
             tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
@@ -17822,6 +17846,8 @@ export interface components {
             nombreComponente?: string | null;
             /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
             nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
             /** @description Qué NATURALEZA tiene lo contratado, congelada. */
             tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
@@ -17880,6 +17906,8 @@ export interface components {
             nombreComponente?: string | null;
             /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
             nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
             /** @description Qué NATURALEZA tiene lo contratado, congelada. */
             tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
@@ -17938,6 +17966,8 @@ export interface components {
             nombreComponente?: string | null;
             /** @description CUÁNDO y en qué momento del programa: el nombre del segmento. */
             nombreSegmento?: string | null;
+            /** @description Dónde iba esta línea en el itinerario, congelado. */
+            ordenItinerario?: number | null;
             /** @description Qué NATURALEZA tiene lo contratado, congelada. */
             tipoComponente?: string | null;
             /** @description DÓNDE encaja: el día del itinerario. Va en pequeño, como referencia. */
@@ -32043,32 +32073,40 @@ export interface components {
             id?: string;
             /** @description Agrupador para facilitar la carga por secciones (Reserva, Guia, etc.) */
             scope?: string;
-            /** @description Array de Objetos: [{"language": "es", "content": "..."}] */
-            contenido?: (string | null)[];
+            /** @description Forma i18n del proyecto. */
+            contenido?: {
+                [key: string]: string | null;
+            }[];
         };
         "UiI18n.html-pax.read": {
             /** @description Natural Key: El identificador único de la traducción (ej: 'res_checkin') */
             id?: string;
             /** @description Agrupador para facilitar la carga por secciones (Reserva, Guia, etc.) */
             scope?: string;
-            /** @description Array de Objetos: [{"language": "es", "content": "..."}] */
-            contenido?: (string | null)[];
+            /** @description Forma i18n del proyecto. */
+            contenido?: {
+                [key: string]: string | null;
+            }[];
         };
         "UiI18n.jsonld-pax.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Natural Key: El identificador único de la traducción (ej: 'res_checkin') */
             id?: string;
             /** @description Agrupador para facilitar la carga por secciones (Reserva, Guia, etc.) */
             scope?: string;
-            /** @description Array de Objetos: [{"language": "es", "content": "..."}] */
-            contenido?: (string | null)[];
+            /** @description Forma i18n del proyecto. */
+            contenido?: {
+                [key: string]: string | null;
+            }[];
         };
         "UiI18n.multipart-pax.read": {
             /** @description Natural Key: El identificador único de la traducción (ej: 'res_checkin') */
             id?: string;
             /** @description Agrupador para facilitar la carga por secciones (Reserva, Guia, etc.) */
             scope?: string;
-            /** @description Array de Objetos: [{"language": "es", "content": "..."}] */
-            contenido?: (string | null)[];
+            /** @description Forma i18n del proyecto. */
+            contenido?: {
+                [key: string]: string | null;
+            }[];
         };
         User: {
             /** @description Identificador de usuario único para el login. */
@@ -32077,8 +32115,8 @@ export interface components {
             email?: string;
             /** @description Contraseña cifrada del usuario. */
             password?: string;
-            /** @description Listado de roles asignados (JSON). */
-            roles?: (string | null)[];
+            /** @description Los roles literales de la columna; la jerarquía la resuelve security.yaml. */
+            roles?: string[];
             /**
              * @description Estado de activación del usuario.
              * @default true
@@ -32124,8 +32162,8 @@ export interface components {
             email?: string;
             /** @description Contraseña cifrada del usuario. */
             password?: string;
-            /** @description Listado de roles asignados (JSON). */
-            roles?: (string | null)[];
+            /** @description Los roles literales de la columna; la jerarquía la resuelve security.yaml. */
+            roles?: string[];
             /**
              * @description Estado de activación del usuario.
              * @default true
@@ -32171,8 +32209,8 @@ export interface components {
             email?: string;
             /** @description Contraseña cifrada del usuario. */
             password?: string;
-            /** @description Listado de roles asignados (JSON). */
-            roles?: (string | null)[];
+            /** @description Los roles literales de la columna; la jerarquía la resuelve security.yaml. */
+            roles?: string[];
             /**
              * @description Estado de activación del usuario.
              * @default true
@@ -32218,8 +32256,8 @@ export interface components {
             email?: string;
             /** @description Contraseña cifrada del usuario. */
             password?: string;
-            /** @description Listado de roles asignados (JSON). */
-            roles?: (string | null)[];
+            /** @description Los roles literales de la columna; la jerarquía la resuelve security.yaml. */
+            roles?: string[];
             /**
              * @description Estado de activación del usuario.
              * @default true
@@ -35110,6 +35148,8 @@ export interface operations {
                 page?: number;
                 /** @description Busca por nombre de grupo o pasajero principal (OR). */
                 nombre?: string;
+                estado?: string;
+                "estado[]"?: string[];
             };
             header?: never;
             path?: never;

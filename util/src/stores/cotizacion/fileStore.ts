@@ -4,6 +4,7 @@ import { apiClient } from '@/services/apiClient';
 import { extractApiErrorMessage, esErrorSilencioso } from '@/services/apiError';
 import {ApiCotizacionFile, ApiCotizacionFileWrite, I18nContent} from '@/types/fileDetalleModel.ts';
 import type { PlanReconciliacion, AplicarPlanPayload, ResultadoAplicacion, InformeCoherencia } from '@/types/operacionModel';
+import type { EstadoFile } from '@/types/cotizacionEditorModel';
 
 // ============================================================================
 // TIPOS AUTOGENERADOS Y EXTENDIDOS (HÍBRIDOS)
@@ -62,6 +63,19 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     // ============================================================================
     const getActiveFiles = computed(() => files.value.filter(f => f.estado === 'abierto'));
 
+    /**
+     * Qué estados enseña el dashboard. **Arranca acotado a los abiertos.**
+     *
+     * Es el estado normal de trabajo: lo ganado y lo perdido son historia, y con el orden por
+     * fecha de creación un expediente cerrado en marzo empuja hacia abajo a los que sí hay que
+     * mover hoy. `null` = todos.
+     *
+     * Se filtra en el SERVIDOR y no aquí: filtrando en el cliente, la paginación traería veinte
+     * expedientes y enseñaría tres, y «cargar más» pediría la página siguiente de una lista que
+     * no es la que se está viendo.
+     */
+    const estadoFiltro = ref<EstadoFile | null>('abierto');
+
     // ============================================================================
     // ACCIONES PRINCIPALES (EXPEDIENTES)
     // ============================================================================
@@ -79,7 +93,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         try {
             const nombre = searchTerm.value.trim();
             const query = `/platform/sales/cotizacion_files?page=${page}&order[createdAt]=desc`
-                + (nombre ? `&nombre=${encodeURIComponent(nombre)}` : '');
+                + (nombre ? `&nombre=${encodeURIComponent(nombre)}` : '')
+                + (estadoFiltro.value ? `&estado=${estadoFiltro.value}` : '');
             const response = await apiClient.get(query);
             const rawData = response.data;
             const newFiles = rawData['hydra:member'] || rawData['member'] || [];
@@ -110,6 +125,12 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      */
     const setSearchTerm = async (term: string): Promise<void> => {
         searchTerm.value = term;
+        await fetchFiles(1);
+    };
+
+    /** Cambia el estado que se enseña y recarga desde la primera página. */
+    const setEstadoFiltro = async (estado: EstadoFile | null): Promise<void> => {
+        estadoFiltro.value = estado;
         await fetchFiles(1);
     };
 
@@ -565,6 +586,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         getActiveFiles,
         fetchFiles,
         setSearchTerm,
+        estadoFiltro,
+        setEstadoFiltro,
         fetchIdiomas,
         createFile,
         updateFile,
