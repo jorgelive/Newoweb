@@ -2689,12 +2689,15 @@ store.$onAction(({ name, args }) => {
                        marca obligatorio— y ese botón sólo servía para dejar el formulario en un
                        estado que el backend rechaza, con el error a dos pantallas de distancia.
                        Es la misma decisión que `borrable=false` en FechaHoraPicker, sólo que aquí
-                       se usa VueDatePicker directo y `clearable` viene a true por defecto. Ver
-                       docs/UI_Componentes_Compartidos.md §1.5. -->
+                       se usa VueDatePicker directo y `clearable` viene a true por defecto.
+
+                       ⚠️ Y va DENTRO de `input-attrs`: en vue-datepicker 14 `clearable` dejó de
+                       ser prop de primer nivel. Suelto no falla —Vue lo pasa como atributo— y la
+                       «x» se queda. Ver docs/UI_Componentes_Compartidos.md §1.5. -->
                   <VueDatePicker
                       teleport="body"
                       :teleport-center="esEstrecha"
-                      :clearable="false"
+                      :input-attrs="{ clearable: false }"
                       :model-value="store.componenteActivo.fechaHoraInicio"
                       @update:model-value="onInicioChange"
                       :is-24="true"
@@ -2732,7 +2735,7 @@ store.$onAction(({ name, args }) => {
                   <VueDatePicker
                       teleport="body"
                       :teleport-center="esEstrecha"
-                      :clearable="false"
+                      :input-attrs="{ clearable: false }"
                       :key="finPickerKey"
                       v-model="store.componenteActivo.fechaHoraFin"
                       @update:model-value="store.onComponenteFechasChange()"

@@ -341,6 +341,41 @@ de distancia. Corregido el 29/08/2026 con `:clearable="false"` en los dos.
 compartido no alcanza a quien usa la librería por debajo. Al añadir una regla a `FechaHoraPicker`,
 comprobar quién sigue montando `VueDatePicker` a pelo.
 
+#### ⚠️ Y aquel arreglo NO funcionó: en vue-datepicker 14, `clearable` va dentro de `input-attrs` (30/08/2026)
+
+`:clearable="false"` es **inerte** con la versión que usamos. En la 14 dejó de ser prop de primer
+nivel y se mudó a `InputAttributesConfig`, el objeto que se pasa por `input-attrs`:
+
+```vue
+<!-- ❌ no hace nada: Vue lo trata como atributo de paso y la «x» sigue -->
+<VueDatePicker :clearable="false" />
+
+<!-- ✅ -->
+<VueDatePicker :input-attrs="{ clearable: false }" />
+```
+
+Estaba mal en los **tres** sitios: los dos del editor de cotización y el `:clearable="borrable"`
+de `FechaHoraPicker` —así que las fechas de estancia tampoco estaban protegidas, y eso llevaba
+más tiempo—.
+
+**Lo que hace este caso digno de la lista de «un atributo mal puesto no falla»:** no dio error de
+compilación, ni aviso de ESLint, ni nada en consola. El bundle desplegado contenía `clearable:!1`
+—lo comprobé— y la «x» seguía en pantalla. Se descartó caché entrando de incógnito, y aun así.
+Lo que quedaba era leer el `dist` de la librería y ver que la prop se consultaba como
+`C.value.clearable`, dentro de un objeto de configuración, no en la raíz.
+
+⚠️ **Un atributo desconocido en un componente Vue no es un error**: se convierte en atributo de
+paso del elemento raíz. Por eso `vue-tsc` no dijo nada. La forma buena **sí** está tipada —
+`Partial<InputAttributesConfig>`—, y escribir `clearabl` dentro del objeto la caza al vuelo:
+
+```
+error TS2561: Object literal may only specify known properties, but 'clearabl' does not exist
+in type 'Partial<InputAttributesConfig>'. Did you mean to write 'clearable'?
+```
+
+Es decir: pasar por el objeto no sólo arregla el fallo, **cambia de categoría el error futuro**,
+de mudo a ruidoso. Cuando una librería ofrece las dos formas, la agrupada es la que se comprueba.
+
 ### 1.6 ⚠️ `min-date` con hora arrastra la hora del otro campo
 
 `minPicker` propaga a `VueDatePicker` la hora que venga en `minDate`, y ese componente la usa

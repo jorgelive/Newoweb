@@ -248,6 +248,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+    <!-- ⚠️ `clearable` va DENTRO de `input-attrs`, no suelto. En vue-datepicker 14 dejó de ser
+         prop de primer nivel y se mudó a `InputAttributesConfig`. Escrito suelto, Vue lo trata
+         como atributo de paso: no falla el typecheck, no falla ESLint, no falla en consola —
+         simplemente la «x» sigue ahí. Ver docs/UI_Componentes_Compartidos.md §1.5. -->
     <VueDatePicker
         teleport="body"
         :teleport-center="esEstrecha"
@@ -259,7 +263,7 @@ onBeforeUnmount(() => {
         model-type="yyyy-MM-dd'T'HH:mm:ss"
         :min-date="minPicker"
         :max-date="maxPicker"
-        :clearable="borrable"
+        :input-attrs="{ clearable: borrable }"
         :disabled="disabled"
         auto-apply
     >

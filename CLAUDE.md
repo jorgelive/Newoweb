@@ -240,16 +240,27 @@ PhpStorm sobre `.vue` es menos fiable que `vue-tsc`; ante una discrepancia, mand
 
 ### ⚠️ Un atributo mal puesto NO falla: deja de hacer su trabajo
 
-Es el fallo más caro de este código, porque no produce ni un error. Tres casos reales, todos
-encontrados por herramientas y ninguno por leer el archivo:
+Es el fallo más caro de este código, porque no produce ni un error. Cuatro casos reales, y sólo
+uno se encontró leyendo el archivo — porque ninguna herramienta podía cazarlo:
 
 | Qué pasó | Consecuencia | Lo cazó |
 |---|---|---|
 | `#[Assert\Valid]` en `PmsChannel` **sin el `use`** de `Validator\Constraints` | Resolvía a `App\Pms\Entity\Assert\Valid`, que no existe: **la validación en cascada de la colección llevaba tiempo apagada** | PHPStan (`attribute.notFound`) |
 | `getTipoCambio()` insertado **entre el docblock de `getSaldo()` y su `#[Groups]`** | El grupo se lo quedó el getter equivocado y **`saldo` desapareció del esquema de la API** | `npm run typecheck`, tras regenerar `api.d.ts` |
 | El docblock de `getNoches()` pegado a `isSalidaTardia()` | Un `@return int` sobre un método `bool`, documentando el cálculo equivocado | PHPStan (`return.phpDocType`) |
+| `:clearable="false"` en `VueDatePicker` **suelto**, cuando en la v14 vive dentro de `input-attrs` | La «x» de vaciar fecha seguía ahí en los **tres** pickers, incluidas las fechas de estancia. Cero errores: el bundle desplegado contenía `clearable:!1` y la «x» también | **Nada.** Leer el `dist` de la librería tras descartar caché de incógnito |
 
 Las reglas que salen de ahí:
+
+- ⚠️ **Un atributo desconocido en un componente Vue no es un error**: se vuelve atributo de paso
+  del elemento raíz, y `vue-tsc` lo da por bueno. Si una librería agrupa opciones en un objeto
+  (`input-attrs`, `ui`, `config`), **usa el objeto**: está tipado, así que un `clearabl` dentro
+  salta con `TS2561` y suelto no habría saltado nunca. Pasar por el objeto no sólo arregla el
+  fallo — cambia el error futuro de mudo a ruidoso.
+- **Que el valor esté en el bundle no prueba que haga algo.** Comprobar `clearable:!1` en el
+  JS desplegado confirmó que se compiló, no que se leyera. Cuando el código dice A y la pantalla
+  dice B **con la caché descartada**, la hipótesis que queda es que la prop no es la que crees:
+  se lee el `dist` de la librería, no se vuelve a leer el propio archivo.
 
 - **El docblock va encima del bloque de atributos ENTERO.** Insertar un método «justo antes» de
   otro es la forma más fácil de robarle sus atributos al de abajo. Al añadir un getter, mira qué
