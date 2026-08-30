@@ -21,6 +21,17 @@
   Y de ahí al **6**, que es el que cierra el agujero de raíz: **prohíbe el `array` sin declarar
   qué lleva dentro**. Con el 6 puesto, la firma que dejó pasar el fallo no habría compilado.
 
+  ⚠️ **Pero el 6 no cierra `mixed`, y por ahí volvió a entrar (30/08/2026).** Nivel 6 **no
+  comprueba llamadas de método sobre `mixed`** —eso es `checkExplicitMixed`, del 9—, y
+  `->getQuery()->getResult()` de Doctrine devuelve exactamente eso. Un comando llamaba a
+  `getSegmentoMaestro()`, que **no existe** (el campo es `segmentoMaestroId`, un string), y
+  PHPStan dio `[OK] No errors`. Es la misma familia del `TypeError` que motivó subir de 2 a 5,
+  reaparecida por otra puerta.
+
+  **La regla:** a todo `getResult()` se le pone su `@var list<Entidad>` en la línea de arriba.
+  Sin eso, el resultado de una consulta es una zona ciega del análisis, por alto que esté el
+  nivel.
+
   ⚠️ **Un `array` pelado en una firma nueva ya no pasa.** Escribe el tipo del valor
   (`array<string, string>`) o, mejor, un tipo propio — ver `MomentoDeHito`/`MapaDeHitos` en
   `docs/Mensajeria.md` §22.16. Quedan ~760 anotaciones viejas en el baseline, y se quitan por

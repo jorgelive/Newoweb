@@ -70,6 +70,13 @@ del huésped; dejarlo con un español nuevo y seis traducciones viejas sería pe
 huésped en inglés seguiría viendo el texto anterior y nadie lo notaría, porque nadie revisa la
 versión que no habla.
 
+⚠️ **Un parámetro `uuid` sin tipo devuelve una consulta VACÍA, no un error.** El id de las
+entidades es `#[ORM\Column(type: 'uuid')]` (bridge de symfony/uid), y `setParameter('cot', $uuid)`
+sin el tercer argumento `'uuid'` no convierte el objeto: la consulta sale sin filas. El síntoma fue
+«0 segmentos» y salida limpia, indistinguible de «no había nada que refrescar». Por eso el comando
+ahora **avisa si el expediente no tiene segmentos** en vez de informar cero: un cero legítimo y un
+cero por consulta rota tienen que decirse distinto.
+
 ⚠️ **Y el límite que no tiene arreglo técnico: un retoque a mano y un texto viejo son
 indistinguibles.** Si el operador editó la descripción dentro del expediente, el comando ve
 exactamente lo mismo que ante un snapshot desactualizado: «difiere del maestro». No hay heurística
