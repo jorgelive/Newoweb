@@ -38,6 +38,7 @@ class MetaConfig implements ChannelConfigInterface
     /**
      * Almacena credenciales exclusivas de Meta: apiKey, wabaId, phoneId, verifyToken.
      */
+    /** @var array<string, mixed> Las claves del canal: apiKey, wabaId, phoneId, verifyToken. */
     #[ORM\Column(type: 'json')]
     private array $credentials = [];
 
@@ -214,11 +215,13 @@ class MetaConfig implements ChannelConfigInterface
         return $this;
     }
 
+    /** @return array<string, mixed> */
     public function getCredentials(): array
     {
         return $this->credentials;
     }
 
+    /** @param array<string, mixed> $credentials */
     public function setCredentials(array $credentials): self
     {
         $this->credentials = $credentials;

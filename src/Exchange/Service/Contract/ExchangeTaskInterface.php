@@ -56,8 +56,10 @@ interface ExchangeTaskInterface
 
     /**
      * Obtiene metadatos de agrupación para un set de IDs (Proxy al repositorio).
-     * @param string[] $ids UUIDs texto
-     * @return array
+     * @param list<string> $ids UUIDs texto
+     *
+     * @return array<string, array{config_id: string|null, endpoint_id: string|null}> Indexado por
+     *         el id del ítem, con los dos ids por los que el motor agrupa los lotes.
      */
     public function getGroupingMetadata(array $ids): array;
 

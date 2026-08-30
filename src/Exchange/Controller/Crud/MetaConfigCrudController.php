@@ -19,6 +19,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -90,6 +91,7 @@ class MetaConfigCrudController extends BaseCrudController
      * @param string $pageName Nombre de la página actual generada por EasyAdmin.
      * @return iterable
      */
+    /** @return iterable<FieldInterface> Los campos del CRUD, como los espera EasyAdmin. */
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')

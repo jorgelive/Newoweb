@@ -17,6 +17,7 @@ final class Beds24AuthService
         private readonly EntityManagerInterface $em
     ) {}
 
+    /** @return array<string, string> La cabecera `token` que pide Beds24, y nada más. */
     public function getAuthHeaders(Beds24Config $config): array
     {
         return ['token' => $this->getAuthToken($config)];

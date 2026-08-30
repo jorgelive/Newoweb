@@ -289,6 +289,11 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
      *
      * @return array<string, array{config_id: string, endpoint_id: string}>
      */
+    /**
+     * @param list<string> $ids
+     *
+     * @return array<string, array{config_id: string|null, endpoint_id: string|null}>
+     */
     public function getGroupingMetadata(array $ids): array
     {
         // 1. Convertir entrada a binario para buscar en DB

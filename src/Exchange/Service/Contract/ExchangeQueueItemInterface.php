@@ -95,8 +95,10 @@ interface ExchangeQueueItemInterface
      * -------------------------------------------------------------------------
      */
 
+    /** @param array<string, mixed>|null $result Lo que dejó la ejecución: estado, error, ids… */
     public function setExecutionResult(?array $result): self;
 
+    /** @return array<string, mixed>|null */
     public function getExecutionResult(): ?array;
 
     public function setFailedReason(?string $reason): self;

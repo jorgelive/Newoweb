@@ -10,7 +10,9 @@ interface MappingStrategyInterface
     public function map(HomogeneousBatch $batch): MappingResult;
 
     /**
-     * @return ItemResult[] Array indexado por queueItemId
+     * @param array<array-key, mixed> $apiResponse La respuesta cruda del canal, ya decodificada.
+     *
+     * @return array<array-key, ItemResult> Indexado por queueItemId.
      */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array;
 }

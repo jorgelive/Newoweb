@@ -646,159 +646,44 @@ parameters:
 			path: src/Entity/User.php
 
 	
-		-
-			message: '#^Method App\\Exchange\\Controller\\Crud\\MetaConfigCrudController\:\:configureFields\(\) return type has no value type specified in iterable type iterable\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Controller/Crud/MetaConfigCrudController.php
-
 	
 	
 	
 	
-		-
-			message: '#^Method App\\Exchange\\Entity\\MetaConfig\:\:getCredentials\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Entity/MetaConfig.php
-
-		-
-			message: '#^Method App\\Exchange\\Entity\\MetaConfig\:\:setCredentials\(\) has parameter \$credentials with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Entity/MetaConfig.php
-
-		-
-			message: '#^Property App\\Exchange\\Entity\\MetaConfig\:\:\$credentials type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Entity/MetaConfig.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Auth\\Beds24AuthService\:\:getAuthHeaders\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Auth/Beds24AuthService.php
-
-	
-		-
-			message: '#^Method App\\Exchange\\Service\\Client\\WhatsappMetaClient\:\:editTemplateDefinition\(\) has parameter \$componentsPayload with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Client/WhatsappMetaClient.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Client\\WhatsappMetaClient\:\:editTemplateDefinition\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Client/WhatsappMetaClient.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Client\\WhatsappMetaClient\:\:fetchTemplates\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Client/WhatsappMetaClient.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Client\\WhatsappMetaClient\:\:pushTemplateDefinition\(\) has parameter \$templatePayload with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Client/WhatsappMetaClient.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Client\\WhatsappMetaClient\:\:pushTemplateDefinition\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Client/WhatsappMetaClient.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Common\\ExchangeNetworkResult\:\:__construct\(\) has parameter \$decodedData with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Common/ExchangeNetworkResult.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Contract\\ExchangeHandlerInterface\:\:handleSuccess\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Contract/ExchangeHandlerInterface.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Contract\\ExchangeHandlerInterface\:\:handleSuccess\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Contract/ExchangeHandlerInterface.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Contract\\ExchangeQueueItemInterface\:\:getExecutionResult\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Contract/ExchangeQueueItemInterface.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Contract\\ExchangeQueueItemInterface\:\:setExecutionResult\(\) has parameter \$result with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Contract/ExchangeQueueItemInterface.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Contract\\ExchangeTaskInterface\:\:getGroupingMetadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Contract/ExchangeTaskInterface.php
-
 	
 	
 	
 	
-		-
-			message: '#^Method App\\Exchange\\Service\\Engine\\ExchangeBatchProcessor\:\:processBatch\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Engine/ExchangeBatchProcessor.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Engine\\ExchangeOrchestrator\:\:run\(\) has parameter \$specificIds with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Engine/ExchangeOrchestrator.php
-
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 		-
 			message: '#^Using nullsafe property access "\?\-\>message" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
 			path: src/Exchange/Service/Engine/ExchangeOrchestrator.php
 
-		-
-			message: '#^Method App\\Exchange\\Service\\Mapping\\ItemResult\:\:__construct\(\) has parameter \$extraData with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Mapping/ItemResult.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Mapping\\MappingResult\:\:__construct\(\) has parameter \$correlationMap with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Mapping/MappingResult.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Mapping\\MappingResult\:\:__construct\(\) has parameter \$metadata with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Mapping/MappingResult.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Mapping\\MappingResult\:\:__construct\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Mapping/MappingResult.php
-
-		-
-			message: '#^Method App\\Exchange\\Service\\Mapping\\MappingStrategyInterface\:\:parseResponse\(\) has parameter \$apiResponse with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Exchange/Service/Mapping/MappingStrategyInterface.php
-
+	
+	
+	
+	
+	
 		-
 			message: '#^Method App\\Finanzas\\Entity\\FinMedioCobro\:\:setNota\(\) has parameter \$nota with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue

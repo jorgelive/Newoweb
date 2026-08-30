@@ -31,6 +31,7 @@ final class ExchangeOrchestrator
     /**
      * Ejecuta una tarea de intercambio (Pull/Push/etc).
      */
+    /** @param list<string> $specificIds Sólo estos ítems, si se pasa; vacío = los que tocan. */
     public function run(string $taskName, int $requestedLimit = 50, array $specificIds = []): void
     {
         $task = $this->taskLocator->get($taskName);

@@ -7,6 +7,7 @@ namespace App\Exchange\Service\Engine;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Contract\ExchangeClientInterface;
 use App\Exchange\Service\Contract\ExchangeTaskInterface;
+use App\Exchange\Service\Mapping\ItemResult;
 use Symfony\Component\DependencyInjection\Attribute\TaggedLocator;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 
@@ -20,6 +21,10 @@ final class ExchangeBatchProcessor
         private readonly ServiceLocator $clientLocator
     ) {}
 
+    /**
+     * @return array<array-key, ItemResult> Lo que devuelva `parseResponse()` de la estrategia:
+     *                                      un resultado por ítem, indexado por queueItemId.
+     */
     public function processBatch(ExchangeTaskInterface $task, HomogeneousBatch $batch): array
     {
         $clientAlias = $batch->getConfig()->getProviderName();

@@ -126,6 +126,7 @@ final class WhatsappMetaClient implements ExchangeClientInterface
      * @return array El array asociativo con la clave 'data' que contiene las plantillas.
      * @throws \RuntimeException Si faltan credenciales o la API responde con error.
      */
+    /** @return array<array-key, mixed> La respuesta de Meta tal cual, ya decodificada. */
     public function fetchTemplates(MetaConfig $config, ExchangeEndpoint $endpoint): array
     {
         $apiKey = $config->getCredential('apiKey');
@@ -167,6 +168,10 @@ final class WhatsappMetaClient implements ExchangeClientInterface
 
     /**
      * PUSH DE DEFINICIÓN: Envía el JSON estructural de una plantilla para revisión de Meta.
+     */
+    /**
+     * @param array<string, mixed> $templatePayload La plantilla con la forma que pide Meta.
+     * @return array<array-key, mixed> La respuesta de Meta, ya decodificada.
      */
     public function pushTemplateDefinition(MetaConfig $config, ExchangeEndpoint $endpoint, array $templatePayload): array
     {
@@ -272,6 +277,10 @@ final class WhatsappMetaClient implements ExchangeClientInterface
         return $decoded ?? [];
     }
 
+    /**
+     * @param array<array-key, mixed> $componentsPayload Los componentes de la plantilla.
+     * @return array<array-key, mixed> La respuesta de Meta, ya decodificada.
+     */
     public function editTemplateDefinition(MetaConfig $config, string $templateId, array $componentsPayload): array
     {
         $apiKey = $config->getCredential('apiKey') ?? $config->getApiKey();
