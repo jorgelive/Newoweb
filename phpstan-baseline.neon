@@ -3,7 +3,57 @@
 # Foto del 15/08/2026, el día que el proyecto pasó del nivel 2 al 6, para que a partir de aquí
 # salte SÓLO lo nuevo. Si tocas un archivo con entradas aquí dentro, arréglalas y quítalas.
 #
-# ── De qué está hecha ───────────────────────────────────────────────────────
+# ── ⚠️ AUDITADA ENTERA EL 30/08/2026: dos cosas distintas viven aquí ────────
+#
+# Este archivo se llama «deuda congelada» y sólo la mitad lo es. Auditando las 313 ocurrencias
+# que había, la clasificación real resultó ser:
+#
+#   DEUDA (se salda, y se quita de aquí)
+#     120  missingType.*        anotaciones de tipo pendientes — ver abajo
+#      10  arrayValues.list     un `array_values()` que ya devuelve una lista
+#       8  property.unusedType  fuera de `Entity/`, donde la excepción de Doctrine no aplica
+#       1  trait.unused         `ExternalMediaTrait`, 145 líneas con columnas ORM y cero usos
+#
+#   NO ES DEUDA: guardas en una FRONTERA DE CONFIANZA que PHPStan no puede modelar
+#      16  instanceof.alwaysTrue      validación de entrada donde llama el framework
+#      15  nullsafe.neverNull         `?->` sobre una relación que el ORM hidrata sin setter
+#      15  function.alreadyNarrowedType  `is_string()` sobre lo que sólo promete un docblock
+#      17  nullCoalesce.offset        `?? default` sobre una columna JSON
+#      11  property.onlyWritten       se lee en SQL crudo, que el analizador no ve
+#
+# **Nada de esa segunda mitad se debe «limpiar».** Se comprobó una por una: de 130 ocurrencias
+# que parecían defensas redundantes, sólo 9 lo eran. Las demás protegen de datos que llegan de
+# fuera del alcance del analizador —una petición HTTP, una columna JSON, otro módulo que sólo
+# promete un `@param`—.
+#
+# ⚠️ **La pregunta antes de borrar un guarda: ¿quién llama a esto?** Si la respuesta es «el
+# framework», «el ORM» o «otro módulo a través de un docblock», el guarda se queda. Sólo se borra
+# cuando el tipo lo garantiza PHP en el mismo ámbito.
+#
+# Las que se pudieron expresar como regla ya están en `phpstan.dist.neon` (`ignoreErrors`):
+# los `instanceof` de procesadores, listeners y serializers. Las demás siguen aquí porque **su
+# ruta no las distingue** —el `?->` sobre una relación de Doctrine se escribe en cualquier
+# servicio—, no porque sean deuda. Si algún día PHPStan permite acotarlas por el tipo del
+# receptor, se mudan también.
+#
+# ── Dos casos que enseñan por qué NO se borran ──────────────────────────────
+#
+# **`PmsRepararHitosCommand`** filtraba los hitos que NO son texto. PHPStan lo daba por imposible
+# —`getMilestones()` declara `array<string, string>`— y marcaba el cuerpo entero como código
+# muerto. Pero el getter devuelve la columna JSON **sin normalizar**, así que en ejecución el
+# filtro sí encontraba filas: el comando existe justamente para reparar las que violan ese tipo.
+# Arreglado dándole a la entidad un `getMilestonesCrudo(): array<string, mixed>`, que es la
+# verdad. Borrar el guarda habría vaciado el comando dejándolo compilando igual de bien.
+#
+# **`PmsEventoCalendarioSecurityListener`** tenía un cuarto `throw` genérico «por si en el futuro
+# se agregan más estados» a `OTA_ESTADOS_NO_SELECCIONABLES`. Inalcanzable, porque los tres de
+# arriba cubren la constante. Pero borrarlo dejaba el agujero que tapaba: añadir un código y que
+# la regla dejara de aplicarse **en silencio**. Sustituido por una tabla `MOTIVO_OTA` y un censo
+# (`tests/Pms/EventListener/MotivosOtaTest.php`) que **falla el build** si falta un motivo. Un
+# censo es mejor que un fallback: falla antes, y obliga a escribir qué se le dice al operador en
+# vez de despacharlo con una frase genérica.
+#
+# ── De qué está hecha la parte que SÍ es deuda ──────────────────────────────
 # 120 son `missingType.iterableValue` y `missingType.generics`: un `array` o una `Collection`
 # sin declarar qué llevan dentro. Es LA deuda que importa —el fallo del 15/08 salió justo de un
 # `array` pelado— y se salda POR MÓDULO, no en tandas.
@@ -462,12 +512,7 @@ parameters:
 			count: 2
 			path: src/Calendar/Twig/FullCalendarStimulusExtension.php
 
-		-
-			message: '#^Dead catch \- Exception is never thrown in the try block\.$#'
-			identifier: catch.neverThrown
-			count: 1
-			path: src/Command/ObtenerReservasCommand.php
-
+	
 		-
 			message: '#^Method App\\Command\\ObtenerReservasCommand\:\:initBookingIndexPool\(\) has parameter \$canal with no type specified\.$#'
 			identifier: missingType.parameter
@@ -1154,24 +1199,9 @@ parameters:
 	
 	
 	
-		-
-			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Pms/Command/PmsRepararHitosCommand.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between array\{\} and array\{\} will always evaluate to true\.$#'
-			identifier: identical.alwaysTrue
-			count: 1
-			path: src/Pms/Command/PmsRepararHitosCommand.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
-			path: src/Pms/Command/PmsRepararHitosCommand.php
-
+	
+	
+	
 		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsGuiaItem and App\\Pms\\Entity\\PmsGuiaItem will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
@@ -1302,12 +1332,7 @@ parameters:
 			count: 2
 			path: src/Pms/EventListener/PmsEventoCalendarioIntegrityListener.php
 
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
-			path: src/Pms/EventListener/PmsEventoCalendarioSecurityListener.php
-
+	
 	
 		-
 			message: '#^Variable \$e in PHPDoc tag @var does not match any variable in the foreach loop\: \$l$#'

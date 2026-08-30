@@ -304,6 +304,24 @@ class PmsConversacionEnlace implements ConversacionEnlaceInterface
         return $this->milestones ?? [];
     }
 
+    /**
+     * Los hitos **tal cual están guardados**, sin la promesa de que sean textos.
+     *
+     * ⚠️ `getMilestones()` declara `array<string, string>` y eso es una **promesa, no una
+     * garantía**: el getter devuelve la columna JSON sin normalizar nada, así que una fila vieja
+     * —o escrita por SQL— puede traer un número, un array o un null. Quien audita necesita ver
+     * esa realidad, y con el tipo optimista no puede: el analizador da por imposible el caso que
+     * se está buscando y marca el código de reparación como muerto.
+     *
+     * Lo usa {@see \App\Pms\Command\PmsRepararHitosCommand}. Para operar, `getMapaDeHitos()`.
+     *
+     * @return array<string, mixed>
+     */
+    public function getMilestonesCrudo(): array
+    {
+        return $this->milestones ?? [];
+    }
+
     /** Los mismos hitos, ya tipados, para operar con ellos. */
     public function getMapaDeHitos(): MapaDeHitos
     {

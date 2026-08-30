@@ -151,13 +151,14 @@ class ObtenerReservasCommand extends Command
         // Zona horaria para todo el comando
         $tz = new \DateTimeZone('America/Lima');
 
-        try {
-            // Fecha/hora actual (mutable) para setear en entidades si se requiere
-            $ahora = new \DateTime('now', $tz);
-        } catch (\Exception $e) {
-            $output->writeln(sprintf('<error>Excepción capturada al crear fecha actual: %s</error>', $e->getMessage()));
-            return Command::FAILURE;
-        }
+        // Fecha/hora actual (mutable) para setear en entidades si se requiere.
+        //
+        // Sin try/catch: `new DateTime('now', $tz)` con una cadena literal y una zona ya
+        // construida no lanza. El `catch (\Exception)` que había aquí no protegía de nada —lo
+        // marcaba PHPStan como «dead catch»— y sugería un riesgo inexistente justo donde no lo
+        // hay. Si alguna vez la fecha viene de fuera, el try/catch vuelve, pero alrededor de ESA
+        // entrada.
+        $ahora = new \DateTime('now', $tz);
 
         // Flags del comando
         $dryRun      = (bool)$input->getOption('dry-run');

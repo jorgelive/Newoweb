@@ -23,6 +23,35 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 #[AsEntityListener(event: Events::preUpdate, method: 'preUpdate', entity: PmsEventoCalendario::class)]
 final class PmsEventoCalendarioSecurityListener
 {
+
+    /**
+     * Por qué se bloquea cada estado de `OTA_ESTADOS_NO_SELECCIONABLES`.
+     *
+     * ⚠️ **Esto era antes tres `if` con su `throw` y un cuarto `throw` genérico «por si en el
+     * futuro se agregan más estados».** Ese cuarto era inalcanzable —los tres de arriba cubren la
+     * constante entera— y PHPStan lo marcaba como código muerto.
+     *
+     * Borrarlo habría sido el arreglo equivocado: el día que alguien añada un código a
+     * `OTA_ESTADOS_NO_SELECCIONABLES`, la regla dejaría de aplicarse **en silencio** y la
+     * transición pasaría. Pero dejarlo tampoco servía de mucho: un mensaje genérico es un aviso
+     * que nadie lee hasta que un cliente se queja.
+     *
+     * La red es {@see \App\Tests\Pms\EventListener\MotivosOtaTest}: si se añade un código sin su
+     * motivo, **falla el build**. Y no hay `??` de reserva a propósito — PHPStan estrecha
+     * `$idNuevo` a los tres códigos y lo volvería a marcar muerto. Si algún día faltara la clave,
+     * el acceso al array revienta: **falla cerrado**, que en un listener de seguridad es la
+     * dirección correcta.
+     *
+     * @var array<string, string>
+     */
+    public const MOTIVO_OTA = [
+        PmsEventoEstado::CODIGO_CANCELADA => 'SEGURIDAD OTA: Solo puedes cancelar manualmente Consultas (Inquiries). '
+            .'Las reservas en firme deben ser canceladas directamente en el canal (Booking/Airbnb).',
+        PmsEventoEstado::CODIGO_ABIERTO => 'SEGURIDAD OTA: No se puede degradar una reserva en firme a una consulta abierta.',
+        PmsEventoEstado::CODIGO_BLOQUEO => 'SEGURIDAD OTA: No se puede convertir una reserva externa en un bloqueo de calendario manual.',
+    ];
+
+
     public function __construct(
         private readonly SyncContext $syncContext
     ) {}
@@ -157,30 +186,7 @@ final class PmsEventoCalendarioSecurityListener
             // REGLA 3: BLINDAJE HACIA ESTADOS RESTRINGIDOS
             // =================================================================
             if (in_array($idNuevo, PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES, true)) {
-
-                if ($idNuevo === PmsEventoEstado::CODIGO_CANCELADA) {
-                    throw new AccessDeniedHttpException(
-                        'SEGURIDAD OTA: Solo puedes cancelar manualmente Consultas (Inquiries). ' .
-                        'Las reservas en firme deben ser canceladas directamente en el canal (Booking/Airbnb).'
-                    );
-                }
-
-                if ($idNuevo === PmsEventoEstado::CODIGO_ABIERTO) {
-                    throw new AccessDeniedHttpException(
-                        'SEGURIDAD OTA: No se puede degradar una reserva en firme a una consulta abierta.'
-                    );
-                }
-
-                if ($idNuevo === PmsEventoEstado::CODIGO_BLOQUEO) {
-                    throw new AccessDeniedHttpException(
-                        'SEGURIDAD OTA: No se puede convertir una reserva externa en un bloqueo de calendario manual.'
-                    );
-                }
-
-                // Fallback genérico por si en el futuro se agregan más estados a la constante OTA_ESTADOS_NO_SELECCIONABLES
-                throw new AccessDeniedHttpException(
-                    sprintf('SEGURIDAD OTA: No se permite transicionar manualmente una reserva hacia el estado "%s".', $idNuevo)
-                );
+                throw new AccessDeniedHttpException(self::MOTIVO_OTA[$idNuevo]);
             }
 
             // =================================================================

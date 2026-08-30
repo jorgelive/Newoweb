@@ -8374,6 +8374,33 @@ Las filas antiguas se siguen leyendo: `MomentoDeHito::de()` acepta las tres form
 contra producción el 15/08/2026 — 137 hitos de 50 enlaces reales, cero perdidos y cero instantes
 desplazados.
 
+#### ⚠️ `getMilestones()` promete texto; la columna no lo garantiza (30/08/2026)
+
+`PmsConversacionEnlace::getMilestones()` declara `@return array<string, string>` y devuelve
+`$this->milestones ?? []` — **sin normalizar nada**. O sea que el tipo es una promesa sobre lo que
+debería haber, no sobre lo que hay: una fila vieja, o escrita por SQL, puede traer un número o un
+array. Justo lo que causó el fallo de §22.16.
+
+Eso tiene una consecuencia que no se ve leyendo el código: **`PmsRepararHitosCommand`, el comando
+que existe para encontrar esas filas, era código muerto para el analizador.** Su filtro
+`array_filter($hitos, fn ($v) => !is_string($v))` no puede encontrar nada si el tipo dice que todo
+es `string`, así que PHPStan marcaba el cuerpo entero como inalcanzable. En ejecución funcionaba
+—el getter no normaliza—, pero un comando que estáticamente no hace nada es un comando que nadie
+se atreve a tocar.
+
+Arreglado con un segundo getter que dice la verdad:
+
+| Getter | Tipo | Para qué |
+|---|---|---|
+| `getMilestones()` | `array<string, string>` | consumir: es lo que declara el contrato |
+| `getMilestonesCrudo()` | `array<string, mixed>` | **auditar**: ver lo que hay de verdad |
+| `getMapaDeHitos()` | `MapaDeHitos` | operar, ya tipado y validado |
+
+**La regla que sale:** cuando un tipo declarado es una aspiración y no una garantía, el código que
+audita esa aspiración necesita **su propia puerta**. Si lee por la puerta optimista, el analizador
+da por imposible justo el caso que se está buscando — y el día que alguien «limpie» ese guarda
+redundante, se lleva el comando por delante sin que falle nada.
+
 ### 22.17 La procedencia comercial viaja con el ASUNTO, y la redacta el dominio
 
 Varios ítems de guía llevaban dentro condicionales por canal de venta —«a los de Airbnb no», «si

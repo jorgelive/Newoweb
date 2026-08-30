@@ -65,7 +65,13 @@ final class PmsRepararHitosCommand extends Command
         $enlaces = $this->em->getRepository(PmsConversacionEnlace::class)->findAll();
 
         foreach ($enlaces as $enlace) {
-            $hitos = $enlace->getMilestones();
+            // ⚠️ Por el getter CRUDO, no por `getMilestones()`. Ése declara
+            // `array<string, string>`, y con esa promesa el analizador da por imposible
+            // justamente el caso que este comando busca: marcaba todo lo de abajo como código
+            // muerto. El filtro sí funcionaba en ejecución — el getter no normaliza nada—, pero
+            // un comando que estáticamente no hace nada es un comando que nadie se atreve a
+            // tocar.
+            $hitos = $enlace->getMilestonesCrudo();
             $sucios = array_filter($hitos, static fn ($v): bool => !is_string($v));
 
             if ($sucios === []) {
