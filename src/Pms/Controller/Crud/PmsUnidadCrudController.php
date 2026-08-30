@@ -150,11 +150,12 @@ final class PmsUnidadCrudController extends BaseCrudController
             ->setHelp('Una línea, como se diría al vender. Ej: '
                 . '<code>Hab 1: 2 dobles · Hab 2: 2 dobles</code>');
 
-        yield IntegerField::new('banosPrivados', 'Baños privados')
+        yield IntegerField::new('banos', 'Baños')
             ->hideOnIndex()
             ->setRequired(false)
-            ->setHelp('Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un '
-                . 'grupo que se reparte entre gente que no se conoce.');
+            ->setHelp('Cuántos baños tiene la casita, en total. Todos son privados: el '
+                . 'apartamento es independiente. Es de lo primero que pregunta un grupo que se '
+                . 'reparte entre gente que no se conoce.');
 
         // ---------------------------------------------------------------------
         // PANEL: ESTADO

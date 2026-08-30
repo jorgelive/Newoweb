@@ -244,12 +244,18 @@ class PmsUnidad
     private ?string $camas = null;
 
     /**
-     * Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-     * reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+     * Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+     * se comparte con nadie, así que la distinción privado/compartido no existe aquí.
+     *
+     * ⚠️ Se llamó `banosPrivados` y significaba «cuántas habitaciones tienen baño propio».
+     * El 29/08/2026 le costó una venta: a «¿alguna cuenta con 2 baños?» el agente contestó que
+     * no, teniendo la Casita 7 dos baños — porque leyó el `1` de «una habitación con baño en
+     * suite» como «un baño en total». El nombre invitaba a esa lectura y el número total de
+     * baños no existía en ninguna parte estructurada. Renombrado y recontado.
      */
-    #[ORM\Column(name: 'banos_privados', type: 'smallint', nullable: true)]
+    #[ORM\Column(name: 'banos', type: 'smallint', nullable: true)]
     #[Groups(['pms_unidad:read', 'pms_unidad:write'])]
-    private ?int $banosPrivados = null;
+    private ?int $banos = null;
 
     /**
      * Porcentaje de servicio, sobre alojamiento + suplemento de pax. La limpieza NO entra en
@@ -618,8 +624,8 @@ class PmsUnidad
     public function getCamas(): ?string { return $this->camas; }
     public function setCamas(?string $val): self { $this->camas = $val; return $this; }
 
-    public function getBanosPrivados(): ?int { return $this->banosPrivados; }
-    public function setBanosPrivados(?int $val): self { $this->banosPrivados = $val; return $this; }
+    public function getBanos(): ?int { return $this->banos; }
+    public function setBanos(?int $val): self { $this->banos = $val; return $this; }
 
     public function getPrecioLimpieza(): string { return $this->precioLimpieza; }
     public function setPrecioLimpieza(string $val): self { $this->precioLimpieza = $val; return $this; }

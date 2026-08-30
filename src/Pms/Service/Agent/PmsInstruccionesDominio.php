@@ -253,7 +253,10 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
         - Si viene «reparto», el grupo no cabe en una casita pero SÍ repartido: ofrécelo como
           una propuesta conjunta. NO contestes que no hay disponibilidad.
         - Si preguntan por comodidad, espacio o privacidad, compara con «habitaciones»,
-          «camas» y «banos_privados». Capacidad no es comodidad.
+          «camas» y «banos». Capacidad no es comodidad.
+        - «banos» es el número TOTAL de baños de la casita y todos son privados: el apartamento
+          es independiente. Si preguntan cuántos baños hay, contesta ese número tal cual; si
+          viene vacío, pídelo con consultar_guia en vez de suponer un mínimo.
 
         ESTÁ RESERVANDO DIRECTO CONTIGO, así que NO paga el porcentaje de servicio de las OTA.
         «servicio_en_otas» es un argumento a tu favor —reservando directo se lo ahorra—, nunca

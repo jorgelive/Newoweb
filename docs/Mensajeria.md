@@ -5531,15 +5531,44 @@ DESCRIPCIÓN DE LA SKILL, que es lo único que los tres comparten.
 #### 🛏️ Comodidad no es aforo
 
 `capacidad` dice cuántos caben y con eso no se contesta «quiero estar más cómodo»: en la Casita 3
-(2 habitaciones) y en la 6 (3 habitaciones, 2 baños privados) caben los mismos 8, y no es lo
+(2 habitaciones, 1 baño) y en la 6 (3 habitaciones, 2 baños) caben los mismos 8, y no es lo
 mismo. Comodidad es **privacidad**.
 
-`PmsUnidad` lleva `habitaciones`, `camas` y `banos_privados`, y viajan en cada resultado de
+`PmsUnidad` lleva `habitaciones`, `camas` y `banos`, y viajan en cada resultado de
 `consultar_disponibilidad` para poder **comparar sin llamadas extra**.
 
-⚠️ **Son un espejo de la guía, no la fuente.** El original es el bloque «Distribución» del ítem
-«Descripción» de cada guía —que es lo que el cliente lee, traducido a siete idiomas—; esto es el
-resumen corto para el catálogo de ventas. Al cambiar uno hay que mirar el otro.
+**`banos` es el TOTAL de baños de la casita, y todos son privados**: el apartamento es
+independiente y no se comparte con nadie, así que la distinción privado/compartido no significa
+nada aquí.
+
+#### 🔥 El campo se llamaba `banos_privados` y costó una venta
+
+Significaba «cuántas HABITACIONES tienen baño propio». El 29/08/2026, a un huésped que preguntó
+«¿alguna cuenta con 2 baños?», el agente contestó que **no** — teniendo la Casita 7 dos baños. El
+`1` de «una habitación con baño en suite» se leyó como «un baño en total».
+
+Tres cosas se juntaron, y ninguna era un bug:
+
+1. **El nombre invitaba a la lectura contraria.** `banos_privados: 1` se lee como «tiene un baño
+   (privado)». La descripción de la skill se lo pasaba al modelo sin decirle qué significaba.
+2. **El total de baños no existía como dato.** Sólo estaba en el texto libre de la guía, y
+   `consultar_disponibilidad` no lo lee.
+3. **Las cuatro casitas pequeñas tenían `0`** —ninguna habitación en suite—, que leído como total
+   dice que no tienen baño.
+
+Y una señal de que el modelo además rellenó el hueco: contestó «1 baño completo» para las tres
+casitas, incluidas dos que tenían `0`. Ante un dato que no cuadraba, dio un mínimo plausible en
+vez de preguntar — que es exactamente lo que CLAUDE.md dice que hace un modelo cuando le falta un
+hecho, y por qué las condiciones se escriben en positivo y con el dato delante.
+
+Renombrado a `banos` y recontado en `Version20260829193000`. La instrucción de la skill dice
+ahora qué es y **prohíbe suponer un mínimo**: si viene vacío, se pide con `consultar_guia`.
+
+⚠️ **Estos campos son un espejo de la guía, no la fuente.** El original es el bloque
+«Distribución» del ítem «Descripción» de cada guía —lo que el cliente lee, traducido a siete
+idiomas—; esto es el resumen corto para el catálogo de ventas. Al cambiar uno hay que mirar el
+otro, y **nada lo comprueba**: el espejo llevaba divergido lo suyo y sólo se vio cuando le costó
+una venta a un huésped que estaba preguntando para volver.
 
 Que no sea una estructura de camas por habitación es deliberado: hoy sólo hace falta para
 nombrarlo al vender. Cuando haya que filtrar por «cama doble», se migra con el caso delante.

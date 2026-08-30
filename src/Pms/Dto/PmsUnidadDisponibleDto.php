@@ -24,7 +24,7 @@ final readonly class PmsUnidadDisponibleDto
         // ir a la guía casita por casita.
         public ?int $habitaciones = null,
         public ?string $camas = null,
-        public ?int $banosPrivados = null,
+        public ?int $banos = null,
     ) {}
 
     /**
@@ -43,7 +43,7 @@ final readonly class PmsUnidadDisponibleDto
             'capacidad'       => $this->capacidad,
             'habitaciones'    => $this->habitaciones,
             'camas'           => $this->camas,
-            'banos_privados'  => $this->banosPrivados,
+            'banos'           => $this->banos,
             'tarifa_base'     => $this->tarifaBase,
             'moneda'          => $this->moneda,
         ];
