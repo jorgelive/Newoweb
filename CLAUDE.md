@@ -4,7 +4,14 @@
 
 - **Backend:** Symfony (PHP >= 8.4), API Platform, Doctrine ORM, EasyAdmin (panel legacy).
   Comandos: `php bin/console ...`. Verificación: `php bin/phpunit`, `vendor/bin/phpstan analyse`,
-  `php -l`, `lint:container` y, cuando aplica, ejecutar el flujo real.
+  `php -l`, `lint:container`, **`doctrine:schema:validate`** y, cuando aplica, ejecutar el flujo
+  real.
+
+  ⚠️ **`doctrine:schema:validate` no estaba en esta lista y llevaba tiempo avisando de dos
+  relaciones rotas** (`CotizacionVuelo`, sin `inversedBy`). Es la única herramienta que compara
+  las **dos mitades** de una relación: con `mappedBy` en un lado y nada en el otro, Doctrine la
+  trata como unidireccional, la escritura funciona y **la lectura posterior en el mismo request
+  se queda corta**. No hay error, hay una lista incompleta. Ni PHPStan ni los tests lo ven.
 
   **Análisis estático:** PHPStan **nivel 6** sobre `src/` (menos `src/Oweb/`, que se retira
   entero), con `phpstan-baseline.neon` congelando la deuda que ya existía. Correrlo antes de

@@ -3772,6 +3772,33 @@ vuelos no lo toca fuera de los grupos aéreos.
 ⚠️ Ojo si se le da ese uso: lleva `pax_file:read`, así que **viaja al navegador del pasajero**
 aunque hoy ninguna vista lo pinte. Para notas internas, quitar ese grupo primero.
 
+### ⚠️ `inversedBy` que falta: la relación se vuelve unidireccional sin decirlo (30/08/2026)
+
+`CotizacionVuelo` tiene dos relaciones hacia el expediente, y a las dos les faltaba `inversedBy`:
+
+| Lado dueño (en `CotizacionVuelo`) | Lado inverso | Faltaba |
+|---|---|---|
+| `ManyToOne` → `CotizacionFile` | `CotizacionFile::$vuelos` (`mappedBy: 'file'`) | `inversedBy: 'vuelos'` |
+| `ManyToMany` → `CotizacionFileGrupo` | `CotizacionFileGrupo::$vuelos` (`mappedBy: 'grupos'`) | `inversedBy: 'vuelos'` |
+
+**Qué provoca.** Con `mappedBy` en un lado y nada en el otro, Doctrine **no considera la relación
+bidireccional**: la trata como dos mapeos sueltos. Al asignar `$vuelo->setFile($file)`, la
+colección `$file->getVuelos()` no se entera dentro de la misma petición — sigue devolviendo lo que
+tenía cuando se cargó. El `INSERT` sí se hace, porque el lado dueño es el que escribe; lo que se
+queda corto es **lo que se lee después de escribir**, en el mismo request.
+
+⚠️ **Y por eso es de los caros: no da error, da una lista incompleta.** Un vuelo recién añadido no
+aparece al recorrer el expediente hasta que alguien recarga la página, y eso se lee como «se
+perdió» o como un problema de caché. Nada en el log.
+
+**No lo encontró nadie leyendo el código: lo dijo `doctrine:schema:validate`.** Llevaba tiempo
+avisando —los dos `[FAIL]` estaban también en producción— y ese comando no está en la rutina de
+verificación. Debería: es la única herramienta que compara las dos mitades de una relación.
+
+Arreglarlo **no toca la base**: la columna `file_id` y la tabla puente `cotizacion_grupo_vuelo` ya
+existían, sólo faltaba declarar la correspondencia. `doctrine:schema:validate` completo —mapping y
+sincronía— sale limpio sin migración.
+
 ## 6.x El expediente, plegado por secciones (29/08/2026)
 
 Un expediente de grupo son **131 personas, 16 vuelos y 109 subgrupos**. Desplegado todo, llegar a

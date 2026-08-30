@@ -66,7 +66,12 @@ class CotizacionVuelo
     use IdTrait;
     use TimestampTrait;
 
-    #[ORM\ManyToOne(targetEntity: CotizacionFile::class)]
+    // ⚠️ `inversedBy` no es decorativo: sin él Doctrine trata la relación como unidireccional
+    // aunque el otro lado declare `mappedBy`. Consecuencia — al asignar aquí, la colección
+    // `CotizacionFile::$vuelos` NO se entera dentro de la misma petición, así que un vuelo
+    // recién creado no aparece al recorrer el expediente hasta que se recarga desde la base.
+    // No da error: da una lista incompleta. Lo cazó `doctrine:schema:validate`, no una lectura.
+    #[ORM\ManyToOne(targetEntity: CotizacionFile::class, inversedBy: 'vuelos')]
     #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
 
@@ -131,7 +136,9 @@ class CotizacionVuelo
      *
      * @var Collection<int, CotizacionFileGrupo>
      */
-    #[ORM\ManyToMany(targetEntity: CotizacionFileGrupo::class)]
+    // Mismo caso que `$file`: `CotizacionFileGrupo::$vuelos` declara `mappedBy: 'grupos'` y
+    // necesita su pareja aquí para que la relación sea de verdad bidireccional.
+    #[ORM\ManyToMany(targetEntity: CotizacionFileGrupo::class, inversedBy: 'vuelos')]
     #[ORM\JoinTable(name: 'cotizacion_grupo_vuelo')]
     #[ORM\JoinColumn(name: 'vuelo_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     #[ORM\InverseJoinColumn(name: 'grupo_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
