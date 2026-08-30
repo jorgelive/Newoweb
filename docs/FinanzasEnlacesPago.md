@@ -1652,6 +1652,19 @@ En el panel, que `prepagoPendiente` llegue `null` no hay que programarlo en ning
 bloque y el atajo de «Primera noche» de los enlaces de pago van los dos tras un `v-if`, así que
 desaparecen solos y queda «Saldo», que es lo correcto para quien lleva tres semanas alojado.
 
+#### ⚠️ Y por eso `recargar()` tiene que volver por `por-reserva`
+
+`finanzasStore.recargar()` —la que llaman los ocho `create`/`patch`/`delete` del panel— releía
+por el **`GET` por id**, que no rellena `prepagoPendiente` ni `costosTeoricos`. Resultado: **cada
+escritura los borraba del panel**.
+
+Con el prepago costaba verlo, porque tras cobrarlo TIENE que desaparecer. Se notaba al registrar
+un pago **parcial** o al tocar un cargo: el bloque se iba igual sin haber cobrado el adelanto.
+
+Arreglado el 30/08/2026 recordando el `reservaId` con el que se cargó. No se reutiliza
+`fetchPorReserva()` porque aquélla levanta `isLoading` y el panel pinta un esqueleto con esa
+bandera: un parpadeo en cada guardado sería peor que el fallo que esto arregla.
+
 ⚠️ **La `claveI18n` sólo sirve en `pax`.** Es una clave del diccionario `pax_ui_i18n` que se
 resuelve en el navegador del huésped. En el panel y en el agente se sustituye por
 `PmsPoliticaPrepago::etiqueta()`: así la etiqueta mantiene una sola fuente (el enum) en vez de

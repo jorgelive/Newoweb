@@ -28,6 +28,15 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
     /** Cabecera financiera de la reserva abierta en el drawer (null si aún no existe). */
     const info = ref<PmsInformacionFinanciera | null>(null);
 
+    /**
+     * Con qué reserva se cargó el panel, para que `recargar()` pueda repetir la MISMA operación.
+     *
+     * `por-reserva` no es un atajo del `GET` por id: es la única que rellena `prepagoPendiente`
+     * y `costosTeoricos` —los calcula el provider, no la entidad—. Sin recordar el id, cada
+     * recarga tenía que caer al `GET` por id y **borraba los dos**.
+     */
+    const reservaCargada = ref<string | null>(null);
+
     // Catálogos de enums servidos por PHP (cacheados en memoria).
     const tiposCargo = ref<PmsTipoCargoOption[]>([]);
     const mediosPago = ref<PmsMedioPagoOption[]>([]);
@@ -91,10 +100,12 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
         try {
             const res = await apiClient.get(`/platform/pms/pms_informacion_financieras/por-reserva/${reservaId}`);
             info.value = res.data ?? null;
+            reservaCargada.value = reservaId;
             return info.value;
         } catch (err) {
             if ((err as { response?: { status?: number } })?.response?.status === 404) {
                 info.value = null;
+                reservaCargada.value = reservaId;
                 return null;
             }
             throw err;
@@ -104,7 +115,33 @@ export const useFinanzasStore = defineStore('finanzasStore', () => {
     };
 
     /** Recarga la cabecera por su id (tras crear/editar un hijo, para refrescar totales). */
+    /**
+     * Relee la ficha después de cada escritura. La llaman los ocho `create`/`patch`/`delete`.
+     *
+     * ⚠️ **Vuelve por `por-reserva` y no por el `GET` por id.** Sólo esa operación rellena
+     * `prepagoPendiente` y `costosTeoricos`: los calcula
+     * `PmsInformacionFinancieraPorReservaProvider`, no la entidad, así que en el `GET` por id
+     * llegan `null` — y no porque no existan, sino porque ahí nadie los ha calculado.
+     *
+     * Recargando por id, **cada cobro registrado hacía desaparecer del panel el bloque del
+     * prepago y los costos teóricos**. Con el prepago costaba verlo, porque tras cobrarlo TIENE
+     * que desaparecer; se notaba al registrar un pago parcial o al tocar un cargo, que los
+     * borraba igual sin haber cobrado nada.
+     *
+     * No se llama a `fetchPorReserva()` a propósito: aquélla levanta `isLoading`, y el panel
+     * pinta un esqueleto con esa bandera. Un parpadeo en cada guardado sería peor que el fallo
+     * que esto arregla. El `GET` por id se conserva de respaldo por si alguien llegó a la ficha
+     * sin pasar por `fetchPorReserva`.
+     */
     const recargar = async (): Promise<void> => {
+        const reservaId = reservaCargada.value;
+
+        if (reservaId !== null) {
+            const res = await apiClient.get(`/platform/pms/pms_informacion_financieras/por-reserva/${reservaId}`);
+            info.value = res.data ?? null;
+            return;
+        }
+
         const id = info.value?.id;
         if (!id) return;
         const res = await apiClient.get(`/platform/pms/pms_informacion_financieras/${id}`);
