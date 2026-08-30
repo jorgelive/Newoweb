@@ -40,6 +40,37 @@ class CotizacionCotservicio
     private ?Cotizacion $cotizacion = null;
 
     /**
+     * Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+     *
+     * **`0` significa «automático»**, y es el valor de casi todos: el servicio se coloca por la
+     * hora más temprana de sus componentes, y los que no tienen hora por la naturaleza de lo que
+     * son ({@see ComponenteTipoEnum::ordenNarrativo()}: llegar y moverse abre la jornada,
+     * dormir la cierra). Cualquier número mayor que 0 es una decisión de una persona y **pisa** a
+     * ese automático dentro de su día.
+     *
+     * ## Por qué hacía falta
+     *
+     * El desempate entre dos servicios sin hora era, en la guía, el `orden` mínimo de sus
+     * segmentos — un número pensado para ordenar DENTRO de un servicio, usado para comparar
+     * ENTRE servicios. Cada plantilla empieza por su segmento 1, así que valía 1 para todos y el
+     * resultado lo decidía el orden de inserción. En el editor era peor: un `return 0` explícito.
+     *
+     * ## Lo que se aceptó al hacerlo pisable
+     *
+     * Que una posición manual **pueda contradecir al reloj**. Se prefirió eso a no dar control:
+     * la contradicción la caza un chequeo (`orden-contradice-hora`), que es una señal explícita,
+     * mientras que «la vista se ve rara y alguien lo nota» es una señal accidental — y de ésas
+     * este código ya se ha quemado bastante.
+     *
+     * ⚠️ **Un servicio multidía tiene un solo número para varias apariciones.** Hoy no muerde:
+     * los siete que existen son escalón 0 en todos sus días, así que se colocan por hora y este
+     * campo no llega a decidir. El día que uno se quede sin hora en alguno de sus días, sí.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read', 'pax_cotizacion:read'])]
+    #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    private int $orden = 0;
+
+    /**
      * El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas».
      *
      * Los dos nombres del día, ya con el vocabulario unificado (27/08/2026):
@@ -188,6 +219,18 @@ class CotizacionCotservicio
     public function setSobreescribirTraduccion(bool $sobreescribirTraduccion): self
     {
         $this->sobreescribirTraduccion = $sobreescribirTraduccion;
+        return $this;
+    }
+
+    public function getOrden(): int
+    {
+        return $this->orden;
+    }
+
+    public function setOrden(int $orden): self
+    {
+        $this->orden = $orden;
+
         return $this;
     }
 

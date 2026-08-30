@@ -1,4 +1,5 @@
 import { extractIdStr } from '@/utils/recurso';
+import { ordenNarrativoDe } from '@/types/operacionModel';
 import {defineStore} from 'pinia';
 import { extractApiErrorMessage } from '@/services/apiError';
 import {computed, ref, type Ref} from 'vue';
@@ -1651,13 +1652,35 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             return horaMinima;
         };
 
+        /**
+         * Dónde va un servicio cuando el reloj no lo decide.
+         *
+         * El `orden` manual si alguien lo puso —0 es «automático»—; si no, el orden narrativo
+         * del componente que más temprano abre la jornada. **Espejo de la misma cascada en
+         * `pax`**: si cambia una, se cambian las dos, o el editor y la guía vuelven a enseñar
+         * días distintos.
+         */
+        const posicionDeServicio = (srv: CotServicio): number => {
+            if ((srv.orden ?? 0) > 0) {
+                return srv.orden as number;
+            }
+
+            const naturales = (srv.cotcomponentes ?? []).map(c => ordenNarrativoDe(c.tipo));
+
+            return naturales.length ? Math.min(...naturales) : 30;
+        };
+
         Object.keys(grupos).forEach((fecha) => {
             grupos[fecha].sort((a: CotServicio, b: CotServicio) => {
                 const horaA = getHoraClaveServicio(a);
                 const horaB = getHoraClaveServicio(b);
 
-                // Ninguno tiene hora exacta -> empate, conserva orden original (estable)
-                if (horaA === null && horaB === null) return 0;
+                // ⚠️ Ninguno tiene hora: ANTES devolvía 0 y el resultado lo decidía el orden de
+                // inserción. Ahora manda el `orden` del servicio si alguien lo puso, y si no la
+                // naturaleza de lo que es —llegar abre el día, dormir lo cierra—.
+                if (horaA === null && horaB === null) {
+                    return posicionDeServicio(a) - posicionDeServicio(b);
+                }
                 // Solo A no tiene hora exacta -> A va al final
                 if (horaA === null) return 1;
                 // Solo B no tiene hora exacta -> B va al final
@@ -2769,6 +2792,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             itinerarioNombreInternoSnapshot: [{ language: 'es', content: 'Sin plantilla' }],
             tituloSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             fechaInicioAbsoluta: fechaBase,
+            // 0 = automático: se coloca por la hora de sus componentes, y sin hora por lo que es.
+            // Sólo deja de ser 0 si alguien lo mueve a mano.
+            orden: 0,
             cotsegmentos: [],
             cotcomponentes: [],
             sobreescribirTraduccion: false

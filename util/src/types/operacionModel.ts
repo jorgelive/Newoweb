@@ -143,6 +143,27 @@ export const TIPO_COMPONENTE_CONFIG: Record<string, TipoComponenteConfig> = {
     extras:                 { label: 'Extra',        icon: 'fas fa-plus',              text: 'text-slate-500' },
 };
 
+/**
+ * El orden natural de una jornada. **Espejo de `ComponenteTipoEnum::ordenNarrativo()`** — si
+ * cambia allí, se cambia aquí.
+ *
+ * Coloca los servicios que NO tienen hora, que hasta el 29/08/2026 quedaban al azar del orden de
+ * inserción. No es una preferencia estética: llegar y moverse es lo que pasa primero de verdad, y
+ * dormir cierra el día.
+ */
+export const ORDEN_NARRATIVO: Record<string, number> = {
+    vuelo: 10, tren: 10, transporte: 10, transporte_excursion: 10,
+    contacto: 20,
+    pool: 30, privada: 30, guiado: 30,
+    ticket_fijo: 40, ticket_variable: 40,
+    alimentacion_fijo: 50, alimentacion_variable: 50,
+    personal_extra: 60, extras: 60,
+    alojamiento: 90,
+};
+
+/** Sin tipo conocido, en medio: ni abre ni cierra el día. */
+export const ordenNarrativoDe = (tipo?: string | null): number => ORDEN_NARRATIVO[tipo ?? ''] ?? 30;
+
 const TIPO_DESCONOCIDO: TipoComponenteConfig = {
     label: 'Sin tipo', icon: 'fas fa-circle-question', text: 'text-slate-400',
 };

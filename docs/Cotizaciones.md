@@ -3088,6 +3088,48 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.ae Dónde va un servicio cuando el reloj no lo decide (29/08/2026)
+
+`CotizacionCotservicio::$orden`. **`0` = automático**, y es lo que arranca todo el mundo: el
+comportamiento no cambia hasta que alguien mueva algo, así que la migración no siembra nada.
+
+La cascada, idéntica en las dos vistas:
+
+```
+1  la hora más temprana de sus componentes          ← manda siempre que exista
+2  el `orden` del servicio, si alguien lo puso      ← 0 = no lo han tocado
+3  el orden narrativo del tipo                      ← llegar abre el día (10), dormir lo cierra (90)
+```
+
+### ⚠️ Lo que había antes era un número de otra escala
+
+En la guía el desempate era `min(segmento.orden)` — **un número pensado para ordenar DENTRO de un
+servicio, usado para comparar ENTRE servicios**. Cada plantilla empieza por su segmento 1, así que
+valía 1 para todas y el resultado lo decidía el orden de inserción. En el editor era peor: un
+`return 0` explícito.
+
+Que dos escalas distintas compartan nombre —«orden»— es lo que lo hizo invisible durante tanto
+tiempo.
+
+### El orden narrativo es un TERCER espejo
+
+`ComponenteTipoEnum::ordenNarrativo()` (PHP) · `ORDEN_NARRATIVO` en `util/src/types/operacionModel.ts`
+· `ORDEN_NARRATIVO` en `pax/.../PaxCotizacionGuiaView.vue`. **Los tres cambian juntos**, o el
+huésped y el operador ven días distintos — que es justo lo que acabábamos de arreglar.
+
+### Lo que se aceptó al hacer el manual pisable
+
+Que una posición puesta a mano **pueda contradecir al reloj**. Se prefirió a no dar control: la
+contradicción la caza un chequeo explícito, mientras que «se ve raro y alguien lo nota» es una
+señal accidental, y de ésas este código ya se ha quemado bastante.
+
+⚠️ **Un servicio multidía tiene un solo número para varias apariciones.** Hoy no muerde: los siete
+que existen son escalón 0 en todos sus días. El día que uno se quede sin hora en alguno, sí.
+
+⚠️ Y medido: **hoy ninguna cotización tiene dos servicios sin hora el mismo día**. El campo no
+cambia nada visible todavía — es la base sobre la que se apoyará el modo reordenamiento, y esa es
+la razón de meterlo ahora y no cuando haga falta corriendo.
+
 ## 6.ad Una noche repetida arrastraba el orden de la primera (29/08/2026)
 
 Un hotel que vive **dentro** de un servicio con actividades —el Skylodge, con su cápsula

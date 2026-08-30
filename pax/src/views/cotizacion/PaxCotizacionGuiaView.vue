@@ -24,6 +24,21 @@ import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
 
+/**
+ * El orden natural de una jornada. **Espejo de `ComponenteTipoEnum::ordenNarrativo()`** y de
+ * `ORDEN_NARRATIVO` en `util`: los tres cambian juntos o el huésped y el operador ven días
+ * distintos.
+ */
+const ORDEN_NARRATIVO: Record<string, number> = {
+  vuelo: 10, tren: 10, transporte: 10, transporte_excursion: 10,
+  contacto: 20,
+  pool: 30, privada: 30, guiado: 30,
+  ticket_fijo: 40, ticket_variable: 40,
+  alimentacion_fijo: 50, alimentacion_variable: 50,
+  personal_extra: 60, extras: 60,
+  alojamiento: 90,
+};
+
 
 
 const props = defineProps<{
@@ -301,6 +316,31 @@ const itinerarioVista = computed<DiaVista[]>(() => {
       }
     }
 
+    /**
+     * Dónde va un servicio cuando el reloj no lo decide. **Espejo de `posicionDeServicio()` en
+     * `util/src/stores/cotizacion/cotizacionEditorStore.ts`** — si cambia una, se cambian las dos,
+     * o el editor y la guía vuelven a enseñar días distintos.
+     *
+     * ⚠️ Antes era `min(segmento.orden)`: un número pensado para ordenar DENTRO de un servicio,
+     * usado para comparar ENTRE servicios. Cada plantilla empieza por su segmento 1, así que
+     * valía 1 para todas y el desempate lo decidía el orden de inserción — de ahí la sensación de
+     * que los servicios sin hora flotaban.
+     *
+     * Ahora manda el `orden` del servicio si alguien lo puso a mano (0 = automático), y si no la
+     * naturaleza de lo que es: llegar y moverse abre la jornada, dormir la cierra.
+     */
+    const posicionDeServicio = (servicio: PaxCotServicio, bloques: BloqueVista[]): number => {
+      if ((servicio.orden ?? 0) > 0) {
+        return servicio.orden as number;
+      }
+
+      const naturales = bloques
+          .flatMap(b => b.componentes)
+          .map(c => ORDEN_NARRATIVO[c?.tipo ?? ''] ?? 30);
+
+      return naturales.length ? Math.min(...naturales) : 30;
+    };
+
     // 2) Metadatos por grupo: hora absoluta más temprana y orden mínimo del día.
     //    Si el servicio no tiene hora en sus segmentos pero sí una hora promovida
     //    (servicio completo), se usa esa para posicionarlo en la cronología.
@@ -309,7 +349,7 @@ const itinerarioVista = computed<DiaVista[]>(() => {
       const promoInicio = promoPorServicio.get(gb[0]?.servicio.id)?.inicio ?? null;
       if (promoInicio) horas.push(promoInicio);
       const horaMin = horas.length ? [...horas].sort()[0] : null; // null = sin hora absoluta
-      const ordenMin = Math.min(...gb.map(b => b.segmento.orden ?? 0));
+      const ordenMin = posicionDeServicio(gb[0]!.servicio, gb);
       const esEstadia = gb.every(b => b.esEstadia);
       return { horaMin, ordenMin, esEstadia };
     };

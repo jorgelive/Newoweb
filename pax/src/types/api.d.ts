@@ -8501,6 +8501,11 @@ export interface components {
              * @example https://example.com/
              */
             cotizacion?: string;
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
@@ -8542,6 +8547,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio-cotizacion.read_timestamp.read": {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
@@ -8578,6 +8588,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio-cotizacion.write": {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
@@ -8616,6 +8631,11 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionCotservicio-pax_catalogo.read_pax_cotizacion.read": {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -8626,6 +8646,11 @@ export interface components {
             id?: string;
         };
         "CotizacionCotservicio-pax_file.read_pax_cotizacion.read": {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -8641,6 +8666,11 @@ export interface components {
              * @example https://example.com/
              */
             cotizacion?: string;
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
@@ -8682,6 +8712,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio.html-cotizacion.read_timestamp.read": {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
@@ -8724,6 +8759,11 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionCotservicio.html-pax_catalogo.read_pax_cotizacion.read": {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -8734,6 +8774,11 @@ export interface components {
             id?: string;
         };
         "CotizacionCotservicio.html-pax_file.read_pax_cotizacion.read": {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -8749,6 +8794,11 @@ export interface components {
              * @example https://example.com/
              */
             cotizacion?: string;
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
@@ -8790,6 +8840,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
@@ -8832,6 +8887,11 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionCotservicio.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -8842,6 +8902,11 @@ export interface components {
             id?: string;
         };
         "CotizacionCotservicio.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -8857,6 +8922,11 @@ export interface components {
              * @example https://example.com/
              */
             cotizacion?: string;
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
@@ -8898,6 +8968,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "CotizacionCotservicio.multipart-cotizacion.read_timestamp.read": {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             /** @description El nombre del DÍA / bloque del itinerario: «Transporte en Cusco», «Full Day Paracas». */
             nombreInternoSnapshot?: {
                 [key: string]: string | null;
@@ -8940,6 +9015,11 @@ export interface components {
             updatedAt?: string | null;
         };
         "CotizacionCotservicio.multipart-pax_catalogo.read_pax_cotizacion.read": {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -8950,6 +9030,11 @@ export interface components {
             id?: string;
         };
         "CotizacionCotservicio.multipart-pax_file.read_pax_cotizacion.read": {
+            /**
+             * @description Dónde va este servicio dentro de su día, cuando el reloj no lo decide.
+             * @default 0
+             */
+            orden: number;
             tituloSnapshot?: {
                 [key: string]: string | null;
             }[];
@@ -27086,10 +27171,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -27233,10 +27318,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -27298,10 +27383,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -27377,10 +27462,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -27524,10 +27609,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -27589,10 +27674,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -27672,10 +27757,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -27839,10 +27924,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -27904,10 +27989,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -27983,10 +28068,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -28130,10 +28215,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
@@ -28195,10 +28280,10 @@ export interface components {
             /** @description Resumen de camas, para decirlo en una línea: «Hab 1: 2 dobles · Hab 2: 2 dobles». */
             camas?: string | null;
             /**
-             * @description Cuántas habitaciones tienen baño propio. Es lo primero que pregunta un grupo que se
-             *     reparte entre desconocidos, y lo que separa «caben» de «están cómodos».
+             * @description Cuántos BAÑOS tiene la casita. Todos son privados: el apartamento es independiente y no
+             *     se comparte con nadie, así que la distinción privado/compartido no existe aquí.
              */
-            banosPrivados?: number | null;
+            banos?: number | null;
             /**
              * @description ¿El importe de arriba es un PORCENTAJE en vez de dinero?
              * @default false
