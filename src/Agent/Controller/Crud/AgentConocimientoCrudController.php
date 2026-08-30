@@ -23,6 +23,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
  *
  * Esta pantalla es la que hace que el agente escale menos: cada fila que se añade aquí es una
  * interrupción menos a una persona para repetir lo de siempre.
+ *
+ * @extends BaseCrudController<AgentConocimiento>
  */
 class AgentConocimientoCrudController extends BaseCrudController
 {

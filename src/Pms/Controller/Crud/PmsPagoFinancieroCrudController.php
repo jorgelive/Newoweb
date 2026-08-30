@@ -25,6 +25,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 /**
  * Pagos efectivamente recibidos, registrados por nosotros (a diferencia de los cargos,
  * que vienen de Beds24). Permite alta/edición manual.
+ *
+ * @extends BaseCrudController<PmsPagoFinanciero>
  */
 class PmsPagoFinancieroCrudController extends BaseCrudController
 {

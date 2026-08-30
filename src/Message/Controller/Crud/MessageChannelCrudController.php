@@ -19,6 +19,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * @extends BaseCrudController<MessageChannel>
+ */
 class MessageChannelCrudController extends BaseCrudController
 {
     public function __construct(

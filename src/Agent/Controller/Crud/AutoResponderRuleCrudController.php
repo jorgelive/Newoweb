@@ -21,6 +21,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * @extends BaseCrudController<AutoResponderRule>
+ */
 class AutoResponderRuleCrudController extends BaseCrudController
 {
     /**

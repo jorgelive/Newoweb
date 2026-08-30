@@ -16,6 +16,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
  *
  * Es una tabla y no un enum justo para esto: se alimenta desde aquí, con el tiempo y sin
  * despliegues. El día que haya que añadir «reclamos» a las nueve de la noche, se añade.
+ *
+ * @extends BaseCrudController<AgentConocimientoCategoria>
  */
 class AgentConocimientoCategoriaCrudController extends BaseCrudController
 {

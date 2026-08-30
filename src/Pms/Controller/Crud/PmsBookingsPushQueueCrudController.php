@@ -25,6 +25,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * PmsBookingsPushQueueCrudController.
  * Gestión de la cola de envío (Push) de actualizaciones hacia Beds24.
  * Implementa UUID v7 y auditoría mediante TimestampTrait.
+ *
+ * @extends BaseCrudController<PmsBookingsPushQueue>
  */
 final class PmsBookingsPushQueueCrudController extends BaseCrudController
 {

@@ -34,6 +34,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * @extends BaseCrudController<MessageTemplate>
+ */
 class MessageTemplateCrudController extends BaseCrudController
 {
     public function __construct(
@@ -380,6 +383,7 @@ class MessageTemplateCrudController extends BaseCrudController
      *
      * El resultado va en una tabla con scroll propio; la página no crece con el listado.
      *
+     * @param AdminContext<MessageTemplate> $context
      */
     public function executeInventarioMeta(
         AdminContext $context,
@@ -420,6 +424,7 @@ class MessageTemplateCrudController extends BaseCrudController
      * @param AdminUrlGenerator $adminUrlGenerator Generador de URLs para la redirección post-ejecución.
      * @return Response Redirección al listado principal del CRUD.
      *
+     * @param AdminContext<MessageTemplate> $context
      */
     public function executeMetaSync(
         AdminContext $context,
@@ -518,6 +523,7 @@ class MessageTemplateCrudController extends BaseCrudController
             ?? $adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
     }
 
+    /** @param AdminContext<MessageTemplate> $context */
     public function executePushToMeta(
         AdminContext $context,
         WhatsappMetaTemplatePushService $pushService,

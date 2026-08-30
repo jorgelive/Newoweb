@@ -25,6 +25,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * PmsEstablecimientoVirtualCrudController.
  * Gestión de Agrupaciones Lógicas o "Listings Comerciales".
  * Ej: "Saphy", "Inti".
+ *
+ * @extends BaseCrudController<PmsEstablecimientoVirtual>
  */
 final class PmsEstablecimientoVirtualCrudController extends BaseCrudController
 {

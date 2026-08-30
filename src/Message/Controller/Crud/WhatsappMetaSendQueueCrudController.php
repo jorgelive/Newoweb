@@ -30,6 +30,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * WhatsappMetaSendQueueCrudController.
  * Gestión de la cola de salida de mensajes vía WhatsApp Meta API.
  * Optimizado para seguimiento de estados de entrega y auditoría de payloads.
+ *
+ * @extends BaseCrudController<WhatsappMetaSendQueue>
  */
 final class WhatsappMetaSendQueueCrudController extends BaseCrudController
 {
@@ -97,6 +99,7 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
      *
      * @return QueryBuilder
      *
+     * @param EntityDto<WhatsappMetaSendQueue> $entityDto
      */
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
     {

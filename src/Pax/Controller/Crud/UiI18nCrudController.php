@@ -16,6 +16,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
+/**
+ * @extends AbstractCrudController<UiI18n>
+ */
 final class UiI18nCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string

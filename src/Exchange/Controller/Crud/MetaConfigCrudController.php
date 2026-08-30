@@ -25,6 +25,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Controlador CRUD para la configuración de la integración con WhatsApp Meta.
  * Gestiona credenciales, estados de activación y configuración de la API.
+ *
+ * @extends BaseCrudController<MetaConfig>
  */
 class MetaConfigCrudController extends BaseCrudController
 {

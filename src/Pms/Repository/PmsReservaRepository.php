@@ -220,7 +220,8 @@ class PmsReservaRepository extends ServiceEntityRepository
                 : $ta['inicio'] <=> $tb['inicio'];
         });
 
-        return array_values($candidatas);
+        // Sin `array_values()`: `usort()` acaba de reindexar el array in place.
+        return $candidatas;
     }
 
     /**

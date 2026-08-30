@@ -25,6 +25,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * y en la pantalla de alguien. Ver `docs/CorreoSaliente.md`.
  *
  * Esto guarda sólo lo que sí es configuración de negocio: quién firma el correo.
+ *
+ * @extends BaseCrudController<EmailConfig>
  */
 class EmailConfigCrudController extends BaseCrudController
 {

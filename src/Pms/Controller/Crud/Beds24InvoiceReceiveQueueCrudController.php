@@ -22,6 +22,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 /**
  * Cola de pull en-demanda de información financiera (invoiceItems). De sólo lectura:
  * la alimenta el cron `beds24_invoice_receive`. Espejo de la cola de mensajes.
+ *
+ * @extends BaseCrudController<Beds24InvoiceReceiveQueue>
  */
 class Beds24InvoiceReceiveQueueCrudController extends BaseCrudController
 {

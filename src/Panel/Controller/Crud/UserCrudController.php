@@ -33,6 +33,8 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * UserCrudController.
  * Gestión de usuarios con soporte UUID y seguridad basada en Roles.
  * Hereda de BaseCrudController para preservar la lógica transversal del panel.
+ *
+ * @extends BaseCrudController<User>
  */
 class UserCrudController extends BaseCrudController
 {

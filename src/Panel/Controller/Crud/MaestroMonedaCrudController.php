@@ -21,6 +21,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * MaestroMonedaCrudController.
  * Gestión de Monedas Globales (PEN, USD, EUR).
  * Basado en códigos ISO 4217 como identificadores naturales.
+ *
+ * @extends BaseCrudController<MaestroMoneda>
  */
 class MaestroMonedaCrudController extends BaseCrudController
 {

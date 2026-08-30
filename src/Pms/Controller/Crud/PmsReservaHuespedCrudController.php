@@ -30,6 +30,8 @@ use Vich\UploaderBundle\Form\Type\VichImageType;
  * PmsReservaHuespedCrudController.
  * Gestión de pasajeros y documentación digital (DNI, TAM, Firmas).
  * Implementa UUID v7 y herencia de BaseCrudController con permisos prioritarios.
+ *
+ * @extends BaseCrudController<PmsReservaHuesped>
  */
 class PmsReservaHuespedCrudController extends BaseCrudController
 {

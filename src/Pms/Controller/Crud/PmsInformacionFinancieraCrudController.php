@@ -18,6 +18,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 /**
  * Cabecera financiera de una reserva. De sólo lectura: se crea/actualiza por la
  * sincronización de Beds24 (Camino D), no a mano.
+ *
+ * @extends BaseCrudController<PmsInformacionFinanciera>
  */
 class PmsInformacionFinancieraCrudController extends BaseCrudController
 {

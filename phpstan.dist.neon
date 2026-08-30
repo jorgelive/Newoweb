@@ -76,11 +76,17 @@ parameters:
         # esa tabla no admite.
         -
             identifier: property.unusedType
-            message: '#is never assigned App\\.+ so it can be removed from the property type\.$#'
+            message: '#is never assigned .+ so it can be removed from the property type\.$#'
             paths:
                 - src/*/Entity/*
                 - src/Entity/*
             reportUnmatched: false
+
+        # ⚠️ El patrón dice `.+` y no `App\\.+` desde el 30/08/2026: había ocho entidades con
+        # tipos ESCALARES en el mismo caso —`MessengerMessage`, que la escribe el transporte de
+        # Messenger por SQL, y el `$id` autogenerado de `PushSubscription`—. El hecho es idéntico
+        # al de `PmsFinanzasTotalMoneda`: nadie las asigna desde PHP porque no se escriben por el
+        # ORM. Acotar por el namespace del tipo era una casualidad, no un criterio.
 
         # ── La frontera de confianza: procesadores y listeners ─────────────────
         #
@@ -96,28 +102,20 @@ parameters:
         # Va como REGLA y no en el baseline por lo mismo que la excepción de Doctrine de arriba:
         # el baseline es deuda que se salda, y esto no se salda nunca — además así cubre los
         # procesadores que se escriban mañana.
+        # Y el mismo hecho en EasyAdmin: `persistEntity(EntityManagerInterface $em, $entityInstance)`
+        # recibe el segundo parámetro **sin tipo nativo** —la forma la promete el genérico del
+        # padre— y lo llama el bundle con lo que resolvió la petición. El `instanceof` de nuestros
+        # `persistEntity`/`updateEntity` es la validación de entrada, no código muerto.
+        #
+        # ⚠️ Apareció al RELLENAR los genéricos (30/08/2026). Antes PHPStan no sabía el tipo y no
+        # se quejaba; al declararlo, empezó a creerse la promesa del framework. Tipar mejor no
+        # convierte una frontera en código propio.
         -
             identifier: instanceof.alwaysTrue
             paths:
                 - src/*/ApiPlatform/State/*
                 - src/*/EventListener/*
                 - src/*/Serializer/*
-            reportUnmatched: false
-
-        # ── Los genéricos de EasyAdmin: no son nuestra deuda ───────────────────
-        #
-        # `AdminContext`, `EntityDto` y `AbstractCrudController` son clases genéricas del bundle,
-        # y sus parámetros los decide EasyCorp, no nosotros. Tiparlos en cada controlador CRUD no
-        # documenta ninguna decisión nuestra: repite la firma de una librería que además puede
-        # cambiarla en la siguiente versión.
-        #
-        # Estaban en el baseline contando como «anotaciones pendientes» y no lo son: no se van a
-        # saldar nunca. Misma decisión que la excepción de Doctrine y la de los procesadores.
-        #
-        # ⚠️ Acotada a `Controller/Crud/`: fuera de ahí un genérico sin tipar SÍ es deuda nuestra.
-        -
-            identifier: missingType.generics
-            paths:
                 - src/*/Controller/Crud/*
             reportUnmatched: false
 

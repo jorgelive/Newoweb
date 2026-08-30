@@ -18,6 +18,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 /**
  * Controlador auxiliar (Embedded) para gestionar los ítems descriptivos y upsells
  * dentro del CRUD de TravelComponente. No se muestra en el menú principal.
+ *
+ * @extends BaseCrudController<TravelComponenteItem>
  */
 class TravelComponenteItemCrudController extends BaseCrudController
 {

@@ -30,6 +30,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * Beds24SendQueueCrudController.
  * Gestión de la cola de salida de mensajes hacia Beds24.
  * Ordenado por actualización para seguimiento de logs en tiempo real.
+ *
+ * @extends BaseCrudController<Beds24SendQueue>
  */
 class Beds24SendQueueCrudController extends BaseCrudController
 {
@@ -99,6 +101,7 @@ class Beds24SendQueueCrudController extends BaseCrudController
      * @param FilterCollection $filters   Filtros aplicados desde el panel lateral.
      * * @return QueryBuilder
      *
+     * @param EntityDto<Beds24SendQueue> $entityDto
      */
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
     {

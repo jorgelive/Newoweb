@@ -37,6 +37,9 @@ use Symfony\Component\HttpFoundation\Response;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 
+/**
+ * @extends BaseCrudController<TravelSegmento>
+ */
 class TravelSegmentoCrudController extends BaseCrudController
 {
 

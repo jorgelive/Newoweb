@@ -375,7 +375,8 @@ class BibliaSnapshotService
             ($a->getGrupoTarifa() ?? PHP_INT_MAX) <=> ($b->getGrupoTarifa() ?? PHP_INT_MAX)
         );
 
-        return array_values($tarifas)[0];
+        // Sin `array_values()`: `usort()` reindexa in place, así que `[0]` ya es el primero.
+        return $tarifas[0];
     }
 
     /**

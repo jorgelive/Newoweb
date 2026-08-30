@@ -29,6 +29,8 @@ use Throwable;
  * MetaWebhookAuditCrudController.
  * Registro histórico de notificaciones entrantes desde Meta (WhatsApp Cloud API).
  * Controlador de solo lectura heredando de BaseCrudController para garantizar trazabilidad.
+ *
+ * @extends BaseCrudController<MetaWebhookAudit>
  */
 final class MetaWebhookAuditCrudController extends BaseCrudController
 {
@@ -159,6 +161,7 @@ final class MetaWebhookAuditCrudController extends BaseCrudController
      * 🔥 LÓGICA DE LA ACCIÓN PERSONALIZADA (Modo Sincrónico FastTrack)
      * Extrae el payload de la base de datos y lo vuelve a pasar por el FastTrackService.
      *
+     * @param AdminContext<MetaWebhookAudit> $context
      */
     public function retryWebhookAction(
         AdminContext $context,

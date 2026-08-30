@@ -22,6 +22,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * PmsEventoEstadoPagoCrudController.
  * Maestro para la gestión de estados de pago.
+ *
+ * @extends BaseCrudController<PmsEventoEstadoPago>
  */
 class PmsEventoEstadoPagoCrudController extends BaseCrudController
 {

@@ -27,6 +27,9 @@ use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * @extends BaseCrudController<TravelOrganizacion>
+ */
 class TravelOrganizacionCrudController extends BaseCrudController
 {
     use RenderGaleriaTrait;

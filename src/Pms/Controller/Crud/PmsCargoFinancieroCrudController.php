@@ -23,6 +23,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 /**
  * Conceptos financieros (invoiceItems) importados de Beds24. De sólo lectura: son verdad
  * histórica del canal, se crean/actualizan por la sincronización (Camino D).
+ *
+ * @extends BaseCrudController<PmsCargoFinanciero>
  */
 class PmsCargoFinancieroCrudController extends BaseCrudController
 {

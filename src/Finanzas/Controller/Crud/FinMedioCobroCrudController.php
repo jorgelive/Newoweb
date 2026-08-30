@@ -33,6 +33,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * Hoy lo guarda `MAESTROS_WRITE`, como el resto de la sección de Configuración. Es lo que hay,
  * no lo ideal: quien puede editar el catálogo de idiomas puede cambiar la cuenta a la que llega
  * el dinero. Si algún día se separa, el rol nuevo se cambia aquí y en el menú del dashboard.
+ *
+ * @extends BaseCrudController<FinMedioCobro>
  */
 final class FinMedioCobroCrudController extends BaseCrudController
 {

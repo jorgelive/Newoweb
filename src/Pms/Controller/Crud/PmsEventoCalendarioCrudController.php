@@ -31,6 +31,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
+/**
+ * @extends BaseCrudController<PmsEventoCalendario>
+ */
 final class PmsEventoCalendarioCrudController extends BaseCrudController
 {
     /**

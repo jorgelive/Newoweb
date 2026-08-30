@@ -21,6 +21,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @extends BaseCrudController<TravelServicio>
+ */
 class TravelServicioCrudController extends BaseCrudController
 {
     public static function getEntityFqcn(): string

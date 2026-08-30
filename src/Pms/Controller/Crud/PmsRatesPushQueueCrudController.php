@@ -25,6 +25,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * PmsRatesPushQueueCrudController.
  * Gestión de la cola de envío de tarifas hacia Beds24.
  * Hereda de BaseCrudController y utiliza UUID v7 con prioridad de Roles.
+ *
+ * @extends BaseCrudController<PmsRatesPushQueue>
  */
 final class PmsRatesPushQueueCrudController extends BaseCrudController
 {

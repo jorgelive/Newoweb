@@ -32,6 +32,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @extends BaseCrudController<TravelComponente>
+ */
 class TravelComponenteCrudController extends BaseCrudController
 {
     public static function getEntityFqcn(): string

@@ -419,7 +419,8 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
                 : $b->getFechaLlegada() <=> $a->getFechaLlegada();
         });
 
-        return array_values($reservas);
+        // Sin `array_values()`: `usort()` acaba de reindexar el array in place.
+        return $reservas;
     }
 
     /**

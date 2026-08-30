@@ -16,6 +16,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 /**
  * Controlador para ver los expedientes raíz de las cotizacion.
  * La creación profunda se debe hacer desde la interfaz de Vue.
+ *
+ * @extends BaseCrudController<CotizacionFile>
  */
 class CotizacionFileCrudController extends BaseCrudController
 {

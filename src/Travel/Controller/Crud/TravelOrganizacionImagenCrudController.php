@@ -23,6 +23,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Vich\UploaderBundle\Form\Type\VichImageType;
 
+/**
+ * @extends BaseCrudController<TravelOrganizacionImagen>
+ */
 class TravelOrganizacionImagenCrudController extends BaseCrudController
 {
     /**

@@ -24,6 +24,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * MaestroTipocambioCrudController.
  * Gestión del histórico de tasas de cambio (Compra/Venta).
  * Hereda de BaseCrudController y utiliza UUID v7 vía IdTrait.
+ *
+ * @extends BaseCrudController<MaestroTipocambio>
  */
 class MaestroTipocambioCrudController extends BaseCrudController
 {

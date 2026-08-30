@@ -25,6 +25,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * ExchangeEndpointCrudController.
  * Gestión de los puntos de acceso técnicos para las APIs externas (Beds24, Meta, etc).
+ *
+ * @extends BaseCrudController<ExchangeEndpoint>
  */
 class ExchangeEndpointCrudController extends BaseCrudController
 {

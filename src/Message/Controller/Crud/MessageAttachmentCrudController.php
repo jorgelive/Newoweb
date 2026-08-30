@@ -18,6 +18,9 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Vich\UploaderBundle\Form\Type\VichFileType;
 
+/**
+ * @extends BaseCrudController<MessageAttachment>
+ */
 class MessageAttachmentCrudController extends BaseCrudController
 {
     public function __construct(

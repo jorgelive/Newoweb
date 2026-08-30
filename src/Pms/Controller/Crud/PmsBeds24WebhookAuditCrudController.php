@@ -29,6 +29,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * PmsBeds24WebhookAuditCrudController.
  * Registro histórico de notificaciones entrantes desde Beds24.
  * Controlador de solo lectura heredando de BaseCrudController.
+ *
+ * @extends BaseCrudController<PmsBeds24WebhookAudit>
  */
 final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
 {

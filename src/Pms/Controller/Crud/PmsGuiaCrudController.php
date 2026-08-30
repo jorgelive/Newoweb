@@ -22,6 +22,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * @extends BaseCrudController<PmsGuia>
+ */
 class PmsGuiaCrudController extends BaseCrudController
 {
     public function __construct(

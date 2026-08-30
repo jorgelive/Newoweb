@@ -23,6 +23,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * PmsEstablecimientoCrudController.
  * Gestión de propiedades o casas principales del sistema.
+ *
+ * @extends BaseCrudController<PmsEstablecimiento>
  */
 final class PmsEstablecimientoCrudController extends BaseCrudController
 {

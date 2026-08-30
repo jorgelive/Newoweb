@@ -28,6 +28,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Vich\UploaderBundle\Form\Type\VichImageType;
 
+/**
+ * @extends BaseCrudController<PmsUnidad>
+ */
 final class PmsUnidadCrudController extends BaseCrudController
 {
     // ... (Constructor y métodos getEntityFqcn, configureActions, configureCrud, configureFilters se mantienen igual) ...

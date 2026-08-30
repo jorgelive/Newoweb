@@ -8,9 +8,21 @@
 # Este archivo se llama «deuda congelada» y sólo la mitad lo es. Auditando las 313 ocurrencias
 # que había, la clasificación real resultó ser:
 #
-#   DEUDA (se salda, y se quita de aquí)
-#      10  arrayValues.list     un `array_values()` que ya devuelve una lista
-#       8  property.unusedType  fuera de `Entity/`, donde la excepción de Doctrine no aplica
+#   DEUDA REAL QUE QUEDA: casi ninguna. El recuento tras la auditoría del 30/08/2026:
+#       6  arrayValues.list       y NO son deuda — ver abajo
+#       1  argument.templateType  `ObjectManager::find()` sin resolver la plantilla
+#       1  argument.type          en `Oweb`, el módulo que se retira: se va con él
+#
+# ── ⚠️ El `array_values()` «redundante» tampoco es lo que parece ─────────────
+#
+# Salieron 10 y sólo **4** eran código muerto: los que van detrás de un `usort()` —que reindexa
+# in place— o de un `preg_match_all()`. Ésos no hacían nada NI EN EJECUCIÓN, y se quitaron.
+#
+# Los **6** que quedan son setters de columnas JSON (`setDominios`, `setContextItems`,
+# `$wifiNetworks`, los hitos). Ahí `array_values()` **no es decorativo**: garantiza que
+# `json_encode` escriba un array `[...]` y no un objeto `{"2": …}`. El `@param list<string>` es
+# una promesa de docblock, y quien llama incluye formularios de EasyAdmin con colecciones —
+# borrar un elemento deja huecos en las claves—. Se quedan.
 #
 # ── ✅ `missingType` SALDADO ENTERO el 30/08/2026 (120 → 0) ──────────────────
 #
@@ -178,12 +190,7 @@ parameters:
 	
 	
 	
-		-
-			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
-			identifier: arrayValues.list
-			count: 1
-			path: src/Agent/Alexa/AlexaFirma.php
-
+	
 		-
 			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
@@ -253,12 +260,7 @@ parameters:
 			count: 1
 			path: src/Agent/Skill/Pms/AjustarTarifasSkill.php
 
-		-
-			message: '#^Parameter \#1 \$array \(list\<App\\Pms\\Entity\\PmsReserva\>\) of array_values is already a list, call has no effect\.$#'
-			identifier: arrayValues.list
-			count: 1
-			path: src/Agent/Skill/Pms/BuscarReservaSkill.php
-
+	
 	
 	
 	
@@ -443,54 +445,14 @@ parameters:
 			count: 1
 			path: src/Cotizacion/State/CotizacionFilearchivoMultipartProcessor.php
 
-		-
-			message: '#^Property App\\Entity\\MessengerMessage\:\:\$availableAt \(DateTimeImmutable\|null\) is never assigned DateTimeImmutable so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: src/Entity/MessengerMessage.php
-
-		-
-			message: '#^Property App\\Entity\\MessengerMessage\:\:\$body \(string\|null\) is never assigned string so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: src/Entity/MessengerMessage.php
-
-		-
-			message: '#^Property App\\Entity\\MessengerMessage\:\:\$createdAt \(DateTimeImmutable\|null\) is never assigned DateTimeImmutable so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: src/Entity/MessengerMessage.php
-
-		-
-			message: '#^Property App\\Entity\\MessengerMessage\:\:\$deliveredAt \(DateTimeImmutable\|null\) is never assigned DateTimeImmutable so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: src/Entity/MessengerMessage.php
-
-		-
-			message: '#^Property App\\Entity\\MessengerMessage\:\:\$headers \(string\|null\) is never assigned string so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: src/Entity/MessengerMessage.php
-
-		-
-			message: '#^Property App\\Entity\\MessengerMessage\:\:\$id \(string\|null\) is never assigned string so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: src/Entity/MessengerMessage.php
-
-		-
-			message: '#^Property App\\Entity\\MessengerMessage\:\:\$queueName \(string\|null\) is never assigned string so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: src/Entity/MessengerMessage.php
-
-		-
-			message: '#^Property App\\Entity\\PushSubscription\:\:\$id \(int\|null\) is never assigned int so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: src/Entity/PushSubscription.php
-
+	
+	
+	
+	
+	
+	
+	
+	
 	
 		-
 			message: '#^Parameter \#1 \$user of method App\\Oweb\\Entity\\CuentaMovimiento\:\:setUser\(\) expects App\\Entity\\User, null given\.$#'
@@ -717,12 +679,7 @@ parameters:
 			path: src/Operacion/Entity/OperacionServicio.php
 
 	
-		-
-			message: '#^Parameter \#1 \$array \(non\-empty\-list\<App\\Cotizacion\\Entity\\CotizacionCottarifa\>\) of array_values is already a list, call has no effect\.$#'
-			identifier: arrayValues.list
-			count: 1
-			path: src/Operacion/Service/BibliaSnapshotService.php
-
+	
 	
 	
 	
@@ -883,12 +840,7 @@ parameters:
 			count: 1
 			path: src/Pms/Naming/HuespedNamer.php
 
-		-
-			message: '#^Parameter \#1 \$array \(list\<App\\Pms\\Entity\\PmsReserva\>\) of array_values is already a list, call has no effect\.$#'
-			identifier: arrayValues.list
-			count: 1
-			path: src/Pms/Repository/PmsReservaRepository.php
-
+	
 		-
 			message: '#^Call to function is_array\(\) with array\{language\: string, content\: string\} will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType

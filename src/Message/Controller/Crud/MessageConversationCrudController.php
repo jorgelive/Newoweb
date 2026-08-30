@@ -35,6 +35,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * @extends BaseCrudController<MessageConversation>
+ */
 class MessageConversationCrudController extends BaseCrudController
 {
     public function __construct(

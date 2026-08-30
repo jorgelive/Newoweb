@@ -16,6 +16,10 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Controlador Base "Cerebro Central".
  * BLINDADO: Soporta entidades con IDs exóticos y no rompe el Paginador.
+ *
+ * @template TEntity of object
+ *
+ * @extends AbstractCrudController<TEntity>
  */
 abstract class BaseCrudController extends AbstractCrudController
 {

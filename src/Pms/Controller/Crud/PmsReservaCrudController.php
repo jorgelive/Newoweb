@@ -48,6 +48,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Uid\Uuid;
 
+/**
+ * @extends BaseCrudController<PmsReserva>
+ */
 final class PmsReservaCrudController extends BaseCrudController
 {
     public function __construct(

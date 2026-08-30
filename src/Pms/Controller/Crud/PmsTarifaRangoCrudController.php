@@ -31,6 +31,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * PmsTarifaRangoCrudController.
  * Gestión de rangos de precios y estancias mínimas por unidad.
+ *
+ * @extends BaseCrudController<PmsTarifaRango>
  */
 final class PmsTarifaRangoCrudController extends BaseCrudController
 {

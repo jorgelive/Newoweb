@@ -23,6 +23,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Controlador CRUD para la auditoría de la Cola de Mensajes (Symfony Messenger).
  * Hereda de BaseCrudController para preservar la lógica transversal del panel.
+ *
+ * @extends BaseCrudController<MessengerMessage>
  */
 class MessengerMessageCrudController extends BaseCrudController
 {

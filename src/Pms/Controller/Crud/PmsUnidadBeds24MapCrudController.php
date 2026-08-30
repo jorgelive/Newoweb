@@ -22,6 +22,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * PmsUnidadBeds24MapCrudController.
+ *
+ * @extends BaseCrudController<PmsUnidadBeds24Map>
  */
 final class PmsUnidadBeds24MapCrudController extends BaseCrudController
 {

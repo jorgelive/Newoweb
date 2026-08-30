@@ -23,6 +23,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Controlador CRUD para la auditoría de Suscripciones Push (WebPush).
  * Hereda de BaseCrudController para preservar la lógica transversal del panel.
+ *
+ * @extends BaseCrudController<PushSubscription>
  */
 class PushSubscriptionCrudController extends BaseCrudController
 {

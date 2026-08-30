@@ -23,6 +23,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * PmsChannelCrudController.
  * Gestión de Canales de Venta (Airbnb, Booking, Directo).
  * El ID es natural (String) y hereda de BaseCrudController.
+ *
+ * @extends BaseCrudController<PmsChannel>
  */
 final class PmsChannelCrudController extends BaseCrudController
 {

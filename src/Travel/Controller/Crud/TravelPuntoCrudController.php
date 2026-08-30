@@ -18,6 +18,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
+/**
+ * @extends BaseCrudController<TravelPunto>
+ */
 class TravelPuntoCrudController extends BaseCrudController
 {
     public static function getEntityFqcn(): string

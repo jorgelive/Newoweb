@@ -23,6 +23,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * PmsEventoBeds24LinkCrudController.
  * Gestiona los vínculos técnicos (Flat Structure: Principal vs Mirror).
+ *
+ * @extends BaseCrudController<PmsEventoBeds24Link>
  */
 class PmsEventoBeds24LinkCrudController extends BaseCrudController
 {

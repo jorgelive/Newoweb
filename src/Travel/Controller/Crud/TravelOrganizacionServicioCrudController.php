@@ -24,6 +24,9 @@ use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * @extends BaseCrudController<TravelOrganizacionServicio>
+ */
 class TravelOrganizacionServicioCrudController extends BaseCrudController
 {
 

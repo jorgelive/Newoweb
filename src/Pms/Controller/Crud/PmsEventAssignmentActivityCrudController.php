@@ -21,6 +21,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * PmsEventAssignmentActivityCrudController.
  * Gestiona el catálogo de actividades usando IDs naturales forzados a MINÚSCULAS.
+ *
+ * @extends BaseCrudController<PmsEventAssignmentActivity>
  */
 class PmsEventAssignmentActivityCrudController extends BaseCrudController
 {

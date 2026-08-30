@@ -21,6 +21,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * MaestroPaisCrudController.
  * Gestión de Países Globales con soporte para Banderas (Emojis).
+ *
+ * @extends BaseCrudController<MaestroPais>
  */
 class MaestroPaisCrudController extends BaseCrudController
 {

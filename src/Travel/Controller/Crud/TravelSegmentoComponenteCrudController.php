@@ -18,6 +18,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TimeField;
 /**
  * Controlador CRUD encargado de gestionar la relación asociativa entre Segmentos de Itinerario
  * y sus componentes logísticos / tarifas asignadas.
+ *
+ * @extends BaseCrudController<TravelSegmentoComponente>
  */
 class TravelSegmentoComponenteCrudController extends BaseCrudController
 {

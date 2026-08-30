@@ -31,6 +31,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @extends BaseCrudController<TravelTarifa>
+ */
 class TravelTarifaCrudController extends BaseCrudController
 {
     /**

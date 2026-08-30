@@ -24,6 +24,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * @extends BaseCrudController<MessageRule>
+ */
 class MessageRuleCrudController extends BaseCrudController
 {
     // 🔥 Inyectamos el AGREGADOR maestro que leerá del PMS, Tours, etc.

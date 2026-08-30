@@ -218,7 +218,8 @@ final readonly class AlexaFirma
         $encontrados = [];
         preg_match_all('/-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----/s', $pem, $encontrados);
 
-        return array_values($encontrados[0]);
+        // `preg_match_all` devuelve el grupo ya como lista secuencial.
+        return $encontrados[0];
     }
 
     /**

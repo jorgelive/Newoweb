@@ -29,6 +29,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * contenido con otra jerarquía (ver docs/PmsGuiaHuesped.md §2.b). De ahí que el
  * formulario gire en torno a UNA cosa —colocar contenidos en bloques— y no a
  * un árbol de secciones.
+ *
+ * @extends BaseCrudController<PmsCatalogo>
  */
 class PmsCatalogoCrudController extends BaseCrudController
 {

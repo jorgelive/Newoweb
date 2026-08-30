@@ -13,6 +13,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
 /**
  * Gestiona la selección y orden cronológico de los segmentos dentro de una plantilla.
+ *
+ * @extends BaseCrudController<TravelItinerarioSegmentoRel>
  */
 class TravelItinerarioSegmentoRelCrudController extends BaseCrudController
 {

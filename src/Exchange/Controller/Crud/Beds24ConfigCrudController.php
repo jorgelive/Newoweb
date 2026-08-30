@@ -24,6 +24,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * Beds24ConfigCrudController.
  * Gestión de la configuración de conexión con Beds24 API v2.
  * Hereda de BaseCrudController y utiliza seguridad por Roles.
+ *
+ * @extends BaseCrudController<Beds24Config>
  */
 class Beds24ConfigCrudController extends BaseCrudController
 {

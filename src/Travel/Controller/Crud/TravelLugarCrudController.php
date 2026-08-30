@@ -16,6 +16,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
+/**
+ * @extends BaseCrudController<TravelLugar>
+ */
 class TravelLugarCrudController extends BaseCrudController
 {
     public static function getEntityFqcn(): string

@@ -26,6 +26,8 @@ use Symfony\Component\HttpFoundation\Response;
  * CronCursorCrudController.
  * Monitoreo de punteros temporales para procesos en segundo plano.
  * Hereda de BaseCrudController y es de solo lectura.
+ *
+ * @extends BaseCrudController<ExchangeCronCursor>
  */
 class CronCursorCrudController extends BaseCrudController
 {
@@ -95,6 +97,7 @@ class CronCursorCrudController extends BaseCrudController
      * No hace falta usarlo cuando el cursor se pasa del horizonte de datos: eso lo detecta y
      * corrige solo `TimelineEnqueuerService` en la siguiente ejecución (§11.2.1). Este botón es
      * para el caso contrario — adelantar un barrido que aún no tocaba.
+     * @param AdminContext<ExchangeCronCursor> $context
      */
     public function reiniciarCursorAction(AdminContext $context, EntityManagerInterface $em): Response
     {

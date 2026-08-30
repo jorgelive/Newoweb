@@ -26,6 +26,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * PmsBookingsPullQueueCrudController.
  * Gestión de la cola de procesos para la obtención (Pull) de reservas.
  * Implementa UUID v7 y auditoría mediante TimestampTrait.
+ *
+ * @extends BaseCrudController<PmsBookingsPullQueue>
  */
 final class PmsBookingsPullQueueCrudController extends BaseCrudController
 {

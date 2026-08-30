@@ -26,6 +26,9 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @extends BaseCrudController<TravelItinerario>
+ */
 class TravelItinerarioCrudController extends BaseCrudController
 {
     public function __construct(

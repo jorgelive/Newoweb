@@ -22,6 +22,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * PmsEventoEstadoCrudController.
  * Gestión de los estados lógicos de una reserva/evento.
+ *
+ * @extends BaseCrudController<PmsEventoEstado>
  */
 class PmsEventoEstadoCrudController extends BaseCrudController
 {
