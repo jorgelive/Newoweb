@@ -270,6 +270,7 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
 
         // Con varias palabras, un OR traería a todos los «Aurélie» del mundo. Se exige que
         // TODAS aparezcan, y eso se filtra después: son 307 filas, no hace falta más máquina.
+        /** @var list<PmsReserva> $candidatas */
         $candidatas = $qb->orderBy('r.fechaLlegada', 'DESC')->getQuery()->getResult();
 
         if (count($tokens) < 2) {

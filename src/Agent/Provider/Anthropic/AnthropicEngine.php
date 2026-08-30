@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Provider\Anthropic;
 
+use Anthropic\Beta\Messages\BetaTextBlock;
 use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
@@ -121,7 +122,11 @@ final readonly class AnthropicEngine implements AgentEngineInterface
             }
 
             foreach ($mensaje->content as $bloque) {
-                if ($bloque->type === 'text' && trim($bloque->text) !== '') {
+                // `instanceof` y no `->type === 'text'`: el SDK devuelve una unión de clases de
+                // bloque y sólo `BetaTextBlock` tiene `->text`. Comparar la propiedad `type`
+                // acierta en ejecución pero no estrecha el tipo, así que el acceso de la línea
+                // siguiente iba sobre una unión donde ese campo no está declarado.
+                if ($bloque instanceof BetaTextBlock && trim($bloque->text) !== '') {
                     $texto = $bloque->text;
                 }
             }
@@ -207,7 +212,7 @@ final readonly class AnthropicEngine implements AgentEngineInterface
 
         $texto = '';
         foreach ($mensaje->content as $bloque) {
-            if ($bloque->type === 'text') {
+            if ($bloque instanceof BetaTextBlock) {
                 $texto .= $bloque->text;
             }
         }

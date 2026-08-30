@@ -389,7 +389,7 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                     ], $candidatos)
                     : null,
                 'pregunta' => $this->pregunta(
-                    $faltan,
+                    array_values($faltan),
                     $importe,
                     $medio,
                     $monedaCuenta->getId(),

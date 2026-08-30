@@ -140,7 +140,7 @@ final class AgentSkillCommand extends Command
         $io->writeln(json_encode(
             json_decode($resultado->aJson(), true),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-        ));
+        ) ?: '(la respuesta no se pudo formatear como JSON)');
 
         $io->comment(sprintf(
             '%s · %.0f ms · %d caracteres',

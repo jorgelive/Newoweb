@@ -278,7 +278,7 @@ final readonly class Triaje
         // pregunta por salidas no le puede quedar más de un candidato aunque el modelo liste dos:
         // la skill de tours no está en su catálogo. Ése es justo el motivo de filtrar aquí y no
         // después.
-        $candidatos = CatalogoDelTriaje::candidatos((array) ($datos['candidatos'] ?? []), $permitidas);
+        $candidatos = CatalogoDelTriaje::candidatos(array_values((array) ($datos['candidatos'] ?? [])), $permitidas);
 
         // La pista es un TEMA, no una frase. Si viene larga es que el modelo pegó el mensaje
         // del huésped, y eso es justo lo que hace que la guía responda por casualidad: ver

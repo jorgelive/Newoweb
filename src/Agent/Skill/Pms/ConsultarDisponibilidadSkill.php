@@ -629,7 +629,7 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
      * @return array<string, mixed>
      */
     private function conPrecio(
-        object $dto,
+        PmsUnidadDisponibleDto $dto,
         DateTimeImmutable $desde,
         DateTimeImmutable $hasta,
         int $noches,
