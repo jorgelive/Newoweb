@@ -312,7 +312,7 @@ class CotizacionFile
      * nada más, así que un expediente con tres propuestas —una confirmada, una cancelada y un
      * histórico— se leía igual que uno con tres pendientes.
      *
-     * @var array<int, array{version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string}>
+     * @var array<int, array{id: string, version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string}>
      */
     private array $versionesFechas = [];
 
@@ -320,7 +320,7 @@ class CotizacionFile
      * La misma forma que declara la propiedad. Con `list<array<string, mixed>>` aquí se podía
      * guardar una fila sin `version`, y el getter promete que la trae.
      *
-     * @param array<int, array{version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string}> $versionesFechas
+     * @param array<int, array{id: string, version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string}> $versionesFechas
      */
     public function setVersionesFechas(array $versionesFechas): self
     {

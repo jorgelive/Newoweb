@@ -4131,8 +4131,21 @@ propuestas —una confirmada, una cancelada y un histórico— se leía **igual*
 pendientes: el dato que dice si hay algo que hacer no estaba.
 
 `CotizacionFileCollectionProvider` manda ahora también `estado` y `titulo` en la misma consulta
-batched. **Agrupa por `c.id` y no por `c.version`**: así los dos campos dependen funcionalmente
-de la clave y MySQL los acepta en el `SELECT` sin meter una columna JSON en el `GROUP BY`.
+batched. **Sigue siendo `getArrayResult()`**: escalar, sin hidratar ni una `Cotizacion` — que es
+el motivo por el que este provider existe.
+
+**Agrupa por `c.id` y no por `c.version`**: así los dos campos dependen funcionalmente de la
+clave y MySQL los acepta en el `SELECT` sin meter una columna JSON en el `GROUP BY`.
+
+⚠️ **Y ese cambio de agrupación tiene una consecuencia que hay que conocer: la VERSIÓN NO ES
+ÚNICA dentro del expediente.** Un `historico` comparte número con la viva a propósito —es su foto
+congelada antes de tocarla—, así que un expediente puede tener dos filas «V1». Agrupando por
+`c.version` se fundían en una y se perdía justo la distinción que este cambio venía a dar;
+agrupando por `c.id` salen las dos, que es lo correcto.
+
+Por eso cada versión viaja con su **`id`**, y es la clave del `v-for`. Con `version` de clave
+habría dos claves iguales en el mismo `v-for` — Vue no lo trata como error y el síntoma sería una
+fila que no se repinta al cambiar. Hoy le pasa a `2KVBMX`.
 
 El título viaja como **i18n crudo** y lo resuelve el panel. En `util` se toma siempre el
 **español**: es el panel del operador y no tiene selector de idioma — leer ahí un título en

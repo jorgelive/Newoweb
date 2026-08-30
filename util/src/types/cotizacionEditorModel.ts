@@ -607,6 +607,12 @@ export type EstadoFile = CotizacionFileBase['estado'];
  * dashboard igual que uno con tres pendientes.
  */
 export interface VersionDelFile {
+    /**
+     * ⚠️ La clave del `v-for` es ÉSTA y no `version`: **la versión no es única** dentro del
+     * expediente. Un `historico` comparte número con la viva a propósito —es su foto congelada—
+     * así que un expediente puede tener dos filas «V1».
+     */
+    id: string;
     version: number;
     estado?: CotizacionEstadoValue | null;
     /** i18n crudo: lo traduce el panel con su propio idioma. */

@@ -77,6 +77,12 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
             $estado = $f['estado'] ?? null;
 
             $porFile[$fileId][] = [
+                // ⚠️ EL ID, y no por capricho: **la versión NO es única dentro del expediente**.
+                // Un `historico` comparte número con la viva a propósito —es su foto congelada
+                // antes de tocarla, ver §6 del doc— y `2KVBMX` tiene hoy dos filas en la V1.
+                // Agrupando por `c.id` salen las dos, que es lo que se quiere; pero el front las
+                // pinta con `v-for` y con `version` de clave habría dos claves iguales.
+                'id'          => (string) $f['cotizacionId'],
                 'version'     => $f['version'],
                 // El estado y el título de CADA versión: en el dashboard se veía «V1: 30 oct.» y
                 // nada más, así que un expediente con tres propuestas —una confirmada, una

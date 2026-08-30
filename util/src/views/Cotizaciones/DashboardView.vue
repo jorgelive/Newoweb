@@ -325,7 +325,7 @@ const loadMore = (): void => {
                apretado en una pastilla se recortaba a dos palabras y dejaba de distinguir una
                versión de otra, que es justo para lo que sirve. -->
           <div v-if="file.versionesFechas?.length" class="mt-3 space-y-1">
-            <div v-for="v in (file.versionesFechas as VersionDelFile[])" :key="v.version"
+            <div v-for="v in (file.versionesFechas as VersionDelFile[])" :key="v.id ?? v.version"
                  class="flex items-center gap-2 px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg">
               <span class="text-[10px] font-black text-slate-400 shrink-0">V{{ v.version }}</span>
 
