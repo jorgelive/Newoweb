@@ -130,7 +130,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             if (!isset($mapping->correlationMap[$index])) {
                 continue;
             }
-            $queueId = $mapping->correlationMap[$index];
+            $queueId = $mapping->idDeCola($index);
 
             // 2. Determinar éxito/fracaso
             $success = (bool)($respData['success'] ?? false);

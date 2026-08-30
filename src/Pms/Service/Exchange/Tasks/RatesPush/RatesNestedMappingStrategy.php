@@ -129,7 +129,10 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
         // 1. Manejo de Error Global de la API
         if (isset($apiResponse['success']) && $apiResponse['success'] === false && !isset($apiResponse[0])) {
             $msg = $apiResponse['message'] ?? 'Error global en Batch Rates';
-            foreach ($mapping->correlationMap as $queueId) {
+            // Esta estrategia guarda un id suelto por clave, así que se lee con `idDeCola()`,
+            // que además avisa si alguna vez dejara de ser así.
+            foreach (array_keys($mapping->correlationMap) as $clave) {
+                $queueId = $mapping->idDeCola($clave);
                 $results[$queueId] = new ItemResult($queueId, false, $msg);
             }
             return $results;
@@ -141,7 +144,7 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
                 continue;
             }
 
-            $queueId = $mapping->correlationMap[$index];
+            $queueId = $mapping->idDeCola($index);
             $success = (bool)($respItem['success'] ?? false);
 
             $errorMsg = null;
@@ -165,8 +168,9 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
 
         // 3. Resolución de ítems omitidos (Fechas en el pasado)
         // Recorremos el correlationMap buscando nuestras llaves mágicas "skipped_X"
-        foreach ($mapping->correlationMap as $key => $queueId) {
+        foreach (array_keys($mapping->correlationMap) as $key) {
             if (is_string($key) && str_starts_with($key, 'skipped_')) {
+                $queueId = $mapping->idDeCola($key);
                 $results[$queueId] = new ItemResult(
                     queueItemId: $queueId,
                     success: true, // Lo marcamos como exitoso para que Doctrine lo elimine de la cola de pendientes

@@ -74,7 +74,7 @@ final readonly class AgentActor implements ActorInterface
      */
     public static function delPanel(User $usuario, ?array $rolesEfectivos = null): self
     {
-        return new self($usuario, 'panel', $rolesEfectivos ?? $usuario->getRoles());
+        return new self($usuario, 'panel', array_values($rolesEfectivos ?? $usuario->getRoles()));
     }
 
     /**
@@ -100,7 +100,7 @@ final readonly class AgentActor implements ActorInterface
         ?array $rolesEfectivos = null,
         ?string $conversacionId = null
     ): self {
-        return new self($usuario, $origen, $rolesEfectivos ?? $usuario->getRoles(), $tipo, $id, $conversacionId);
+        return new self($usuario, $origen, array_values($rolesEfectivos ?? $usuario->getRoles()), $tipo, $id, $conversacionId);
     }
 
     /**

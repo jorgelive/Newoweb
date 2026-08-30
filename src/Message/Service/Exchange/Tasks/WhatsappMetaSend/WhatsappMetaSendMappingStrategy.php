@@ -442,7 +442,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
         foreach ($apiResponse as $index => $respData) {
             if (!isset($mapping->correlationMap[$index])) continue;
 
-            $queueId = $mapping->correlationMap[$index];
+            $queueId = $mapping->idDeCola($index);
             $isError = isset($respData['error']);
             $success = !$isError;
 

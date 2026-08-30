@@ -87,6 +87,15 @@
   como redundante volvió a tener sentido. Un tipo mentiroso no sólo miente sobre sí mismo: hace
   que el código defensivo que lo rodea parezca sobrar, y entonces alguien lo borra.
 
+  ⛔ **REGLA: no se añaden entradas al baseline. Nunca.** Subir de nivel se hace **arreglando**,
+  no congelando. Si un nivel nuevo saca 88 avisos, se arreglan los 88 o no se sube — un baseline
+  que crece es deuda que se declara a sí misma aceptable, y ya se vio a dónde lleva: 313
+  ocurrencias que nadie miró en quince días, con 18 fallos reales enterrados dentro.
+
+  Lo único que puede crecer es `ignoreErrors` en `phpstan.dist.neon`, y sólo para lo que **no se
+  va a saldar nunca** —una frontera del framework, la hidratación de Doctrine—, con el porqué
+  escrito al lado y acotado por ruta. Eso no es deuda: es una decisión.
+
   ⚠️ **La baseline ya NO es deuda: es la lista de fronteras de confianza.** Se auditó entera el
   30/08/2026 —313 ocurrencias, una por una— y la deuda se saldó: 120 `missingType`, 29 genéricos,
   18 contratos que mentían y 6 restos sueltos. Quedan **125 ocurrencias y ninguna es deuda**.

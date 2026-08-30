@@ -242,7 +242,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 continue;
             }
 
-            $queueId = $mapping->correlationMap[$index];
+            $queueId = $mapping->idDeCola($index);
             $success = (bool)($respData['success'] ?? false);
 
             $remoteId = $respData['id'] ?? $respData['new']['id'] ?? null;

@@ -32,4 +32,31 @@ final readonly class MappingResult
         public array $correlationMap,
         public array $metadata = []
     ) {}
+
+    /**
+     * El id de cola guardado bajo esa clave, cuando la estrategia guardó un id suelto.
+     *
+     * `correlationMap` es una unión —cada estrategia le da su forma— y **casi todas guardan un
+     * id por clave**; sólo `Beds24Receive` e `InvoiceReceive` guardan listas, y ésas lo recorren
+     * de otra manera. Sin este lector, las cinco que sí lo hacen así repetían el mismo
+     * `is_string()` para convencer al analizador, que es cinco copias de una decisión.
+     *
+     * ⚠️ Lanza si lo que hay no es un id: llegados aquí, un mapa mal construido significa que la
+     * respuesta del canal no se va a poder repartir entre sus ítems, y eso no debe seguir en
+     * silencio — se quedarían todos en `processing` para siempre.
+     */
+    public function idDeCola(string|int $clave): string
+    {
+        $valor = $this->correlationMap[$clave] ?? null;
+
+        if (!is_string($valor) || $valor === '') {
+            throw new \LogicException(sprintf(
+                'El mapa de correlación no trae un id de cola en «%s»; trae %s.',
+                (string) $clave,
+                get_debug_type($valor),
+            ));
+        }
+
+        return $valor;
+    }
 }

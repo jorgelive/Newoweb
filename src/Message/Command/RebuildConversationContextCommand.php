@@ -62,7 +62,7 @@ class RebuildConversationContextCommand extends Command
 
         // 1. SINCRONIZACIÓN PMS
         $this->recalculoService->recalcularDesdeEventos(
-            reservaIds: array_unique(array_filter($reservaIds)),
+            reservaIds: array_values(array_unique(array_filter($reservaIds))),
             entityManager: $this->entityManager,
             flush: true
         );

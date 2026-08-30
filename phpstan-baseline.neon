@@ -7,6 +7,11 @@
 # Si tocas un archivo con entradas aquí dentro, **NO las arregles por costumbre**: lee primero la
 # sección «NO INTENTES LIMPIAR ESTO».
 #
+# ⛔ **Y NO SE AÑADEN ENTRADAS. Nunca.** Este archivo sólo puede encoger. Subir de nivel se hace
+# arreglando los avisos, no congelándolos: si el nivel 7 saca 88, se arreglan los 88 o no se
+# sube. Lo que de verdad no se va a saldar nunca —una frontera del framework— va como regla en
+# `phpstan.dist.neon`, con su porqué y acotado por ruta.
+#
 # ── ⚠️ AUDITADA ENTERA EL 30/08/2026 — LÉEME ANTES DE TOCAR NADA ────────────
 #
 # Este archivo se llamaba «deuda congelada». Tras auditar sus 313 ocurrencias una por una,
