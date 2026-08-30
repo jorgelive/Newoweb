@@ -72,9 +72,32 @@ final readonly class AiConversationProcessor
      *   30–45 min   36 %
      * ```
      *
-     * Los 30 minutos silenciaban al bot durante una franja en la que, más de la mitad de las
-     * veces, no venía nadie. Bajar de 20 tampoco: entre los 10 y los 20 el humano todavía
-     * contesta 6 de cada 10, y pisarle cuesta más que esperar.
+     * ⚠️ **Ese porcentaje NO dice lo que parece, y por sí solo lleva a poner la ventana de más.**
+     * «Contesta un humano» incluye al que se acordó una hora después. Lo que hay que medir es si
+     * estaba ATENDIENDO, y para eso sirve cuánto tarda:
+     *
+     * ```
+     *  hacía…      mediana en contestar   tardan >10 min
+     *   0– 5 min          2 min                16 %
+     *   5–10 min          2 min                22 %
+     *  10–15 min          2 min                 0 %     ← sigue en la conversación
+     *  15–20 min          8 min                50 %     ← ya no: vuelve a ella
+     *  20–30 min          5 min                33 %
+     * ```
+     *
+     * Hasta los 15 el humano contesta en **2 minutos de mediana**: está delante. A partir de 15
+     * la mediana salta a 8 y la mitad tardan más de diez — eso no es atender, es acordarse. Nadie
+     * redacta durante veinte minutos una respuesta que luego escribe en dos.
+     *
+     * Por eso 15 y no 20: el corte no está donde el humano deja de contestar, sino donde deja de
+     * estar. Las bandas tardías tienen entre 6 y 13 casos, así que el salto de 2 a 8 minutos es
+     * la señal que aguanta; los porcentajes finos de ahí no.
+     *
+     * 🔁 **Y lo que se calla ya no se pierde**: `agent:recalentar-hilos` lo recoge cuando la
+     * ventana expira, y si el agente sigue sin poder contestar deja un escalado silencioso.
+     *
+     * Si algún día se ve que el bot pisa de más, el número a mover es éste y el dato para
+     * decidirlo se saca repitiendo la medición de arriba.
      *
      * ⚠️ **Y esto sólo se puede elegir así porque existe la vuelta.** Sin
      * `agent:recalentar-hilos`, la ventana decidía si el huésped recibía respuesta —los
@@ -85,7 +108,7 @@ final readonly class AiConversationProcessor
      * Las bandas tienen entre 13 y 23 casos: la diferencia 78 % → 46 % aguanta, la de 10–15
      * contra 15–20 es ruido y no se ha usado para decidir.
      */
-    private const string HUMANO_AL_MANDO = '-20 minutes';
+    private const string HUMANO_AL_MANDO = '-15 minutes';
 
     public function __construct(
         private EntityManagerInterface $em,

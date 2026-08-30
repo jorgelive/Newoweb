@@ -50,6 +50,18 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *    los que evidentemente siguen dentro, para no gastar una llamada al modelo.
  * 4. No son tan viejos como para que contestar sea peor que callar (`--maximo-horas`).
  *
+ * ── Y si el agente sigue sin poder: escalado silencioso ─────────────────────
+ * Recalentar y que tampoco salga nada dejaría al huésped igual de solo que antes. Cuando la
+ * resolución es de las que significan «no pudo» —{@see self::SIN_SALIDA}— la conversación queda
+ * **sin leer**, que es la marca que `EscalarAlEquipoSkill` describe como la que sobrevive aunque
+ * falle todo lo demás.
+ *
+ * **Sin aviso por WhatsApp**, y ése es el punto. Esto corre por cron sobre mensajes de hace media
+ * hora que ya nadie contestó: hacer sonar teléfonos por algo parado desde hace treinta minutos
+ * —y que puede saltar de madrugada— gasta la atención que hace falta para las urgencias de
+ * verdad. La marca espera al operador; el aviso lo va a buscar. El camino ruidoso sigue estando
+ * donde estaba: lo llama el agente con `escalar_al_equipo` cuando lee una emergencia.
+ *
  * ── ⚠️ Lo que este comando NO puede saber ───────────────────────────────────
  * «Nada después en el chat» no es «nadie lo atendió». Si el operador lo resolvió por teléfono o
  * en recepción, aquí no consta y el bot contestará igual. Es el riesgo asumido, y es el motivo
@@ -80,7 +92,29 @@ final class AgentRecalentarHilosCommand extends Command
      * No se lee de la constante del procesador a propósito: es privada, y exponerla para esto
      * ataría dos decisiones que se toman con datos distintos.
      */
-    private const int ESPERA_MINIMA = 25;
+    private const int ESPERA_MINIMA = 20;
+
+    /**
+     * Resoluciones tras las que **nadie va a contestar**, y por eso se deja escalado silencioso.
+     *
+     * La lista es de las que significan «el bot no pudo», no de las que significan «ya lo tiene
+     * otro». `ya_respondido`, `rafaga_superada` y `humano_atendiendo` quedan fuera a propósito:
+     * ahí hay un mensaje más nuevo o una persona encima, y marcar el hilo sería llamar la
+     * atención sobre algo que no está parado.
+     *
+     * `fuera_de_ventana_24h` sí entra, y es el caso más claro de todos: el bot **no puede
+     * alcanzar** al huésped y sólo una persona puede mandarle una plantilla.
+     *
+     * @var list<string>
+     */
+    private const array SIN_SALIDA = [
+        'ia_sin_respuesta',
+        'error_ia',
+        'ia_desactivada',
+        'ia_sin_credenciales',
+        'fuera_de_ventana_24h',
+        'canal_deshabilitado',
+    ];
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -167,7 +201,29 @@ final class AgentRecalentarHilosCommand extends Command
             // El procesador vuelve a aplicar sus seis guardias, incluida la del humano: si entre
             // la consulta y este momento alguien escribió, se descarta ahí y no aquí.
             $resolucion = $this->procesador->process($mensaje);
-            $io->writeln(sprintf('       → %s', $resolucion));
+            $escalado = '';
+
+            if (in_array($resolucion, self::SIN_SALIDA, true) && $conversacion !== null) {
+                // ── ESCALADO SILENCIOSO ──
+                //
+                // Sólo la marca de no leído, que es lo que `EscalarAlEquipoSkill` describe como
+                // «lo que sobrevive aunque falle todo lo demás»: aparece en el panel como
+                // pendiente y no depende de ninguna red. SIN el aviso por WhatsApp a la guardia.
+                //
+                // Es deliberado y es el punto entero de que sea silencioso: esto corre por cron
+                // sobre mensajes de hace media hora que ya nadie contestó. Hacer sonar teléfonos
+                // por algo que lleva treinta minutos parado, y que puede saltar a las tres de la
+                // mañana, gasta la atención que hace falta para las urgencias de verdad. La
+                // marca espera al operador; el aviso lo va a buscar.
+                //
+                // Si el caso era urgente, el camino ruidoso sigue existiendo: lo llama el propio
+                // agente con `escalar_al_equipo` cuando lee una emergencia.
+                $conversacion->incrementUnreadCount();
+                $this->em->flush();
+                $escalado = '  · escalado silencioso';
+            }
+
+            $io->writeln(sprintf('       → %s%s', $resolucion, $escalado));
             ++$recalentados;
         }
 

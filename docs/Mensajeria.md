@@ -1030,24 +1030,42 @@ hace poco. Es el guardia más importante: nada deja peor al hotel que un bot pis
 está atendiendo.
 
 Estuvo en **30 minutos** hasta el 30/08/2026. Se midió sobre 245 mensajes entrantes de 152
-conversaciones desde junio —qué probabilidad hay de que conteste un humano, según lo que hacía
-que había escrito uno—:
+conversaciones desde junio: qué probabilidad hay de que conteste un humano, según lo que hacía
+que había escrito uno.
 
 | Desde que escribió el humano | Le contesta un humano |
 |---|---|
-| 0–5 min | **79 %** |
-| 5–10 min | **78 %** |
+| 0–5 min | 79 % |
+| 5–10 min | 78 % |
 | 10–15 min | 57 % |
 | 15–20 min | 61 % |
-| **20–30 min** | **46 %** |
+| 20–30 min | 46 % |
 | 30–45 min | 36 % |
 
-La caída está entre los 10 y los 15. Los 30 silenciaban al bot durante una franja en la que,
-**más de la mitad de las veces, no venía nadie**. Bajar de 20 tampoco: entre 10 y 20 el humano
-todavía contesta 6 de cada 10, y pisarle cuesta más que esperar.
+#### ⚠️ Ese porcentaje no dice lo que parece
 
-⚠️ Las bandas tienen entre 13 y 23 casos. La diferencia 78 % → 46 % aguanta; la de 10–15 contra
-15–20 es ruido y no se usó para decidir.
+«Contesta un humano» **incluye al que se acordó una hora después**, y leerlo como «estaba
+atendiendo» lleva a poner la ventana de más — que es exactamente lo que pasó en la primera
+lectura de estos datos, donde el 61 % de la banda 15–20 se tomó por presencia.
+
+Lo que hay que medir es si estaba **atendiendo**, y para eso sirve cuánto tarda:
+
+| Hacía… | Mediana en contestar | Tardan >10 min |
+|---|---|---|
+| 0–5 min | **2 min** | 16 % |
+| 5–10 min | **2 min** | 22 % |
+| 10–15 min | **2 min** | 0 % |
+| **15–20 min** | **8 min** | **50 %** |
+| 20–30 min | 5 min | 33 % |
+
+Hasta los 15 el humano contesta en **2 minutos de mediana**: está delante. A partir de 15 la
+mediana salta a 8 y la mitad tardan más de diez. Eso no es atender, es **acordarse** — nadie
+redacta durante veinte minutos una respuesta que luego escribe en dos.
+
+Por eso 15: el corte no está donde el humano deja de contestar, sino donde deja de estar.
+
+⚠️ Las bandas tardías tienen entre 6 y 13 casos. El salto de 2 a 8 minutos de mediana es la
+señal que aguanta; los porcentajes finos de esa zona no.
 
 ⚠️ **`EscalarAlEquipoSkill::ENFRIAMIENTO` se quedó en 30 y ya no es «la misma ventana».** Miden
 cosas distintas: aquélla pregunta «¿sigue el humano atendiendo este chat?» y ésta «¿cuánto tarda
@@ -1079,6 +1097,24 @@ a discutirlos.
 
 ⚠️ **«Nada después en el chat» no es «nadie lo atendió».** Si el operador lo resolvió por
 teléfono o en recepción, aquí no consta y el bot contestará igual. Es el riesgo asumido.
+
+#### Y si el agente sigue sin poder: escalado silencioso
+
+Recalentar y que tampoco salga nada dejaría al huésped igual de solo. Cuando la resolución es de
+las que significan «no pudo» —`ia_sin_respuesta`, `error_ia`, `ia_desactivada`,
+`ia_sin_credenciales`, `fuera_de_ventana_24h`, `canal_deshabilitado`— la conversación queda **sin
+leer**, la misma marca que `EscalarAlEquipoSkill` describe como la que sobrevive aunque falle
+todo lo demás.
+
+**Sin aviso por WhatsApp, y ése es el punto.** Esto corre por cron sobre mensajes de hace media
+hora que ya nadie contestó: hacer sonar teléfonos por algo parado desde hace treinta minutos —y
+que puede saltar de madrugada— gasta la atención que hace falta para las urgencias de verdad. La
+marca espera al operador; el aviso lo va a buscar. El camino ruidoso sigue donde estaba: lo llama
+el agente con `escalar_al_equipo` cuando lee una emergencia.
+
+`ya_respondido`, `rafaga_superada` y `humano_atendiendo` quedan **fuera** de esa lista a
+propósito: ahí hay un mensaje más nuevo o una persona encima, y marcar el hilo sería llamar la
+atención sobre algo que no está parado.
 
 ⚠️ **Recalienta también los «Gracias»**, y el agente contestará «¡De nada!» media hora tarde. El
 rastro no distingue un «gracias» de una pregunta —todos son `free_text` / `TXT_FREE`, y ese
