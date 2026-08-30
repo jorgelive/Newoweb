@@ -61,8 +61,11 @@ final class PmsReservaPaxProvider implements ProviderInterface
     {
         $reserva = $this->itemProvider->provide($operation, $uriVariables, $context);
 
+        // No se «pasa tal cual» lo que no sea la entidad: la firma declara `?PmsReserva` y el
+        // provider de ítem al que se decora devuelve la entidad o null. Devolver otra cosa era
+        // una promesa que el tipo no admite.
         if (!$reserva instanceof PmsReserva) {
-            return $reserva;
+            return null;
         }
 
         $finanzas = $this->em->getRepository(PmsInformacionFinanciera::class)

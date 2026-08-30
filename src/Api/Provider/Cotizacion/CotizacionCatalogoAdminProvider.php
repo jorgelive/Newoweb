@@ -39,8 +39,9 @@ final class CotizacionCatalogoAdminProvider implements ProviderInterface
     {
         $catalogo = $this->itemProvider->provide($operation, $uriVariables, $context);
 
+        // Mismo motivo que en `PmsReservaPaxProvider`: la firma declara `?CotizacionCatalogo`.
         if (!$catalogo instanceof CotizacionCatalogo) {
-            return $catalogo;
+            return null;
         }
 
         $tours = $catalogo->getCotizaciones();

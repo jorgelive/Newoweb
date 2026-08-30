@@ -106,7 +106,9 @@ final readonly class PmsDisponibilidadService
                ->setParameter('establecimiento', $establecimientoId, UuidType::NAME);
         }
 
-        return array_map(
+        // `array_values()` porque `array_map` conserva las claves del origen, y la firma
+        // promete una lista: sin esto el JSON sale como objeto `{"3": …}` en vez de array.
+        return array_values(array_map(
             static fn (PmsUnidad $u) => new PmsUnidadDisponibleDto(
                 id:              (string) $u->getId(),
                 nombre:          $u->getNombre() ?? 'Sin nombre',
@@ -119,7 +121,7 @@ final readonly class PmsDisponibilidadService
                 banos:           $u->getBanos(),
             ),
             $qb->getQuery()->getResult()
-        );
+        ));
     }
 
     /**

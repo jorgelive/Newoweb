@@ -304,7 +304,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getUserIdentifier(): string
     {
-        return (string) $this->username;
+        $identificador = (string) $this->username;
+
+        // ⚠️ `UserInterface::getUserIdentifier()` declara `non-empty-string`, y con razón: una
+        // cadena vacía no da error — recorre el firewall como un identificador más y no casa con
+        // nadie. Una fila sin `username` está rota; que lo diga aquí y no tres capas más abajo.
+        if ($identificador === '') {
+            throw new \LogicException(sprintf(
+                'El usuario %s no tiene `username`, y sin él no se puede autenticar.',
+                (string) $this->getId(),
+            ));
+        }
+
+        return $identificador;
     }
 
     public function eraseCredentials(): void

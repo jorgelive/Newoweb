@@ -103,7 +103,10 @@ final class Roles
 
     /**
      * Devuelve los roles filtrados por grupo funcional.
-     * @return array<string, string|array<string, string>> Etiqueta → rol, agrupadas si no se acota.
+     * @return array<string, string> Etiqueta → rol. SIEMPRE plano: el `default` del `match`
+     *         hace `array_merge()` de los tres grupos, así que tampoco anida cuando no se acota.
+     *         (La primera anotación decía `string|array<string, string>` suponiendo que sin
+     *         grupo devolvía los subgrupos anidados. No: los aplana.)
      */
     public static function getChoices(?string $group = null): array
     {

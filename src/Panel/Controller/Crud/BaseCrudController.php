@@ -128,7 +128,11 @@ abstract class BaseCrudController extends AbstractCrudController
         }
 
         // Opción A: Estándar (Rápida)
-        if (method_exists($entity, 'getId')) {
+        //
+        // `is_object()` además de `method_exists()`: éste acepta también un `class-string`, y
+        // sobre una cadena no se puede llamar al método. Aquí siempre llega la instancia, pero la
+        // firma admite las dos cosas.
+        if (is_object($entity) && method_exists($entity, 'getId')) {
             return $entity->getId();
         }
 

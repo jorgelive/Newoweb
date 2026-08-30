@@ -244,7 +244,13 @@ final readonly class ResumenConversacionService
         }
 
         // Se piden los más recientes (DESC + límite) y se devuelven en orden de lectura.
-        return array_reverse($qb->getQuery()->getResult());
+        //
+        // ⚠️ El `@var` no sobra: `getResult()` devuelve `mixed` y sin él ni el `array_reverse`
+        // ni el tipo de retorno de este método comprueban nada (ver CLAUDE.md, §PHPStan).
+        /** @var list<Message> $recientes */
+        $recientes = $qb->getQuery()->getResult();
+
+        return array_reverse($recientes);
     }
 
 

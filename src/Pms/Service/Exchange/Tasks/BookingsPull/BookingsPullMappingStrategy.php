@@ -144,7 +144,13 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
      */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
+        // `correlationMap` es una unión —cada estrategia le da su forma, ver `MappingResult`— y
+        // ésta guarda un id suelto bajo la clave `job`. Se estrecha aquí, que es donde se sabe.
         $jobId = $mapping->correlationMap['job'];
+
+        if (!is_string($jobId)) {
+            throw new \LogicException('El mapa de correlación de BookingsPull debe traer `job` como texto.');
+        }
 
         // 1. Detección de Errores Lógicos (API responde 200 pero con success: false)
         if (isset($apiResponse['success']) && $apiResponse['success'] === false) {
