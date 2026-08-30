@@ -67,9 +67,20 @@ final class PanelAssistantController extends AbstractController
 
         // El hilo lo mantiene el cliente y viaja en cada petición: así el endpoint no guarda
         // estado y el operador ve exactamente el mismo contexto que el modelo.
-        $historial = is_array($payload) && is_array($payload['historial'] ?? null)
-            ? $payload['historial']
-            : [];
+        // ⚠️ Llega del navegador, así que se normaliza a la forma del contrato en vez de
+        // pasarlo tal cual: un turno sin `rol` o sin `texto` se descarta. Antes entraba entero
+        // y el motor lo recorría confiando en que las claves estuvieran.
+        $historial = [];
+
+        if (is_array($payload) && is_array($payload['historial'] ?? null)) {
+            foreach ($payload['historial'] as $turno) {
+                if (!is_array($turno) || !is_string($turno['rol'] ?? null) || !is_string($turno['texto'] ?? null)) {
+                    continue;
+                }
+
+                $historial[] = ['rol' => $turno['rol'], 'texto' => $turno['texto']];
+            }
+        }
 
         // Proveedor y modelo llegan por petición para poder comparar dos motores sobre la
         // misma pregunta sin desplegar. Vacío = los de por defecto del entorno. Ambos se

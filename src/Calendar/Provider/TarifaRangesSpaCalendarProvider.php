@@ -90,7 +90,10 @@ final class TarifaRangesSpaCalendarProvider implements CalendarProviderInterface
             if ($id instanceof Uuid) {
                 $id = (string) $id;
             }
-            $id = (is_scalar($id) && $id !== '') ? $id : spl_object_id($entity);
+            // `is_scalar()` deja pasar `bool` y `float`, que no son identificadores: dos eventos
+        // con `true` compartirían id y FullCalendar pintaría uno solo. Se acota a los dos que
+        // sí valen, y lo demás cae al identificador de objeto.
+        $id = (is_string($id) || is_int($id)) && $id !== '' ? $id : spl_object_id($entity);
 
             $resourceId = null;
             $resourceRoot = $entity;

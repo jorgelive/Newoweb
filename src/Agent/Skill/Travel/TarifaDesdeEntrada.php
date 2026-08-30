@@ -69,11 +69,21 @@ final readonly class TarifaDesdeEntrada
             $tarifa->setMoneda($moneda);
         }
 
+        // La tabla sólo dice QUÉ enum valida cada clave; la asignación va aparte y explícita.
+        //
+        // ⚠️ Antes el setter viajaba en la tabla y se llamaba por su nombre
+        // (`$tarifa->{$setter}($caso)`). Funcionaba, pero nada garantizaba que el enum y el
+        // setter emparejados fueran los correctos: intercambiar dos filas de la tabla habría
+        // compilado igual y guardado la categoría en la modalidad. Con el `match` eso no llega
+        // a escribirse.
+        //
+        // Y si mañana se añade un cuarto enum a la tabla sin su brazo, el `match` lanza
+        // `UnhandledMatchError` — que es ruidoso, en vez de guardar en silencio en otro campo.
         foreach ([
-            'modalidad' => [TarifaModalidadEnum::class, 'setModalidad'],
-            'categoria' => [TarifaCategoriaEnum::class, 'setCategoria'],
-            'procedencia' => [TarifaProcedenciaEnum::class, 'setProcedencia'],
-        ] as $clave => [$enum, $setter]) {
+            'modalidad' => TarifaModalidadEnum::class,
+            'categoria' => TarifaCategoriaEnum::class,
+            'procedencia' => TarifaProcedenciaEnum::class,
+        ] as $clave => $enum) {
             if (!isset($entrada[$clave]) || trim((string) $entrada[$clave]) === '') {
                 continue;
             }
@@ -90,7 +100,11 @@ final readonly class TarifaDesdeEntrada
                 );
             }
 
-            $tarifa->{$setter}($caso);
+            match (true) {
+                $caso instanceof TarifaModalidadEnum => $tarifa->setModalidad($caso),
+                $caso instanceof TarifaCategoriaEnum => $tarifa->setCategoria($caso),
+                $caso instanceof TarifaProcedenciaEnum => $tarifa->setProcedencia($caso),
+            };
         }
 
         foreach ([
