@@ -436,13 +436,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /**
+     * ⚠️ **No desasigna el usuario del movimiento, y es a propósito.**
+     *
+     * Lo que había aquí era el `setUser(null)` que genera el maker de Symfony para el lado
+     * inverso de un `OneToMany`. Aquí no vale por dos motivos, y el segundo es el que manda:
+     *
+     *  1. `CuentaMovimiento::setUser()` declara `User $user`, sin `?`. La llamada era un
+     *     **TypeError latente** — no un aviso: si esta rama se ejecutaba, reventaba.
+     *  2. La columna es `nullable: false`. Aunque PHP lo aceptara, un movimiento contable **sin
+     *     usuario no existe**: no es un estado intermedio válido, es una fila rota.
+     *
+     * Quitar el movimiento de la colección en memoria es todo lo que esto puede hacer con
+     * honestidad. Si lo que se quiere es borrarlo, se borra la entidad; si es reasignarlo, se le
+     * pone el otro usuario. Ninguna de las dos cosas es responsabilidad de un `remove*()`.
+     */
     public function removeMovimiento(CuentaMovimiento $movimiento): self
     {
-        if ($this->movimientos->removeElement($movimiento)) {
-            if ($movimiento->getUser() === $this) {
-                $movimiento->setUser(null);
-            }
-        }
+        $this->movimientos->removeElement($movimiento);
+
         return $this;
     }
 

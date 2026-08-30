@@ -149,6 +149,11 @@ final class CotizacionDenormalizer implements DenormalizerInterface, Denormalize
      * Inyecta el UUID temporalmente en el campo JSON.
      *
      * @param array<string, mixed> $item
+     *
+     * @param class-string $class La entidad que se busca. `string` a secas no basta:
+     *        `EntityManagerInterface::find()` declara `@param class-string<T>` y sin eso PHPStan
+     *        no puede resolver `T`, así que el resultado le llega como `object` y el `=== null`
+     *        deja de comprobarse contra nada. Los cuatro llamadores ya pasan `X::class`.
      */
     private function embedIdInJson(array &$item, string $class, string $jsonField, bool $permiteUpdate): void
     {

@@ -87,9 +87,15 @@
   como redundante volvió a tener sentido. Un tipo mentiroso no sólo miente sobre sí mismo: hace
   que el código defensivo que lo rodea parezca sobrar, y entonces alguien lo borra.
 
-  ⚠️ La baseline **no es una lista de perdonados**: es la foto del día que se instaló, para que
-  salte sólo lo nuevo. Si tocas un archivo que tiene errores dentro, arréglalos y quítalos de
-  ahí.
+  ⚠️ **La baseline ya NO es deuda: es la lista de fronteras de confianza.** Se auditó entera el
+  30/08/2026 —313 ocurrencias, una por una— y la deuda se saldó: 120 `missingType`, 29 genéricos,
+  18 contratos que mentían y 6 restos sueltos. Quedan **125 ocurrencias y ninguna es deuda**.
+
+  **Por eso la regla vieja se invierte: si tocas un archivo con entradas ahí dentro, NO las
+  arregles por costumbre.** Lee la cabecera del propio `phpstan-baseline.neon`, que explica
+  familia por familia qué protege cada una. De 130 que parecían defensas redundantes, sólo 9 lo
+  eran; borrar las otras habría quitado validaciones de entrada del framework, `?->` sobre
+  relaciones que el ORM hidrata sin setter, y el candado de las colas que se lee en SQL crudo.
 
   **Tests:** PHPUnit 13 (`phpunit.dist.xml`), suite en `tests/` espejando `src/`. Hoy sólo hay
   tests **unitarios puros** —sin contenedor ni base de datos— sobre las piezas de decisión del

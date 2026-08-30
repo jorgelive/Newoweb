@@ -1,137 +1,89 @@
-             # DEUDA CONGELADA — no es una lista de perdonados
+             # FRONTERAS DE CONFIANZA — ya NO es deuda
 #
-# Foto del 15/08/2026, el día que el proyecto pasó del nivel 2 al 6, para que a partir de aquí
-# salte SÓLO lo nuevo. Si tocas un archivo con entradas aquí dentro, arréglalas y quítalas.
+# Nació el 15/08/2026 como foto de la deuda del día que el proyecto pasó del nivel 2 al 6. Se
+# auditó entero el 30/08/2026 y **la deuda se saldó**: lo que queda son guardas que el analizador
+# no puede modelar. El título de arriba cambió por eso.
 #
-# ── ⚠️ AUDITADA ENTERA EL 30/08/2026: dos cosas distintas viven aquí ────────
+# Si tocas un archivo con entradas aquí dentro, **NO las arregles por costumbre**: lee primero la
+# sección «NO INTENTES LIMPIAR ESTO».
 #
-# Este archivo se llama «deuda congelada» y sólo la mitad lo es. Auditando las 313 ocurrencias
-# que había, la clasificación real resultó ser:
+# ── ⚠️ AUDITADA ENTERA EL 30/08/2026 — LÉEME ANTES DE TOCAR NADA ────────────
 #
-#   DEUDA REAL QUE QUEDA: casi ninguna. El recuento tras la auditoría del 30/08/2026:
-#       6  arrayValues.list       y NO son deuda — ver abajo
-#       1  argument.templateType  `ObjectManager::find()` sin resolver la plantilla
-#       1  argument.type          en `Oweb`, el módulo que se retira: se va con él
+# Este archivo se llamaba «deuda congelada». Tras auditar sus 313 ocurrencias una por una,
+# **casi nada de lo que queda es deuda**: son guardas en fronteras que PHPStan no puede modelar.
 #
-# ── ⚠️ El `array_values()` «redundante» tampoco es lo que parece ─────────────
+#   313 al empezar  →  125 ahora
+#     · 120 `missingType.*`  SALDADOS (anotados por módulo, ver más abajo)
+#     ·  29 `missingType.generics` SALDADOS
+#     ·  18 de contratos que mentían: ARREGLADOS
+#     ·   4 `arrayValues.list` muertos de verdad: QUITADOS
+#     ·   2 de deuda suelta (`class-string`, un TypeError latente en `Oweb`): ARREGLADOS
 #
-# Salieron 10 y sólo **4** eran código muerto: los que van detrás de un `usort()` —que reindexa
-# in place— o de un `preg_match_all()`. Ésos no hacían nada NI EN EJECUCIÓN, y se quitaron.
+# **Deuda real que queda: CERO.** Lo de abajo son excepciones permanentes.
 #
-# Los **6** que quedan son setters de columnas JSON (`setDominios`, `setContextItems`,
-# `$wifiNetworks`, los hitos). Ahí `array_values()` **no es decorativo**: garantiza que
-# `json_encode` escriba un array `[...]` y no un objeto `{"2": …}`. El `@param list<string>` es
-# una promesa de docblock, y quien llama incluye formularios de EasyAdmin con colecciones —
-# borrar un elemento deja huecos en las claves—. Se quedan.
+# ── ⛔ NO INTENTES «LIMPIAR» ESTO. Ya se intentó y se midió ──────────────────
 #
-# ── ✅ `missingType` SALDADO ENTERO el 30/08/2026 (120 → 0) ──────────────────
+# De 130 ocurrencias que parecían defensas redundantes, **sólo 9 lo eran**. Las demás protegen
+# de datos que llegan de fuera del alcance del analizador. Familia por familia:
 #
-# Hecho POR MÓDULO y leyendo cada sitio, no en tanda, y el precio de hacerlo así quedó medido:
-# **seis veces escribí un tipo mal y el analizador lo tumbó en el acto.** Todas por suponer desde
-# el nombre del parámetro en vez de mirar quién lo llena:
+# | Familia | Qué es en realidad |
+# |---|---|
+# | `instanceof.alwaysTrue` (16) | validación de entrada donde llama el FRAMEWORK: `persistEntity($em, $entityInstance)` de EasyAdmin, `process(mixed $data)` de API Platform. El tipo lo promete un genérico, no el runtime |
+# | `nullsafe.neverNull` (15) | `?->` sobre una relación de Doctrine. El ORM hidrata **sin pasar por el setter**, así que la columna puede traer NULL aunque el tipo diga que no. Es el mismo hecho que la excepción `property.unusedType` de `phpstan.dist.neon` |
+# | `nullCoalesce.offset` / `.expr` (25) | `?? default` sobre una columna JSON. La forma la promete un `@var`, no la base |
+# | `function.alreadyNarrowedType` (14) | `is_string()` sobre lo que sólo promete un docblock en un método público |
+# | `property.onlyWritten` (11) | se lee, pero donde PHPStan no mira: el candado `locked_at` de las colas se consulta en SQL crudo (`AbstractExchangeRepository`), y `imageUpdatedAt` **existe para no leerse** — es la marca de suciedad que obliga a Doctrine a persistir una subida de Vich |
+# | `arrayValues.list` (6) | setters de columnas JSON: garantizan que `json_encode` escriba `[...]` y no `{"2": …}`. Los formularios de EasyAdmin con colecciones dejan huecos al borrar |
+# | el resto de `always*` | condiciones que el tipo declarado hace fijas, pero que cubren datos reales |
 #
-#   · `ItemResult::$extraData` — `array<string, mixed>` y era una LISTA de mensajes.
-#   · `SkillResult::$datos` — `array<string, mixed>` y una skill SÍ puede devolver lista; la
-#     anotación estrecha apagaba el `array_is_list()` que lo demostraba.
-#   · `$candidatos` de RegistrarPagoSkill — `list<string>` y eran `list<User>`.
-#   · `translateWithDetection()` — `list<string>` y devuelve
-#     `array{translations: …, detectedLanguage: …}`.
-#   · `initBookingIndexPool()` — `array<string, mixed>` y devuelve una tupla.
-#   · `delEquipoPorChat()` — le puse un `@param` de un parámetro que no tiene.
-#
-# Escritas las 120 de golpe, esas seis se habrían quedado. Y un tipo mentiroso es PEOR que
-# ninguno: el analizador se lo cree y deja de mirar — dos veces apagó un guarda real.
-#
-# ⚠️ **Lo que más sorprendió: buena parte del trabajo ya estaba hecho y no contaba.** Anotaciones
-# correctas que no se leían por estar mal colocadas — el `/** * @tag` de una línea, el `@var`
-# dentro del `foreach`, el `@var` sobre un parámetro promovido, el docblock DEBAJO de un
-# `#[Groups]`, un `@phpstan-type` que no se registraba, y varias etiquetas duplicadas
-# (`dispatch()` tenía dos `@return` contradictorios). Antes de escribir un tipo: comprobar que el
-# que ya hay se está leyendo.
-#
-# ── ✅ `missingType.generics` SALDADO ENTERO el 30/08/2026 (29 → 0) ──────────
-#
-# Se pudo de una tacada porque en un genérico **el tipo está al lado**: el `targetEntity` en el
-# atributo ORM, la entidad en el constructor del repositorio, lo que devuelve `provide()`. No hay
-# que adivinar, que es justo lo que hace peligroso tipar los `array` en tandas.
-#
-# 9 `ProviderInterface` · 6 `Collection` · 1 `ProcessorInterface` · 1 `ServiceEntityRepository` ·
-# 1 `NamerInterface` · 1 `ServiceLocator` · 1 `ClassMetadata`, y 9 de EasyAdmin que pasaron a
-# regla en `phpstan.dist.neon` porque nunca iban a ser deuda nuestra.
-#
-# ⚠️ **Seis de ellos ya estaban escritos y no contaban.** El docblock era
-# `/** * @return Collection<int, X>` — en una línea y con un asterisco de más—, y PHPDoc no lee
-# la etiqueta así. O sea que alguien hizo el trabajo, el tipo era correcto, y el analizador
-# seguía avisando. Se arreglan partiendo el docblock en dos líneas, no reescribiendo el tipo.
-#
-# ⚠️ **Y un `@var` en línea sobre un parámetro promovido tampoco cuenta**: va como `@param` en el
-# docblock del constructor. Lo mismo que el `@var` dentro del `foreach`: la anotación existe,
-# está bien escrita, y no la lee nadie.
-#
-# ── Saldado el 30/08/2026: las 13 que tenían señal ──────────────────────────
-#
-#   5 `method.notFound` — el mismo patrón que los contratos de Exchange, pero con interfaces del
-#     framework: el tipo declarado es más ancho que el método que se le pide.
-#       · `ObjectManager::getReference()` → se estrecha a `EntityManagerInterface`. Dos listeners
-#         hermanos ya lo hacían y éste era el único de los tres sin la comprobación.
-#       · `SerializerInterface::denormalize()` → el método vive en `DenormalizerInterface`.
-#       · `DateTimeInterface::setTime()` → lo declaran `DateTime` y `DateTimeImmutable`, y hacen
-#         cosas OPUESTAS (una muta, la otra copia). Resuelto con `createFromInterface()`, que
-#         acepta las dos y devuelve siempre inmutable: se fue el clone y el comentario que
-#         avisaba de la reasignación.
-#
-#   5 `varTag.differentVariable` — el `@var` estaba DENTRO del `foreach`, así que PHPStan lo
-#     emparejaba con el bucle siguiente y no tipaba nada. Subido encima del `foreach`. No mentía:
-#     es peor de otra forma — alguien creyó que había tipado ese bucle.
-#
-#   3 `return.type` — firmas que mentían sobre la forma devuelta:
-#       · `MessageDispatcher::dispatch()` tenía DOS `@return` contradictorios y ninguno cierto:
-#         devuelve una lista numerada, no un mapa por canal.
-#       · `generateNamedExamples()` decía «dos listas paralelas» y devuelve una lista de pares.
-#     Ninguna falló porque los llamadores ya sabían la forma real — hasta que alguien la lea.
-#
-#   ✅ Y un efecto colateral: al corregir el tipo de `generateNamedExamples()`, un `empty()` que
-#      figuraba como inútil volvió a tener sentido. Un tipo falso no sólo miente sobre sí mismo:
-#      hace que los guardas de alrededor parezcan sobrar.
-#
-#   NO ES DEUDA: guardas en una FRONTERA DE CONFIANZA que PHPStan no puede modelar
-#      16  instanceof.alwaysTrue      validación de entrada donde llama el framework
-#      15  nullsafe.neverNull         `?->` sobre una relación que el ORM hidrata sin setter
-#      15  function.alreadyNarrowedType  `is_string()` sobre lo que sólo promete un docblock
-#      17  nullCoalesce.offset        `?? default` sobre una columna JSON
-#      11  property.onlyWritten       se lee en SQL crudo, que el analizador no ve
-#
-# **Nada de esa segunda mitad se debe «limpiar».** Se comprobó una por una: de 130 ocurrencias
-# que parecían defensas redundantes, sólo 9 lo eran. Las demás protegen de datos que llegan de
-# fuera del alcance del analizador —una petición HTTP, una columna JSON, otro módulo que sólo
-# promete un `@param`—.
-#
-# ⚠️ **La pregunta antes de borrar un guarda: ¿quién llama a esto?** Si la respuesta es «el
+# ⚠️ **LA PREGUNTA ANTES DE BORRAR UN GUARDA: ¿quién llama a esto?** Si la respuesta es «el
 # framework», «el ORM» o «otro módulo a través de un docblock», el guarda se queda. Sólo se borra
-# cuando el tipo lo garantiza PHP en el mismo ámbito.
+# cuando el tipo lo garantiza **PHP en el mismo ámbito**.
 #
-# Las que se pudieron expresar como regla ya están en `phpstan.dist.neon` (`ignoreErrors`):
-# los `instanceof` de procesadores, listeners y serializers. Las demás siguen aquí porque **su
-# ruta no las distingue** —el `?->` sobre una relación de Doctrine se escribe en cualquier
-# servicio—, no porque sean deuda. Si algún día PHPStan permite acotarlas por el tipo del
-# receptor, se mudan también.
+# ⚠️ **Y tipar mejor NO convierte una frontera en código propio.** Al rellenar los genéricos de
+# EasyAdmin, los `instanceof` de `persistEntity` pasaron a «siempre ciertos»: PHPStan empezó a
+# creerse la promesa del framework. La respuesta fue ampliar la regla, no borrar el guarda.
+#
+# ── Por qué siguen AQUÍ y no en `ignoreErrors` ──────────────────────────────
+#
+# Las que se pudieron acotar por ruta ya son regla en `phpstan.dist.neon`: los `instanceof` de
+# procesadores, listeners, serializers y CRUD; los `property.unusedType` de `Entity/`. Las demás
+# siguen en el baseline **porque su ruta no las distingue** —un `?->` sobre una relación de
+# Doctrine se escribe en cualquier servicio—, no porque sean deuda. Si algún día PHPStan permite
+# acotar por el tipo del receptor, se mudan.
 #
 # ── Dos casos que enseñan por qué NO se borran ──────────────────────────────
 #
 # **`PmsRepararHitosCommand`** filtraba los hitos que NO son texto. PHPStan lo daba por imposible
 # —`getMilestones()` declara `array<string, string>`— y marcaba el cuerpo entero como código
-# muerto. Pero el getter devuelve la columna JSON **sin normalizar**, así que en ejecución el
-# filtro sí encontraba filas: el comando existe justamente para reparar las que violan ese tipo.
-# Arreglado dándole a la entidad un `getMilestonesCrudo(): array<string, mixed>`, que es la
-# verdad. Borrar el guarda habría vaciado el comando dejándolo compilando igual de bien.
+# muerto. Pero el getter devuelve la columna JSON **sin normalizar**: en ejecución el filtro sí
+# encontraba filas, porque el comando existe justamente para reparar las que violan ese tipo.
+# Arreglado con `getMilestonesCrudo(): array<string, mixed>`. Borrar el guarda habría vaciado el
+# comando dejándolo compilando igual de bien.
 #
-# **`PmsEventoCalendarioSecurityListener`** tenía un cuarto `throw` genérico «por si en el futuro
-# se agregan más estados» a `OTA_ESTADOS_NO_SELECCIONABLES`. Inalcanzable, porque los tres de
-# arriba cubren la constante. Pero borrarlo dejaba el agujero que tapaba: añadir un código y que
-# la regla dejara de aplicarse **en silencio**. Sustituido por una tabla `MOTIVO_OTA` y un censo
-# (`tests/Pms/EventListener/MotivosOtaTest.php`) que **falla el build** si falta un motivo. Un
-# censo es mejor que un fallback: falla antes, y obliga a escribir qué se le dice al operador en
-# vez de despacharlo con una frase genérica.
+# **`PmsEventoCalendarioSecurityListener`** tenía un `throw` genérico «por si en el futuro se
+# agregan más estados». Inalcanzable, porque los tres de arriba cubren la constante. Pero borrarlo
+# dejaba el agujero que tapaba: añadir un código y que la regla dejara de aplicarse **en
+# silencio**. Sustituido por una tabla `MOTIVO_OTA` y un censo que **falla el build**.
+#
+# ── ⚠️ Antes de escribir un tipo: comprueba que el que ya hay se lee ─────────
+#
+# Buena parte del trabajo de tipado ya estaba hecho y no contaba. Formas encontradas:
+#
+#   `/** * @tag …` en una línea       el asterisco de más deja la etiqueta sin leer   (6 casos)
+#   `@var` dentro del `foreach`       se lo queda la sentencia de abajo               (5 casos)
+#   `@var` sobre un parámetro promovido   los parámetros se anotan con `@param`
+#   docblock DEBAJO de un `#[Groups]`     va encima del bloque de atributos ENTERO    (2 casos)
+#   `@phpstan-type` mal escrito           el alias no se registraba
+#   dos `@return` contradictorios         `dispatch()` decía mapa y devolvía lista
+#
+# ── Y el precio de tipar suponiendo, medido ─────────────────────────────────
+#
+# Seis veces se escribió un tipo mal y el analizador lo tumbó en el acto, siempre por deducir
+# desde el NOMBRE del parámetro en vez de mirar quién lo llena. **Dos de esas seis apagaban un
+# guarda real** — el `array_is_list()` de Google y un `is_string()` de traducción. Por eso esto
+# se hace por módulo y leyendo: un tipo mentiroso es peor que ninguno, porque el analizador se lo
+# cree y deja de mirar.
 #
 # ── De qué está hecha la parte que SÍ es deuda ──────────────────────────────
 # 120 son `missingType.iterableValue` y `missingType.generics`: un `array` o una `Collection`
@@ -433,12 +385,7 @@ parameters:
 
 	
 	
-		-
-			message: '#^Unable to resolve the template type T in call to method Doctrine\\Persistence\\ObjectManager\:\:find\(\)$#'
-			identifier: argument.templateType
-			count: 1
-			path: src/Cotizacion/Serializer/CotizacionDenormalizer.php
-
+	
 		-
 			message: '#^Instanceof between App\\Cotizacion\\Entity\\CotizacionFilearchivo and App\\Cotizacion\\Entity\\CotizacionFilearchivo will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
@@ -454,12 +401,7 @@ parameters:
 	
 	
 	
-		-
-			message: '#^Parameter \#1 \$user of method App\\Oweb\\Entity\\CuentaMovimiento\:\:setUser\(\) expects App\\Entity\\User, null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Entity/User.php
-
+	
 	
 	
 	
