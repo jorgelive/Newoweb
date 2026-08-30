@@ -1088,7 +1088,19 @@ Medido sobre los 34 descartes por `humano_atendiendo` desde julio: 23 se resolvi
 Lo recoge `agent:recalentar-hilos` (`src/Agent/Command/AgentRecalentarHilosCommand.php`), con
 `--dry-run`. Devuelve al procesador los entrantes que (1) se descartaron por `humano_atendiendo`,
 (2) **son el último mensaje del hilo** —nada después, ni entrante ni saliente—, (3) llevan más de
-25 minutos y (4) menos de `--maximo-horas`. Los seis guardias se vuelven a aplicar enteros.
+17 minutos y (4) menos de `--maximo-horas`. Los seis guardias se vuelven a aplicar enteros.
+
+**Corre en el cron de `www-data` cada 5 minutos**, en el minuto 4 de cada tramo para no apilarse
+con los `exchange:run`. El huésped espera entre **17 y 22 minutos** — el suelo más el intervalo.
+
+⚠️ **El suelo son sólo 2 minutos por encima de la ventana, y basta.** Un candidato prematuro no
+cuesta nada: los guardias del procesador corren ANTES de llamar al modelo, así que se descarta
+con una consulta y no con una llamada. Poner más colchón sólo haría esperar al huésped.
+
+⚠️ **Corre también de madrugada.** Un huésped que escribe a las 3:00 y no recibe respuesta humana
+tendrá la del agente hacia las 3:20. Es deliberado —está despierto y preguntando, y el silencio
+es peor—, pero es un cambio de comportamiento visible. Acotarlo a horario de atención sería una
+franja horaria en el cron.
 
 🔑 **Y esto es lo que permite elegir la ventana por los datos.** Sin el recalentado, la ventana
 decidía *si* el huésped recibía respuesta y había que estirarla por miedo a perder mensajes. Con

@@ -84,15 +84,19 @@ final class AgentRecalentarHilosCommand extends Command
     /**
      * Suelo de espera antes de recalentar, en minutos.
      *
-     * Tiene que ser **mayor** que `AiConversationProcessor::HUMANO_AL_MANDO` (20 min): si fuera
-     * igual, el comando gastaría una llamada al modelo para que el procesador lo descartara por
-     * el mismo motivo. Cinco minutos de margen cubren el desfase entre el reloj del cron y el de
-     * la consulta.
+     * Dos por encima de `AiConversationProcessor::HUMANO_AL_MANDO` (15 min), que es todo el
+     * margen que hace falta: cubre el desfase entre el reloj del cron y el de la consulta, y
+     * nada más. No hace falta más colchón porque **un candidato prematuro no cuesta nada**: los
+     * guardias del procesador corren ANTES de llamar al modelo, así que se descartaría con una
+     * consulta, no con una llamada.
+     *
+     * Con el cron cada 5 minutos, el huésped espera entre 17 y 22 — tan pegado a la ventana como
+     * tiene sentido estar.
      *
      * No se lee de la constante del procesador a propósito: es privada, y exponerla para esto
      * ataría dos decisiones que se toman con datos distintos.
      */
-    private const int ESPERA_MINIMA = 20;
+    private const int ESPERA_MINIMA = 17;
 
     /**
      * Resoluciones tras las que **nadie va a contestar**, y por eso se deja escalado silencioso.
