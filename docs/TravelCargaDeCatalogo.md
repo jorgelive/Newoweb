@@ -453,6 +453,36 @@ es «al final». Medido: un «Día libre en el resort» sin hora, en un día con
 
 **Si el segmento tiene que caer en un sitio concreto del día, dale hora.**
 
+#### ⚠️ …salvo que el tipo sea `sinHorario`: ahí la hora del catálogo NO llega (30/08/2026)
+
+`CotizacionCotcomponente::normalizarHorarioAlCrear()` es un `#[ORM\PrePersist]` que pone inicio y
+fin a `00:00:00` en todo componente cuyo tipo cumpla `ComponenteTipoEnum::sinHorario()`. Así que
+en `EXTRAS`, `ALOJAMIENTO`, `TICKET_HORARIO_VAR`, `ALIMENTACION_HORARIO_VAR` y `PERSONAL_EXTRA`,
+**la hora que pongas en el enlace de catálogo no sobrevive a la inserción**. Esos van a tier 1 y
+se ordenan por `orden`, pase lo que pase.
+
+Medido en producción, agrupando por tipo:
+
+| | componentes | con hora real |
+|---|---|---|
+| tipos `sinHorario` (`extras`, `alojamiento`, `ticket_variable`, `alimentacion_variable`) | 79 | **0** |
+| tipos con horario (`transporte`, `vuelo`, `pool`, `guiado`…) | 140 | 139 |
+
+Cero de setenta y nueve. No es una tendencia, es el listener.
+
+**Consecuencia práctica:** una hora en el catálogo sobre un tipo `sinHorario` es un valor muerto
+que además engaña — el siguiente que lo lea creerá que significa algo y ajustará el número
+equivocado. Las actividades de resort tenían 10:00, 16:00 y 21:30 escritos, y las cinco que había
+en la cotización estaban a `00:00:00`.
+
+`app:travel:quitar-hora-a-extras` las vacía, con un guarda que **comprueba el tipo antes de
+escribir**: si algún día el componente se retipa a uno con horario, la hora vuelve a mandar y el
+comando lo salta en vez de borrarla.
+
+🔜 Quedan **8 enlaces** con hora muerta en el catálogo: 6 de `extras` (check-in y check-out de
+mañana y tarde, día libre, espectáculo) y 2 de `ticket_variable`. Se vacían cuando se decida que
+ninguno necesita colocarse por hora — porque **para colocarlos hay que usar `orden`, no la hora**.
+
 ### ⚠️ Y dale también hora de FIN, o nace con duración cero (30/08/2026)
 
 `hora` y `horaFin` son campos distintos de `TravelSegmentoComponente`, y **poner sólo el primero
@@ -485,9 +515,9 @@ Dos cosas que dejó claras el caso:
   insertar, así que un expediente abierto conserva la que tenía. Arreglar el catálogo evita el
   siguiente error, no el anterior; ése se corrige en la cotización, a mano o por comando.
 
-🔜 **Pendiente:** las actividades de resort (`ACT-RESORT-*`: piscina, check-in, recreativas,
-espectáculo) siguen sin `horaFin`. No se tocaron porque su duración es una decisión de producto
-—cuánto «dura» la piscina no lo publica nadie— y no un dato que se copie de un cartel.
+**Las actividades de resort no necesitan franja, y tampoco hora.** Son `extras`, o sea
+`sinHorario`, así que su horario nunca llega a la cotización (ver el aviso de §5 más arriba).
+Piscina y recreativas se vaciaron; el resto sigue con la hora muerta puesta.
 
 ### `tarifaPredeterminada`: sin ella el componente entra sin precio
 
@@ -625,4 +655,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:fusionar-rutas-por-puntos` | emparejar por dato y no por prosa · construir el nombre desde la fuente de la verdad |
 | `app:travel:completar-traslados-punta-cana` | poner la ciudad en los **dos** extremos del título · aplanar la dirección de sus tarifas |
 | `app:travel:horario-comidas-resort` | dar franja (inicio **y fin**) a lo que el catálogo dejó con duración cero |
+| `app:travel:quitar-hora-a-extras` | quitar la hora a un tipo que no la usa, **comprobando el tipo antes de escribir** |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
