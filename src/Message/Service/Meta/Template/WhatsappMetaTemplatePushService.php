@@ -101,7 +101,7 @@ final readonly class WhatsappMetaTemplatePushService
             $existingTemplates = [];
         }
 
-        $localLanguages = array_unique(array_map(fn($b) => $b['language'], $metaTmpl['body'] ?? []));
+        $localLanguages = array_unique(array_map(fn($b) => $b['language'] ?? '', $metaTmpl['body'] ?? []));
 
         // Filtro de idiomas. Se aplica aquí, sobre los que la plantilla tiene de verdad,
         // para que pedir uno inexistente no invente una subida vacía.

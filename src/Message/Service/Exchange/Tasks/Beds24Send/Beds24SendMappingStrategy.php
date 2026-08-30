@@ -151,8 +151,8 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
 
                         $btnText = $menuTexts['default_btn'];
                         foreach ($btn['button_text'] ?? [] as $tr) {
-                            if ($this->normalizeLanguageForMeta(strtolower($tr['language'])) === $metaLang) {
-                                $btnText = $tr['content'];
+                            if ($this->normalizeLanguageForMeta(strtolower($tr['language'] ?? '')) === $metaLang) {
+                                $btnText = $tr['content'] ?? $btnText;
                                 break;
                             }
                         }

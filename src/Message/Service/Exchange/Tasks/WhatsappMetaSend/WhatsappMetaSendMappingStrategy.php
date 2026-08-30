@@ -223,7 +223,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // 2. BODY
                 $templateContent = '';
                 foreach ($metaJson['body'] ?? [] as $bodyNode) {
-                    if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'])) === $metaLang) {
+                    if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'] ?? '')) === $metaLang) {
                         $templateContent = $bodyNode['content'] ?? '';
                         break;
                     }
@@ -296,7 +296,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
                 if (!empty($metaJson['body'])) {
                     foreach ($metaJson['body'] as $bodyNode) {
-                        if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'])) === $metaLang) {
+                        if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'] ?? '')) === $metaLang) {
                             $bodyText = $bodyNode['content'] ?? '';
                             break;
                         }
@@ -362,8 +362,8 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         $btnText = $menuTexts['default_btn'];
 
                         foreach ($btn['button_text'] ?? [] as $tr) {
-                            if ($this->normalizeLanguageForMeta(strtolower($tr['language'])) === $metaLang) {
-                                $btnText = $tr['content'];
+                            if ($this->normalizeLanguageForMeta(strtolower($tr['language'] ?? '')) === $metaLang) {
+                                $btnText = $tr['content'] ?? $btnText;
                                 break;
                             }
                         }

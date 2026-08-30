@@ -613,19 +613,27 @@ class ObtenerReservasCommand extends Command
                         // Actualizar día de inicio si cambió (manteniendo hora actual)
                         if ($oldIni->format('Ymd') !== $dtstartRaw) {
                             $currentStartTime = $oldIni->format('H:i');
-                            $existente->setFechahorainicio(
-                                \DateTime::createFromFormat($fmt, $dtstartRaw . ' ' . $currentStartTime, $tz)
-                            );
-                            $changed = true;
+                            // ⚠️ `createFromFormat()` devuelve `false` si la cadena no casa con
+                            // el formato, y eso entraba directo al setter. Un feed con una fecha
+                            // rara no debe corromper la que ya está guardada: se salta.
+                            $nuevoIni = \DateTime::createFromFormat($fmt, $dtstartRaw . ' ' . $currentStartTime, $tz);
+
+                            if ($nuevoIni !== false) {
+                                $existente->setFechahorainicio($nuevoIni);
+                                $changed = true;
+                            }
                         }
 
                         // Actualizar día de fin si cambió (manteniendo hora actual)
                         if ($oldFin->format('Ymd') !== $dtendRaw) {
                             $currentEndTime = $oldFin->format('H:i');
-                            $existente->setFechahorafin(
-                                \DateTime::createFromFormat($fmt, $dtendRaw . ' ' . $currentEndTime, $tz)
-                            );
-                            $changed = true;
+                            // Mismo motivo que en el inicio: `false` no se guarda.
+                            $nuevoFin = \DateTime::createFromFormat($fmt, $dtendRaw . ' ' . $currentEndTime, $tz);
+
+                            if ($nuevoFin !== false) {
+                                $existente->setFechahorafin($nuevoFin);
+                                $changed = true;
+                            }
                         }
 
                         // Log de actualización vs “no hubo cambios”

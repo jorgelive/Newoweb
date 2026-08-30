@@ -16,6 +16,7 @@ use App\Pms\Entity\PmsUnidad;
 use App\Pms\Service\Reserva\PmsDisponibilidadService;
 use App\Pms\Service\Tarifa\PmsTarifaCalculadora;
 use App\Pms\Service\Finance\TipoCambioDelDia;
+use App\Pms\Dto\PmsUnidadDisponibleDto;
 use App\Security\Roles;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -394,9 +395,10 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
     /**
      * La casita libre que corresponde a «2», «casita 2» o «Casita 2».
      *
-     * @param list<object> $libres Las unidades libres, tal cual las da el servicio de disponibilidad.
+     * @param list<PmsUnidadDisponibleDto> $libres Las unidades libres, tal cual las da
+     *        `PmsDisponibilidadService::buscar()`.
      */
-    private function emparejar(array $libres, string $nombre): ?object
+    private function emparejar(array $libres, string $nombre): ?PmsUnidadDisponibleDto
     {
         $aguja = mb_strtolower(trim($nombre));
 
@@ -645,7 +647,7 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
      * @return array{fila: array<string, mixed>, total: ?float, moneda: string}
      */
     private function conPrecioYTotal(
-        object $dto,
+        PmsUnidadDisponibleDto $dto,
         DateTimeImmutable $desde,
         DateTimeImmutable $hasta,
         int $noches,

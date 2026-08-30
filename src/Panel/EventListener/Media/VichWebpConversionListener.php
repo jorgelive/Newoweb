@@ -94,9 +94,18 @@ class VichWebpConversionListener
         string $targetExt,
         string $targetMime
     ): void {
+        // ⚠️ `file_get_contents()` devuelve `false` si el archivo no se puede leer —permisos,
+        // carrera con el borrado, disco lleno— y eso entraba directo al constructor de `Binary`.
+        // Sin conversión es mejor que con una excepción a mitad de la subida.
+        $contenido = file_get_contents($originalFile->getPathname());
+
+        if ($contenido === false) {
+            return;
+        }
+
         // A. Convertir el archivo físico en un objeto binario para Liip
         $binary = new Binary(
-            file_get_contents($originalFile->getPathname()),
+            $contenido,
             $originalFile->getMimeType(),
             $originalFile->getClientOriginalExtension()
         );
