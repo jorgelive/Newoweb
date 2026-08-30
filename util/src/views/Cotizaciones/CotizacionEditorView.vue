@@ -1078,6 +1078,54 @@ const segmentosOrdenadosVisualmente = computed(() => {
   });
 });
 
+/**
+ * Modo REORDENAR: las fichas se colapsan a su título y aparece el asa de arrastre.
+ *
+ * Es un modo y no un asa siempre visible por dos razones. La primera es que **reordenar y editar
+ * son tareas distintas**: con la ficha entera delante, el gesto de arrastrar compite con el de
+ * abrir. La segunda es que colapsar deja el día entero en pantalla, y no se puede ordenar lo que
+ * no se ve junto.
+ */
+/**
+ * La hora que coloca al servicio, o null si no tiene ninguna. **Espejo de
+ * `getHoraClaveServicio()` en el store**, que es la que decide el orden — aquí sólo se enseña.
+ *
+ * Se muestra en el modo reordenar porque es **el dato que el arrastre puede contradecir**, y una
+ * contradicción hay que verla al hacerla, no descubrirla tres pantallas después.
+ */
+const horaClaveDeServicio = (srv: CotServicio): string | null => {
+  const horas = (srv.cotcomponentes ?? [])
+      .filter(c => !c.sinHorario && !!c.fechaHoraInicio)
+      .map(c => (c.fechaHoraInicio as string).slice(11, 16))
+      .sort();
+
+  return horas[0] ?? null;
+};
+
+const modoReordenar = ref(false);
+const dragServicioId = ref<string | null>(null);
+const dragOverServicioId = ref<string | null>(null);
+
+const onServicioDragStart = (id: string) => { dragServicioId.value = id || null; };
+
+const onServicioDrop = (destinoId: string) => {
+  const origen = dragServicioId.value;
+  dragServicioId.value = null;
+  dragOverServicioId.value = null;
+
+  // ⚠️ `reordenarServicios` devuelve false cuando el destino está en OTRO día. No es un error
+  // que haya que anunciar: es un gesto que no significa nada, y avisar de cada uno enseñaría a
+  // ignorar los avisos. Simplemente no pasa nada.
+  if (origen && destinoId && origen !== destinoId && store.reordenarServicios(origen, destinoId)) {
+    isDirty.value = true;
+  }
+};
+
+const soltarOrdenDelDia = (fecha: string) => {
+  store.soltarOrdenDelDia(fecha);
+  isDirty.value = true;
+};
+
 const dragSegId = ref<string | null>(null);
 const dragOverSegId = ref<string | null>(null);
 let segLongPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1490,10 +1538,62 @@ store.$onAction(({ name, args }) => {
                 </div>
               </div>
               <hr class="flex-1 border-slate-300 ml-4">
+              <!-- El interruptor va POR DÍA y no global: se ordena un día concreto, y tenerlo
+                   aquí deja claro sobre cuál actúa el arrastre. -->
+              <button @click.stop="modoReordenar = !modoReordenar"
+                      :title="modoReordenar ? 'Volver a editar' : 'Reordenar los servicios de este día'"
+                      class="shrink-0 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-colors"
+                      :class="modoReordenar
+                        ? 'bg-[#376875] text-white border-[#376875]'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-[#376875]/50'">
+                <i class="fas fa-arrows-up-down mr-1"></i>{{ modoReordenar ? 'Listo' : 'Ordenar' }}
+              </button>
+              <!-- Salida explícita: una vez fijado a mano, un cambio de hora deja de recolocar
+                   nada, y sin esto la única forma de volver sería adivinar los números. -->
+              <button v-if="store.diaOrdenadoAMano(dia.fechaAbsoluta)"
+                      @click.stop="soltarOrdenDelDia(dia.fechaAbsoluta)"
+                      title="Devolver este día a su orden automático"
+                      class="shrink-0 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors">
+                <i class="fas fa-rotate-left mr-1"></i>Automático
+              </button>
             </div>
 
             <div class="space-y-4">
-              <div v-for="servicio in dia.cotservicios" :key="servicio.id"
+              <!-- ── MODO REORDENAR ─────────────────────────────────────────────
+                   La ficha se reduce a su título y un asa. Es HTML5 drag-and-drop y no el
+                   long-press de los segmentos porque aquí no compite con el clic: en este modo la
+                   ficha no abre nada, así que arrastrar es el único gesto posible y no hace falta
+                   distinguirlo de nada.
+
+                   ⚠️ Sólo se puede soltar sobre una ficha DEL MISMO DÍA. No hay guarda visual
+                   porque no hace falta: cada día es un contenedor `v-for` distinto, y el store
+                   rechaza el movimiento igualmente si algo se cuela. -->
+              <template v-if="modoReordenar">
+                <div v-for="servicio in dia.cotservicios" :key="`ord-${servicio.id}`"
+                     draggable="true"
+                     @dragstart="onServicioDragStart(servicio.id ?? '')"
+                     @dragover.prevent="dragOverServicioId = servicio.id ?? null"
+                     @dragleave="dragOverServicioId = null"
+                     @drop.prevent="onServicioDrop(servicio.id ?? '')"
+                     class="bg-white border-2 rounded-xl px-4 py-3 flex items-center gap-3 cursor-grab active:cursor-grabbing transition-colors"
+                     :class="[
+                       dragOverServicioId === servicio.id ? 'border-[#376875] bg-[#376875]/5' : 'border-slate-200',
+                       dragServicioId === servicio.id ? 'opacity-40' : ''
+                     ]">
+                  <i class="fas fa-grip-vertical text-slate-300 shrink-0"></i>
+                  <span class="font-black text-sm text-slate-800 truncate flex-1">
+                    {{ store.getI18nText(servicio.nombreInternoSnapshot, store.cotizacion?.idiomaEdicion || 'es') || 'Sin nombre' }}
+                  </span>
+                  <!-- La hora es el dato que el arrastre puede contradecir: se enseña justo al
+                       lado para que la contradicción se vea al hacerla, no al descubrirla. -->
+                  <span v-if="horaClaveDeServicio(servicio)" class="text-[11px] font-black text-slate-400 tabular-nums shrink-0">
+                    {{ horaClaveDeServicio(servicio) }}
+                  </span>
+                  <span v-else class="text-[10px] font-bold text-slate-300 uppercase tracking-widest shrink-0">sin hora</span>
+                </div>
+              </template>
+
+              <div v-else v-for="servicio in dia.cotservicios" :key="servicio.id"
                    @click="store.abrirNivel('servicio', servicio)"
                    class="bg-white border-2 rounded-2xl p-5 shadow-sm transition-all cursor-pointer group relative overflow-hidden"
                    :class="[

@@ -3865,6 +3865,67 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * Reordena los segmentos (párrafos) de un servicio, restringiendo el movimiento
      * para que no se crucen segmentos de días diferentes. Recalcula la propiedad 'orden'.
      */
+    /**
+     * Mueve un servicio dentro de su día. Devuelve `false` si el movimiento no es legal.
+     *
+     * ⚠️ **Sólo dentro del mismo día**, igual que `reordenarSegmentos()`. La fecha de un servicio
+     * sale de sus componentes, así que arrastrarlo a otro día tendría que reescribir esas fechas
+     * o mentir sobre ellas: dos operaciones distintas en un mismo gesto, que es como se cuelan
+     * los errores mudos.
+     *
+     * Al soltar se **materializa el orden visible de TODO el día** con huecos de 10. Es
+     * deliberado que sea todo o nada: un día con unos servicios fijados y otros automáticos es un
+     * estado que nadie sabe leer. Así, `orden = 0` en todos significa «este día se ordena solo» y
+     * cualquier otra cosa significa «lo ordenó una persona».
+     *
+     * Los huecos de 10 permiten insertar entre dos sin renumerar la lista entera.
+     */
+    const reordenarServicios = (fromId: string, toId: string): boolean => {
+        const dia = itinerarioDinamico.value.find(d =>
+            d.cotservicios.some((s: CotServicio) => extractIdStr(s.id) === extractIdStr(fromId)));
+
+        if (!dia) return false;
+
+        const lista = [...dia.cotservicios];
+        const desde = lista.findIndex((s: CotServicio) => extractIdStr(s.id) === extractIdStr(fromId));
+        const hasta = lista.findIndex((s: CotServicio) => extractIdStr(s.id) === extractIdStr(toId));
+
+        // El destino no está en este día, o es el mismo sitio: no es un movimiento.
+        if (desde === -1 || hasta === -1 || desde === hasta) return false;
+
+        const [movido] = lista.splice(desde, 1);
+        lista.splice(hasta, 0, movido);
+
+        // ⚠️ `isDirty` NO se toca aquí: vive en la vista, y `reordenarSegmentos()` tampoco lo
+        // toca. Quien llama marca el cambio, igual que en el resto del editor.
+        lista.forEach((srv: CotServicio, i: number) => {
+            srv.orden = (i + 1) * 10;
+        });
+
+        return true;
+    };
+
+    /**
+     * Devuelve un día a su orden automático: todos sus servicios a `orden = 0`.
+     *
+     * Hace falta porque, una vez fijado a mano, un cambio de hora deja de recolocar nada — y sin
+     * una salida explícita la única forma de volver sería adivinar los números.
+     */
+    const soltarOrdenDelDia = (fecha: string): void => {
+        const dia = itinerarioDinamico.value.find(d => d.fechaAbsoluta === fecha);
+
+        if (!dia) return;
+
+        dia.cotservicios.forEach((srv: CotServicio) => { srv.orden = 0; });
+    };
+
+    /** ¿Este día está ordenado a mano? */
+    const diaOrdenadoAMano = (fecha: string): boolean => {
+        const dia = itinerarioDinamico.value.find(d => d.fechaAbsoluta === fecha);
+
+        return !!dia && dia.cotservicios.some((s: CotServicio) => (s.orden ?? 0) > 0);
+    };
+
     const reordenarSegmentos = (servicioId: string, fromId: string, toId: string): void => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
@@ -4678,7 +4739,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarTarifa, eliminarTarifa, fetchComponenteMaestroSilencioso,
         abrirEditorSegmentos, cerrarEditorSegmentos, aplicarPlantilla,
         actualizarTextosSegmentos,
-        agregarSegmentoIndividual, reordenarSegmentos, procesarInsercionSegmento, removerCotSegmento,
+        agregarSegmentoIndividual, reordenarSegmentos, reordenarServicios, soltarOrdenDelDia, diaOrdenadoAMano, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange, onCambioModoComponente,
         onTipoManualChange, marcarComponenteManual, idSegmentoDeComponente,

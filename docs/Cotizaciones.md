@@ -3088,6 +3088,57 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.af Modo reordenar: la ficha se colapsa y aparece el asa (29/08/2026)
+
+El interruptor «Ordenar» va **en la cabecera de cada día**, no global: se ordena un día concreto y
+tenerlo ahí deja claro sobre cuál actúa el arrastre.
+
+```
+Día 3 · Cronología operativa ──────────────  [Ordenar]  [Automático]
+
+  ⠿  Transporte en Cusco                        13:35
+  ⠿  Full Day Valle Sagrado               sin hora
+  ⠿  Alojamiento en Cusco                 sin hora
+```
+
+**Por qué un modo y no un asa siempre visible**: reordenar y editar son tareas distintas. Con la
+ficha entera delante, arrastrar compite con abrir. Y colapsar deja el día completo en pantalla —
+no se puede ordenar lo que no se ve junto.
+
+⚠️ **La hora se enseña al lado del asa a propósito**: es el dato que el arrastre puede
+contradecir, y una contradicción hay que verla **al hacerla**, no descubrirla tres pantallas
+después.
+
+### Todo el día o ninguno
+
+Al soltar se numera el día entero con huecos de 10. Un día con unos servicios fijados y otros
+automáticos es un estado que nadie sabe leer; así `orden = 0` en todos significa «este día se
+ordena solo» y cualquier otra cosa, «lo ordenó una persona». Los huecos permiten insertar entre
+dos sin renumerar.
+
+Y hay **salida explícita**: el botón «Automático» devuelve el día a `orden = 0`. Sin él, una vez
+fijado a mano un cambio de hora deja de recolocar nada y la única forma de volver sería adivinar
+los números.
+
+⚠️ **No se puede soltar en otro día.** La fecha de un servicio sale de sus componentes, así que un
+arrastre entre días tendría que reescribirlas o mentir: dos operaciones en un gesto. El store
+rechaza el movimiento y **no avisa** — un gesto que no significa nada no es un error, y anunciar
+cada uno enseñaría a ignorar los avisos.
+
+### El chequeo que lo respalda: `orden-contradice-hora`
+
+Es el precio de haber hecho el orden manual pisable, y se aceptó a sabiendas. Salta cuando un
+servicio movido a mano queda antes que otro **del mismo día** que empieza más tarde.
+
+⚠️ **«Del mismo día» lo añadió la prueba.** La primera versión comparaba hermanos de la misma
+cotización sin más, así que habría gritado con cualquier itinerario ordenado a mano en varios
+días. Se vio porque los dos servicios que el script eligió al azar eran del 22 y del 23 de julio.
+
+⚠️ Y la prueba también estuvo mal antes que el chequeo: cogía dos servicios de **cotizaciones
+distintas**, el JOIN no los emparejaba y daba «no salta» sobre código correcto. Se arregló con
+**control negativo y positivo** —ordenado a favor del reloj no salta, invertido sí—, que es lo que
+distingue «funciona» de «no lo estoy midiendo».
+
 ## 6.ae Dónde va un servicio cuando el reloj no lo decide (29/08/2026)
 
 `CotizacionCotservicio::$orden`. **`0` = automático**, y es lo que arranca todo el mundo: el

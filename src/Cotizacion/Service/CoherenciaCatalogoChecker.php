@@ -237,6 +237,31 @@ final class CoherenciaCatalogoChecker
                 'set'     => null,
                 'deCotizacion' => 'g.cotservicio_id IN (SELECT sv.id FROM cotizacion_cotservicio sv WHERE sv.cotizacion_id = :cot)',
             ],
+            // ⚠️ El precio de haber hecho el `orden` manual PISABLE. Se aceptó a sabiendas: sin
+            // él no hay control, y la alternativa —que la posición rara sea la única señal— es un
+            // aviso accidental, de los que este código ya ha pagado caros. Éste es explícito.
+            //
+            // Salta cuando un servicio colocado a mano queda ANTES que otro del mismo día que
+            // empieza más tarde. No es necesariamente un error —el operador puede tener un motivo
+            // que el reloj no sabe— pero es una decisión que merece verse.
+            'orden-contradice-hora' => [
+                'titulo'  => 'Servicios movidos a mano que contradicen su hora',
+                'detalle' => 'Puede ser deliberado. Se revisa, o se devuelve el día a «Automático».',
+                'desde'   => 'cotizacion_cotservicio a JOIN cotizacion_cotservicio b
+                                ON b.cotizacion_id = a.cotizacion_id AND b.id <> a.id',
+                // ⚠️ **Del mismo DÍA**, no sólo de la misma cotización. Sin esta condición el
+                // chequeo comparaba un servicio del día 3 con otro del día 4 y gritaba con
+                // cualquier itinerario ordenado a mano. Lo destapó la prueba: los dos servicios
+                // que eligió al azar eran del 22 y del 23 de julio.
+                'donde'   => 'a.orden > 0 AND b.orden > 0 AND a.orden < b.orden
+                            AND DATE(a.fecha_inicio_absoluta) = DATE(b.fecha_inicio_absoluta)
+                            AND (SELECT MIN(k.fecha_hora_inicio) FROM cotizacion_cotcomponente k
+                                  WHERE k.cotservicio_id = a.id AND k.sin_horario = 0 AND k.fecha_hora_inicio IS NOT NULL)
+                              > (SELECT MIN(k2.fecha_hora_inicio) FROM cotizacion_cotcomponente k2
+                                  WHERE k2.cotservicio_id = b.id AND k2.sin_horario = 0 AND k2.fecha_hora_inicio IS NOT NULL)',
+                'set'     => null,
+                'deCotizacion' => 'a.cotizacion_id = :cot',
+            ],
             // ⚠️ El supuesto es «lo que dura varios días es porque incluye una noche», y NO es
             // «sólo los hoteles duran varios días»: hay siete servicios de dos días —«Two Day
             // Camino inca», «Skylodge con actividades»— y **todos llevan alojamiento dentro**. Es
