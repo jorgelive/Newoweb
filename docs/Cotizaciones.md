@@ -3088,6 +3088,52 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.ad Una noche repetida arrastraba el orden de la primera (29/08/2026)
+
+Un hotel que vive **dentro** de un servicio con actividades —el Skylodge, con su cápsula
+colgante— se repite una vez por noche, y cada repetición conservaba el `orden` de su segmento.
+Ese número era correcto el primer día y falso en los siguientes:
+
+```
+12-set   [tier 0 · 15:00]  Skylodge con actividades
+           1  Traslado desde el Valle Sagrado      15:00
+           2  Ascenso por Vía Ferrata              16:00
+           3  Alojamiento en Cápsula                 —     🛏 noche 1/3
+
+13-set   [tier 0 · 09:00]  Skylodge con actividades
+           3  Alojamiento en Cápsula                 —     🛏 noche 2/3   ← ⚠️ encabeza la mañana
+           4  Descenso por Zipline                 09:00
+           5  Retorno hacia Cusco                  11:00
+```
+
+Al cliente le salía **«sigues alojado en la cápsula» abriendo un día que empieza con una
+tirolesa a las 09:00**.
+
+**El arreglo**: las repeticiones van en su propio grupo (`${servicio.id}::repeticion`), así que
+flotan a donde estarían si el hotel fuera un servicio suelto — escalón 2, al final del día, junto
+a los demás alojamientos.
+
+```
+13-set   [tier 0 · 09:00]  Skylodge · Zipline · Retorno
+         [tier 2 estadía]  Alojamiento en Cusco
+         [tier 2 estadía]  Alojamiento en Cápsula   🛏 noche 2/3
+```
+
+La primera noche **sí conserva su sitio en el relato** —llegar y dormir allí es parte de lo que se
+compró—; las repeticiones son un «sigues aquí», que es nota de cierre y no de apertura.
+
+⚠️ **El escalón 2 exige que TODO el grupo sea estadía** (`gb.every(b => b.esEstadia)`), y ésa es la
+razón de que el hotel de dentro no se fuera al final por sí solo: su grupo tenía horas. Separar
+las repeticiones es lo que hace que la regla las alcance.
+
+⚠️ El título no se duplica: `mostrarTituloServicio` se pone en el primer bloque **por servicio y
+día**, así que en un día con actividades la repetición sale sin encabezado; en un día en el que
+sólo queda la noche, lo lleva —que es lo que hace falta para saber de qué hotel se habla.
+
+Verificado simulando el caso: se estiró el hotel a 3 noches en una transacción, se miró la guía
+día a día, y `rollback`. Razonarlo no habría bastado — la posición sale de tres reglas que
+interactúan (repetición, agrupación por servicio, escalón).
+
 ## 6.ac Dos chequeos para lo que sostiene el orden del día (29/08/2026)
 
 El itinerario coloca cada servicio por la hora más temprana de sus componentes, y los que no

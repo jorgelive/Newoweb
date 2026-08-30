@@ -263,11 +263,24 @@ const itinerarioVista = computed<DiaVista[]>(() => {
   const dias: DiaVista[] = fechasOrdenadas.map((fecha) => {
     const bloques = porFecha.get(fecha)!;
 
-    // 1) Agrupar los bloques del día por servicio
+    // 1) Agrupar los bloques del día por servicio.
+    //
+    // ⚠️ Las REPETICIONES de una estadía van en su propio grupo, y por eso flotan a donde
+    // estarían si el hotel fuera un servicio suelto: al final del día.
+    //
+    // Sin esto, la noche 2 de un hotel que vive DENTRO de un servicio con actividades —el
+    // Skylodge, tres noches— se pintaba en la posición que le daba su `orden`, que era la de la
+    // PRIMERA noche. Al cliente le salía «sigues alojado en la cápsula» encabezando un día que
+    // empieza con un descenso en tirolesa a las 09:00: el número era correcto el día 1 y lo
+    // arrastraba a los siguientes.
+    //
+    // La primera noche sí conserva su sitio en el relato —llegar y dormir allí es parte de lo que
+    // se compró—; las repeticiones son un «sigues aquí», que es nota de cierre y no de apertura.
     const grupos = new Map<string, BloqueVista[]>();
     for (const b of bloques) {
-      if (!grupos.has(b.servicio.id)) grupos.set(b.servicio.id, []);
-      grupos.get(b.servicio.id)!.push(b);
+      const clave = b.esRepeticion ? `${b.servicio.id}::repeticion` : b.servicio.id;
+      if (!grupos.has(clave)) grupos.set(clave, []);
+      grupos.get(clave)!.push(b);
     }
 
     // Horario global de la excursión: por cada servicio del día, la hora de su
