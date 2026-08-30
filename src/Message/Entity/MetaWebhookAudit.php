@@ -207,18 +207,18 @@ class MetaWebhookAudit
     public function getHeadersPretty(): ?string
     {
         if (empty($this->headers)) return null;
-        return json_encode($this->headers, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return json_encode($this->headers, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: null;
     }
 
     public function getPayloadPretty(): ?string
     {
         if (empty($this->payload)) return null;
-        return json_encode($this->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return json_encode($this->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: null;
     }
 
     public function getProcessingMetaPretty(): ?string
     {
         if (empty($this->processingMeta)) return null;
-        return json_encode($this->processingMeta, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return json_encode($this->processingMeta, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: null;
     }
 }

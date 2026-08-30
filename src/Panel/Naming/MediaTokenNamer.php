@@ -6,6 +6,7 @@ namespace App\Panel\Naming;
 
 use Vich\UploaderBundle\Mapping\PropertyMapping;
 use Vich\UploaderBundle\Naming\NamerInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Namer Cronológico Seguro.
@@ -22,7 +23,12 @@ class MediaTokenNamer implements NamerInterface
 
         // 1. EXTENSIÓN
         // Respetamos si el listener PreUpload ya lo convirtió a 'webp'
-        $extension = $file->guessExtension() ?? $file->getClientOriginalExtension();
+        // ⚠️ `getClientOriginalExtension()` sólo existe en `UploadedFile`. `getFile()` puede
+        // devolver un `File` normal —pasa cuando Vich reprocesa uno ya guardado— y ahí esto
+        // reventaba. `guessExtension()` sí está en los dos, así que se usa el original sólo
+        // cuando de verdad hay uno.
+        $extension = $file->guessExtension()
+            ?? ($file instanceof UploadedFile ? $file->getClientOriginalExtension() : 'bin');
 
         // 2. FECHA DE SUBIDA (Sanitizada para URL)
         // Usamos guiones bajos y medios para evitar espacios y dos puntos

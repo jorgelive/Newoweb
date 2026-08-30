@@ -99,7 +99,8 @@ final readonly class AnthropicSkillAdapter
                             $bloqueo
                         ));
 
-                        return json_encode(['error' => $bloqueo], JSON_UNESCAPED_UNICODE);
+                        return json_encode(['error' => $bloqueo], JSON_UNESCAPED_UNICODE)
+                            ?: '{"error":"No se pudo serializar la respuesta."}';
                     }
 
                     try {
@@ -117,7 +118,7 @@ final readonly class AnthropicSkillAdapter
                         return json_encode(
                             ['error' => 'La consulta no se pudo completar.'],
                             JSON_UNESCAPED_UNICODE
-                        );
+                        ) ?: '{"error":"La consulta no se pudo completar."}';
                     }
                 },
             );

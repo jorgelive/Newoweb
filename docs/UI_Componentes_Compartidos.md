@@ -1037,6 +1037,32 @@ Las vistas que no están —Cotizaciones, Catálogo, Organizaciones— caen al b
 Añadir una es una línea, y el criterio es el de arriba: ¿hay alguna skill de escritura que toque
 lo que esa pantalla enseña?
 
+## 3.z `ConIdentificador`: el contrato que le faltaba a la galería del panel (30/08/2026)
+
+`RenderGaleriaTrait` pinta la galería de imágenes en los CRUD de EasyAdmin, y su parámetro era
+`object $entity` — es decir, cualquier cosa. Dentro hace dos cosas con él:
+
+```php
+$modalId = $modalPrefix . '-' . str_replace('-', '', (string) $entity->getId());
+…
+htmlspecialchars((string) $entity)      // el título del modal
+```
+
+O sea que exige `getId()` **y** `__toString()`, y no lo decía en ninguna parte. El día que alguien
+use el trait desde un controlador cuya entidad no tenga uno de los dos, **el fallo sale al pintar
+la galería en el panel**, no al escribir el código.
+
+`App\Panel\Contract\ConIdentificador` lo declara: `getId(): ?Uuid` y `extends Stringable`.
+
+⚠️ **No añade comportamiento a nadie.** Las tres entidades que lo implementan —
+`TravelOrganizacion`, `TravelOrganizacionServicio`, `TravelSegmento`— ya tenían `getId()` por
+`IdTrait` y su `__toString()`. Declarar la interfaz sólo lo hace visible al analizador; para
+sumar una cuarta basta una palabra en la firma de la clase.
+
+Lo destapó el **nivel 7 de PHPStan** (uniones): con `object` no había nada que comprobar. Es el
+mismo patrón que los contratos de `Exchange` de esta semana — *el contrato decía menos de lo que
+el código exigía*—, sólo que aquí no había contrato en absoluto.
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |

@@ -19,6 +19,7 @@ use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
+use App\Panel\Contract\ConIdentificador;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -99,7 +100,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_organizacion')]
 #[ORM\HasLifecycleCallbacks]
-class TravelOrganizacion
+class TravelOrganizacion implements ConIdentificador
 {
     use IdTrait;
     use TimestampTrait;

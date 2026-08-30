@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Panel\Controller\Trait;
 
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
+use App\Panel\Contract\ConIdentificador;
 
 /**
  * Renderiza una galería de thumbnails (Liip) + modal para el index de EasyAdmin.
@@ -26,7 +27,7 @@ trait RenderGaleriaTrait
      */
     private function renderGaleriaThumbnails(
         iterable $imagenes,
-        object $entity,
+        ConIdentificador $entity,
         string $uploadPath,
         string $modalPrefix,
         string $thumbFilter = 'pms_thumb_admin',
