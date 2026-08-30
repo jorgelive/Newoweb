@@ -130,13 +130,13 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
 
                 $urlId = null;
                 if ($urlCfg !== null) {
-                    if (method_exists($lr, 'getSourceId')) {
-                        $sid = $lr->getSourceId();
-                        if (is_string($sid) && str_starts_with($sid, 'id:')) {
-                            $candidate = substr($sid, 3);
-                            if ($candidate !== '') {
-                                $urlId = $candidate;
-                            }
+                    // `$lr` es un TarifaLogicalRangeDto y `getSourceId()` está en su firma:
+                    // el method_exists() que había aquí no comprobaba nada.
+                    $sid = $lr->getSourceId();
+                    if (is_string($sid) && str_starts_with($sid, 'id:')) {
+                        $candidate = substr($sid, 3);
+                        if ($candidate !== '') {
+                            $urlId = $candidate;
                         }
                     }
 

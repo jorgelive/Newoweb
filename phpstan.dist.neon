@@ -14,7 +14,7 @@
 # lleva dentro**. Es exactamente la regla que faltaba — el valor que reventó salía de un `array`
 # pelado, y con el 6 esa firma no habría pasado.
 #
-# ⚠️ Quedan 126 anotaciones pendientes en el baseline, y NO es una lista de perdonados: es que
+# ⚠️ Quedan 120 anotaciones pendientes en el baseline (recontadas el 30/08/2026), y NO es una lista de perdonados: es que
 # escribirlas a mano de golpe garantiza escribir algunas mal, y un tipo mentiroso es peor que
 # ninguno —le hace creer al analizador algo falso—. Se van quitando por módulo, al tocarlos.
 # Las 33 colecciones de Doctrine ya están hechas: su `targetEntity` estaba al lado y se pudo
@@ -80,6 +80,28 @@ parameters:
             paths:
                 - src/*/Entity/*
                 - src/Entity/*
+            reportUnmatched: false
+
+        # ── La frontera de confianza: procesadores y listeners ─────────────────
+        #
+        # `ProcessorInterface::process(mixed $data, …)` recibe **mixed por contrato del
+        # framework**. Cada procesador empieza con `if (!$data instanceof X) { throw }`, y PHPStan
+        # lo marca «siempre verdadero» porque la declaración del procesador dice qué espera.
+        #
+        # ⚠️ Eso NO es código muerto: es la validación de entrada. Quien llama es API Platform con
+        # el cuerpo de una petición HTTP, no nuestro código. Quitar el `instanceof` cambiaría un
+        # 400 con mensaje por un fallo a mitad de proceso, y el analizador no puede ver la
+        # diferencia porque no modela quién invoca.
+        #
+        # Va como REGLA y no en el baseline por lo mismo que la excepción de Doctrine de arriba:
+        # el baseline es deuda que se salda, y esto no se salda nunca — además así cubre los
+        # procesadores que se escriban mañana.
+        -
+            identifier: instanceof.alwaysTrue
+            paths:
+                - src/*/ApiPlatform/State/*
+                - src/*/EventListener/*
+                - src/*/Serializer/*
             reportUnmatched: false
 
     # Cachés y código generado: no es nuestro y no se corrige aquí.

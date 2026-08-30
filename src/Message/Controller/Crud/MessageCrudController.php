@@ -220,7 +220,7 @@ class MessageCrudController extends BaseCrudController
             ->hideWhenCreating()
             ->setColumns(3);
 
-        if (!method_exists($this, 'isEmbedded') || !$this->isEmbedded()) {
+        if (!$this->isEmbedded()) {
             yield AssociationField::new('conversation', 'Conversación')
                 ->setRequired(true)
                 ->setFormTypeOption('disabled', $isEdit)

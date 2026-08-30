@@ -40,11 +40,21 @@
   garantiza escribir algunas mal, y un tipo mentiroso es peor que ninguno.
 
   ⚠️ **La baseline hay que auditarla, no sólo dejar de mirarla.** Auditada entera el 30/08/2026:
-  de 313 ocurrencias, ~90 eran defensas redundantes, ~11 falsos positivos que PHPStan no puede
-  ver (el candado `locked_at` de las colas SÍ se lee, pero en SQL crudo) y **18 eran deuda
-  estructural real** —contratos que declaraban menos de lo que el código les pedía—. Esas 18 se
-  arreglaron ese día. El peligro no era el tamaño: era que las 18 que importaban estaban
-  enterradas entre 295 que no, en un archivo de 1773 líneas que nadie lee entero.
+  de 313 ocurrencias, **18 eran deuda estructural real** —contratos que declaraban menos de lo
+  que el código les pedía— y se arreglaron ese día. El peligro no era el tamaño: era que esas 18
+  estaban enterradas entre 295 que no, en un archivo que nadie lee entero.
+
+  ⚠️ **Y lo que parecía «defensa redundante» casi nunca lo es.** Al ir a borrarlas resultó que la
+  gran mayoría son **guardas en una frontera de confianza que PHPStan no modela**: el `instanceof`
+  de un procesador de API Platform (que recibe el cuerpo de una petición HTTP), el `?->` sobre una
+  relación de Doctrine (que el ORM hidrata sin pasar por el setter), el `is_string()` sobre un
+  `@param list<string>` que sólo promete un docblock. De 130 ocurrencias sólo **9** eran
+  borrables de verdad. Las demás no son deuda: son excepciones permanentes, y por eso pasan a
+  `ignoreErrors` como **regla** —igual que la de Doctrine— en vez de quedarse en la baseline.
+
+  **La pregunta antes de borrar un guarda:** ¿quién llama a esto? Si la respuesta es «el
+  framework», «el ORM» o «otro módulo por un docblock», el guarda se queda. Sólo se borra cuando
+  el tipo lo garantiza PHP en el mismo ámbito.
 
   ⚠️ La baseline **no es una lista de perdonados**: es la foto del día que se instaló, para que
   salte sólo lo nuevo. Si tocas un archivo que tiene errores dentro, arréglalos y quítalos de

@@ -169,7 +169,7 @@ class PmsGuiaItemGaleriaCrudController extends BaseCrudController
             ->onlyOnIndex()
             ->setSortable(false)
             ->formatValue(function ($value, $entity) {
-                if ($entity instanceof PmsGuiaItemGaleria && method_exists($entity, 'isImage') && !$entity->isImage($entity->getImageName())) {
+                if ($entity instanceof PmsGuiaItemGaleria && !$entity->isImage($entity->getImageName())) {
                     return $entity->getIconPathFor($entity->getImageName());
                 }
                 return $value;

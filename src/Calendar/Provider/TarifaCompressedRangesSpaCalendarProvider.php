@@ -109,13 +109,13 @@ final class TarifaCompressedRangesSpaCalendarProvider implements CalendarProvide
 
                 // Id "real" del rango de tarifa que origina este segmento (mismo criterio que el legacy)
                 $sourceId = null;
-                if (method_exists($lr, 'getSourceId')) {
-                    $sid = $lr->getSourceId();
-                    if (is_string($sid) && str_starts_with($sid, 'id:')) {
-                        $candidate = substr($sid, 3);
-                        if ($candidate !== '') {
-                            $sourceId = $candidate;
-                        }
+                // `$lr` es un TarifaLogicalRangeDto y `getSourceId()` está en su firma: el
+                // method_exists() que había aquí no comprobaba nada.
+                $sid = $lr->getSourceId();
+                if (is_string($sid) && str_starts_with($sid, 'id:')) {
+                    $candidate = substr($sid, 3);
+                    if ($candidate !== '') {
+                        $sourceId = $candidate;
                     }
                 }
 

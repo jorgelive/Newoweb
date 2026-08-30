@@ -109,7 +109,7 @@ final class PmsUnidadCrudController extends BaseCrudController
             ->onlyOnIndex()
             ->setSortable(false)
             ->formatValue(function ($value, $entity) {
-                if ($entity instanceof PmsUnidad && method_exists($entity, 'isImage') && !$entity->isImage($entity->getImageName())) {
+                if ($entity instanceof PmsUnidad && !$entity->isImage($entity->getImageName())) {
                     return $entity->getIconPathFor($entity->getImageName());
                 }
                 return $value;

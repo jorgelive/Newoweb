@@ -434,12 +434,7 @@ parameters:
 			count: 1
 			path: src/Calendar/Provider/PmsEventosRawCalendarProvider.php
 
-		-
-			message: '#^Using nullsafe method call on non\-nullable type App\\Pms\\Entity\\PmsEventoCalendario\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 2
-			path: src/Calendar/Provider/PmsEventosRawCalendarProvider.php
-
+	
 		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsEventoCalendario and App\\Pms\\Entity\\PmsEventoCalendario will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
@@ -452,24 +447,9 @@ parameters:
 			count: 1
 			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
 
-		-
-			message: '#^Using nullsafe method call on non\-nullable type App\\Pms\\Entity\\PmsEventoCalendario\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 2
-			path: src/Calendar/Provider/PmsEventosSpaCalendarProvider.php
-
-		-
-			message: '#^Call to function method_exists\(\) with App\\Pms\\Service\\Tarifa\\Dto\\TarifaLogicalRangeDto and ''getSourceId'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesCalendarProvider.php
-
-		-
-			message: '#^Call to function method_exists\(\) with App\\Pms\\Service\\Tarifa\\Dto\\TarifaLogicalRangeDto and ''getSourceId'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Calendar/Provider/TarifaCompressedRangesSpaCalendarProvider.php
-
+	
+	
+	
 		-
 			message: '#^Call to function is_numeric\(\) with int will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
@@ -542,12 +522,7 @@ parameters:
 			count: 1
 			path: src/Cotizacion/Entity/CotizacionSegmento.php
 
-		-
-			message: '#^Instanceof between App\\Cotizacion\\Entity\\Cotizacion and App\\Cotizacion\\Entity\\Cotizacion will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Cotizacion/Serializer/CotizacionDenormalizer.php
-
+	
 		-
 			message: '#^Unable to resolve the template type T in call to method Doctrine\\Persistence\\ObjectManager\:\:find\(\)$#'
 			identifier: argument.templateType
@@ -867,12 +842,7 @@ parameters:
 			count: 1
 			path: src/Finanzas/Service/FinEnlacePagoService.php
 
-		-
-			message: '#^Instanceof between App\\Message\\Entity\\Message and App\\Message\\Entity\\Message will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Message/ApiPlatform/State/MessageMultipartProcessor.php
-
+	
 		-
 			message: '#^Method App\\Message\\ApiPlatform\\State\\MessageMultipartProcessor\:\:__construct\(\) has parameter \$persistProcessor with generic interface ApiPlatform\\State\\ProcessorInterface but does not specify its types\: T1, T2$#'
 			identifier: missingType.generics
@@ -897,12 +867,7 @@ parameters:
 			count: 1
 			path: src/Message/Controller/Crud/MessageAttachmentCrudController.php
 
-		-
-			message: '#^Call to function method_exists\(\) with \$this\(App\\Message\\Controller\\Crud\\MessageCrudController\) and ''isEmbedded'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Message/Controller/Crud/MessageCrudController.php
-
+	
 		-
 			message: '#^Call to function is_array\(\) with list\<array\{language\?\: string, content\?\: string\|null, format\?\: string\|null, status\?\: string\|null\}\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
@@ -1001,12 +966,7 @@ parameters:
 			count: 1
 			path: src/Message/EventListener/MessageAutoResponderListener.php
 
-		-
-			message: '#^Instanceof between App\\Message\\Contract\\MessageQueueItemInterface and App\\Message\\Contract\\MessageQueueItemInterface will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Message/EventListener/Queue/MessageEnqueuerEntityListener.php
-
+	
 		-
 			message: '#^Expression on left side of \?\? is not nullable\.$#'
 			identifier: nullCoalesce.expr
@@ -1098,18 +1058,8 @@ parameters:
 			count: 1
 			path: src/Message/Service/Translation/MessageTranslator.php
 
-		-
-			message: '#^Instanceof between App\\Operacion\\ApiPlatform\\Dto\\AplicarPlanInput and App\\Operacion\\ApiPlatform\\Dto\\AplicarPlanInput will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Operacion/ApiPlatform/State/AplicarPlanOperacionProcessor.php
-
-		-
-			message: '#^Instanceof between App\\Cotizacion\\Entity\\Cotizacion and App\\Cotizacion\\Entity\\Cotizacion will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Operacion/ApiPlatform/State/PlanificarOperacionProcessor.php
-
+	
+	
 		-
 			message: '#^Method App\\Operacion\\Entity\\OperacionOrdenServicio\:\:getMensajes\(\) return type with generic interface Doctrine\\Common\\Collections\\Collection does not specify its types\: TKey, T$#'
 			identifier: missingType.generics
@@ -1200,30 +1150,10 @@ parameters:
 			count: 1
 			path: src/Pax/Entity/UiI18n.php
 
-		-
-			message: '#^Instanceof between App\\Pms\\Entity\\PmsEventoCalendario and App\\Pms\\Entity\\PmsEventoCalendario will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/ApiPlatform/State/PmsEventoCalendarioProcessor.php
-
-		-
-			message: '#^Instanceof between App\\Pms\\Entity\\PmsPagoFinanciero and App\\Pms\\Entity\\PmsPagoFinanciero will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/ApiPlatform/State/PmsPagoFinancieroProcessor.php
-
-		-
-			message: '#^Instanceof between App\\Pms\\ApiPlatform\\Dto\\PmsReservaCrearInput and App\\Pms\\ApiPlatform\\Dto\\PmsReservaCrearInput will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/ApiPlatform/State/PmsReservaCrearProcessor.php
-
-		-
-			message: '#^Instanceof between App\\Pms\\ApiPlatform\\Dto\\PmsTarifaMasivaInput and App\\Pms\\ApiPlatform\\Dto\\PmsTarifaMasivaInput will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/ApiPlatform/State/PmsTarifaMasivaProcessor.php
-
+	
+	
+	
+	
 		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
@@ -1248,12 +1178,7 @@ parameters:
 			count: 2
 			path: src/Pms/Controller/Crud/PmsGuiaItemCrudController.php
 
-		-
-			message: '#^Call to function method_exists\(\) with App\\Pms\\Entity\\PmsGuiaItemGaleria and ''isImage'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Pms/Controller/Crud/PmsGuiaItemGaleriaCrudController.php
-
+	
 		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsEventoCalendario and App\\Pms\\Entity\\PmsEventoCalendario will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
@@ -1266,12 +1191,7 @@ parameters:
 			count: 2
 			path: src/Pms/Controller/Crud/PmsReservaCrudController.php
 
-		-
-			message: '#^Call to function method_exists\(\) with App\\Pms\\Entity\\PmsUnidad and ''isImage'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Pms/Controller/Crud/PmsUnidadCrudController.php
-
+	
 		-
 			message: '#^Offset ''id'' on non\-empty\-array\<mixed, mixed\> on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
@@ -1388,12 +1308,7 @@ parameters:
 			count: 1
 			path: src/Pms/EventListener/PmsEventoCalendarioSecurityListener.php
 
-		-
-			message: '#^Instanceof between Doctrine\\ORM\\EntityManagerInterface and Doctrine\\ORM\\EntityManagerInterface will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
-
+	
 		-
 			message: '#^Variable \$e in PHPDoc tag @var does not match any variable in the foreach loop\: \$l$#'
 			identifier: varTag.differentVariable
@@ -1406,12 +1321,7 @@ parameters:
 			count: 1
 			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
 
-		-
-			message: '#^Instanceof between Doctrine\\ORM\\EntityManagerInterface and Doctrine\\ORM\\EntityManagerInterface will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24RatesPushQueueListener.php
-
+	
 		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsUnidadBeds24Map and App\\Pms\\Entity\\PmsUnidadBeds24Map will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
