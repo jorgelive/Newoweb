@@ -320,6 +320,45 @@ Dos reglas:
   dicho «ya existe» y seguido de largo. Por eso lleva `repararTarifaPorDefecto()`: al reencontrar
   un enlace suyo, rellena lo que falte en vez de saltarlo.
 
+### La redacción: el marcado NO es cuestión de gusto (30/08/2026)
+
+`TravelSegmento::$contenido` está declarado `#[AutoTranslate(format: 'html')]`, y `pax` lo pinta
+con `v-html` dentro de un contenedor Tailwind **`prose`**, que estiliza **por selector de
+elemento**. Un texto sin `<p>` no recibe `leading-relaxed` ni margen de párrafo: sale con otro
+interlineado y pegado al de al lado, **en la misma lista**.
+
+Medido en el catálogo:
+
+| Forma | Segmentos |
+|---|---|
+| `<p>` sin entradilla en negrita | **102** |
+| texto pelado, sin `<p>` | 47 |
+| `<p>` con `<b>` + emoji de entrada | 35 |
+
+Dos conclusiones distintas, y conviene no mezclarlas:
+
+- **El `<p>` es obligatorio.** No es estilo: es el contrato del campo y lo que necesita el
+  renderizador. Los 47 pelados se ven mal, aunque cada uno por separado parezca correcto.
+- **La entradilla «✈️ **De Lima a Punta Cana:**» es minoría (35 de 184)** y rompe la voz: dentro
+  de un mismo expediente el cliente leía «Navegación hasta Isla Saona» y dos líneas después
+  «Volamos desde la bruma del Pacífico». Cambia la persona, aparece un emoji y aparece negrita.
+
+⚠️ **El grupo mayoritario tampoco es el modelo.** Los 102 son contenido antiguo con prosa de
+folleto («Prepárate para desafiar las alturas»), mezcla de tú y nosotros, y restos de editor
+(`data-path-to-node="1"`) pegados dentro del HTML. De ahí se conserva **sólo el `<p>`**; la voz
+buena es la del contenido nuevo —impersonal, concreto, sin relleno—.
+
+**Y la regla de reparto, que es la misma de la guía del huésped.** El texto del restaurante
+temático decía «Cena a la carta en uno de los restaurantes temáticos del resort. Requieren reserva
+previa y la disponibilidad se gestiona en recepción al llegar»: no decía **qué cocinas hay** —que
+es todo el atractivo— y gastaba media descripción en el trámite. Lo que limita va al final.
+
+Lo aplica `app:travel:redaccion-punta-cana`, que separa los tres trabajos: retitular, reescribir y
+envolver en `<p>`.
+
+⚠️ **El envoltorio parte por líneas en blanco, no envuelve el bloque entero.** Un texto con dos
+párrafos metido en un solo `<p>` los funde, y ese cambio pasaría por corrección tipográfica.
+
 ### ⚠️ «Aeropuerto» no significa lo mismo en tres ciudades
 
 La forma NO es única, y asumirla habría estropeado dos de las tres. El bloque de aeropuerto de
@@ -706,4 +745,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:horario-comidas-resort` | dar franja (inicio **y fin**) a lo que el catálogo dejó con duración cero |
 | `app:travel:quitar-hora-a-extras` | quitar la hora a un tipo que no la usa, **comprobando el tipo antes de escribir** |
 | `app:travel:crear-traslado-coco-bongo` | clonar una flota en vez de recopiarla · reparar lo que una pasada anterior dejó a null |
+| `app:travel:redaccion-punta-cana` | el marcado como contrato del campo, no como gusto · separar retitular de reescribir |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |

@@ -55,6 +55,28 @@ Cada nodo guarda **copias congeladas** (`*Snapshot`) tomadas de los **maestros**
 - El **nombre interno** de un componente **no** está en su snapshot: viene del **maestro** (`componenteMaestroId` → `catalogos.allComponentes[].nombreInterno`). Siempre existe.
 - `tituloSnapshot` del componente = **título público** (opcional; para el cliente). Un componente sin `tituloSnapshot` es un "contenedor solo-ítems" (`isComponenteSoloItems`).
 
+### Bajar de nuevo el texto del maestro a un expediente abierto (30/08/2026)
+
+«Salvo re-sincronización explícita» era, hasta hoy, una promesa sin comando detrás para el
+**texto del cliente**. `app:cotizacion:refrescar-nombres-maestros` refresca el `nombreInterno`
+—lo que ve el operador—, y no había nada que bajara `tituloSnapshot` ni `contenidoSnapshot`. La
+única vía era quitar el segmento del expediente y volverlo a meter.
+
+`app:cotizacion:refrescar-textos-maestros --cotizacion=<uuid>` lo hace, con `--dry-run` y con
+`--solo=<slugs>` para acotar.
+
+⚠️ **Copia los SIETE idiomas, no sólo el español.** El snapshot es lo que `pax` lee en el idioma
+del huésped; dejarlo con un español nuevo y seis traducciones viejas sería peor que no tocarlo —el
+huésped en inglés seguiría viendo el texto anterior y nadie lo notaría, porque nadie revisa la
+versión que no habla.
+
+⚠️ **Y el límite que no tiene arreglo técnico: un retoque a mano y un texto viejo son
+indistinguibles.** Si el operador editó la descripción dentro del expediente, el comando ve
+exactamente lo mismo que ante un snapshot desactualizado: «difiere del maestro». No hay heurística
+que los separe, así que el comando **no adivina**: enseña las dos versiones y se corre primero en
+ensayo. Fingir una heurística aquí sería peor que no tenerla, porque pisaría trabajo humano sin
+avisar.
+
 ### El nombre de un SEGMENTO: un solo campo, y por qué no se contamina (2026-08-17)
 
 A diferencia del servicio —que tiene tres nombres (código, operativo, comercial)—, un
