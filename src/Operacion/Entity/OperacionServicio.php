@@ -1016,9 +1016,11 @@ class OperacionServicio
     /**
      * La posición de este servicio DENTRO de su itinerario, para leer el cuadro en orden natural.
      *
-     * `día × 1000 + orden del segmento`. Los componentes que cuelgan del mismo segmento comparten
-     * número y se desempatan por hora, que es exactamente como se leen: «el ascenso en bus y su
-     * ingreso van juntos, y dentro de eso manda el reloj».
+     * `día × 1.000.000 + posición del servicio × 1.000 + orden del segmento`. Los componentes que
+     * cuelgan del mismo segmento comparten número y se desempatan por hora, que es exactamente
+     * como se leen: «el ascenso en bus y su ingreso van juntos, y dentro de eso manda el reloj».
+     *
+     * El rango propio para el servicio se añadió el 29/08/2026 — ver {@see self::posicionDelServicio()}.
      *
      * ⚠️ **Es la vista que pide el operador, y no coincide con la del reloj.** Un cuadro ordenado
      * sólo por hora parte el relato: el alojamiento y la comida, que no tienen hora, caen al final

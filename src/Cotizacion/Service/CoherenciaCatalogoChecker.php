@@ -275,10 +275,24 @@ final class CoherenciaCatalogoChecker
                 'titulo'  => 'Servicios que abarcan varios días sin incluir alojamiento',
                 'detalle' => 'O las fechas están mal, o es una forma que el ordenamiento del día no contempla.',
                 'desde'   => 'cotizacion_cotservicio cs',
-                'donde'   => '(SELECT COUNT(DISTINCT DATE(k.fecha_hora_inicio)) FROM cotizacion_cotcomponente k
-                                WHERE k.cotservicio_id = cs.id AND k.fecha_hora_inicio IS NOT NULL) > 1
-                            AND NOT EXISTS (SELECT 1 FROM cotizacion_cotcomponente k2
-                                             WHERE k2.cotservicio_id = cs.id AND k2.tipo = "alojamiento")',
+                // ⚠️ Mira el inicio **y el fin**. Sólo con los inicios se escapaba el caso que más
+                // importa: un componente que va del día 1 al 3 tiene UNA fecha de inicio, y aun
+                // así `pax` lo repite por días —lo detecta por `fechaHoraFin`—, que es justo «la
+                // forma que el ordenamiento no contempla» que este chequeo dice vigilar.
+                //
+                // ⚠️ Y la rama del fin exige `sin_horario = 1`, que es la condición exacta de
+                // `esEstadia` en `pax` (`!horaInicio && !horaFin && finPeriodo > base`). Sin ella
+                // saltaban 7 falsos positivos: traslados de las 22:00 que acaban a las 00:30.
+                // **Cruzar medianoche no es durar dos días** — el bloque no se repite, empieza y
+                // acaba en la jornada en la que empezó.
+                'donde'   => 'NOT EXISTS (SELECT 1 FROM cotizacion_cotcomponente k2
+                                           WHERE k2.cotservicio_id = cs.id AND k2.tipo = "alojamiento")
+                            AND ((SELECT COUNT(DISTINCT DATE(k.fecha_hora_inicio)) FROM cotizacion_cotcomponente k
+                                   WHERE k.cotservicio_id = cs.id AND k.fecha_hora_inicio IS NOT NULL) > 1
+                              OR EXISTS (SELECT 1 FROM cotizacion_cotcomponente k3
+                                          WHERE k3.cotservicio_id = cs.id AND k3.sin_horario = 1
+                                            AND k3.fecha_hora_fin IS NOT NULL
+                                            AND DATE(k3.fecha_hora_fin) > DATE(k3.fecha_hora_inicio)))',
                 'set'     => null,
                 'deCotizacion' => 'cs.cotizacion_id = :cot',
             ],

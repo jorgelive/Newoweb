@@ -24,20 +24,6 @@ import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
 
-/**
- * El orden natural de una jornada. **Espejo de `ComponenteTipoEnum::ordenNarrativo()`** y de
- * `ORDEN_NARRATIVO` en `util`: los tres cambian juntos o el huésped y el operador ven días
- * distintos.
- */
-const ORDEN_NARRATIVO: Record<string, number> = {
-  vuelo: 10, tren: 10, transporte: 10, transporte_excursion: 10,
-  contacto: 20,
-  pool: 30, privada: 30, guiado: 30,
-  ticket_fijo: 40, ticket_variable: 40,
-  alimentacion_fijo: 50, alimentacion_variable: 50,
-  personal_extra: 60, extras: 60,
-  alojamiento: 90,
-};
 
 
 
@@ -334,9 +320,12 @@ const itinerarioVista = computed<DiaVista[]>(() => {
         return servicio.orden as number;
       }
 
+      // ⚠️ `ordenNarrativo` llega SERIALIZADO en cada componente. Escribir la tabla de tipos
+      // aquí sería la segunda copia de una regla que ya vive en `ComponenteTipoEnum` — lo que
+      // el docblock de `componentesOrdenados` en el store prohíbe explícitamente.
       const naturales = bloques
           .flatMap(b => b.componentes)
-          .map(c => ORDEN_NARRATIVO[c?.tipo ?? ''] ?? 30);
+          .map(c => c?.ordenNarrativo ?? 30);
 
       return naturales.length ? Math.min(...naturales) : 30;
     };

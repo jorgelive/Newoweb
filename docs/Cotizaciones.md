@@ -3088,6 +3088,53 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.ag Lo que encontró la revisión externa del ordenamiento (29/08/2026)
+
+Cuatro correcciones sobre la implementación recién desplegada. La primera es la que duele.
+
+### ⚠️ Escribí la tabla de tipos en el front, que el propio código prohíbe
+
+`ComponenteTipoEnum::ordenNarrativo()` **ya viajaba serializada** como
+`CotizacionCotcomponente::getOrdenNarrativo()`, en los grupos `cotizacion:read` y
+`pax_cotizacion:read`, y **los dos fronts ya la consumían**. A 300 líneas de mi código, en el
+mismo archivo, estaba escrito:
+
+> «poner los números en el front sería escribirlos dos veces — y dos copias de una regla discrepan
+> el día que alguien toca una»
+
+Creé las dos copias. Ninguna herramienta lo caza —los números coincidían— y el typecheck no tiene
+forma de saber que el campo ya existía. **Sólo se ve leyendo lo que hay antes de escribir.**
+Ahora `posicionDeServicio()` lee `c.ordenNarrativo` en los dos lados y no hay ninguna tabla en TS.
+
+### El interruptor decía «por día» y era global
+
+`modoReordenar` era un `ref(false)` único, con un comentario al lado afirmando que iba por día:
+pulsarlo colapsaba **todos** los días a la vez. Ahora guarda la fecha (`diaEnReorden`). El
+comentario describía la intención y el código hacía otra cosa — la clase de mentira que este repo
+dice no tolerar.
+
+### `multidia-sin-noche` miraba la fecha equivocada
+
+Detectaba multidía por fechas de **inicio** distintas, pero `pax` decide la repetición por
+`fechaHoraFin`. Un componente que va del día 1 al 3 tiene **una** fecha de inicio y aun así se
+repite por días — justo el caso que el chequeo dice vigilar.
+
+⚠️ Y la primera corrección **se pasó**: mirar el fin a secas hacía saltar 7 falsos positivos, los
+traslados de las 22:00 que acaban a las 00:30. **Cruzar medianoche no es durar dos días.** La
+condición buena es la misma que usa `esEstadia`: sin horario y fin posterior al inicio.
+
+### Lo que se deja como está, y por qué
+
+- **La Biblia ordena por posición antes que por hora**, al revés que las otras cuatro. No es un
+  descuido: su propio docblock lo dice desde el principio —«un cuadro ordenado sólo por reloj
+  parte el relato»— y tiene interruptor para verla por hora. Queda declarado aquí.
+- **La colisión residual**: `posicionDelServicio()` es `min(ordenNarrativo)`, y casi todo servicio
+  con transporte da 10. Dos excursiones el mismo día siguen empatando y desempatan por hora. El
+  arreglo separa naturalezas distintas, no todo — el commit lo dijo más ancho de lo que es.
+- **`orden-contradice-hora` no ve la contradicción manual-vs-automático** (exige que los dos
+  tengan `orden > 0`), ni los empates. Cubre el caso que produce el arrastre, que es para el que
+  se escribió.
+
 ## 6.af Modo reordenar: la ficha se colapsa y aparece el asa (29/08/2026)
 
 El interruptor «Ordenar» va **en la cabecera de cada día**, no global: se ordena un día concreto y

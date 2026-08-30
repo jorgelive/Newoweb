@@ -3181,7 +3181,7 @@ cambia es que deja de afirmar algo que no ocurrió.
 Un interruptor en la barra, junto a los chips de lugar. **Por itinerario es el defecto.**
 
 ```
-Itinerario   OperacionServicio::getOrdenItinerario()  = día × 1000 + orden del segmento
+Itinerario   OperacionServicio::getOrdenItinerario()  = día × 1.000.000 + posición del servicio × 1.000 + orden del segmento
 Por hora     horaRecojo ?? horaComponente             = la MISMA que pinta la fila
 ```
 

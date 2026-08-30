@@ -1,5 +1,4 @@
 import { extractIdStr } from '@/utils/recurso';
-import { ordenNarrativoDe } from '@/types/operacionModel';
 import {defineStore} from 'pinia';
 import { extractApiErrorMessage } from '@/services/apiError';
 import {computed, ref, type Ref} from 'vue';
@@ -1665,7 +1664,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 return srv.orden as number;
             }
 
-            const naturales = (srv.cotcomponentes ?? []).map(c => ordenNarrativoDe(c.tipo));
+            // ⚠️ `ordenNarrativo` viene SERIALIZADO en cada componente, no se calcula aquí.
+            // La primera versión de esto se trajo la tabla de tipos al front — justo lo que
+            // prohíbe el docblock de `componentesOrdenados` 300 líneas más abajo: `util` y `pax`
+            // no comparten código, así que escribirla aquí es escribirla dos veces, y dos copias
+            // de una regla discrepan el día que alguien toca una. Lo decide
+            // `ComponenteTipoEnum::ordenNarrativo()` y llega por la API.
+            const naturales = (srv.cotcomponentes ?? []).map(c => c.ordenNarrativo ?? 30);
 
             return naturales.length ? Math.min(...naturales) : 30;
         };

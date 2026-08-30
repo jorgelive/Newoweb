@@ -1102,7 +1102,8 @@ const horaClaveDeServicio = (srv: CotServicio): string | null => {
   return horas[0] ?? null;
 };
 
-const modoReordenar = ref(false);
+/** La fecha del día en modo reordenar, o null. Uno cada vez: ordenar dos a la vez no es una tarea. */
+const diaEnReorden = ref<string | null>(null);
 const dragServicioId = ref<string | null>(null);
 const dragOverServicioId = ref<string | null>(null);
 
@@ -1538,15 +1539,17 @@ store.$onAction(({ name, args }) => {
                 </div>
               </div>
               <hr class="flex-1 border-slate-300 ml-4">
-              <!-- El interruptor va POR DÍA y no global: se ordena un día concreto, y tenerlo
-                   aquí deja claro sobre cuál actúa el arrastre. -->
-              <button @click.stop="modoReordenar = !modoReordenar"
-                      :title="modoReordenar ? 'Volver a editar' : 'Reordenar los servicios de este día'"
+              <!-- ⚠️ POR DÍA de verdad: guarda la fecha, no un booleano. La primera versión era
+                   un `ref(false)` global con un comentario que decía «por día» — pulsarlo
+                   colapsaba TODOS los días a la vez. El comentario describía la intención y el
+                   código hacía otra cosa. -->
+              <button @click.stop="diaEnReorden = diaEnReorden === dia.fechaAbsoluta ? null : dia.fechaAbsoluta"
+                      :title="diaEnReorden === dia.fechaAbsoluta ? 'Volver a editar' : 'Reordenar los servicios de este día'"
                       class="shrink-0 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-colors"
-                      :class="modoReordenar
+                      :class="diaEnReorden === dia.fechaAbsoluta
                         ? 'bg-[#376875] text-white border-[#376875]'
                         : 'bg-white text-slate-500 border-slate-200 hover:border-[#376875]/50'">
-                <i class="fas fa-arrows-up-down mr-1"></i>{{ modoReordenar ? 'Listo' : 'Ordenar' }}
+                <i class="fas fa-arrows-up-down mr-1"></i>{{ diaEnReorden === dia.fechaAbsoluta ? 'Listo' : 'Ordenar' }}
               </button>
               <!-- Salida explícita: una vez fijado a mano, un cambio de hora deja de recolocar
                    nada, y sin esto la única forma de volver sería adivinar los números. -->
@@ -1568,7 +1571,7 @@ store.$onAction(({ name, args }) => {
                    ⚠️ Sólo se puede soltar sobre una ficha DEL MISMO DÍA. No hay guarda visual
                    porque no hace falta: cada día es un contenedor `v-for` distinto, y el store
                    rechaza el movimiento igualmente si algo se cuela. -->
-              <template v-if="modoReordenar">
+              <template v-if="diaEnReorden === dia.fechaAbsoluta">
                 <div v-for="servicio in dia.cotservicios" :key="`ord-${servicio.id}`"
                      draggable="true"
                      @dragstart="onServicioDragStart(servicio.id ?? '')"
