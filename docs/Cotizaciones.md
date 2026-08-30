@@ -232,6 +232,44 @@ La Biblia (`contextoServicio`) lee `nombreInternoSnapshot`, así que el operador
 operativo, no el título comercial. Las cotizaciones existentes conservan su `nombreInternoSnapshot`
 viejo (título) hasta que se reediten: sólo cambia el comportamiento de las nuevas.
 
+#### ⚠️ El operativo se lee en `es` FIJO, nunca en el idioma de edición (2026-08-30)
+
+Es la consecuencia directa de la tabla de arriba y se olvidaba sola: **un campo de un solo idioma
+pedido en otro idioma no da error, da cadena vacía.** `getI18nText()` busca la entrada por
+`language` y devuelve `''` si no está — no cae al español, y hace bien: para un campo traducido,
+inventar un idioma sería peor.
+
+Tres sitios lo pedían con `store.cotizacion.idiomaEdicion`, y los tres se vaciaban en cuanto la
+cotización no se editaba en español:
+
+| Dónde | Qué se veía en una cotización en inglés |
+|---|---|
+| Cabecera del Constructor de Storytelling | «Servicio:» y nada detrás |
+| Lista de reordenar servicios | todas las fichas con «Sin nombre» |
+| `etiquetaDeParrafo()` (desplegables que COLOCAN un párrafo) | caía al título — justo el dato que ese helper documenta no querer usar |
+
+**La regla:** si el campo no lleva `#[AutoTranslate]`, se lee con `'es'` escrito a mano. En este
+mismo archivo ya había cuatro sitios haciéndolo bien (el inspector del servicio, su input); lo que
+faltaba era que fuese regla y no costumbre.
+
+#### El nombre operativo del PÁRRAFO, en la ficha del storytelling (2026-08-30)
+
+La cabecera de cada párrafo enseñaba sólo `tituloSnapshot`, y con eso no se sabe qué tramo es: el
+título es prosa de cliente, y dos párrafos seguidos se titulan «Check-in» y «Check-out». El
+operativo —el mismo que el pool de la izquierda enseña sobre cada tarjeta— va ahora encima, en la
+línea de arriba.
+
+No es cosmético: `CotizacionSegmento::$nombreInternoSnapshot` es el `nombreSegmento` que
+`BibliaSnapshotService` manda a tráfico. Verlo en la ficha es ver lo que le va a llegar al que
+opera el servicio.
+
+**De sólo lectura, y eso es deliberado.** `actualizarTextosSegmentos()` lo reescribe desde el
+maestro en cada «Actualizar», junto con título, contenido, notas e imágenes. Un input aquí
+prometería una edición que el siguiente refresco se lleva sin decir nada — se cambia en el
+`TravelSegmento`. Cuando está vacío (párrafo escrito a mano, sin maestro) se enseña «Sin nombre
+operativo» en gris: esa fila llegará a La Biblia sin nombre de tramo, y eso también conviene verlo
+antes y no en la orden.
+
 ### ⚠️ Los tres nombres de un SERVICIO, y la asimetría interno/público (2026-08-17)
 
 Un `CotizacionCotservicio` tiene **tres** campos de nombre, y no dan lo mismo:

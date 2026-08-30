@@ -1064,7 +1064,10 @@ const poolFiltrado = computed(() => {
 const etiquetaDeParrafo = (cotSeg: CotSegmento): string => {
   const lang = store.cotizacion?.idiomaEdicion || 'es';
 
-  return store.getI18nText(cotSeg.nombreInternoSnapshot, lang)
+  // ⚠️ El operativo en `es` y no en `lang`: no lleva `#[AutoTranslate]`, así que en una
+  // cotización que se edita en inglés `getI18nText(..., 'en')` devolvía '' y el desplegable caía
+  // al título — justo el dato que este helper dice no querer usar.
+  return store.getI18nText(cotSeg.nombreInternoSnapshot, 'es')
       || store.getI18nText(cotSeg.tituloSnapshot, lang)
       || 'Sin título';
 };
@@ -1594,7 +1597,10 @@ store.$onAction(({ name, args }) => {
                      ]">
                   <i class="fas fa-grip-vertical text-slate-300 shrink-0"></i>
                   <span class="font-black text-sm text-slate-800 truncate flex-1">
-                    {{ store.getI18nText(servicio.nombreInternoSnapshot, store.cotizacion?.idiomaEdicion || 'es') || 'Sin nombre' }}
+                    <!-- `es` fijo: el operativo no se traduce (ver §2.b). Con el idioma de edición,
+                         reordenar una cotización en inglés era arrastrar fichas que ponían todas
+                         «Sin nombre». -->
+                    {{ store.getI18nText(servicio.nombreInternoSnapshot, 'es') || 'Sin nombre' }}
                   </span>
                   <!-- La hora es el dato que el arrastre puede contradecir: se enseña justo al
                        lado para que la contradicción se vea al hacerla, no al descubrirla. -->
@@ -3590,7 +3596,9 @@ store.$onAction(({ name, args }) => {
           <header class="bg-teal-600 text-white px-6 py-4 flex justify-between items-center">
             <div>
               <h2 class="font-black text-lg flex items-center gap-2"><i class="fas fa-book-open"></i> Constructor de Storytelling</h2>
-              <p class="text-[11px] font-bold text-teal-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.servicioActivo?.nombreInternoSnapshot, store.cotizacion.idiomaEdicion) }}</p>
+              <!-- `es` fijo, misma razón: el operativo no está traducido y esta cabecera se quedaba en
+                   «Servicio:» a secas en cuanto la cotización no se editaba en español. -->
+              <p class="text-[11px] font-bold text-teal-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.servicioActivo?.nombreInternoSnapshot, 'es') }}</p>
             </div>
             <button @click="store.cerrarEditorSegmentos()" class="w-8 h-8 rounded-full bg-teal-500 hover:bg-teal-400 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
           </header>
@@ -3737,9 +3745,30 @@ store.$onAction(({ name, args }) => {
                                  corregir lo que no veía. La versal se queda donde el texto NO se
                                  edita. -->
                             <div class="flex items-center gap-2 w-full lg:w-auto min-w-0">
-                              <input :value="store.getI18nText(cotSeg.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
-                                     @input="e => { if(store.cotizacion) store.setI18nText(cotSeg.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
-                                     class="bg-transparent text-[11px] md:text-xs font-black text-slate-700 outline-none flex-1 w-full truncate" placeholder="Título del párrafo..." />
+                              <!-- ⚠️ El NOMBRE OPERATIVO encima del título, igual que en el pool de la
+                                   izquierda. Sólo con el título no se sabe qué tramo es éste: el título es
+                                   prosa de cliente y dos párrafos seguidos pueden titularse casi igual
+                                   («Check-out», «Check-in»). El operativo es lo que identifica, y es además
+                                   el `nombreSegmento` que lee La Biblia (`BibliaSnapshotService`), así que
+                                   verlo aquí es ver lo que le va a llegar a tráfico.
+
+                                   Va en `es` FIJO: no lleva `#[AutoTranslate]` —es interno, regla de
+                                   `docs/Cotizaciones.md` §2.b— así que pedirlo en el idioma de edición
+                                   devuelve cadena vacía en cuanto la cotización no se edita en español.
+
+                                   Y va de SÓLO LECTURA: «Actualizar» lo reescribe desde el maestro
+                                   (`actualizarTextosSegmentos`). Un input aquí prometería una edición que
+                                   el siguiente refresco se lleva sin avisar. Se cambia en el maestro. -->
+                              <div class="flex-1 w-full min-w-0 flex flex-col">
+                                <span class="text-[9px] font-black uppercase tracking-widest leading-tight truncate"
+                                      :class="store.getI18nText(cotSeg.nombreInternoSnapshot, 'es') ? 'text-teal-500' : 'text-slate-300'"
+                                      :title="store.getI18nText(cotSeg.nombreInternoSnapshot, 'es') || 'Este párrafo no cuelga de ningún segmento del catálogo'">
+                                  {{ store.getI18nText(cotSeg.nombreInternoSnapshot, 'es') || 'Sin nombre operativo' }}
+                                </span>
+                                <input :value="store.getI18nText(cotSeg.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                                       @input="e => { if(store.cotizacion) store.setI18nText(cotSeg.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                                       class="bg-transparent text-[11px] md:text-xs font-black text-slate-700 outline-none w-full truncate" placeholder="Título del párrafo..." />
+                              </div>
 
                               <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
                                       class="transition-colors px-2 py-1.5 rounded text-[10px] font-bold border flex items-center gap-1 shadow-sm shrink-0"
