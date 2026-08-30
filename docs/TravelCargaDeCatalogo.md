@@ -453,6 +453,42 @@ es «al final». Medido: un «Día libre en el resort» sin hora, en un día con
 
 **Si el segmento tiene que caer en un sitio concreto del día, dale hora.**
 
+### ⚠️ Y dale también hora de FIN, o nace con duración cero (30/08/2026)
+
+`hora` y `horaFin` son campos distintos de `TravelSegmentoComponente`, y **poner sólo el primero
+es lo que sale por defecto al cargar catálogo**. El componente entra en la cotización con
+`fin = inicio`.
+
+Eso **no rompe nada visible**, que es el problema: se ordena por su hora igual que cualquier
+otro, sale en la propuesta, no da error. Sólo miente sobre cuánto dura — que es justo el dato por
+el que pregunta quien lee «desayuno 07:00».
+
+Estaba así en **las cuatro comidas de resort** y en todas las actividades de resort. En el
+expediente de Punta Cana se vio porque el operador estuvo corrigiendo las mismas tres horas a
+mano dos días seguidos: el catálogo no le daba el rango, así que lo escribía cada vez.
+
+`app:travel:horario-comidas-resort` puso la franja que publica el resort:
+
+| Comida | antes | ahora |
+|---|---|---|
+| Desayuno buffet | 07:00 → — | 07:00 – 10:30 |
+| Almuerzo buffet | 12:30 → — | 12:30 – 15:00 |
+| Cena buffet | 19:00 → — | **18:30** – 22:00 |
+| Cena temática | 19:30 → — | **18:30** – 22:00 |
+
+Dos cosas que dejó claras el caso:
+
+- **La hora de inicio también estaba mal, y en la misma dirección.** Las tres comidas del catálogo
+  iban más tarde que la realidad. Cuando un operador corrige sistemáticamente el mismo campo hacia
+  el mismo lado, el defecto está en el catálogo, no en su criterio.
+- **Cambiar el catálogo NO toca lo ya cotizado.** `CotizacionCotcomponente` congela la hora al
+  insertar, así que un expediente abierto conserva la que tenía. Arreglar el catálogo evita el
+  siguiente error, no el anterior; ése se corrige en la cotización, a mano o por comando.
+
+🔜 **Pendiente:** las actividades de resort (`ACT-RESORT-*`: piscina, check-in, recreativas,
+espectáculo) siguen sin `horaFin`. No se tocaron porque su duración es una decisión de producto
+—cuánto «dura» la piscina no lo publica nadie— y no un dato que se copie de un cartel.
+
 ### `tarifaPredeterminada`: sin ella el componente entra sin precio
 
 Es la que se copia al arrastrar el segmento a una cotización. Un enlace sin ella obliga a elegir
@@ -588,4 +624,5 @@ Las tres últimas son las que se olvidan.
 | `app:travel:normalizar-capacidades-vehiculo` | separar lo que sube de lo que baja · dejar fuera lo que aún no tiene nombre acordado |
 | `app:travel:fusionar-rutas-por-puntos` | emparejar por dato y no por prosa · construir el nombre desde la fuente de la verdad |
 | `app:travel:completar-traslados-punta-cana` | poner la ciudad en los **dos** extremos del título · aplanar la dirección de sus tarifas |
+| `app:travel:horario-comidas-resort` | dar franja (inicio **y fin**) a lo que el catálogo dejó con duración cero |
 | `app:travel:renombrar-componente` | escribir sólo el español y dejar traducir al listener |
