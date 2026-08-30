@@ -3088,6 +3088,42 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.aa El editor ordenaba por el reloj y el cliente por el guion (29/08/2026)
+
+`ordenarComponentesCronologicamente()` ordenaba sólo por fecha y hora. `pax` agrupa por servicio y
+dentro ordena por **`segmento.orden`** —el guion de la plantilla—, así que un check-in sin hora
+caía al final en el editor y salía en su sitio en la guía: **dos vistas del mismo día que no
+coincidían**, y el operador construyendo sobre la que no era.
+
+Ahora el desempate va en cascada, y cada peldaño tiene su porqué:
+
+```
+1  la fecha                        un servicio puede cruzar días
+2  el `orden` del segmento         el guion; sin segmento → Infinity, al final de su día
+3  la hora                         dentro del mismo segmento
+4  quien exige hora, antes         para dos sin segmento
+```
+
+⚠️ Un componente **sin segmento** —los extras añadidos a mano— se va al final con `Infinity`, que
+es donde el operador los espera: no forman parte del relato.
+
+### ⚠️ «Horario libre» es del componente; «al final del día» es del servicio
+
+Estaban pegados en la misma etiqueta:
+
+```
+Check-in en el resort
+∞ HORARIO LIBRE / FINAL DEL DÍA      ← junto a un almuerzo de las 12:30
+```
+
+Ese servicio ordena a mediodía, no al final: **la mitad de la frase era falsa**. Basta un
+componente con hora para que el bloque entero se coloque por ella — es la misma regla que ordena
+la guía del huésped, donde el escalón 0 son los servicios con alguna hora y el 1 los que no.
+
+La coletilla sólo aparece si **ningún** componente incluido tiene hora (`servicioActivoSinHora`).
+Mira los incluidos a propósito: un «no incluido» es referencia para el cliente y no se despacha,
+así que su hora no debería colocar el bloque.
+
 ## 6.z Un campo expuesto que nadie pintaba (29/08/2026)
 
 `CotizacionCottarifa::$nombreInternoSnapshot` llevaba `pax_cotizacion:read`. **Ninguna pantalla de

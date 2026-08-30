@@ -597,8 +597,37 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return servicio.cotcomponentes.some((comp) => isComponenteConAlerta(comp));
     };
 
-    const ordenarComponentesCronologicamente = (componentes: ComponenteCompleto[]): void => {
+    /**
+     * Los componentes de un servicio, en el orden en que el pasajero los vive.
+     *
+     * ⚠️ **Manda el STORYTELLING, no el reloj.** Antes ordenaba sólo por fecha y hora, y el
+     * editor enseñaba una secuencia distinta de la que ve el cliente: `pax` agrupa por servicio y
+     * dentro ordena por `segmento.orden` —el guion de la plantilla—, así que un check-in sin hora
+     * caía al final aquí y salía en su sitio allí. Dos vistas del mismo día que no coincidían.
+     *
+     * El desempate va en cascada y cada peldaño tiene su porqué:
+     *
+     * 1. **La fecha**, siempre primero: un servicio puede cruzar días.
+     * 2. **El `orden` del segmento**, que es el guion. Un componente sin segmento —los extras
+     *    añadidos a mano— se va al final de su día con `Infinity`, que es donde el operador los
+     *    espera: no forman parte del relato.
+     * 3. **La hora**, dentro del mismo segmento.
+     * 4. **Quien exige hora antes que quien no**, para el caso de dos sin segmento.
+     */
+    const ordenarComponentesCronologicamente = (componentes: ComponenteCompleto[], servicio?: CotServicio | null): void => {
         if (!componentes || !Array.isArray(componentes)) return;
+
+        const ordenDeSegmento = new Map<string, number>();
+
+        for (const seg of servicio?.cotsegmentos ?? []) {
+            ordenDeSegmento.set(extractIdStr(seg.id), seg.orden ?? 0);
+        }
+
+        const guionDe = (c: ComponenteCompleto): number => {
+            const id = extractIdStr(c.cotsegmentoId ?? c.cotsegmento ?? '');
+
+            return id !== '' && ordenDeSegmento.has(id) ? ordenDeSegmento.get(id)! : Infinity;
+        };
 
         componentes.sort((a: ComponenteCompleto, b: ComponenteCompleto) => {
             const valA = a.fechaHoraInicio || '9999-12-31T23:59:59';
@@ -610,6 +639,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (dateA !== dateB) {
                 return dateA.localeCompare(dateB);
             }
+
+            const guionA = guionDe(a);
+            const guionB = guionDe(b);
+
+            if (guionA !== guionB) return guionA - guionB;
 
             const reqA = componenteRequiereHora(a);
             const reqB = componenteRequiereHora(b);
@@ -1593,7 +1627,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const fecha = getFechaLimpia(srv.fechaInicioAbsoluta);
 
             if (srv.cotcomponentes && Array.isArray(srv.cotcomponentes)) {
-                ordenarComponentesCronologicamente(srv.cotcomponentes);
+                ordenarComponentesCronologicamente(srv.cotcomponentes, srv);
             }
 
             if (!grupos[fecha]) grupos[fecha] = [];
@@ -1996,7 +2030,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             });
                         }
                     });
-                    ordenarComponentesCronologicamente(s.cotcomponentes);
+                    ordenarComponentesCronologicamente(s.cotcomponentes, s);
                 }
             });
 
@@ -2495,7 +2529,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     }
                 });
 
-                ordenarComponentesCronologicamente(s.cotcomponentes || []);
+                ordenarComponentesCronologicamente(s.cotcomponentes || [], s);
             });
 
             // Asignación final con el árbol relacional completo y blindado
@@ -2873,7 +2907,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             servicio.cotcomponentes.push(nuevoComponente);
 
-            ordenarComponentesCronologicamente(servicio.cotcomponentes);
+            ordenarComponentesCronologicamente(servicio.cotcomponentes, servicio);
             sincronizarFechaServicio(servicio);
             abrirNivel('componente', nuevoComponente);
         }
@@ -3074,7 +3108,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if (servicio) {
                         if (!servicio.cotcomponentes) servicio.cotcomponentes = [];
                         servicio.cotcomponentes.push(nuevoComp);
-                        ordenarComponentesCronologicamente(servicio.cotcomponentes);
+                        ordenarComponentesCronologicamente(servicio.cotcomponentes, servicio);
                         sincronizarFechaServicio(servicio);
                     }
 
@@ -3664,7 +3698,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 servicio.cotcomponentes.push(nuevoComp);
             }
 
-            ordenarComponentesCronologicamente(servicio.cotcomponentes ?? []);
+            ordenarComponentesCronologicamente(servicio.cotcomponentes ?? [], servicio);
             sincronizarFechaServicio(servicio);
         }
     };
@@ -4005,7 +4039,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
 
         if (servicio.cotcomponentes) {
-            ordenarComponentesCronologicamente(servicio.cotcomponentes);
+            ordenarComponentesCronologicamente(servicio.cotcomponentes, servicio);
         }
     };
     const onComponenteMaestroChange = async (val: string | null): Promise<void> => {
@@ -4092,7 +4126,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             componente.fechaHoraFin = componente.fechaHoraInicio;
         }
 
-        ordenarComponentesCronologicamente(findServicioByComponenteId(componente.id)?.cotcomponentes ?? []);
+        const suServicio = findServicioByComponenteId(componente.id);
+        ordenarComponentesCronologicamente(suServicio?.cotcomponentes ?? [], suServicio);
     };
 
     /**
@@ -4142,7 +4177,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     }
                 }
             });
-            ordenarComponentesCronologicamente(servicio.cotcomponentes);
+            ordenarComponentesCronologicamente(servicio.cotcomponentes, servicio);
             sincronizarFechaServicio(servicio);
         }
     };
@@ -4198,7 +4233,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
             }
             if (servicio.cotcomponentes) {
-                ordenarComponentesCronologicamente(servicio.cotcomponentes);
+                ordenarComponentesCronologicamente(servicio.cotcomponentes, servicio);
             }
             sincronizarFechaServicio(servicio);
         }

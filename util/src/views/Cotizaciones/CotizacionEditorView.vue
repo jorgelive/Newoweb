@@ -430,6 +430,23 @@ const idiomasOrdenados = computed(() => {
 /** Id del servicio abierto ('' si no hay ninguno): evita el doble `!` en el template. */
 const servicioActivoId = computed<string>(() => store.servicioActivo?.id ?? '');
 
+/**
+ * ¿El servicio entero se va al final del día?
+ *
+ * Sólo si **ninguno** de sus componentes incluidos tiene hora: basta uno con hora para que el
+ * bloque se coloque por ella. Es la misma regla que ordena la guía del huésped —el escalón 0 son
+ * los servicios con alguna hora, el 1 los que no— y por eso la etiqueta tiene que mirar al
+ * servicio y no al componente que la enseña.
+ *
+ * ⚠️ Mira los INCLUIDOS: un «no incluido» es referencia para el cliente y no se despacha, así que
+ * su hora no debería colocar el bloque.
+ */
+const servicioActivoSinHora = computed<boolean>(() => {
+  const comps = store.servicioActivo?.cotcomponentes ?? [];
+
+  return !comps.some((c) => c.modo !== 'no_incluido' && !c.sinHorario && !!c.fechaHoraInicio);
+});
+
 const cottarifasOrdenadas = computed<TarifaSnapshot[]>(() => {
   const cottarifas = store.componenteActivo?.cottarifas;
   if (!cottarifas) return [];
@@ -2174,8 +2191,14 @@ store.$onAction(({ name, args }) => {
                         <i v-if="store.isComponenteConAlerta(comp)" class="fas fa-exclamation-triangle text-red-500" title="Tarifas no cuadran"></i>
                         {{ getNombreMaestroRef(comp) }}
                       </span>
+                      <!-- ⚠️ «Horario libre» es del COMPONENTE; «al final del día» es del
+                           SERVICIO, y estaban pegados en la misma etiqueta. Un check-in sin hora
+                           junto a un almuerzo de las 12:30 decía «final del día» cuando su
+                           servicio ordena a mediodía: la mitad de la frase era falsa. Ahora la
+                           coletilla sólo aparece cuando NINGÚN componente del servicio tiene
+                           hora, que es cuando el bloque entero sí se va al final. -->
                       <span v-if="!!comp.sinHorario" class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                         <i class="fas fa-infinity text-[8px] mr-0.5"></i> Horario Libre / Final del día
+                         <i class="fas fa-infinity text-[8px] mr-0.5"></i> Horario Libre<span v-if="servicioActivoSinHora"> / Final del día</span>
                       </span>
                     </h4>
                     <!-- ⚠️ `pr-9` reserva el hueco de la papelera.
