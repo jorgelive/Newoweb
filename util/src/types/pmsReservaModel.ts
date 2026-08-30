@@ -312,6 +312,18 @@ export interface PmsEventoExtendedProps {
      * diez céntimos de redondeo del cambio pintaban de rojo una reserva pagada.
      */
     cuadra?: boolean | null;
+    /**
+     * Cuadra, pero la contabilidad sigue con las dos monedas por separado.
+     *
+     * El caso: pagó S/ 223.70 por Yape contra una cuenta en dólares. No debe nada —la pastilla
+     * sale en verde y es correcto— pero **falta imputar el cobro**, y eso es a mano. Justamente
+     * porque no se ve no se cierra: los tres que había el 30/08/2026 llevaban entre una y tres
+     * semanas así.
+     *
+     * Lo decide `PmsTotalesPorMoneda::sugiereImputacion()`, que es la pregunta «¿un clic
+     * cerraría esto?».
+     */
+    porImputar?: boolean | null;
     /** Desglose exacto por moneda, para el tooltip. Sólo llega en reservas de dos monedas. */
     totales?: { moneda: string; cargos: string; saldo: string }[] | null;
     /** Decimal en texto («1250.00»): viene tal cual del backend, sin redondear. */

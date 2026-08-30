@@ -486,6 +486,18 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             // Lo que hace que la pastilla no se ponga roja por diez céntimos de redondeo del
             // cambio: el mismo criterio que el panel y que la decisión de estado de pago.
             'cuadra' => $totales === null || $totales->cuadra(),
+            // ── LO QUE CUADRA PERO ESTÁ SIN IMPUTAR ────────────────────────────
+            //
+            // Un cruce de monedas —pagó S/ 223.70 por Yape contra una cuenta en dólares— cuadra,
+            // así que la pastilla sale en verde y la barra no dice nada. Está bien: el huésped no
+            // debe. Pero la contabilidad sigue con las dos monedas por separado y **eso hay que
+            // cerrarlo a mano**, y justamente porque no se ve, no se cierra: los tres que había
+            // el 30/08/2026 llevaban entre una y tres semanas así.
+            //
+            // Lo decide `sugiereImputacion()` —mixta + cruce + cuadra—, que es literalmente la
+            // pregunta «¿un clic cerraría esto?». Misma fuente que usa la tarjeta del huésped
+            // para no pedirle dinero que ya pagó.
+            'porImputar' => $totales !== null && $totales->sugiereImputacion(),
             // El detalle exacto, para el tooltip. La cifra de arriba es para leer de un vistazo;
             // ésta es la verdad, y va sin convertir.
             'totales' => $hayCifras ? $this->detalleDeMonedas($totales) : null,

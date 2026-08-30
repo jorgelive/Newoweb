@@ -1291,6 +1291,31 @@ del cambio, y sin eso una reserva pagada en soles se marcaba por diez céntimos 
 El pulso cada 2,4 s va dentro de `prefers-reduced-motion: no-preference`. **El punto sí se ve
 siempre**: el punto es la información y el pulso sólo es la llamada de atención.
 
+## El anillo violeta: cuadra, pero falta imputar
+
+Un cruce de monedas —pagó S/ 223.70 por Yape contra una cuenta en dólares— **cuadra**, así que la
+pastilla sale en verde y no hay punto rojo. Y está bien: el huésped no debe nada. Pero la
+contabilidad sigue con las dos monedas por separado y eso se cierra a mano.
+
+**Y justamente porque no se veía, no se cerraba.** Los tres que había el 30/08/2026 llevaban entre
+una y tres semanas así, y sólo aparecían corriendo `pms:situacion-cobro` en la consola.
+
+Lo decide `PmsTotalesPorMoneda::sugiereImputacion()` —mixta + cruce + cuadra—, que es literalmente
+la pregunta «¿un clic cerraría esto?». Misma fuente que usa la tarjeta del huésped para no
+pedirle dinero que ya pagó.
+
+⚠️ **Anillo hueco violeta, no punto rojo, y la diferencia es de fondo.** El rojo dice «debe», y
+aquí el huésped no debe: pintarlo de rojo sería acusarle de algo que hizo. Lo que falta es
+trabajo nuestro. El hueco además se distingue del punto lleno **en escala de grises**, que a 7
+píxeles el color solo no basta.
+
+Las dos marcas **se excluyen** —`porImputar` implica que cuadra y `debe` implica que no— y aun
+así se eligen con un `else`: el día que una de las dos reglas se toque, dos puntos superpuestos
+serían un fallo de pintado que nadie sabría leer.
+
+El tooltip dice **qué hacer**, no sólo que pasa algo: «Pagó en otra moneda · falta imputar el
+cobro». Un anillo sin explicación es un adorno hasta que alguien pregunta qué significa.
+
 ## El panel financiero avisa al calendario
 
 Un cobro registrado con los atajos del panel cambia **el color de la barra** —`resolveColor()`

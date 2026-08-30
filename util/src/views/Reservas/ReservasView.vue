@@ -1161,7 +1161,10 @@ const calendarOptions: CalendarOptions = {
                 //
                 // Es el MISMO criterio que la pastilla (`cuadra`, no `saldo > 0`), para que no
                 // pueda haber un punto rojo sobre una cifra en verde.
-                + `<span class="fc-reserva-canal-envoltorio${debeDinero(p) ? ' fc-reserva-canal--debe' : ''}">`
+                // Dos marcas sobre el mismo icono y NUNCA a la vez: `porImputar` implica que
+                // cuadra, y `debe` implica que no. Se decide con un `else` para que el día que
+                // una de las dos reglas cambie no aparezcan dos puntos pisándose.
+                + `<span class="fc-reserva-canal-envoltorio${marcaDelIcono(p)}">`
                 + `<i class="${canal.icono} fc-reserva-canal" title="${escaparHtml(canal.texto)}"></i>`
                 + `</span>`
                 + `<span class="fc-reserva-col">`
@@ -1234,6 +1237,21 @@ function debeDinero(p: PmsEventoExtendedProps): boolean {
     return !(p.cuadra ?? (n <= 0.005));
 }
 
+/**
+ * Qué marca lleva el icono del canal, si alguna.
+ *
+ * Son dos y **se excluyen**: `porImputar` sólo existe cuando la ficha cuadra, y `debe` sólo
+ * cuando no. Aun así se escribe como `else` y no como dos condiciones sueltas — el día que una
+ * de las dos reglas se toque, dos puntos superpuestos serían un fallo de pintado que nadie sabría
+ * leer.
+ */
+function marcaDelIcono(p: PmsEventoExtendedProps): string {
+    if (debeDinero(p)) return ' fc-reserva-canal--debe';
+    if (p.porImputar) return ' fc-reserva-canal--imputar';
+
+    return '';
+}
+
 function saldoPill(p: PmsEventoExtendedProps): string {
     if (!p.saldo) return '';
 
@@ -1292,6 +1310,7 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
             ${fila(canal.texto, p.referenciaCanal)}
             ${p.total ? fila('Total', `${p.simbolo ?? ''}${p.total}`) : ''}
             ${p.saldo ? fila('Saldo', `${p.simbolo ?? ''}${p.saldo}`) : ''}
+            ${p.porImputar ? `<div class="fc-tip-aviso">Pagó en otra moneda · falta imputar el cobro</div>` : ''}
         </div>`;
 }
 </script>
@@ -1631,6 +1650,41 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
     border: 1.5px solid #fff;
     box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.15);
     pointer-events: none;          /* que no se coma el `title` del icono */
+}
+
+/* El aviso del tooltip: dice QUÉ hay que hacer, no sólo que pasa algo. Un anillo violeta sin
+   explicación es un adorno hasta que alguien pregunta qué significa. */
+.fc-tip-aviso {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #c4b5fd; /* violet-300, el mismo par que el anillo */
+    line-height: 1.3;
+}
+
+/* 🟣 LA MARCA DE «POR IMPUTAR»
+   ────────────────────────────
+   Otra cosa que el punto rojo, y por eso otro color y otra forma: aquí el huésped NO debe nada
+   —pagó en una moneda una cuenta emitida en otra— y pintarlo de rojo diría que debe. Lo que
+   falta es cerrar la contabilidad, que es trabajo nuestro y no suyo.
+
+   Anillo hueco en vez de punto lleno: a 7 píxeles la diferencia de color sola no basta para
+   distinguir dos marcas, y el hueco se lee incluso en escala de grises. Violeta porque es el
+   color que el panel ya usa para los enlaces de pago, no el ámbar de «cuidado». */
+.fc-reserva-canal--imputar::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: #fff;
+    border: 2px solid #7c3aed;     /* violet-600, el de los enlaces de pago */
+    box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
 }
 
 /* ⚠️ Quien pide menos movimiento no ve el latido, pero SÍ el punto: el punto es la
