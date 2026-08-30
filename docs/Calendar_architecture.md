@@ -1271,3 +1271,38 @@ controlador Stimulus del calendario legacy de EasyAdmin). Aunque sea código vie
 mantiene, tenía ya resuelto todo esto a base de cicatrices —`applyScroll()` con reintentos,
 `getMainScroller()` por desbordamiento real, dirección con `lastViewRange`— y el helper de la
 SPA es su port. Los mismos errores se vuelven a cometer si se escribe de cero.
+
+## El punto rojo del saldo, y por qué está en el icono
+
+Una reserva que debe dinero lleva un **punto rojo sobre el icono del canal**, en la barra del
+calendario. La pastilla del saldo ya dice cuánto, pero vive al final de la fila de meta y **es lo
+primero que se recorta**: una reserva de una noche vista a dos meses no llega ni al nombre. El
+icono es lo único que sobrevive siempre.
+
+Va con `::after` sobre un envoltorio `relative`, no como un elemento más de la fila: flotando en
+la esquina no le quita ni un píxel de ancho al nombre, que es lo que de verdad escasea. El borde
+blanco lo despega del color de la barra —que en una reserva con saldo suele ser ámbar o rojo— y
+es lo que impide que el punto se pierda justo donde más falta hace.
+
+⚠️ **Lo decide `cuadra`, no `saldo > 0`.** Mismo criterio que la pastilla, para que no pueda
+haber un punto rojo sobre una cifra en verde: `cuadra` viene del backend y respeta la tolerancia
+del cambio, y sin eso una reserva pagada en soles se marcaba por diez céntimos de redondeo.
+
+El pulso cada 2,4 s va dentro de `prefers-reduced-motion: no-preference`. **El punto sí se ve
+siempre**: el punto es la información y el pulso sólo es la llamada de atención.
+
+## El panel financiero avisa al calendario
+
+Un cobro registrado con los atajos del panel cambia **el color de la barra** —`resolveColor()`
+deja que el estado de pago pise al del estado— y la pastilla del saldo. Pero ese cobro **no pasa
+por «Guardar»** del drawer, así que `onGuardado()` no se disparaba y el calendario se quedaba con
+la cifra vieja detrás del panel abierto.
+
+`ReservaFinanzasPanel` emite `cambiado`, el drawer lo sube como `finanzasCambiadas` y la vista
+hace `refetchEvents()`. **En el acto y no al cerrar**: el drawer no tapa el calendario entero, así
+que la barra que acaba de cambiar suele estar a la vista mientras se cobra.
+
+⚠️ **El aviso sale de un `watch` sobre los totales, no de un `emit` en cada manejador.** El dinero
+se mueve por seis caminos —cobrar, borrar, el atajo del prepago, el del saldo, un cargo nuevo, un
+enlace que se paga— y poner el `emit` en cada uno garantiza que el séptimo se olvide. Vigilando el
+resultado quedan cubiertos todos, incluidos los que aún no existen.

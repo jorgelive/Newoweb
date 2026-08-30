@@ -71,6 +71,8 @@ const emit = defineEmits<{
      */
     saved: [payload?: { reservaIdCreada?: string; cerrar?: boolean }];
     deleted: [];
+    /** El panel financiero movió dinero: el calendario tiene que repintar esa barra. */
+    finanzasCambiadas: [];
 }>();
 
 const router = useRouter();
@@ -1838,8 +1840,12 @@ async function ejecutarBorrado(): Promise<void> {
                      Va ARRIBA del todo y colapsada: es lo primero que se consulta al abrir una
                      reserva (¿cuánto debe?), pero ocupa mucho desplegada. Solo sobre una reserva
                      ya persistida: la cabecera financiera no existe mientras se está creando. -->
+                <!-- `cambiado` sube hasta el calendario: un cobro hecho aquí con los atajos
+                     no pasa por «Guardar», así que sin esto la barra de la reserva se quedaba
+                     con el color y el saldo viejos detrás de este mismo panel. -->
                 <ReservaFinanzasPanel v-if="reservaId" ref="finanzasPanel"
-                    :reserva-id="reservaId" :read-only="readOnly" />
+                    :reserva-id="reservaId" :read-only="readOnly"
+                    @cambiado="emit('finanzasCambiadas')" />
 
                 <!-- ================= ESTANCIA(S) ================= -->
                 <section>

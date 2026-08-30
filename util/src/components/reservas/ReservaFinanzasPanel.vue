@@ -153,6 +153,32 @@ function fechaLegible(iso?: string | null): string {
 // ============================================================================
 
 /**
+ * Avisa de que el dinero de esta reserva se movió.
+ *
+ * ── Por qué un watcher y no un `emit` en cada manejador ────────────────────
+ * El dinero cambia por seis caminos —registrar un cobro, borrarlo, el atajo del prepago, el
+ * del saldo, un cargo nuevo, un enlace que se paga— y poner un `emit` en cada uno garantiza
+ * que el séptimo se olvide. Vigilando el resultado se cubren todos, incluidos los que aún no
+ * existen.
+ *
+ * Lo escucha `ReservasView` para refrescar el calendario: un cobro cambia **el color de la
+ * barra** —el estado de pago pisa al del estado— y la pastilla del saldo, y ese cobro no pasa
+ * por «Guardar» del drawer, así que sin esto el calendario se quedaba con la cifra vieja
+ * detrás del panel abierto.
+ */
+const emit = defineEmits<{ cambiado: [] }>();
+
+watch(
+    () => JSON.stringify(totalesPorMoneda.value),
+    (ahora, antes) => {
+        // `antes === undefined` es la primera carga del panel, no un movimiento.
+        if (antes !== undefined && ahora !== antes) {
+            emit('cambiado');
+        }
+    },
+);
+
+/**
  * Lo que queda por cobrar, por moneda, para los atajos del enlace de pago.
  *
  * Sólo las que deben algo: una moneda saldada no tiene enlace que emitir.

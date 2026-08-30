@@ -351,6 +351,22 @@ function cerrarDrawer(): void {
     reservasStore.clearActivo();
 }
 
+/**
+ * El panel financiero movió dinero: refrescar el calendario.
+ *
+ * Un cobro registrado con los atajos del panel cambia **el color de la barra** —el estado de
+ * pago pisa al del estado, ver `resolveColor()` en el provider— y la pastilla del saldo. Pero
+ * ese cobro no pasa por «Guardar» del drawer, así que `onGuardado()` no se disparaba y el
+ * calendario se quedaba con la cifra vieja detrás del panel abierto.
+ *
+ * Se refresca EN EL ACTO y no al cerrar: el drawer no tapa el calendario entero, así que la
+ * barra que acaba de cambiar suele estar a la vista mientras se cobra.
+ */
+function onFinanzasCambiadas(): void {
+    const api = calendarApiRef.value?.getApi();
+    api?.refetchEvents();
+}
+
 // ============================================================================
 // MENÚ CONTEXTUAL (tap/click en evento -> Ver/Editar; tap/click en vacío -> Bloqueo/Reserva)
 // ============================================================================
@@ -1136,7 +1152,18 @@ const calendarOptions: CalendarOptions = {
 
         return {
             html: `<div class="fc-reserva">`
+                // 🔴 EL PUNTO DE «DEBE», SOBRE EL ICONO DEL CANAL.
+                //
+                // La pastilla del saldo ya dice cuánto, pero está al final de la fila de meta y
+                // se recorta la primera cuando la barra es estrecha —una reserva de una noche en
+                // vista de dos meses no llega ni al nombre—. El punto va en el icono, que es lo
+                // único que sobrevive siempre, y se ve barriendo el calendario sin leer nada.
+                //
+                // Es el MISMO criterio que la pastilla (`cuadra`, no `saldo > 0`), para que no
+                // pueda haber un punto rojo sobre una cifra en verde.
+                + `<span class="fc-reserva-canal-envoltorio${debeDinero(p) ? ' fc-reserva-canal--debe' : ''}">`
                 + `<i class="${canal.icono} fc-reserva-canal" title="${escaparHtml(canal.texto)}"></i>`
+                + `</span>`
                 + `<span class="fc-reserva-col">`
                 + `<span class="fc-reserva-nombre">${escaparHtml(p.cliente)}</span>`
                 + filaMeta
@@ -1191,6 +1218,22 @@ function importeCorto(monto: string, simbolo?: string | null): string {
  * saldado—, que aquí se puede usar porque la pastilla lleva fondo plomo claro
  * propio: sobre el morado o el azul de la barra, un rojo directo no se leería.
  */
+/**
+ * ¿Esta reserva debe dinero?
+ *
+ * Mismo criterio que la pastilla del saldo y por el mismo motivo: **lo decide `cuadra`**, que
+ * viene del backend y respeta la tolerancia del cambio. Comparar contra cero aquí pintaría de
+ * rojo una reserva pagada en soles por diez céntimos de redondeo del tipo de cambio.
+ */
+function debeDinero(p: PmsEventoExtendedProps): boolean {
+    if (!p.saldo) return false;
+
+    const n = Number(p.saldo);
+    if (!Number.isFinite(n)) return false;
+
+    return !(p.cuadra ?? (n <= 0.005));
+}
+
 function saldoPill(p: PmsEventoExtendedProps): string {
     if (!p.saldo) return '';
 
@@ -1489,6 +1532,7 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
             :start-read-only="drawerStartReadOnly"
             @close="cerrarDrawer"
             @saved="onGuardado"
+            @finanzas-cambiadas="onFinanzasCambiadas"
             @deleted="onBorrado"
         />
 
@@ -1555,6 +1599,52 @@ function tooltipHtml(p: PmsEventoExtendedProps): string {
     font-size: 0.95rem;
     opacity: 0.9;
     flex-shrink: 0;
+}
+
+/* 🔴 EL PUNTO DE «DEBE»
+   ─────────────────────
+   Va sobre el icono del canal, que es lo único de la barra que nunca se recorta: la pastilla
+   del saldo vive al final de la fila de meta y desaparece la primera en una reserva de una
+   noche vista a dos meses.
+
+   Con `::after` y no con un elemento más para que no entre en el flex de la fila: flotando
+   sobre la esquina del icono no le quita ni un píxel de ancho al nombre, que es lo que de
+   verdad escasea aquí.
+
+   El borde blanco lo despega del color de la barra —que en una reserva con saldo suele ser
+   ámbar o rojo— y es lo que impide que el punto se pierda justo donde más falta hace. */
+.fc-reserva-canal-envoltorio {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.fc-reserva-canal--debe::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: #e11d48;           /* rose-600, el mismo del importe en `fc-reserva-debe` */
+    border: 1.5px solid #fff;
+    box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+    pointer-events: none;          /* que no se coma el `title` del icono */
+}
+
+/* ⚠️ Quien pide menos movimiento no ve el latido, pero SÍ el punto: el punto es la
+   información y el pulso sólo es la llamada de atención. */
+@media (prefers-reduced-motion: no-preference) {
+    .fc-reserva-canal--debe::after {
+        animation: fc-punto-debe 2.4s ease-in-out infinite;
+    }
+}
+
+@keyframes fc-punto-debe {
+    0%, 70%, 100% { transform: scale(1); }
+    80%           { transform: scale(1.35); }
+    90%           { transform: scale(1); }
 }
 
 .fc-reserva-col {
