@@ -11,6 +11,8 @@ use App\Pms\Enum\PmsPoliticaPrepago;
 use App\Pms\Finanzas\PmsPrepagoEnlaceService;
 use App\Pms\Repository\PmsInformacionFinancieraRepository;
 use App\Pms\Service\Finance\PmsCargosAutomaticosService;
+use App\Pms\Enum\PmsQueSePide;
+use App\Pms\Finanzas\PmsSituacionDeCobroResolver;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use Symfony\Component\Uid\Uuid;
 
@@ -34,6 +36,8 @@ final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterf
         private readonly PmsPrepagoCalculador $prepagoCalculador,
         private readonly PmsPrepagoEnlaceService $prepagoEnlaces,
         private readonly PmsCargosAutomaticosService $cargosAutomaticos,
+        // La DECISIÓN de qué se pide. Ver `prepago()`.
+        private readonly PmsSituacionDeCobroResolver $situacion,
     ) {}
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PmsInformacionFinanciera
@@ -109,6 +113,25 @@ final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterf
      */
     private function prepago(PmsInformacionFinanciera $info): ?array
     {
+        $reserva = $info->getReserva();
+
+        // ⚠️ El adelanto sólo si la política SIGUE pidiendo un adelanto.
+        //
+        // `PmsPrepagoCalculador::pendiente()` no tiene una sola referencia a fechas, así que
+        // seguía devolviéndolo con el huésped ya alojado. La regla «desde el día de check-in se
+        // pide el TOTAL» vive en `PmsSituacionDeCobroResolver`, que es lo que pinta la tarjeta
+        // del huésped en `pax` y —desde el 30/08/2026— lo que lee también `consultar_cuenta`.
+        //
+        // Sin esto el panel le ofrecía al operador un botón de «cobrar el prepago» por la
+        // primera noche de una cuenta entera, mientras el huésped tenía delante el total. Tres
+        // superficies sobre el mismo dinero: la tarjeta, el agente y el panel — y el panel era
+        // la última que quedaba calculando por su cuenta.
+        if ($reserva !== null
+            && $this->situacion->paraEquipo($reserva)->queSePide !== PmsQueSePide::ADELANTO
+        ) {
+            return null;
+        }
+
         $prepago = $this->prepagoCalculador->pendiente($info);
 
         if ($prepago === null) {
@@ -116,7 +139,6 @@ final class PmsInformacionFinancieraPorReservaProvider implements ProviderInterf
         }
 
         $politica = PmsPoliticaPrepago::tryFrom($prepago['politica']);
-        $reserva = $info->getReserva();
 
         return array_filter([
             'monto' => $prepago['monto'],

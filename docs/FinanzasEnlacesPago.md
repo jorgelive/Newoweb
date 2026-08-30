@@ -1624,6 +1624,34 @@ hizo. La regla vive en el servicio y no en quien la pinta porque la comparten tr
 Se mira `getTotalPagos()` —el agregado de la cabecera, el mismo que el estado de cuenta enseña
 como «pagado»— para que la regla y lo que ve el huésped no puedan discrepar.
 
+#### 🔥 El calculador no sabe qué día es: los tres consumidores preguntan antes
+
+`PmsPrepagoCalculador::pendiente()` **no tiene una sola referencia a fechas**. Sabe si queda algo
+por adelantar, no si adelantar sigue teniendo sentido. La regla **«desde la mañana del día de
+check-in se pide el TOTAL»** vive en `PmsSituacionDeCobroResolver::queSePide()`, y hasta el
+30/08/2026 la conocía **sólo la tarjeta del huésped**.
+
+O sea que a un huésped ya alojado, el panel le ofrecía al operador el botón de cobrar la primera
+noche y el agente le ofrecía a él pagarla, **mientras su propia tarjeta le pedía el total**. Con
+el enlace del pax en manos de quien pregunta por pagos, puede tener las dos cosas delante.
+
+Medido antes de arreglarlo: **ocho reservas** ya llegadas, sin ningún pago y con el adelanto vivo.
+La más antigua había llegado veinticinco días antes.
+
+Los tres consumidores **preguntan la decisión** en vez de replicar la regla — dos
+implementaciones de «qué se le pide a esta persona» son dos respuestas el día que una cambie, que
+es justo lo que había pasado:
+
+| Consumidor | Cómo pregunta |
+|---|---|
+| Tarjeta del huésped | Es el propio `PmsSituacionDeCobroResolver` |
+| Panel financiero | `queSePide !== ADELANTO` → `prepagoPendiente` viaja `null` |
+| Agente | ídem, y además manda `que_se_pide` resuelto para que el modelo no lo deduzca |
+
+En el panel, que `prepagoPendiente` llegue `null` no hay que programarlo en ninguna vista: el
+bloque y el atajo de «Primera noche» de los enlaces de pago van los dos tras un `v-if`, así que
+desaparecen solos y queda «Saldo», que es lo correcto para quien lleva tres semanas alojado.
+
 ⚠️ **La `claveI18n` sólo sirve en `pax`.** Es una clave del diccionario `pax_ui_i18n` que se
 resuelve en el navegador del huésped. En el panel y en el agente se sustituye por
 `PmsPoliticaPrepago::etiqueta()`: así la etiqueta mantiene una sola fuente (el enum) en vez de
