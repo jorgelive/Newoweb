@@ -352,7 +352,7 @@ class PmsCargoFinanciero
     /** @return list<array{content: string, language: string}> Vacío si nadie la redactó. */
     public function getDescripcionCliente(): array { return $this->descripcionCliente ?? []; }
 
-    /** @param array<int, array{content: string, language: string}>|null $descripcionCliente */
+    /** @param list<array{language?: string, content?: string|null}>|null $descripcionCliente */
     public function setDescripcionCliente(?array $descripcionCliente): self { $this->descripcionCliente = $descripcionCliente; return $this; }
 
     /**

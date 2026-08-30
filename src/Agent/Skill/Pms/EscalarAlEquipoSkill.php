@@ -24,6 +24,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Uid\Uuid;
 use Throwable;
+use App\Service\Config\Parametro;
 
 /**
  * Deja constancia de que un huésped se quedó esperando, y avisa por WhatsApp a la guardia.
@@ -420,7 +421,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
     private function redactar(MessageConversation $conversacion, string $motivo): string
     {
         $huesped = $conversacion->getGuestName() ?: 'Un huésped';
-        $enlace = rtrim((string) $this->params->get('util_host_url'), '/')
+        $enlace = rtrim(Parametro::texto($this->params->get('util_host_url'), 'util_host_url'), '/')
             . '/chat?id=' . $conversacion->getId();
 
         // El resumen IA va como CONTEXTO, en su propia línea y etiquetado.
@@ -508,7 +509,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
             'huesped' => $this->unaLinea($conversacion->getGuestName() ?: 'Un huésped'),
             'motivo' => $this->unaLinea($this->motivoConResumen($conversacion, $motivo)),
             'chat_path' => 'chat?id=' . $conversacion->getId(),
-            'chat_url' => rtrim((string) $this->params->get('util_host_url'), '/')
+            'chat_url' => rtrim(Parametro::texto($this->params->get('util_host_url'), 'util_host_url'), '/')
                 . '/chat?id=' . $conversacion->getId(),
         ];
     }

@@ -11,6 +11,7 @@ use App\Security\Roles;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Throwable;
+use App\Service\Config\Parametro;
 
 /**
  * Avisa al equipo por WhatsApp de que un enlace de pago se ha cobrado.
@@ -177,7 +178,7 @@ final readonly class FinAvisoDeCobro
 
     private function urlFinanzas(): string
     {
-        return rtrim((string) $this->params->get('util_host_url'), '/') . '/finanzas';
+        return rtrim(Parametro::texto($this->params->get('util_host_url'), 'util_host_url'), '/') . '/finanzas';
     }
 
     /** Sin saltos ni dobles espacios, y nunca vacío: los dos los prohíbe Meta. */

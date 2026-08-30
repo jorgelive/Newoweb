@@ -16,7 +16,7 @@ final class CalendarResourceDto implements JsonSerializable
      * @param array<string, mixed> $extendedProps
      */
     public function __construct(
-        public readonly string|int|object $id,
+        public readonly string|int|\Stringable $id,
         public readonly string $title,
         public readonly int $orden = 0,
         public readonly ?array $extendedProps = null,

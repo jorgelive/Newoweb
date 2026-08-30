@@ -19,22 +19,23 @@ use JsonSerializable;
 final class CalendarEventDto implements JsonSerializable
 {
     /**
-     * @param string|int|object $id Identificador único (soporta UUID).
+     * @param string|int|\Stringable $id Identificador único. `Stringable` y no `object`:
+     *        lo que se pide es que se pueda pasar a texto, y un `Uuid` lo cumple.
      * @param string $title Título visual en el calendario.
      * @param DateTimeInterface $start Fecha y hora de inicio.
      * @param DateTimeInterface $end Fecha y hora de fin.
-     * @param string|int|object|null $resourceId ID de la unidad/recurso (soporta UUID).
+     * @param string|int|\Stringable|null $resourceId ID de la unidad/recurso (soporta UUID).
      * @param TooltipType $tooltip Información extra para el hover.
      * @param list<string>|null $classNames Clases CSS que FullCalendar pone en el evento.
      * @param array<string, mixed>|null $extendedProps Diccionario abierto que lee el front; el
      *        contrato de su forma lo fija quien construye el evento, no este DTO.
      */
     public function __construct(
-        public readonly string|int|object $id,
+        public readonly string|int|\Stringable $id,
         public readonly string $title,
         public readonly DateTimeInterface $start,
         public readonly DateTimeInterface $end,
-        public readonly string|int|object|null $resourceId = null,
+        public readonly string|int|\Stringable|null $resourceId = null,
         public readonly ?string $textColor = null,
         public readonly ?string $backgroundColor = null,
         public readonly ?string $borderColor = null,

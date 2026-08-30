@@ -364,7 +364,9 @@ class MercureMessageDto implements JsonSerializable
     /**
      * Define los archivos adjuntos.
      *
-     * @param list<array<string, mixed>> $attachments
+     * La misma forma que declara la propiedad: una sola verdad por campo.
+     *
+     * @param list<array{'@id': string, '@type': string, id: string, originalName: string|null, mimeType: string|null, fileUrl: string|null}> $attachments
      */
     public function setAttachments(array $attachments): self { $this->attachments = $attachments; return $this; }
 

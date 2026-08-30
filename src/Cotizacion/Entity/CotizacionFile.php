@@ -309,7 +309,10 @@ class CotizacionFile
     private array $versionesFechas = [];
 
     /**
-     * @param list<array<string, mixed>> $versionesFechas
+     * La misma forma que declara la propiedad. Con `list<array<string, mixed>>` aquí se podía
+     * guardar una fila sin `version`, y el getter promete que la trae.
+     *
+     * @param array<int, array{version: int, fechaInicio: ?string}> $versionesFechas
      */
     public function setVersionesFechas(array $versionesFechas): self
     {

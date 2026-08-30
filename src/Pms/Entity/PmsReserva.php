@@ -613,7 +613,10 @@ class PmsReserva
     #[SerializedName('resumenFinanciero')]
     public function getResumenFinancieroCliente(): ?array { return $this->resumenFinancieroCliente; }
     /**
-     * @param array<string, mixed>|null $resumen
+     * La misma forma que declara la propiedad: una sola verdad por campo. Con
+     * `array<string, mixed>` aquí se podía guardar algo que el getter promete que no está.
+     *
+     * @param array{moneda: string, simbolo: ?string, total: string, pagado: string, saldo: string}|null $resumen
      */
     public function setResumenFinancieroCliente(?array $resumen): self { $this->resumenFinancieroCliente = $resumen; return $this; }
 
