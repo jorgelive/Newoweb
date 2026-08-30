@@ -60,14 +60,6 @@ final class PmsEventoCalendarioIntegrityListener
     {
         $needsRecompute = false;
 
-        // Mismo estrechamiento que en prePersist: lo que sigue usa métodos de
-        // `EntityManagerInterface`, no de `ObjectManager`.
-        $em = $args->getObjectManager();
-
-        if (!$em instanceof EntityManagerInterface) {
-            return;
-        }
-
         // Optimización: Solo validamos si se tocaron las fechas.
         if ($args->hasChangedField('inicio') || $args->hasChangedField('fin')) {
             $this->validarFechas($evento);
@@ -77,6 +69,20 @@ final class PmsEventoCalendarioIntegrityListener
             if ($this->cambiaDeDia($args, 'inicio') || $this->cambiaDeDia($args, 'fin')) {
                 $this->assertFechasMoviblesConHorarioExtra($evento, $args);
             }
+        }
+
+        // Mismo estrechamiento que en prePersist: lo que sigue usa métodos de
+        // `EntityManagerInterface`, no de `ObjectManager`.
+        //
+        // ⚠️ Va DESPUÉS de validar fechas, no antes. Con el ORM esto siempre es un
+        // `EntityManager`, pero si algún día no lo fuera, un `return` colocado arriba se llevaría
+        // por delante la validación —que no necesita el manager para nada— y la reserva se
+        // guardaría con fechas inválidas sin que nadie lo notara. Las redes de abajo sí lo
+        // necesitan; la validación no.
+        $em = $args->getObjectManager();
+
+        if (!$em instanceof EntityManagerInterface) {
+            return;
         }
 
         // RED DE SEGURIDAD 1: Recuperación de Canal Directo
