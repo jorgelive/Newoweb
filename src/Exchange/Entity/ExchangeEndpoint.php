@@ -226,7 +226,8 @@ class ExchangeEndpoint implements EndpointInterface
         return $this;
     }
 
-    /** * @return Collection<int, PmsRatesPushQueue>
+    /**
+     * @return Collection<int, PmsRatesPushQueue>
      */
     public function getRatesPushQueues(): Collection
     {
@@ -242,7 +243,8 @@ class ExchangeEndpoint implements EndpointInterface
         return $this;
     }
 
-    /** * @return Collection<int, PmsBookingsPushQueue>
+    /**
+     * @return Collection<int, PmsBookingsPushQueue>
      */
     public function getBookingsPushQueues(): Collection
     {
@@ -258,7 +260,8 @@ class ExchangeEndpoint implements EndpointInterface
         return $this;
     }
 
-    /** * @return Collection<int, PmsBookingsPullQueue>
+    /**
+     * @return Collection<int, PmsBookingsPullQueue>
      */
     public function getBookingsPullQueues(): Collection
     {

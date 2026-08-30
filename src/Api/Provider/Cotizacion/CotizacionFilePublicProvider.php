@@ -23,6 +23,8 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  * Rendimiento: los resúmenes salen de UN query escalar (getArrayResult) y el
  * detalle de UN findOneBy. La colección $file->getCotizaciones() nunca se
  * hidrata, así el expediente puede tener 100+ versiones sin colapsar.
+ *
+ * @implements ProviderInterface<CotizacionFile>
  */
 final class CotizacionFilePublicProvider implements ProviderInterface
 {

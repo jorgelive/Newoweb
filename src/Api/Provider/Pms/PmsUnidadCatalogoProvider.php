@@ -31,6 +31,8 @@ use Doctrine\ORM\EntityManagerInterface;
  *    `PmsGuiaContexto` no carga ni una credencial y el interpolador sustituye
  *    cualquier `{{ door_code }}` por el mensaje de bloqueo. Es la red que hace
  *    que colocar un ítem operativo aquí por error no filtre nada.
+ *
+ * @implements ProviderInterface<PmsCatalogo>
  */
 final class PmsUnidadCatalogoProvider implements ProviderInterface
 {

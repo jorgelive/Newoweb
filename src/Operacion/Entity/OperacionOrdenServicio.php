@@ -703,6 +703,7 @@ class OperacionOrdenServicio
         return $hayImporte;
     }
 
+    /** @return Collection<int, OperacionServicio> */
     public function getOperacionServicios(): Collection { return $this->operacionServicios; }
 
     /** @return Collection<int, OperacionOrdenServicioItem> */
@@ -1291,6 +1292,7 @@ class OperacionOrdenServicio
         return $this;
     }
 
+    /** @return Collection<int, OperacionMensaje> */
     public function getMensajes(): Collection { return $this->mensajes; }
 
     public function addMensaje(OperacionMensaje $mensaje): self

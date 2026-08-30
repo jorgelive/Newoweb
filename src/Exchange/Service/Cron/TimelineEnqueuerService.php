@@ -22,10 +22,14 @@ use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
  */
 class TimelineEnqueuerService
 {
-    /** * @var CronJobInterface[]
+    /**
+     * @var CronJobInterface[]
      */
     private iterable $jobs;
 
+    /**
+     * @param iterable<CronJobInterface> $jobs Los trabajos que se autolocalizan por la etiqueta.
+     */
     public function __construct(
         private readonly EntityManagerInterface $em,
         #[TaggedIterator('app.cron_job')] iterable $jobs

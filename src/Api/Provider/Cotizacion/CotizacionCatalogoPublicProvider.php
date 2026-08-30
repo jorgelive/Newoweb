@@ -27,6 +27,8 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  *
  * Los tours usan fechas base nominales, así que aquí no se expone fecha de
  * inicio: se expone numDias (span del itinerario) para mostrar "X días".
+ *
+ * @implements ProviderInterface<CotizacionCatalogo>
  */
 final class CotizacionCatalogoPublicProvider implements ProviderInterface
 {

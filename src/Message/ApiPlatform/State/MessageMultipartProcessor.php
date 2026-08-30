@@ -15,6 +15,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /** @implements ProcessorInterface<Message, Message|null> */
 final readonly class MessageMultipartProcessor implements ProcessorInterface
 {
+    /**
+     * @param ProcessorInterface<Message, Message|null> $persistProcessor El de Doctrine, al que se delega.
+     */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         /** @var ProcessorInterface<Message, Message|null> */

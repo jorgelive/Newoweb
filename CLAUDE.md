@@ -63,6 +63,19 @@
   framework», «el ORM» o «otro módulo por un docblock», el guarda se queda. Sólo se borra cuando
   el tipo lo garantiza PHP en el mismo ámbito.
 
+  ⚠️ **Una anotación mal COLOCADA no anota nada, y no lo dice.** Tres formas encontradas el
+  30/08/2026, todas con el tipo correcto ya escrito y ninguna surtiendo efecto:
+
+  | Escrito así | Qué pasa | Va así |
+  |---|---|---|
+  | `/** * @return Collection<int, X>` en una línea | el asterisco de más deja la etiqueta sin leer | partido en dos líneas |
+  | `/** @var T $x */` sobre un parámetro promovido | los parámetros no se anotan con `@var` | `@param` en el docblock del constructor |
+  | `/** @var T $item */` como primera línea del `foreach` | PHPStan lo empareja con la sentencia de abajo | **encima** del `foreach` |
+
+  Seis de los genéricos de la baseline eran del primer tipo: alguien hizo el trabajo, el tipo era
+  correcto, y el analizador seguía avisando. **Antes de escribir un tipo, comprueba que el que ya
+  hay se está leyendo.**
+
   ⚠️ **Un `@var` dentro del `foreach` no tipa el bucle: tipa el siguiente.** PHPStan empareja la
   anotación con la sentencia que va debajo, así que un `/** @var X $item */` puesto como primera
   línea del cuerpo se lo queda el bucle interno. No miente —simplemente no dice nada—, y es peor

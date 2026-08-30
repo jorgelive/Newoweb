@@ -17,9 +17,14 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  *
  * Mismo objetivo de rendimiento que CotizacionFilePublicProvider: UN query
  * escalar batched para toda la página, en vez de N+1.
+ *
+ * @implements ProviderInterface<CotizacionFile>
  */
 final class CotizacionFileCollectionProvider implements ProviderInterface
 {
+    /**
+     * @param ProviderInterface<CotizacionFile> $collectionProvider El de Doctrine, al que se decora.
+     */
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.collection_provider')]
         private readonly ProviderInterface $collectionProvider,
@@ -72,8 +77,15 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
             ];
         }
 
+        // Sin `assert($file instanceof CotizacionFile)`: lo garantiza ahora el
+        // `@param ProviderInterface<CotizacionFile>` del constructor, y eso es más fuerte que el
+        // assert — `zend.assertions=-1` lo compila fuera en producción, así que sólo avisaba en
+        // desarrollo. La anotación la comprueba PHPStan en cada pasada.
+        //
+        // ⚠️ Lo que afirma es el CABLEADO: que el provider decorado
+        // (`api_platform.doctrine.orm.state.collection_provider`) sirve esta colección. Eso vive
+        // en la metadata del recurso, no en este archivo. Si cambia, la anotación miente.
         foreach ($files as $file) {
-            \assert($file instanceof CotizacionFile);
             $file->setVersionesFechas($porFile[(string) $file->getId()] ?? []);
         }
 

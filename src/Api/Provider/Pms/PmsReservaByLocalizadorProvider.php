@@ -15,6 +15,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * Resuelve una PmsReserva usando el localizador (token público).
  *
  * GET /api/pax/pms/pms_reserva/{localizador}
+ *
+ * @implements ProviderInterface<PmsReserva>
  */
 final class PmsReservaByLocalizadorProvider implements ProviderInterface
 {

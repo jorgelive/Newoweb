@@ -23,6 +23,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  *
  * A diferencia del provider público, aquí NO se filtra por estado: el panel
  * lista también borradores y archivados, y todos merecen su portada.
+ *
+ * @implements ProviderInterface<CotizacionCatalogo>
  */
 final class CotizacionCatalogoAdminProvider implements ProviderInterface
 {

@@ -110,6 +110,8 @@ final class TravelSegmentoComponentePromocionUnicaListener
     /**
      * Desmarca la promoción y registra el cambio en la unidad de trabajo del flush
      * en curso (según esté ya agendada o sea una entidad gestionada recién tocada).
+     *
+     * @param ClassMetadata<TravelSegmentoComponente> $meta
      */
     private function desmarcar(TravelSegmentoComponente $e, UnitOfWork $uow, ClassMetadata $meta): void
     {

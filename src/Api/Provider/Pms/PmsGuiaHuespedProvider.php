@@ -37,6 +37,8 @@ use Doctrine\ORM\EntityManagerInterface;
  *    `unit_uuid` y con eso lanzaba una segunda petición al CMS de la guía.
  *  - El árbol viene podado y con los `{{ placeholders }}` ya resueltos. Lo que
  *    el huésped no puede ver no viaja, ni siquiera enmascarado.
+ *
+ * @implements ProviderInterface<PmsGuia>
  */
 final class PmsGuiaHuespedProvider implements ProviderInterface
 {

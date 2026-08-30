@@ -299,7 +299,8 @@ class Beds24Config implements ChannelConfigInterface
         return $this->nombre ?? ('Config (UUID) ' . $this->getId());
     }
 
-    /** * @return Collection<int, PmsBookingsPushQueue>
+    /**
+     * @return Collection<int, PmsBookingsPushQueue>
      */
     public function getBookingsPushQueues(): Collection
     {

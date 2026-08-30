@@ -12,6 +12,9 @@ use Symfony\Component\DependencyInjection\ServiceLocator;
 
 final class ExchangeBatchProcessor
 {
+    /**
+     * @param ServiceLocator<ExchangeClientInterface> $clientLocator Los clientes de canal, por alias.
+     */
     public function __construct(
         #[TaggedLocator('app.exchange.client', defaultIndexMethod: 'getClientAlias')]
         private readonly ServiceLocator $clientLocator

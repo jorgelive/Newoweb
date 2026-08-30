@@ -11,6 +11,8 @@ use Vich\UploaderBundle\Naming\NamerInterface;
  * Namer Cronológico Seguro.
  * Formato: YYYY-MM-DD_HH-MM-SS_TOKEN_RANDOM.ext
  * Ej: "2026-02-02_18-30-15_5f3a2b1c_a1b2.webp"
+ *
+ * @implements NamerInterface<object>
  */
 class MediaTokenNamer implements NamerInterface
 {

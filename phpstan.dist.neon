@@ -104,6 +104,23 @@ parameters:
                 - src/*/Serializer/*
             reportUnmatched: false
 
+        # ── Los genéricos de EasyAdmin: no son nuestra deuda ───────────────────
+        #
+        # `AdminContext`, `EntityDto` y `AbstractCrudController` son clases genéricas del bundle,
+        # y sus parámetros los decide EasyCorp, no nosotros. Tiparlos en cada controlador CRUD no
+        # documenta ninguna decisión nuestra: repite la firma de una librería que además puede
+        # cambiarla en la siguiente versión.
+        #
+        # Estaban en el baseline contando como «anotaciones pendientes» y no lo son: no se van a
+        # saldar nunca. Misma decisión que la excepción de Doctrine y la de los procesadores.
+        #
+        # ⚠️ Acotada a `Controller/Crud/`: fuera de ahí un genérico sin tipar SÍ es deuda nuestra.
+        -
+            identifier: missingType.generics
+            paths:
+                - src/*/Controller/Crud/*
+            reportUnmatched: false
+
     # Cachés y código generado: no es nuestro y no se corrige aquí.
     excludePaths:
         - src/Kernel.php

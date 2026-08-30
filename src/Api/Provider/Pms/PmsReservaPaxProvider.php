@@ -34,6 +34,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * pagos es del panel interno. El recargo por tarjeta NO se calcula aquí — es
  * presentación, y el porcentaje vive con su espejo en la vista
  * (PmsReservaView::RECARGO_TARJETA_PCT).
+ *
+ * @implements ProviderInterface<PmsReserva>
  */
 final class PmsReservaPaxProvider implements ProviderInterface
 {
