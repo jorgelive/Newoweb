@@ -161,8 +161,8 @@ final readonly class EmailSendMappingStrategy implements MappingStrategyInterfac
 
         $resultados = [];
 
-        foreach ($mapping->correlationMap as $clave) {
-            $id = (string) $clave;
+        foreach (array_keys($mapping->correlationMap) as $clave) {
+            $id = $mapping->idDeCola($clave);
             $fallo = $fallos[$id] ?? null;
 
             $resultados[$id] = new ItemResult(

@@ -113,7 +113,8 @@ final class WhatsappMetaClient implements ExchangeClientInterface
             }
         }
 
-        $finalRawContent = json_encode($rawBodies, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $finalRawContent = json_encode($rawBodies, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            ?: '{"_error":"la respuesta no se pudo serializar"}';
 
         return new ExchangeNetworkResult($responses, $finalRawContent, $lastStatusCode);
     }

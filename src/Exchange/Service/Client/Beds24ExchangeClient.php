@@ -60,7 +60,12 @@ final class Beds24ExchangeClient implements ExchangeClientInterface
                 // FIX UTF-8: Forzamos la codificación correcta para salvar Emojis (📍, 🏠)
                 $currentEncoding = mb_detect_encoding($rawContent, 'UTF-8, ISO-8859-1', true);
                 if ($currentEncoding !== 'UTF-8') {
-                    $rawContent = mb_convert_encoding($rawContent, 'UTF-8', $currentEncoding ?: 'ISO-8859-1');
+                    // `mb_convert_encoding()` devuelve `false` si la conversión no se puede
+                    // hacer. Si eso pasa se sigue con el original: una página en la codificación
+                    // rara es mejor que `false`, que abajo entra a `json_decode()` como cadena
+                    // vacía y hace parecer que el canal no devolvió nada.
+                    $rawContent = mb_convert_encoding($rawContent, 'UTF-8', $currentEncoding ?: 'ISO-8859-1')
+                        ?: $rawContent;
                 }
 
                 // Decodificación Segura de la página actual
@@ -102,7 +107,11 @@ final class Beds24ExchangeClient implements ExchangeClientInterface
 
             // 📦 Para la auditoría (LastResponseRaw), re-codificamos el array combinado
             // Así en la base de datos podrás ver todo lo que se procesó en un solo JSON.
-            $finalRawContent = json_encode($allDecodedData, JSON_UNESCAPED_UNICODE);
+            // Para la auditoría: si no se puede serializar, se guarda el motivo en vez de
+            // `false`, que en la columna se vería como celda vacía y parecería que no hubo
+            // respuesta.
+            $finalRawContent = json_encode($allDecodedData, JSON_UNESCAPED_UNICODE)
+                ?: '{"_error":"la respuesta combinada no se pudo serializar"}';
 
             return new ExchangeNetworkResult($allDecodedData ?? [], $finalRawContent, $finalStatusCode);
 
