@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Cotizacion\Command;
 
 use App\Cotizacion\Entity\CotizacionSegmento;
+use App\Travel\Entity\TravelSegmento;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -66,6 +67,7 @@ final class RefrescarTextosMaestrosCommand extends Command
 
         $solo = array_filter(array_map('trim', explode(',', (string) $input->getOption('solo'))));
 
+        /** @var list<CotizacionSegmento> $segmentos */
         $segmentos = $this->em->createQueryBuilder()
             ->select('seg')
             ->from(CotizacionSegmento::class, 'seg')
@@ -75,14 +77,27 @@ final class RefrescarTextosMaestrosCommand extends Command
             ->getQuery()
             ->getResult();
 
+        if ($segmentos === []) {
+            $io->warning('Esa cotización no tiene segmentos. ¿El UUID es el correcto?');
+
+            return Command::FAILURE;
+        }
+
+        $io->text(sprintf('  %d segmentos en el expediente', count($segmentos)));
+
+        $repoMaestros = $this->em->getRepository(TravelSegmento::class);
         $tocados = 0;
         $saltados = 0;
+        $huerfanos = 0;
 
         foreach ($segmentos as $segmento) {
-            $maestro = $segmento->getSegmentoMaestro();
+            // ⚠️ `segmentoMaestroId` es un STRING con el uuid, no una relación Doctrine. Hay que
+            // resolverlo a mano; no existe `getSegmentoMaestro()`.
+            $maestroId = $segmento->getSegmentoMaestroId();
+            $maestro = $maestroId === null ? null : $repoMaestros->find($maestroId);
 
             if ($maestro === null) {
-                $io->text('  sin maestro · no se puede refrescar');
+                ++$huerfanos;
                 continue;
             }
 
@@ -130,7 +145,12 @@ final class RefrescarTextosMaestrosCommand extends Command
         }
 
         $io->text('');
-        $io->text(sprintf('  segmentos refrescados: %d%s', $tocados, $saltados > 0 ? sprintf(' · saltados por --solo: %d', $saltados) : ''));
+        $io->text(sprintf(
+            '  refrescados: %d · sin maestro: %d%s',
+            $tocados,
+            $huerfanos,
+            $saltados > 0 ? sprintf(' · saltados por --solo: %d', $saltados) : '',
+        ));
 
         if ($simula) {
             $io->note('Ensayo: no se escribió nada. Quita --dry-run para aplicarlo.');
