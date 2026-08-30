@@ -51,7 +51,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class PmsGuiaTildesCommand extends Command
 {
     /**
-     * Las 29 que aparecen de verdad en la base, todas de lectura única.
+     * Las que aparecen de verdad en la base, todas de lectura única.
      *
      * ⚠️ NO metas aquí `aun`, `esta`, `el`, `si`, `mi`, `tu` ni `solo`: la tilde les cambia el
      * significado y sólo la frase decide. Y `ano` tampoco —«ano» es una palabra— aunque hoy no
@@ -91,6 +91,54 @@ final class PmsGuiaTildesCommand extends Command
         'ultimo' => 'último',
         'util' => 'útil',
         'minimo' => 'mínimo',
+
+        // ── Segunda tanda ────────────────────────────────────────────────────
+        // Salieron de sacar el vocabulario real de la guía en vez de adivinar qué faltaba. Son
+        // igual de inequívocas que las de arriba —ninguna existe en español sin su tilde— y
+        // varias estaban en el texto de la ducha, que es justo el que un huésped no encontró.
+        'todavia' => 'todavía',
+        'abrela' => 'ábrela',
+        'reves' => 'revés',
+        'unico' => 'único',
+        'nombraselo' => 'nómbraselo',
+        'confusion' => 'confusión',
+        'decirselo' => 'decírselo',
+        'fria' => 'fría',
+        'continuacion' => 'continuación',
+        'guia' => 'guía',
+        'induccion' => 'inducción',
+        'lavanderia' => 'lavandería',
+        'deberia' => 'debería',
+        'extravia' => 'extravía',
+        'estadia' => 'estadía',
+        'anticipacion' => 'anticipación',
+        'numeros' => 'números',
+        'codigos' => 'códigos',
+        'envejeceria' => 'envejecería',
+        'instruccion' => 'instrucción',
+        'antelacion' => 'antelación',
+        'publico' => 'público',
+        'electronica' => 'electrónica',
+        'excepcion' => 'excepción',
+        'envia' => 'envía',
+        'condicion' => 'condición',
+        'peticion' => 'petición',
+        'cortesia' => 'cortesía',
+        'recomendacion' => 'recomendación',
+        'magnetico' => 'magnético',
+        'ahi' => 'ahí',
+
+        // Tercera pasada del mismo método: se barre otra vez el vocabulario después de aplicar,
+        // porque cada tanda destapa la siguiente. Aquí se agotó.
+        //
+        // 🔑 `codigos` NO hace falta aunque aparezca: sus dos apariciones están dentro de
+        // `consultar_codigos`, el nombre de una skill. El guion bajo cuenta como `\w`, así que
+        // el lookaround lo protege solo — y eso es exactamente lo que tiene que pasar.
+        'huesped' => 'huésped',
+        'huespedes' => 'huéspedes',
+        'pidelo' => 'pídelo',
+        'pidelos' => 'pídelos',
+        'lavanderias' => 'lavanderías',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

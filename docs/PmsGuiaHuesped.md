@@ -1664,7 +1664,13 @@ acento** en 300–1300 caracteres —las siete duchas, las siete cocinas, los si
   sobre la ducha con todas sus tildes leyendo un texto que no tiene ninguna.
 
 Lo arregla `pms:guia:tildes` (`src/Pms/Command/PmsGuiaTildesCommand.php`), con `--dry-run` e
-idempotente. **202 correcciones en 46 ítems** en la primera pasada.
+idempotente: **340 correcciones** en total.
+
+**La lista se construyó en tres pasadas, y el método importa más que el resultado**: en vez de
+adivinar qué palabras faltaban, se saca el **vocabulario real** de la guía —todas las palabras
+sin ningún diacrítico— y se eligen de ahí las que en español no existen sin tilde. Cada tanda
+destapa la siguiente, porque al corregir unas quedan a la vista las que estaban al lado. Tres
+pasadas: 202, 116 y 22. La tercera se agotó.
 
 ⚠️ **Es una lista CERRADA de 29 palabras de lectura única, no un reacentuador.** Fuera quedan a
 propósito `aun`, `esta`, `el`, `si`, `mi`, `tu` y `solo`, a las que la tilde les cambia el
@@ -1680,3 +1686,14 @@ texto se parte por etiquetas y llaves y sólo se corrigen los trozos que el hué
 
 La que más urgía no era una tilde: **«se devuelve al entregar las llaves y no hay danos»**. Sin
 la eñe, la frase deja de significar lo que dice.
+
+🔑 **Los identificadores se protegen solos.** `codigos` aparece dos veces y el comando no lo
+toca, porque las dos están dentro de `consultar_codigos`, el nombre de una skill: el guion bajo
+cuenta como `\w` y el lookaround lo excluye. No hizo falta una excepción — es lo que tiene que
+pasar.
+
+### Lo que sigue haciéndose a mano
+
+`aun`, `esta`, `el`, `si`, `mi`, `tu`, `solo`, y `que`/`como`/`donde`/`cuando` cuando son
+interrogativos. La tilde les cambia el significado y sólo la frase decide, así que ninguna
+entrará nunca en la lista. Si algún día hay que revisarlas, se leen.
