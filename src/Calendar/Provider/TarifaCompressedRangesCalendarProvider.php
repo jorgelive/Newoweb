@@ -297,11 +297,11 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
 
     /**
      * @param list<object> $entities
-     * @return array<string|int, array{unit:object, ranges:list<object>}>
+     * @return array<string|int, array{unit: object, ranges: list<object>}> Por unidad: sus
+     *         rangos y los datos de cabecera.
      *
      * @param list<object> $entities
      * @param array<string, mixed> $config La configuración del calendario, tal como llega del YAML.
-     * @return array<string, array<string, mixed>> Por unidad: sus rangos y los datos de cabecera.
      */
     private function groupByUnit(array $entities, array $config): array
     {

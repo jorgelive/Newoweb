@@ -455,7 +455,7 @@ class PmsInformacionFinanciera
      * lo que se lee es la secuencia de lo que se fue cobrando.
      *
      * @param bool $excluirEspejoCanal Igual que en getDesglosePorTipo().
-     * @return list<array{tipo: string, descripcion: list<array{content: string, language: string}>, monto: string}>
+     * @return list<array{tipo: string, descripcion: list<array{language?: string, content?: string|null}>, monto: string}>
      */
     public function getLineasCliente(bool $excluirEspejoCanal = false): array
     {

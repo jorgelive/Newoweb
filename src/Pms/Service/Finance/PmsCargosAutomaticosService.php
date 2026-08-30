@@ -11,6 +11,7 @@ use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Enum\PmsTipoCargo;
 use App\Pms\Service\Tarifa\PmsTarifaCalculadora;
+use App\Entity\Maestro\MaestroMoneda;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
@@ -471,7 +472,7 @@ final class PmsCargosAutomaticosService
         PmsTipoCargo $tipo,
         string $descripcion,
         string $importe,
-        object $moneda,
+        MaestroMoneda $moneda,
     ): void {
         // Sin beds24ItemId => cargo manual: editable y borrable por el operador (§11.5).
         $cargo = new PmsCargoFinanciero();

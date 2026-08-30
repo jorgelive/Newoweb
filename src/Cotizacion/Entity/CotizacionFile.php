@@ -329,7 +329,10 @@ class CotizacionFile
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * La misma forma que declara la propiedad: `array<string, mixed>` prometía menos y admitía
+     * más — quien lo lee necesita saber que cada fila trae `version` y `fechaInicio`.
+     *
+     * @return array<int, array{version: int, fechaInicio: ?string}>
      */
     #[Groups(['file:read'])]
     public function getVersionesFechas(): array

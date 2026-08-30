@@ -97,6 +97,12 @@ final readonly class ResumenNoLeidosService
 
         // Campos sueltos, no entidades: esto se consulta en cada carga del portal
         // y no necesita el grafo entero de la conversación.
+        // ⚠️ `getArrayResult()` devuelve `mixed`: sin el `@var` de abajo, ni la forma del
+        // `select` ni el tipo de retorno de este método comprueban nada.
+        /**
+         * @var list<array{id: string, guestName: string|null, unreadCount: int, status: string,
+         *      lastMessageAt: \DateTimeInterface|null, resumenIa: string|null}> $detalle
+         */
         $detalle = $this->em->createQueryBuilder()
             ->select('c.id AS id', 'c.guestName AS guestName', 'c.unreadCount AS unreadCount', 'c.status AS status', 'c.lastMessageAt AS lastMessageAt', 'c.resumenIa AS resumenIa')
             ->from(MessageConversation::class, 'c')
