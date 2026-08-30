@@ -37,7 +37,14 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
     {
         $collection = $this->collectionProvider->provide($operation, $uriVariables, $context);
 
+        // El provider decorado devuelve la colección o —en una operación de ítem— la entidad
+        // suelta. Sin esto, el `foreach` sobre la segunda forma es un error de tipo.
         $files = [];
+
+        if (!is_iterable($collection)) {
+            return $collection;
+        }
+
         foreach ($collection as $file) {
             $files[] = $file;
         }

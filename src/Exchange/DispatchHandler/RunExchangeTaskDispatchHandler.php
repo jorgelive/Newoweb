@@ -42,7 +42,7 @@ final readonly class RunExchangeTaskDispatchHandler
         // 2. Agrupación Inteligente (Pre-Sorting)
         // El repositorio se encarga de la conversión Binario <-> Texto internamente.
         // Retorna: ['uuid_string' => ['config_id' => 'hex', 'endpoint_id' => 'hex']]
-        $metadata = $task->getGroupingMetadata($ids);
+        $metadata = $task->getGroupingMetadata(array_values($ids));
 
         if (empty($metadata)) {
             return;

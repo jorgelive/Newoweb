@@ -49,7 +49,7 @@ final class CotizacionCatalogoAdminProvider implements ProviderInterface
             return $catalogo;
         }
 
-        $ids       = array_map(static fn($t) => $t->getId(), $tours->toArray());
+        $ids       = array_values(array_map(static fn ($t): string => (string) $t->getId(), $tours->toArray()));
         $portadas  = $this->tarjetas->portadasDerivadas($ids);
         $dias      = $this->tarjetas->diasPorTour($ids);
 
