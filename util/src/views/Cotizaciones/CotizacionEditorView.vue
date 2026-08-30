@@ -1054,6 +1054,21 @@ const poolFiltrado = computed(() => {
 // ============================================================================
 // 🔥 ORDENAMIENTO DE SEGMENTOS AGRUPADOS (Vista Storytelling)
 // ============================================================================
+/**
+ * Cómo se nombra un párrafo en los desplegables que sirven para COLOCARLO.
+ *
+ * El operativo primero: es el que identifica el tramo. El título es prosa de cliente y dos
+ * párrafos seguidos pueden titularse casi igual —lo que se busca aquí es cuál es cuál, no cómo
+ * suena—. Cae al título para los párrafos escritos a mano, que no tienen nombre interno.
+ */
+const etiquetaDeParrafo = (cotSeg: CotSegmento): string => {
+  const lang = store.cotizacion?.idiomaEdicion || 'es';
+
+  return store.getI18nText(cotSeg.nombreInternoSnapshot, lang)
+      || store.getI18nText(cotSeg.tituloSnapshot, lang)
+      || 'Sin título';
+};
+
 const segmentosOrdenadosVisualmente = computed(() => {
   const segmentos = store.servicioActivo?.cotsegmentos;
   if (!segmentos) return [];
@@ -3948,8 +3963,13 @@ store.$onAction(({ name, args }) => {
                 {{ opcionInsercion === 'insert' ? 'Insertar después de:' : (opcionInsercion === 'insertBefore' ? 'Insertar antes de:' : 'Párrafo a reemplazar:') }}
               </label>
               <select v-model="targetSegmentoId" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-teal-500">
+                <!-- ⚠️ El NOMBRE INTERNO, no el título. Este desplegable se usa para COLOCAR un
+                     párrafo entre otros, y para eso hace falta reconocer el tramo —«Traslado a la
+                     estación de Ollantaytambo»—, no leer su prosa comercial —«El valle que guarda
+                     el secreto»—, que en dos segmentos seguidos puede sonar casi igual. El título
+                     queda de respaldo para los párrafos escritos a mano, que no tienen interno. -->
                 <option v-for="(cotSeg, idx) in store.servicioActivo?.cotsegmentos || []" :key="cotSeg.id" :value="cotSeg.id">
-                  {{ (idx as number) + 1 }}. [Día {{ cotSeg.dia || 1 }}] {{ store.getI18nText(cotSeg.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es') || 'Sin título' }}
+                  {{ (idx as number) + 1 }}. [Día {{ cotSeg.dia || 1 }}] {{ etiquetaDeParrafo(cotSeg) }}
                 </option>
               </select>
             </div>

@@ -3088,6 +3088,26 @@ En el panel, la ayuda plegable de **Hora Inicio** y **Orden** en
 `TravelSegmentoComponenteCrudController` cuenta las dos trampas donde se toman las decisiones. El
 reparto segmento ↔ componente está en `docs/Travel.md` §11.quinquies.
 
+## 6.ab Colocar es una tarea operativa: el desplegable enseña el nombre interno
+
+El modal «¿Dónde ubicar el segmento?» listaba los párrafos por su **título**. Se usa para
+**colocar** uno entre otros, y para eso hace falta reconocer el tramo, no leer su prosa comercial:
+
+```
+interno   Retorno Bimodal a Cusco (Vía Ollantaytambo)
+título    Recepción y traslado al hotel en Cusco        ← se confunde con cualquier otra llegada
+
+interno   Contacto en el hotel
+título    Encuentro con nuestro personal en tu hotel
+```
+
+Sólo **13 de 227** segmentos tienen los dos textos distintos, y son justo aquellos en los que
+colocar mal es fácil. El título queda de respaldo para los párrafos escritos a mano.
+
+**La regla general**: un desplegable que sirve para *operar* se rotula con el nombre operativo; el
+título es para las superficies donde alguien *lee* el viaje. Vale igual para el selector de
+plantilla, el de componentes y éste.
+
 ## 6.aa El editor ordenaba por el reloj y el cliente por el guion (29/08/2026)
 
 `ordenarComponentesCronologicamente()` ordenaba sólo por fecha y hora. `pax` agrupa por servicio y
