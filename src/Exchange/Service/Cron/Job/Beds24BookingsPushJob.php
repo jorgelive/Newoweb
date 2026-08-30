@@ -116,10 +116,10 @@ class Beds24BookingsPushJob implements CronJobInterface, CronHorizonteInterface
                     ->getQuery()
                     ->getResult();
 
+                /** @var PmsEventoCalendario $evento */
                 foreach ($eventos as $evento) {
-                    /** @var PmsEventoCalendario $evento */
+                    /** @var PmsEventoBeds24Link $link */
                     foreach ($evento->getBeds24Links() as $link) {
-                        /** @var PmsEventoBeds24Link $link */
 
                         if (!$link->getUnidadBeds24Map()) continue;
                         if ($link->getStatus() === PmsEventoBeds24Link::STATUS_SYNCED_DELETED) continue;

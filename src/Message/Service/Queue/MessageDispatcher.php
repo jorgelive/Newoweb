@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Service\Queue;
 
 use App\Message\Contract\ChannelEnqueuerInterface;
+use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
@@ -37,9 +38,14 @@ readonly class MessageDispatcher
      * Si un canal falla, los demás continúan (Tolerancia a fallos parciales).
      *
      * @param Message $message La entidad mensaje original.
-     * @return array Un arreglo con las entidades de cola creadas (ej. Beds24SendQueue).
      *
-     * @return array<string, mixed> Resultado por canal.
+     * ⚠️ Había **dos `@return` contradictorios** —«las entidades de cola creadas» y
+     * `array<string, mixed>` «resultado por canal»— y ninguno era cierto: devuelve una LISTA
+     * numerada (`$queues[] = $queue`), que es como la consumen los dos llamadores
+     * (`foreach ($this->dispatcher->dispatch($message) as $queue)`). Quien se hubiera fiado del
+     * segundo habría indexado por nombre de canal algo que viene numerado.
+     *
+     * @return list<MessageQueueItemInterface> Las colas creadas, en el orden en que se crearon.
      */
     public function dispatch(Message $message): array
     {

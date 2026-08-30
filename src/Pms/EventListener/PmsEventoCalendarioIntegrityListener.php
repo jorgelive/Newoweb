@@ -9,10 +9,10 @@ use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Events;
-use Doctrine\Persistence\ObjectManager;
 use DateTimeInterface;
 use DomainException;
 use LogicException;
@@ -37,8 +37,19 @@ final class PmsEventoCalendarioIntegrityListener
     public function prePersist(PmsEventoCalendario $evento, PrePersistEventArgs $args): void
     {
         $this->validarFechas($evento);
-        $this->asegurarCanalDirecto($evento, $args->getObjectManager());
-        $this->asegurarEstadoConfirmadoPorPago($evento, $args->getObjectManager());
+
+        // ⚠️ `getObjectManager()` devuelve `ObjectManager`, que NO declara `getReference()` ni
+        // `getUnitOfWork()` — los tiene `EntityManagerInterface`. Se estrecha aquí, como ya hacen
+        // `Beds24BookingsPushQueueListener` y `Beds24RatesPushQueueListener`; este listener era el
+        // único de los tres sin la comprobación.
+        $em = $args->getObjectManager();
+
+        if (!$em instanceof EntityManagerInterface) {
+            return;
+        }
+
+        $this->asegurarCanalDirecto($evento, $em);
+        $this->asegurarEstadoConfirmadoPorPago($evento, $em);
     }
 
     /**
@@ -48,6 +59,14 @@ final class PmsEventoCalendarioIntegrityListener
     public function preUpdate(PmsEventoCalendario $evento, PreUpdateEventArgs $args): void
     {
         $needsRecompute = false;
+
+        // Mismo estrechamiento que en prePersist: lo que sigue usa métodos de
+        // `EntityManagerInterface`, no de `ObjectManager`.
+        $em = $args->getObjectManager();
+
+        if (!$em instanceof EntityManagerInterface) {
+            return;
+        }
 
         // Optimización: Solo validamos si se tocaron las fechas.
         if ($args->hasChangedField('inicio') || $args->hasChangedField('fin')) {
@@ -62,7 +81,7 @@ final class PmsEventoCalendarioIntegrityListener
 
         // RED DE SEGURIDAD 1: Recuperación de Canal Directo
         if ($evento->getChannel() === null && !$evento->isOta()) {
-            $this->asegurarCanalDirecto($evento, $args->getObjectManager());
+            $this->asegurarCanalDirecto($evento, $em);
             $needsRecompute = true;
         }
 
@@ -71,14 +90,13 @@ final class PmsEventoCalendarioIntegrityListener
         // `estadoPago` bastaba con reabrir una reserva ya pagada y bajarle el estado a
         // "pendiente" (sin tocar el pago) para dejarla guardada como pagada-no-confirmada.
         if ($args->hasChangedField('estadoPago') || $args->hasChangedField('estado')) {
-            if ($this->asegurarEstadoConfirmadoPorPago($evento, $args->getObjectManager(), $args)) {
+            if ($this->asegurarEstadoConfirmadoPorPago($evento, $em, $args)) {
                 $needsRecompute = true;
             }
         }
 
         // Propagar mutaciones internas a Doctrine
         if ($needsRecompute) {
-            $em = $args->getObjectManager();
             $uow = $em->getUnitOfWork();
             $meta = $em->getClassMetadata(PmsEventoCalendario::class);
             $uow->recomputeSingleEntityChangeSet($meta, $evento);
@@ -89,7 +107,7 @@ final class PmsEventoCalendarioIntegrityListener
      * Inyecta el Canal Directo por defecto si una reserva manual se quedó sin canal asignado.
      * Previene datos huérfanos en los reportes financieros.
      */
-    private function asegurarCanalDirecto(PmsEventoCalendario $evento, ObjectManager $em): void
+    private function asegurarCanalDirecto(PmsEventoCalendario $evento, EntityManagerInterface $em): void
     {
         if (!$evento->isOta() && $evento->getChannel() === null) {
             // Usamos getReference para evitar una consulta SQL innecesaria
@@ -117,7 +135,7 @@ final class PmsEventoCalendarioIntegrityListener
      */
     private function asegurarEstadoConfirmadoPorPago(
         PmsEventoCalendario $evento,
-        ObjectManager $em,
+        EntityManagerInterface $em,
         ?PreUpdateEventArgs $args = null
     ): bool {
         if ($this->syncContext->isPull()) {

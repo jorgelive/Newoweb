@@ -63,6 +63,17 @@
   framework», «el ORM» o «otro módulo por un docblock», el guarda se queda. Sólo se borra cuando
   el tipo lo garantiza PHP en el mismo ámbito.
 
+  ⚠️ **Un `@var` dentro del `foreach` no tipa el bucle: tipa el siguiente.** PHPStan empareja la
+  anotación con la sentencia que va debajo, así que un `/** @var X $item */` puesto como primera
+  línea del cuerpo se lo queda el bucle interno. No miente —simplemente no dice nada—, y es peor
+  de otra forma: alguien creyó que había tipado ese `foreach`. Va **encima** del `foreach`, misma
+  regla que el docblock encima del bloque de atributos entero.
+
+  ⚠️ **Y una firma falsa apaga los guardas de alrededor.** Al corregir un `@return` que describía
+  «dos listas paralelas» sobre un método que devuelve una lista de pares, un `empty()` que figuraba
+  como redundante volvió a tener sentido. Un tipo mentiroso no sólo miente sobre sí mismo: hace
+  que el código defensivo que lo rodea parezca sobrar, y entonces alguien lo borra.
+
   ⚠️ La baseline **no es una lista de perdonados**: es la foto del día que se instaló, para que
   salte sólo lo nuevo. Si tocas un archivo que tiene errores dentro, arréglalos y quítalos de
   ahí.

@@ -194,21 +194,24 @@ class PmsReservaMessageContext implements MessageContextInterface
         [$hOut, $mOut, $sOut] = array_map('intval', explode(':', $horaCheckOutStr));
 
         // 🔹 START / END (🚨 CORRECCIÓN DEL CLONE Y DEL SETTIME)
-        $start = null;
+        // ⚠️ `setTime()` NO está en `DateTimeInterface`: la declaran `DateTime` y
+        // `DateTimeImmutable`, y hacen cosas opuestas —una muta y devuelve `$this`, la otra
+        // devuelve una copia—. Lo que había aquí era un `clone` + reasignación que acertaba con
+        // las dos, pero sobre un tipo que no promete el método: funcionaba por casualidad de qué
+        // llega, y PHPStan lo marcaba.
+        //
+        // `createFromInterface()` resuelve las dos cosas de una vez: acepta cualquiera de las dos
+        // implementaciones y devuelve SIEMPRE una inmutable, así que ya no hace falta ni el clone
+        // ni el comentario que avisaba de la reasignación.
         $llegadaOrig = $this->reserva->getFechaLlegada();
-        if ($llegadaOrig instanceof \DateTimeInterface) {
-            $start = clone $llegadaOrig;
-            // Se reasigna por si el objeto es DateTimeImmutable
-            $start = $start->setTime($hIn, $mIn, $sIn);
-        }
+        $start = $llegadaOrig === null
+            ? null
+            : \DateTimeImmutable::createFromInterface($llegadaOrig)->setTime($hIn, $mIn, $sIn);
 
-        $end = null;
         $salidaOrig = $this->reserva->getFechaSalida();
-        if ($salidaOrig instanceof \DateTimeInterface) {
-            $end = clone $salidaOrig;
-            // Se reasigna por si el objeto es DateTimeImmutable
-            $end = $end->setTime($hOut, $mOut, $sOut);
-        }
+        $end = $salidaOrig === null
+            ? null
+            : \DateTimeImmutable::createFromInterface($salidaOrig)->setTime($hOut, $mOut, $sOut);
 
         // 🔹 CREATED (caso mixto)
         $created = null;

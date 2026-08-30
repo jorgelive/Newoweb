@@ -13,6 +13,32 @@
 #      10  arrayValues.list     un `array_values()` que ya devuelve una lista
 #       8  property.unusedType  fuera de `Entity/`, donde la excepción de Doctrine no aplica
 #
+# ── Saldado el 30/08/2026: las 13 que tenían señal ──────────────────────────
+#
+#   5 `method.notFound` — el mismo patrón que los contratos de Exchange, pero con interfaces del
+#     framework: el tipo declarado es más ancho que el método que se le pide.
+#       · `ObjectManager::getReference()` → se estrecha a `EntityManagerInterface`. Dos listeners
+#         hermanos ya lo hacían y éste era el único de los tres sin la comprobación.
+#       · `SerializerInterface::denormalize()` → el método vive en `DenormalizerInterface`.
+#       · `DateTimeInterface::setTime()` → lo declaran `DateTime` y `DateTimeImmutable`, y hacen
+#         cosas OPUESTAS (una muta, la otra copia). Resuelto con `createFromInterface()`, que
+#         acepta las dos y devuelve siempre inmutable: se fue el clone y el comentario que
+#         avisaba de la reasignación.
+#
+#   5 `varTag.differentVariable` — el `@var` estaba DENTRO del `foreach`, así que PHPStan lo
+#     emparejaba con el bucle siguiente y no tipaba nada. Subido encima del `foreach`. No mentía:
+#     es peor de otra forma — alguien creyó que había tipado ese bucle.
+#
+#   3 `return.type` — firmas que mentían sobre la forma devuelta:
+#       · `MessageDispatcher::dispatch()` tenía DOS `@return` contradictorios y ninguno cierto:
+#         devuelve una lista numerada, no un mapa por canal.
+#       · `generateNamedExamples()` decía «dos listas paralelas» y devuelve una lista de pares.
+#     Ninguna falló porque los llamadores ya sabían la forma real — hasta que alguien la lea.
+#
+#   ✅ Y un efecto colateral: al corregir el tipo de `generateNamedExamples()`, un `empty()` que
+#      figuraba como inútil volvió a tener sentido. Un tipo falso no sólo miente sobre sí mismo:
+#      hace que los guardas de alrededor parezcan sobrar.
+#
 #   NO ES DEUDA: guardas en una FRONTERA DE CONFIANZA que PHPStan no puede modelar
 #      16  instanceof.alwaysTrue      validación de entrada donde llama el framework
 #      15  nullsafe.neverNull         `?->` sobre una relación que el ORM hidrata sin setter
@@ -772,12 +798,7 @@ parameters:
 			count: 1
 			path: src/Exchange/Service/Contract/ExchangeTaskInterface.php
 
-		-
-			message: '#^Variable \$evento in PHPDoc tag @var does not match any variable in the foreach loop\: \$link$#'
-			identifier: varTag.differentVariable
-			count: 1
-			path: src/Exchange/Service/Cron/Job/Beds24BookingsPushJob.php
-
+	
 		-
 			message: '#^Method App\\Exchange\\Service\\Cron\\TimelineEnqueuerService\:\:__construct\(\) has parameter \$jobs with no value type specified in iterable type iterable\.$#'
 			identifier: missingType.iterableValue
@@ -1060,30 +1081,10 @@ parameters:
 			count: 1
 			path: src/Message/Service/MessageDataResolverRegistry.php
 
-		-
-			message: '#^Method App\\Message\\Service\\Meta\\Template\\WhatsappMetaTemplatePushService\:\:generateNamedExamples\(\) should return array\{list\<string\>, list\<string\>\} but returns array\{\}\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Message/Service/Meta/Template/WhatsappMetaTemplatePushService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Meta\\Template\\WhatsappMetaTemplatePushService\:\:generateNamedExamples\(\) should return array\{list\<string\>, list\<string\>\} but returns non\-empty\-list\<array\{param_name\: non\-empty\-string, example\: string\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Message/Service/Meta/Template/WhatsappMetaTemplatePushService.php
-
-		-
-			message: '#^Variable \$examples in empty\(\) always exists and is not falsy\.$#'
-			identifier: empty.variable
-			count: 2
-			path: src/Message/Service/Meta/Template/WhatsappMetaTemplatePushService.php
-
-		-
-			message: '#^Method App\\Message\\Service\\Queue\\MessageDispatcher\:\:dispatch\(\) should return array\<string, mixed\> but returns list\<App\\Message\\Contract\\MessageQueueItemInterface\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Message/Service/Queue/MessageDispatcher.php
-
+	
+	
+	
+	
 		-
 			message: '#^Instanceof between App\\Message\\Contract\\MessageQueueItemInterface and App\\Message\\Contract\\MessageQueueItemInterface will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
@@ -1320,26 +1321,11 @@ parameters:
 			count: 1
 			path: src/Pms/Entity/PmsUnidad.php
 
-		-
-			message: '#^Call to an undefined method Doctrine\\Persistence\\ObjectManager\:\:getReference\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Pms/EventListener/PmsEventoCalendarioIntegrityListener.php
-
 	
 	
-		-
-			message: '#^Variable \$e in PHPDoc tag @var does not match any variable in the foreach loop\: \$l$#'
-			identifier: varTag.differentVariable
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
-
-		-
-			message: '#^Variable \$r in PHPDoc tag @var does not match any variable in the foreach loop\: \$e$#'
-			identifier: varTag.differentVariable
-			count: 1
-			path: src/Pms/EventListener/Queue/Beds24BookingsPushQueueListener.php
-
+	
+	
+	
 	
 		-
 			message: '#^Instanceof between App\\Pms\\Entity\\PmsUnidadBeds24Map and App\\Pms\\Entity\\PmsUnidadBeds24Map will always evaluate to true\.$#'
@@ -1383,18 +1369,8 @@ parameters:
 			count: 1
 			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingPullPersister.php
 
-		-
-			message: '#^Call to an undefined method Symfony\\Component\\Serializer\\SerializerInterface\:\:denormalize\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullHandler.php
-
-		-
-			message: '#^Variable \$unidad in PHPDoc tag @var does not match any variable in the foreach loop\: \$map$#'
-			identifier: varTag.differentVariable
-			count: 1
-			path: src/Pms/Service/Exchange/Tasks/BookingsPull/BookingsPullMappingStrategy.php
-
+	
+	
 		-
 			message: '#^Expression on left side of \?\? is not nullable\.$#'
 			identifier: nullCoalesce.expr
@@ -1420,18 +1396,8 @@ parameters:
 			count: 1
 			path: src/Pms/Service/Finance/PmsInformacionFinancieraRecalculoService.php
 
-		-
-			message: '#^Variable \$evento in PHPDoc tag @var does not match any variable in the foreach loop\: \$link$#'
-			identifier: varTag.differentVariable
-			count: 1
-			path: src/Pms/Service/Message/PmsMessageDataResolver.php
-
-		-
-			message: '#^Call to an undefined method DateTimeInterface\:\:setTime\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Pms/Service/Message/PmsReservaMessageContext.php
-
+	
+	
 		-
 			message: '#^Instanceof between DateTimeImmutable\|null and DateTime will always evaluate to false\.$#'
 			identifier: instanceof.alwaysFalse

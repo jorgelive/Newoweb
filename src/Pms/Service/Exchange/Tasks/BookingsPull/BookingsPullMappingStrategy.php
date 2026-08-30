@@ -92,8 +92,8 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
         // 5. Filtrado de Habitaciones (Scope Isolation)
         // Solo solicitamos las habitaciones vinculadas a *esta* configuración específica.
         $roomIds = [];
+        /** @var PmsUnidad $unidad */
         foreach ($job->getUnidades() as $unidad) {
-            /** @var PmsUnidad $unidad */
             foreach ($unidad->getBeds24Maps() as $map) {
                 // Validación estricta: el mapa debe pertenecer a la cuenta que estamos
                 // consultando.

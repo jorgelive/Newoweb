@@ -9,7 +9,7 @@ use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Dto\Beds24BookingDto;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use DateTimeImmutable;
-use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Throwable;
 
 /**
@@ -22,7 +22,10 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
 {
     public function __construct(
         private readonly BookingPullPersister $persister,
-        private readonly SerializerInterface  $serializer
+        // ⚠️ `DenormalizerInterface` y no `SerializerInterface`: `denormalize()` vive en la
+        // primera. El servicio real de Symfony implementa las dos, así que la inyección no
+        // cambia — lo que cambia es que el tipo declara lo que de verdad se llama.
+        private readonly DenormalizerInterface $serializer
     ) {}
 
     /**

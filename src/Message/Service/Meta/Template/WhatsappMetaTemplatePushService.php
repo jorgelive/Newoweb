@@ -438,8 +438,14 @@ final readonly class WhatsappMetaTemplatePushService
     /**
      * Detecta variables {{name}} y genera el array de ejemplos para la validación de Meta.
      *
+     * ⚠️ La anotación decía `array{list<string>, list<string>}` —«nombres y ejemplos, en
+     * paralelo»— y el cuerpo nunca devolvió eso: devuelve la lista de pares que pide Meta en
+     * `named_params`. Dos listas paralelas y una lista de pares no se parecen en nada, así que
+     * quien programara contra la firma habría desempaquetado dos variables de una lista de
+     * arrays. No falló porque el único llamador es de esta misma clase.
+     *
      * @param array<string, mixed> $previewVars
-     * @return array{list<string>, list<string>} Nombres de variable y sus ejemplos, en paralelo.
+     * @return list<array{param_name: string, example: string}> Cada variable con su ejemplo.
      */
     private function generateNamedExamples(string $text, array $previewVars): array
     {

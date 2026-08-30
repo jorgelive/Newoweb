@@ -259,8 +259,8 @@ final class Beds24BookingsPushQueueListener
         }
 
         // Links alcanzados por eventos tocados
+        /** @var PmsEventoCalendario $e */
         foreach ($this->eventosTouched as $e) {
-            /** @var PmsEventoCalendario $e */
             foreach ($e->getBeds24Links() as $l) {
                 $resolved->attach($l);
             }
@@ -274,8 +274,8 @@ final class Beds24BookingsPushQueueListener
         }
 
         // Links alcanzados por reservas tocadas
+        /** @var PmsReserva $r */
         foreach ($this->reservasTouched as $r) {
-            /** @var PmsReserva $r */
             foreach ($r->getEventosCalendario() as $e) {
                 foreach ($e->getBeds24Links() as $l) {
                     $resolved->attach($l);

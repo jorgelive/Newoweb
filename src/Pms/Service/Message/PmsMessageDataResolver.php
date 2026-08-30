@@ -101,10 +101,10 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
 
         // 2. Sino lo buscamos en el link
         if (empty($targetBookId)) {
+            /** @var PmsEventoCalendario $evento */
             foreach ($reserva->getEventosCalendario() as $evento) {
-                /** @var PmsEventoCalendario $evento */
+                /** @var PmsEventoBeds24Link $link */
                 foreach ($evento->getBeds24Links() as $link) {
-                    /** @var PmsEventoBeds24Link $link */
                     if ($link->isEsPrincipal()) {
                         $targetBookId = $link->getBeds24BookId();
                         break 2;
