@@ -1649,3 +1649,34 @@ El contenido nombra el **microondas** de forma explícita. Sale de un mensaje re
 usarlo para cocinar huevos y no funciona»* y *«¿es posible usar el horno pequeño para cocinar?»*.
 No hay horno: es el microondas, y quien no lo reconoce no lo va a deducir de una lista de
 electrodomésticos.
+
+## El español de la guía se escribió sin tildes
+
+Buena parte del contenido entró sin diacríticos: **28 campos `agenteContenido` no tenían ni un
+acento** en 300–1300 caracteres —las siete duchas, las siete cocinas, los siete televisores,
+`Pago`, `Reglas`, `Llaves`, `Traslados`…— y catorce `descripcion` iban a medias.
+
+**Sólo lo sufre quien lee en español**, y las dos razones están comprobadas:
+
+- **Las traducciones salieron bien.** El traductor entendió «jabon liquido» y escribió «liquid
+  hand soap», «savon liquide», «sabonete líquido». El original malo no las contaminó.
+- **El agente tampoco lo copia literal**: reescribe. En la conversación de `66V8US` contestó
+  sobre la ducha con todas sus tildes leyendo un texto que no tiene ninguna.
+
+Lo arregla `pms:guia:tildes` (`src/Pms/Command/PmsGuiaTildesCommand.php`), con `--dry-run` e
+idempotente. **202 correcciones en 46 ítems** en la primera pasada.
+
+⚠️ **Es una lista CERRADA de 29 palabras de lectura única, no un reacentuador.** Fuera quedan a
+propósito `aun`, `esta`, `el`, `si`, `mi`, `tu` y `solo`, a las que la tilde les cambia el
+significado y sólo la frase decide; y `ano`, que es una palabra por derecho propio. Lo que exige
+leer la oración —`abrela`, `todavia`, `decirselo`, `fria`— **no lo toca**: eso se corrige a mano.
+
+⚠️ **Va por comando y en modo seguro.** `descripcion` y `titulo` llevan `#[AutoTranslate]`: un
+`UPDATE` en SQL se saltaría el listener, y forzar la retraducción reescribiría seis idiomas que
+ya están bien. Sin `sobreescribirTraduccion`, el listener sólo rellena los vacíos.
+
+⚠️ **No entra en el marcado.** `descripcion` es HTML y lleva marcadores `{{ check_in }}`. El
+texto se parte por etiquetas y llaves y sólo se corrigen los trozos que el huésped ve.
+
+La que más urgía no era una tilde: **«se devuelve al entregar las llaves y no hay danos»**. Sin
+la eñe, la frase deja de significar lo que dice.
