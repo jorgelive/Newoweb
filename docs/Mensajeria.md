@@ -6834,6 +6834,44 @@ Así que repuntar el nombre obliga a **arreglar los `resolver_key` en la misma s
 que corra el cron de las 03:15. Las claves en uso hoy son `guide_path`, `tours_catalog_path` y
 `chat_path` (ver `welcome_airbnb`, que ya usa las dos primeras).
 
+### 🔁 Cómo se REESCRIBE una plantilla de Meta (la receta, 30/08/2026)
+
+Meta no deja editar de verdad una plantilla aprobada: reescribirla es **crear otra con otro
+nombre y borrar la vieja**. Y borrar **bloquea ese nombre unos 30 días**. Las piezas de este
+capítulo lo cubren todo, pero repartidas; el orden es lo que faltaba.
+
+**La buena noticia primero: `code` es NUESTRO y `meta_template_name` es un campo.** El
+sincronizador empareja por `meta_template_name`, nunca por `code`, así que rotar en Meta **no
+obliga a crear una fila local nueva**. Se cambia ese campo y la fila sigue siendo la misma, con
+sus reglas, su sitio en el desplegable, sus `allowed_sources` y su historial de envíos.
+
+Y el bloqueo de 30 días sólo muerde si se recicla el nombre. Es exactamente lo que se aprendió el
+12/08: la plantilla viva se llama **`welcome_booking_command`** porque `welcome_booking` estaba
+quemado. Con `_v2`, `_v3` el bloqueo deja de existir como problema.
+
+⚠️ **Y una distinción que ahorra la mitad del trabajo: los tres cuerpos son independientes.**
+`beds24_tmpl` y `whatsapp_link_tmpl` son nuestros y se editan cuando se quiera, sin pedirle
+permiso a nadie. **Sólo `whatsapp_meta_tmpl` necesita el baile.** Reformular el texto que va al
+chat de Booking o al enlace manual no toca Meta en absoluto.
+
+#### El orden
+
+| # | Paso | Por qué en este sitio |
+|---|---|---|
+| 1 | **Congelar el diseño de botones** | ver abajo: es lo que hace segura toda rotación futura |
+| 2 | Crear `x_v2` en Meta **con los mismos botones** | un diseño distinto produce el híbrido imposible |
+| 3 | Repuntar `meta_template_name` **antes de las 03:15** | si a esa hora nadie local reclama el nombre, el cron fabrica una fila `X_V2_META` sin cablear que compite con la tuya |
+| 4 | Revisar el `buttons_map`: tipos y `resolver_key` | el sincronizador pisa `type` y `content`, y el fallo es mudo hasta el envío |
+| 5 | Guardar copia de los 7 idiomas con sus ids | se hizo así la otra vez, y es lo único que permite volver atrás |
+| 6 | Borrar la vieja en la consola de Meta | `NOMBRES_IGNORADOS` es la red, no la solución |
+
+Alternativa limpia a los pasos 2-3: subirla con `WhatsappMetaTemplatePushService`, que valida que
+no falte ningún `resolver_key` antes de mandarla.
+
+⚠️ **El paso 1 es el que ahorra los otros cinco, cada vez.** Si una plantilla nace con **un solo
+botón `url` + `resolver_key`**, rotarla en el futuro es cambiar un campo y borrar en Meta: el
+híbrido de botones no puede darse porque el diseño no cambia. Los diseños mezclables están abajo.
+
 ### Los dos diseños de botón, y qué se gana y se pierde
 
 | | `quick_reply` + `CMD_*` | `url` + `*_path` |
@@ -6866,6 +6904,88 @@ mezclarlos en el mismo botón, que es justo lo que produce el repunte de nombre.
 | Volver a encender el correo | `Version20260812220000` (`down`) **y** `email_tmpl.is_active` en cada plantilla |
 
 ---
+
+## 18.b Plan de reformulación de las plantillas al huésped (30/08/2026)
+
+### El inventario, con datos y no de memoria
+
+| Plantilla | Enviados | Canales | Regla | Trato | Meta |
+|---|---|---|---|---|---|
+| `check_out` | **401** | todos | `end −1320` (22 h antes) | tú | `check_out` |
+| `recordatorio_llegada` | **391** | todos | `start −1800` (30 h antes) | tú | `recordatorio_llegada` |
+| `despedida_booking` | **256** | booking | `end +60` | tú | `despedida_booking` |
+| `welcome_booking` | **227** | booking | `created_at +1` | **usted** | `welcome_booking_command` |
+| `despedida_airbnb` | 60 | airbnb | `end +60` | tú | `despedida_airbnb` |
+| `enviar_guia` | 44 | todos | — (manual) | — | `enviar_guia` |
+| `welcome_airbnb` | 43 | airbnb | `created_at +1` | **usted** | `welcome_airbnb` |
+| `menu_tours` | 32 | todos | — (manual) | — | `menu_tours` |
+
+### Los tres huecos
+
+1. **No existe bienvenida DIRECTA.** Sólo hay reglas para `booking` y `airbnb`: quien reserva
+   directo no recibe nada automático al reservar. Es el canal donde más control tenemos y el
+   único sin mensaje de apertura.
+2. **No existe nada de PAGOS al cliente.** Las únicas plantillas que hablan de cobros son de
+   `staff`. Hoy el detalle de pago se escribe a mano, mensaje por mensaje.
+3. **La garantía de Booking vive DENTRO de la bienvenida**, y es lo que la hace pesar 1419
+   caracteres frente a los 463 de la de Airbnb.
+
+### La idea que ordena todo: partir `welcome_booking` en dos
+
+`welcome_booking` hace hoy dos trabajos con propósitos distintos:
+
+| Trabajo | Para qué | A dónde va |
+|---|---|---|
+| Dar la bienvenida | que la persona sepa quiénes somos y dónde mirar | cualquier canal |
+| **Fijar plazos y cuentas** | que si no prepaga, podamos cancelar nosotros | **al chat de Booking, por Beds24** |
+
+El segundo es el que justifica el tamaño, y no es una bienvenida: es una **política**. Sale a una
+plantilla propia —`politicas_booking`— y la bienvenida se queda corta como las demás. Con eso:
+
+- la bienvenida se puede reformular sin tocar la garantía, que es lo delicado;
+- la garantía se manda **por Beds24 a propósito**, que es lo que deja constancia en el canal;
+- y el prepago deja de estar escrito a mano dentro de la bienvenida, que es el motivo por el que
+  hoy hay dos verdades sobre el mismo dinero (ver el bloque de pago, §«El dinero se pide en DOS
+  momentos»).
+
+### Qué le pasa a cada una
+
+| Plantilla | Qué se hace | ¿Toca Meta? |
+|---|---|---|
+| `welcome_booking` | adelgaza: fuera plazos, cuentas y prepago → apunta al enlace | sí |
+| **`politicas_booking`** (nueva) | recoge plazos, cuentas y consecuencia de no prepagar | **no**: sólo `beds24_tmpl` |
+| `welcome_airbnb` | pasa a tú; ya está cobrado, así que sin dinero | sí |
+| **`welcome_directo`** (nueva) | la que no existe; con el enlace de su reserva | sí |
+| **`pago_texto`** (nueva) | prosa + `{{ bloque_pago }}`; texto libre | **no** |
+| **`pago`** (nueva) | corta, un botón `url` al enlace de su reserva | **sí, y es la cola larga** |
+| `recordatorio_llegada` | se queda; revisar que no repita lo que ya dice la guía | no si sólo cambia Beds24 |
+| `check_out` | 1079 caracteres de lista: parte a enlace + recordatorio corto | sí |
+| `despedida_booking` / `despedida_airbnb` | son casi idénticas; sólo cambia la mención a las 5⭐ | sí |
+
+### El trato: **tú**, y no es una preferencia
+
+Hoy conviven los dos **en el mismo hilo y en el mismo día**: las dos bienvenidas hablan de usted
+y la guía de llegada, el check-out y la despedida hablan de tú. O sea que la misma persona recibe
+«le saluda Susan» y a las horas «un gusto saludarte».
+
+Se unifica en **tú** porque las de usted son 2 de 8 y las de tú son 4, porque el tono del resto
+—emojis, «un abrazo»— contradice el usted, y porque cambiar dos cuerpos es más barato que cuatro.
+
+### El orden de trabajo, y por qué
+
+1. **Subir a Meta lo que necesite aprobación, primero.** Es lo único con cola externa y no
+   depende de nosotros. Todo lo demás avanza en paralelo mientras Meta responde.
+2. **`pago_texto` antes que las bienvenidas.** Si el prepago sale de `welcome_booking` sin que
+   exista dónde ponerlo, queda un hueco; y si se reescriben las bienvenidas primero, hay que
+   volver a tocarlas.
+3. **Los cuerpos de Beds24 y del enlace, cuando se quiera.** Son nuestros: `politicas_booking`
+   entera y las reformulaciones de Beds24 no le piden permiso a nadie.
+4. **Las despedidas al final.** Son las de menos riesgo y las que menos cambian.
+
+⚠️ **Cada reformulación de un cuerpo de Meta es una rotación completa** —crear `x_v2`, repuntar,
+borrar— con el bloqueo de 30 días detrás. Conviene mandarlas **en una sola tanda**, no de una en
+una: la receta está en §18.
+
 
 ## 19. Con quién se habla: vínculo, restricción de canal y categoría de conocimiento
 
