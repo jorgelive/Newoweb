@@ -10484,6 +10484,81 @@ uno, pero el tipo es `?PmsMotivoSinCobro` y nada obliga a que lo esté: con un `
 la frase que importa —«no le pidas dinero»— y **sin** motivo por defecto: rellenarlo con una
 constante sería darle al modelo un porqué que no sabemos. Lo cazó el nivel 8 de PHPStan.
 
+### El bloque de pago ya se redacta: `{{ bloque_pago }}` (31/08/2026)
+
+`PmsRedactorDeCobro` es el ÚNICO sitio donde el read-model se vuelve prosa. No decide nada —qué
+se pide, cuánto, con qué medios y a qué precio ya viene resuelto—: elige el orden de las líneas y
+de dónde sale cada rótulo.
+
+**No lleva saludo ni despedida**, y ése es el reparto que hace que el plan de plantillas sea
+posible: la prosa vive en el cuerpo, traducido a siete idiomas por `AutoTranslate`, y las cifras
+entran por `{{ bloque_pago }}`. Se puede reformular una bienvenida sin tocar el dinero, y al
+revés.
+
+Verificado en producción el 31/08/2026, las dos variantes:
+
+```
+*Total de la reserva:* USD 107.74 (S/ 360.93)
+
+*Total a pagar:*
+▪️ *Yape, Plin, Transferencia bancaria, Efectivo:* USD 107.74 (S/ 360.93) _Sin comisión_
+▪️ *Tarjeta de crédito:* USD 113.67 (S/ 380.79) _Incluye 5.5% de comisión_
+🔗 Pagar ahora: https://pax.openperu.pe/pago/…
+```
+
+```
+*Adelanto para asegurar tu reserva:*
+▪️ *Western Union:* USD 60.96 _Sin comisión_
+▪️ *Tarjeta de crédito:* USD 64.31 _Incluye 5.5% de comisión_
+🔗 Pagar ahora: …
+
+*Saldo (a tu llegada, al entregarte las llaves):* USD 243.84
+▪️ *Efectivo:* USD 243.84 _Sin comisión_
+▪️ *Tarjeta de crédito:* USD 257.25 _Incluye 5.5% de comisión_
+```
+
+Los dos tramos con **medios distintos** —arriba Western Union, abajo efectivo— sin que el
+redactor sepa por qué: eso lo decide el catálogo. Y en inglés sale entero en inglés, con el
+titular, los números y las monedas intactos.
+
+#### ⚠️ El idioma es el del CUERPO, no el del huésped
+
+`getMessageVariables()` acepta ahora un `?string $idioma` y **quien lo pasa recibe más
+variables**. Los tres mapeadores de envío lo pasan; las skills del agente no.
+
+Dos motivos, y los dos importan:
+
+- **Coste.** `bloque_pago` es la única variable redactada y la única que consulta —medios, tipo
+  de cambio, enlaces vivos—. `BuscarReservaSkill` vuelca este diccionario al modelo: sin el
+  guard, cada búsqueda de reserva pagaría esas consultas y le metería un bloque de texto en medio
+  de 23 campos.
+- **Corrección.** Va `$templateLang`, no `$internalLang`. Son distintos cuando el idioma del
+  huésped no está entre los siete y la plantilla cae al inglés. Con el del huésped saldría el
+  cuerpo en inglés y el bloque en español.
+
+#### ⚠️ El bloque puede venir VACÍO y el cuerpo tiene que aguantarlo
+
+Con un cruce de monedas sin imputar o una cuenta con datos incompletos, el read-model calla a
+propósito, y aquí **no se rellena el hueco con una frase amable** — cualquier frase afirmaría
+algo. Sólo se dice lo seguro: si está saldada, `res_todo_pagado`.
+
+Así que un cuerpo escrito como «Aquí tienes tu resumen: {{ bloque_pago }}» se queda a medias. **La
+línea de arriba tiene que sostenerse sola.**
+
+#### La equivalencia en soles pasa a ser un servicio
+
+`PmsEquivalenciaEnSoles`. Estaba privada dentro del resolutor, que era su único usuario; al
+aparecer el segundo, copiar diez líneas era el camino corto a que la misma regla dijera dos
+cosas. Sus tres condiciones no cambian: moneda distinta de PEN, constar que paga desde Perú
+—ternaria, y su `null` no vale— y haber tipo de cambio del día.
+
+#### Lo que todavía no está
+
+Ninguna plantilla usa `{{ bloque_pago }}` aún, así que la interpolación de punta a punta no está
+ejercitada. Y `GenerarMensajePrepagoSkill` **sigue viva** componiendo su propio texto en 400
+líneas: es a quien esto viene a jubilar, y mientras coexistan hay dos verdades sobre el mismo
+dinero.
+
 ### Los rótulos del bloque de pago ya estaban traducidos; lo que faltaba era leerlos (30/08/2026)
 
 El cuerpo de una plantilla lo traduce `AutoTranslate` al guardarla. **El bloque de importes no**,
