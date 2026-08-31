@@ -47,6 +47,16 @@ use Symfony\Component\Serializer\SerializerInterface;
  * Llegaron a estar congelados en ocho columnas y no se leía ninguna mientras el maestro
  * existiera — el dato bueno siempre estaba al otro lado del id.
  *
+ * ── La descripción es la superficie larga, y sólo existe aquí ───────────────
+ * `titulo` contesta «cómo se llama» y `descripcion` «qué es»: las dos son i18n y las dos
+ * viven en el catálogo (`TravelOrganizacion` y `TravelOrganizacionServicio`). La segunda
+ * llevaba desde su creación sin llegar al cliente —el campo existía, se traducía a siete
+ * idiomas y no lo leía nadie—, así que un texto escrito en el panel se perdía sin avisar.
+ *
+ * Va por el mismo camino que el título, no por un grupo de serialización nuevo, porque
+ * comparte su gate: describir la piscina del Barceló identifica al hotel igual que nombrarlo.
+ * Un grupo aparte sería una segunda puerta al mismo dato, y de esas ya se cerró una.
+ *
  * Si el prestador se escribió **a mano** no hay maestro que consultar: no se inyecta nada y
  * el cliente no ve tarjeta, sólo lo que la línea diga. Es coherente con que ese caso sea la
  * excepción: una empresa que aún no está en el catálogo no tiene logo ni ficha que enseñar.
@@ -131,6 +141,7 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
 
         if ($maestro !== null) {
             $data['prestadorTitulo'] = $maestro->getTitulo();
+            $data['prestadorDescripcion'] = $maestro->getDescripcion();
             $data['prestadorUrl'] = $maestro->getUrl();
             $data['prestadorImagenes'] = $this->prestadorVivo->imagenesDe($maestro);
         }
@@ -139,6 +150,7 @@ final class CotizacionCotcomponentePrestadorPublicNormalizer implements Normaliz
 
         if ($servicio !== null) {
             $data['prestadorServicioTitulo'] = $servicio->getTitulo();
+            $data['prestadorServicioDescripcion'] = $servicio->getDescripcion();
             $data['prestadorServicioImagenes'] = $this->prestadorVivo->imagenesDeServicio($servicio);
         }
 

@@ -1089,6 +1089,13 @@ comando de backfill dio 254 líneas sin pareja y 0 enlazadas—. Todo id se norm
 
 Sondas: `var/probar-prestador-visible.php` y `var/probar-comprador.php`.
 
+⚠️ **Las dos estuvieron rotas desde el 19/08/2026 y nadie se enteró** (arregladas el 31/08). El
+renombrado a `TravelOrganizacion` se llevó por delante `ProveedorVivoResolver`, `travel_proveedor`
+y `App\Travel\Entity\Proveedor`, y las sondas seguían llamándolos: una reventaba al arrancar y
+la otra imprimía un ✘ que llevaba doce días en pantalla. Una sonda muerta es peor que ninguna,
+porque la doc la cita como si comprobara algo — **no están en CI, así que se corren a mano cuando
+se toca esta zona**, y eso incluye después de cualquier renombrado.
+
 ### Los filtros por prestador son BLANDOS
 
 Si el componente (o su día) fija prestador, **dos** selectores del editor se estrechan. Ambos con
@@ -1096,7 +1103,7 @@ Si el componente (o su día) fija prestador, **dos** selectores del editor se es
 
 | Selector | Qué muestra | Dónde |
 |---|---|---|
-| **Tarifa maestra** | sólo tarifas cuyo `proveedor` es el prestador | `opcionesTarifasFiltradas` |
+| **Tarifa maestra** | sólo tarifas cuyo `prestador` es el de la línea | `opcionesTarifasFiltradas` |
 | **Proveedor de la tarifa** | sólo ese proveedor | `opcionesProveedoresTarifa` |
 
 Las cuatro reglas que los mantienen como ayuda y no como trampa:
@@ -1115,23 +1122,34 @@ Las cuatro reglas que los mantienen como ayuda y no como trampa:
   hubiera nada asignado. El dato seguiría en su sitio, pero la pantalla estaría mintiendo — y el
   operador volvería a elegir, machacándolo.
 
-⚠️ **Hoy el filtro de tarifas casi nunca se activa, y no es un fallo del filtro.** El vínculo que
-necesita es `travel_tarifa.proveedor_id`, y en el catálogo maestro está prácticamente vacío
-(**5 de 904**; `proveedor_servicio_id`, 0). En la práctica el proveedor se fija a mano sobre la
-cotización, y `onTarifaMaestraChange()` **no** lo copia desde la maestra al elegirla.
+⚠️ **El filtro se activa poco todavía, y no es un fallo del filtro: es que el catálogo aún no
+está poblado.** El vínculo que necesita es `travel_tarifa.prestador_id` —se llamó
+`proveedor_id` hasta el 19/08/2026— y el 31/08/2026 iba por **55 de 863**
+(`prestador_servicio_id`, 53; `comprador_id`, 43). El prestador se sigue fijando a mano sobre la
+cotización en la mayoría de líneas, porque `onTarifaMaestraChange()` **no** lo copia de la
+maestra; quien lo copia es `sembrarPapelesEnLinea()`, y sólo si el hueco está vacío (ver abajo).
 
-Ese abandono y la anidación son **el mismo problema**: nadie repite el proveedor en las 19
-tarifas que puede tener un componente. Bajarlo a un solo campo por componente (§6.c) quita
-la razón por la que el catálogo quedó vacío, así que poblar `travel_tarifa.proveedor_id` —o
-su equivalente a nivel de componente maestro— vuelve a ser realista. Comprobación:
+🔥 **La salida que este párrafo proponía —«bajarlo a un solo campo por componente»— se probó y
+se revirtió.** El campo estuvo en `TravelComponente` seis días (`Version20260816240000` →
+`Version20260820140000`) y volvió a la tarifa, que es la única granularidad donde la afirmación
+es cierta: «Tren Ollanta Mapi» tiene 12 tarifas PeruRail y 4 IncaRail, así que un prestador por
+componente miente sobre 12 o sobre 4. Las dos vueltas están contadas en `docs/Travel.md` §11.
+
+Y lo que desatascó el abandono no fue mover el campo, sino **darle un motivo para llenarse**.
+Nadie repetía el proveedor en 19 tarifas mientras sólo servía para estrechar un desplegable;
+ahora la tarifa es lo único que sabe **a quién se le encarga la compra** (el `comprador`, y la
+Orden de Servicio sale a su nombre) y **qué fotos se enseñan** (§6.t: el servicio del prestador
+ilustra el segmento genérico). Con eso poblarlo dejó de ser higiene y pasó a ser lo que enciende
+dos funciones. Comprobación:
 
 ```bash
 php bin/console doctrine:query:sql --force-fetch \
-  "SELECT COUNT(*) total, SUM(proveedor_id IS NOT NULL) con_proveedor FROM travel_tarifa"
+  "SELECT COUNT(*) total, SUM(prestador_id IS NOT NULL) con_prestador,
+          SUM(prestador_servicio_id IS NOT NULL) con_servicio,
+          SUM(comprador_id IS NOT NULL) con_comprador FROM travel_tarifa"
 ```
 
-Para que el filtro rinda hay que poblar el proveedor en el catálogo maestro. Mientras tanto
-degrada solo: sin coincidencias, no filtra.
+Mientras tanto el filtro degrada solo: sin coincidencias, no filtra.
 
 ### Dónde acaba
 
@@ -3025,12 +3043,45 @@ La potencia sale del catálogo, no del código. Para que un resort nuevo funcion
 |---|---|
 | La organización con su título público | `TravelOrganizacion` |
 | Un **servicio por actividad** que quieras ilustrar, con sus fotos | `TravelOrganizacionServicio` + sus imágenes |
-| Que la tarifa lleve su organización y su servicio | `CotizacionCottarifa` → se copia al componente |
+| Que la tarifa lleve su organización y su servicio | `travel_tarifa.prestador_id` / `prestador_servicio_id` → se congela en `CotizacionCottarifa` y siembra el componente |
 | Que el componente quede con `prestadorVisible = true` | ficha del componente |
+| *(opcional)* La prosa de cada uno | `descripcion` de la organización y del servicio — ver abajo |
 
 Un servicio sin fotos no rompe nada: el segmento simplemente no gana galería. Y un servicio con
 fotos pero **sin título** es la incoherencia que caza `CoherenciaCatalogoChecker` — hoy la tiene
 Terra Andina Colonial Mansion.
+
+### La descripción: el campo que existía y no llegaba (31/08/2026)
+
+`TravelOrganizacion` y `TravelOrganizacionServicio` tienen **dos** superficies i18n, no una:
+
+```
+titulo       ──►  cómo se llama    «Occidental Caribe», «Piscinas y playa»
+descripcion  ──►  qué es           la prosa: tres piscinas, una con bar acuático…
+```
+
+Las dos llevan `#[AutoTranslate]` y se traducen a siete idiomas al guardar. Pero **`descripcion`
+no salía a `/pax`**: el normalizer inyectaba título, url e imágenes y ahí se acababa, así que un
+texto escrito en el panel se traducía siete veces y no lo leía nadie. Cero filas llenas en las
+dos tablas — que es la pista de que el campo llevaba muerto desde su creación, no de que nadie
+tuviera nada que contar.
+
+Ahora viaja como `prestadorDescripcion` y `prestadorServicioDescripcion`, y se pinta en el modal
+del proveedor: la del **servicio** pegada a su título, la de la **empresa** debajo.
+
+⚠️ **Por el mismo camino que el título, no por un grupo de serialización nuevo.** Comparte su
+gate —`isPrestadorVisible()`— porque describir la piscina identifica al hotel igual de bien que
+nombrarlo, exactamente el mismo argumento que ya se aplicó a las fotos. Un grupo aparte sería una
+segunda puerta al mismo dato, y de esas ya se cerró una: los ids del prestador se colaban en
+`Accept: application/json` porque el `unset()` sólo protegía en JSON-LD.
+
+**El reparto con el segmento**, que es lo que evita duplicar: el segmento cuenta **qué se hace**
+—vale para cualquier resort—, la descripción del servicio cuenta **cómo es aquí**. «Piscina y
+playa» lo escribes una vez; «tres piscinas, una climatizada y una con bar acuático» va en el
+servicio del Occidental y no contamina el segmento genérico.
+
+Se edita en EasyAdmin (`TravelOrganizacionServicioCrudController`, campo «Descripción»), no en
+`util/`. Un servicio sin descripción no rompe nada: el modal se queda con el título.
 
 ### El nombre del proveedor sigue la misma regla, pero por RACHA (28/08/2026)
 
@@ -3058,12 +3109,30 @@ evita repetir lo que se acaba de decir.
 Medido en la propuesta de Nune & Todd: **nueve menciones para cinco proveedores**, con Terra Andina
 repetida tres veces seguidas.
 
-### Estado medido el 27/08/2026
+### Estado medido el 31/08/2026
 
 Cuatro servicios del catálogo tienen fotos (Tambo del Inka 5, Hatun Inti 4, Terra Andina 3, Sonesta
 Miraflores 2). Alcanzan a **18 componentes**, los 18 con el prestador visible y **los 18 en segmentos
-sin galería propia**: es decir, los 18 promueven. Punta Cana todavía no tiene ninguna — cargar esas
-fotos es lo que hace que los segmentos genéricos del resort dejen de salir desnudos.
+sin galería propia**: es decir, los 18 promueven.
+
+**Punta Cana tiene ya todo el cableado y ninguna foto**, que es el caso que conviene mirar porque
+enseña dónde está el trabajo de verdad. `app:travel:crear-actividades-resort` dejó montado
+Occidental Caribe con `visibleParaCliente = 1`, **7 servicios de prestador** y **12 tarifas a 0**
+que apuntan cada una al suyo:
+
+```
+Lobby y recepción       ← check-in AM/PM, check-out AM/PM
+Restaurante buffet      ← desayuno, almuerzo, cena buffet
+Restaurantes temáticos  ← cena temática
+Piscinas y playa        ← piscina y playa
+Actividades y deportes  ← actividades recreativas
+Espectáculos nocturnos  ← espectáculo nocturno
+El resort               ← día libre (resumen)
+```
+
+Los 7 tienen título en siete idiomas y **0 imágenes y 0 descripción**. La cadena entera está viva y
+no promueve nada, porque lo que promueve es contenido. Añadir el resort número dos no cuesta ningún
+segmento ni ninguna línea de código: cuesta subir fotos y escribir siete párrafos.
 
 ## 6.u Cómo se ordena un día (28/08/2026)
 
@@ -4045,6 +4114,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Tipos compartidos del árbol/tarifas** → `util/src/types/cotizacionEditorModel.ts` (interno) y `pax/src/types/paxCotizacionModel.ts` (cliente). Mantenerlos coherentes.
 - **Nombre interno del componente** → helper `nombreInternoDeComponente` (store). **Título público / por ítems** → `tituloClienteDeComponente` (store).
 - **Badges modalidad/categoría** → `modCatBadges` (`cotizacionEditorModel.ts` en util; local en `PaxCotizacionGuiaView.vue` en pax).
+- **Que el cliente lea una descripción del hotel o de lo que contrató** → `descripcion` (i18n) de `TravelOrganizacion` y `TravelOrganizacionServicio`, en EasyAdmin. Viaja como `prestadorDescripcion` / `prestadorServicioDescripcion` desde `CotizacionCotcomponentePrestadorPublicNormalizer` y se pinta en el modal del proveedor de `PaxCotizacionGuiaView.vue`. Mismo gate que el nombre: sin `prestadorVisible` no sale. Ver §6.t.
 - **De dónde salen las fotos de la tarjeta de un segmento** → `galeriaPorBloque` en `PaxCotizacionGuiaView.vue`. Propias del segmento si las hay; si no, las del servicio del prestador de sus componentes, deduplicadas por foto en toda la guía (§6.t). Si no sale ninguna, mira antes `prestadorVisible` que el código: sin él no se inyectan.
 - **Serialización pública / ocultar precio o proveedor** → `src/Cotizacion/Serializer/CotizacionPublicNormalizer.php` + grupos `pax_cotizacion:read` en las entidades.
 - **Portada o duración de un tour de catálogo (en el panel o en pax)** → `TourTarjetaResolver` (§6.b). Nunca reimplementar la derivación en la entidad ni en el front.

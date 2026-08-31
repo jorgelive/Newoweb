@@ -551,9 +551,12 @@ const contenidoEs = (i18n: I18n | undefined): string =>
 // ── Prestadores visibles (modal "ver más") ───────────────────────────────────
 interface PrestadorInfo {
   titulo: I18n;
+  /** Prosa del catálogo: qué es la empresa y qué es el servicio suyo que se contrató. */
+  descripcion: I18n;
   url: string | null;
   imagenes: { imageUrl: string }[];
   servicioTitulo: I18n;
+  servicioDescripcion: I18n;
   servicioImagenes: { imageUrl: string }[];
 }
 
@@ -573,9 +576,11 @@ const proveedorPorComponente = computed(() => {
 
       m.set(comp.id, {
         titulo: comp.prestadorTitulo,
+        descripcion: comp.prestadorDescripcion ?? [],
         url: comp.prestadorUrl ?? null,
         imagenes: (comp.prestadorImagenes ?? []).filter((i) => i.imageUrl),
         servicioTitulo: comp.prestadorServicioTitulo ?? [],
+        servicioDescripcion: comp.prestadorServicioDescripcion ?? [],
         servicioImagenes: (comp.prestadorServicioImagenes ?? []).filter((i) => i.imageUrl),
       });
     }
@@ -615,9 +620,11 @@ const prestadorDeLinea = (l: PaxInclusionItem): PrestadorInfo | null => {
 
   return {
     titulo: [{ content: l.prestadorNombre, language: 'es' }],
+    descripcion: [],
     url: null,
     imagenes: [],
     servicioTitulo: [],
+    servicioDescripcion: [],
     servicioImagenes: [],
   };
 };
@@ -1801,7 +1808,7 @@ const adelantoVista = computed(() => {
           </div>
 
           <div class="px-6 py-5 space-y-4">
-            <!-- Servicio del proveedor (ej. tipo de habitación) -->
+            <!-- Servicio del proveedor (ej. tipo de habitación, la piscina, el buffet) -->
             <div v-if="modalProveedor.servicioTitulo.length" class="flex items-start gap-3">
               <span class="w-9 h-9 rounded-xl bg-[#376875]/6 text-[#376875] flex items-center justify-center shrink-0">
                 <i class="fas fa-bed text-sm"></i>
@@ -1813,8 +1820,25 @@ const adelantoVista = computed(() => {
                 <p class="font-bold text-gray-800 text-sm leading-snug">
                   {{ store.traducir(modalProveedor.servicioTitulo) }}
                 </p>
+                <!-- Qué incluye ese servicio. Va pegado a su título, no en un bloque aparte:
+                     leído suelto no se sabría si describe la habitación o el hotel entero. -->
+                <p
+                    v-if="store.traducir(modalProveedor.servicioDescripcion)"
+                    class="text-sm text-slate-600 leading-relaxed mt-1"
+                >
+                  {{ store.traducir(modalProveedor.servicioDescripcion) }}
+                </p>
               </div>
             </div>
+
+            <!-- Qué es la empresa. Debajo del servicio a propósito: el pasajero abrió esto
+                 por lo que contrató, y la ficha del hotel es el contexto, no la respuesta. -->
+            <p
+                v-if="store.traducir(modalProveedor.descripcion)"
+                class="text-sm text-slate-600 leading-relaxed"
+            >
+              {{ store.traducir(modalProveedor.descripcion) }}
+            </p>
 
             <!-- Sitio web -->
             <a

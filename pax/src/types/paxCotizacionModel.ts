@@ -170,10 +170,14 @@ export type PaxCotComponente = Omit<
      * salen del grupo interno.
      */
     prestadorTitulo?: I18n;
+    /** Qué es la empresa, en prosa. Mismo origen y mismo gate que el título. */
+    prestadorDescripcion?: I18n;
     prestadorUrl?: string | null;
     prestadorImagenes?: PaxImagenSnapshot[];
     /** El servicio contratado (ej. el tipo de habitación), también inyectado. */
     prestadorServicioTitulo?: I18n;
+    /** Qué incluye ESE servicio suyo: la piscina, el buffet, la habitación. */
+    prestadorServicioDescripcion?: I18n;
     prestadorServicioImagenes?: PaxImagenSnapshot[];
 };
 
