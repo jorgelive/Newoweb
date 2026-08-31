@@ -4057,6 +4057,38 @@ trampa peor que no tenerlo.
 > el frontend, se encontrará con este mismo silencio.
 
 
+### ⚠️ Las noches son la UNIÓN de las estancias, no el intervalo (31/08/2026)
+
+`PmsReserva::getNoches()` era `fechaLlegada->diff(fechaSalida)`: de la primera entrada a la
+última salida. Con una estancia da lo mismo, y con dos seguidas —cambio de casita a mitad—
+también. Pero `3DAGPB` tiene **28/08→31/08 y 04/09→06/09**: cinco noches, y el intervalo decía
+**nueve**. La ficha del huésped lo enseñaba en grande, «TOTAL STAY 9 Nights», contando cuatro
+días en los que no estuvo aquí.
+
+⚠️ **Y no era cosmético: `PmsPrepagoCalculador` divide la base entre las noches** para la política
+«primera noche». Con 9 en vez de 5, el adelanto salía un **44 % más barato**. De los fallos que no
+dan error y se cobran de menos.
+
+**Unión, y no suma**, porque sumar es igual de falso al revés: dos casitas las **mismas fechas**
+son dos eventos, y esa persona no duerme aquí el doble de noches.
+
+| Caso | Eventos | Intervalo | Suma | **Unión** |
+|---|---|---|---|---|
+| dos casitas, mismas fechas | 3+3 | 3 ✅ | 6 ❌ | **3** ✅ |
+| cambio de casita a mitad | 5+1 | 6 ✅ | 6 ✅ | **6** ✅ |
+| dos estancias con hueco | 3+2 | 9 ❌ | 5 ✅ | **5** ✅ |
+
+Se cuenta por **día de entrada** de cada noche, no por rango: así dos casitas la misma noche
+colapsan en una sola clave. Los eventos cancelados no cuentan; si no queda ninguno vivo se cae al
+intervalo, que es lo que había antes, para no dejar en cero una reserva que sí tiene fechas.
+
+**Lo miden bien 2 de las 15 reservas multi-estancia recientes** —`3DAGPB` (hueco de 4) y `77VTJK`
+(hueco de 2)—: el resto son contiguas o paralelas, donde el intervalo ya acertaba. Por eso llevaba
+tanto sin verse.
+
+Lo leen: la ficha de `pax` (`getNumeroNoches`), la variable `{{ nights }}` de las plantillas, el
+mensaje de prepago y **el cálculo del adelanto**.
+
 ### ⚠️ 12.7.0 La penalización DEJÓ de contar (31/08/2026) — léelo antes que el resto
 
 Todo lo que sigue describe una regla que ya no está entera: **en una ficha anulada no cuenta

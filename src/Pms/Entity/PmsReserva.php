@@ -22,6 +22,7 @@ use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Pms\Repository\PmsReservaRepository;
 use App\Security\Roles;
+use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -302,7 +303,66 @@ class PmsReserva
         return $full !== '' ? $full : null;
     }
 
+    /**
+     * Las noches que esta persona duerme aquí: la **UNIÓN** de sus estancias, no el intervalo.
+     *
+     * ── El hueco se estaba cobrando como noche (31/08/2026) ─────────────────────
+     * Era `fechaLlegada->diff(fechaSalida)`, o sea de la primera entrada a la última salida. Con
+     * una sola estancia da lo mismo, y con dos seguidas —cambio de casita a mitad— también. Pero
+     * `3DAGPB` tiene **28/08→31/08 y 04/09→06/09**: cinco noches, y el intervalo decía **nueve**.
+     * La ficha del huésped lo enseñaba en grande: «TOTAL STAY 9 Nights», contando los cuatro días
+     * que no estuvo.
+     *
+     * ⚠️ Y no era sólo cosmético: **`PmsPrepagoCalculador` divide la base entre las noches** para
+     * la política «primera noche». Con 9 en vez de 5, el adelanto salía un 44 % más barato de lo
+     * que toca. Es de los fallos que no dan error y se cobran de menos.
+     *
+     * ── Por qué unión y no suma ─────────────────────────────────────────────────
+     * Sumar las noches de cada evento sería igual de falso al revés: dos casitas **las mismas
+     * fechas** son dos eventos, y esa persona duerme aquí las noches de una, no el doble. La
+     * pregunta es «cuántas noches distintas ocupa», y eso es la unión de los rangos:
+     *
+     * | Caso | Eventos | Intervalo | Suma | **Unión** |
+     * |---|---|---|---|---|
+     * | dos casitas, mismas fechas | 3+3 | 3 ✅ | 6 ❌ | **3** ✅ |
+     * | cambio de casita a mitad | 5+1 | 6 ✅ | 6 ✅ | **6** ✅ |
+     * | dos estancias con hueco | 3+2 | 9 ❌ | 5 ✅ | **5** ✅ |
+     *
+     * Los eventos **cancelados no cuentan**, salvo que no quede ninguno vivo: ahí se cae al
+     * intervalo, que es lo que había antes, para no dejar en cero una reserva que sí tiene fechas.
+     */
     public function getNoches(): int {
+        $noches = [];
+
+        foreach ($this->eventosCalendario as $evento) {
+            if ((string) $evento->getEstado()?->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
+                continue;
+            }
+
+            $inicio = $evento->getInicio();
+            $fin = $evento->getFin();
+
+            if ($inicio === null || $fin === null) {
+                continue;
+            }
+
+            // Una noche se identifica por el día en que se duerme, así que se cuenta el día de
+            // entrada y no el de salida. Con esa clave, dos casitas la misma noche son la misma
+            // noche — que es justo lo que hace falta.
+            $dia = DateTimeImmutable::createFromInterface($inicio)->setTime(0, 0);
+            $ultima = DateTimeImmutable::createFromInterface($fin)->setTime(0, 0);
+
+            while ($dia < $ultima) {
+                $noches[$dia->format('Y-m-d')] = true;
+                $dia = $dia->modify('+1 day');
+            }
+        }
+
+        if ($noches !== []) {
+            return count($noches);
+        }
+
+        // Sin eventos vivos —o sin eventos— se cae al intervalo, que es lo que había antes.
         if (!$this->fechaLlegada || !$this->fechaSalida) return 0;
         return (int) $this->fechaLlegada->diff($this->fechaSalida)->days;
     }
