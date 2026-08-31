@@ -4,18 +4,14 @@ declare(strict_types=1);
 
 namespace App\Pms\DispatchHandler;
 
-use App\Agent\Access\AgentActor;
-use App\Agent\Conversation\ConversationRequest;
-use App\Agent\Conversation\PotenciaRequerida;
-use App\Agent\Conversation\SelectorDePotencia;
 use App\Pms\Dispatch\RevisarOrdenDelNombreDispatch;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Nombre\OrdenDelNombre;
+use App\Pms\Nombre\RevisorDeOrdenDeNombre;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Uid\Uuid;
-use Throwable;
 
 /**
  * Endereza el nombre y el apellido de una reserva cuando el canal los mandó cruzados.
@@ -54,12 +50,9 @@ use Throwable;
 #[AsMessageHandler]
 final readonly class RevisarOrdenDelNombreDispatchHandler
 {
-    /** El presupuesto va holgado: los modelos que razonan gastan parte pensando. */
-    private const int MAX_TOKENS = 400;
-
     public function __construct(
         private EntityManagerInterface $em,
-        private SelectorDePotencia $potencias,
+        private RevisorDeOrdenDeNombre $revisor,
         private LoggerInterface $logger,
     ) {}
 
@@ -75,63 +68,40 @@ final readonly class RevisarOrdenDelNombreDispatchHandler
             return;
         }
 
-        // Tramo bajo: es una pregunta cerrada de dos campos, no un juicio de negocio.
-        $elegido = $this->potencias->elegir(PotenciaRequerida::Baja);
+        $veredicto = $this->revisor->veredicto($dispatch->nombre, $dispatch->apellido);
 
-        if ($elegido === null) {
-            $this->logger->warning('[OrdenNombre] Ningún motor disponible; la reserva se queda como vino.');
-
-            return;
-        }
-
-        try {
-            $datos = $elegido->motor->turnoDirecto(
-                new ConversationRequest(
-                    // Sin roles y sin contexto: nadie ha preguntado y no hay a quién
-                    // contestar. `turnoDirecto()` va sin herramientas, así que no hace
-                    // falta ningún permiso. Ver AgentActor::sistema().
-                    actor: AgentActor::sistema('pms_orden_nombre'),
-                    systemPrompt: $this->reglas(),
-                    mensaje: sprintf(
-                        "campo_nombre: «%s»\ncampo_apellido: «%s»",
-                        $dispatch->nombre,
-                        $dispatch->apellido
-                    ),
-                    permitirEscritura: false,
-                    maxTokens: self::MAX_TOKENS,
-                    modelo: $elegido->modelo,
-                ),
-                $this->esquema()
-            );
-        } catch (Throwable $e) {
-            $this->logger->warning(sprintf(
-                '[OrdenNombre] El motor falló con la reserva %s (%s); se queda como vino.',
-                $dispatch->reservaId,
-                $e->getMessage()
-            ));
-
-            return;
-        }
-
-        // `turnoDirecto()` devuelve el JSON como texto; el esquema sólo obliga a su forma.
-        $veredicto = json_decode((string) $datos, true);
-
-        if (!is_array($veredicto)) {
-            $this->logger->warning('[OrdenNombre] El motor no devolvió un veredicto legible.');
-
+        if ($veredicto === null) {
+            // Los tres motivos —sin motor, el motor falló, respuesta ilegible— ya los registró
+            // el revisor como `warning`. Aquí no se repite: dos líneas por el mismo hecho hacen
+            // que contar ocurrencias en el log mienta.
             return;
         }
 
         $par = OrdenDelNombre::resultado(
-            invertido: (bool) ($veredicto['invertido'] ?? false),
-            confianza: (string) ($veredicto['confianza'] ?? ''),
+            invertido: $veredicto['invertido'],
+            confianza: $veredicto['confianza'],
             nombreJuzgado: $dispatch->nombre,
             apellidoJuzgado: $dispatch->apellido,
             nombreActual: $reserva->getNombreCliente(),
             apellidoActual: $reserva->getApellidoCliente(),
         );
 
+        // ⚠️ **El caso normal también se cuenta.** Antes esto era un `return` mudo, y como el
+        // éxito iba en `info` —que producción oculta— el mecanismo entero no dejaba rastro: ni
+        // cuántas revisó, ni cuántas dejó quietas, ni cuánto estaba costando. Preguntado «¿esto
+        // funciona?», no había nada que mirar. Ahora los dos desenlaces salen en el mismo
+        // archivo. Ver `config/packages/monolog.yaml`, canal `orden_nombre`.
         if ($par === null) {
+            $this->logger->notice(sprintf(
+                '[OrdenNombre] Reserva %s: «%s / %s» se queda como vino (invertido=%s, confianza=%s). %s',
+                $dispatch->reservaId,
+                $dispatch->nombre,
+                $dispatch->apellido,
+                $veredicto['invertido'] ? 'sí' : 'no',
+                $veredicto['confianza'],
+                $veredicto['motivo']
+            ));
+
             return;
         }
 
@@ -141,67 +111,14 @@ final readonly class RevisarOrdenDelNombreDispatchHandler
         $reserva->setApellidoCliente($apellido);
         $this->em->flush();
 
-        $this->logger->info(sprintf(
+        $this->logger->notice(sprintf(
             '[OrdenNombre] Reserva %s: «%s / %s» venía cruzado y queda «%s / %s» (%s).',
             $dispatch->reservaId,
             $dispatch->nombre,
             $dispatch->apellido,
             $nombre,
             $apellido,
-            (string) ($veredicto['motivo'] ?? 'sin motivo')
+            $veredicto['motivo']
         ));
-    }
-
-    /**
-     * Escrito en positivo y por ramas, que es como se bifurca bien. En negativo —«no te
-     * inventes»— es supresión, y aquí la supresión no hace falta: el modelo no devuelve texto
-     * que se guarde.
-     */
-    private function reglas(): string
-    {
-        return <<<PROMPT
-        Recibes dos campos de una reserva de hotel, tal y como los mandó el canal de venta
-        (Booking, Airbnb). A veces vienen cruzados: el campo del nombre trae los apellidos y el
-        del apellido trae los nombres de pila.
-
-        Tu único trabajo es decir si están cruzados.
-
-        Cómo se decide:
-        - Piensa en qué cultura encaja cada token. «Rodriguez Barrera» son dos apellidos
-          hispanos; «Alisson Angelica» son dos nombres de pila. Ahí están cruzados.
-        - En muchos países el apellido va primero y es lo correcto. Sólo estás juzgando si los
-          DOS CAMPOS están al revés entre sí, no el orden en que los escribiría alguien.
-        - Si el par funciona igual de bien en los dos sentidos, o no reconoces la procedencia,
-          la confianza es «baja» y se queda como está. Dejarlo quieto no cuesta nada; cruzarlo
-          mal le cambia el nombre a una persona.
-
-        Responde sólo con el veredicto.
-        PROMPT;
-    }
-
-    /** @return array<string, mixed> */
-    private function esquema(): array
-    {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'invertido' => [
-                    'type' => 'boolean',
-                    'description' => 'true SÓLO si el campo del nombre trae los apellidos y el '
-                        . 'del apellido trae los nombres de pila.',
-                ],
-                'confianza' => [
-                    'type' => 'string',
-                    'enum' => ['alta', 'media', 'baja'],
-                    'description' => '«alta» sólo si reconoces claramente qué token es nombre y '
-                        . 'cuál apellido. Ante la duda, «baja».',
-                ],
-                'motivo' => [
-                    'type' => 'string',
-                    'description' => 'Media línea en español explicando la decisión.',
-                ],
-            ],
-            'required' => ['invertido', 'confianza', 'motivo'],
-        ];
     }
 }
