@@ -298,6 +298,31 @@ final class PmsReservaPaxProvider implements ProviderInterface
             'avisoPago' => $canal === null || $canal->chatAdmiteImagenes()
                 ? 'res_aviso_pago'
                 : 'res_aviso_pago_sin_imagenes',
+
+            // ── EL SEGUNDO MOMENTO ──────────────────────────────────────────────────
+            //
+            // Pidiendo un adelanto, la tarjeta enseñaba el total y el anticipo, y no decía lo
+            // que queda ni con qué se paga. «¿Y cuánto pago al llegar?» era la pregunta que
+            // seguía llegando por chat, con la respuesta delante en dos cifras que había que
+            // restar.
+            //
+            // ⚠️ **Sin `fichas`, y es deliberado.** Los medios de este tramo son los de arriba
+            // más el efectivo, y el efectivo no tiene cuenta —se paga en mano—. O sea que toda
+            // ficha de aquí ya está detrás de una «i» del cuadro de arriba: repetirlas sería
+            // pintar las mismas ocho cuentas dos veces en la misma tarjeta.
+            'saldoTrasAdelanto' => $situacion->saldoTrasAdelanto === null ? null : [
+                'importe' => $situacion->saldoTrasAdelanto->importe->importe,
+                'moneda' => $situacion->saldoTrasAdelanto->importe->moneda,
+                'simbolo' => $situacion->saldoTrasAdelanto->importe->simbolo,
+                'enSoles' => $situacion->saldoTrasAdelanto->importe->enSoles,
+                'medios' => array_map(static fn (array $g): array => [
+                    'importe' => $g['importe'],
+                    'enSoles' => $g['enSoles'],
+                    'recargoPorcentaje' => $g['recargoPorcentaje'],
+                    'codigos' => $g['codigos'],
+                    'etiquetas' => $g['etiquetas'],
+                ], $situacion->saldoTrasAdelanto->mediosPorImporte()),
+            ],
         ];
     }
 

@@ -143,6 +143,33 @@ export interface PmsSituacionDeCobro {
      * medio porque no es del medio: es del canal. Ver `PmsChannel::CHAT_SIN_IMAGENES`.
      */
     avisoPago: string;
+    /**
+     * El SEGUNDO momento: lo que quedará por pagar al llegar, con sus medios.
+     *
+     * Sólo llega con `queSePide: 'ADELANTO'`, una moneda y resto positivo. Espejo de
+     * `PmsSituacionDeCobro::$saldoTrasAdelanto` ({@link PmsTramoDeCobro} en PHP).
+     *
+     * ⚠️ **Sin `fichas`, a propósito.** Los medios de este tramo son los de arriba más el
+     * efectivo, que no tiene cuenta: toda ficha de aquí ya está detrás de una «i» del cuadro
+     * principal. Repetirlas sería pintar las mismas ocho cuentas dos veces.
+     *
+     * ⚠️ Y sus medios **no son los mismos** que los de arriba, que es el motivo de que esto
+     * exista: el adelanto se paga a distancia y esto en la puerta, así que aquí aparece el
+     * efectivo y desaparece Western Union. Lo decide el catálogo, no la vista.
+     */
+    saldoTrasAdelanto?: {
+        importe: string;
+        moneda: string;
+        simbolo?: string | null;
+        enSoles?: string | null;
+        medios: {
+            importe: string;
+            enSoles?: string | null;
+            recargoPorcentaje?: string | null;
+            codigos: string[];
+            etiquetas: string[];
+        }[];
+    } | null;
 }
 
 export interface PmsResumenFinanciero {

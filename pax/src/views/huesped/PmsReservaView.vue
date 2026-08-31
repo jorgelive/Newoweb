@@ -355,6 +355,37 @@ const mediosSinTarjeta = computed(() => {
 });
 
 /**
+ * El SEGUNDO momento: lo que queda por pagar al llegar.
+ *
+ * ⚠️ Aquí tampoco se calcula nada. La resta y —lo que importa— **sus medios** los resuelve
+ * `PmsSituacionDeCobro::$saldoTrasAdelanto`. Restar aquí habría sido fácil y habría estado
+ * mal: los medios de este tramo NO son los de arriba. Se paga en la puerta, así que aparece
+ * el efectivo (que a veinte días vista no se ofrece) y desaparece Western Union (que pide dos
+ * días). Eso vive en el catálogo, no en una vista.
+ *
+ * `null` en todo lo que no sea un adelanto en una sola moneda con resto: pidiendo el total no
+ * hay segundo momento que anunciar.
+ */
+const saldoAlLlegar = computed(() => situacion.value?.saldoTrasAdelanto ?? null);
+
+/** El precio sin recargo de ese tramo, y sus medios traducidos por código. */
+const mediosDelSaldo = computed(() => {
+    const grupo = saldoAlLlegar.value?.medios.find(g => !g.recargoPorcentaje);
+
+    if (!grupo) return [];
+
+    // Sin «i»: los medios con ficha de este tramo son los mismos de arriba —el que se suma es
+    // el efectivo, que no tiene cuenta— así que sus cuentas ya están a un clic en el cuadro
+    // principal. Repetirlas aquí sería pintar las mismas ocho dos veces.
+    return grupo.codigos.map((codigo, i) =>
+        maestroStore.t('res_medio_' + codigo) || grupo.etiquetas[i] || codigo);
+});
+
+/** La variante con tarjeta del saldo. Cuesta otra cosa, igual que arriba. */
+const saldoConTarjeta = computed(() =>
+    saldoAlLlegar.value?.medios.find(g => g.recargoPorcentaje) ?? null);
+
+/**
  * ¿La cuenta está cerrada?
  *
  * ⚠️ Lo dice el backend (`PmsTotalesPorMoneda::cuadra()`), que es la pregunta **con
@@ -1079,6 +1110,54 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                   class="shrink-0 rounded-xl bg-[#E07845] px-3 py-2 text-center text-[12px] font-black uppercase tracking-wide leading-tight text-white shadow-md shadow-orange-100 transition-all hover:bg-[#D06535] active:scale-[0.98]">
                 {{ maestroStore.t('res_pagar_online') || 'Pagar ahora' }}
               </router-link>
+            </div>
+
+            <!-- ═══ Y AL LLEGAR ═══
+                 El segundo momento del cobro, y por eso va al final y en gris: lo de arriba
+                 pide una acción HOY y esto no pide ninguna. Con el mismo peso visual que el
+                 cuadro competiría con él y el huésped tendría que decidir cuál de las dos
+                 cifras es la que se le está pidiendo — que es justo lo que el cuadro azul
+                 viene a dejar claro.
+
+                 Pero tiene que estar. Sin esto, la tarjeta enseñaba el total y el adelanto y
+                 dejaba la resta al huésped: «¿y cuánto pago al llegar?» era la pregunta que
+                 seguía llegando por chat con la respuesta delante.
+
+                 Sin «i» en los medios: los que tienen cuenta son los mismos de arriba —lo que
+                 se suma es el efectivo, que no tiene— así que ya están a un clic. -->
+            <div v-if="saldoAlLlegar" class="mt-3 border-t border-slate-100 pt-3">
+              <div class="flex items-baseline justify-between gap-3">
+                <span class="min-w-0">
+                  <span class="block text-[11px] font-black uppercase tracking-widest text-slate-400 leading-tight">
+                    {{ maestroStore.t('res_saldo_al_llegar') || 'Saldo (a tu llegada, al entregarte las llaves)' }}
+                  </span>
+                  <span v-if="mediosDelSaldo.length" class="mt-0.5 block text-[12px] font-bold text-slate-500 leading-snug">
+                    {{ mediosDelSaldo.join(' · ') }}
+                  </span>
+                </span>
+
+                <span class="shrink-0 text-right">
+                  <span class="block text-[11px] font-black uppercase tracking-wide text-slate-400 leading-none">
+                    {{ saldoAlLlegar.simbolo || saldoAlLlegar.moneda }}
+                  </span>
+                  <span class="block text-base font-black tabular-nums text-slate-600 leading-tight">
+                    {{ saldoAlLlegar.importe }}
+                  </span>
+                  <span v-if="saldoAlLlegar.enSoles" class="block text-[11px] font-bold text-slate-400 leading-none">
+                    S/ {{ saldoAlLlegar.enSoles }}
+                  </span>
+                </span>
+              </div>
+
+              <!-- La tarjeta también aquí: si no se dice, el huésped que piensa pagar el saldo
+                   con tarjeta llega creyendo que son 71.83. -->
+              <p v-if="saldoConTarjeta" class="mt-1.5 text-[12px] font-medium text-slate-400 leading-snug">
+                <span class="font-black">*</span>
+                {{ maestroStore.t('res_con_tarjeta') || 'Con tarjeta de crédito' }}
+                <span class="font-black text-slate-500 tabular-nums">
+                  {{ saldoAlLlegar.simbolo || saldoAlLlegar.moneda }} {{ saldoConTarjeta.importe }}
+                </span>
+              </p>
             </div>
           </div>
 

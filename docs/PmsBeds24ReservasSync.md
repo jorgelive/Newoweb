@@ -2322,6 +2322,21 @@ que sí es un hueco que alguien tiene que rellenar.
 - **El recargo va DENTRO del importe**: efectivo 259.72, tarjeta 274.00. El porcentaje se dice
   como matiz —«incluye 5.5% de comisión»— no como una operación que el huésped tenga que hacer.
 - **Las cuentas viven detrás de una «i»**, una por medio que las tenga. Ver más abajo.
+- **Y al final, «Y al llegar»** (30/08/2026): pidiendo adelanto, la tarjeta enseñaba el total y
+  el anticipo y **dejaba la resta al huésped**. «¿Y cuánto pago al llegar?» era la pregunta que
+  seguía llegando por chat con la respuesta delante. Ahora sale su propio bloque, en gris y al
+  pie: lo de arriba pide una acción hoy y esto no pide ninguna, así que con el mismo peso
+  visual competirían y habría que decidir cuál de las dos cifras es la que se pide.
+
+  ⚠️ **Sus medios NO son los de arriba, y ése es el motivo de que sea un bloque y no una
+  resta.** Se paga en la puerta: aparece el **efectivo** —que a veinte días vista no se
+  ofrece— y desaparece **Western Union**, que pide dos días de antelación. Lo decide el
+  catálogo (`diasMinimos`/`diasMaximos`) evaluado en el momento del tramo, no la vista. Ver
+  `PmsTramoDeCobro` y §«El dinero se pide en DOS momentos» de `docs/Mensajeria.md`.
+
+  ⚠️ **Sin «i» en este bloque, a propósito.** Todo medio con ficha de aquí ya está a un clic
+  en el cuadro de arriba —lo que se suma es el efectivo, que no tiene cuenta—, así que las
+  «i» serían las mismas ocho cuentas pintadas dos veces en la misma tarjeta.
 - **Un bloque por moneda** cuando hay dos. No se suman ni se convierte: el cuadre con `≈` es
   para el panel interno, no para pedirle dinero a alguien.
 - **Los soles entre paréntesis** sólo si consta que paga desde Perú (`pagaDesdePeru()` es
