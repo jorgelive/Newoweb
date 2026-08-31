@@ -159,6 +159,40 @@ final readonly class PmsRedactorDeCobro
     }
 
     /**
+     * Lo que se le pide AHORA, en una línea: «USD 60.96» o «USD 35.91 (S/ 120.30)».
+     *
+     * ── Por qué existe, si ya está el bloque ────────────────────────────────────
+     * Para las plantillas de **Meta**, que no pueden llevar el bloque: un parámetro de Meta no
+     * admite saltos de línea, ni tabuladores, ni cuatro espacios seguidos, y el bloque son cuatro
+     * renglones con negritas. Un escalar sí cabe.
+     *
+     * ⚠️ **No es `balance` ni `total_amount`.** El primero es el saldo contable y el segundo el
+     * total de la reserva; ninguno responde «cuánto se le pide ahora», que con una política de
+     * adelanto es otra cifra distinta de las dos. En un mensaje que no lleva el detalle, decir el
+     * número equivocado es peor que no decir ninguno.
+     *
+     * `null` cuando no hay nada que pedir — y entonces la plantilla no debería mandarse.
+     */
+    public function importeAPagar(PmsReserva $reserva): ?string
+    {
+        // Resuelve la situación por segunda vez si también se pidió el bloque. Son dos consultas
+        // más por mensaje y se prefiere a memorizar estado dentro de un servicio: con veinte
+        // mensajes al día no se nota, y un caché aquí es una foto que puede quedarse vieja
+        // dentro de la misma petición que acaba de registrar un cobro.
+        $situacion = $this->situaciones->paraHuesped($reserva);
+
+        if (!$situacion->hayAlgoQuePedir()) {
+            return null;
+        }
+
+        return $this->importe(
+            $situacion->importes[0]->importe,
+            $situacion->importes[0]->moneda,
+            $situacion->importes[0]->enSoles
+        );
+    }
+
+    /**
      * El total que abona la reserva, en la moneda de la cabecera.
      *
      * Sale de `PmsTotalesPorMoneda`, que es la misma fuente del saldo y de los adelantos. Con

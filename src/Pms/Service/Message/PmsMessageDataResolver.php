@@ -228,6 +228,9 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // agosto al 6 de septiembre» con cuatro noches de hueco dentro. Ver
             // `PmsRedactorDeEstancias`, que agrupa por par de fechas y respeta el idioma.
             'estancias'             => $idioma !== null ? $this->estancias->texto($reserva, $idioma) : null,
+            // El mismo dato del bloque, en UNA línea: es lo único de todo esto que cabe en un
+            // parámetro de plantilla de Meta. Ver `PmsRedactorDeCobro::importeAPagar()`.
+            'importe_a_pagar'       => $idioma !== null ? $this->redactor->importeAPagar($reserva) : null,
         ];
     }
 
