@@ -10358,6 +10358,12 @@ tarjeta, saldo por efectivo o tarjeta. Ninguna de las dos listas es la otra.
 | El mensaje de pago | pendiente — es el consumidor para el que se hizo |
 | La tarjeta de `pax` | **todavía no lo enseña**: hoy sólo pinta el primer tramo |
 
+⚠️ Y en `que_se_pide`, el motivo de un `NADA` **se concatena si lo hay**. `nada()` siempre pone
+uno, pero el tipo es `?PmsMotivoSinCobro` y nada obliga a que lo esté: con un `null`,
+`$situacion->motivo->name` era un fatal y la skill moría en vez de contestar. Se degrada dejando
+la frase que importa —«no le pidas dinero»— y **sin** motivo por defecto: rellenarlo con una
+constante sería darle al modelo un porqué que no sabemos. Lo cazó el nivel 8 de PHPStan.
+
 ### Los rótulos del bloque de pago ya estaban traducidos; lo que faltaba era leerlos (30/08/2026)
 
 El cuerpo de una plantilla lo traduce `AutoTranslate` al guardarla. **El bloque de importes no**,
