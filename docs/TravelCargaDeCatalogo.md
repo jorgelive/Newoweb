@@ -12,6 +12,7 @@ Complementa `docs/Travel.md`, que explica el porqué del modelo. Aquí está el 
 2. [La decisión previa: ¿qué compra el pasajero?](#2-la-decisión-previa-qué-compra-el-pasajero)
 3. [Pool o plantilla](#3-pool-o-plantilla)
 4. [La receta](#4-la-receta)
+4 bis. [El contrato de escritura de cada entidad](#4-bis-el-contrato-de-escritura-de-cada-entidad)
 5. [Los valores por defecto que hay que poner](#5-los-valores-por-defecto-que-hay-que-poner)
 6. [AutoTranslate: por qué esto va por comando](#6-autotranslate-por-qué-esto-va-por-comando)
 7. [Trampas que ya mordieron](#7-trampas-que-ya-mordieron)
@@ -523,6 +524,296 @@ SELECT DISTINCT SUBSTRING_INDEX(slug,'-',1) FROM travel_segmento WHERE slug IS N
 `ACT-PUJ_RESORT-PISCINA_PLAYA`: meterle el destino ata a Punta Cana una ficha que sirve para
 cualquier resort. Ver `docs/Travel.md` §11.quater.
 
+## 4 bis. El contrato de escritura de cada entidad
+
+Lo que hay que saber para escribir un comando de carga **sin abrir las entidades**: qué exige
+cada tabla al crear una fila, con qué se reconoce una que ya existe, y qué se dispara al guardar.
+
+### La tabla
+
+| Entidad | Obligatorio al crear | Clave natural (idempotencia) | ¿La protege la BD? | Se dispara al guardar |
+|---|---|---|---|---|
+| `TravelServicio` | `nombreInterno`, `titulo` | `codigo` | **no** | AutoTranslate → `titulo` |
+| `TravelSegmento` | `nombreInterno`, `titulo`, `contenido` | `slug` | **no** | AutoTranslate → `titulo` (text) y `contenido` (**html**) |
+| `TravelComponente` | `nombreInterno`, `titulo`, `tipo` | `nombreInterno` | **no** | AutoTranslate → `titulo` |
+| `TravelTarifa` | `componente`, `moneda`, `nombreInterno`, `titulo`, `monto` | **ninguna** — la hereda del padre, ver abajo | **no** | AutoTranslate → `titulo` |
+| `TravelOrganizacion` | `nombreComercial`, `titulo`, `descripcion` | `nombreComercial` | **no** | AutoTranslate → `titulo`, `descripcion` |
+| `TravelOrganizacionServicio` | `organizacion`, `nombre`, `titulo`, `descripcion` | `(organizacion, nombre)` | **no** | AutoTranslate → `titulo`, `descripcion` |
+| `TravelItinerario` | `servicio`, `nombreInterno`, `titulo`, `duracionDias` | `nombreInterno` | **no** | AutoTranslate → `titulo` |
+| `TravelSegmentoComponente` | `segmento`, `componente`, `modo`, `orden` | `(segmento, componente, itinerarioContexto, dia)` | **no** | `TravelSegmentoComponentePromocionUnicaListener` (`onFlush`) |
+| `TravelItinerarioSegmentoRel` | `itinerario`, `segmento`, `dia`, `orden` | `(itinerario, segmento, dia)` | **no** | — |
+| `TravelLugar` | `nombre` | `nombre` | **sí**, índice único | — |
+| `TravelPunto` | `nombre` | `nombre` | **sí**, índice único | — |
+| pools (`*_pool`) | las dos columnas | la pareja entera | **sí**, es la PK | — |
+
+`titulo` y `descripcion` son `json` **NOT NULL**: aceptan `[]`, no `null`. Un `setTitulo([])` pasa
+la base y luego lo rechaza `#[Assert\Callback]` al validar (§ más abajo), así que si escribes por
+comando —donde nadie valida— pasa entero y sale un recurso sin nombre público.
+
+⚠️ **`codigo` y `slug` son las claves naturales del catálogo y la base los deja NULOS.** Medido:
+25 de 25 servicios tienen `codigo` y 186 de 186 segmentos tienen `slug`, o sea que la convención
+se cumple al 100% — pero la cumple la costumbre, no un `NOT NULL`. Un comando que cree un servicio
+sin código no falla: crea uno que ninguna carga posterior podrá encontrar, y que por tanto se
+duplicará la próxima vez.
+
+⚠️ **La tarifa no tiene clave natural, y no es un olvido: es que su nombre no identifica.** Un
+componente puede tener quince tarifas legítimas cuyos nombres se parecen —modalidad, capacidad,
+sentido— así que buscar «la tarifa que ya existe» por texto acertaría a veces. Los comandos de
+creación resuelven esto **cortando antes**: si el segmento o el componente padre ya existe hacen
+`continue` y nunca llegan a la tarifa. La consecuencia hay que tenerla presente: **si tu comando
+crea tarifas sobre un componente que ya existía, no hay nada que te proteja de duplicarlas**, y
+por eso existe `app:travel:limpiar-tarifas-repetidas`.
+
+⚠️ **Los setters de `TravelTarifa` NO se encadenan todos.** Es la única entidad del módulo con la
+convención mezclada: `setMonto()` y `setModalidad()` devuelven `self`, pero `setComponente()`,
+`setNombreInterno()`, `setTitulo()` y `setMoneda()` devuelven `void`. Encadenarlos revienta con un
+fatal en tiempo de ejecución —no lo caza `php -l`—, así que en las tarifas se escribe una llamada
+por línea. En el resto de entidades del módulo sí se puede encadenar.
+
+### ⚠️ La idempotencia NO la protege nadie, y por eso hay seis comandos de limpieza
+
+De catorce tablas, **sólo dos tienen restricción única**: `travel_lugar.nombre` y
+`travel_punto.nombre`. Ni el `slug` del segmento, ni el `codigo` del servicio, ni el
+`nombreInterno` del componente, ni el `nombreComercial` de la organización lo tienen.
+
+```sql
+-- la comprobación, si dudas de una tabla concreta
+SELECT TABLE_NAME, INDEX_NAME, GROUP_CONCAT(COLUMN_NAME)
+  FROM information_schema.STATISTICS
+ WHERE TABLE_SCHEMA = DATABASE() AND NON_UNIQUE = 0 AND TABLE_NAME LIKE 'travel_%'
+ GROUP BY TABLE_NAME, INDEX_NAME;
+```
+
+Consecuencia, y es la regla de esta sección: **la idempotencia de una carga vive entera en el
+`findOneBy()` de tu comando**. Si se te olvida, correrlo dos veces duplica el catálogo en silencio
+—sin error, sin log— y el duplicado sólo se nota semanas después, cuando alguien cotiza el que no
+tenía tarifas.
+
+Que esto ya mordió está escrito en el propio repositorio: `limpiar-tarifas-repetidas`,
+`fusionar-transportes-bidireccionales`, `fusionar-rutas-por-puntos`, `fusionar-tarifas-por-sentido`,
+`resolver-tarifas-divergentes` y `consolidar-transporte-aeropuerto-lima` existen **sólo** para
+deshacer duplicados. Limpiar sale mucho más caro que comprobar antes de insertar, porque para
+entonces hay cotizaciones colgando de las dos copias.
+
+**Los pools son la excepción cómoda**: su PK es la pareja, así que `addSegmento()` dos veces no
+duplica. Es el único sitio donde puedes ser descuidado.
+
+### El orden de creación
+
+Las flechas son «no puede existir sin»:
+
+```
+TravelLugar ─┐                    TravelOrganizacion
+TravelPunto ─┤                             │
+             │                             ▼
+             │                  TravelOrganizacionServicio   (organizacion NOT NULL)
+             │                             │
+             ▼                             │  prestador / prestadorServicio / comprador
+        TravelSegmento                     │  (los tres OPCIONALES)
+             │                             │
+             │                             ▼
+             │                       TravelTarifa ──► TravelComponente  (componente NOT NULL)
+             │                                              ▲                MaestroMoneda
+             │                                              │                (NOT NULL)
+             └──────► TravelSegmentoComponente ─────────────┘
+
+TravelServicio ──► TravelItinerario ──► TravelItinerarioSegmentoRel ──► TravelSegmento
+        └── pools: se llenan al final, cuando las dos puntas existen
+```
+
+En un comando eso se traduce en cinco `flush()` como mucho, y sólo hacen falta donde una entidad
+nueva es **obligatoria** para la siguiente:
+
+```
+1. organización            → flush   (el servicio de prestador la exige NOT NULL)
+2. servicios de prestador  → flush
+3. servicio + itinerario   → flush
+4. segmentos y componentes → flush   (el pivote y la tarifa los exigen)
+5. pivotes, tarifas, pools → flush
+```
+
+### Lo que rechaza el guardado (y lo que no)
+
+Cuatro `#[Assert\Callback]` gobiernan este módulo. Importan por lo que **no** hacen:
+
+| Regla | Dónde | Qué impide |
+|---|---|---|
+| El título público en español es obligatorio | `TravelSegmento`, `TravelServicio`, `TravelItinerario` | Un recurso sin nombre de cara al cliente |
+| Punto fijo marcado pero sin elegir cuál | `TravelSegmento::validarPuntos()` | Un extremo declarado y vacío |
+| Un `ALOJAMIENTO` no lleva hora | `TravelSegmentoComponente::validarAlojamientoSinHora()` | Que una estadía se parta por días en la guía |
+| `horaServicioCompleto` exige plantilla | `TravelSegmentoComponente::validarPromocionRequierePlantilla()` | Una hora global chocando en todos los tours |
+| El servicio elegido es del prestador **de esa tarifa** | `TravelTarifa::validarConsistenciaLogica()` | «Hotel A» con «habitación del Hotel B» |
+
+⚠️ **Ninguna se aplica a un comando.** `#[Assert\Callback]` sólo corre cuando alguien llama al
+`Validator` —el formulario de EasyAdmin, el procesador de API Platform—, y un `persist()` + `flush()`
+en consola **no lo llama**. La lista de arriba no es lo que te protege: es lo que tienes que
+comprobar tú antes de escribir, y por eso está aquí y no en la entidad.
+
+Lo que sí corre siempre, porque son listeners de Doctrine y no validaciones: **AutoTranslate** y
+`TravelSegmentoComponentePromocionUnicaListener`.
+
+### El esqueleto
+
+Lo que comparten todos los comandos de `src/Travel/Command/`:
+
+```php
+#[AsCommand(name: 'app:travel:crear-<algo>', description: '…')]
+final class CrearAlgoCommand extends Command
+{
+    private const ORG_NOMBRE = '…';           // claves naturales como constantes:
+    private const SERVICIO_CODIGO = '…';      // el comando y su verificación las comparten
+
+    /** @var list<array{slug: string, nombre: string, titulo: string, contenido: string}> */
+    private const SEGMENTOS = [ /* el repertorio, como DATO */ ];
+
+    public function __construct(private readonly EntityManagerInterface $em) { parent::__construct(); }
+
+    protected function configure(): void
+    {
+        $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Enseña lo que haría sin tocar nada.');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $simula = (bool) $input->getOption('dry-run');
+
+        foreach (self::SEGMENTOS as $def) {
+            // 1. ¿ya está? — la única defensa contra duplicar, ver arriba
+            if ($this->em->getRepository(TravelSegmento::class)->findOneBy(['slug' => $def['slug']])) {
+                $io->text(sprintf('  ya existe · %s', $def['slug']));
+                continue;
+            }
+
+            // 2. informar SIEMPRE, escribir sólo si no se simula
+            $io->text(sprintf('  %s · %s', $simula ? 'crearía' : 'creado ', $def['slug']));
+            if ($simula) { continue; }
+
+            $this->em->persist(/* … */);
+        }
+
+        if (!$simula) { $this->em->flush(); }
+
+        return Command::SUCCESS;
+    }
+}
+```
+
+Tres rasgos que no son estilo:
+
+- **El repertorio es una constante, no un bucle que lo deduce.** Un catálogo escrito a mano se
+  revisa leyendo el diff; uno generado hay que ejecutarlo para saber qué hace.
+- **`--dry-run` imprime lo mismo que la pasada real**, con el verbo en condicional. Si sólo
+  imprimiera un resumen, la simulación dejaría de servir para revisar.
+- **`ya existe` se imprime, no se calla.** Es lo que convierte la segunda pasada en una
+  verificación: si esperabas siete «ya existe» y salen seis, hay algo que se borró.
+
+Y el `continue` del paso 1 es lo que hace idempotente **todo lo que cuelga** —pivote, tarifas,
+pools— sin comprobarlo pieza a pieza. Es cómodo y tiene un filo: si algún día ese comando tiene
+que añadir una tarifa a un componente que ya existe, el `continue` la saltará en silencio y habrá
+que darle su propia comprobación.
+
+### Apagar la traducción: cuándo sí y cuándo no
+
+`ejecutarTraduccion` **no está mapeado y arranca en `true`**, así que cualquier `flush()` sobre una
+fila con campos `#[AutoTranslate]` dispara el traductor de esa fila entera.
+
+| Tu comando… | Traducción | Por qué |
+|---|---|---|
+| crea o reescribe **contenido publicado** | **encendida** | El cliente lo lee en su idioma: las siete lenguas son el trabajo |
+| sólo mueve **ids o flags** (prestador, comprador, lugar) | **apagada** | Poner un id no cambia ningún texto; traducir sería gasto y ruido |
+| toca sólo `nombreInterno` o `slug` | **apagada** | No llevan `#[AutoTranslate]`, pero el `flush()` arrastra los que sí |
+
+```php
+$entidad->setEjecutarTraduccion(false);   // vía AutoTranslateControlTrait
+```
+
+Ejemplos vivos: `app:travel:comprador-trenes` la apaga (69 tarifas, ni un texto tocado);
+`app:travel:crear-habitaciones-occidental` la deja encendida y avisa de que tarda.
+
+### La capa de prestador: dónde se engancha y cuántas piezas hacen falta
+
+Es la mitad que este documento no cubría, y la que decide si el producto sale **con cara** en
+`/pax`. El enganche completo son cuatro piezas y una bandera:
+
+```
+TravelOrganizacion                el hotel, el operador, la ferroviaria
+   │  nombreComercial · titulo(i18n) · descripcion(i18n) · visibleParaCliente
+   │
+   ├── TravelOrganizacionImagen           fotos de la EMPRESA
+   │
+   └── TravelOrganizacionServicio         lo que se contrata de ella
+          │  nombre · titulo(i18n) · descripcion(i18n)
+          └── TravelOrganizacionServicioImagen    fotos de ESE servicio
+                        ▲
+                        │  prestador_servicio_id
+                  TravelTarifa  ──prestador_id──►  TravelOrganizacion
+                                └─comprador_id──►  TravelOrganizacion (a quién se le encarga)
+```
+
+**Los tres papeles cuelgan de la TARIFA, no del componente.** Un componente puede tener tarifas de
+empresas distintas —«Tren Ollanta Mapi» tiene 12 de PeruRail y 4 de IncaRail—, así que un
+prestador arriba sería falso sobre todas menos una. El campo estuvo en el componente seis días y
+volvió; la historia completa, en `docs/Travel.md` §11.
+
+**Cuántos servicios de prestador crear.** No uno por tarifa: uno por **galería distinta**. Las
+cuatro tarifas de check-in/check-out comparten «Lobby y recepción» porque las ilustran las mismas
+fotos; si mañana el check-out mereciera foto propia, se le crea su servicio y se repunta esa
+tarifa. Es barato, y al revés —crear uno por tarifa— obliga a subir las mismas fotos cuatro veces.
+
+⚠️ **Evita los cajones de sastre.** Un servicio llamado «El resort» o «La empresa» parece útil y no
+lo es: como galería sólo repite lo que ya enseñan los demás, y como *servicio contratado* de una
+línea no afirma nada, porque nadie contrata «el resort». Lo que se contrata en un hotel es **la
+habitación**. El que hubo se reconvirtió en la estándar el 31/08/2026 en vez de borrarse, para no
+dejar huérfana la tarifa que colgaba de él — ver `docs/Travel.md` §11.quater.
+
+**La bandera es opt-in y arranca en `false`.** `visibleParaCliente` decide si a esa empresa se le
+puede nombrar delante del cliente, y **de ella cuelgan también las fotos y la descripción**: el
+normalizer público no inyecta ninguna de las tres si está apagada, porque una foto de la piscina
+identifica al hotel igual de bien que su nombre. Si cargas un prestador cuyas fotos deben salir,
+enciéndela en el comando.
+
+⚠️ **Y la bandera del catálogo es una SEMILLA, no un veto vivo.** Quien decide en cada propuesta es
+`CotizacionCotcomponente::prestadorVisible`, que se copió al asignar el prestador. Encenderla en el
+catálogo **no destapa** propuestas ya armadas: hay que reasignar el prestador en esas líneas. Ver
+`docs/Cotizaciones.md` §6.c.
+
+**Orden de carga**, que es el de las dependencias: organización → `flush` → sus servicios →
+`flush` → las tarifas que los apuntan. Y la validación cruzada que aquí no corre —`#[Assert]` no se
+ejecuta en consola— es que el `prestadorServicio` de una tarifa **pertenezca a su `prestador`**;
+compruébala con la consulta 3 de abajo.
+
+Comando de referencia: `app:travel:crear-habitaciones-occidental` (servicios de prestador puros) y
+`app:travel:crear-actividades-resort` (la cadena entera, de la organización a las tarifas).
+
+### Verificar una carga desde SQL
+
+Las tres consultas que contestan «¿quedó completo?», en el orden en que se descubren los huecos:
+
+```sql
+-- 1. ¿los títulos salieron traducidos? (7 = completo; 1 = se escapó del ORM)
+SELECT nombre_interno, JSON_LENGTH(titulo) FROM travel_segmento WHERE slug LIKE 'ACT-RESORT-%';
+
+-- 2. ¿algún componente sin precio? — entra en la cotización en cero y nadie lo nota
+SELECT c.nombre_interno FROM travel_componente c
+  LEFT JOIN travel_tarifa t ON t.componente_id = c.id
+ WHERE t.id IS NULL;
+
+-- 3. ¿alguna tarifa con servicio de otra empresa? — lo que el Validator NO comprobó
+SELECT t.nombre_interno FROM travel_tarifa t
+  JOIN travel_organizacion_servicio s ON s.id = t.prestador_servicio_id
+ WHERE t.prestador_id IS NOT NULL AND s.organizacion_id <> t.prestador_id;
+```
+
+La tercera es la que sólo hace falta si cargaste por comando: por el panel la habría impedido
+`validarConsistenciaLogica()`. Hoy devuelve cero, que es lo que debe devolver siempre.
+
+⚠️ **La segunda no devuelve cero, y conviene saberlo antes de usarla como semáforo.** Medido el
+31/08/2026: **45 componentes sin ninguna tarifa** —27 de transporte, 16 de vuelo y 2 de tren—.
+Es deuda anterior, no la deja tu carga, así que la forma de usarla es **comparar el antes y el
+después de tu comando**, no esperar una lista vacía. Un componente sin tarifa entra en la
+cotización a cero y nadie lo nota.
+
 ## 5. Los valores por defecto que hay que poner
 
 ### La hora: **coloca**, no describe
@@ -708,9 +999,15 @@ Antes de dar por cerrada una carga:
 □ ¿está en el pool del servicio, segmentos Y componentes?
 □ ¿los títulos salieron con 7 idiomas?         SELECT JSON_LENGTH(titulo)
 □ ¿el prestador está visibleParaCliente, si sus fotos deben salir?
+□ ¿la tarifa lleva prestador Y su servicio?    sin los dos no hay foto ni nombre en /pax
+□ ¿el servicio del prestador es DE ese prestador?   (§4 bis, consulta 3)
+□ ¿los servicios del prestador tienen imágenes?     sin ellas el segmento sale desnudo
+□ correrlo DOS veces: la segunda debe decir «ya existe» en todo
 ```
 
-Las tres últimas son las que se olvidan.
+Las tres últimas son las que se olvidan — y la última es la más barata: **la segunda pasada es la
+prueba de idempotencia**, y como ninguna clave natural está protegida por la base (§4 bis), es la
+única que hay.
 
 ## 9. Dónde tocar para cambiar X
 
