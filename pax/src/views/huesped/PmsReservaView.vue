@@ -1129,7 +1129,15 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
               <div class="flex items-baseline justify-between gap-3">
                 <span class="min-w-0">
                   <span class="block text-[11px] font-black uppercase tracking-widest text-slate-400 leading-tight">
-                    {{ maestroStore.t('res_saldo_al_llegar') || 'Saldo (a tu llegada, al entregarte las llaves)' }}
+                    <!-- ⚠️ El rótulo depende de lo que se pida ARRIBA. Pidiendo un adelanto,
+                         esto es el RESTO y «Saldo» encaja. Pidiendo el TOTAL —que es lo que pasa
+                         en cuanto hay un pago hecho— es el MISMO número de arriba, y llamarlo
+                         «saldo» debajo de «Total a pagar» hace leer dos deudas donde hay una.
+                         Colapsada la tarjeta se ve peor todavía: dos cifras idénticas seguidas.
+                         Espejo de `PmsRedactorDeCobro::bloque()`. -->
+                    {{ situacion?.queSePide === 'ADELANTO'
+                        ? (maestroStore.t('res_saldo_al_llegar') || 'Saldo (a tu llegada, al entregarte las llaves)')
+                        : (maestroStore.t('res_o_al_llegar') || 'O a tu llegada, al entregarte las llaves') }}
                   </span>
                   <span v-if="mediosDelSaldo.length" class="mt-0.5 block text-[12px] font-bold text-slate-500 leading-snug">
                     {{ mediosDelSaldo.join(' · ') }}
