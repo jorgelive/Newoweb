@@ -124,6 +124,14 @@ final class PaxCrearTextosCobroCommand extends Command
         //
         // `res_adelanto_pagado` no vale: dice «adelanto», y un pago a cuenta no siempre lo es.
         'res_ya_pagado' => 'Ya pagado',
+
+        // El mismo segundo momento, dicho de otra forma según lo que se pida arriba.
+        //
+        // Con adelanto, «Saldo (a tu llegada…)» encaja: son dos cifras distintas y ésta es el
+        // resto. Pidiendo el TOTAL es el MISMO número que arriba, y llamarlo «saldo» debajo de
+        // «Total a pagar» se lee como si fueran dos deudas. Aquí no es otra cifra: es la misma
+        // en otro momento, y con otros medios.
+        'res_o_al_llegar' => 'O a tu llegada, al entregarte las llaves',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

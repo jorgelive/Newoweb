@@ -114,6 +114,14 @@ export interface PmsFinanzasEstancia {
      */
     canal?: string | null;
     /**
+     * Estado del evento (`confirmada`, `cancelada`, `bloqueo`…), crudo.
+     *
+     * Hace falta porque los grupos de cargos se siembran desde las estancias, tengan cargos o
+     * no: sin él, una estancia CANCELADA salía como un cuadro normal a US$ 0.00 —con su unidad y
+     * sus fechas— indistinguible de una viva a la que le falta el precio.
+     */
+    estado?: string | null;
+    /**
      * Lo que esta estancia costaría según el tarifario y la ficha de la casita. Referencia
      * para quien vende, NO un importe a cobrar: en una venta directa el precio lo cierra la
      * persona, y por eso el cargo se crea en cero y esto se enseña al lado.

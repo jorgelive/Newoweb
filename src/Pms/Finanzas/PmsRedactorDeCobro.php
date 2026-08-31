@@ -130,7 +130,13 @@ final readonly class PmsRedactorDeCobro
             $lineas[] = '';
             $lineas[] = sprintf(
                 '*%s:* %s',
-                $this->t('res_saldo_al_llegar', $idioma),
+                // Pidiendo adelanto es el RESTO y «Saldo» encaja; pidiendo el total es el mismo
+                // número de arriba, y llamarlo «saldo» debajo de «Total a pagar» se lee como dos
+                // deudas. No es otra cifra: es la misma en otro momento.
+                $this->t(
+                    $situacion->queSePide === PmsQueSePide::ADELANTO ? 'res_saldo_al_llegar' : 'res_o_al_llegar',
+                    $idioma
+                ),
                 $this->importe($saldo->importe->importe, $saldo->importe->moneda, $saldo->importe->enSoles)
             );
 

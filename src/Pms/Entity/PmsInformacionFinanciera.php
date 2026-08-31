@@ -697,6 +697,16 @@ class PmsInformacionFinanciera
                 'inicio' => $evento->getInicio()?->format('Y-m-d'),
                 'fin' => $evento->getFin()?->format('Y-m-d'),
                 'canal' => $evento->getChannel()?->getId(),
+                // ⚠️ El ESTADO faltaba, y el panel lo necesita. Los grupos de cargos se siembran
+                // desde aquí —una estancia sin cargos también tiene cabecera, para que el costo
+                // teórico se vea antes de que nadie ponga precio—, así que una estancia
+                // CANCELADA seguía saliendo como un contenedor normal a US$ 0.00, con su unidad
+                // y sus fechas, indistinguible de una viva a la que le falta el importe.
+                //
+                // Es lo que hizo perseguir un fantasma en `B4YXZ7` (31/08/2026): la Casita 1
+                // estaba cancelada desde las 10:35 y su cuadro seguía ahí, invitando a
+                // cargarle cosas.
+                'estado' => $evento->getEstado()?->getId(),
                 'costoTeorico' => $this->costosTeoricos[(string) $evento->getId()] ?? null,
             ];
         }

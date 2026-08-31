@@ -670,6 +670,8 @@ interface GrupoCargos {
     subtitulo: string | null;
     /** Id de canal de la estancia (`airbnb`, `booking`, `directo`), o null si no se imputa a una. */
     canal: string | null;
+    /** La estancia está cancelada: sus cargos son historia, no algo que cobrar. */
+    cancelada: boolean;
     /** Referencia del tarifario para esta estancia. Sólo en las directas; ver el tooltip. */
     costoTeorico: PmsFinanzasCostoTeorico | null;
     cargos: PmsCargoFinanciero[];
@@ -720,6 +722,10 @@ const gruposCargos = computed<GrupoCargos[]>(() => {
             titulo: est?.unidad ?? (clave === CLAVE_SIN_ESTANCIA ? 'Cargos de la reserva' : 'Estancia'),
             subtitulo: est ? `${fechaLegible(est.inicio)} → ${fechaLegible(est.fin)}` : null,
             canal: est?.canal ?? null,
+            // Una estancia cancelada mantiene su cuadro —sus cargos son historia y no se
+            // esconden— pero tiene que DECIRLO. Sin esto era un contenedor a US$ 0.00 igual
+            // que el de una estancia viva sin precio, y se le cargaban cosas por error.
+            cancelada: est?.estado === 'cancelada',
             costoTeorico: est?.costoTeorico ?? null,
             cargos: [],
             subtotales: [],
@@ -2000,17 +2006,33 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                              Sin el `·` de separación: al envolver abría el renglón de las
                              fechas y se leía como una viñeta. El salto de tamaño y de color ya
                              separa las dos cosas. -->
+                        <!-- ⚠️ Una estancia CANCELADA se marca aquí y no se esconde: sus cargos
+                             son historia y borrarlos de la vista sería perder el rastro de lo
+                             que pasó. Pero sin marca era un cuadro idéntico al de una estancia
+                             viva sin precio —misma casita, mismas fechas, US$ 0.00— y eso hizo
+                             perseguir un fantasma en `B4YXZ7`: la Casita 1 llevaba cinco minutos
+                             cancelada y su cuadro seguía invitando a cargarle cosas. -->
                         <div v-if="mostrarGrupos"
-                            class="flex items-start justify-between gap-2 px-4 py-2.5 bg-slate-50 border-y border-slate-100">
+                            class="flex items-start justify-between gap-2 px-4 py-2.5 border-y"
+                            :class="g.cancelada
+                                ? 'bg-slate-100/70 border-slate-200'
+                                : 'bg-slate-50 border-slate-100'">
                             <span class="flex items-start gap-2 min-w-0 flex-1">
-                                <i v-if="g.canal" :class="[canalInfo(g.canal).icono, canalInfo(g.canal).color]"
+                                <i v-if="g.cancelada" class="fas fa-ban text-xs text-slate-400 shrink-0 mt-0.5"
+                                    title="Estancia cancelada"></i>
+                                <i v-else-if="g.canal" :class="[canalInfo(g.canal).icono, canalInfo(g.canal).color]"
                                     class="text-sm shrink-0 mt-px" :title="canalInfo(g.canal).texto"></i>
                                 <i v-else class="fas fa-door-open text-xs text-slate-400 shrink-0 mt-0.5"></i>
                                 <span class="min-w-0 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 leading-tight">
-                                    <span class="text-xs font-black text-slate-700 break-words">{{ g.titulo }}</span>
+                                    <span class="text-xs font-black break-words"
+                                        :class="g.cancelada ? 'text-slate-400 line-through' : 'text-slate-700'">{{ g.titulo }}</span>
                                     <span v-if="g.subtitulo"
                                         class="text-[11px] font-bold text-slate-400 whitespace-nowrap">
                                         {{ g.subtitulo }}
+                                    </span>
+                                    <span v-if="g.cancelada"
+                                        class="text-[10px] font-black uppercase tracking-wide text-slate-500 bg-slate-200 rounded px-1.5 py-px whitespace-nowrap">
+                                        Cancelada
                                     </span>
                                 </span>
                             </span>
