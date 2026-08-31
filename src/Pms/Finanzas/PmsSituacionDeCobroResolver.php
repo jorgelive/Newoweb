@@ -14,7 +14,6 @@ use App\Pms\Enum\PmsMotivoSinCobro;
 use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use App\Pms\Service\Finance\PmsTotalesPorMoneda;
-use App\Pms\Service\Finance\TipoCambioDelDia;
 use DateTimeImmutable;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -55,12 +54,12 @@ final readonly class PmsSituacionDeCobroResolver
     public function __construct(
         private PmsPrepagoCalculador $prepago,
         private PmsProcedenciaHuesped $procedencia,
+        private PmsEquivalenciaEnSoles $equivalencia,
         private PmsPrepagoEnlaceService $enlaces,
         // Sólo para componer la URL pública: `FinEnlacePago` no la guarda, la deriva
         // `urlPublica()` del token. Es su fuente única — ver docs/FinanzasEnlacesPago.md §13.
         private FinEnlacePagoService $enlacesFinanzas,
         private FinMedioCobroRepository $catalogo,
-        private TipoCambioDelDia $tipoCambio,
         // El MISMO parámetro que usa `FinEnlacePagoService`, no un literal: el porcentaje ya
         // estaba escrito en tres sitios y éste habría sido el cuarto. Ver docs/FinanzasEnlacesPago.md §7.
         #[Autowire('%finanzas.recargo_tarjeta_porcentaje%')]
@@ -384,34 +383,13 @@ final readonly class PmsSituacionDeCobroResolver
     }
 
     /**
-     * La equivalencia en soles, **sólo si sabemos que paga desde Perú**.
-     *
-     * ⚠️ `pagaDesdePeru()` es ternaria y su `null` significa «no se sabe» —el saneador de
-     * teléfonos antepone `51` a cualquier móvil de 9 dígitos—. Con `null` NO se pone
-     * equivalencia: una conversión a alguien que no paga en soles confunde más que ayuda.
-     *
-     * Es presentación, no contabilidad: no toca el saldo y va del TC del día, igual que el
-     * «son unos S/ 340» del formulario de cargo.
+     * La equivalencia en soles. **La regla vive en {@see PmsEquivalenciaEnSoles}** desde el
+     * 31/08/2026, porque el redactor del bloque de los mensajes la necesita igual y diez líneas
+     * copiadas es como la misma regla acaba diciendo dos cosas.
      */
     private function enSoles(string $importe, string $moneda, ?PmsReserva $reserva): ?string
     {
-        if ($moneda === 'PEN' || $reserva === null) {
-            return null;
-        }
-
-        if ($this->procedencia->pagaDesdePeru($reserva) !== true) {
-            return null;
-        }
-
-        // `TipoCambioDelDia` memoriza por fecha desde el 28/08/2026, así que llamarlo por
-        // cada importe y cada medio no multiplica las consultas.
-        $tc = $this->tipoCambio->venta();
-
-        if ($tc === null || (float) $tc <= 0.0) {
-            return null;
-        }
-
-        return number_format((float) $importe * (float) $tc, 2, '.', '');
+        return $this->equivalencia->de($importe, $moneda, $reserva);
     }
 
     /** Días hasta la llegada, o `null` si no se sabe. Lo consume `llegaATiempo()`. */

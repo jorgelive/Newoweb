@@ -42,6 +42,7 @@ final readonly class PmsRedactorDeCobro
 
     public function __construct(
         private PmsSituacionDeCobroResolver $situaciones,
+        private PmsEquivalenciaEnSoles $equivalencia,
         private TextosUi $textos,
     ) {
     }
@@ -70,13 +71,24 @@ final readonly class PmsRedactorDeCobro
 
         $lineas = [];
 
+        // La moneda del primer importe rotula TODAS las líneas. Sin esto, el total salía como
+        // «USD 107.74» y las opciones de pago como «107.74 (S/ 360.93)»: dos formatos para el
+        // mismo dinero en el mismo párrafo, y el huésped preguntándose si son cifras distintas.
+        $moneda = $situacion->importes[0]->moneda;
+
         // El TOTAL de la reserva primero, siempre. No sale del read-model —que lleva lo
         // pendiente, no el total— sino de la cabecera financiera, que es de donde salen todas
         // las demás cifras de esta casa.
         $total = $this->totalDeLaReserva($reserva);
 
         if ($total !== null) {
-            $lineas[] = sprintf('*%s:* %s', $this->t('res_total_reserva', $idioma), $total);
+            $lineas[] = sprintf(
+                '*%s:* %s',
+                $this->t('res_total_reserva', $idioma),
+                // Con su equivalencia, como las de abajo: el total sin soles y las opciones con
+                // ellos era la otra mitad de la misma incoherencia.
+                $this->importe($total, $moneda, $this->equivalencia->de($total, $moneda, $reserva))
+            );
             $lineas[] = '';
         }
 
@@ -87,7 +99,7 @@ final readonly class PmsRedactorDeCobro
         );
 
         foreach ($situacion->mediosPorImporte() as $grupo) {
-            $lineas[] = $this->linea($grupo, $idioma);
+            $lineas[] = $this->linea($grupo, $moneda, $idioma);
         }
 
         // El enlace va con el primer tramo y no al final del mensaje: es la acción de AHORA, y
@@ -110,7 +122,7 @@ final readonly class PmsRedactorDeCobro
             );
 
             foreach ($saldo->mediosPorImporte() as $grupo) {
-                $lineas[] = $this->linea($grupo, $idioma);
+                $lineas[] = $this->linea($grupo, $saldo->importe->moneda, $idioma);
             }
         }
 
@@ -122,7 +134,7 @@ final readonly class PmsRedactorDeCobro
      *
      * @param array{importe: string, enSoles: string|null, recargoPorcentaje: string|null, codigos: list<string>, etiquetas: list<string>} $grupo
      */
-    private function linea(array $grupo, string $idioma): string
+    private function linea(array $grupo, string $moneda, string $idioma): string
     {
         $nombres = [];
 
@@ -140,7 +152,7 @@ final readonly class PmsRedactorDeCobro
             '%s *%s:* %s _%s_',
             self::VINETA,
             implode(', ', $nombres),
-            $this->importe($grupo['importe'], null, $grupo['enSoles']),
+            $this->importe($grupo['importe'], $moneda, $grupo['enSoles']),
             $matiz
         );
     }
@@ -151,6 +163,9 @@ final readonly class PmsRedactorDeCobro
      * Sale de `PmsTotalesPorMoneda`, que es la misma fuente del saldo y de los adelantos. Con
      * varias monedas devuelve `null`: un total único no existe ahí y sumarlas sería convertir sin
      * decirlo (§12.2b). El mensaje se queda sin esa línea, que es preferible a una cifra falsa.
+     *
+     * Devuelve la CIFRA pelada; la moneda y la equivalencia las pone quien la escribe, que es
+     * quien sabe con qué formato van las demás líneas del bloque.
      */
     private function totalDeLaReserva(PmsReserva $reserva): ?string
     {
@@ -166,9 +181,7 @@ final readonly class PmsRedactorDeCobro
             return null;
         }
 
-        $moneda = array_key_first($totales->porMoneda);
-
-        return $this->importe((string) $totales->porMoneda[$moneda]['cargos'], (string) $moneda, null);
+        return (string) $totales->porMoneda[array_key_first($totales->porMoneda)]['cargos'];
     }
 
     /** Un importe con su moneda y, si procede, su equivalencia orientativa en soles. */
