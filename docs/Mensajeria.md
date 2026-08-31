@@ -10422,8 +10422,7 @@ Pero **sí existía en los mensajes**: los que el equipo escribía a mano llevab
 calculaban fuera, a mano, y no quedaban en ningún sitio. Es exactamente la forma de derivar que
 este read-model vino a cerrar, sobreviviendo en la mitad que nadie había mirado.
 
-Ahora `PmsSituacionDeCobro::$saldoTrasAdelanto` lleva un {@see PmsTramoDeCobro}: importe +
-**sus** medios. `null` salvo en un caso —`ADELANTO`, una sola moneda, resto positivo—, y esa
+Ahora `PmsSituacionDeCobro::$pagoAlLlegar` lleva un {@see PmsTramoDeCobro}: importe + **sus** medios. `null` salvo en un caso —`ADELANTO`, una sola moneda, resto positivo—, y esa
 estrechez es la respuesta correcta: pidiendo el TOTAL no hay segundo tramo, y con dos monedas
 restar sería convertir sin decirlo (§12.2b de `PmsBeds24ReservasSync.md`).
 
@@ -10483,6 +10482,52 @@ uno, pero el tipo es `?PmsMotivoSinCobro` y nada obliga a que lo esté: con un `
 `$situacion->motivo->name` era un fatal y la skill moría en vez de contestar. Se degrada dejando
 la frase que importa —«no le pidas dinero»— y **sin** motivo por defecto: rellenarlo con una
 constante sería darle al modelo un porqué que no sabemos. Lo cazó el nivel 8 de PHPStan.
+
+### ⚠️ Un pago a cuenta cambiaba las dos cosas, y las dos estaban mal (31/08/2026)
+
+Probando el bloque contra reservas con cobros parciales salieron dos agujeros que sólo aparecen
+cuando **ya hay dinero puesto**:
+
+**1 · No se decía lo ya pagado.** `XDGCYT`: total 890, pagó 300, se le piden 590. El bloque
+enseñaba las dos cifras extremas y **el 300 no aparecía en ningún sitio** — o parece un error
+nuestro, o el huésped escribe preguntando. La ficha de `pax` sí lo enseñaba, con su barra de
+progreso; el mensaje no. Ahora lleva una línea `*Ya pagado:*` entre el total y lo que se pide.
+
+`res_adelanto_pagado` no valía: dice «adelanto», y un pago a cuenta no siempre lo es. Cadena
+nueva, `res_ya_pagado`.
+
+**2 · Se perdían las opciones de la llegada.** El tramo se llamaba `saldoTrasAdelanto` y sólo
+existía con `queSePide === ADELANTO`. Pero **en cuanto hay un cobro, `queSePide` pasa a `TOTAL`**
+—`PmsPrepagoCalculador::pendiente()` devuelve `null` con cualquier pago—, así que el tramo
+desaparecía justo en las reservas que ya habían pagado algo.
+
+`5Y6AGN` lo enseña entero: italiana, llegando **al día siguiente**, 230.71 ya pagados. Se le
+ofrecía **una sola opción y la cara**:
+
+| Medio | Por qué se caía |
+|---|---|
+| Western Union | `diasMinimos = 2` — llegaba al día siguiente |
+| Efectivo | `diasMaximos = 0` — todavía no estaba aquí |
+| Yape · Plin · Transferencia | audiencia `peru`, y es de Italia |
+
+Cada regla correcta por separado, y el resultado falso: al día siguiente iba a estar en la puerta
+pudiendo pagar en efectivo, y no se le decía. **Y le pasaba igual a la ficha de `pax`**, que lee
+el mismo objeto.
+
+El tramo pasa a llamarse **`pagoAlLlegar`** y sale en los dos casos:
+
+| `queSePide` | Cuánto se puede pagar al llegar |
+|---|---|
+| `ADELANTO` | el pendiente **menos** el adelanto que se pide ahora |
+| `TOTAL` | todo el pendiente: es el mismo dinero, en el otro momento |
+
+Y una puerta nueva: **`null` si el huésped ya llegó**. Ahí el efectivo entra por la lista
+principal —`diasHastaLlegada() <= 0`— y un segundo bloque repetiría lo de arriba.
+
+⚠️ **Queda una redundancia conocida**: pidiendo el TOTAL, la tarjeta sale en los dos bloques con
+la misma cifra (arriba «ahora, en línea», abajo «al llegar»). Es cierto y no engaña, pero el
+rótulo `res_saldo_al_llegar` («Saldo…») se lee raro cuando arriba pone «Total a pagar» y es el
+mismo número. Si molesta, es una cadena nueva para ese caso, no un cambio de mecanismo.
 
 ### El bloque de pago ya se redacta: `{{ bloque_pago }}` (31/08/2026)
 
