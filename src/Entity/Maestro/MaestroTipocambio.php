@@ -76,18 +76,18 @@ class MaestroTipocambio
         $compra = $this->compra ?? '0.000';
         $venta = $this->venta ?? '0.000';
 
-        foreach (['compra' => $compra, 'venta' => $venta] as $campo => $valor) {
-            if (!is_numeric($valor)) {
-                throw new \LogicException(sprintf(
-                    'El tipo de cambio %s tiene «%s» en `%s`, que no es un número.',
-                    (string) $this->getId(),
-                    (string) $valor,
-                    $campo,
-                ));
-            }
+        // Igual que en `Cotizacion::getGanancia()`: la comprobación va sobre las variables que
+        // luego se usan, en el mismo ámbito, o el analizador no estrecha nada.
+        if (!is_numeric($compra) || !is_numeric($venta)) {
+            throw new \LogicException(sprintf(
+                'El tipo de cambio %s tiene valores que no son números (compra «%s», venta «%s»).',
+                (string) $this->getId(),
+                $compra,
+                $venta,
+            ));
         }
 
-        $suma = bcadd((string) $compra, (string) $venta, 3);
+        $suma = bcadd($compra, $venta, 3);
         return bcdiv($suma, '2', 3);
     }
 

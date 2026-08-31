@@ -149,6 +149,32 @@ final class PmsSituacionCobroCommand extends Command
             }
         }
 
+        // El SEGUNDO tramo. Se imprime aparte y no mezclado con el de arriba porque son dos
+        // momentos distintos con medios distintos: aquí es donde se ve, de un vistazo, que el
+        // efectivo aparece y Western Union desaparece.
+        if ($situacion->saldoTrasAdelanto !== null) {
+            $tramo = $situacion->saldoTrasAdelanto;
+
+            $io->section('Y al llegar, el saldo');
+            $io->definitionList(
+                ['Queda por pagar' => sprintf(
+                    '%s %s%s',
+                    $tramo->importe->importe,
+                    $tramo->importe->moneda,
+                    $tramo->importe->enSoles !== null ? ' (S/ ' . $tramo->importe->enSoles . ')' : '',
+                )],
+            );
+            $io->table(['Cuesta', 'En soles', 'Recargo', 'Por estos medios'], array_map(
+                static fn (array $g): array => [
+                    $g['importe'],
+                    $g['enSoles'] ?? '—',
+                    $g['recargoPorcentaje'] !== null ? $g['recargoPorcentaje'] . ' %' : '—',
+                    implode(' · ', $g['etiquetas']),
+                ],
+                $tramo->mediosPorImporte(),
+            ));
+        }
+
         // La proyección del equipo tiene que DECIDIR lo mismo: sólo cambia qué campos lleva.
         $equipo = $this->resolver->paraEquipo($reserva);
 

@@ -602,21 +602,30 @@ class PmsReserva
      * panel interno y no viaja al cliente. Null cuando no hay cabecera o el total es 0
      * — la vista simplemente no pinta la tarjeta.
      *
-     * @var array{moneda: string, simbolo: ?string, total: string, pagado: string, saldo: string}|null
+     * ⚠️ Sólo `moneda` y `simbolo` están SIEMPRE. Las cifras son opcionales de verdad:
+     * `PmsReservaPaxProvider::cifras()` tiene dos salidas y la de `soloProgreso` —la reserva
+     * que ya cobró el canal— devuelve `['soloProgreso' => true]` y nada más. En esas, el
+     * resumen NO trae `total`, `pagado` ni `saldo`.
+     *
+     * Y la forma es abierta (`...`) porque el provider añade lo que toque según el caso:
+     * referencia en soles, enlaces de pago, situación de cobro.
+     *
+     * Declararla como cinco claves obligatorias era falso en los dos sentidos.
+     *
+     * @var array{moneda: string, simbolo: string|null, total?: string, pagado?: string, saldo?: string, ...}|null
      */
     private ?array $resumenFinancieroCliente = null;
 
     /**
-     * @return array<string, mixed>|null
+     * @return array{moneda: string, simbolo: string|null, total?: string, pagado?: string, saldo?: string, ...}|null
      */
     #[Groups(['pax_reserva:read'])]
     #[SerializedName('resumenFinanciero')]
     public function getResumenFinancieroCliente(): ?array { return $this->resumenFinancieroCliente; }
     /**
-     * La misma forma que declara la propiedad: una sola verdad por campo. Con
-     * `array<string, mixed>` aquí se podía guardar algo que el getter promete que no está.
+     * La misma forma que declara la propiedad, y abierta por el mismo motivo.
      *
-     * @param array{moneda: string, simbolo: ?string, total: string, pagado: string, saldo: string}|null $resumen
+     * @param array{moneda: string, simbolo: string|null, total?: string, pagado?: string, saldo?: string, ...}|null $resumen
      */
     public function setResumenFinancieroCliente(?array $resumen): self { $this->resumenFinancieroCliente = $resumen; return $this; }
 

@@ -424,15 +424,17 @@ class Cotizacion
         // Se lanza con el nombre del campo en vez de caer a '0': una ganancia calculada sobre un
         // cero inventado es una cifra PLAUSIBLE y falsa, y ésas son las que nadie revisa. Es el
         // mismo criterio que en `Parametro::texto()` y en el secreto de Mercure.
-        foreach (['totalVenta' => $this->totalVenta, 'totalCosto' => $this->totalCosto] as $campo => $valor) {
-            if (!is_numeric($valor)) {
-                throw new \LogicException(sprintf(
-                    'La cotización %s tiene «%s» en `%s`, que no es un número: no se puede calcular la ganancia.',
-                    (string) $this->getId(),
-                    (string) $valor,
-                    $campo,
-                ));
-            }
+        // ⚠️ Se comprueba la PROPIEDAD directamente, no una copia en una variable de bucle: el
+        // analizador sólo estrecha lo que ve comprobar, y con `foreach` el tipo de
+        // `$this->totalVenta` seguía siendo `string` en la línea del `bcsub`.
+        if (!is_numeric($this->totalVenta) || !is_numeric($this->totalCosto)) {
+            throw new \LogicException(sprintf(
+                'La cotización %s tiene importes que no son números (venta «%s», costo «%s»): '
+                .'no se puede calcular la ganancia.',
+                (string) $this->getId(),
+                $this->totalVenta,
+                $this->totalCosto,
+            ));
         }
 
         return bcsub($this->totalVenta, $this->totalCosto, 2);

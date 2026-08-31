@@ -140,7 +140,7 @@ final class PmsGuiaHuespedProvider implements ProviderInterface
             ->format('%r%a'));
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /** @return list<array<string, mixed>> */
     private function mediosPago(?bool $desdePeru, ?int $dias): array
     {
         $filas = [];

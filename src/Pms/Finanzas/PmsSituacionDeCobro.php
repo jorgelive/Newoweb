@@ -42,6 +42,7 @@ final readonly class PmsSituacionDeCobro
      * @param list<PmsMedioDeCobro>  $medios     Cómo puede pagarlo, con el importe de cada uno.
      * @param string|null            $enlacePago URL del enlace vivo, si lo hay.
      * @param bool                   $paraHuesped Proyección: `true` oculta lo interno.
+     * @param PmsTramoDeCobro|null   $saldoTrasAdelanto Lo que quedará por pagar al llegar.
      */
     public function __construct(
         public PmsQueSePide $queSePide,
@@ -50,6 +51,21 @@ final readonly class PmsSituacionDeCobro
         public array $medios,
         public ?string $enlacePago,
         public bool $paraHuesped,
+        /**
+         * El SEGUNDO tramo: lo que queda por pagar cuando ya se haya abonado el adelanto.
+         *
+         * `null` en todos los casos menos uno —`queSePide === ADELANTO`, una sola moneda y
+         * resto positivo—, y esa estrechez es la respuesta correcta: pidiendo el TOTAL no hay
+         * segundo tramo, y con dos monedas restar sería convertir sin decirlo (§12.2b).
+         *
+         * ⚠️ **Sus medios NO son los mismos que los del adelanto**, y por eso es un tramo y no
+         * una cifra. El adelanto se paga a distancia y el resto en la puerta: el catálogo ya
+         * distingue los dos momentos con `diasMinimos`/`diasMaximos` —Western Union pide 2 días
+         * de antelación, el efectivo exige a la persona delante (`diasMaximos = 0`)—, así que
+         * el efectivo **no** aparece en el adelanto y Western Union **no** aparece en el saldo.
+         * Eso sale solo de evaluar la misma regla en el momento de cada tramo.
+         */
+        public ?PmsTramoDeCobro $saldoTrasAdelanto = null,
     ) {
     }
 
@@ -60,57 +76,17 @@ final readonly class PmsSituacionDeCobro
     }
 
     /**
-     * Los medios agrupados **por importe**, que es lo único que los distingue para el huésped.
+     * Los medios del PRIMER tramo —lo que se pide ahora— agrupados por importe.
      *
-     * ── El abrumamiento vuelve si se listan uno a uno ───────────────────────────
-     * Se agrupó por TIPO —de doce filas del catálogo a cinco medios— y seguía sobrando:
-     * «Western Union 164.10 · Efectivo 164.10 · Yape 164.10 · Plin 164.10 · Transferencia
-     * 164.10 · Tarjeta 173.13» son seis líneas que dicen **dos cifras**. Repetir el mismo
-     * número cinco veces es el mismo ruido en otro formato.
-     *
-     * Lo que de verdad hay que decidir no es «¿por dónde pago?» sino «¿me cuesta lo mismo?».
-     * Y sólo hay dos respuestas: el precio normal, y el de tarjeta con su recargo. Por eso se
-     * agrupa por importe y no por medio:
-     *
-     *   Efectivo, Yape, Plin o transferencia ...... 164.10
-     *   Tarjeta / Enlace (incluye 5.5%) ........... 173.13
-     *
-     * Es exactamente la forma del mensaje que el equipo ya escribía a mano.
-     *
-     * ⚠️ El orden se conserva —`ofrecibles()` ya viene ordenado y la tarjeta va al final—
-     * porque abrir por la opción cara empuja a pagar de más a quien podía transferir.
-     *
-     * ⚠️ Viajan los **códigos** además de las etiquetas. La etiqueta sale de
-     * `FinMedioCobroTipo::label()` y está en español; `pax` tiene los suyos traducidos en
-     * `UiI18n` (`res_medio_yape`, `res_medio_efectivo`…) y resuelve por código. Mandar sólo
-     * la etiqueta era enseñarle «Transferencia bancaria» a un huésped que lee en inglés.
+     * El porqué de agrupar y el de conservar el orden están en
+     * {@see PmsMedioDeCobro::agruparPorImporte()}, que es donde vive la agrupación desde que
+     * hay un segundo tramo que necesita la misma.
      *
      * @return list<array{importe: string, enSoles: string|null, recargoPorcentaje: string|null, codigos: list<string>, etiquetas: list<string>}>
      */
     public function mediosPorImporte(): array
     {
-        $grupos = [];
-
-        foreach ($this->medios as $medio) {
-            // La clave incluye el recargo: dos medios con el mismo importe pero uno con
-            // comisión no son el mismo caso, aunque hoy no pueda pasar.
-            $clave = $medio->importe . '|' . $medio->recargoPorcentaje;
-
-            if (!isset($grupos[$clave])) {
-                $grupos[$clave] = [
-                    'importe' => $medio->importe,
-                    'enSoles' => $medio->enSoles,
-                    'recargoPorcentaje' => $medio->llevaRecargo() ? $medio->recargoPorcentaje : null,
-                    'codigos' => [],
-                    'etiquetas' => [],
-                ];
-            }
-
-            $grupos[$clave]['codigos'][] = $medio->codigo;
-            $grupos[$clave]['etiquetas'][] = $medio->etiqueta;
-        }
-
-        return array_values($grupos);
+        return PmsMedioDeCobro::agruparPorImporte($this->medios);
     }
 
     /**

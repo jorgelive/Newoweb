@@ -160,13 +160,20 @@ final readonly class PmsSituacionDeCobroResolver
         }
 
         // ── 6 · CÓMO PAGAR ──────────────────────────────────────────────────
+        //
+        // Dos tramos cuando se pide adelanto, y no por simetría: el adelanto se paga a
+        // distancia y el resto en la puerta, así que **no admiten los mismos medios**. Ver
+        // `saldoTrasAdelanto()`.
         return new PmsSituacionDeCobro(
             queSePide: $queSePide,
             motivo: null,
             importes: $importes,
-            medios: $this->medios($reserva, $importes[0]),
+            medios: $this->medios($reserva, $importes[0], $this->diasHastaLlegada($reserva)),
             enlacePago: $this->enlaceVivo($reserva),
             paraHuesped: $paraHuesped,
+            saldoTrasAdelanto: $queSePide === PmsQueSePide::ADELANTO
+                ? $this->saldoTrasAdelanto($totales, $reserva, $importes[0])
+                : null,
         );
     }
 
@@ -262,12 +269,16 @@ final readonly class PmsSituacionDeCobroResolver
      * se filtra por audiencia (se enseñan todos y elige el huésped) y con los días fuera de
      * plazo desaparece Western Union sola. Nada de eso se decide aquí.
      *
+     * ⚠️ **Los días llegan por parámetro y no se calculan dentro**, desde el 30/08/2026. Cada
+     * tramo pregunta por SU momento: el adelanto por los días que faltan, y el saldo por el
+     * día de la llegada (`0`), que es cuando se paga. Calculándolos aquí dentro los dos tramos
+     * preguntaban por el mismo instante y el segundo salía mal — ver `saldoTrasAdelanto()`.
+     *
      * @return list<PmsMedioDeCobro>
      */
-    private function medios(PmsReserva $reserva, PmsImporteMoneda $importe): array
+    private function medios(PmsReserva $reserva, PmsImporteMoneda $importe, ?int $dias): array
     {
         $desdePeru = $this->procedencia->pagaDesdePeru($reserva);
-        $dias = $this->diasHastaLlegada($reserva);
 
         // Agrupado por TIPO y no una entrada por fila del catálogo. `ofrecibles()` devuelve
         // una fila por CUENTA —tres bancos son tres filas de «transferencia»— y sin agrupar
@@ -298,6 +309,62 @@ final readonly class PmsSituacionDeCobroResolver
         $salida[] = $this->medioTarjeta($importe, $reserva);
 
         return $salida;
+    }
+
+    /**
+     * Lo que quedará por pagar **al llegar**, una vez abonado el adelanto.
+     *
+     * ── Por qué es un tramo y no una resta ──────────────────────────────────────
+     * La cifra es una resta, sí. Lo que no es una resta son sus **medios**: el adelanto se
+     * paga a distancia y el resto en la puerta, y el catálogo ya sabe distinguir los dos
+     * momentos —`western_union` pide `diasMinimos = 2`, `efectivo` tiene `diasMaximos = 0`—.
+     * Preguntándole por el día de la llegada (`0`) desaparece Western Union y **aparece el
+     * efectivo**, que en el adelanto no estaba porque nadie paga en mano a veinte días vista.
+     *
+     * Ese `0` es el que documenta {@see \App\Finanzas\Entity\FinMedioCobro::llegaATiempo()}:
+     * «un `max 0` deja pasar el día de la llegada y toda la estancia, que es justo lo que se
+     * quiere para el saldo que se paga en el alojamiento». No es una regla nueva: es la que ya
+     * había, preguntada en el momento que corresponde.
+     *
+     * Va literal y no por `diasHastaLlegada()` porque el tramo **es**, por definición, el que
+     * se paga al llegar: si no supiéramos la fecha, la pregunta seguiría siendo la misma.
+     *
+     * ── Las tres puertas ────────────────────────────────────────────────────────
+     * Devuelve `null` —o sea, «no lo digas»— si el saldo no es una sola cifra limpia:
+     *
+     * | Puerta | Por qué |
+     * |---|---|
+     * | más de una moneda pendiente | el adelanto es escalar y en la moneda de la cabecera; restarlo de un saldo en otra moneda es convertir sin decirlo (§12.2b) |
+     * | la moneda pendiente no es la del adelanto | lo mismo, y además delata datos incoherentes |
+     * | el resto sale ≤ 0 | el adelanto cubre la estancia entera: no hay segundo momento que anunciar |
+     */
+    private function saldoTrasAdelanto(
+        PmsTotalesPorMoneda $totales,
+        PmsReserva $reserva,
+        PmsImporteMoneda $adelanto,
+    ): ?PmsTramoDeCobro {
+        $pendientes = $this->importesPendientes($totales, $reserva);
+
+        if (count($pendientes) !== 1 || $pendientes[0]->moneda !== $adelanto->moneda) {
+            return null;
+        }
+
+        $resto = (float) $pendientes[0]->importe - (float) $adelanto->importe;
+
+        if ($resto <= 0.0) {
+            return null;
+        }
+
+        $importe = number_format($resto, 2, '.', '');
+
+        $tramo = new PmsImporteMoneda(
+            moneda: $adelanto->moneda,
+            simbolo: $adelanto->simbolo,
+            importe: $importe,
+            enSoles: $this->enSoles($importe, $adelanto->moneda, $reserva),
+        );
+
+        return new PmsTramoDeCobro($tramo, $this->medios($reserva, $tramo, dias: 0));
     }
 
     /** La tarjeta, con el recargo YA DENTRO del importe. */

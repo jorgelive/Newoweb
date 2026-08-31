@@ -272,6 +272,12 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             // saldo total y el prepago responden a preguntas distintas —«cuánto debes» y
             // «cuánto hay que adelantar ahora»— y confundirlos es cobrar de más.
             'prepago_pendiente' => $this->prepago($info, $moneda, $situacion),
+            // Y lo que le quedará por pagar AL LLEGAR, con sus medios propios. Sin esto, a
+            // «¿y cuánto pago al llegar?» el modelo restaba —bien casi siempre, y «casi
+            // siempre» no vale hablando de dinero— y encima se inventaba los medios: ofrecía
+            // Western Union para un saldo que se paga en la puerta, o se callaba el efectivo,
+            // que en el adelanto no aparece y aquí sí. Ver `PmsTramoDeCobro`.
+            'saldo_al_llegar' => $this->saldoAlLlegar($situacion),
             // El enlace que YA existe, para poder pasárselo en el chat. Ver `enlaceDePago()`.
             'enlace_de_pago' => $this->enlaceDePago($info),
             // Cuánto PIDE la política, aunque ya esté pagado. Responde «¿cuánto es la primera
@@ -282,6 +288,44 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             // datos y quien redacta es el modelo, que es lo que mejor hace.
             'idioma_huesped' => $idioma,
         ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * El segundo tramo, tal cual lo resolvió {@see PmsSituacionDeCobroResolver}.
+     *
+     * No decide nada ni recalcula nada: sólo lo pasa a la forma que lee el modelo. `null`
+     * —y `array_filter` lo quita del payload— cuando no hay segundo tramo, que es siempre
+     * salvo cuando se pide un adelanto en una sola moneda y queda resto.
+     *
+     * ⚠️ Los **medios van dentro**, no fuera. Son distintos de los del adelanto y ésa es la
+     * mitad del dato: enseñar la cifra sin ellos invita a que el modelo reutilice los de
+     * arriba, que es justo lo que estaba pasando cuando esto no existía.
+     *
+     * @return array{importe: string, moneda: string, en_soles: string|null, se_paga: string, medios: list<array{cuesta: string, en_soles: string|null, recargo: string|null, medios: string}>}|null
+     */
+    private function saldoAlLlegar(PmsSituacionDeCobro $situacion): ?array
+    {
+        $tramo = $situacion->saldoTrasAdelanto;
+
+        if ($tramo === null) {
+            return null;
+        }
+
+        return [
+            'importe' => $tramo->importe->importe,
+            'moneda' => $tramo->importe->moneda,
+            'en_soles' => $tramo->importe->enSoles,
+            'se_paga' => 'AL LLEGAR, al entregarle las llaves. No se lo pidas por adelantado.',
+            'medios' => array_map(
+                static fn (array $g): array => [
+                    'cuesta' => $g['importe'],
+                    'en_soles' => $g['enSoles'],
+                    'recargo' => $g['recargoPorcentaje'],
+                    'medios' => implode(', ', $g['etiquetas']),
+                ],
+                $tramo->mediosPorImporte(),
+            ),
+        ];
     }
 
     /**
