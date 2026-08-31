@@ -110,7 +110,8 @@ final class PmsSituacionCobroCommand extends Command
             // de servir para lo que se hizo.
             $io->section('Cómo puede pagarlo');
             $io->table(['Cuesta', 'En soles', 'Recargo', 'Por estos medios'], array_map(
-                static fn (array $g): array => [
+                // Sin `static`: el rótulo lo traduce `rotulos()`, que es un método de esta clase.
+                fn (array $g): array => [
                     $g['importe'],
                     $g['enSoles'] ?? '—',
                     $g['recargoPorcentaje'] !== null ? $g['recargoPorcentaje'] . ' %' : '—',
@@ -171,7 +172,8 @@ final class PmsSituacionCobroCommand extends Command
                 )],
             );
             $io->table(['Cuesta', 'En soles', 'Recargo', 'Por estos medios'], array_map(
-                static fn (array $g): array => [
+                // Sin `static`: el rótulo lo traduce `rotulos()`, que es un método de esta clase.
+                fn (array $g): array => [
                     $g['importe'],
                     $g['enSoles'] ?? '—',
                     $g['recargoPorcentaje'] !== null ? $g['recargoPorcentaje'] . ' %' : '—',
