@@ -582,6 +582,38 @@ IPN FIRMADO (HMAC) confirma            NUESTRO servidor crea el cargo
 implementa vacío — la abstracción que parece limpia y luego hay que deshacer. Lo específico
 vive en su cliente (`CulqiClient::cobrarConToken()`) y lo consume su propio controlador.
 
+### 🪪 Quién paga: `antifraud_details` (31/08/2026)
+
+En el panel de Culqi **todas** las ventas salían a nombre de `first_last_name first_last_name` y
+con el correo `pagos@openperu.pe`. Ninguna de las dos cosas las inventa Culqi:
+
+- El **nombre** es su relleno por defecto porque no mandábamos ninguno.
+- El **correo** es nuestro respaldo: `getClienteEmail() ?: 'pagos@openperu.pe'` en
+  `cobrarConToken()`, que se dispara en cuanto la reserva no trae email — lo normal en directas.
+
+Se confirmó **leyendo el cargo que Culqi nos devolvió** (`respuesta_pasarela.culqi.antifraud_details`
+de un cobro real), no la documentación: su web es una SPA que no se deja leer. Los siete campos que
+devuelve son `first_name`, `last_name`, `phone`, `address`, `address_city`, `country_code` y
+`object`.
+
+⚠️ **Se manda `phone_number` y vuelve `phone`.** El SDK oficial (`culqi/culqi-php`) documenta
+`phone_number` al crear el cargo; el objeto que Culqi devuelve lo llama `phone`. Mandar `phone` no
+da error: **se ignora en silencio** y el panel se queda igual de vacío. Los otros cinco se llaman
+igual en las dos direcciones.
+
+⚠️ **Va en el cargo, no en el Checkout.** El `client` del Checkout Custom sólo lleva `email`; el
+nombre viaja en `antifraud_details` del `POST /charges`, que es servidor.
+
+**El nombre va ENTERO en `first_name`.** `FinEnlacePago` guarda un solo campo —«Vanesa Acosta»— y
+Culqi quiere dos. No se parte por el primer espacio: «Ramos Garcia Mª Isabel» daría un apellido
+inventado, y como el panel los pinta concatenados, entero en el primero se lee igual sin adivinar.
+Es lo que `IzipayClient` ya hace con `billingDetails.firstName`.
+
+`address`, `address_city` y `country_code` **no se mandan**: no están en el enlace, y Finanzas no
+puede preguntárselos al PMS —la dependencia va al revés—. El día que hagan falta van como columna.
+
+Cobertura de lo que sí tenemos, sobre 21 enlaces: **nombre 20, teléfono 18, correo 16**.
+
 ### ⚠️ Culqi no firma sus webhooks — y eso cambia el diseño
 
 La documentación de Culqi **no publica firma, secreto compartido ni lista de IPs** para los

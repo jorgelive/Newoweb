@@ -141,7 +141,51 @@ final class CulqiClient implements FinPasarelaClientInterface
                 'origenTipo' => $enlace->getOrigenTipo()->value,
                 'ordenId' => (string) $enlace->getOrdenId(),
             ],
-        ]);
+        ] + $this->antifraude($enlace));
+    }
+
+    /**
+     * Quién paga, para el panel de Culqi. **`antifraud_details`, y no el `client` del Checkout.**
+     *
+     * ── Qué se veía sin esto ────────────────────────────────────────────────────
+     * En el panel de Culqi todas las ventas salían a nombre de `first_last_name
+     * first_last_name` y con el correo `pagos@openperu.pe`. No lo inventa Culqi: es su relleno
+     * por defecto **porque no mandábamos nada**. Se comprobó en el propio cargo que nos devolvió
+     * —`respuesta_pasarela.culqi.antifraud_details`—, que es la fuente buena, no la
+     * documentación (su web es una SPA que no se puede leer).
+     *
+     * Y el correo era nuestro respaldo: `getClienteEmail() ?: 'pagos@openperu.pe'` se dispara en
+     * cuanto la reserva no trae email, que es lo normal en las directas.
+     *
+     * ── ⚠️ Se manda `phone_number` y vuelve `phone` ─────────────────────────────
+     * No es un descuido de este método: el SDK oficial (`culqi/culqi-php`) documenta
+     * `phone_number` al **crear**, y el objeto que Culqi **devuelve** trae la misma cosa como
+     * `phone`. Mandar `phone` no da error: se ignora en silencio y el panel se queda vacío otra
+     * vez. Los otros cinco campos sí se llaman igual en las dos direcciones.
+     *
+     * ── El nombre va ENTERO en `first_name` ─────────────────────────────────────
+     * `FinEnlacePago` guarda un solo campo —`Vanesa Acosta`— y Culqi quiere dos. No se parte por
+     * el primer espacio: «Ramos Garcia Mª Isabel» daría un apellido inventado, y el panel pinta
+     * los dos concatenados, así que enteros en el primero se lee exactamente igual sin adivinar
+     * nada. Es lo que ya hace {@see \App\Finanzas\Service\Izipay\IzipayClient} con
+     * `billingDetails.firstName`.
+     *
+     * `address`, `address_city` y `country_code` existen en el contrato y **no se mandan**: no
+     * los tenemos en el enlace, y Finanzas no puede preguntárselos al PMS —la dependencia va al
+     * revés—. El día que hagan falta, van como columna, no como consulta cruzada.
+     *
+     * @return array{antifraud_details: array<string, string>}|array{}
+     */
+    private function antifraude(FinEnlacePago $enlace): array
+    {
+        $detalles = array_filter([
+            'first_name' => $enlace->getClienteNombre(),
+            'phone_number' => $enlace->getClienteTelefono(),
+        ], static fn (?string $v): bool => $v !== null && trim($v) !== '');
+
+        // Sin un solo dato no se manda la clave vacía: Culqi la aceptaría y volveríamos a ver
+        // su relleno, sólo que habiendo hecho el viaje.
+        return $detalles === [] ? [] : ['antifraud_details' => $detalles];
     }
 
     /**
