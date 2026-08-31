@@ -10291,6 +10291,73 @@ con su normalizador, y el cuerpo trae las dos claves.
 Responde a **una** pregunta: *¿qué se le puede decir a este actor sobre el dinero de esta
 reserva, ahora?* Y devuelve **hechos, nunca prosa**.
 
+### El dinero se pide en DOS momentos, y no se paga igual en los dos (30/08/2026)
+
+Cuando se pide adelanto, el cobro tiene dos tramos: el adelanto, que se paga a distancia, y lo
+que queda, que se paga **en la puerta**. El read-model sólo conocía el primero — `medios` se
+resolvía una vez, para `importes[0]`— y el segundo no existía como dato.
+
+Pero **sí existía en los mensajes**: los que el equipo escribía a mano llevaban su bloque
+«SALDO (a tu llegada): Efectivo 71,83 · Tarjeta 75,78». O sea que la cifra y su recargo se
+calculaban fuera, a mano, y no quedaban en ningún sitio. Es exactamente la forma de derivar que
+este read-model vino a cerrar, sobreviviendo en la mitad que nadie había mirado.
+
+Ahora `PmsSituacionDeCobro::$saldoTrasAdelanto` lleva un {@see PmsTramoDeCobro}: importe +
+**sus** medios. `null` salvo en un caso —`ADELANTO`, una sola moneda, resto positivo—, y esa
+estrechez es la respuesta correcta: pidiendo el TOTAL no hay segundo tramo, y con dos monedas
+restar sería convertir sin decirlo (§12.2b de `PmsBeds24ReservasSync.md`).
+
+#### ⚠️ Lo importante no es la resta: son los medios
+
+La cifra es `pendiente − adelanto`, una resta. Lo que **no** es una resta es con qué se paga, y
+por eso es un tramo y no un número:
+
+| | Adelanto (faltan 62 días) | Saldo (al llegar) |
+|---|---|---|
+| Western Union | ✅ | ❌ `diasMinimos = 2` |
+| Efectivo | ❌ `diasMaximos = 0` | ✅ |
+| Yape / Plin / transferencia | ✅ | ✅ |
+| Tarjeta (+5.5 %) | ✅ | ✅ |
+
+**Nada de eso se decidió aquí.** Ya estaba en el catálogo (`fin_medio_cobro`) y en
+`FinMedioCobro::llegaATiempo()`, cuyo docblock dice literalmente: *«un `max 0` deja pasar el día
+de la llegada y toda la estancia, que es justo lo que se quiere para el saldo que se paga en el
+alojamiento»*. La regla existía y esperaba a que alguien le preguntara por el momento correcto.
+
+Por eso `medios()` recibe ahora los días **por parámetro**: el adelanto pregunta por los que
+faltan y el saldo pregunta por `0`. Calculándolos dentro, los dos tramos preguntaban por el
+mismo instante y el segundo salía mal — con Western Union para un saldo que se paga en la puerta
+y sin el efectivo, que es como se paga de verdad.
+
+El `0` va **literal** y no por `diasHastaLlegada()`: el tramo *es*, por definición, el que se
+paga al llegar. Sin fecha conocida la pregunta seguiría siendo la misma.
+
+#### La agrupación se mudó a `PmsMedioDeCobro::agruparPorImporte()`
+
+Con dos tramos hay dos sitios que agrupan la misma lista, y la segunda copia de una función de
+presentación es por donde se separan: una enseñaría el recargo y la otra no, **en el mismo
+mensaje**. `PmsSituacionDeCobro::mediosPorImporte()` y `PmsTramoDeCobro::mediosPorImporte()`
+llaman a la misma función estática.
+
+#### Verificado contra producción
+
+`pms:situacion-cobro EKFHMC` —seis reservas en ADELANTO el 30/08/2026— da 35.91 de adelanto y
+**71.83 de saldo**, con tarjeta a 37.89 y 75.78. Son **las mismas cuatro cifras** del mensaje
+que el equipo tenía escrito a mano para esa reserva. La única diferencia es la equivalencia en
+soles, porque el tipo de cambio es el del día.
+
+Y `SRF7VP` (Brasil, llega en 62 días) enseña el contraste completo: adelanto por Western Union o
+tarjeta, saldo por efectivo o tarjeta. Ninguna de las dos listas es la otra.
+
+#### Quién lo consume
+
+| Superficie | Qué hace con él |
+|---|---|
+| `ConsultarCuentaSkill` → `saldo_al_llegar` | el modelo ya no resta ni se inventa los medios |
+| `pms:situacion-cobro` | lo imprime en su propia sección, para auditarlo |
+| El mensaje de pago | pendiente — es el consumidor para el que se hizo |
+| La tarjeta de `pax` | **todavía no lo enseña**: hoy sólo pinta el primer tramo |
+
 ### El desorden del que sale
 
 Había **seis** productores de mensajes/datos sobre dinero al huésped y **cero** plantillas de
