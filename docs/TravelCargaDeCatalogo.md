@@ -507,6 +507,161 @@ Fijarles una capacidad ahora **congelaría la confusión en un número**, que es
 caro con las Van intercambiadas de Cusco. Primero se acuerda qué vehículo es cada uno; los
 números vienen después.
 
+## 3. Pool o plantilla
+
+La segunda decisión, y **no son excluyentes**: toda plantilla se alimenta de un pool. La pregunta
+es si además hace falta un **guion** que diga qué día va cada cosa y en qué orden.
+
+| | Pool suelto | Pool + plantilla |
+|---|---|---|
+| Qué es | Un repertorio de piezas | Un guion con día y orden |
+| Se arma | A medida, en cada cotización | Aplicando la plantilla y retocando |
+| Entidades | los dos `*_pool` | + `TravelItinerario` + `TravelItinerarioSegmentoRel` |
+| Cuándo | El contenido no tiene forma fija | El producto se vende siempre igual |
+
+Medido el 31/08/2026 sobre los 25 servicios: **15 tienen plantilla y 10 no**, y la línea que los
+separa es limpia:
+
+```
+CON plantilla   Valle Sagrado (3) · Combinada (3) · Vinicunca (3) · Machu Picchu (2)
+                City Tour Lima (2) · Camino Inca Corto · Paracas y Huacachina · Walking…
+                → excursiones y programas: el día y el orden SON el producto
+
+SIN plantilla   Vuelo (32 segmentos) · Alojamiento (18) · Actividades en resort (12)
+                Transporte en Cusco (8) · Coco Bongo · Varios en el aeropuerto de Lima…
+                → repertorios: nadie compra «el catálogo de vuelos», compra dos vuelos
+```
+
+**La regla corta:** si al venderlo tienes que elegir *cuáles* y *en qué orden*, es un pool. Si el
+orden ya está decidido y sólo cambia la fecha, es una plantilla.
+
+⚠️ **Un servicio con varias plantillas es lo normal, no una anomalía.** Valle Sagrado tiene tres y
+Machu Picchu dos: son **variantes de duración o de modalidad** del mismo producto, bebiendo de los
+mismos pools. Por eso la plantilla vive en `TravelItinerario` y no en `TravelServicio` — ver
+`docs/Travel.md` §1, que es la confusión más repetida del modelo.
+
+⚠️ **Los dos pools se llenan, no sólo el de segmentos.** `TRF_LIM` tiene 2 segmentos en su pool y
+**0 componentes**: se ve completo en la ficha del servicio y al cotizar no ofrece nada que cobrar.
+Es el hueco más fácil de dejar, porque `addSegmento()` y `addComponente()` son dos llamadas y sólo
+una salta a la vista.
+
+## 4. La receta
+
+Siete pasos. Los valores concretos de hora, `tarifaPredeterminada` y `horaServicioCompleto` están
+en §5; aquí está **el orden y qué entidad toca cada paso**, que es lo que no se deduce mirando
+EasyAdmin.
+
+⚠️ **Un producto nuevo NO se crea a mano por el panel, y no es una preferencia de estilo.** Son
+siete entidades en cuatro pantallas distintas, con un orden obligatorio y cuatro enlaces que no
+dan error si faltan; una estadía de resort son ~40 formularios y basta olvidar un
+`addComponente()` para que el producto se vea completo y no cobre nada. Por el panel se **retoca**
+lo que ya existe —una hora, un texto, una foto—; para **crear** se escribe un comando, que además
+deja el repertorio revisable en un diff y se puede volver a correr contra otra base. El panel
+tampoco te salva de nada aquí: `#[Assert\Callback]` valida el formulario, pero ninguna de las
+cuatro reglas de §4 bis mira si el pool quedó lleno.
+
+```
+1. TravelServicio          nombreInterno · titulo · codigo          ── flush
+2. TravelSegmento          slug · nombreInterno · titulo · contenido
+3. TravelComponente        nombreInterno · titulo · tipo            ── flush
+4. TravelTarifa            componente · moneda · nombreInterno · titulo · monto
+5. TravelSegmentoComponente   el pivote: une 2 con 3, y lleva los defaults
+6. pools                   servicio->addSegmento() Y ->addComponente()
+7. TravelItinerario        (sólo si §3 dijo plantilla) + una Rel por segmento
+                                                                    ── flush
+```
+
+### Los pasos que se olvidan, y qué pasa
+
+| Paso | Si falta | Cuándo te enteras |
+|---|---|---|
+| 4 · tarifa | El componente entra en la cotización **a cero** | Al facturar |
+| 5 · pivote | El componente existe y **no hay forma de usarlo** | Al armar el día |
+| 6 · pool de componentes | El segmento se arrastra **sin nada que cobrar** | Al cotizar |
+| 7 · Rel | La plantilla existe y **sale vacía** | Al aplicarla |
+
+Ninguno da error. Es la razón de ser de este documento.
+
+### La hora vive en el PIVOTE, no en la plantilla
+
+Es lo que más cuesta al venir de EasyAdmin, porque la pantalla del itinerario enseña días y
+órdenes y parece el sitio natural de la hora. No lo es:
+
+```
+TravelItinerarioSegmentoRel     dia · orden          ← QUÉ DÍA va el segmento
+TravelSegmentoComponente        dia · hora · horaFin ← A QUÉ HORA ocurre lo que se compra
+```
+
+La consecuencia práctica: **un segmento sin componente no puede tener hora**, y por eso en una
+excursión —donde seis de siete segmentos no llevan componente— el orden dentro del día lo da el
+`orden` de la Rel. Ver `docs/Cotizaciones.md` §6.u para el algoritmo completo.
+
+### Cuando hay plantilla, el pivote se escribe DOS veces
+
+No es duplicar: son dos afirmaciones distintas, y `itinerarioContexto` es lo que las separa.
+
+| Relación | `itinerarioContexto` | `dia` | `hora` | `horaServicioCompleto` | Para qué |
+|---|---|---|---|---|---|
+| **global** | `null` | `null` | — | `false` | Que el componente exista en el pool y aporte su tarifa |
+| **de plantilla** | el itinerario | 1 | 08:30 | `true` | Que ese día salga encabezado a esa hora |
+
+Los cuatro cubos de la matriz están **todos en uso** hoy, así que ninguno es teórico:
+
+```
+ctx null · dia null   161   la logística global del pool          ← el caso normal (63%)
+ctx  X   · dia null    37   sólo dentro de esa plantilla
+ctx  X   · dia  2      40   sólo en esa plantilla y ese día
+ctx null · dia  2      18   ese día, en cualquier plantilla
+```
+
+⚠️ **`horaServicioCompleto` EXIGE plantilla** (`validarPromocionRequierePlantilla`): una hora
+global encabezaría el día en todos los tours a la vez. Así que la promoción sólo cabe en la
+segunda fila, y si escribes sólo la global el día pierde su hora de cabecera **sin fallar**: cae
+al desempate por `orden` y nadie lo nota hasta ver la guía.
+
+### El esqueleto de los pasos 5 a 7
+
+Tal cual en `app:travel:crear-escala-miraflores`, que es el comando de referencia con plantilla:
+
+```php
+// 5 y 6 · el pivote global, y los dos pools
+$servicio->addSegmento($segmento);
+$servicio->addComponente($componente);
+
+$this->em->persist((new TravelSegmentoComponente())
+    ->setSegmento($segmento)->setComponente($componente)
+    ->setModo(ComponenteModoEnum::INCLUIDO)
+    ->setTarifaPredeterminada($tarifa)
+    ->setDia(1)->setOrden(1)
+    ->setHora(new \DateTimeImmutable('08:30')));
+
+// 7 · la plantilla, y una Rel por segmento en el orden en que se cuentan
+$itinerario = (new TravelItinerario())
+    ->setServicio($servicio)
+    ->setNombreInterno('…')->setTitulo([['language' => 'es', 'content' => '…']])
+    ->setDuracionDias(1);
+$this->em->persist($itinerario);
+
+foreach ($segmentos as $pos => $seg) {
+    $this->em->persist((new TravelItinerarioSegmentoRel())
+        ->setItinerario($itinerario)->setSegmento($seg)
+        ->setDia(1)->setOrden($pos));
+}
+
+// y el pivote DE PLANTILLA del ancla, el único que puede promover la hora
+$this->em->persist((new TravelSegmentoComponente())
+    ->setSegmento($anclaSeg)->setComponente($anclaComp)
+    ->setItinerarioContexto($itinerario)
+    ->setTarifaPredeterminada($anclaTarifa)
+    ->setDia(1)->setOrden(1)
+    ->setHora(new \DateTimeImmutable('08:30'))
+    ->setHoraServicioCompleto(true));
+```
+
+La colección de `TravelItinerario::$itinerarioSegmentos` viene ordenada por `['dia' => 'ASC',
+'orden' => 'ASC']` desde el mapeo, así que **el orden es del ORM**: no hay que reordenar en PHP ni
+en el front.
+
 ### Slug
 
 `TIPO-CONTEXTO-VARIANTE`, mayúsculas, guion entre partes y guion bajo dentro de una parte.
