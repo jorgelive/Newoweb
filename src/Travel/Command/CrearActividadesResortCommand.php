@@ -76,7 +76,13 @@ final class CrearActividadesResortCommand extends Command
      */
     private const SERVICIOS_PRESTADOR = [
         'lobby'      => 'Lobby y recepción',
-        'buffet'     => 'Restaurante buffet',
+        // ⚠️ Un servicio por TURNO desde el 31/08/2026. Con uno solo, la foto de los huevos
+        // revueltos acompañaba también a la cena: la regla es uno por galería distinta, no uno
+        // por sitio. Lo partió `app:travel:separar-buffet-occidental`, que además reapuntó las
+        // tarifas; si aquí volviera a poner 'Restaurante buffet', esa carga se desharía sola.
+        'desayuno'   => 'Restaurante - Desayuno Buffet',
+        'almuerzo'   => 'Restaurante - Almuerzo Buffet',
+        'cena'       => 'Restaurante - Cena Buffet',
         'tematicos'  => 'Restaurantes temáticos',
         'piscinas'   => 'Piscinas y playa',
         'deportes'   => 'Actividades y deportes',
@@ -143,7 +149,7 @@ final class CrearActividadesResortCommand extends Command
             'contenido' => 'Desayuno buffet en el restaurante principal del resort, con estaciones '
                 . 'de cocina caliente, fruta fresca, panadería y bebidas.',
             'tipo' => ComponenteTipoEnum::ALIMENTACION_HORARIO_VAR,
-            'prestador' => 'buffet',
+            'prestador' => 'desayuno',
             'hora' => '07:00',
         ],
         [
@@ -153,7 +159,7 @@ final class CrearActividadesResortCommand extends Command
             'contenido' => 'Almuerzo buffet en el resort, con platos internacionales y de cocina '
                 . 'local. Según el hotel, también hay servicio junto a la piscina o en la playa.',
             'tipo' => ComponenteTipoEnum::ALIMENTACION_HORARIO_VAR,
-            'prestador' => 'buffet',
+            'prestador' => 'almuerzo',
             'hora' => '12:30',
         ],
         [
@@ -163,7 +169,7 @@ final class CrearActividadesResortCommand extends Command
             'contenido' => 'Cena buffet en el restaurante principal del resort, con estaciones de '
                 . 'cocina en vivo y una selección de postres.',
             'tipo' => ComponenteTipoEnum::ALIMENTACION_HORARIO_VAR,
-            'prestador' => 'buffet',
+            'prestador' => 'cena',
             'hora' => '19:00',
         ],
         [

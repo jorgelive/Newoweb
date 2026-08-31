@@ -1183,6 +1183,7 @@ prueba de idempotencia**, y como ninguna clave natural está protegida por la ba
 |---|---|
 | `app:travel:crear-actividades-resort` | un componente por segmento · pool sin plantilla |
 | `app:travel:crear-habitaciones-occidental` | servicios de prestador puros · **reconvierte** uno existente en vez de borrarlo, para no dejar huérfana la tarifa que colgaba de él |
+| `app:travel:separar-buffet-occidental` | partir un servicio de prestador en varios · reconvertir **y reapuntar** las tarifas que se quedan atrás, buscándolas por componente y no por nombre |
 | `app:travel:crear-escala-miraflores` | ancla + segmentos que sólo cuentan · con plantilla |
 | `app:travel:crear-segmentos-vuelo` | segmento por ruta · puntos fijos · pool masivo |
 | `app:travel:crear-varios-aeropuerto-lima` | retirar un ancla traspasando la hora promovida · mudar un segmento de servicio |

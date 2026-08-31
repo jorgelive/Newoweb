@@ -1857,6 +1857,35 @@ sin ninguna, y no da error en ningún sitio.
 
 Es el primer sitio donde mirar cuando «las fotos no salen».
 
+### Un servicio por TURNO, no por sitio: el buffet partido en tres (31/08/2026)
+
+«Restaurante buffet» servía a las tres comidas del resort, así que **sólo podía ilustrar una**: la
+foto de los huevos revueltos acompañaba también a la cena. La regla de §4 bis de
+`docs/TravelCargaDeCatalogo.md` —uno por **galería distinta**, no uno por sitio— pedía tres.
+
+⚠️ **Lo que se gana son las fotos de la COMIDA, no las del salón.** Si el resort tiene un único
+salón buffet, sus fotos serán las mismas en los tres y la deduplicación por URL (§6.t de
+`docs/Cotizaciones.md`) las callará a partir del primer día — que es lo correcto. La separación
+rinde cuando cada turno lleva fotos propias de lo que se sirve.
+
+⚠️ **Y aquí reconvertir NO bastaba, que es la diferencia con «El resort».** De aquel cajón colgaba
+**una** tarifa; de éste colgaban **tres**. Renombrarlo habría dejado a dos apuntando a un servicio
+que ya no las describe: la tarifa de la cena diría que lo contratado es el desayuno. Por eso
+`app:travel:separar-buffet-occidental` hace dos movimientos y no uno:
+
+| | Qué | Por qué |
+|---|---|---|
+| 1 | El servicio existente se reconvierte en el **desayuno** | Conserva su id, y con él la tarifa que ya estaba bien |
+| 2 | Las tarifas de almuerzo y cena **se reapuntan** | Si no, dos de tres afirmarían algo falso |
+
+**Las tarifas se buscan por su COMPONENTE, no por su nombre.** El nombre de una tarifa es prosa y
+se reescribe; el componente es el vínculo. Es la misma lección de `fusionar-rutas-por-puntos`:
+emparejar por dato, no por texto.
+
+**La regla general que sale de los dos casos:** al partir un servicio de prestador, cuenta primero
+cuántas tarifas cuelgan de él. Con una, renombrar basta. Con más, renombrar es **mover una
+afirmación a las que se quedan atrás**, y hay que reapuntarlas.
+
 ### Los tipos de habitación, y el cajón de sastre que se reconvirtió (31/08/2026)
 
 De los siete servicios de prestador que dejó `app:travel:crear-actividades-resort`, seis nombran
