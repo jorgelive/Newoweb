@@ -1181,12 +1181,15 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                      El detalle empieza directamente por el desglose, que es a lo que se
                      abre: de qué se compone el total. -->
 
-                <!-- Separa el prepago —lo único que pide acción— del desglose informativo. -->
+                <!-- «Cargos» y no «Detalle»: el bloque de abajo también es detalle, así que la
+                     palabra no distinguía nada. Ahora los dos rótulos dicen qué llevan. -->
                 <p class="mb-2 text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
-                  {{ maestroStore.t('res_detalle') || 'Detalle' }}
+                  {{ maestroStore.t('res_cargos') || 'Cargos' }}
                 </p>
 
-                <div v-if="cargosDetalle.length" class="space-y-2 mb-3">
+                <!-- Sangrado bajo su rótulo: es lo que ata cada lista a su título cuando hay dos
+                     seguidas. Sin él, cargos y pagos eran una sola columna de números. -->
+                <div v-if="cargosDetalle.length" class="space-y-2 mb-3 pl-3">
                   <div v-for="(linea, i) in cargosDetalle" :key="`${linea.tipo}-${i}`"
                        class="flex items-start justify-between gap-4">
                     <span class="min-w-0">
@@ -1213,7 +1216,14 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
 
               <!-- Pagos recibidos, con su fecha y medio -->
               <div class="mt-5 pt-5 border-t border-dashed border-slate-200">
-                <div v-if="pagosDetalle.length" class="space-y-2 mb-3">
+                <!-- Mismo peso que «Cargos» y no más: es información, no una acción. Un rótulo
+                     que llamara la atención competiría con el saldo, que es lo único de esta
+                     tarjeta que pide algo. -->
+                <p class="mb-2 text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
+                  {{ maestroStore.t('res_pagos') || 'Pagos' }}
+                </p>
+
+                <div v-if="pagosDetalle.length" class="space-y-2 mb-3 pl-3">
                   <div v-for="(pago, i) in pagosDetalle" :key="i"
                        class="flex items-center justify-between gap-4">
                     <span class="min-w-0 flex items-center gap-2 text-[13px] font-medium text-slate-500">
@@ -1228,9 +1238,14 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                 <div class="flex items-center justify-between gap-4"
                      :class="pagosDetalle.length ? 'pt-3 border-t border-slate-100' : ''">
                   <span class="text-[13px] font-semibold text-slate-500">
-                    <i class="fas fa-circle-check text-emerald-500 mr-1.5"></i>{{ maestroStore.t('res_adelanto_pagado') || 'Adelanto pagado' }}
+                    <i class="fas fa-circle-check text-emerald-500 mr-1.5"></i>{{ maestroStore.t('res_total_pagado') || 'Total pagado' }}
                   </span>
-                  <span class="text-[15px] font-bold text-emerald-600 tabular-nums">− {{ formatMonto(finPagado) }}</span>
+                  <!-- ⚠️ SIN el «−». Con un solo pago, arriba salía «Tarjeta 65,10» y aquí
+                       «− 65,10»: el mismo número dos veces, uno positivo y otro negativo, que se
+                       lee como si se anularan entre sí. Es un TOTAL de lo cobrado, no un
+                       descuento sobre la línea de encima. El verde y el ✓ ya dicen que suma a
+                       favor. -->
+                  <span class="text-[15px] font-bold text-emerald-600 tabular-nums">{{ formatMonto(finPagado) }}</span>
                 </div>
               </div>
 

@@ -132,6 +132,20 @@ final class PaxCrearTextosCobroCommand extends Command
         // «Total a pagar» se lee como si fueran dos deudas. Aquí no es otra cifra: es la misma
         // en otro momento, y con otros medios.
         'res_o_al_llegar' => 'O a tu llegada, al entregarte las llaves',
+
+        // ── Los dos rótulos del detalle (31/08/2026) ────────────────────────────────
+        //
+        // «Detalle» no decía de qué: el bloque de abajo también es detalle. Y su gemelo, la
+        // sección de pagos, no tenía rótulo ninguno — se distinguía sólo por una línea de
+        // puntos, así que el ojo leía los cobros como una fila más de los cargos.
+        'res_cargos' => 'Cargos',
+        'res_pagos' => 'Pagos',
+
+        // `res_adelanto_pagado` decía «Adelanto pagado» y dejó de ser cierto en cuanto hubo
+        // segundos pagos: ahí es la SUMA de todos. Y con un pago único quedaba peor todavía
+        // —«Tarjeta 65,10» y justo debajo «Adelanto pagado −65,10»—, dos veces el mismo
+        // número, uno positivo y otro negativo, que se lee como si se anularan.
+        'res_total_pagado' => 'Total pagado',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
