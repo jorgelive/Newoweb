@@ -410,23 +410,21 @@ class AutoTranslationService
                 continue;
             }
 
-            // ══ SELLADO DE LO QUE YA HABÍA ═══════════════════════════════════════════════
-            // Contenido con traducción y sin hash: o es anterior a este mecanismo, o lo rehízo
-            // otro código —`WhatsappMetaTemplateSyncService` reconstruye las filas desde la
-            // respuesta de Meta, donde la autoridad es de ellos—. No se retraduce: se sella con
-            // el origen actual y se deja tal cual.
-            //
-            // Traducirlo sería peor de las dos formas: retraduciría de golpe TODO el contenido
-            // histórico el día del despliegue, y pisaría textos aprobados por Meta.
-            if (!$overwrite && !$isContentEmpty && $hashGuardado === null) {
-                $valuesMap[$targetCode] = array_merge($existingRow, [
-                    self::SOURCE_HASH_KEY => $hashActual,
-                ]);
-
-                continue;
-            }
-
             // Traducida y el origen no se ha movido: no hay nada que hacer.
+            //
+            // ⚠️ Nótese lo que NO hay aquí: una rama que selle el contenido sin hash y lo dé por
+            // bueno. Se probó y se retiró el 31/08/2026, porque volvía **decorativo** el
+            // `--clase` del comando de sellado: si no sellar acaba sellando igual, sólo que más
+            // tarde y sin que nadie lo mire, entonces no hay decisión que tomar.
+            //
+            // Una fila sin hash es una fila de la que no sabemos si corresponde a su español, y
+            // la única forma honesta de averiguarlo es rehacerla. Quien SÍ lo sabe es la persona
+            // que corre `app:traduccion:sellar-hash --clase=`, y por eso ésa es la vía para
+            // declararlo — explícita, por módulo y con `--dry-run` delante.
+            //
+            // Lo que esta rama protegía —las plantillas aprobadas por Meta, que
+            // `WhatsappMetaTemplateSyncService` reconstruye sin hash desde la respuesta de
+            // ellos— lo protege ya el veto de `preventOverwriteIf`, que se evalúa más arriba.
             if (!$overwrite && !$isContentEmpty && $hashGuardado === $hashActual) {
                 continue;
             }

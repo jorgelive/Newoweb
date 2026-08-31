@@ -54,10 +54,18 @@ de llamada y ni uno más. Por cada idioma destino, en orden:
 1. ¿origenHash === 'manual'?      → no se toca (salvo flag explícito)
 2. ¿propiedad vetada y hay texto? → no se toca
 3. ¿modo sellar?                  → estampa el hash y no llama a nadie
-4. ¿hay texto y NO hay hash?      → se sella con el origen actual y se deja
-5. ¿hay texto y el hash cuadra?   → nada que hacer
-6. resto (vacío, o hash desfasado, o flag) → se traduce
+4. ¿hay texto y el hash cuadra?   → nada que hacer
+5. resto (vacío, sin hash, hash desfasado, o flag) → se traduce
 ```
+
+⚠️ **Una fila SIN hash se rehace.** No se sella dándola por buena: es una fila de la que no
+sabemos si corresponde a su español, y la única forma honesta de averiguarlo es rehacerla. Quien
+sí lo sabe es la persona que corre el comando de sellado (§8).
+
+Hubo una versión con la rama contraria —sellar lo que no tiene hash— y se retiró el mismo día:
+volvía **decorativo** el `--clase` del comando. Si no sellar acaba sellando igual, sólo que más
+tarde y sin que nadie lo mire, entonces no hay decisión que tomar. Lo que esa rama protegía —las
+plantillas de Meta— lo protege ya el veto de §5, que se evalúa antes.
 
 ## 3. El `origenHash`
 
@@ -196,6 +204,17 @@ contenido del que dudas.
 
 Dos cinturones impiden que traduzca: el modo `soloSellar` no llama al traductor, y además apaga
 `ejecutarTraduccion` en cada entidad, así que el listener sale antes de nada en el flush.
+
+### Qué se selló el 31/08/2026, y qué no
+
+| | Entidades | Por qué |
+|---|---|---|
+| **Sellado** | `TravelTarifa` (672), `UiI18n` (213) | Títulos operativos y textos de interfaz: contenido poco sospechoso, y nadie recuerda contradicciones ahí |
+| **Sin sellar** | `PmsGuiaItem` (61), `PmsGuiaSeccion` (23), `TravelSegmento` (186) | Es lo que **lee el huésped**, y es donde ya hubo traducciones que decían lo contrario que el español (las siete duchas). Se rehacen solas al editarlas |
+| **Sin sellar** | las otras 20 | No sellar es la opción reversible; sellar de más congela una mentira y no tiene vuelta |
+
+⚠️ Rehacer **pisa cualquier traducción corregida a mano** en esas clases. El día que exista una
+que merezca conservarse, se marca con `origenHash: 'manual'` (§3).
 
 Descubre las entidades **por el atributo** (metadata de Doctrine + reflexión), no por una lista:
 una lista se pudre el día que alguien añada una entidad traducible, y el síntoma sería mudo — esa
