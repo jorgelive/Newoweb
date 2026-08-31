@@ -38,6 +38,33 @@ class AutoTranslationService
 
     private const string OVERWRITE_FLAG_KEY = 'sobreescribirTraduccion';
 
+    /**
+     * La clave que cada fila traducida lleva dentro del JSON con la huella del texto del que
+     * salió. Es lo que permite saber si una traducción quedó desfasada **sin** preguntarle nada
+     * al changeset de Doctrine.
+     *
+     * ⚠️ Va en la FILA y no indexada por campo a propósito. Una sola columna puede contener
+     * varias unidades traducibles —`whatsappMetaTmpl` tiene `body`, `header`, `footer` y un
+     * `button_text` por botón—, así que cualquier esquema con clave necesitaría componer
+     * `propiedad + ruta JSON + índice de botón`. Y ese índice es **posicional**: reordenar los
+     * botones emparejaría textos que no se corresponden. En la fila, el hash viaja pegado a su
+     * texto y el problema no existe.
+     *
+     * Que una fila i18n lleve claves de más no es nuevo: las de `MessageTemplate::$body` ya
+     * viajan con `status` desde siempre.
+     */
+    private const string SOURCE_HASH_KEY = 'origenHash';
+
+    /**
+     * Centinela para una traducción curada a mano que **no debe rehacerse nunca** por el camino
+     * automático, ni siquiera cuando cambie el español.
+     *
+     * El flag explícito de sobrescritura sí la pisa: es una acción humana deliberada sobre un
+     * campo concreto, y el centinela está para que nadie la retraduzca sin querer, no para
+     * blindarla contra su dueño.
+     */
+    public const string HASH_MANUAL = 'manual';
+
     public function __construct(
         private readonly GoogleTranslateService $translator,
         private readonly EntityManagerInterface $entityManager,
@@ -51,6 +78,10 @@ class AutoTranslationService
      * @param object $entity La entidad a procesar.
      * @param bool $forceExecution Si es true, ignora el flag del Trait y ejecuta la traducción obligatoriamente.
      * @param bool|null $overrideOverwrite Si se define, sobreescribe el comportamiento de sobrescritura de la entidad.
+     * @param bool $soloSellar Estampa el `origenHash` de lo que ya está traducido y NO llama al
+     *                          traductor. Lo usa `app:traduccion:sellar-hash` para declarar que el
+     *                          contenido existente corresponde a su español actual, y evitar así
+     *                          que el despliegue del hash retraduzca todo el histórico de golpe.
      * @param EntityManagerInterface|null $emToRecompute Si se envía (desde un preUpdate), recalcula el ChangeSet de Doctrine.
      *                                                   Es el `EntityManagerInterface` y no el `ObjectManager` de la
      *                                                   interfaz genérica porque aquí hace falta `getUnitOfWork()`, que
@@ -59,7 +90,7 @@ class AutoTranslationService
      *
      * @return void
      */
-    public function processEntity(object $entity, bool $forceExecution = false, ?bool $overrideOverwrite = null, ?EntityManagerInterface $emToRecompute = null): void
+    public function processEntity(object $entity, bool $forceExecution = false, ?bool $overrideOverwrite = null, ?EntityManagerInterface $emToRecompute = null, bool $soloSellar = false): void
     {
         // 1. Decidir si ejecutamos o no el proceso
         $execute = $forceExecution;
@@ -77,6 +108,12 @@ class AutoTranslationService
 
         // 2. Determinar si vamos a sobrescribir (leyendo parámetro o el flag físico de la entidad)
         $globalOverwrite = $overrideOverwrite ?? (method_exists($entity, 'getSobreescribirTraduccion') ? (bool) $entity->getSobreescribirTraduccion() : false);
+
+        // Sellar y sobrescribir son incompatibles por definición: sellar declara que lo que hay
+        // es correcto, sobrescribir lo tira. Si llegaran juntos, manda sellar.
+        if ($soloSellar) {
+            $globalOverwrite = false;
+        }
 
         $reflection = new ReflectionClass($entity);
         $hasEntityChanges = false;
@@ -116,12 +153,20 @@ class AutoTranslationService
             // 🛡️ BARRERA DE SEGURIDAD DINÁMICA (El Veto Declarativo)
             // =========================================================================
             $currentOverwrite = $globalOverwrite;
+            $vetado = false;
 
-            // Si el atributo dice que un método puede vetar la sobrescritura, lo evaluamos
-            if ($currentOverwrite && $attr->preventOverwriteIf !== null) {
+            // ⚠️ El veto ya NO cuelga de `$currentOverwrite`, y ése es el cambio que importa.
+            // Antes sólo frenaba la sobrescritura MANUAL; con el hash, una plantilla aprobada por
+            // Meta se habría retraducido sola en cuanto alguien tocara el español, quedándose
+            // desincronizada del texto que Meta aprobó — y sin que nadie pulsara nada.
+            //
+            // Ahora veta las dos vías. Lo que NO veta es rellenar un idioma vacío: eso no pisa
+            // ninguna traducción, y es como se traduce por primera vez una plantilla nueva.
+            if ($attr->preventOverwriteIf !== null) {
                 $vetoMethod = $attr->preventOverwriteIf;
                 if (method_exists($entity, $vetoMethod) && $entity->$vetoMethod() === true) {
-                    $currentOverwrite = false; // Se apaga la sobrescritura solo para esta propiedad
+                    $vetado = true;
+                    $currentOverwrite = false;
                 }
             }
 
@@ -131,7 +176,7 @@ class AutoTranslationService
                     throw new RuntimeException(sprintf('El campo "%s" tiene nestedFields, por lo que debe ser un array (lista o mapa).', $propertyName));
                 }
 
-                $newValue = $this->processNestedStructure($originalValue, $nestedFields, $sourceLang, $mimeType, $currentOverwrite, $propertyName);
+                $newValue = $this->processNestedStructure($originalValue, $nestedFields, $sourceLang, $mimeType, $currentOverwrite, $propertyName, $vetado, $soloSellar);
 
                 if ($newValue !== $originalValue) {
                     $entity->$setter($newValue);
@@ -149,7 +194,7 @@ class AutoTranslationService
             }
 
             $valuesMap = $this->listToMapRows($originalValue, $propertyName);
-            $translatedMap = $this->translateAndCloneRows($valuesMap, $sourceLang, $mimeType, $currentOverwrite);
+            $translatedMap = $this->translateAndCloneRows($valuesMap, $sourceLang, $mimeType, $currentOverwrite, $vetado, $soloSellar);
             $finalValue = $this->mapRowsToList($translatedMap);
 
             // Solo seteamos la propiedad si el mapa traducido es distinto al original
@@ -203,11 +248,11 @@ class AutoTranslationService
      *
      * @return Estructura Los datos procesados.
      */
-    private function processNestedStructure(array $data, array $targetKeys, string $sourceLang, string $mimeType, bool $overwrite, string $propName): array
+    private function processNestedStructure(array $data, array $targetKeys, string $sourceLang, string $mimeType, bool $overwrite, string $propName, bool $vetado = false, bool $soloSellar = false): array
     {
         foreach ($targetKeys as $keyPath) {
             $pathParts = explode('->', $keyPath);
-            $data = $this->traverseAndTranslate($data, $pathParts, $sourceLang, $mimeType, $overwrite, $propName);
+            $data = $this->traverseAndTranslate($data, $pathParts, $sourceLang, $mimeType, $overwrite, $propName, $vetado, $soloSellar);
         }
 
         return $this->resetOverwriteFlags($data);
@@ -243,7 +288,7 @@ class AutoTranslationService
      *
      * @return Estructura
      */
-    private function traverseAndTranslate(array $data, array $pathParts, string $sourceLang, string $mimeType, bool $overwrite, string $fullPath): array
+    private function traverseAndTranslate(array $data, array $pathParts, string $sourceLang, string $mimeType, bool $overwrite, string $fullPath, bool $vetado = false, bool $soloSellar = false): array
     {
         if (empty($pathParts)) return $data;
 
@@ -257,10 +302,10 @@ class AutoTranslationService
 
                     if (empty($pathParts)) {
                         $fieldMap = $this->normalizeNestedFieldToRowMap($item[$currentKey], $sourceLang, $fullPath . '.' . $currentKey);
-                        $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $itemOverwrite);
+                        $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $itemOverwrite, $vetado, $soloSellar);
                         $item[$currentKey] = $this->mapRowsToList($translatedMap);
                     } else {
-                        $item[$currentKey] = $this->traverseAndTranslate($item[$currentKey], $pathParts, $sourceLang, $mimeType, $itemOverwrite, $fullPath . '.' . $currentKey);
+                        $item[$currentKey] = $this->traverseAndTranslate($item[$currentKey], $pathParts, $sourceLang, $mimeType, $itemOverwrite, $fullPath . '.' . $currentKey, $vetado, $soloSellar);
                     }
 
                     $data[$index] = $item;
@@ -275,10 +320,10 @@ class AutoTranslationService
 
             if (empty($pathParts)) {
                 $fieldMap = $this->normalizeNestedFieldToRowMap($data[$currentKey], $sourceLang, $fullPath . '.' . $currentKey);
-                $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $localOverwrite);
+                $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $localOverwrite, $vetado, $soloSellar);
                 $data[$currentKey] = $this->mapRowsToList($translatedMap);
             } else {
-                $data[$currentKey] = $this->traverseAndTranslate($data[$currentKey], $pathParts, $sourceLang, $mimeType, $localOverwrite, $fullPath . '.' . $currentKey);
+                $data[$currentKey] = $this->traverseAndTranslate($data[$currentKey], $pathParts, $sourceLang, $mimeType, $localOverwrite, $fullPath . '.' . $currentKey, $vetado, $soloSellar);
             }
         }
 
@@ -296,18 +341,25 @@ class AutoTranslationService
      *
      * @return MapaPorIdioma
      */
-    private function translateAndCloneRows(array $valuesMap, string $sourceLang, string $mimeType, bool $overwrite): array
+    private function translateAndCloneRows(array $valuesMap, string $sourceLang, string $mimeType, bool $overwrite, bool $vetado = false, bool $soloSellar = false): array
     {
         $sourceLangNorm = strtolower($sourceLang);
-        $cleanMap = [];
+        $normalizado = [];
 
+        // ⚠️ Antes esto DESCARTABA las filas de idiomas fuera de `validLanguageCodes`, y lo hacía
+        // **antes de mirar `$overwrite`**: bajar la prioridad de un idioma a 0 en `maestro_idioma`
+        // —una decisión de negocio normal, «ya no vendemos ahí»— borraba su contenido de las 25
+        // entidades según se iban guardando. Sin error y sin log, y con el flag de sobrescritura
+        // APAGADO, que es justo el modo que promete respetar lo existente.
+        //
+        // Retirar un idioma del catálogo significa «deja de traducir a él», no «tira lo traducido».
+        // Las filas desconocidas se conservan intactas: no se traducen —el bucle de abajo sólo
+        // recorre `validLanguageCodes`— pero tampoco se pierden, y vuelven a mantenerse solas el
+        // día que ese idioma se reactive.
         foreach ($valuesMap as $lang => $row) {
-            $langNorm = strtolower((string) $lang);
-            if ($langNorm === $sourceLangNorm || in_array($langNorm, $this->validLanguageCodes, true)) {
-                $cleanMap[$langNorm] = $row;
-            }
+            $normalizado[strtolower((string) $lang)] = $row;
         }
-        $valuesMap = $cleanMap;
+        $valuesMap = $normalizado;
 
         $sourceRow = $valuesMap[$sourceLangNorm] ?? null;
         $sourceIsUsable = is_array($sourceRow) && !empty($sourceRow['content']) && is_string($sourceRow['content']);
@@ -325,14 +377,57 @@ class AutoTranslationService
         }
 
         $sourceText = $sourceRow['content'];
+        $hashActual = self::hashDeOrigen($sourceText, $mimeType);
 
         foreach ($this->validLanguageCodes as $targetCode) {
             if ($targetCode === $sourceLangNorm) continue;
 
             $existingRow = $valuesMap[$targetCode] ?? null;
             $isContentEmpty = $existingRow === null || trim((string) $existingRow['content']) === '';
+            $hashGuardado = is_array($existingRow) ? ($existingRow[self::SOURCE_HASH_KEY] ?? null) : null;
 
-            if (!$overwrite && !$isContentEmpty) {
+            // Propiedad vetada (`preventOverwriteIf`): nunca se pisa una traducción existente,
+            // ni por hash ni por el flag. Un hueco vacío sí se rellena — no pisa nada.
+            if ($vetado && !$isContentEmpty) {
+                continue;
+            }
+
+            // Modo sellar: estampa la huella de lo que ya está traducido y no llama a nadie. Una
+            // fila vacía se queda vacía —no hay nada que declarar correcto— y se traducirá el día
+            // que la entidad se guarde de verdad.
+            if ($soloSellar) {
+                if (!$isContentEmpty && $hashGuardado === null) {
+                    $valuesMap[$targetCode] = array_merge($existingRow, [
+                        self::SOURCE_HASH_KEY => $hashActual,
+                    ]);
+                }
+
+                continue;
+            }
+
+            // Una traducción curada a mano no la toca el camino automático. El flag explícito sí.
+            if (!$overwrite && $hashGuardado === self::HASH_MANUAL) {
+                continue;
+            }
+
+            // ══ SELLADO DE LO QUE YA HABÍA ═══════════════════════════════════════════════
+            // Contenido con traducción y sin hash: o es anterior a este mecanismo, o lo rehízo
+            // otro código —`WhatsappMetaTemplateSyncService` reconstruye las filas desde la
+            // respuesta de Meta, donde la autoridad es de ellos—. No se retraduce: se sella con
+            // el origen actual y se deja tal cual.
+            //
+            // Traducirlo sería peor de las dos formas: retraduciría de golpe TODO el contenido
+            // histórico el día del despliegue, y pisaría textos aprobados por Meta.
+            if (!$overwrite && !$isContentEmpty && $hashGuardado === null) {
+                $valuesMap[$targetCode] = array_merge($existingRow, [
+                    self::SOURCE_HASH_KEY => $hashActual,
+                ]);
+
+                continue;
+            }
+
+            // Traducida y el origen no se ha movido: no hay nada que hacer.
+            if (!$overwrite && !$isContentEmpty && $hashGuardado === $hashActual) {
                 continue;
             }
 
@@ -364,16 +459,53 @@ class AutoTranslationService
 
                     $baseRow = $existingRow !== null ? $existingRow : $sourceRow;
                     $valuesMap[$targetCode] = array_merge($baseRow, [
-                        'language' => $targetCode,
-                        'content'  => $this->marcadores->restaurar($res[0], $marcadores),
+                        'language'            => $targetCode,
+                        'content'             => $this->marcadores->restaurar($res[0], $marcadores),
+                        // La huella del texto del que ACABA de salir. Mientras cuadre, esta fila
+                        // está al día; en cuanto el español cambie, dejará de cuadrar y se rehará.
+                        self::SOURCE_HASH_KEY => $hashActual,
                     ]);
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                // ⚠️ Este `catch` estuvo MUDO, y es el que avisa de que el sistema entero está
+                // caído: credenciales caducadas, cuota agotada o red cortada dejaban las siete
+                // traducciones sin hacer y la entidad se guardaba tan contenta con sólo el
+                // español. Ni un error, ni una línea de log — el fallo que no se ve.
+                $this->logger?->error(sprintf(
+                    '[AutoTranslate] %s → %s: falló la traducción (%s): %s',
+                    $sourceLangNorm,
+                    $targetCode,
+                    $e::class,
+                    $e->getMessage()
+                ));
+
                 continue;
             }
         }
 
         return $valuesMap;
+    }
+
+    /**
+     * La huella del texto origen del que debe salir una traducción.
+     *
+     * Tres decisiones, y las tres importan:
+     *
+     * - **Sobre el texto CRUDO**, antes de que `ProtectorDeMarcadores` lo enmascare. El
+     *   enmascarado genera centinelas que dependen del orden de aparición; hashear eso ataría la
+     *   huella a un detalle interno del protector.
+     * - **Con los espacios normalizados.** `sha1()` distingue un salto de línea de más, y los
+     *   editores de texto enriquecido reescriben el HTML al guardar aunque nadie lo haya tocado.
+     *   Sin esto, cada guardado retraduciría los seis idiomas por un espacio.
+     * - **Con el `$mimeType` dentro.** Cambiar un campo de `text` a `html` obliga a rehacer las
+     *   traducciones, y el texto es el mismo: sin el formato en la huella, el hash cuadraría y no
+     *   se rehacía nada.
+     */
+    private static function hashDeOrigen(string $sourceText, string $mimeType): string
+    {
+        $normalizado = trim((string) preg_replace('/\s+/u', ' ', $sourceText));
+
+        return sha1($mimeType . '|' . $normalizado);
     }
 
     /**
@@ -452,6 +584,9 @@ class AutoTranslationService
      */
     private function loadValidLanguages(): void
     {
+        // `@var` obligatorio sobre todo `getResult()`: sin él la lista es `mixed` y el
+        // `->getId()` de abajo es una zona ciega que ni el nivel 7 de PHPStan mira.
+        /** @var list<MaestroIdioma> $idiomas */
         $idiomas = $this->entityManager->getRepository(MaestroIdioma::class)
             ->createQueryBuilder('i')
             ->where('i.prioridad > 0')

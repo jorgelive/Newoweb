@@ -1,6 +1,10 @@
 import type { components } from '@/types/api';
 import type { ApiIdioma, ApiPais } from '@/types/maestroModel';
-import {Language, type VersionDelFile} from "@/types/cotizacionEditorModel.ts";
+import type { I18nContent, VersionDelFile } from "@/types/cotizacionEditorModel.ts";
+
+// Reexportada, no redefinida: la fuente única es `cotizacionEditorModel`. Los importadores
+// que ya la traían de aquí siguen funcionando, y no hay dos declaraciones que puedan divergir.
+export type { I18nContent };
 
 // ============================================================================
 // PASAJERO
@@ -152,10 +156,6 @@ export type ApiCotizacionFileWrite = Omit<
     telefono?: string | null;
 };
 
-export interface I18nContent {
-    content: string;
-    language: Language | string; // Permitimos string para flexibilizar asignaciones literales tipo 'es'
-}
 
 // ============================================================================
 // ENUMS — espejos de los enums PHP, derivados del schema OpenAPI

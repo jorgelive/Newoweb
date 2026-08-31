@@ -3086,12 +3086,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -3220,12 +3222,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -3332,12 +3336,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -3444,12 +3450,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -4540,7 +4548,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -4637,7 +4646,8 @@ export interface components {
             cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.write"][];
             id?: string;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -4724,7 +4734,8 @@ export interface components {
             cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.write"][];
             id?: string;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -5252,7 +5263,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -5698,7 +5710,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -6144,7 +6157,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -7142,12 +7156,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -7251,7 +7267,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -7351,7 +7368,8 @@ export interface components {
             compradorNombreSnapshot?: string | null;
             id?: string;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -7566,12 +7584,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -7675,7 +7695,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -7892,12 +7913,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8002,7 +8025,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8222,12 +8246,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8331,7 +8357,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8484,12 +8511,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8530,7 +8559,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8567,7 +8597,8 @@ export interface components {
             servicioMaestroId?: string | null;
             id?: string;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8649,12 +8680,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8695,7 +8728,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8777,12 +8811,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8823,7 +8859,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8905,12 +8942,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -8951,7 +8990,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -9045,12 +9085,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -9099,7 +9141,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -9148,7 +9191,8 @@ export interface components {
             }[] | null;
             id?: string;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -9250,12 +9294,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -9304,7 +9350,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -9406,12 +9453,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -9460,7 +9509,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -9562,12 +9612,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -9616,7 +9668,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -11133,12 +11186,14 @@ export interface components {
             updatedAt?: string | null;
             readonly token?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -11187,7 +11242,8 @@ export interface components {
                 [key: string]: string | null;
             }[] | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -11209,7 +11265,8 @@ export interface components {
                 [key: string]: string | null;
             }[] | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -11277,12 +11334,14 @@ export interface components {
             updatedAt?: string | null;
             readonly token?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -11377,12 +11436,14 @@ export interface components {
             updatedAt?: string | null;
             readonly token?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -11477,12 +11538,14 @@ export interface components {
             updatedAt?: string | null;
             readonly token?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -12947,12 +13010,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -12993,7 +13058,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -13030,7 +13096,8 @@ export interface components {
             }[];
             id?: string;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -13127,12 +13194,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -13173,7 +13242,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -13270,12 +13340,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -13316,7 +13388,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -13413,12 +13486,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -13459,7 +13534,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -14095,12 +14171,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -14140,12 +14218,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -14179,12 +14259,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -14218,12 +14300,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -14633,12 +14717,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -14728,12 +14814,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -14807,12 +14895,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -14886,12 +14976,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -16409,12 +16501,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -16560,12 +16654,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -16693,12 +16789,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -16826,12 +16924,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -19207,12 +19307,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -19399,12 +19501,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -19535,12 +19639,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -19671,12 +19777,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -20207,12 +20315,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -20381,12 +20491,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -20505,12 +20617,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -20629,12 +20743,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -21539,7 +21655,8 @@ export interface components {
             monto?: string | null;
             totalLinea?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -21603,7 +21720,8 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -21651,7 +21769,8 @@ export interface components {
             monto?: string | null;
             totalLinea?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -21714,7 +21833,8 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -21780,7 +21900,8 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -21845,7 +21966,8 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -21911,7 +22033,8 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -21977,7 +22100,8 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -22043,7 +22167,8 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -22108,7 +22233,8 @@ export interface components {
             /** Format: uuid */
             readonly id?: string | null;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -27235,12 +27361,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -27526,12 +27654,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -27821,12 +27951,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -28132,12 +28264,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -28450,12 +28584,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -28557,12 +28693,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -28652,12 +28790,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -28747,12 +28887,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -28825,12 +28967,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -28884,12 +29028,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -28933,12 +29079,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;
@@ -28982,12 +29130,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de
+             *     ejecución. Ideal para apagar el listener durante importaciones masivas (fixtures, comandos).
              * @default true
              */
             ejecutarTraduccion: boolean;
             /**
-             * @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine.
+             * @description «Rehaz TODAS las traducciones ahora, cambie o no el origen.» Es la excepción, no el modo
+             *     de trabajo.
              * @default false
              */
             sobreescribirTraduccion: boolean;

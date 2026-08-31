@@ -40,10 +40,21 @@ type PasajeroBase   = components['schemas']['CotizacionFilepasajero-pax_file.rea
 
 // --- Primitivos compartidos --------------------------------------------------
 
-/** Elemento de contenido multiidioma: [{ content, language }, ...] */
+/**
+ * Elemento de contenido multiidioma: `[{ content, language }, …]`.
+ *
+ * Espejo de `I18nContent` en `util/src/types/cotizacionEditorModel.ts`. Son dos apps distintas,
+ * así que la copia está justificada — pero si una gana un campo, la otra también.
+ */
 export interface PaxI18nContent {
     content: string;
     language: string;
+    /**
+     * Huella del español del que salió esta traducción. La pone y la lee el backend; `pax` sólo
+     * la recibe y la ignora. Está declarada para que el tipo no se quede corto: uno escrito a
+     * mano que no dice toda la verdad no falla al compilar, miente.
+     */
+    origenHash?: string;
 }
 
 export type I18n = PaxI18nContent[];

@@ -11,9 +11,28 @@ export enum Language {
     Pt = "pt",
 }
 
+/**
+ * Una fila de contenido multiidioma: `[{ language, content }, …]`.
+ *
+ * ⚠️ **Fuente única.** Estuvo duplicada palabra por palabra en `fileDetalleModel.ts` hasta el
+ * 31/08/2026; añadir un campo obligaba a acordarse de los dos sitios, y el que se olvidara no
+ * fallaba al compilar — se quedaba corto, que es la forma de mentir que este repo persigue.
+ * `pax` mantiene la suya (`PaxI18nContent`) porque es otra app.
+ *
+ * Es un estrechamiento a mano de una columna JSON: el esquema la exporta como diccionario
+ * abierto (`{[k: string]: string | null}[]`) y la forma real es ésta.
+ */
 export interface I18nContent {
     content: string;
     language: Language | string; // Permitimos string para flexibilizar asignaciones literales tipo 'es'
+    /**
+     * Huella del español del que salió esta traducción. La pone y la lee el backend
+     * (`AutoTranslationService`); el panel no la toca ni la muestra.
+     *
+     * Ausente en la fila del idioma origen y en contenido anterior al 31/08/2026. El valor
+     * especial `'manual'` marca una traducción curada a mano que no se rehace sola.
+     */
+    origenHash?: string;
 }
 
 /**
