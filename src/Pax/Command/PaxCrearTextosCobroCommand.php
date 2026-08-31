@@ -152,6 +152,13 @@ final class PaxCrearTextosCobroCommand extends Command
         // —«Tarjeta 65,10» y justo debajo «Adelanto pagado −65,10»—, dos veces el mismo
         // número, uno positivo y otro negativo, que se lee como si se anularan.
         'res_total_pagado' => 'Total pagado',
+
+        // ── El rango de fechas de una estancia (31/08/2026) ─────────────────────────
+        //
+        // La GRAMÁTICA es de cada idioma —«del … al …», «from … to …», «du … au …»— y por eso
+        // vive aquí y no en el código, igual que el saludo. Las fechas las formatea ICU con el
+        // patrón que cada locale considera correcto («28 de agosto» / «August 28»).
+        'res_estancia_tramo' => 'del {{ desde }} al {{ hasta }}',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

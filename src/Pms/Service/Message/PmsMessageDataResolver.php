@@ -23,6 +23,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         private readonly EntityManagerInterface $entityManager,
         private readonly TelefonoDeContacto $telefonos,
         private readonly PmsRedactorDeCobro $redactor,
+        private readonly PmsRedactorDeEstancias $estancias,
         #[Autowire('%pax_book_guide_url%')]
         private readonly string $paxBookGuideUrl,
         #[Autowire('%pax_book_guide_url_nd%')]
@@ -220,6 +221,13 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // resumen: {{ bloque_pago }}» se queda a medias; la línea de arriba tiene que
             // sostenerse sola.
             'bloque_pago'           => $idioma !== null ? $this->redactor->bloque($reserva, $idioma) : null,
+            // ── LAS ESTANCIAS, dichas de verdad ─────────────────────────────────────
+            //
+            // `checkin_date` y `checkout_date` son el mínimo y el máximo de la reserva, así que
+            // con más de una estancia la frase deja de ser cierta: `3DAGPB` saldría «del 28 de
+            // agosto al 6 de septiembre» con cuatro noches de hueco dentro. Ver
+            // `PmsRedactorDeEstancias`, que agrupa por par de fechas y respeta el idioma.
+            'estancias'             => $idioma !== null ? $this->estancias->texto($reserva, $idioma) : null,
         ];
     }
 

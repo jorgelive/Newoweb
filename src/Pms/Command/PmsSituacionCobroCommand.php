@@ -9,6 +9,7 @@ use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Finanzas\PmsSituacionDeCobro;
 use App\Pax\Service\TextosUi;
 use App\Pms\Finanzas\PmsRedactorDeCobro;
+use App\Pms\Service\Message\PmsRedactorDeEstancias;
 use App\Pms\Finanzas\PmsSituacionDeCobroResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -49,6 +50,7 @@ final class PmsSituacionCobroCommand extends Command
         private readonly PmsSituacionDeCobroResolver $resolver,
         private readonly TextosUi $textos,
         private readonly PmsRedactorDeCobro $redactor,
+        private readonly PmsRedactorDeEstancias $estancias,
     ) {
         parent::__construct();
     }
@@ -191,7 +193,12 @@ final class PmsSituacionCobroCommand extends Command
         // traducir, un enlace donde no toca. Ver `PmsRedactorDeCobro`.
         $bloque = $this->redactor->bloque($reserva, $idioma);
 
+        // La cabecera que acompaña al bloque en el cuerpo de la plantilla. Se enseña aquí
+        // porque es donde se ve si una reserva de varias estancias la dice bien.
         $io->section(sprintf('El bloque del mensaje (%s)', $idioma));
+        $io->writeln(sprintf('<comment>{{ estancias }}</comment>  %s',
+            str_replace("\n", ' | ', $this->estancias->texto($reserva, $idioma)) ?: '—'));
+        $io->newLine();
         $io->writeln($bloque !== '' ? $bloque : '<comment>(vacío: no hay nada honesto que decirle)</comment>');
         $io->newLine();
 
