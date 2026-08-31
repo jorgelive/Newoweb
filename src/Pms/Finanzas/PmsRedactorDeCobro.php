@@ -106,9 +106,18 @@ final readonly class PmsRedactorDeCobro
         $lineas[] = '';
 
         // Qué se pide AHORA, con sus precios.
+        //
+        // ⚠️ Tres rótulos, no dos, y el mismo criterio que la ficha del huésped. «Total a pagar»
+        // sólo es cierto si NO se ha pagado nada: con un adelanto ya abonado, esto dice 260.40
+        // sobre una reserva de 325.50, y llamarlo «total» manda a leer el total de la reserva,
+        // que es otro número y está dos líneas más arriba. En cuanto hay un pago, es un SALDO.
         $lineas[] = sprintf(
             '*%s:*',
-            $this->t($situacion->queSePide === PmsQueSePide::ADELANTO ? 'res_pide_adelanto' : 'res_pide_total', $idioma)
+            $this->t(match (true) {
+                $situacion->queSePide === PmsQueSePide::ADELANTO => 'res_pide_adelanto',
+                $pagado !== null => 'res_saldo',
+                default => 'res_pide_total',
+            }, $idioma)
         );
 
         foreach ($situacion->mediosPorImporte() as $grupo) {

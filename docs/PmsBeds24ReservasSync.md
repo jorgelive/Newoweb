@@ -4117,6 +4117,43 @@ trampa peor que no tenerlo.
 > el frontend, se encontrará con este mismo silencio.
 
 
+### 📤 Con un pago hecho, el saldo SUBE al sitio del prepago (31/08/2026)
+
+`B4YXZ7` lo enseña: 6 noches por 325.50, primera noche 65.10, y esos 65.10 ya pagados el 5 de
+agosto. Como hay un cobro, `queSePide` pasa a `TOTAL` y quedan 260.40. Todo correcto — y la
+tarjeta se leía mal de dos formas:
+
+**1 · «TOTAL A PAGAR 260.40»** sobre una reserva de **325.50**. Con un adelanto ya abonado eso no
+es un total: es un **saldo**, y llamarlo «total» manda a leer el total de la reserva, que es otro
+número y está tres líneas más abajo. Tres rótulos, no dos:
+
+| | Rótulo |
+|---|---|
+| `ADELANTO` | «Adelanto para asegurar tu reserva» |
+| `TOTAL`, sin ningún pago | «Total a pagar» |
+| `TOTAL`, **con algún pago** | **«Saldo por pagar»** |
+
+**2 · El bloque de abajo repetía la cifra.** «Saldo (a tu llegada) 260.40» debajo de otro 260.40
+se lee como dos deudas, y con la tarjeta colapsada peor: dos cifras idénticas seguidas. Ese
+bloque **deja de pintarse** cuando se pide el TOTAL: el saldo ocupa el sitio del prepago, que es
+de donde se lee.
+
+⚠️ **Pero el bloque cargaba algo que el cuadro no tiene: los medios de la puerta.** A un
+extranjero que llega mañana, arriba sólo le queda la tarjeta —Western Union ya no da tiempo, Yape
+no es para él, el efectivo aún no entra— y quitarlo sin más lo dejaba sin saber que puede pagar
+en efectivo. Suben al cuadro en una línea propia (`mediosSoloAlLlegar`), y **sólo los que no
+estaban ya arriba**:
+
+```
+SALDO POR PAGAR                                    USD 260.40
+Western Union
+O a tu llegada, al entregarte las llaves: Efectivo
+* Con tarjeta de crédito USD 274.72
+```
+
+🔁 **Espejo:** `PmsRedactorDeCobro::bloque()` usa el mismo `match` de tres rótulos. Si cambia uno,
+cambia el otro — el mensaje y la ficha son las dos caras del mismo dato.
+
 ### 🧹 Las líneas en CERO no se le enseñan al huésped (31/08/2026)
 
 Una estancia directa nace con una línea de alojamiento en `0.00` —es donde el operador teclea el

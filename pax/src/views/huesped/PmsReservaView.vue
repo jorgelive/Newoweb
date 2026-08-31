@@ -381,6 +381,36 @@ const mediosDelSaldo = computed(() => {
         maestroStore.t('res_medio_' + codigo) || grupo.etiquetas[i] || codigo);
 });
 
+/** ¿Ha entrado ya algún dinero? Decide si lo de arriba es un «total» o un «saldo». */
+const hayPagos = computed(() => finPagado.value > 0);
+
+/**
+ * Los medios que SÓLO existen al llegar, para subirlos al cuadro principal.
+ *
+ * ── Por qué esto existe ─────────────────────────────────────────────────────
+ * Pidiendo el TOTAL, el bloque de abajo decía el mismo número que el cuadro y se leía como una
+ * segunda deuda —peor aún con la tarjeta colapsada, dos cifras idénticas seguidas—. Así que ese
+ * bloque deja de pintarse y el saldo ocupa el sitio del prepago, que es de donde se lee.
+ *
+ * Pero el bloque cargaba algo que el cuadro no tiene: **los medios de la puerta**. A un huésped
+ * extranjero que llega mañana, arriba sólo le queda la tarjeta —Western Union ya no da tiempo,
+ * Yape no es para él, el efectivo aún no entra— y quitar el bloque sin más lo dejaba sin saber
+ * que puede pagar en efectivo. Suben aquí, en una línea, y sólo los que NO estaban ya arriba.
+ */
+const mediosSoloAlLlegar = computed(() => {
+    if (situacion.value?.queSePide === 'ADELANTO' || !saldoAlLlegar.value) return [];
+
+    const yaArriba = new Set(
+        (situacion.value?.medios ?? []).flatMap(g => g.codigos));
+    const grupo = saldoAlLlegar.value.medios.find(g => !g.recargoPorcentaje);
+
+    if (!grupo) return [];
+
+    return grupo.codigos
+        .filter(c => !yaArriba.has(c))
+        .map(c => maestroStore.t('res_medio_' + c) || c);
+});
+
 /** La variante con tarjeta del saldo. Cuesta otra cosa, igual que arriba. */
 const saldoConTarjeta = computed(() =>
     saldoAlLlegar.value?.medios.find(g => g.recargoPorcentaje) ?? null);
@@ -936,9 +966,16 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
             <div class="flex items-center justify-between gap-3 rounded-2xl border border-[#376875]/25 bg-[#376875]/5 px-4 py-3">
               <span class="min-w-0">
                 <span class="block text-[11px] font-black uppercase tracking-widest text-[#376875] leading-tight">
+                  <!-- ⚠️ Tres rótulos, no dos. «Total a pagar» sólo es cierto si NO se ha
+                       pagado nada: con un adelanto ya abonado, el cuadro enseña 260.40 sobre una
+                       reserva de 325.50 y llamarlo «total» invita a leer el total de la reserva
+                       —que es otro número, y está tres líneas más abajo—. En cuanto hay un pago,
+                       lo que queda es un SALDO y se dice así. -->
                   {{ situacion.queSePide === 'ADELANTO'
                     ? (maestroStore.t('res_pide_adelanto') || 'Adelanto para asegurar tu reserva')
-                    : (maestroStore.t('res_pide_total') || 'Total a pagar') }}
+                    : hayPagos
+                      ? (maestroStore.t('res_saldo') || 'Saldo por pagar')
+                      : (maestroStore.t('res_pide_total') || 'Total a pagar') }}
                 </span>
 
                 <!-- Con qué medios vale ESE importe. Fluido y en una sola corrida, no en
@@ -947,6 +984,15 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                      Cada uno con su «i» cuando hay cuentas que dar: el huésped que elige Yape
                      necesita el número, y el que elige efectivo no necesita nada. Preguntarlo
                      por WhatsApp era el paso que sobraba. -->
+                <!-- ⚠️ Cuando el bloque de abajo NO se pinta —porque diría el mismo número—,
+                     sus medios suben aquí en una línea propia. Sin esto, promover el saldo se
+                     llevaba por delante el «también en efectivo al llegar», que es justo lo que
+                     hacía falta decirle a quien no tiene ninguna otra opción a distancia. -->
+                <span v-if="mediosSoloAlLlegar.length" class="mt-0.5 block text-[12px] font-bold text-slate-500 leading-snug">
+                  <span class="text-slate-400">{{ maestroStore.t('res_o_al_llegar') || 'O a tu llegada, al entregarte las llaves' }}:</span>
+                  {{ mediosSoloAlLlegar.join(' · ') }}
+                </span>
+
                 <span v-if="mediosSinTarjeta.length" class="mt-0.5 block text-[12px] font-bold text-slate-500 leading-snug">
                   <span v-for="(m, i) in mediosSinTarjeta" :key="m.codigo">
                     <span v-if="i > 0" class="text-slate-300"> · </span>{{ m.etiqueta }}<button
@@ -1125,7 +1171,7 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
 
                  Sin «i» en los medios: los que tienen cuenta son los mismos de arriba —lo que
                  se suma es el efectivo, que no tiene— así que ya están a un clic. -->
-            <div v-if="saldoAlLlegar" class="mt-3 border-t border-slate-100 pt-3">
+            <div v-if="saldoAlLlegar && situacion.queSePide === 'ADELANTO'" class="mt-3 border-t border-slate-100 pt-3">
               <div class="flex items-baseline justify-between gap-3">
                 <span class="min-w-0">
                   <span class="block text-[11px] font-black uppercase tracking-widest text-slate-400 leading-tight">
