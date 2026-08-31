@@ -81,7 +81,11 @@ final class CrearActividadesResortCommand extends Command
         'piscinas'   => 'Piscinas y playa',
         'deportes'   => 'Actividades y deportes',
         'shows'      => 'Espectáculos nocturnos',
-        'resort'     => 'El resort',
+        // ⚠️ Era «El resort», un cajón de sastre que no se contrata y por tanto no dice nada
+        // como *servicio contratado* de una línea. Lo reconvirtió
+        // `app:travel:crear-habitaciones-occidental` (31/08/2026) en la habitación estándar,
+        // y este comando tiene que nombrarla igual o volvería a crear el cajón al repetirse.
+        'resort'     => 'Habitación Doble',
     ];
 
     /**

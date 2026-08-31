@@ -1857,6 +1857,44 @@ sin ninguna, y no da error en ningún sitio.
 
 Es el primer sitio donde mirar cuando «las fotos no salen».
 
+### Los tipos de habitación, y el cajón de sastre que se reconvirtió (31/08/2026)
+
+De los siete servicios de prestador que dejó `app:travel:crear-actividades-resort`, seis nombran
+un sitio concreto —lobby, buffet, temáticos, piscinas, deportes, shows— y el séptimo era **«El
+resort»**, un cajón de sastre. No era un servicio: era el hueco donde cayó lo que no encajaba.
+
+Dos cosas fallaban con él, y son distintas:
+
+| Como… | Qué pasaba |
+|---|---|
+| **galería** | Sólo podía repetir lo que ya enseñan los otros seis |
+| **servicio contratado** de una línea | No dice nada: «El resort» no es algo que se contrate |
+
+Lo que sí se contrata en un resort es **la habitación**, que además es el ejemplo canónico de
+`prestadorServicio` en todo el modelo (`docs/Cotizaciones.md` §6.c). Así que
+`app:travel:crear-habitaciones-occidental` carga los siete tipos del Occidental Caribe —Doble,
+Doble Vista Mar, Superior, Superior Vista Mar Frontal, Familiar, Suite Premium Level y Suite
+Presidencial Premium Level— con su capacidad y su equipamiento reales.
+
+⚠️ **«El resort» se RECONVIERTE en la habitación estándar, no se borra.** Borrarlo dejaría sin
+servicio a la tarifa que colgaba de él —«Día libre en resort (resumen)»— y con ella sin galería a
+ese bloque de la guía. Renombrarlo conserva el enlace.
+
+⚠️ **Pero eso mueve una AFIRMACIÓN, no sólo un nombre.** Esa tarifa pasa a decir que lo contratado
+es una *Habitación Doble*. Es cierto mientras se venda la estándar; si una propuesta reserva otro
+tipo hay que cambiarle el servicio en la línea, desde el inspector del componente. Es una decisión
+consciente: el cajón de sastre no afirmaba nada y por eso nunca estaba mal, que es justo lo que lo
+hacía inútil.
+
+⚠️ **Y hay que tocar los DOS comandos.** `CrearActividadesResortCommand` lista sus servicios de
+prestador por nombre y es idempotente por él: si se dejara `'resort' => 'El resort'`, la siguiente
+ejecución **resucitaría el cajón** —vacío y en paralelo a la habitación—. Su entrada apunta ahora a
+`'Habitación Doble'`. Dos comandos idempotentes que se contradicen dejan de serlo juntos.
+
+**Los precios de la web NO se cargan.** Son de un canal y una fecha concretos, envejecen solos, y
+aquí el precio lo pone nuestra tarifa. De la ficha pública se toma lo que no caduca: los tipos, la
+capacidad y el equipamiento.
+
 ### Siete servicios de prestador para doce tarifas, y es a propósito
 
 Varias tarifas comparten el mismo servicio del prestador:

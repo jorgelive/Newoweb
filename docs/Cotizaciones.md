@@ -3127,12 +3127,17 @@ Restaurantes temáticos  ← cena temática
 Piscinas y playa        ← piscina y playa
 Actividades y deportes  ← actividades recreativas
 Espectáculos nocturnos  ← espectáculo nocturno
-El resort               ← día libre (resumen)
+Habitación Doble        ← día libre (resumen)   ← era «El resort», ver docs/Travel.md §11.quater
 ```
 
-Los 7 tienen título en siete idiomas y **0 imágenes y 0 descripción**. La cadena entera está viva y
-no promueve nada, porque lo que promueve es contenido. Añadir el resort número dos no cuesta ningún
-segmento ni ninguna línea de código: cuesta subir fotos y escribir siete párrafos.
+Ese mismo día se cargaron además los **siete tipos de habitación** del hotel, con título y
+descripción en los siete idiomas: son lo que de verdad se contrata, y por tanto el
+`prestadorServicio` correcto de una línea de alojamiento.
+
+Quedan **0 imágenes en los 13 servicios**. La cadena entera está viva y no promueve nada, porque lo
+que promueve es contenido — y la descripción, que desde hoy sí llega al cliente, no sustituye a la
+foto: son las dos superficies de la misma ficha. Añadir el resort número dos no cuesta ningún
+segmento ni ninguna línea de código: cuesta subir fotos y escribir párrafos.
 
 ## 6.u Cómo se ordena un día (28/08/2026)
 

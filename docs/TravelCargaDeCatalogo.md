@@ -730,6 +730,7 @@ Las tres últimas son las que se olvidan.
 | Comando | Qué patrón enseña |
 |---|---|
 | `app:travel:crear-actividades-resort` | un componente por segmento · pool sin plantilla |
+| `app:travel:crear-habitaciones-occidental` | servicios de prestador puros · **reconvierte** uno existente en vez de borrarlo, para no dejar huérfana la tarifa que colgaba de él |
 | `app:travel:crear-escala-miraflores` | ancla + segmentos que sólo cuentan · con plantilla |
 | `app:travel:crear-segmentos-vuelo` | segmento por ruta · puntos fijos · pool masivo |
 | `app:travel:crear-varios-aeropuerto-lima` | retirar un ancla traspasando la hora promovida · mudar un segmento de servicio |
