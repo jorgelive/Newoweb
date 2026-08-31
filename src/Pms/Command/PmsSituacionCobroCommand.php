@@ -8,6 +8,7 @@ use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Finanzas\PmsSituacionDeCobro;
 use App\Pax\Service\TextosUi;
+use App\Pms\Finanzas\PmsRedactorDeCobro;
 use App\Pms\Finanzas\PmsSituacionDeCobroResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -47,6 +48,7 @@ final class PmsSituacionCobroCommand extends Command
         private readonly EntityManagerInterface $em,
         private readonly PmsSituacionDeCobroResolver $resolver,
         private readonly TextosUi $textos,
+        private readonly PmsRedactorDeCobro $redactor,
     ) {
         parent::__construct();
     }
@@ -182,6 +184,16 @@ final class PmsSituacionCobroCommand extends Command
                 $tramo->mediosPorImporte(),
             ));
         }
+
+        // Y lo último, el TEXTO: lo que de verdad va a leer el huésped en el mensaje. Las tablas
+        // de arriba dicen qué decidió el read-model; esto dice cómo queda dicho, que es donde se
+        // ven las cosas que ninguna tabla enseña — una línea vacía de más, un rótulo sin
+        // traducir, un enlace donde no toca. Ver `PmsRedactorDeCobro`.
+        $bloque = $this->redactor->bloque($reserva, $idioma);
+
+        $io->section(sprintf('El bloque del mensaje (%s)', $idioma));
+        $io->writeln($bloque !== '' ? $bloque : '<comment>(vacío: no hay nada honesto que decirle)</comment>');
+        $io->newLine();
 
         // La proyección del equipo tiene que DECIDIR lo mismo: sólo cambia qué campos lleva.
         $equipo = $this->resolver->paraEquipo($reserva);
