@@ -1697,3 +1697,31 @@ pasar.
 `aun`, `esta`, `el`, `si`, `mi`, `tu`, `solo`, y `que`/`como`/`donde`/`cuando` cuando son
 interrogativos. La tilde les cambia el significado y sólo la frase decide, así que ninguna
 entrará nunca en la lista. Si algún día hay que revisarlas, se leen.
+
+
+## ✍️ La puntuación es del idioma, no de la plantilla (31/08/2026)
+
+El saludo de la ficha estaba **partido**: la cadena `res_hola` valía «¡Hola» y la plantilla
+añadía `, {{ nombre }}`. En español eso deja la admiración **abierta para siempre** — «¡Hola,
+Daniel» — y no hay forma de arreglarlo desde la cadena, porque el cierre va después del nombre.
+
+Y no es sólo el español: el francés pide **espacio antes** del signo («Bonjour Daniel !»), y hay
+idiomas donde el nombre no va detrás del saludo. Toda esa variedad vive en la plantilla, que es
+un sitio donde no se puede expresar.
+
+La cadena lleva ahora el saludo **entero, con el nombre dentro**:
+
+| | |
+|---|---|
+| es | `¡Hola, {{ nombre }}!` |
+| fr | `Bonjour {{ nombre }} !` |
+| de | `Hallo {{ nombre }}!` |
+
+`maestroStore.t(clave, variables)` interpola `{{ }}` desde siempre; sólo había que usarlo.
+
+**La regla:** si un texto lleva puntuación alrededor de un dato, el dato va DENTRO de la cadena
+traducida. Partirlo mete la puntuación de un idioma en el código, y ahí sólo cabe una.
+
+⚠️ Se escribió por **SQL**, como las correcciones de `res_cargos`: el listener de `AutoTranslate`
+retraduce en `preUpdate` y se llevaría por delante la puntuación de cada lengua. Es la excepción
+documentada en `docs/Mensajeria.md`.

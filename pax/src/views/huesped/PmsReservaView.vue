@@ -750,7 +750,12 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
             {{ maestroStore.t('res_localizador') || 'Booking Ref' }}: {{ pmsStore.reserva.localizador }}
           </span>
           <h1 class="text-3xl md:text-5xl font-black tracking-tight leading-none">
-            {{ maestroStore.t('res_hola') || '¡Hola' }}, <span class="text-white/90">{{ pmsStore.reserva.nombreCliente }}</span>
+            <!-- ⚠️ El saludo ENTERO en la cadena, con el nombre dentro. Estaba partido —«¡Hola»
+                 + «, » + nombre— y en español eso deja la admiración abierta para siempre:
+                 «¡Hola, Daniel». La puntuación es de cada idioma —el español abre y cierra, el
+                 francés pide espacio antes del signo— así que no puede vivir en la plantilla.
+                 `maestroStore.t()` interpola `{{ }}`. -->
+            <span class="text-white/90">{{ maestroStore.t('res_hola', { nombre: pmsStore.reserva.nombreCliente ?? '' }) || `¡Hola, ${pmsStore.reserva.nombreCliente}!` }}</span>
           </h1>
 
           <!-- Fila inferior: estancia (izq) + selector idioma (der) -->
@@ -984,15 +989,6 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                      Cada uno con su «i» cuando hay cuentas que dar: el huésped que elige Yape
                      necesita el número, y el que elige efectivo no necesita nada. Preguntarlo
                      por WhatsApp era el paso que sobraba. -->
-                <!-- ⚠️ Cuando el bloque de abajo NO se pinta —porque diría el mismo número—,
-                     sus medios suben aquí en una línea propia. Sin esto, promover el saldo se
-                     llevaba por delante el «también en efectivo al llegar», que es justo lo que
-                     hacía falta decirle a quien no tiene ninguna otra opción a distancia. -->
-                <span v-if="mediosSoloAlLlegar.length" class="mt-0.5 block text-[12px] font-bold text-slate-500 leading-snug">
-                  <span class="text-slate-400">{{ maestroStore.t('res_o_al_llegar') || 'O a tu llegada, al entregarte las llaves' }}:</span>
-                  {{ mediosSoloAlLlegar.join(' · ') }}
-                </span>
-
                 <span v-if="mediosSinTarjeta.length" class="mt-0.5 block text-[12px] font-bold text-slate-500 leading-snug">
                   <span v-for="(m, i) in mediosSinTarjeta" :key="m.codigo">
                     <span v-if="i > 0" class="text-slate-300"> · </span>{{ m.etiqueta }}<button
@@ -1004,6 +1000,20 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                         @click="alternarFicha(m.codigo)"
                     ><i class="fa-solid fa-circle-info text-[11px]"></i></button>
                   </span>
+                </span>
+
+                <!-- ⚠️ DESPUÉS de los medios de ahora, no antes. Cuando el bloque de abajo no se
+                     pinta —porque diría el mismo número—, sus medios suben aquí; pero lo que se
+                     puede hacer HOY va primero y lo de la llegada es la alternativa. Puesto
+                     encima, «o a tu llegada» abría el cuadro y Western Union quedaba colgando
+                     debajo, como si fuera parte de la frase.
+
+                     Sin esto, promover el saldo se llevaba por delante el «también en efectivo al
+                     llegar», que es justo lo que hay que decirle a quien no tiene ninguna otra
+                     opción a distancia. -->
+                <span v-if="mediosSoloAlLlegar.length" class="mt-0.5 block text-[12px] font-bold text-slate-500 leading-snug">
+                  <span class="text-slate-400">{{ maestroStore.t('res_o_al_llegar') || 'O a tu llegada, al entregarte las llaves' }}:</span>
+                  {{ mediosSoloAlLlegar.join(' · ') }}
                 </span>
 
                 <span v-if="situacion.queSePide === 'ADELANTO' && finanzas?.prepago"
