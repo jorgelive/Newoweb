@@ -4439,9 +4439,19 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     /**
-     * Carga los servicios (livianos: id+nombre) del proveedor seleccionado.
-     * Se dispara cada vez que cambia el proveedor elegido en la tarifa, para alimentar
-     * el dropdown filtrado de OrganizacionServicio.
+     * Carga los servicios (livianos: id+nombre) del prestador seleccionado.
+     *
+     * ⚠️ **`proveedorId` es el que trae CADA servicio, no el que se pidió.** Escribir aquí el
+     * id pedido era la mitad silenciosa del fallo del 31/08/2026: el filtro del backend llevaba
+     * doce días sin aplicarse —escuchaba `organización_id`, con tilde, y el front manda
+     * `organizacion`— y esta línea etiquetaba como del prestador elegido **todo lo que
+     * llegara**. El desplegable enseñaba el catálogo entero disfrazado de suyo, sin un dato en
+     * la respuesta que lo contradijera.
+     *
+     * Con el id real, `opcionesServiciosPrestador` puede descartar lo que no es. Que el backend
+     * esté arreglado no vuelve esto redundante: es lo que hace que la próxima vez que un filtro
+     * deje de aplicarse el síntoma sea una lista corta, no una lista mentirosa. La regla del
+     * proyecto —el catálogo manda, el consumidor no adivina— vale también hacia atrás.
      */
     const fetchProveedorServiciosDeProveedor = async (proveedorId: string | null, gen?: number) => {
         if (!proveedorId) {
@@ -4451,11 +4461,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         try {
             const res = await apiClient.get(`/platform/travel/organizacion-servicios?organizacion=${proveedorId}&pagination=false`);
             if (gen !== undefined && gen !== navGen) return;
-            const raw = miembrosHydra<RecursoHydra & { nombre?: string }>(res.data);
+            const raw = miembrosHydra<RecursoHydra & { nombre?: string; organizacion?: unknown }>(res.data);
             catalogos.value.proveedorServicios = raw.map((ps) => ({
                 id: extractIdStr(ps),
                 nombre: ps.nombre ?? '',
-                proveedorId
+                proveedorId: ps.organizacion ? extractIdStr(ps.organizacion) : '',
             }));
         } catch (e) {
             console.error('Error cargando servicios del proveedor', e);

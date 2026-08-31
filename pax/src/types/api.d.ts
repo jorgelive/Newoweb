@@ -20284,11 +20284,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         OrganizacionServicio: {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20335,11 +20335,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20357,11 +20357,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio-organizacion_servicio.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20383,11 +20383,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20410,11 +20410,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio-organizacion_servicio.write": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20435,11 +20435,11 @@ export interface components {
             organizacion?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio-organizacion_servicio.write.jsonMergePatch": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20460,11 +20460,11 @@ export interface components {
             organizacion?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.html": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20511,11 +20511,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.html-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20533,11 +20533,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.html-organizacion_servicio.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20559,11 +20559,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.html-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20586,11 +20586,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20637,11 +20637,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.jsonld-organizacion.read_organizacion.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20659,11 +20659,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.jsonld-organizacion_servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20685,11 +20685,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.jsonld-organizacion_servicio.read_organizacion_servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20712,11 +20712,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.multipart": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20763,11 +20763,11 @@ export interface components {
             readonly virtualGaleria?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.multipart-organizacion.read_organizacion.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20785,11 +20785,11 @@ export interface components {
             readonly id?: string | null;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.multipart-organizacion_servicio.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -20811,11 +20811,11 @@ export interface components {
             readonly etiquetaOpciones?: string;
         };
         /**
-         * @description ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
-         *     `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
-         *     nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
-         *     que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
-         *     `?organizacion=<uuid>` devuelve 0.
+         * @description ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+         *     `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+         *     contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+         *     `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+         *     texto → `SearchFilter`.**
          */
         "OrganizacionServicio.multipart-organizacion_servicio.read_organizacion_servicio.item.read": {
             /** @description Obtiene el nombre identificativo del servicio. */
@@ -39604,6 +39604,10 @@ export interface operations {
                 /** @description The collection page number */
                 page?: number;
                 nombre?: string;
+                /** @description Identificador (uuid o IRI) del recurso relacionado. */
+                organizacion?: string;
+                /** @description Varios identificadores (uuid o IRI) del recurso relacionado. */
+                "organizacion[]"?: string[];
             };
             header?: never;
             path?: never;

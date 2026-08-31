@@ -1364,9 +1364,48 @@ const onPoolPointerUp = () => {
 
 const puedeAplicarPlantilla = computed(() => !store.servicioActivo?.cotsegmentos?.length);
 
+/**
+ * Los servicios del prestador de ESTE componente, y sólo ésos.
+ *
+ * ⚠️ **El filtro se repite aquí a propósito, y no es desconfianza gratuita.** El backend ya
+ * filtra (`UuidRelacionFilter` sobre `organizacion`), pero entre el 19 y el 31/08/2026 no lo
+ * hacía —el apaño que lo cubría escuchaba un parámetro mal escrito— y nada en el editor lo
+ * denunciaba: la lista llegaba entera y se pintaba entera. Un desplegable que promete «los
+ * servicios de esta empresa» debe poder cumplirlo mirando el dato, no confiando en que la
+ * pregunta se hizo bien.
+ *
+ * `proveedorId` es el que trae cada servicio, no el que se pidió; ver el store.
+ */
+const opcionesServiciosPrestador = computed(() => {
+  const prestador = store.extractIdStr(store.componenteEnEdicion?.prestadorMaestroId ?? '');
+  // 🔥 La opción ya elegida NUNCA se esconde. `SearchableSelect` deriva su etiqueta de
+  // `options.find(o => o.value === modelValue)`: si desaparece de la lista, el campo pinta el
+  // placeholder como si no hubiera nada asignado, el operador vuelve a elegir y machaca el
+  // dato. Misma regla que los filtros blandos de tarifa (docs/Cotizaciones.md §6.c).
+  const elegido = store.extractIdStr(store.componenteEnEdicion?.prestadorServicioMaestroId ?? '');
+
+  return store.catalogos.proveedorServicios
+      .filter((ps) => ps.id === elegido || !prestador || !ps.proveedorId || ps.proveedorId === prestador)
+      .map((ps) => ({ value: ps.id, label: ps.nombre }));
+});
+
+/**
+ * Al abrir el desplegable, recargar si la lista no es de este prestador.
+ *
+ * Antes la condición era `length === 0`, y por eso una lista cargada para OTRO componente se
+ * quedaba pegada: no estaba vacía, así que no se recargaba, y el desplegable enseñaba los
+ * servicios del prestador anterior. Con el filtro de arriba ese caso ya no engaña —saldría
+ * vacío— pero seguiría sin traer lo que toca.
+ */
 watch(isProveedorOpen, (newVal) => {
   const proveedorId = store.componenteEnEdicion?.prestadorMaestroId;
-  if (newVal && proveedorId && store.catalogos.proveedorServicios.length === 0) {
+  if (!newVal || !proveedorId) return;
+
+  const cargada = store.catalogos.proveedorServicios;
+  const esDeOtro = cargada.length > 0
+      && cargada.every((ps) => ps.proveedorId && ps.proveedorId !== store.extractIdStr(proveedorId));
+
+  if (cargada.length === 0 || esDeOtro) {
     store.fetchProveedorServiciosDeProveedor(proveedorId);
   }
 });
@@ -2898,7 +2937,7 @@ store.$onAction(({ name, args }) => {
                     <div v-if="store.componenteActivo.prestadorMaestroId" class="flex gap-2 items-center mt-2">
                       <SearchableSelect
                           v-model="store.componenteActivo.prestadorServicioMaestroId"
-                          :options="store.catalogos.proveedorServicios.map(ps => ({ value: ps.id, label: ps.nombre }))"
+                          :options="opcionesServiciosPrestador"
                           placeholder="Servicio del prestador (ej. tipo de habitación)…"
                           :darkMode="false"
                           @change="val => store.onProveedorServicioChange(val)"

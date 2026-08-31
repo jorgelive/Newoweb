@@ -13,6 +13,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Api\Filter\UuidRelacionFilter;
 use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
@@ -30,27 +31,38 @@ use Symfony\Component\Uid\Uuid;
  * Expuesto en API Platform con filtros de búsqueda y seguridad por roles.
  */
 /**
- * ⚠️ **Filtrar por organización NO se hace aquí.** Se intentó con
- * `#[ApiFilter(SearchFilter::class, properties: ['organizacion' => 'exact'])]` y **no casa
- * nunca**: los ids son `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así
- * que compara texto contra binario. Comprobado contra producción: `?nombre=Grand` devuelve 1 y
- * `?organizacion=<uuid>` devuelve 0.
+ * ⚠️ **Filtrar por organización necesita `UuidRelacionFilter`, no `SearchFilter`.** Los ids son
+ * `binary(16)` y `SearchFilter` enlaza el valor sin declarar su tipo, así que compara texto
+ * contra binario y devuelve **cero siempre**. Medido contra producción: `?nombre=Grand` → 1,
+ * `?organizacion=<uuid>` → 0. La regla del proyecto es corta: **relación → `UuidRelacionFilter`;
+ * texto → `SearchFilter`.**
  *
- * Y declararlo roto es peor que no tenerlo, porque sale en el esquema y en `api.d.ts` como si
- * funcionara. Para eso está
- * {@see \App\Api\Controller\Travel\TravelOrganizacionServicioOpcionesController}, que
- * resuelve el UUID en PHP.
+ * ── El apaño que lo cubría estuvo doce días sin filtrar nada (31/08/2026) ────
+ * Hasta hoy esto lo resolvía `TravelOrganizacionServicioPorOrganizacionExtension`, que leía el
+ * parámetro **`organización_id`** — con tilde. El front manda `organizacion`, así que el `if`
+ * de la extensión no entró **ni una vez** desde el 19/08: el desplegable «Servicio del
+ * prestador» del editor enseñaba las habitaciones del Tambo del Inka y las clases de PeruRail
+ * bajo un prestador de Punta Cana.
  *
- * ✅ **Desde el 25/08/2026 hay solución general**: {@see \App\Api\Filter\UuidRelacionFilter}
- * ata el parámetro con su tipo Doctrine y filtra bien por relación. Este apaño y su extension
- * hermana (`TravelOrganizacionServicioPorOrganizacionExtension`) se pueden retirar y sustituir por
- * `#[ApiFilter(UuidRelacionFilter::class, properties: ['organizacion' => 'exact'])]`. No se hizo
- * en el mismo cambio para no mezclar el arreglo de Operaciones con un refactor de Travel, que
- * tiene sus propios consumidores.
+ * La tilde la puso el propio renombrado (`46a0d25a`, «desaparece proveedor»): un reemplazo de
+ * `proveedor` por `organización` alcanzó al nombre de un parámetro de query, donde la palabra
+ * iba sin acentuar. **Un parámetro que no casa no da error: API Platform lo ignora y devuelve la
+ * colección entera** — el mismo disfraz de §6 bis de `docs/Travel.md`, reintroducido por la
+ * puerta de atrás.
+ *
+ * Con el filtro declarado el parámetro sale en el esquema y en `api.d.ts`, que es lo que impide
+ * que vuelva a pasar: un nombre mal escrito ahora es un error de tipos en el front, no una lista
+ * de más.
+ *
+ * ⚠️ **El controlador se queda.** {@see \App\Api\Controller\Travel\TravelOrganizacionServicioOpcionesController}
+ * no es un apaño duplicado: lo consume el desplegable dependiente del CRUD de tarifas de
+ * EasyAdmin, que no habla API Platform.
  */
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial'
 ])]
+// Relación: va por `UuidRelacionFilter`. Con `SearchFilter` devolvía cero y sin filtro, todo.
+#[ApiFilter(UuidRelacionFilter::class, properties: ['organizacion' => 'exact'])]
 #[ApiResource(
     shortName: 'OrganizacionServicio',
     operations: [

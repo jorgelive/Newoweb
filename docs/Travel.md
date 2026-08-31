@@ -257,8 +257,88 @@ llamando desde siempre. API Platform ignora en silencio un parámetro que no est
 
 La segunda funcionaba de casualidad —quien llamaba buscaba luego por id dentro de la lista—. La
 primera **no**: el editor etiquetaba como del prestador elegido todo lo que llegara, así que el
-desplegable de servicios enseñaba el catálogo entero disfrazado. Los filtros ya están declarados
-en las dos entidades.
+desplegable de servicios enseñaba el catálogo entero disfrazado.
+
+### 🔥 Y volvió a pasar, por una tilde (31/08/2026)
+
+La primera fila de esa tabla se «arregló» con una extensión a mano
+(`TravelOrganizacionServicioPorOrganizacionExtension`) que leía el parámetro de query. El mismo
+commit que renombró todo (`46a0d25a`, «desaparece proveedor») hizo un reemplazo de `proveedor`
+por `organización` **y alcanzó al nombre del parámetro**, donde la palabra iba sin acentuar:
+
+```
+la extensión escuchaba :  organización_id     ← con tilde
+el front mandaba       :  organizacion        ← sin tilde
+```
+
+El `if` no entró **ni una vez en doce días**. Y como un parámetro no reconocido se ignora, el
+desplegable «Servicio del prestador» volvió exactamente al estado de la tabla de arriba: bajo
+*Occidental Caribe – Punta Cana* salían las habitaciones del Tambo del Inka, la Suite Vista al
+Río del Hatun Inti y las clases de PeruRail. Cero errores, cero líneas en el log.
+
+**Lo que enseña no es «cuidado con las tildes».** Es que un filtro escrito a mano —extensión o
+controlador— es un contrato que **sólo existe en la cabeza de quien lo escribió**: no sale en el
+esquema, no sale en `api.d.ts`, y nada compara el nombre que escucha con el que le mandan. La
+misma equivocación sobre un filtro **declarado** habría sido un error de tipos en el front.
+
+Arreglado sustituyéndolo por lo que la propia entidad ya tenía anotado como pendiente desde el
+25/08:
+
+```php
+#[ApiFilter(UuidRelacionFilter::class, properties: ['organizacion' => 'exact'])]
+```
+
+Sonda: `var/probar-filtro-servicios-organizacion.php`, que comprueba las **tres** respuestas que
+en pantalla se parecen —el catálogo entero (fallo de más), cero (fallo de menos, el de
+`SearchFilter` con uuid) y los de esa empresa— e incluye a propósito el caso del nombre mal
+escrito, para dejar por escrito que devuelve de más.
+
+⚠️ **El controlador de opciones NO se retiró**, aunque la nota vieja lo daba por sustituible:
+`TravelOrganizacionServicioOpcionesController` lo consume el desplegable dependiente del CRUD de
+tarifas de EasyAdmin, que no habla API Platform. Lo que sobraba era la extensión.
+
+### La mitad silenciosa: el front etiquetaba de más
+
+Arreglar el backend no bastó, y el motivo merece leerse porque **el front tenía escrita la
+mentira**. `fetchProveedorServiciosDeProveedor()` mapeaba así lo que llegaba:
+
+```ts
+proveedorId          // ← el id que se PIDIÓ, el mismo para las 22 filas
+```
+
+Con el filtro sin aplicarse llegaban los servicios de las nueve organizaciones y **todos
+quedaban marcados como del prestador elegido**. No había nada en memoria que pudiera
+contradecir la lista: el editor no enseñaba de más por descuido, lo afirmaba.
+
+Tres arreglos, y los tres se quedan aunque el backend ya filtre:
+
+| Qué | Por qué se queda |
+|---|---|
+| `proveedorId` = el que trae **cada servicio** (`ps.organizacion`) | Es el único dato que permite contradecir la respuesta |
+| `opcionesServiciosPrestador` filtra en la vista | Un filtro que deje de aplicarse dará una lista **corta**, no una mentirosa |
+| El `watch` recarga si la lista es de **otro** prestador | Antes la condición era `length === 0`: una lista cargada para otro componente se quedaba pegada |
+
+🔥 Y el filtro de la vista **nunca esconde la opción ya elegida**. `SearchableSelect` deriva su
+etiqueta de `options.find(o => o.value === modelValue)`, así que una opción filtrada fuera deja
+el campo pintando el placeholder como si no hubiera nada asignado — el operador vuelve a elegir
+y machaca el dato. Misma regla que los filtros blandos de `docs/Cotizaciones.md` §6.c.
+
+**Daño en datos: ninguno.** Medido el 31/08/2026, cero líneas de cotización y cero tarifas con
+un servicio que no fuera de su prestador — nadie llegó a elegir uno ajeno de los que el
+desplegable ofrecía:
+
+```bash
+php bin/console doctrine:query:sql --force-fetch "
+SELECT COUNT(*) FROM cotizacion_cotcomponente k
+  JOIN travel_organizacion_servicio s
+    ON HEX(s.id) = UPPER(REPLACE(k.prestador_servicio_maestro_id, '-', ''))
+ WHERE k.prestador_maestro_id IS NOT NULL
+   AND UPPER(REPLACE(k.prestador_maestro_id,'-','')) <> HEX(s.organizacion_id)"
+```
+
+En el catálogo esa incoherencia ya la impedía `TravelTarifa::validarConsistenciaLogica()`; en la
+cotización no había nada, y la consulta de arriba es lo que hay hasta que la recoja
+`CoherenciaCatalogoChecker`.
 
 Se comprueba en el propio esquema, que es donde no se puede mentir:
 
@@ -390,6 +470,25 @@ sólo preselecciona cuál se propone al instanciar.
   de **upsell**, un ítem que ofrece contratar otro componente. Es la única recursión del modelo.
 - Los flags `tituloTarifaVisible`, `categoriaTarifaVisible` y `modalidadTarifaVisible`
   controlan qué se le enseña al cliente de la tarifa asociada.
+
+### Las dos superficies i18n de la organización y su servicio (31/08/2026)
+
+`TravelOrganizacion` y `TravelOrganizacionServicio` tienen `titulo` **y** `descripcion`, las dos
+json i18n y las dos con `#[AutoTranslate]`. El reparto:
+
+```
+titulo       cómo se llama   «Occidental Caribe», «Piscinas y playa»
+descripcion  qué es          la prosa que lee el cliente en la ficha del proveedor
+```
+
+⚠️ **`descripcion` no llegaba al cliente hasta el 31/08/2026** — el normalizer público sólo
+inyectaba título, url e imágenes—, así que estaba a 0 filas en las dos tablas. Ya viaja; el
+detalle y el porqué del gate compartido, en `docs/Cotizaciones.md` §6.t.
+
+**Dónde escribir qué**, que es lo que evita duplicar: el **segmento** cuenta qué se hace y sirve
+para cualquier resort; la **descripción del servicio** cuenta cómo es en éste. Meter «tres
+piscinas, una con bar acuático» en el segmento lo ata a un hotel y rompe justo el ahorro que
+persigue todo el diseño de §11.quater.
 
 ### `TravelOrganizacion::$visibleParaCliente` — la bandera manda, el título aporta el texto
 
@@ -2034,6 +2133,7 @@ migración: `titulo` y `contenido` llevan `#[AutoTranslate]`.
 
 | Necesidad | Archivo | Símbolo |
 |---|---|---|
+| **Filtrar una colección por una relación (organización, prestador…)** | la entidad del recurso | `#[ApiFilter(UuidRelacionFilter::class, …)]` — **nunca** `SearchFilter` (devuelve cero) ni una extensión a mano (devuelve de más). Regenerar `api.d.ts` en `util/` y `pax/` (§6 bis) |
 | **Cambiar si un tipo lleva punto de recojo/entrega** | `src/Travel/Enum/ComponenteTipoEnum.php` | `puntosDeServicio()` (§11 quater) |
 | **Cambiar qué lugar le toca a un componente** | `src/Travel/Command/TravelEtiquetarLugaresCommand.php` | `REGLAS` — patrón y a qué otros lugares arrastra (§11 ter) |
 | **Escribirle a una organización proveedora** | `src/Travel/Service/Message/TravelProveedorDeContexto.php` | `para()` — el hilo lo abre `POST /message/conversations/abrir` |
