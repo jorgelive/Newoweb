@@ -7,6 +7,7 @@ namespace App\Pms\Command;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Finanzas\PmsSituacionDeCobro;
+use App\Pax\Service\TextosUi;
 use App\Pms\Finanzas\PmsSituacionDeCobroResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -45,6 +46,7 @@ final class PmsSituacionCobroCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly PmsSituacionDeCobroResolver $resolver,
+        private readonly TextosUi $textos,
     ) {
         parent::__construct();
     }
@@ -53,7 +55,11 @@ final class PmsSituacionCobroCommand extends Command
     {
         $this
             ->addArgument('localizador', InputArgument::OPTIONAL, 'Una reserva concreta, con su detalle')
-            ->addOption('limite', null, InputOption::VALUE_REQUIRED, 'Cuántas revisar en el listado', '25');
+            ->addOption('limite', null, InputOption::VALUE_REQUIRED, 'Cuántas revisar en el listado', '25')
+            // Los rótulos tal cual los va a leer el huésped. Es la única forma de comprobar la
+            // cadena entera —código del medio → clave de `pax_ui_i18n` → idioma— sin mandar un
+            // WhatsApp de verdad, y el sitio donde se ve si falta una traducción.
+            ->addOption('idioma', null, InputOption::VALUE_REQUIRED, 'Rótulos en este idioma (es, en, pt, fr, it, de, nl)', 'es');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -62,13 +68,13 @@ final class PmsSituacionCobroCommand extends Command
         $localizador = $input->getArgument('localizador');
 
         if (is_string($localizador) && $localizador !== '') {
-            return $this->unaReserva($io, $localizador);
+            return $this->unaReserva($io, $localizador, (string) $input->getOption('idioma'));
         }
 
         return $this->listado($io, max(1, (int) $input->getOption('limite')));
     }
 
-    private function unaReserva(SymfonyStyle $io, string $localizador): int
+    private function unaReserva(SymfonyStyle $io, string $localizador, string $idioma): int
     {
         $reserva = $this->em->getRepository(PmsReserva::class)->findOneBy(['localizador' => $localizador]);
 
@@ -108,7 +114,7 @@ final class PmsSituacionCobroCommand extends Command
                     $g['importe'],
                     $g['enSoles'] ?? '—',
                     $g['recargoPorcentaje'] !== null ? $g['recargoPorcentaje'] . ' %' : '—',
-                    implode(' · ', $g['etiquetas']),
+                    $this->rotulos($g['codigos'], $idioma),
                 ],
                 $situacion->mediosPorImporte(),
             ));
@@ -155,7 +161,7 @@ final class PmsSituacionCobroCommand extends Command
         if ($situacion->saldoTrasAdelanto !== null) {
             $tramo = $situacion->saldoTrasAdelanto;
 
-            $io->section('Y al llegar, el saldo');
+            $io->section($this->textos->texto('res_saldo_al_llegar', $idioma));
             $io->definitionList(
                 ['Queda por pagar' => sprintf(
                     '%s %s%s',
@@ -169,7 +175,7 @@ final class PmsSituacionCobroCommand extends Command
                     $g['importe'],
                     $g['enSoles'] ?? '—',
                     $g['recargoPorcentaje'] !== null ? $g['recargoPorcentaje'] . ' %' : '—',
-                    implode(' · ', $g['etiquetas']),
+                    $this->rotulos($g['codigos'], $idioma),
                 ],
                 $tramo->mediosPorImporte(),
             ));
@@ -225,6 +231,24 @@ final class PmsSituacionCobroCommand extends Command
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Los rótulos de unos medios en el idioma del huésped.
+     *
+     * Va por el **código** (`yape`, `efectivo`) y no por la etiqueta que trae el grupo: ésa sale
+     * de `FinMedioCobroTipo::label()` y está en español y sólo en español. Las claves
+     * `res_medio_*` de `pax_ui_i18n` llevan los siete idiomas desde hace tiempo — lo que faltaba
+     * era leerlas desde PHP ({@see TextosUi}).
+     *
+     * @param list<string> $codigos
+     */
+    private function rotulos(array $codigos, string $idioma): string
+    {
+        return implode(' · ', array_map(
+            fn (string $codigo): string => $this->textos->texto('res_medio_' . $codigo, $idioma),
+            $codigos,
+        ));
     }
 
     private function queSePide(PmsQueSePide $q): string
