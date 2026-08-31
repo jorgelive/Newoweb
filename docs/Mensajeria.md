@@ -10604,6 +10604,23 @@ ejercitada. Y `GenerarMensajePrepagoSkill` **sigue viva** componiendo su propio 
 líneas: es a quien esto viene a jubilar, y mientras coexistan hay dos verdades sobre el mismo
 dinero.
 
+### ⚠️ Una palabra suelta no tiene contexto: «Cargos» se tradujo como «puestos» (31/08/2026)
+
+`res_cargos` nació con el español «Cargos» y `AutoTranslate` rellenó los otros seis así:
+**Positions** (en), **Postes** (fr), **Posizioni** (it), **Positionen** (de), **Posities** (nl) y
+un **«Cargos»** portugués que significa lo mismo. Los seis leyeron «cargos» como **puestos de
+trabajo**. Es la familia del «a ese nombre» de Western Union: el traductor no ve la tarjeta, ve
+una palabra.
+
+**Y no se arregla escribiendo las traducciones por el ORM**: el listener corre en `preUpdate`,
+vuelve a traducir el término ambiguo y devuelve el mismo resultado — comprobado. Se corrigieron
+por **SQL directo**, la única vía que no lo dispara. Es la excepción exacta a la regla de
+CLAUDE.md, y conviene el porqué: aquí el listener **es** el problema, no la garantía.
+
+**La regla:** una cadena de UNA sola palabra se comprueba en los siete idiomas antes de darla por
+buena. Las de frase —«Saldo (a tu llegada, al entregarte las llaves)»— salieron perfectas a la
+primera, porque la frase lleva su propio contexto.
+
 ### Los rótulos del bloque de pago ya estaban traducidos; lo que faltaba era leerlos (30/08/2026)
 
 El cuerpo de una plantilla lo traduce `AutoTranslate` al guardarla. **El bloque de importes no**,
