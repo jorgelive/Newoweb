@@ -59,15 +59,66 @@ const formatDate = (dateStr?: string): string => {
 };
 
 /**
- * Formatea una fecha "date-only" (YYYY-MM-DD, sin hora) sin sufrir el
- * corrimiento de un día que produce `new Date('YYYY-MM-DD')` en zonas
- * horarias negativas (parsea como UTC medianoche).
+ * Parsea una fecha "date-only" (YYYY-MM-DD, sin hora) sin sufrir el corrimiento de un día que
+ * produce `new Date('YYYY-MM-DD')` en zonas horarias negativas (parsea como UTC medianoche).
  */
-const formatFechaInicio = (dateStr?: string | null): string => {
-  if (!dateStr) return 'S/F';
+const aFechaLocal = (dateStr: string): Date => {
   const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(y, m - 1, d);
 };
+
+const formatFechaInicio = (dateStr?: string | null): string =>
+  dateStr ? aFechaLocal(dateStr).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' }) : 'S/F';
+
+/**
+ * «31 ago.» — el día y el mes, sin año, para la punta izquierda de un tramo.
+ *
+ * ⚠️ Se compone por partes y NO con `toLocaleDateString(…, { day, month })`, que en `es-PE`
+ * devuelve **`31-ago.`**: sin año, el patrón del locale une con guion. Al lado de la otra punta
+ * («15 set. 2026») las dos mitades del tramo se veían escritas en formatos distintos, y el guion
+ * peleaba visualmente con la raya del propio rango.
+ */
+const diaYMes = (d: Date): string => {
+  const partes = new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'short' }).formatToParts(d);
+  const valor = (tipo: Intl.DateTimeFormatPartTypes): string =>
+    partes.find(p => p.type === tipo)?.value ?? '';
+
+  return `${valor('day')} ${valor('month')}`;
+};
+
+/**
+ * El tramo que ocupa una versión: «24 ago. – 28 ago. 2026».
+ *
+ * Es la pregunta que se le hace a esta lista al barrerla —cuándo viaja esta gente—, y hasta ahora
+ * sólo estaba la salida: dos expedientes que empiezan el mismo día se leían idénticos aunque uno
+ * fuera de tres días y el otro de tres semanas.
+ *
+ * El año se escribe UNA vez cuando las dos fechas caen en el mismo, que es el caso normal:
+ * repetirlo gasta el ancho de la fila en un dato que ya se dijo. En un viaje que cruza el fin de
+ * año sí van los dos, porque ahí el año es justo lo que distingue las dos puntas.
+ *
+ * Devuelve cadena vacía —no 'S/F'— si no hay fechas: quien la llama decide si eso deja hueco o
+ * cae a otra cosa. Una versión sin servicios todavía es normal.
+ */
+function rangoDeVersion(v: VersionDelFile): string {
+  const ini = v.fechaInicio ?? null;
+  const fin = v.fechaFin ?? null;
+
+  if (!ini && !fin) return '';
+  // Un viaje de un solo día no se escribe dos veces.
+  if (!ini || !fin || ini === fin) return formatFechaInicio(ini ?? fin);
+
+  const dIni = aFechaLocal(ini);
+  const dFin = aFechaLocal(fin);
+  const mismoAnio = dIni.getFullYear() === dFin.getFullYear();
+
+  const desde = mismoAnio
+    ? diaYMes(dIni)
+    : dIni.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
+  const hasta = dFin.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  return `${desde} – ${hasta}`;
+}
 
 const router = useRouter();
 const fileStore = useCotizacionFileStore();
@@ -325,16 +376,26 @@ const loadMore = (): void => {
                apretado en una pastilla se recortaba a dos palabras y dejaba de distinguir una
                versión de otra, que es justo para lo que sirve. -->
           <div v-if="file.versionesFechas?.length" class="mt-3 space-y-1">
-            <div v-for="v in (file.versionesFechas as VersionDelFile[])" :key="v.id ?? v.version"
-                 class="flex items-center gap-2 px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg">
-              <span class="text-[10px] font-black text-slate-400 shrink-0">V{{ v.version }}</span>
+            <div v-for="v in file.versionesFechas" :key="v.id ?? v.version"
+                 class="flex items-start gap-2 px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg">
+              <span class="text-[10px] font-black text-slate-400 shrink-0 leading-4">V{{ v.version }}</span>
 
-              <span class="min-w-0 flex-1 text-[11px] font-bold text-slate-600 truncate"
-                    :title="tituloDeVersion(v)">
-                {{ tituloDeVersion(v) || formatFechaInicio(v.fechaInicio) }}
+              <!-- El tramo va DEBAJO del título y no a su lado: el título es texto libre y ya se
+                   trunca, así que meterle una fecha al lado le quita las palabras que lo hacen
+                   distinguible de la versión de arriba. Cuando no hay título, el tramo ocupa su
+                   sitio —que es lo que se veía antes, sólo que ahora con las dos puntas—. -->
+              <span class="min-w-0 flex-1">
+                <span class="block text-[11px] font-bold text-slate-600 truncate leading-4"
+                      :title="tituloDeVersion(v)">
+                  {{ tituloDeVersion(v) || rangoDeVersion(v) || 'S/F' }}
+                </span>
+                <span v-if="tituloDeVersion(v) && rangoDeVersion(v)"
+                      class="block text-[10px] font-medium text-slate-400 truncate leading-4">
+                  {{ rangoDeVersion(v) }}
+                </span>
               </span>
 
-              <span v-if="v.estado" class="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide border"
+              <span v-if="v.estado" class="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide border leading-4"
                     :class="[uiEstadoCotizacion(v.estado).bg, uiEstadoCotizacion(v.estado).text, uiEstadoCotizacion(v.estado).border]">
                 {{ uiEstadoCotizacion(v.estado).label }}
               </span>

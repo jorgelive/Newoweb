@@ -9716,10 +9716,10 @@ export interface components {
              */
             cotizacionParaCliente?: string | null;
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -9772,10 +9772,10 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -9813,10 +9813,10 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -9999,10 +9999,10 @@ export interface components {
              */
             cotizacionParaCliente?: string | null;
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -10055,10 +10055,10 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -10096,10 +10096,10 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -10201,10 +10201,10 @@ export interface components {
              */
             cotizacionParaCliente?: string | null;
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -10273,10 +10273,10 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -10330,10 +10330,10 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -10466,10 +10466,10 @@ export interface components {
              */
             cotizacionParaCliente?: string | null;
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -10522,10 +10522,10 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {
@@ -10563,10 +10563,10 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /**
-             * @description Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-             *     expediente. La llena CotizacionFileCollectionProvider con UN query
-             *     escalar batched para toda la página del dashboard (sin N+1), evitando
-             *     hidratar $cotizaciones/$cotservicios por cada fila.
+             * @description El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+             *     estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+             *     para toda la página del dashboard (sin N+1), evitando hidratar
+             *     $cotizaciones/$cotservicios por cada fila.
              */
             versionesFechas?: {
                 [key: string]: {

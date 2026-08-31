@@ -1,6 +1,6 @@
 import type { components } from '@/types/api';
 import type { ApiIdioma, ApiPais } from '@/types/maestroModel';
-import {Language} from "@/types/cotizacionEditorModel.ts";
+import {Language, type VersionDelFile} from "@/types/cotizacionEditorModel.ts";
 
 // ============================================================================
 // PASAJERO
@@ -122,8 +122,17 @@ export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 
     filepasajeros?: ApiCotizacionFilepasajero[];
     filearchivos?: ApiCotizacionFilearchivo[];
     grupos?: ApiFileGrupo[];
-    /** Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión. Viene del listado admin (GetCollection). */
-    versionesFechas?: { version: number; fechaInicio: string | null }[];
+    /**
+     * Tramo, estado y título de cada versión. Viene del listado admin (GetCollection), inyectado
+     * por `CotizacionFileCollectionProvider`.
+     *
+     * ⚠️ Se estrecha porque el esquema no puede decir nada útil: `getVersionesFechas()` devuelve
+     * un `array` y OpenAPI lo exporta como diccionario abierto. El tipo real es `VersionDelFile`
+     * —el mismo que consume el dashboard—, y **se reutiliza en vez de reescribirlo**: escrito a
+     * mano aquí ya se quedó corto una vez (anunciaba `version` y `fechaInicio`, y desde el
+     * 30/08/2026 viajan seis claves), lo que obligaba a castear en la plantilla.
+     */
+    versionesFechas?: VersionDelFile[];
 };
 
 /**

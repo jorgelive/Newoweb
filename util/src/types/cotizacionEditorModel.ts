@@ -620,7 +620,16 @@ export interface VersionDelFile {
     estado?: CotizacionEstadoValue | null;
     /** i18n crudo: lo traduce el panel con su propio idioma. */
     titulo?: { language?: string; content?: string | null }[] | null;
+    /** `Y-M-D` del primer servicio del itinerario. */
     fechaInicio?: string | null;
+    /**
+     * `Y-M-D` del fin del viaje.
+     *
+     * ⚠️ No es la fecha del último servicio: si una estadía termina más tarde —el checkout que ya
+     * no tiene servicio propio— manda esa. La regla vive en
+     * `CotizacionFileCollectionProvider`, que es quien lo calcula.
+     */
+    fechaFin?: string | null;
 }
 
 /**

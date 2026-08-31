@@ -4051,6 +4051,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **La tarjeta de precio de la guía (colapsada/expandida, textos del pie)** → sección "TARJETA DE PRECIO" de `PaxCotizacionGuiaView.vue` + `finanzasAbiertas` / `hayPanelPrecio`. Ojo con el vocabulario: §6.
 - **Que un tour de catálogo muestre (o no) el total de grupo** → flag `totalesOcultos`: default al crear en `crearCotizacionVacia()` (store), toggle "Ocultar Total de Grupo" en `CotizacionEditorView.vue`, consumo en `ocultarTotales` de `PaxCotizacionGuiaView.vue`. Ver §6.b.
 - **Precio "desde" del escaparate del catálogo** → `preciosDesde[]` (bloque "Precios de Exhibición" del editor) → `PaxCatalogoPortadaView.vue` / `CatalogoDashboard.vue`. No es lo mismo que el flag anterior (§6.b).
+- **Lo que enseña cada fila de versión en el dashboard (estado, título, tramo de fechas)** → `CotizacionFileCollectionProvider` lo calcula en UNA consulta batched y viaja en `CotizacionFile::$versionesFechas`; lo pinta `DashboardView.vue` (`tituloDeVersion`, `rangoDeVersion`). **`fechaFin` no es `MAX(fechaInicioAbsoluta)`**: ver la sección del dashboard antes de tocar el DQL.
 - **En qué idioma ve el cliente la propuesta** → `idiomaCliente` (§6). Alta: `handleCreate` en `DashboardView.vue`. Cambio posterior: selector de `FileDetalle.vue` → propaga `CotizacionFileIdiomaClienteListener`. Por versión: selector del editor.
 - **Qué pasa al pasar una versión a `confirmado`** → dispara `CotizacionConfirmadaEventListener` y genera el cuadro de tráfico del Centro de Operaciones. Es un **snapshot y sólo en la transición**: lo que edites después no llega. El botón «Revisar cambios de operación» (editor, junto al selector de estado) y el icono de diff de `FileDetalle.vue` abren un panel que compara y aplica **sólo lo que apruebes, campo a campo**: `POST .../operacion/plan` y `POST .../operacion/aplicar`. Detalle completo en `docs/Operacion.md` §3.5 y §7.1. **Ojo:** para llegar a `confirmado` hay que pasar el guard de `publicable` — ver §4.b.
 - **Quién presta un servicio (hotel del pasajero, vuelo no incluido)** → `prestador*` en `CotizacionCotcomponente`. Sin cascada y sin default por día: los dos se retiraron. `resolverPrestador()` es un lector, **espejo en PHP y TS**. Filtros blandos: `opcionesTarifasFiltradas` (tarifa maestra) y `opcionesProveedoresTarifa` (proveedor) en `CotizacionEditorView.vue`. Ver §6.c. La fuente es `travel_tarifa.prestador_id` (y `comprador_id`), que vuelven a existir desde el 20/08/2026 — nacen vacíos y se llenan a mano en el tarifario.
@@ -4226,6 +4227,80 @@ francés porque el cliente es de Lyon no ayuda a quien barre su cartera.
 Se pintan en **filas y no en pastillas**: el título es texto libre y de largo variable, y
 apretado en una pastilla se recortaba a dos palabras, que es dejar de distinguir una versión de
 otra justo para lo que sirve.
+
+### Y su TRAMO: del primer servicio al fin del viaje (30/08/2026)
+
+Con sólo la fecha de salida, dos expedientes que empiezan el mismo día se leían idénticos aunque
+uno fuera de tres días y el otro de tres semanas. La pregunta que se le hace a esta lista al
+barrerla es **cuándo viaja esta gente**, y esa pregunta tiene dos puntas.
+
+`versionesFechas` lleva ahora `fechaFin` además de `fechaInicio`.
+
+#### ⚠️ `fechaFin` NO es `MAX(fechaInicioAbsoluta)`, y tampoco `MAX(fechaHoraFin)`
+
+Las dos formas obvias fallan, cada una por un lado:
+
+| Candidato | Qué se le escapa |
+|---|---|
+| `MAX(s.fechaInicioAbsoluta)` | Un viaje que acaba en un **checkout sin servicio propio**: el último bloque del itinerario es la víspera, y el tramo sale un día corto |
+| `MAX(k.fechaHoraFin)` en bruto | El **traslado de las 22:00 que acaba a las 00:30**: adelanta el fin un día entero. *Cruzar medianoche no es durar dos días* |
+
+Se toma el mayor de los dos, con el fin de componente acotado a **estadías**:
+
+```sql
+LEFT JOIN s.cotcomponentes k
+     WITH k.sinHorario = true AND DATE_DIFF(k.fechaHoraFin, k.fechaHoraInicio) > 0
+```
+
+Ese `WITH` es la condición **exacta** de `esEstadia`, que ya estaba escrita dos veces en el repo:
+en `PaxCotizacionGuiaView` (`!horaInicio && !horaFin && finPeriodo > base`) y en el chequeo
+`multidia-sin-noche` de `CoherenciaCatalogoChecker`, donde su ausencia hacía saltar 7 falsos
+positivos. Es la misma regla, tercera vez — si cambia, cambian las tres.
+
+⚠️ **Medido el 30/08/2026 sobre los datos reales: hoy los dos candidatos coinciden en las ocho
+cotizaciones que existen.** La rama de la estadía no se ha llegado a usar nunca. Está porque el
+caso que cubre —checkout sin traslado de salida— es normal en un viaje, no exótico, y porque el
+día que ocurra el síntoma sería una fecha un día corta: nadie la notaría.
+
+#### El `WITH` no multiplica el resultado
+
+`MIN`/`MAX` son inmunes a las filas duplicadas que introduce el join, así que la consulta sigue
+siendo **una sola** para toda la página del dashboard. El `getArrayResult()` no cambia: escalar,
+sin hidratar ni una `Cotizacion`.
+
+⚠️ **Las tres agregaciones llegan como cadena, no como `DateTimeImmutable`.** `getArrayResult()`
+no aplica la conversión de tipo de Doctrine a lo que sale de un `MIN`/`MAX`, así que
+`fechaHoraFin` viene tal cual (`'2026-09-15 18:30:00'`). Las normaliza `soloFecha()`, que conserva
+la rama del `DateTimeInterface` porque esa conversión depende de plataforma y driver — perderla
+convertiría un cambio de versión en un `fechaFin` mudo a `null`.
+
+#### En pantalla: el tramo va DEBAJO del título
+
+```
+V1  Viaje a Punta Cana 5D 4N              [ENVIADO]
+    24 ago. – 28 ago. 2026
+```
+
+Al lado del título no cabe: el título es texto libre y ya se trunca, así que una fecha a su
+derecha le quita justo las palabras que lo distinguen de la versión de arriba. Cuando **no** hay
+título, el tramo ocupa su sitio — que es lo que se veía antes, sólo que con las dos puntas.
+
+⚠️ **El año se escribe una sola vez** cuando las dos fechas caen en el mismo. Y la punta
+izquierda se compone **por partes** (`Intl.DateTimeFormat.formatToParts`), no con
+`toLocaleDateString(…, { day, month })`: sin año, el patrón de `es-PE` une con **guion**
+—`31-ago.`— y el tramo salía escrito en dos formatos distintos, con el guion peleando además con
+la raya del propio rango.
+
+#### El tipo se dejó de escribir a mano
+
+`ApiCotizacionFile.versionesFechas` estaba declarado como `{ version, fechaInicio }[]` y ya se
+había quedado corto: desde que viajan `id`, `estado` y `titulo`, la plantilla tenía que castear a
+`VersionDelFile`. Ahora **reutiliza ese mismo tipo** en vez de reescribirlo, y el cast desaparece.
+
+El estrechamiento sigue siendo legítimo —`getVersionesFechas()` devuelve un `array` y OpenAPI lo
+exporta como diccionario abierto, motivo 1 de la regla de CLAUDE.md—, pero se ancla a una sola
+declaración. Los docblocks de `CotizacionFile` prometían dos claves de las seis reales; ahora
+declaran la forma entera.
 
 ### El icono del expediente decía siempre «Abierto»
 
