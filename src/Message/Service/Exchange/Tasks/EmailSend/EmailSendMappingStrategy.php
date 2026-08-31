@@ -95,7 +95,11 @@ final readonly class EmailSendMappingStrategy implements MappingStrategyInterfac
         $asuntoType = $mensaje->getAsuntoType() ?? $conversacion->getContextType();
         $asuntoId = $mensaje->getAsuntoId() ?? $conversacion->getContextId();
 
-        $delAsunto = $this->resolvers->getResolver($asuntoType)?->getMessageVariables($asuntoId) ?? [];
+        // El mismo idioma con el que se elige el cuerpo unas líneas más arriba: si el bloque de
+        // dinero se compusiera en otro, saldrían el texto y las cifras en lenguas distintas.
+        $idioma = $conversacion->getIdioma()->getId();
+
+        $delAsunto = $this->resolvers->getResolver($asuntoType)?->getMessageVariables($asuntoId, $idioma) ?? [];
 
         return $mensaje->getVariablesPlantilla() + $delAsunto;
     }

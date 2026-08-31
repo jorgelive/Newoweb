@@ -153,7 +153,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             // en el contexto de la conversación sino en el hecho que los provocó —el escalado, que
             // llega a la conversación interna de un operador y habla de OTRO huésped—. Ver
             // Message::getVariablesPlantilla().
-            $variables = $resolver ? $resolver->getMessageVariables($asuntoId) : [];
+            $variables = $resolver ? $resolver->getMessageVariables($asuntoId, $templateLang) : [];
             $variables = $msg->getVariablesPlantilla() + $variables;
 
             // Obtenemos el nuevo JSON Greenfield completo

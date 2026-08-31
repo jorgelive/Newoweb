@@ -9,6 +9,7 @@ use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsInformacionFinanciera;
+use App\Pms\Finanzas\PmsRedactorDeCobro;
 use App\Pms\Entity\PmsReserva;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,6 +22,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly TelefonoDeContacto $telefonos,
+        private readonly PmsRedactorDeCobro $redactor,
         #[Autowire('%pax_book_guide_url%')]
         private readonly string $paxBookGuideUrl,
         #[Autowire('%pax_book_guide_url_nd%')]
@@ -129,7 +131,14 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         ];
     }
 
-    public function getMessageVariables(string $contextId): array
+    /**
+     * @param string|null $idioma Idioma del CUERPO. Sin él no se compone `bloque_pago`, que es
+     *                            la única variable redactada y la única que cuesta consultas.
+     *                            Ver el contrato.
+     *
+     * @return array<string, scalar|null>
+     */
+    public function getMessageVariables(string $contextId, ?string $idioma = null): array
     {
         $reserva = $this->getReserva($contextId);
         if (!$reserva) {
@@ -196,6 +205,16 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'account_detail_url'    => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador . '#detalle',
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
+            // ── EL DINERO, YA REDACTADO ─────────────────────────────────────────────
+            //
+            // Sólo si se pidió idioma: ver el contrato. Es la única variable que no es un dato
+            // sino un texto compuesto, y por eso es la única que cuesta consultas.
+            //
+            // ⚠️ Puede venir VACÍA, y el cuerpo tiene que aguantarlo: con un cruce de monedas sin
+            // imputar el read-model calla a propósito. Un cuerpo escrito como «Aquí tienes tu
+            // resumen: {{ bloque_pago }}» se queda a medias; la línea de arriba tiene que
+            // sostenerse sola.
+            'bloque_pago'           => $idioma !== null ? $this->redactor->bloque($reserva, $idioma) : null,
         ];
     }
 

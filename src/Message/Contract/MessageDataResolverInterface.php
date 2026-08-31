@@ -76,7 +76,8 @@ interface MessageDataResolverInterface
      * Recupera todas las variables dinámicas disponibles para inyectar en las
      * plantillas de mensajes (Twig / WhatsApp Templates).
      *
-     * @param string $contextId El UUID de la entidad.
+     * @param string      $contextId El UUID de la entidad.
+     * @param string|null $idioma    Idioma del CUERPO. Ver el aviso de abajo.
      * @return array<string, scalar|null> Diccionario llave-valor con las variables.
      *
      * @example
@@ -84,6 +85,18 @@ interface MessageDataResolverInterface
      * 'guest_name' => 'Juan',
      * 'checkin_date' => '25/12/2026'
      * ];
+     *
+     * ⚠️ **`$idioma` es opcional a propósito, y quien lo pasa recibe MÁS variables.**
+     *
+     * Las que se redactan —hoy `bloque_pago`— sólo se componen si se dice en qué idioma, y sale
+     * caro componerlas: consultan medios de cobro, tipo de cambio y enlaces vivos. Los tres
+     * mapeadores de envío conocen el idioma del cuerpo y lo pasan; las skills del agente, que
+     * usan esto como volcado de datos, no lo pasan y no lo pagan — ni le meten al modelo un
+     * bloque de texto en medio de un diccionario de campos.
+     *
+     * Va el idioma del CUERPO, no el del huésped: son distintos cuando el suyo no está entre los
+     * siete y la plantilla cae al inglés. Con el del huésped saldría el cuerpo en inglés y el
+     * bloque en español.
      */
-    public function getMessageVariables(string $contextId): array;
+    public function getMessageVariables(string $contextId, ?string $idioma = null): array;
 }

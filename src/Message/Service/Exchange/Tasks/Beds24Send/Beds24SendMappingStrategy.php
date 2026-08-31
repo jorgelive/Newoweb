@@ -108,7 +108,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             }
 
             // Extraemos las variables una sola vez para usarlas en texto y botones
-            $variables = $resolver !== null ? $resolver->getMessageVariables($asuntoId) : [];
+            $variables = $resolver !== null ? $resolver->getMessageVariables($asuntoId, $templateLang) : [];
 
             // 2. INTERPOLACIÓN DE VARIABLES (Soporta {{ var }} y {{var}})
             if (!empty($variables) && str_contains($content, '{{')) {
