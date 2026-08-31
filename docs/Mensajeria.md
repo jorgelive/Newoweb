@@ -10575,6 +10575,51 @@ es la excepción porque **cambia el importe**, y ahí nace el «pero si ponía 6
 **3 · El «al llegar» sólo con adelanto.** Pidiendo el total sería el mismo número otra vez y se
 lee como una segunda deuda — el mismo motivo por el que la ficha dejó de pintar ese bloque.
 
+#### `{{ estancias }}`: las fechas y las casitas, dichas de verdad (31/08/2026)
+
+`checkin_date` y `checkout_date` son el **mínimo y el máximo** de la reserva, y `room_name`
+concatena todas las unidades. Con una estancia es perfecto; con dos, la frase dice algo que no
+pasó. Medido sobre reservas reales:
+
+| Reserva | Lo que decían las variables | La verdad |
+|---|---|---|
+| `3DAGPB` | «del 28 de agosto al 6 de septiembre» | dos estancias con **4 noches de hueco** |
+| `XDGCYT` | «(Casita 1, Casita 4, Casita 6, Casita 7)» | cuatro casitas, con **tres** rangos distintos |
+| `KXET9H` | «del 27 de septiembre al 3 de octubre» | dos casitas que ni empiezan el mismo día |
+
+Y no es raro: **15** de las últimas multi-estancia. Casi todas contiguas o en paralelo, donde el
+rango acierta *por casualidad* — pero el nombre de la casita ya no. Es el mismo defecto que tenía
+`getNoches()` con el hueco, sólo que allí tocaba dinero.
+
+`PmsRedactorDeEstancias` agrupa **por par de fechas**, así que las casitas que comparten rango van
+juntas en una línea y las cuatro estancias de `XDGCYT` salen en tres:
+
+```
+del 19 de septiembre al 25 de septiembre · Casita 4, Casita 7
+del 19 de septiembre al 24 de septiembre · Casita 6
+del 24 de septiembre al 25 de septiembre · Casita 1
+```
+
+⚠️ **La gramática del rango es de cada idioma**, no del código: vive en `res_estancia_tramo` con
+dos marcadores —«del {{ desde }} al {{ hasta }}», «from {{ desde }} to {{ hasta }}»—, igual que el
+saludo. Y las fechas las formatea **ICU** con el patrón que cada locale considera correcto
+(`d 'de' MMMM` en español, `MMMM d` en inglés) vía `IntlDatePatternGenerator`, no con la tabla de
+meses en español que arrastra `GenerarMensajePrepagoSkill`. El año sólo aparece si el tramo cruza
+de año.
+
+⚠️ Los eventos **cancelados no salen**, y el espejo manual de Beds24 (§6.3) tampoco duplica la
+casita: dos eventos de la misma unidad y las mismas fechas se dicen una vez, porque «Casita 2 ·
+Casita 2» delataría una interioridad nuestra en un mensaje al huésped.
+
+**Lo lee también lo que falta**: `welcome_booking` dice hoy «Del {{ checkin_date }} al
+{{ checkout_date }}» y tiene el mismo defecto. Al reformular las bienvenidas, esta variable las
+arregla de paso.
+
+**Queda algo mejorable, y es sólo estilo:** en español sale «del 28 de agosto al 31 de agosto» y
+lo natural sería «del 28 al 31 de agosto». Colapsar el mes repetido exige una regla distinta por
+idioma —en inglés lo natural es «from September 27 to 30», que colapsa por el otro lado— así que
+haría falta una segunda cadena. Se deja dicho, no hecho.
+
 #### La invitación y el enlace van en el CUERPO
 
 La línea que manda a la ficha —«Si deseas saber más detalles y los medios de pago, ingresa al
