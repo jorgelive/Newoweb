@@ -202,6 +202,11 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // recibe esto por WhatsApp no ve la página, ve la URL, y un enlace tiene que decir a
             // qué lleva. Ver `docs/PmsBeds24ReservasSync.md` §12.5.2.
             'account_url'           => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador . '#resumen',
+            // ⚠️ La variante SIN dominio, que es la que aceptan los botones `url` de Meta: allí
+            // el dominio es fijo en la plantilla aprobada y sólo viaja el sufijo. Sin esta clave,
+            // el botón de la plantilla de pago no tenía a dónde apuntar y habría acabado usando
+            // `guide_path`, que abre la guía sin el resumen de cuenta desplegado.
+            'account_path'          => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador . '#resumen',
             'account_detail_url'    => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador . '#detalle',
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
@@ -255,6 +260,11 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // obligatorio al crear plantillas en Meta: uno que falte se envía vacío y Meta
             // rechaza la plantilla, o peor, la aprueba con un ejemplo que no se parece a nada.
             'account_url'           => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator . '#resumen',
+            // ⚠️ La variante SIN dominio, que es la que aceptan los botones `url` de Meta: allí
+            // el dominio es fijo en la plantilla aprobada y sólo viaja el sufijo. Sin esta clave,
+            // el botón de la plantilla de pago no tenía a dónde apuntar y habría acabado usando
+            // `guide_path`, que abre la guía sin el resumen de cuenta desplegado.
+            'account_path'          => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $dummyLocator . '#resumen',
             'account_detail_url'    => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator . '#detalle',
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),

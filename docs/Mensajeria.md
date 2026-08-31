@@ -10575,6 +10575,22 @@ es la excepción porque **cambia el importe**, y ahí nace el «pero si ponía 6
 **3 · El «al llegar» sólo con adelanto.** Pidiendo el total sería el mismo número otra vez y se
 lee como una segunda deuda — el mismo motivo por el que la ficha dejó de pintar ese bloque.
 
+#### La invitación y el enlace van en el CUERPO
+
+La línea que manda a la ficha —«Si deseas saber más detalles y los medios de pago, ingresa al
+enlace a continuación»— **no es del bloque**: es del cuerpo de la plantilla, con `{{ account_url }}`
+detrás. Por dos razones: es la misma en los tres casos, así que no tiene por qué entrar en la
+lógica que se bifurca; y el cuerpo ya es i18n con `AutoTranslate`, así que se traduce sola.
+
+**Sale también cuando el bloque viene vacío** —cruce de monedas, datos incompletos— y es
+deliberado: la ficha existe y se puede abrir. Si algún día molesta, se arregla en el disparador
+(`hayAlgoQuePedir()`) y no metiendo otra rama en el redactor.
+
+⚠️ **Para el botón de la plantilla de Meta hace falta `account_path`**, no `account_url`: en un
+botón `url` aprobado el dominio es fijo y sólo viaja el sufijo. Existían `guide_path` y
+`tours_catalog_path` pero no el de la cuenta, así que el botón habría acabado apuntando a
+`guide_path` — la guía sin el resumen desplegado. Añadido el 31/08/2026.
+
 **4 · El enlace de pago NO viaja.** El mensaje manda a la ficha y la ficha ya tiene su «Pagar
 ahora» junto a la cifra que cobra. Dos caminos al mismo cobro es el error que la propia ficha
 corrigió en su día. La línea de invitación la pone el CUERPO de la plantilla con
