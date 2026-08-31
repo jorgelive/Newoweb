@@ -253,8 +253,16 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             'que_se_pide' => match ($situacion->queSePide) {
                 PmsQueSePide::ADELANTO => 'ADELANTO: el anticipo para asegurar la reserva.',
                 PmsQueSePide::TOTAL => 'TOTAL: todo el saldo. NO le ofrezcas un adelanto.',
-                PmsQueSePide::NADA => 'NADA: no le pidas dinero. Motivo: '
-                    . $situacion->motivo->name,
+                // ⚠️ El motivo se CONCATENA si lo hay, no se da por hecho. `nada()` siempre
+                // pone uno, pero el tipo es `?PmsMotivoSinCobro` y nada obliga a que lo esté:
+                // con un `null` esto era un fatal —«property $name on null»— y la skill moría
+                // en vez de contestar. Lo cazó el nivel 8 de PHPStan.
+                //
+                // Y se degrada así, y no con un motivo inventado por defecto, porque la parte
+                // que importa es la primera: «no le pidas dinero» sigue entera. Rellenar el
+                // motivo con una constante sería decirle al modelo un porqué que no sabemos.
+                PmsQueSePide::NADA => 'NADA: no le pidas dinero.'
+                    . ($situacion->motivo !== null ? ' Motivo: ' . $situacion->motivo->name : ''),
             },
             // El saldo es lo que se mira primero, pero un «0.00» significa cosas distintas
             // según si hay cargos: sin cargos no es que esté pagada, es que no se ha cobrado.
