@@ -1258,6 +1258,43 @@ Ese último no lo arregla la capitalización: el nombre está en `lastName` y lo
 
 #### 🔀 El orden cruzado: lo decide el modelo, lo aplica el código
 
+##### 🔍 Y cómo se comprueba que está haciendo algo (31/08/2026)
+
+Llevaba desde el 19/08 funcionando **sin dejar una sola línea**. `info.log` pesa 8 MB y tiene
+**cero** `[OrdenNombre]`. La causa no era el nivel de log —producción sí escribe `info` desde que
+se quitó el `fingers_crossed`—: era que la **única** línea que el handler podía escribir era la
+del intercambio ya hecho, o sea **el caso raro**. El común, «no estaba cruzado», salía por un
+`return` mudo.
+
+Así que no había forma de distinguir dos cosas muy distintas:
+
+- lleva doce días revisando y no ha encontrado nada que arreglar;
+- no se está ejecutando.
+
+Ahora **los dos desenlaces se registran**, en `notice` para que se lean entre los 378 `[WebPush]`
+del día.
+
+Y hay un simulador que pregunta **por el mismo servicio que el worker**
+({@see \App\Pms\Nombre\RevisorDeOrdenDeNombre}), con su mismo prompt y su mismo esquema — uno
+que armara su propia consulta comprobaría otro sistema parecido:
+
+```
+pms:nombre:revisar --par "RODRIGUEZ BARRERA|ALISSON ANGELICA"
+pms:nombre:revisar ABC123
+pms:nombre:revisar --limite 12          # las últimas que entraron
+pms:nombre:revisar ABC123 --aplicar     # sin esto NO escribe
+```
+
+**La respuesta, medida el 31/08/2026:** el mecanismo funciona. Con el par documentado contesta
+`invertido: sí`, confianza `alta`, *«el campo nombre contiene apellidos hispanos y el campo
+apellido contiene nombres de pila»*. Y sobre las **12 reservas más recientes**, las doce salen
+`correcto` con confianza alta.
+
+O sea que la razón de no ver resultados es que **no hay nada que arreglar**: los nombres están
+entrando bien. La capitalización lo confirma por otro lado — de 351 reservas sólo 3 siguen en
+mayúsculas, y las tres son anteriores al 19/08.
+
+
 No hay regla determinista que lo resuelva —qué token es nombre y cuál apellido depende de la
 cultura, y en muchos países el orden invertido es el correcto—, así que aquí sí entra el modelo:
 
@@ -4917,7 +4954,8 @@ compartido tendría que parametrizarse justo en lo que cambia.
 |---|---|---|
 | Cambiar cómo se normaliza un nombre que llega en mayúsculas | `NombreSanitizer` | `formatear()` — sólo actúa si NO hay ninguna minúscula; se llama desde `BookingPullPersister::upsert()` |
 | Cambiar cuándo se revisa si nombre y apellido vienen cruzados | `OrdenDelNombre` + `PmsNombreOrdenListener` | `mereceRevision()` / `esNuestroIntercambio()` — el corta-bucles |
-| Cambiar el criterio con que el modelo juzga el orden | `RevisarOrdenDelNombreDispatchHandler` | `reglas()` y `esquema()` — el modelo NUNCA devuelve el nombre |
+| Cambiar el criterio con que el modelo juzga el orden | **`RevisorDeOrdenDeNombre`** | `reglas()` y `esquema()` — el modelo NUNCA devuelve el nombre |
+| **Ver qué contesta el revisor, sin esperar a una reserva** | `pms:nombre:revisar` | simula por defecto; `--par` prueba un par suelto |
 | Cambiar cómo se deduce el país de una reserva de OTA | `BookingPullPersister` | `resolvePais()` — en Airbnb manda el teléfono, §3.3 |
 | Corregir el país de las reservas YA guardadas | `PmsCorregirPaisOtaCommand` | `app:pms:corregir-pais-ota --dry-run` — idempotente, sólo con evidencia de teléfono |
 | Deducir el país desde un número de teléfono | `PhoneSanitizer` | `paisDelNumero()` — sólo con prefijo internacional; `null` si no se sabe |

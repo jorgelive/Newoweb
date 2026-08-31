@@ -86,11 +86,14 @@ final readonly class RevisarOrdenDelNombreDispatchHandler
             apellidoActual: $reserva->getApellidoCliente(),
         );
 
-        // ⚠️ **El caso normal también se cuenta.** Antes esto era un `return` mudo, y como el
-        // éxito iba en `info` —que producción oculta— el mecanismo entero no dejaba rastro: ni
-        // cuántas revisó, ni cuántas dejó quietas, ni cuánto estaba costando. Preguntado «¿esto
-        // funciona?», no había nada que mirar. Ahora los dos desenlaces salen en el mismo
-        // archivo. Ver `config/packages/monolog.yaml`, canal `orden_nombre`.
+        // ⚠️ **El caso normal también se cuenta.** Antes esto era un `return` mudo, y ahí estaba
+        // el agujero: la ÚNICA línea que este handler podía escribir era la del intercambio
+        // hecho, o sea el caso raro. El común —«no estaba cruzado»— salía por aquí sin decir
+        // nada. Resultado: `info.log` con 8 MB y **cero** líneas de `[OrdenNombre]`, y ninguna
+        // forma de distinguir «lleva doce días sin encontrar nada que arreglar» de «no se está
+        // ejecutando». Son cosas muy distintas y costaban lo mismo de averiguar: nada.
+        //
+        // Va en `notice` y no en `info` para que se lea entre los 378 `[WebPush]` del día.
         if ($par === null) {
             $this->logger->notice(sprintf(
                 '[OrdenNombre] Reserva %s: «%s / %s» se queda como vino (invertido=%s, confianza=%s). %s',
