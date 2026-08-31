@@ -82,7 +82,9 @@ const formManual = ref({
     conRecargo: true,
     vigenciaDias: 7,
     clienteNombre: '',
+    clienteApellido: '',
     clienteEmail: '',
+    clienteTelefono: '',
     referencia: '',
 });
 
@@ -91,7 +93,8 @@ function abrirFormManual(): void {
     recienCreado.value = null;
     formManual.value = {
         monto: '', moneda: 'USD', concepto: '', modulo: '',
-        conRecargo: true, vigenciaDias: 7, clienteNombre: '', clienteEmail: '', referencia: '',
+        conRecargo: true, vigenciaDias: 7,
+        clienteNombre: '', clienteApellido: '', clienteEmail: '', clienteTelefono: '', referencia: '',
     };
     formAbierto.value = true;
 }
@@ -107,8 +110,13 @@ async function guardarManual(): Promise<void> {
             modulo: formManual.value.modulo || undefined,
             conRecargo: formManual.value.conRecargo,
             vigenciaDias: formManual.value.vigenciaDias,
+            // Los cuatro son OPCIONALES y van al `antifraud_details` de la pasarela: es lo que
+            // hace legible su panel. Sin ellos Culqi rellena con `first_last_name` y nuestro
+            // correo de respaldo, y una venta deja de poderse identificar de un vistazo.
             clienteNombre: formManual.value.clienteNombre || undefined,
+            clienteApellido: formManual.value.clienteApellido || undefined,
             clienteEmail: formManual.value.clienteEmail || undefined,
+            clienteTelefono: formManual.value.clienteTelefono || undefined,
             referencia: formManual.value.referencia || undefined,
         });
     } catch (err) {
@@ -560,15 +568,35 @@ function fechaLarga(iso?: string | null): string {
                                 class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
                         </label>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <!-- ⚠️ Nombre y apellido SEPARADOS, no un «Cliente» de un solo campo.
+                             Es lo que la pasarela quiere (`first_name`/`last_name`) y juntarlos
+                             aquí obligaría a partirlos después, que es adivinar: «Ramos Garcia Mª
+                             Isabel» no la parte ninguna heurística. Los cuatro son opcionales,
+                             pero sin ellos el panel de Culqi enseña `first_last_name` y nuestro
+                             correo de respaldo, y la venta no se identifica de un vistazo. -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <label class="block">
-                                <span class="text-[10px] font-black text-slate-500 uppercase">Cliente</span>
-                                <input v-model="formManual.clienteNombre" type="text"
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Nombre</span>
+                                <input v-model="formManual.clienteNombre" type="text" maxlength="150"
                                     class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
                             </label>
                             <label class="block">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Apellido</span>
+                                <input v-model="formManual.clienteApellido" type="text" maxlength="150"
+                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                            </label>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <label class="block">
                                 <span class="text-[10px] font-black text-slate-500 uppercase">Email</span>
                                 <input v-model="formManual.clienteEmail" type="email"
+                                    class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
+                            </label>
+                            <label class="block">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Teléfono</span>
+                                <input v-model="formManual.clienteTelefono" type="tel" maxlength="40"
+                                    placeholder="+51 9…"
                                     class="mt-1 w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold" />
                             </label>
                             <label class="block">

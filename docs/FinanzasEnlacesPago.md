@@ -582,6 +582,43 @@ IPN FIRMADO (HMAC) confirma            NUESTRO servidor crea el cargo
 implementa vacío — la abstracción que parece limpia y luego hay que deshacer. Lo específico
 vive en su cliente (`CulqiClient::cobrarConToken()`) y lo consume su propio controlador.
 
+### 🪪 El apellido dejó de perderse por el camino (31/08/2026)
+
+`PmsReserva` guarda `nombreCliente` y `apellidoCliente` **en dos columnas**, y
+`PmsReservaOrigenCobroResolver` los pegaba con `getNombreApellido()` antes de crear el enlace. De
+ahí para abajo sólo había un campo, así que a la pasarela le llegaba «Vanesa Acosta» en
+`first_name` y nada en `last_name`.
+
+**La solución no es partir mejor: es dejar de juntarlos.** Recuperar el apellido al final es
+adivinar dónde empieza, y no hay heurística que acierte — `RGRABK` tiene nombre «Ramos Garcia» y
+apellido «Mª Isabel».
+
+Lo que se tocó, de punta a punta:
+
+| Pieza | Qué |
+|---|---|
+| `Version20260831120000` | columna `fin_enlace_pago.cliente_apellido` |
+| `FinEnlacePago` | propiedad, getters y `getClienteNombreCompleto()` para donde se enseña una línea |
+| `FinOrigenCobroDto` | un campo más en el contrato de origen |
+| `PmsReservaOrigenCobroResolver` | los lee separados en vez de pegarlos |
+| `FinEnlacePagoService` | `construir()`, `crear()` y `crearManual()` |
+| `FinEnlacePagoApiController` | `clienteApellido` en el cuerpo del manual |
+| `CulqiClient` | `first_name` + **`last_name`** |
+| `IzipayClient` | `billingDetails.lastName`, para que las dos pasarelas digan lo mismo |
+| `FinanzasView.vue` | nombre, apellido, **teléfono** y referencia, los cuatro opcionales |
+
+⚠️ **No se rellena hacia atrás.** Los 21 enlaces anteriores conservan el nombre completo en
+`cliente_nombre` y sin apellido. Partirlo ahora sería la adivinanza que este cambio viene a
+evitar, sobre datos que además ya se mandaron a la pasarela. Se leen igual: el panel concatena.
+
+⚠️ **El teléfono faltaba en el formulario manual**, no en el backend: `crearManual()` ya lo
+aceptaba y el DTO también. Sólo no había campo, así que un cobro manual nacía sin teléfono aunque
+el operador lo tuviera delante.
+
+⚠️ **Y en las reservas de OTA, nombre y apellido llegan como los manda el canal** — a veces
+cambiados, como `RGRABK`. Separarlos hace que la pasarela enseñe exactamente lo que Beds24 nos
+dio: para bien y para mal. Pegados, ese desorden no se veía.
+
 ### 🪪 Quién paga: `antifraud_details` (31/08/2026)
 
 En el panel de Culqi **todas** las ventas salían a nombre de `first_last_name first_last_name` y

@@ -21,7 +21,10 @@ final readonly class FinOrigenCobroDto
      * @param string      $referencia       Identificador legible del documento (localizador). Va al `orderId` de la pasarela.
      * @param string      $saldoPendiente   Importe que falta cobrar, con 2 decimales, en `moneda`. '0.00' si está saldado.
      * @param string      $moneda           ISO 4217 alfa-3 ('PEN', 'USD'). Es el id de `MaestroMoneda`.
-     * @param string|null $clienteNombre    Para prellenar el formulario de la pasarela.
+     * @param string|null $clienteNombre    Para prellenar el formulario de la pasarela. **Sólo el
+     *                                      nombre**: el apellido va aparte desde el 31/08/2026,
+     *                                      porque juntarlos aquí obligaba a adivinarlos después.
+     * @param string|null $clienteApellido
      * @param string|null $clienteEmail     Izipay lo usa para mandar el comprobante al comprador.
      * @param string|null $clienteTelefono
      */
@@ -31,6 +34,7 @@ final readonly class FinOrigenCobroDto
         public string $saldoPendiente,
         public string $moneda,
         public ?string $clienteNombre = null,
+        public ?string $clienteApellido = null,
         public ?string $clienteEmail = null,
         public ?string $clienteTelefono = null,
     ) {}

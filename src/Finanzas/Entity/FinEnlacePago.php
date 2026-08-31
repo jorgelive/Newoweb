@@ -153,6 +153,22 @@ class FinEnlacePago
     #[Groups(['fin_enlace:read'])]
     private ?string $clienteNombre = null;
 
+    /**
+     * El apellido, aparte. **No es partir `clienteNombre` en dos: es dejar de juntarlos.**
+     *
+     * El origen ya los tiene separados —`PmsReserva` guarda `nombreCliente` y `apellidoCliente`—
+     * y el resolutor los pegaba con `getNombreApellido()`. De ahí para abajo sólo había un campo,
+     * así que la pasarela recibía «Vanesa Acosta» en `first_name` y nada en `last_name`, y
+     * recuperar el apellido a esas alturas era adivinar dónde empieza. Con «Ramos Garcia Mª
+     * Isabel» no hay heurística que acierte.
+     *
+     * `null` en los cobros manuales que no lo rellenen y en los 21 enlaces anteriores al
+     * 31/08/2026, que conservan el nombre completo en `clienteNombre`. Ninguna pasarela lo exige.
+     */
+    #[ORM\Column(name: 'cliente_apellido', type: 'string', length: 150, nullable: true)]
+    #[Groups(['fin_enlace:read'])]
+    private ?string $clienteApellido = null;
+
     #[ORM\Column(name: 'cliente_email', type: 'string', length: 180, nullable: true)]
     #[Groups(['fin_enlace:read'])]
     private ?string $clienteEmail = null;
@@ -354,6 +370,17 @@ class FinEnlacePago
 
     public function getClienteNombre(): ?string { return $this->clienteNombre; }
     public function setClienteNombre(?string $nombre): self { $this->clienteNombre = $nombre; return $this; }
+
+    public function getClienteApellido(): ?string { return $this->clienteApellido; }
+    public function setClienteApellido(?string $apellido): self { $this->clienteApellido = $apellido; return $this; }
+
+    /** Nombre y apellido pegados, para donde se enseña una sola línea. */
+    public function getClienteNombreCompleto(): ?string
+    {
+        $completo = trim(($this->clienteNombre ?? '') . ' ' . ($this->clienteApellido ?? ''));
+
+        return $completo !== '' ? $completo : null;
+    }
 
     public function getClienteEmail(): ?string { return $this->clienteEmail; }
     public function setClienteEmail(?string $email): self { $this->clienteEmail = $email; return $this; }

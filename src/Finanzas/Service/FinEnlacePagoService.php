@@ -86,6 +86,7 @@ final class FinEnlacePagoService
             concepto: $concepto ?: $origen->descripcion,
             referencia: $origen->referencia,
             clienteNombre: $origen->clienteNombre,
+            clienteApellido: $origen->clienteApellido,
             clienteEmail: $origen->clienteEmail,
             clienteTelefono: $origen->clienteTelefono,
             conRecargo: $conRecargo,
@@ -111,6 +112,7 @@ final class FinEnlacePagoService
         string $concepto,
         ?string $referencia,
         ?string $clienteNombre,
+        ?string $clienteApellido,
         ?string $clienteEmail,
         ?string $clienteTelefono,
         bool $conRecargo,
@@ -155,6 +157,7 @@ final class FinEnlacePagoService
             ->setConcepto(substr($concepto, 0, 255))
             ->setOrigenReferencia($referencia)
             ->setClienteNombre($clienteNombre)
+            ->setClienteApellido($clienteApellido)
             ->setClienteEmail($clienteEmail)
             ->setClienteTelefono($clienteTelefono)
             ->setCreadoPor($creadoPor)
@@ -189,6 +192,7 @@ final class FinEnlacePagoService
         ?int $vigenciaDias = null,
         ?FinOrigenCobro $modulo = null,
         ?string $clienteNombre = null,
+        ?string $clienteApellido = null,
         ?string $clienteEmail = null,
         ?string $clienteTelefono = null,
         ?string $referencia = null,
@@ -207,6 +211,7 @@ final class FinEnlacePagoService
             concepto: $concepto,
             referencia: $referencia,
             clienteNombre: $clienteNombre,
+            clienteApellido: $clienteApellido,
             clienteEmail: $clienteEmail,
             clienteTelefono: $clienteTelefono,
             conRecargo: $conRecargo,

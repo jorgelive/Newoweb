@@ -124,7 +124,7 @@ final class FinEnlacePagoApiController extends AbstractController
      * de los campos condicionalmente requeridos.
      *
      * Body: `{monto, moneda, concepto, modulo?, conRecargo?, vigenciaDias?, pasarela?,
-     *         clienteNombre?, clienteEmail?, clienteTelefono?, referencia?}`
+     *         clienteNombre?, clienteApellido?, clienteEmail?, clienteTelefono?, referencia?}`
      */
     #[Route('/manual', name: 'crear_manual', methods: ['POST'])]
     #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para emitir cobros.')]
@@ -146,6 +146,7 @@ final class FinEnlacePagoApiController extends AbstractController
                     ? FinOrigenCobro::tryFrom((string) $datos['modulo'])
                     : null,
                 clienteNombre: $this->textoONull($datos['clienteNombre'] ?? null),
+                clienteApellido: $this->textoONull($datos['clienteApellido'] ?? null),
                 clienteEmail: $this->textoONull($datos['clienteEmail'] ?? null),
                 clienteTelefono: $this->textoONull($datos['clienteTelefono'] ?? null),
                 referencia: $this->textoONull($datos['referencia'] ?? null),

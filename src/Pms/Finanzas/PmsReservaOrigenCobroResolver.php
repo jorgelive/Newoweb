@@ -78,7 +78,12 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
             referencia: (string) $reserva->getLocalizador(),
             saldoPendiente: $saldo,
             moneda: $moneda,
-            clienteNombre: $reserva->getNombreApellido(),
+            // ⚠️ Separados, no `getNombreApellido()`. La reserva los guarda en dos columnas y
+            // pegarlos aquí era perder el apellido para siempre: la pasarela quiere los dos
+            // campos y a esas alturas ya no hay forma de saber dónde empieza uno —«Ramos Garcia
+            // Mª Isabel» no la parte ninguna heurística—. Ver `FinEnlacePago::$clienteApellido`.
+            clienteNombre: $reserva->getNombreCliente(),
+            clienteApellido: $reserva->getApellidoCliente(),
             clienteEmail: $reserva->getEmailCliente(),
             clienteTelefono: $this->telefonos->para($reserva),
         );

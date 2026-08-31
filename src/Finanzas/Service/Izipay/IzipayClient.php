@@ -128,6 +128,10 @@ final class IzipayClient implements FinPasarelaClientInterface
                 'reference' => $enlace->getOrigenReferencia(),
                 'billingDetails' => array_filter([
                     'firstName' => $enlace->getClienteNombre(),
+                    // Desde el 31/08/2026 el enlace guarda el apellido aparte. Se manda aquí
+                    // también: dejarlo sólo en Culqi sería que las dos pasarelas enseñaran al
+                    // mismo cliente de dos formas distintas.
+                    'lastName' => $enlace->getClienteApellido(),
                     'phoneNumber' => $enlace->getClienteTelefono(),
                 ]),
             ]),

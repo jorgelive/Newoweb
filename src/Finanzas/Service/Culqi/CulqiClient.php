@@ -163,12 +163,14 @@ final class CulqiClient implements FinPasarelaClientInterface
      * `phone`. Mandar `phone` no da error: se ignora en silencio y el panel se queda vacío otra
      * vez. Los otros cinco campos sí se llaman igual en las dos direcciones.
      *
-     * ── El nombre va ENTERO en `first_name` ─────────────────────────────────────
-     * `FinEnlacePago` guarda un solo campo —`Vanesa Acosta`— y Culqi quiere dos. No se parte por
-     * el primer espacio: «Ramos Garcia Mª Isabel» daría un apellido inventado, y el panel pinta
-     * los dos concatenados, así que enteros en el primero se lee exactamente igual sin adivinar
-     * nada. Es lo que ya hace {@see \App\Finanzas\Service\Izipay\IzipayClient} con
-     * `billingDetails.firstName`.
+     * ── Nombre y apellido, cada uno en el suyo ──────────────────────────────────
+     * Desde el 31/08/2026 el enlace los guarda **separados**, tal como los tiene la reserva. Antes
+     * llegaba un solo campo pegado y el nombre entero iba a `first_name`, porque partirlo aquí era
+     * adivinar: «Ramos Garcia Mª Isabel» no la parte ninguna heurística. Ahora no hace falta
+     * adivinar nada — el dato viene bien de origen.
+     *
+     * Los enlaces anteriores a esa fecha conservan el nombre completo en `clienteNombre` y sin
+     * apellido: se manda tal cual, que es lo que se venía haciendo, y el panel se lee igual.
      *
      * `address`, `address_city` y `country_code` existen en el contrato y **no se mandan**: no
      * los tenemos en el enlace, y Finanzas no puede preguntárselos al PMS —la dependencia va al
@@ -180,6 +182,7 @@ final class CulqiClient implements FinPasarelaClientInterface
     {
         $detalles = array_filter([
             'first_name' => $enlace->getClienteNombre(),
+            'last_name' => $enlace->getClienteApellido(),
             'phone_number' => $enlace->getClienteTelefono(),
         ], static fn (?string $v): bool => $v !== null && trim($v) !== '');
 

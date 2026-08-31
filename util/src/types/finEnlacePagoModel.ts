@@ -40,7 +40,12 @@ export interface FinEnlacePagoManualCreate {
     conRecargo?: boolean;
     vigenciaDias?: number;
     pasarela?: FinPasarela;
+    /**
+     * Sólo el nombre. El apellido va aparte desde el 31/08/2026: la pasarela quiere los dos
+     * campos y juntarlos obligaba a adivinar dónde empieza uno. Ver `FinEnlacePago`.
+     */
     clienteNombre?: string;
+    clienteApellido?: string;
     clienteEmail?: string;
     clienteTelefono?: string;
     /** Referencia libre del operador (nº de factura, pedido…). */
@@ -125,6 +130,7 @@ export interface FinEnlacePago {
     esManual: boolean;
     origenReferencia: string | null;
     clienteNombre: string | null;
+    clienteApellido: string | null;
     /**
      * Los tres datos del cliente que se tecleaban al crear un cobro MANUAL y no se volvían a
      * ver. En un manual no hay documento detrás del que sacarlos: esto es todo lo que hay.
@@ -214,6 +220,7 @@ export interface FinCobroOrigen {
     saldoPendiente: string;
     moneda: string;
     clienteNombre: string | null;
+    clienteApellido: string | null;
     clienteEmail: string | null;
     clienteTelefono: string | null;
 }
