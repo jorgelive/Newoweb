@@ -99,6 +99,22 @@ final class PaxCrearTextosCobroCommand extends Command
         'res_dos_monedas_saldado' => 'Pagaste en una moneda una cuenta emitida en otra. Está saldado: no queda nada pendiente.',
         'res_moneda_cuenta' => 'Cuenta',
         'res_moneda_pagaste' => 'Pagaste',
+
+        // ── El SEGUNDO tramo del cobro (30/08/2026) ─────────────────────────────────
+        //
+        // `res_saldo` («Saldo por pagar») dice cuánto, y no dice CUÁNDO. En el mensaje de
+        // pago eso no basta: el huésped acaba de leer un adelanto que sí se paga ahora, y
+        // sin el momento delante lo natural es entender que las dos cifras se piden juntas.
+        // Es la diferencia entre «te pido 35.91» y «te pido 107.74».
+        //
+        // Las llaves están a propósito: es lo que hace inconfundible el momento —cuando te
+        // las entregamos— sin depender de que el huésped sepa a qué hora es el check-in.
+        'res_saldo_al_llegar' => 'Saldo (a tu llegada, al entregarte las llaves)',
+
+        // El gemelo de `res_recargo_nota` para la línea SIN recargo. Existe porque el hueco
+        // se lee mal: una línea con «incluye 5.5% de comisión» y otra con nada al lado
+        // invita a pensar que la comisión también está ahí y no se ha escrito.
+        'res_sin_comision' => 'Sin comisión',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

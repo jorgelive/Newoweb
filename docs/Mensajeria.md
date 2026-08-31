@@ -10358,6 +10358,73 @@ tarjeta, saldo por efectivo o tarjeta. Ninguna de las dos listas es la otra.
 | El mensaje de pago | pendiente — es el consumidor para el que se hizo |
 | La tarjeta de `pax` | **todavía no lo enseña**: hoy sólo pinta el primer tramo |
 
+### Los rótulos del bloque de pago ya estaban traducidos; lo que faltaba era leerlos (30/08/2026)
+
+El cuerpo de una plantilla lo traduce `AutoTranslate` al guardarla. **El bloque de importes no**,
+porque no se guarda: se compone al enviar. Así que la prosa saldría en el idioma del huésped y
+los rótulos de dentro —«Transferencia bancaria», «Incluye 5.5% de comisión»— en castellano, en
+el mismo mensaje. Es la familia del «a ese nombre» de Western Union: lo que se redacta a mano
+para alguien que lee en otro idioma.
+
+**La sorpresa fue que no había casi nada que traducir.** `pax_ui_i18n` tiene 71 claves de scope
+`reserva`, las siete lenguas cada una, y son justo las piezas: `res_medio_*`, `res_pide_adelanto`,
+`res_pide_total`, `res_prepago_*`, `res_saldo`, `res_saldo_tarjeta`, `res_recargo_nota` (que
+además ya interpola, «Incluye {{ pct }}% de comisión»).
+
+Y el read-model ya estaba preparado: `mediosPorImporte()` manda los **códigos** además de las
+etiquetas, con este comentario escrito días antes — *«mandar sólo la etiqueta era enseñarle
+"Transferencia bancaria" a un huésped que lee en inglés»*. La previsión estaba hecha; sólo la
+usaba `pax`.
+
+#### Lo que faltaba: `App\Pax\Service\TextosUi`
+
+Nadie leía `pax_ui_i18n` **desde PHP**. En `pax` el reparto es otro —el provider se las lleva
+todas y el front resuelve con el idioma del selector—, y como nunca se había redactado nada en el
+servidor, el lector no existía.
+
+`TextosUi::texto(clave, idioma, marcadores)` carga las ~210 filas **una vez** (un mensaje toca
+quince claves; quince consultas sería el N+1 que este módulo evita con cuidado) y sustituye los
+`{{ marcadores }}`.
+
+⚠️ **Cae al español, no al inglés**, al revés que `MessageTemplate::extract()`. No es
+incoherencia: una plantilla la escribe una persona y puede nacer en inglés, pero estas cadenas
+llevan `sourceLanguage: 'es'`, así que el español es el único idioma que siempre está. Caer al
+inglés sería caer a algo que puede no existir.
+
+⚠️ **Sin la clave devuelve la clave**, no cadena vacía. Un `res_medio_yape` en mitad de un
+WhatsApp es feo y se arregla el mismo día; un hueco en la lista de medios no lo nota nadie y el
+huésped se queda sin saber que podía pagar por ahí.
+
+#### El idioma tiene que ser el MISMO que el del cuerpo
+
+`$conversacion->getIdioma()->getId() ?? 'es'`, que es lo que ya usa `EmailSendEnqueuer` para
+elegir el cuerpo de la plantilla. **No `$reserva->getIdioma()`**, que es el idioma *deducido* y
+no el que la persona eligió — el error que ya costó una tarde con la ficha de `pax`. Con dos
+fuentes distintas saldría la prosa en inglés y el bloque en español.
+
+#### Las dos cadenas que había que redactar
+
+| Clave | Español | Por qué no valía una existente |
+|---|---|---|
+| `res_saldo_al_llegar` | «Saldo (a tu llegada, al entregarte las llaves)» | `res_saldo` dice cuánto y no dice CUÁNDO. El huésped acaba de leer un adelanto que sí se paga ahora: sin el momento delante, lo natural es entender que las dos cifras se piden juntas |
+| `res_sin_comision` | «Sin comisión» | el hueco se lee mal — una línea con «incluye 5.5%» y otra con nada al lado invita a pensar que la comisión también está ahí y no se ha escrito |
+
+Entran por `pax:textos:cobro`, que es idempotente por la clave natural y pasa por el ORM para que
+`AutoTranslate` rellene los siete. **Nunca por SQL**: un `INSERT` se salta el listener y la cadena
+nacería sólo en español.
+
+#### Cómo se comprueba sin mandar un WhatsApp
+
+`pms:situacion-cobro <localizador> --idioma en` imprime los rótulos tal cual los va a leer el
+huésped, resolviendo por código igual que hará el mensaje. Es la cadena entera —código del medio
+→ clave de `pax_ui_i18n` → idioma— y el sitio donde se ve si falta una traducción.
+
+#### Lo que NUNCA se traduce
+
+Importes, códigos de moneda, números de cuenta, CCI, banco y **el titular**. Es la lección de
+§22.24: «a ese nombre» traducido al italiano dejó un giro sin poder cobrar. Se traducen los
+rótulos, y ésos ya están.
+
 ### El desorden del que sale
 
 Había **seis** productores de mensajes/datos sobre dinero al huésped y **cero** plantillas de
