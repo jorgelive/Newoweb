@@ -10540,31 +10540,59 @@ posible: la prosa vive en el cuerpo, traducido a siete idiomas por `AutoTranslat
 entran por `{{ bloque_pago }}`. Se puede reformular una bienvenida sin tocar el dinero, y al
 revés.
 
-Verificado en producción el 31/08/2026, las dos variantes:
+El formato quedó cerrado con Jorge el 31/08/2026, y son **tres formas**:
 
 ```
-*Total de la reserva:* USD 107.74 (S/ 360.93)
-
-*Total a pagar:*
-▪️ *Yape, Plin, Transferencia bancaria, Efectivo:* USD 107.74 (S/ 360.93) _Sin comisión_
-▪️ *Tarjeta de crédito:* USD 113.67 (S/ 380.79) _Incluye 5.5% de comisión_
-🔗 Pagar ahora: https://pax.openperu.pe/pago/…
-```
-
-```
-*Adelanto para asegurar tu reserva:*
-▪️ *Western Union:* USD 60.96 _Sin comisión_
-▪️ *Tarjeta de crédito:* USD 64.31 _Incluye 5.5% de comisión_
-🔗 Pagar ahora: …
+*Adelanto para asegurar tu reserva:* USD 60.96
+_Equivalente a la primera noche · Total de la reserva: USD 304.80_
+_Con tarjeta de crédito: USD 64.31 — Incluye 5.5% de comisión_
 
 *Saldo (a tu llegada, al entregarte las llaves):* USD 243.84
-▪️ *Efectivo:* USD 243.84 _Sin comisión_
-▪️ *Tarjeta de crédito:* USD 257.25 _Incluye 5.5% de comisión_
+```
+```
+*Saldo por pagar:* USD 260.40
+_Con tarjeta de crédito: USD 274.72 — Incluye 5.5% de comisión_
+```
+```
+*Total a pagar:* USD 107.74 (S/ 360.93)
+_Con tarjeta de crédito: USD 113.67 (S/ 380.79) — Incluye 5.5% de comisión_
 ```
 
-Los dos tramos con **medios distintos** —arriba Western Union, abajo efectivo— sin que el
-redactor sepa por qué: eso lo decide el catálogo. Y en inglés sale entero en inglés, con el
-titular, los números y las monedas intactos.
+#### Las cuatro decisiones de forma
+
+**1 · Abre por la petición, no por el total.** El total es orden de contabilidad; en un WhatsApp
+la primera línea es el asunto, y el asunto es «adelanta 60.96». El total va detrás y en la misma
+línea que el porqué, que es donde de verdad sirve: *60.96 de 304.80* se entiende solo.
+
+**2 · Los medios NO viajan; la tarjeta sí.** La regla:
+
+> **Si cambia el número, va en el mensaje. Si es un cómo-se-hace, va en la ficha.**
+
+Nombrar «Western Union» en el mensaje es quedarse a medias justo en la mitad que envejece —
+mañana se añade un banco o cambia una audiencia y el texto sigue diciendo lo de hoy. La tarjeta
+es la excepción porque **cambia el importe**, y ahí nace el «pero si ponía 60.96».
+
+**3 · El «al llegar» sólo con adelanto.** Pidiendo el total sería el mismo número otra vez y se
+lee como una segunda deuda — el mismo motivo por el que la ficha dejó de pintar ese bloque.
+
+**4 · El enlace de pago NO viaja.** El mensaje manda a la ficha y la ficha ya tiene su «Pagar
+ahora» junto a la cifra que cobra. Dos caminos al mismo cobro es el error que la propia ficha
+corrigió en su día. La línea de invitación la pone el CUERPO de la plantilla con
+`{{ account_url }}`, que es también donde se decide cómo redactarla.
+
+#### La política es un DATO, no una frase
+
+«Equivalente a la primera noche» no se escribe en el redactor: vive en
+`PmsEstablecimientoVirtual::$politicaPrepago` —un enum de cinco casos, por establecimiento
+virtual— y `PmsPoliticaPrepago::claveI18n()` devuelve su clave, ya traducida en `pax_ui_i18n`. La
+ficha del huésped la leía desde siempre; el read-model no la llevaba, así que el mensaje no podía
+decirla. Ahora viaja en `PmsSituacionDeCobro::$claveDeLaPolitica`.
+
+⚠️ **El PLAZO, en cambio, no es un dato y no debe serlo.** Las 24 horas existen como política
+para poder cancelar, no como algo que se persiga, y no están en ninguna entidad. Van escritas en
+el cuerpo de `politicas_booking` —que es de Booking por `allowed_sources`— y **no** en
+`pago_texto`, que lo reciben también las directas y Airbnb: un plazo que no se aplica, dicho a
+todo el mundo, es una amenaza que agria el tono sin ganar nada.
 
 #### ⚠️ El idioma es el del CUERPO, no el del huésped
 
