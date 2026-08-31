@@ -1258,6 +1258,29 @@ Ese último no lo arregla la capitalización: el nombre está en `lastName` y lo
 
 #### 🔀 El orden cruzado: lo decide el modelo, lo aplica el código
 
+##### ⚠️ De qué depende que esto no entre en bucle
+
+`esNuestroIntercambio()` corta la realimentación de **nuestro** guardado, no la del canal. Si un
+pull volviera a escribir el par cruzado, el listener lo vería como un cambio ajeno y preguntaría
+otra vez: **una llamada al modelo por cada pull, indefinidamente**, y en el log parecería
+actividad normal.
+
+Hoy no ocurre, y por una coincidencia que conviene tener escrita:
+
+| | Exige |
+|---|---|
+| `OrdenDelNombre::mereceRevision()` | nombre **y** apellido, ≥2 letras |
+| `hasStrongContactData` (cierra `datosLocked`) | `lastName !== ''` **o** email o teléfono |
+
+Toda reserva revisable cierra su candado **en el mismo flush** en que se escribe el nombre, así
+que el pull siguiente ya no lo toca y el intercambio sobrevive. Medido el 31/08/2026: **326 de
+329** reservas con apellido tienen el candado cerrado; las 3 abiertas son directas —dos son
+bloqueos— y no pasan por el pull.
+
+**Si alguien endurece `hasStrongContactData`** —«que exija también email», que es razonable—
+quedan reservas con apellido y candado abierto, y el bucle se abre. Los dos archivos se citan
+ahora mutuamente para que no se descubra en la factura del modelo.
+
 ##### 🔍 Y cómo se comprueba que está haciendo algo (31/08/2026)
 
 Llevaba desde el 19/08 funcionando **sin dejar una sola línea**. `info.log` pesa 8 MB y tiene

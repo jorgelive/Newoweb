@@ -83,6 +83,22 @@ final readonly class OrdenDelNombre
      * No basta con «el nombre cambió»: un operador que corrige una tilde también cambia el
      * nombre, y ése sí queremos revisarlo.
      */
+    /**
+     * ⚠️ **De qué depende que esto no entre en bucle, y no está en este archivo.**
+     *
+     * `esNuestroIntercambio()` corta la realimentación de NUESTRO guardado, pero no la del
+     * canal: si un pull volviera a escribir el par cruzado, el listener lo vería como un cambio
+     * ajeno y preguntaría otra vez. Una llamada al modelo por pull, indefinidamente.
+     *
+     * Hoy no ocurre porque `BookingPullPersister` cierra `datosLocked` **en el mismo flush** en
+     * que escribe el nombre, y su condición (`hasStrongContactData`) es cierta en cuanto hay
+     * apellido — que es justo lo que `mereceRevision()` exige. Toda reserva revisable está ya
+     * bloqueada. Medido el 31/08/2026: 326 de 329 con apellido tienen el candado cerrado, y las
+     * 3 abiertas son directas (dos son bloqueos), que no pasan por el pull.
+     *
+     * Es una dependencia real entre dos archivos que no se citaban. Si alguien endurece esa
+     * condición, este mecanismo hay que revisarlo.
+     */
     public static function esNuestroIntercambio(
         ?string $nombreAntes,
         ?string $apellidoAntes,

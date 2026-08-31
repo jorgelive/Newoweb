@@ -392,7 +392,21 @@ final class BookingPullPersister implements ResetInterface
             $bruto = $mobile !== '' ? $mobile : $phone;
             $reserva->setTelefono($bruto !== '' ? $this->phoneSanitizer->cleanPhoneNumber($bruto, $pais->getId()) : null);
 
-            // SOLO bloqueamos (cerramos candado) si llegó información sólida
+            // SOLO bloqueamos (cerramos candado) si llegó información sólida.
+            //
+            // ⚠️ **Y de esta línea depende el revisor de orden de nombre, aunque no lo diga.**
+            // `OrdenDelNombre::mereceRevision()` exige nombre Y apellido; `hasStrongContactData`
+            // es cierto en cuanto hay apellido. O sea que toda reserva que el revisor llegue a
+            // tocar ya cerró su candado **en este mismo flush**, y por eso el intercambio que
+            // haga sobrevive al pull siguiente.
+            //
+            // Si esto se endureciera —«que exija también email», que es una decisión
+            // razonable—, quedarían reservas con apellido y candado abierto. Ahí se abre un
+            // bucle: el pull escribe cruzado, el modelo lo endereza, el pull lo vuelve a
+            // cruzar, el listener lo ve como cambio ajeno y vuelve a preguntar. Una llamada al
+            // modelo por pull, para siempre, y en el log parecería actividad normal —
+            // `OrdenDelNombre::esNuestroIntercambio()` NO lo corta: sólo reconoce nuestro
+            // propio intercambio, no la reversión del canal.
             if ($hasStrongContactData) {
                 $reserva->setDatosLocked(true);
             }
