@@ -761,7 +761,17 @@ const gruposCargos = computed<GrupoCargos[]>(() => {
 });
 
 /** ¿La reserva tiene más de una casita? Sólo entonces pedimos elegir estancia al crear. */
-const hayVariasEstancias = computed(() => (finanzas.info?.estancias?.length ?? 0) > 1);
+/**
+ * Las estancias a las que tiene sentido cargarle algo hoy.
+ *
+ * Una cancelada conserva sus cargos —son historia— pero no debería recibir ninguno nuevo, y
+ * sobre todo no debería contar para decidir si «hay que elegir estancia»: con una viva y una
+ * cancelada, el panel pedía elegir entre una casita real y un fantasma.
+ */
+const estanciasVivas = computed(() =>
+    (finanzas.info?.estancias ?? []).filter(e => e.estado !== 'cancelada'));
+
+const hayVariasEstancias = computed(() => estanciasVivas.value.length > 1);
 
 /**
  * La cabecera de estancia se muestra SIEMPRE, aunque haya una sola.
@@ -883,7 +893,12 @@ function empezarEdicionCargo(c: PmsCargoFinanciero): void {
 function abrirNuevoCargo(): void {
     cargoEditandoId.value = null;
     cargoNuevoAbierto.value = true;
-    const estancias = finanzas.info?.estancias ?? [];
+    // ⚠️ Las CANCELADAS no cuentan para preseleccionar. Una reserva con una estancia viva y otra
+    // cancelada tiene dos, así que el `length === 1` no se cumplía y el operador tenía que
+    // elegir entre una casita real y un fantasma. En `B4YXZ7` así acabó un cargo colgado de la
+    // Casita 1 cancelada. Siguen en el desplegable —hay cargos históricos que reasignar— pero
+    // no participan del atajo.
+    const estancias = estanciasVivas.value;
     cargoForm.value = {
         tipoCargo: '',
         descripcion: '',

@@ -4117,6 +4117,37 @@ trampa peor que no tenerlo.
 > el frontend, se encontrará con este mismo silencio.
 
 
+### 👻 El cuadro de una estancia cancelada parecía una estancia viva (31/08/2026)
+
+`B4YXZ7` tenía dos estancias: Casita 6 (viva, 325.50) y Casita 1, **cancelada**. En el panel
+financiero, la Casita 1 salía como un cuadro normal —su casita, sus fechas, `US$ 0.00`—
+indistinguible de una estancia viva a la que falta ponerle precio. Se le borraban los cargos y el
+cuadro seguía.
+
+**Por qué seguía:** los grupos de cargos se siembran **desde las estancias, no desde los cargos**,
+y es deliberado — una estancia sin cargos también necesita cabecera, porque ahí vive el tooltip
+del coste teórico, que es lo que se mira *antes* de poner precio. Borrar los cargos no podía
+quitar el cuadro.
+
+**Por qué confundía:** `PmsInformacionFinanciera::getEstancias()` mandaba `unidad`, `inicio`,
+`fin`, `canal` y `costoTeorico` — **pero no el estado**. El panel no tenía cómo saberlo.
+
+Tres cosas, y ninguna esconde nada:
+
+| | |
+|---|---|
+| `getEstancias()` manda `estado` | el dato que faltaba |
+| El grupo cancelado se **marca** | icono de prohibido, título tachado y etiqueta «Cancelada». Sus cargos se quedan: son historia y borrarlos de la vista pierde el rastro |
+| No cuenta para el atajo de «nuevo cargo» | con una viva y una cancelada había dos estancias, así que el panel pedía elegir entre una casita real y un fantasma. Sigue en el desplegable —hay cargos históricos que reasignar— pero no decide el atajo |
+
+**Y el cargo de 0.00 no lo puso el sistema.** Los tiempos lo dicen: el evento se canceló a las
+10:35 y el cargo se creó a las 10:40, `es_automatico = 0` y sin `beds24_item_id`. Fue manual,
+sobre un cuadro que no decía que estaba cancelado — que es justo el fallo de arriba.
+
+⚠️ Lo que **no** se ha tocado: `PmsCargosAutomaticosService::aplica()` excluye bloqueos y
+extensiones pero **no las canceladas en general**. Hoy no muerde porque las líneas en cero ya no
+las crea nadie, pero la puerta está abierta.
+
 ### ⚠️ Las noches son la UNIÓN de las estancias, no el intervalo (31/08/2026)
 
 `PmsReserva::getNoches()` era `fechaLlegada->diff(fechaSalida)`: de la primera entrada a la
