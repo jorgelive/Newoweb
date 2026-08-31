@@ -357,7 +357,8 @@ class PmsInformacionFinanciera
 
             $tipo = $cargo->getTipoCargo() ?? PmsTipoCargo::OTRO;
 
-            if (!$this->activa && $tipo !== PmsTipoCargo::PENALIZACION) {
+            // Sin excepción para la penalización: ver `getLineasCliente()` y §12.7.0.
+            if (!$this->activa) {
                 continue;
             }
 
@@ -420,8 +421,9 @@ class PmsInformacionFinanciera
                 continue;
             }
 
-            // Cabecera ANULADA: sólo la penalización cuenta, igual que en el rollup (§12.7).
-            if (!$this->activa && $cargo->getTipoCargo() !== PmsTipoCargo::PENALIZACION) {
+            // Cabecera ANULADA: no cuenta nada, tampoco la penalización — igual que el rollup
+            // desde el 31/08/2026. Ver §12.7.0.
+            if (!$this->activa) {
                 continue;
             }
 
@@ -474,7 +476,13 @@ class PmsInformacionFinanciera
 
             $tipo = $cargo->getTipoCargo() ?? PmsTipoCargo::OTRO;
 
-            if (!$this->activa && $tipo !== PmsTipoCargo::PENALIZACION) {
+            // ⚠️ **Sin excepción para la penalización, desde el 31/08/2026.** Esta era la CUARTA
+            // copia de esa regla —las otras tres estaban en `PmsTotalesPorMoneda::cargoCuenta()`
+            // y sus espejos SQL— y se quedó atrás al quitarla de allí. El resultado era peor que
+            // el problema original: la penalización dejaba de sumar en el total pero **seguía
+            // apareciendo como línea** en el detalle del huésped, o sea un cargo visible que no
+            // cuadraba con ninguna cifra. Ver §12.7.0 de `docs/PmsBeds24ReservasSync.md`.
+            if (!$this->activa) {
                 continue;
             }
 
@@ -483,6 +491,20 @@ class PmsInformacionFinanciera
                 $cargo->getMoneda()?->getId(),
                 $cargo->getTipoCambio(),
             );
+
+            // ⚠️ **Las líneas en CERO sin descripción no se le enseñan al huésped.**
+            //
+            // Una estancia directa nace con una línea de alojamiento en 0.00 —es donde el
+            // operador teclea el precio— y ahí sigue mientras no se rellene. Al huésped eso no
+            // le dice nada: en su detalle salía «Alojamiento US$ 0.00» y «Suplemento de limpieza
+            // US$ 0.00», dos filas que sólo ensucian y que invitan a preguntar si falta algo.
+            //
+            // Se exige **cero Y sin descripción**, no sólo cero: una cortesía redactada —«Traslado
+            // desde el aeropuerto, incluido»— también vale 0.00 y ésa sí se enseña, porque
+            // decirle a alguien lo que no le cobras es parte de lo que compró.
+            if ($monto === 0.0 && $cargo->getDescripcionCliente() === []) {
+                continue;
+            }
 
             $lineas[] = [
                 'tipo' => $tipo->value,

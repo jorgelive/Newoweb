@@ -4117,6 +4117,21 @@ trampa peor que no tenerlo.
 > el frontend, se encontrará con este mismo silencio.
 
 
+### 🧹 Las líneas en CERO no se le enseñan al huésped (31/08/2026)
+
+Una estancia directa nace con una línea de alojamiento en `0.00` —es donde el operador teclea el
+precio— y ahí sigue mientras no se rellene. Al huésped eso no le dice nada: en su detalle salían
+«Alojamiento US$ 0.00» y «Suplemento de limpieza US$ 0.00», filas que sólo ensucian y que invitan
+a preguntar si falta algo.
+
+`PmsInformacionFinanciera::getLineasCliente()` las salta ahora, con una condición precisa: **cero
+Y sin descripción**. No basta con el cero — una cortesía redactada («Traslado desde el aeropuerto,
+incluido») también vale `0.00` y ésa **sí** se enseña, porque decirle a alguien lo que no le
+cobras es parte de lo que compró.
+
+⚠️ Sólo afecta al detalle del HUÉSPED. El panel del operador las sigue viendo: son justamente
+donde tiene que escribir el precio.
+
 ### 👻 El cuadro de una estancia cancelada parecía una estancia viva (31/08/2026)
 
 `B4YXZ7` tenía dos estancias: Casita 6 (viva, 325.50) y Casita 1, **cancelada**. En el panel
@@ -4213,14 +4228,26 @@ Sale **cuando aparece el caso**, que es el único momento en que la pregunta imp
 un `.env` justamente por esto: un interruptor en un servidor tiene el mismo problema que un
 comentario en el código — te acuerdas si vas a mirar.
 
-**Espejos que hay que tocar a la vez** (la regla vive en cuatro sitios):
+**Espejos que hay que tocar a la vez — y eran SEIS, no cuatro.** El primer intento se dejó
+tres, y el resultado fue peor que el problema: la penalización dejó de sumar en el total pero
+**seguía apareciendo como línea** en el detalle del huésped, o sea un cargo visible que no cuadra
+con ninguna cifra. Y la skill del agente seguía aconsejando registrar como «penalizacion» para
+que sí contara, que es mandar al operador a hacer un trabajo inútil.
 
 | Archivo | Qué |
 |---|---|
 | `PmsTotalesPorMoneda::cargoCuenta()` | la regla en PHP |
 | `PmsInformacionFinancieraRecalculoService` | dos consultas SQL |
 | `PmsRecalcularTotalesCommand` | una más |
+| `PmsInformacionFinanciera::getLineasCliente()` | **el detalle que ve el huésped** |
+| `PmsInformacionFinanciera::getDesglosePorTipo()` | el desglose por tipo |
+| `PmsInformacionFinanciera::getTotalCargosDelCanalPorMoneda()` | los cargos del canal |
+| `RegistrarCargoSkill` | el aviso al modelo, que decía lo contrario |
 | `PmsTotalesPorMonedaTest` | el test que la fija |
+
+**La lección**, porque es la que este módulo repite: buscar por el nombre de la constante
+(`PmsTipoCargo::PENALIZACION`) y no por la frase del comentario. Las seis copias se parecían en
+el texto pero no eran idénticas — una decía «igual que en el rollup», otra nada.
 
 **La medida al hacerlo:** 19 penalizaciones en toda la base, **2 con importe** — `5EPM4F` (80.10)
 y `XFN24B` (49.28), las únicas dos sobre cuentas anuladas. No hay un flujo que las genere: por eso

@@ -283,20 +283,25 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
             ], static fn ($v) => $v !== null));
         }
 
-        // 🚫 Cuenta ANULADA: el recálculo sólo suma la penalización (§12.7, el
-        // `AND (i2.activa = 1 OR c.tipo_cargo = 'penalizacion')` de
-        // PmsInformacionFinancieraRecalculoService). Sin este aviso la skill guardaba el cargo,
-        // respondía «Cargado 20.00 USD» y el saldo no se movía: la previsualización prometía
-        // un total que el listener descartaba acto seguido.
+        // 🚫 Cuenta ANULADA: en el recálculo **no suma nada** (§12.7.0 — el
+        // `AND i2.activa = 1` de PmsInformacionFinancieraRecalculoService). Sin este aviso la
+        // skill guardaba el cargo, respondía «Cargado 20.00 USD» y el saldo no se movía: la
+        // previsualización prometía un total que el listener descartaba acto seguido.
+        //
+        // ⚠️ **Este texto decía lo contrario hasta el 31/08/2026** y era peor que no decir nada:
+        // afirmaba que la penalización sí sumaba y le pedía al modelo volver a llamar con
+        // `tipo="penalizacion"` para cobrar la cancelación. Desde que esa excepción desapareció,
+        // ese consejo manda al operador a hacer un trabajo que tampoco va a mover el saldo.
         $advertencia = null;
 
-        if (!$info->isActiva() && $tipo !== PmsTipoCargo::PENALIZACION) {
+        if (!$info->isActiva()) {
             $advertencia = sprintf(
                 'ATENCIÓN: esta cuenta está ANULADA (reserva cancelada). En una cuenta anulada '
-                . 'sólo suma el tipo «penalizacion», así que este cargo de tipo «%s» se guardará '
-                . 'pero NO cambiará el saldo. Si lo que quieres es cobrar la cancelación, '
-                . 'vuelve a llamarme con tipo="penalizacion". Díselo al operador antes de '
-                . 'pedirle la confirmación.',
+                . 'NINGÚN cargo suma al saldo —tampoco una penalización—, así que este cargo de '
+                . 'tipo «%s» se guardará como registro pero el saldo no se moverá. Bajo las '
+                . 'condiciones actuales de las OTA no tenemos acceso a la tarjeta del huésped, y '
+                . 'una cancelación no se puede cobrar. Díselo al operador antes de pedirle la '
+                . 'confirmación.',
                 $tipo->value
             );
         }
