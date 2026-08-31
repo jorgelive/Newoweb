@@ -91,7 +91,7 @@ final class PmsRecalcularTotalesCommand extends Command
                       SELECT 1 FROM pms_cargo_financiero c
                       WHERE c.informacion_id = i.id
                         AND COALESCE(c.tipo, 'charge') = 'charge'
-                        AND (i.activa = 1 OR c.tipo_cargo = 'penalizacion')
+                        AND i.activa = 1
                   )
                OR EXISTS (SELECT 1 FROM pms_pago_financiero p WHERE p.informacion_id = i.id)
               )

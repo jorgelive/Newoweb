@@ -296,6 +296,34 @@ function importeEn(monto: string | number | null | undefined, moneda?: string | 
 }
 
 const cargosVista = computed(() => finanzas.info?.cargos ?? []);
+
+/**
+ * La penalización de una ficha ANULADA que ya no suma — y que hay que decir en pantalla.
+ *
+ * ⚠️ Esto no es adorno: es **el recordatorio**. El 31/08/2026 se quitó la excepción que hacía
+ * contar la penalización en una cuenta anulada, porque bajo las condiciones actuales de las OTA
+ * no hay acceso a la tarjeta y esa deuda no la reclama nadie. Pero una regla apagada en el
+ * código no se recuerda sola: se recuerda quien va a mirar esa línea, y nadie va.
+ *
+ * Una cancelada además **desaparece del panel de reservas**, así que el único momento en que
+ * alguien vuelve a ver esa penalización es abriendo esta ficha. Por eso el aviso vive aquí y no
+ * en un `.env` ni en un comentario: sale cuando aparece el caso, que es cuando importa.
+ *
+ * El importe sigue registrado. El día que la OTA dé acceso a la tarjeta, está ahí para cobrarlo.
+ */
+const penalizacionSinCobrar = computed(() => {
+    if (finanzas.info?.activa !== false) return null;
+
+    const penas = cargosVista.value.filter(
+        c => c.tipoCargo === 'penalizacion' && Number(c.totalLinea ?? 0) !== 0);
+
+    if (penas.length === 0) return null;
+
+    return {
+        total: penas.reduce((n, c) => n + Number(c.totalLinea ?? 0), 0).toFixed(2),
+        moneda: penas[0].moneda ?? finanzas.info?.moneda ?? '',
+    };
+});
 const pagosVista = computed(() => finanzas.info?.pagos ?? []);
 
 /**
@@ -1647,6 +1675,21 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                     <i class="fas" :class="finanzas.isSaving ? 'fa-circle-notch fa-spin' : 'fa-rotate-left'"></i>
                     Reactivar cobro
                 </button>
+
+                <!-- ⚠️ EL RECORDATORIO. Ver `penalizacionSinCobrar`: la penalización dejó de
+                     sumar el 31/08/2026 y esto es lo único que lo dice. Una cancelada no sale
+                     en el calendario, así que esta ficha es el único sitio donde alguien la
+                     vuelve a ver. -->
+                <p v-if="penalizacionSinCobrar"
+                   class="mt-2 border-t border-amber-200 pt-2 text-[11px] font-bold text-amber-800 leading-snug">
+                    <i class="fas fa-hand-holding-dollar mr-1"></i>
+                    Penalización de {{ penalizacionSinCobrar.moneda }} {{ penalizacionSinCobrar.total }} registrada y sin cobrar.
+                    <span class="block font-medium text-amber-700/90 mt-0.5">
+                        No suma al saldo: bajo las condiciones actuales de las OTA no tenemos acceso a la
+                        tarjeta del huésped. El importe queda registrado — si eso cambia, se vuelve a contar
+                        (<code class="font-mono">PmsTotalesPorMoneda::cargoCuenta()</code>).
+                    </span>
+                </p>
             </div>
 
             <!-- ===== RESUMEN =====

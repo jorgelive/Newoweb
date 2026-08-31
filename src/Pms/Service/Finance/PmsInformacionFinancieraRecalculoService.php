@@ -171,7 +171,7 @@ final class PmsInformacionFinancieraRecalculoService
                       -- ahora se ve como saldo negativo, y está bien que se vea. Lo que NO puede
                       -- pasar es que «ninguna moneda debe» se lea como «pagada»: de eso se ocupa
                       -- PmsEstadoPagoEventosService exigiendo además que HAYA cargos.
-                      AND (i2.activa = 1 OR c.tipo_cargo = 'penalizacion')
+                      AND i2.activa = 1
 
                     UNION ALL
 
@@ -232,7 +232,7 @@ final class PmsInformacionFinancieraRecalculoService
                 FROM pms_cargo_financiero c
                 INNER JOIN pms_informacion_financiera i2 ON i2.id = c.informacion_id
                 WHERE c.tipo = 'charge' AND c.informacion_id IN ($in)
-                  AND (i2.activa = 1 OR c.tipo_cargo = 'penalizacion')
+                  AND i2.activa = 1
                 GROUP BY c.informacion_id
             ) cc ON cc.informacion_id = i.id
             LEFT JOIN (

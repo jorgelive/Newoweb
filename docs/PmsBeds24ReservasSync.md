@@ -4056,7 +4056,52 @@ trampa peor que no tenerlo.
 > `PmsTarifaRango.unidad` tiene un `SearchFilter` con el mismo patrón y, si alguien lo usa desde
 > el frontend, se encontrará con este mismo silencio.
 
-## 12.7 Cancelaciones: el flag `activa` y la PENALIZACIÓN
+
+### ⚠️ 12.7.0 La penalización DEJÓ de contar (31/08/2026) — léelo antes que el resto
+
+Todo lo que sigue describe una regla que ya no está entera: **en una ficha anulada no cuenta
+nada, tampoco la penalización.**
+
+```php
+// PmsTotalesPorMoneda::cargoCuenta()
+return $info->isActiva();          // antes: || tipoCargo === PENALIZACION
+```
+
+**Por qué.** La excepción se escribió dando por hecho que una cancelación se puede cobrar. Bajo
+las condiciones actuales de las OTA **no se puede**: no hay acceso a la tarjeta del huésped. Así
+que era saldo vivo que nadie iba a reclamar — y sobre una reserva cancelada, que **desaparece del
+calendario** y que por tanto nadie vuelve a mirar. Deuda invisible y falsa a la vez.
+
+**Qué NO cambia.** El cargo sigue en la tabla con su importe; sólo deja de sumar. No se pierde
+historia. Y los COBROS de una ficha anulada siguen contando, que es la asimetría deliberada de
+§12.7.4: el dinero entró igual.
+
+**Cuándo se revierte.** El día que la OTA dé acceso a la tarjeta. Es una línea, y al revertirla
+vuelven a contar **todas**, también las viejas.
+
+⚠️ **Y cómo te enteras de que esto existe**, que es la mitad del problema: una regla apagada en el
+código no se recuerda sola. Lo dice **el panel**, en la ficha financiera de una reserva anulada
+que tenga penalización con importe (`penalizacionSinCobrar` en `ReservaFinanzasPanel.vue`):
+
+> Penalización de USD 80.10 registrada y sin cobrar. No suma al saldo: bajo las condiciones
+> actuales de las OTA no tenemos acceso a la tarjeta del huésped.
+
+Sale **cuando aparece el caso**, que es el único momento en que la pregunta importa. Se descartó
+un `.env` justamente por esto: un interruptor en un servidor tiene el mismo problema que un
+comentario en el código — te acuerdas si vas a mirar.
+
+**Espejos que hay que tocar a la vez** (la regla vive en cuatro sitios):
+
+| Archivo | Qué |
+|---|---|
+| `PmsTotalesPorMoneda::cargoCuenta()` | la regla en PHP |
+| `PmsInformacionFinancieraRecalculoService` | dos consultas SQL |
+| `PmsRecalcularTotalesCommand` | una más |
+| `PmsTotalesPorMonedaTest` | el test que la fija |
+
+**La medida al hacerlo:** 19 penalizaciones en toda la base, **2 con importe** — `5EPM4F` (80.10)
+y `XFN24B` (49.28), las únicas dos sobre cuentas anuladas. No hay un flujo que las genere: por eso
+esto es una regla y no un interruptor.
 
 ### 12.7.1 El problema
 

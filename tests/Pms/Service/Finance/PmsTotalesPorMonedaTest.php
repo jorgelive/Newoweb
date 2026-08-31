@@ -106,13 +106,27 @@ final class PmsTotalesPorMonedaTest extends TestCase
 
     // ── La ficha anulada ─────────────────────────────────────────────────────
 
-    public function testEnUnaFichaAnuladaSoloCuentaLaPenalizacion(): void
+    /**
+     * ⚠️ Este test decía lo CONTRARIO hasta el 31/08/2026 —«en una ficha anulada sólo cuenta la
+     * penalización»— y hacía bien: era la regla. La regla cambió.
+     *
+     * La excepción se escribió dando por hecho que una cancelación se puede cobrar, y bajo las
+     * condiciones actuales de las OTA no se puede: no hay acceso a la tarjeta del huésped. Una
+     * penalización de una cancelada era saldo vivo que nadie iba a reclamar, sobre una reserva
+     * que además desaparece del panel y que por tanto nadie vuelve a mirar.
+     *
+     * El cargo NO se borra: sigue en la tabla con su importe. Sólo deja de sumar.
+     */
+    public function testEnUnaFichaAnuladaNoCuentaNADA(): void
     {
         $info = $this->ficha(activa: false);
         $this->cargo($info, '300.00', $this->usd, PmsTipoCargo::ALOJAMIENTO);
         $this->cargo($info, '50.00', $this->usd, PmsTipoCargo::PENALIZACION);
 
-        self::assertSame('50.00', PmsTotalesPorMoneda::de($info)->porMoneda['USD']['cargos']);
+        self::assertFalse(
+            PmsTotalesPorMoneda::de($info)->hayCargos(),
+            'ni la estancia ni la penalización suman en una ficha anulada',
+        );
     }
 
     public function testEnUnaFichaAnuladaLosCOBROSSIGUENCONTANDO(): void

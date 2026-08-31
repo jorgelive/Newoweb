@@ -278,9 +278,9 @@ final readonly class PmsTotalesPorMoneda
     /**
      * ¿Este cargo entra en la suma?
      *
-     * Espejo de `WHERE COALESCE(c.tipo,'charge') = 'charge' AND (i2.activa = 1 OR c.tipo_cargo =
-     * 'penalizacion')`. En una ficha ANULADA sólo cuenta la penalización (§12.7): los cargos de la
-     * estancia siguen en la tabla —no se pierde historia— pero dejan de sumar.
+     * Espejo de `WHERE COALESCE(c.tipo,'charge') = 'charge' AND i2.activa = 1`. En una ficha
+     * ANULADA **no cuenta nada**: los cargos siguen en la tabla —no se pierde historia— pero
+     * dejan de sumar, la penalización incluida. Ver §12.7 y el aviso de abajo.
      *
      * ⚠️ **Un cargo con `tipo` a `null` cuenta como cargo**, y no es indulgencia: `$tipo` recibe
      * su valor en `prePersist` (`aplicarDefectosDeCargoManual()`), así que una entidad **recién
@@ -297,7 +297,22 @@ final readonly class PmsTotalesPorMoneda
             return false;
         }
 
-        return $info->isActiva() || $cargo->getTipoCargo() === PmsTipoCargo::PENALIZACION;
+        // ⚠️ **La penalización YA NO es la excepción** (31/08/2026). Decía
+        // `|| $cargo->getTipoCargo() === PmsTipoCargo::PENALIZACION`: en una ficha anulada los
+        // cargos de la estancia dejaban de sumar pero la penalización seguía contando, porque
+        // la regla se escribió dando por hecho que una cancelación se puede cobrar.
+        //
+        // **Y no se puede.** Bajo las condiciones actuales de las OTA no tenemos acceso a la
+        // tarjeta del huésped, así que una penalización de una reserva cancelada es deuda que
+        // nadie va a reclamar — y una reserva cancelada además desaparece del panel, así que
+        // nadie la vuelve a mirar. El resultado era saldo vivo, invisible y falso.
+        //
+        // ⚠️ **El cargo NO se borra**: sigue en la tabla con su importe, sólo deja de sumar. El
+        // día que la OTA dé acceso a la tarjeta se revierte esta línea y vuelven a contar todas,
+        // también las viejas. Que se vuelve a poner **aquí** lo recuerda el propio panel: la
+        // ficha de una reserva anulada con penalización lo dice en pantalla, que es donde se
+        // mira. Ver `docs/PmsBeds24ReservasSync.md` §12.7.
+        return $info->isActiva();
     }
 
     /**
