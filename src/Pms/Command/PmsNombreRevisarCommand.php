@@ -7,6 +7,7 @@ namespace App\Pms\Command;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Nombre\OrdenDelNombre;
 use App\Pms\Nombre\RevisorDeOrdenDeNombre;
+use App\Pms\Dispatch\RevisarOrdenDelNombreDispatch;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -15,6 +16,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Ver qué contesta el revisor de nombres, sin esperar a que entre una reserva.
@@ -48,6 +50,7 @@ final class PmsNombreRevisarCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly RevisorDeOrdenDeNombre $revisor,
+        private readonly MessageBusInterface $bus,
     ) {
         parent::__construct();
     }
@@ -58,7 +61,13 @@ final class PmsNombreRevisarCommand extends Command
             ->addArgument('localizador', InputArgument::OPTIONAL, 'Una reserva concreta')
             ->addOption('par', null, InputOption::VALUE_REQUIRED, 'Un par suelto: "NOMBRE|APELLIDO"')
             ->addOption('limite', null, InputOption::VALUE_REQUIRED, 'Cuántas reservas recientes revisar', '10')
-            ->addOption('aplicar', null, InputOption::VALUE_NONE, 'Guarda el intercambio cuando proceda');
+            ->addOption('aplicar', null, InputOption::VALUE_NONE, 'Guarda el intercambio cuando proceda')
+            // ⚠️ Esto NO es lo mismo que lo de arriba y ésa es la gracia. Sin `--encolar` el
+            // comando llama al revisor DIRECTAMENTE: comprueba el modelo y el prompt, y nada
+            // más. Con `--encolar` manda el mismo mensaje que manda el listener, así que lo que
+            // se prueba es la cadena entera —bus, worker, handler, log— que es justo el tramo
+            // del que no había ninguna evidencia. Lo que pase se ve en `info.log`.
+            ->addOption('encolar', null, InputOption::VALUE_NONE, 'Despacha por el bus, como haría una reserva nueva');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -89,6 +98,10 @@ final class PmsNombreRevisarCommand extends Command
             return Command::FAILURE;
         }
 
+        if ((bool) $input->getOption('encolar')) {
+            return $this->encolar($io, $reservas);
+        }
+
         $filas = [];
 
         foreach ($reservas as $reserva) {
@@ -100,6 +113,44 @@ final class PmsNombreRevisarCommand extends Command
         }
 
         $io->table(['Reserva', 'Nombre', 'Apellido', 'Veredicto', 'Confianza', 'Qué pasa', 'Motivo'], $filas);
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Manda por el bus el MISMO mensaje que manda el listener.
+     *
+     * Es la única forma de probar el tramo del que no había evidencia: que el worker recoge, que
+     * el handler corre y que ahora deja línea. Lo de arriba prueba el modelo; esto prueba la
+     * cañería.
+     *
+     * ⚠️ **Esto sí puede escribir**, porque lo atiende el handler de verdad. No lleva
+     * `--aplicar`: el handler aplica cuando `OrdenDelNombre::resultado()` lo permite, igual que
+     * con una reserva recién llegada. Fingir lo contrario sería probar otra cosa.
+     *
+     * @param list<PmsReserva> $reservas
+     */
+    private function encolar(SymfonyStyle $io, array $reservas): int
+    {
+        $mandados = 0;
+
+        foreach ($reservas as $reserva) {
+            $nombre = trim((string) $reserva->getNombreCliente());
+            $apellido = trim((string) $reserva->getApellidoCliente());
+            $id = $reserva->getId();
+
+            if ($id === null || !OrdenDelNombre::mereceRevision($nombre, $apellido)) {
+                continue;
+            }
+
+            $this->bus->dispatch(new RevisarOrdenDelNombreDispatch((string) $id, $nombre, $apellido));
+            ++$mandados;
+        }
+
+        $io->success(sprintf(
+            '%d mensaje(s) al bus. Míralos en var/log/info.log: `grep OrdenNombre`.',
+            $mandados
+        ));
 
         return Command::SUCCESS;
     }
