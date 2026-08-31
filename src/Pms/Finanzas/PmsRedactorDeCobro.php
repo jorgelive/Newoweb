@@ -37,12 +37,8 @@ use App\Pms\Service\Finance\PmsTotalesPorMoneda;
  */
 final readonly class PmsRedactorDeCobro
 {
-    /** Viñeta de cada opción de precio. Sobrevive a la degradación por canal; un `•` no. */
-    private const string VINETA = '▪️';
-
     public function __construct(
         private PmsSituacionDeCobroResolver $situaciones,
-        private PmsEquivalenciaEnSoles $equivalencia,
         private TextosUi $textos,
     ) {
     }
@@ -69,120 +65,97 @@ final readonly class PmsRedactorDeCobro
                 : '';
         }
 
+        $moneda = $situacion->importes[0]->moneda;
+        $adelanto = $situacion->queSePide === PmsQueSePide::ADELANTO;
+        $pagado = $this->yaPagado($reserva);
         $lineas = [];
 
-        // La moneda del primer importe rotula TODAS las líneas. Sin esto, el total salía como
-        // «USD 107.74» y las opciones de pago como «107.74 (S/ 360.93)»: dos formatos para el
-        // mismo dinero en el mismo párrafo, y el huésped preguntándose si son cifras distintas.
-        $moneda = $situacion->importes[0]->moneda;
-
-        // El TOTAL de la reserva primero, siempre. No sale del read-model —que lleva lo
-        // pendiente, no el total— sino de la cabecera financiera, que es de donde salen todas
-        // las demás cifras de esta casa.
-        $total = $this->totalDeLaReserva($reserva);
-
-        if ($total !== null) {
-            $lineas[] = sprintf(
-                '*%s:* %s',
-                $this->t('res_total_reserva', $idioma),
-                // Con su equivalencia, como las de abajo: el total sin soles y las opciones con
-                // ellos era la otra mitad de la misma incoherencia.
-                $this->importe($total, $moneda, $this->equivalencia->de($total, $moneda, $reserva))
-            );
-        }
-
-        // Lo YA COBRADO, entre el total y lo que se pide. Sin esta línea, «total 890» y «a pagar
-        // 590» son dos cifras sin relación aparente: o parece un error, o el huésped pregunta.
-        $pagado = $this->yaPagado($reserva);
-
-        if ($pagado !== null) {
-            $lineas[] = sprintf(
-                '*%s:* %s',
-                $this->t('res_ya_pagado', $idioma),
-                $this->importe($pagado, $moneda, $this->equivalencia->de($pagado, $moneda, $reserva))
-            );
-        }
-
-        $lineas[] = '';
-
-        // Qué se pide AHORA, con sus precios.
+        // ── 1 · LO QUE HAY QUE HACER, primero ───────────────────────────────────
         //
-        // ⚠️ Tres rótulos, no dos, y el mismo criterio que la ficha del huésped. «Total a pagar»
-        // sólo es cierto si NO se ha pagado nada: con un adelanto ya abonado, esto dice 260.40
-        // sobre una reserva de 325.50, y llamarlo «total» manda a leer el total de la reserva,
-        // que es otro número y está dos líneas más arriba. En cuanto hay un pago, es un SALDO.
+        // Abre por la petición y no por el total. El total es orden de contabilidad; en un
+        // WhatsApp la primera línea es el asunto, y el asunto es «adelanta 59.43».
         $lineas[] = sprintf(
-            '*%s:*',
+            '*%s:* %s',
             $this->t(match (true) {
-                $situacion->queSePide === PmsQueSePide::ADELANTO => 'res_pide_adelanto',
+                $adelanto => 'res_pide_adelanto',
                 $pagado !== null => 'res_saldo',
                 default => 'res_pide_total',
-            }, $idioma)
+            }, $idioma),
+            $this->importe($situacion->importes[0]->importe, $moneda, $situacion->importes[0]->enSoles)
         );
 
-        foreach ($situacion->mediosPorImporte() as $grupo) {
-            $lineas[] = $this->linea($grupo, $moneda, $idioma);
-        }
+        // ── 2 · POR QUÉ es esa cifra ────────────────────────────────────────────
+        //
+        // Sólo con adelanto, y en la misma línea que el total: «59.43 de 356.55» se entiende
+        // solo, y ahí es donde el total sirve. Sin esto, el huésped ve un número suelto sobre
+        // una reserva de otro importe.
+        //
+        // El texto de la política NO se escribe aquí: sale del enum del establecimiento virtual
+        // vía `claveDeLaPolitica`. Ver `PmsSituacionDeCobro`.
+        if ($adelanto) {
+            $porQue = array_filter([
+                $situacion->claveDeLaPolitica !== null
+                    ? $this->t($situacion->claveDeLaPolitica, $idioma)
+                    : '',
+                $this->totalDeLaReserva($reserva) !== null
+                    ? sprintf(
+                        '%s: %s',
+                        $this->t('res_total_reserva', $idioma),
+                        $this->importe((string) $this->totalDeLaReserva($reserva), $moneda, null)
+                    )
+                    : '',
+            ]);
 
-        // El enlace va con el primer tramo y no al final del mensaje: es la acción de AHORA, y
-        // puesto debajo del saldo se leería como si sirviera para pagarlo todo.
-        if ($situacion->enlacePago !== null) {
-            $lineas[] = sprintf('🔗 %s: %s', $this->t('res_pagar_online', $idioma), $situacion->enlacePago);
-        }
-
-        // Y el segundo momento, cuando lo hay. Sus medios NO son los de arriba —aquí aparece el
-        // efectivo y desaparece Western Union— y por eso se listan otra vez en vez de decir «lo
-        // mismo». Ver PmsTramoDeCobro.
-        $saldo = $situacion->pagoAlLlegar;
-
-        if ($saldo !== null) {
-            $lineas[] = '';
-            $lineas[] = sprintf(
-                '*%s:* %s',
-                // Pidiendo adelanto es el RESTO y «Saldo» encaja; pidiendo el total es el mismo
-                // número de arriba, y llamarlo «saldo» debajo de «Total a pagar» se lee como dos
-                // deudas. No es otra cifra: es la misma en otro momento.
-                $this->t(
-                    $situacion->queSePide === PmsQueSePide::ADELANTO ? 'res_saldo_al_llegar' : 'res_o_al_llegar',
-                    $idioma
-                ),
-                $this->importe($saldo->importe->importe, $saldo->importe->moneda, $saldo->importe->enSoles)
-            );
-
-            foreach ($saldo->mediosPorImporte() as $grupo) {
-                $lineas[] = $this->linea($grupo, $saldo->importe->moneda, $idioma);
+            if ($porQue !== []) {
+                $lineas[] = sprintf('_%s_', implode(' · ', $porQue));
             }
         }
 
-        return implode("\n", $lineas);
-    }
+        // ── 3 · LA TARJETA, porque cambia el número ─────────────────────────────
+        //
+        // Es la única forma de pago que se nombra en el mensaje, y por una regla: **si cambia el
+        // importe, va aquí; si es un cómo-se-hace, va en la ficha**. Los nombres de los medios
+        // no viajan — mañana se añade un banco o cambia una audiencia y el mensaje seguiría
+        // diciendo lo de hoy. La tarjeta sí, porque quien pague con ella verá otra cifra y ahí
+        // nace el «pero si ponía 59.43».
+        foreach ($situacion->mediosPorImporte() as $grupo) {
+            if ($grupo['recargoPorcentaje'] === null) {
+                continue;
+            }
 
-    /**
-     * Una línea de precio: los medios que valen lo mismo, su importe y su matiz de comisión.
-     *
-     * @param array{importe: string, enSoles: string|null, recargoPorcentaje: string|null, codigos: list<string>, etiquetas: list<string>} $grupo
-     */
-    private function linea(array $grupo, string $moneda, string $idioma): string
-    {
-        $nombres = [];
-
-        foreach ($grupo['codigos'] as $i => $codigo) {
-            // La etiqueta del backend es el respaldo, no la fuente: sale de
-            // `FinMedioCobroTipo::label()` y está en español y sólo en español.
-            $nombres[] = $this->t('res_medio_' . $codigo, $idioma) ?: ($grupo['etiquetas'][$i] ?? $codigo);
+            $lineas[] = sprintf(
+                '_%s: %s — %s_',
+                $this->t('res_con_tarjeta', $idioma),
+                $this->importe($grupo['importe'], $moneda, $grupo['enSoles']),
+                $this->t('res_recargo_nota', $idioma, ['pct' => (string) (float) $grupo['recargoPorcentaje']])
+            );
         }
 
-        $matiz = $grupo['recargoPorcentaje'] !== null
-            ? $this->t('res_recargo_nota', $idioma, ['pct' => (string) (float) $grupo['recargoPorcentaje']])
-            : $this->t('res_sin_comision', $idioma);
+        // ── 4 · Y AL LLEGAR ─────────────────────────────────────────────────────
+        //
+        // Sólo con adelanto, igual que en la ficha: pidiendo el total sería el mismo número otra
+        // vez y se leería como una segunda deuda. Sin sus medios —van en la ficha— porque aquí
+        // sólo hace falta contestar «¿y cuánto pago al llegar?», que es la pregunta que llegaba
+        // por chat con la respuesta delante.
+        if ($adelanto && $situacion->pagoAlLlegar !== null) {
+            $lineas[] = '';
+            $lineas[] = sprintf(
+                '*%s:* %s',
+                $this->t('res_saldo_al_llegar', $idioma),
+                $this->importe(
+                    $situacion->pagoAlLlegar->importe->importe,
+                    $moneda,
+                    $situacion->pagoAlLlegar->importe->enSoles
+                )
+            );
+        }
 
-        return sprintf(
-            '%s *%s:* %s _%s_',
-            self::VINETA,
-            implode(', ', $nombres),
-            $this->importe($grupo['importe'], $moneda, $grupo['enSoles']),
-            $matiz
-        );
+        // ⚠️ **El enlace de pago NO viaja aquí.** El mensaje manda a la ficha, y la ficha ya
+        // tiene su botón «Pagar ahora» junto a la cifra que cobra. Dos caminos al mismo cobro es
+        // el error que la propia ficha corrigió en su día: el cuadro decía un importe y el
+        // enlace cobraba otro. La línea del enlace la pone el CUERPO de la plantilla con
+        // `{{ account_url }}`, que es también donde se decide cómo invitarlo.
+        return implode("\n", $lineas);
     }
 
     /**
@@ -190,10 +163,7 @@ final readonly class PmsRedactorDeCobro
      *
      * Sale de `PmsTotalesPorMoneda`, que es la misma fuente del saldo y de los adelantos. Con
      * varias monedas devuelve `null`: un total único no existe ahí y sumarlas sería convertir sin
-     * decirlo (§12.2b). El mensaje se queda sin esa línea, que es preferible a una cifra falsa.
-     *
-     * Devuelve la CIFRA pelada; la moneda y la equivalencia las pone quien la escribe, que es
-     * quien sabe con qué formato van las demás líneas del bloque.
+     * decirlo (§12.2b). El mensaje se queda sin ese contexto, que es preferible a una cifra falsa.
      */
     private function totalDeLaReserva(PmsReserva $reserva): ?string
     {

@@ -171,6 +171,11 @@ final readonly class PmsSituacionDeCobroResolver
             enlacePago: $this->enlaceVivo($reserva),
             paraHuesped: $paraHuesped,
             pagoAlLlegar: $this->pagoAlLlegar($totales, $reserva, $importes[0], $queSePide),
+            // La política que produjo el adelanto, para poder decir POR QUÉ es esa cifra. Sale
+            // del enum del establecimiento virtual, no de una frase escrita aquí.
+            claveDeLaPolitica: $queSePide === PmsQueSePide::ADELANTO
+                ? $this->prepago->pendiente($info)['claveI18n'] ?? null
+                : null,
         );
     }
 

@@ -75,6 +75,21 @@ final readonly class PmsSituacionDeCobro
          * Eso sale solo de evaluar la misma regla en el momento de cada tramo.
          */
         public ?PmsTramoDeCobro $pagoAlLlegar = null,
+        /**
+         * Clave i18n de la POLÍTICA que produjo el adelanto: «Equivalente a la primera noche».
+         *
+         * ⚠️ **No es una frase que se escriba aquí: es un dato.** Vive en
+         * `PmsEstablecimientoVirtual::$politicaPrepago` —un enum de cinco casos, por
+         * establecimiento virtual— y {@see \App\Pms\Enum\PmsPoliticaPrepago::claveI18n()} ya
+         * devuelve su clave, traducida a los siete idiomas en `pax_ui_i18n`.
+         *
+         * La ficha del huésped la lee desde siempre (`finanzas.prepago.claveI18n`); el read-model
+         * no la llevaba, así que el mensaje no podía decirla y el huésped veía «adelanta 59.43»
+         * de un total de 356.55 sin saber de dónde salía el número.
+         *
+         * `null` cuando no se pide adelanto, o cuando la política no tiene clave.
+         */
+        public ?string $claveDeLaPolitica = null,
     ) {
     }
 
