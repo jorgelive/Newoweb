@@ -161,8 +161,8 @@ final class PmsSituacionCobroCommand extends Command
         // El SEGUNDO tramo. Se imprime aparte y no mezclado con el de arriba porque son dos
         // momentos distintos con medios distintos: aquí es donde se ve, de un vistazo, que el
         // efectivo aparece y Western Union desaparece.
-        if ($situacion->saldoTrasAdelanto !== null) {
-            $tramo = $situacion->saldoTrasAdelanto;
+        if ($situacion->pagoAlLlegar !== null) {
+            $tramo = $situacion->pagoAlLlegar;
 
             $io->section($this->textos->texto('res_saldo_al_llegar', $idioma));
             $io->definitionList(

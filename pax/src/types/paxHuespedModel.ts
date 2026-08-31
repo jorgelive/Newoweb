@@ -147,7 +147,7 @@ export interface PmsSituacionDeCobro {
      * El SEGUNDO momento: lo que quedará por pagar al llegar, con sus medios.
      *
      * Sólo llega con `queSePide: 'ADELANTO'`, una moneda y resto positivo. Espejo de
-     * `PmsSituacionDeCobro::$saldoTrasAdelanto` ({@link PmsTramoDeCobro} en PHP).
+     * `PmsSituacionDeCobro::$pagoAlLlegar` ({@link PmsTramoDeCobro} en PHP).
      *
      * ⚠️ **Sin `fichas`, a propósito.** Los medios de este tramo son los de arriba más el
      * efectivo, que no tiene cuenta: toda ficha de aquí ya está detrás de una «i» del cuadro
@@ -157,7 +157,7 @@ export interface PmsSituacionDeCobro {
      * exista: el adelanto se paga a distancia y esto en la puerta, así que aquí aparece el
      * efectivo y desaparece Western Union. Lo decide el catálogo, no la vista.
      */
-    saldoTrasAdelanto?: {
+    pagoAlLlegar?: {
         importe: string;
         moneda: string;
         simbolo?: string | null;

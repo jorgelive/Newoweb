@@ -42,7 +42,7 @@ final readonly class PmsSituacionDeCobro
      * @param list<PmsMedioDeCobro>  $medios     Cómo puede pagarlo, con el importe de cada uno.
      * @param string|null            $enlacePago URL del enlace vivo, si lo hay.
      * @param bool                   $paraHuesped Proyección: `true` oculta lo interno.
-     * @param PmsTramoDeCobro|null   $saldoTrasAdelanto Lo que quedará por pagar al llegar.
+     * @param PmsTramoDeCobro|null   $pagoAlLlegar Lo que se podrá pagar al llegar, y con qué.
      */
     public function __construct(
         public PmsQueSePide $queSePide,
@@ -52,11 +52,20 @@ final readonly class PmsSituacionDeCobro
         public ?string $enlacePago,
         public bool $paraHuesped,
         /**
-         * El SEGUNDO tramo: lo que queda por pagar cuando ya se haya abonado el adelanto.
+         * El SEGUNDO momento: lo que se podrá pagar **al llegar**, con los medios de entonces.
          *
-         * `null` en todos los casos menos uno —`queSePide === ADELANTO`, una sola moneda y
-         * resto positivo—, y esa estrechez es la respuesta correcta: pidiendo el TOTAL no hay
-         * segundo tramo, y con dos monedas restar sería convertir sin decirlo (§12.2b).
+         * ⚠️ **Se llamaba `saldoTrasAdelanto` y era demasiado estrecho** (31/08/2026). Sólo
+         * existía pidiendo un adelanto, así que **cualquier reserva con un pago a cuenta lo
+         * perdía**: al haber cobro, `queSePide` pasa a `TOTAL` y desaparecía el tramo. Susanna
+         * (`5Y6AGN`), italiana y llegando al día siguiente, recibía **una sola opción y la cara**
+         * —tarjeta con 5.5%—, porque Western Union ya no daba tiempo, Yape no es para ella y el
+         * efectivo no entra hasta el día de llegada. Mañana estaría en la puerta pudiendo pagar
+         * en efectivo, y no se le decía.
+         *
+         * Ahora es «lo que se puede pagar al llegar» y sale en los dos casos: pidiendo adelanto
+         * es el resto, pidiendo el total es todo. `null` cuando el huésped **ya llegó** —ahí el
+         * efectivo ya está en la lista principal y un segundo bloque sobraría—, cuando hay más
+         * de una moneda (restar sería convertir sin decirlo, §12.2b) o cuando no queda nada.
          *
          * ⚠️ **Sus medios NO son los mismos que los del adelanto**, y por eso es un tramo y no
          * una cifra. El adelanto se paga a distancia y el resto en la puerta: el catálogo ya
@@ -65,7 +74,7 @@ final readonly class PmsSituacionDeCobro
          * el efectivo **no** aparece en el adelanto y Western Union **no** aparece en el saldo.
          * Eso sale solo de evaluar la misma regla en el momento de cada tramo.
          */
-        public ?PmsTramoDeCobro $saldoTrasAdelanto = null,
+        public ?PmsTramoDeCobro $pagoAlLlegar = null,
     ) {
     }
 

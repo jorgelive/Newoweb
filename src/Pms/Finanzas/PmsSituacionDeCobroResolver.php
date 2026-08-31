@@ -162,7 +162,7 @@ final readonly class PmsSituacionDeCobroResolver
         //
         // Dos tramos cuando se pide adelanto, y no por simetría: el adelanto se paga a
         // distancia y el resto en la puerta, así que **no admiten los mismos medios**. Ver
-        // `saldoTrasAdelanto()`.
+        // `pagoAlLlegar()`.
         return new PmsSituacionDeCobro(
             queSePide: $queSePide,
             motivo: null,
@@ -170,9 +170,7 @@ final readonly class PmsSituacionDeCobroResolver
             medios: $this->medios($reserva, $importes[0], $this->diasHastaLlegada($reserva)),
             enlacePago: $this->enlaceVivo($reserva),
             paraHuesped: $paraHuesped,
-            saldoTrasAdelanto: $queSePide === PmsQueSePide::ADELANTO
-                ? $this->saldoTrasAdelanto($totales, $reserva, $importes[0])
-                : null,
+            pagoAlLlegar: $this->pagoAlLlegar($totales, $reserva, $importes[0], $queSePide),
         );
     }
 
@@ -271,7 +269,7 @@ final readonly class PmsSituacionDeCobroResolver
      * ⚠️ **Los días llegan por parámetro y no se calculan dentro**, desde el 30/08/2026. Cada
      * tramo pregunta por SU momento: el adelanto por los días que faltan, y el saldo por el
      * día de la llegada (`0`), que es cuando se paga. Calculándolos aquí dentro los dos tramos
-     * preguntaban por el mismo instante y el segundo salía mal — ver `saldoTrasAdelanto()`.
+     * preguntaban por el mismo instante y el segundo salía mal — ver `pagoAlLlegar()`.
      *
      * @return list<PmsMedioDeCobro>
      */
@@ -311,44 +309,65 @@ final readonly class PmsSituacionDeCobroResolver
     }
 
     /**
-     * Lo que quedará por pagar **al llegar**, una vez abonado el adelanto.
+     * Lo que se podrá pagar **al llegar**, y con qué medios.
      *
      * ── Por qué es un tramo y no una resta ──────────────────────────────────────
-     * La cifra es una resta, sí. Lo que no es una resta son sus **medios**: el adelanto se
-     * paga a distancia y el resto en la puerta, y el catálogo ya sabe distinguir los dos
-     * momentos —`western_union` pide `diasMinimos = 2`, `efectivo` tiene `diasMaximos = 0`—.
-     * Preguntándole por el día de la llegada (`0`) desaparece Western Union y **aparece el
-     * efectivo**, que en el adelanto no estaba porque nadie paga en mano a veinte días vista.
+     * La cifra sale de una resta, sí. Lo que no es una resta son sus **medios**: lo de ahora se
+     * paga a distancia y esto en la puerta, y el catálogo ya sabe distinguir los dos momentos
+     * —`western_union` pide `diasMinimos = 2`, `efectivo` tiene `diasMaximos = 0`—. Preguntándole
+     * por el día de la llegada (`0`) desaparece Western Union y **aparece el efectivo**, que
+     * antes no estaba porque nadie paga en mano a veinte días vista.
      *
      * Ese `0` es el que documenta {@see \App\Finanzas\Entity\FinMedioCobro::llegaATiempo()}:
      * «un `max 0` deja pasar el día de la llegada y toda la estancia, que es justo lo que se
      * quiere para el saldo que se paga en el alojamiento». No es una regla nueva: es la que ya
      * había, preguntada en el momento que corresponde.
      *
-     * Va literal y no por `diasHastaLlegada()` porque el tramo **es**, por definición, el que
-     * se paga al llegar: si no supiéramos la fecha, la pregunta seguiría siendo la misma.
+     * ── Sale en los DOS casos, y eso es lo que cambió el 31/08/2026 ─────────────
+     * Antes sólo con `ADELANTO`, y así **cualquier reserva con un pago a cuenta lo perdía**: al
+     * haber cobro, `queSePide` pasa a `TOTAL` y el tramo desaparecía. A `5Y6AGN` —italiana,
+     * llegando al día siguiente, con 230.71 ya pagados— se le ofrecía **sólo tarjeta con
+     * recargo**, cuando al día siguiente iba a estar en la puerta.
      *
-     * ── Las tres puertas ────────────────────────────────────────────────────────
-     * Devuelve `null` —o sea, «no lo digas»— si el saldo no es una sola cifra limpia:
+     * | `queSePide` | Cuánto se puede pagar al llegar |
+     * |---|---|
+     * | `ADELANTO` | el pendiente **menos** el adelanto que se pide ahora |
+     * | `TOTAL` | todo el pendiente: es el mismo dinero, en el otro momento |
+     *
+     * ── Las cuatro puertas ──────────────────────────────────────────────────────
+     * Devuelve `null` —«no lo digas»— si:
      *
      * | Puerta | Por qué |
      * |---|---|
-     * | más de una moneda pendiente | el adelanto es escalar y en la moneda de la cabecera; restarlo de un saldo en otra moneda es convertir sin decirlo (§12.2b) |
-     * | la moneda pendiente no es la del adelanto | lo mismo, y además delata datos incoherentes |
-     * | el resto sale ≤ 0 | el adelanto cubre la estancia entera: no hay segundo momento que anunciar |
+     * | el huésped **ya llegó** | el efectivo ya está en la lista de arriba; repetirla sobra |
+     * | más de una moneda pendiente | restar en la moneda de la cabecera es convertir sin decirlo (§12.2b) |
+     * | la moneda pendiente no es la del importe de ahora | lo mismo, y además delata datos incoherentes |
+     * | el resto sale ≤ 0 | lo de ahora cubre la estancia entera: no hay segundo momento que anunciar |
      */
-    private function saldoTrasAdelanto(
+    private function pagoAlLlegar(
         PmsTotalesPorMoneda $totales,
         PmsReserva $reserva,
-        PmsImporteMoneda $adelanto,
+        PmsImporteMoneda $ahora,
+        PmsQueSePide $queSePide,
     ): ?PmsTramoDeCobro {
-        $pendientes = $this->importesPendientes($totales, $reserva);
+        $dias = $this->diasHastaLlegada($reserva);
 
-        if (count($pendientes) !== 1 || $pendientes[0]->moneda !== $adelanto->moneda) {
+        // Ya está aquí: el efectivo entra por la puerta principal y este bloque sobra.
+        if ($dias !== null && $dias <= 0) {
             return null;
         }
 
-        $resto = (float) $pendientes[0]->importe - (float) $adelanto->importe;
+        $pendientes = $this->importesPendientes($totales, $reserva);
+
+        if (count($pendientes) !== 1 || $pendientes[0]->moneda !== $ahora->moneda) {
+            return null;
+        }
+
+        // Pidiendo adelanto, al llegar queda el resto. Pidiendo el total, queda todo: es el
+        // mismo dinero, y lo único que cambia es con qué se puede pagar.
+        $resto = $queSePide === PmsQueSePide::ADELANTO
+            ? (float) $pendientes[0]->importe - (float) $ahora->importe
+            : (float) $pendientes[0]->importe;
 
         if ($resto <= 0.0) {
             return null;
@@ -357,10 +376,10 @@ final readonly class PmsSituacionDeCobroResolver
         $importe = number_format($resto, 2, '.', '');
 
         $tramo = new PmsImporteMoneda(
-            moneda: $adelanto->moneda,
-            simbolo: $adelanto->simbolo,
+            moneda: $ahora->moneda,
+            simbolo: $ahora->simbolo,
             importe: $importe,
-            enSoles: $this->enSoles($importe, $adelanto->moneda, $reserva),
+            enSoles: $this->enSoles($importe, $ahora->moneda, $reserva),
         );
 
         return new PmsTramoDeCobro($tramo, $this->medios($reserva, $tramo, dias: 0));

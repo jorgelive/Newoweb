@@ -115,6 +115,15 @@ final class PaxCrearTextosCobroCommand extends Command
         // se lee mal: una línea con «incluye 5.5% de comisión» y otra con nada al lado
         // invita a pensar que la comisión también está ahí y no se ha escrito.
         'res_sin_comision' => 'Sin comisión',
+
+        // ── Lo YA COBRADO, en el mensaje (31/08/2026) ───────────────────────────────
+        //
+        // La ficha del huésped lo enseñaba con su barra de progreso; el mensaje no. Y sin él,
+        // «Total de la reserva: 890» seguido de «Total a pagar: 590» son dos cifras sin
+        // relación aparente: o parece un error nuestro, o el huésped escribe preguntando.
+        //
+        // `res_adelanto_pagado` no vale: dice «adelanto», y un pago a cuenta no siempre lo es.
+        'res_ya_pagado' => 'Ya pagado',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

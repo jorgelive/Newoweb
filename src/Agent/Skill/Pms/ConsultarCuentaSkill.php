@@ -313,7 +313,7 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
      */
     private function saldoAlLlegar(PmsSituacionDeCobro $situacion): ?array
     {
-        $tramo = $situacion->saldoTrasAdelanto;
+        $tramo = $situacion->pagoAlLlegar;
 
         if ($tramo === null) {
             return null;

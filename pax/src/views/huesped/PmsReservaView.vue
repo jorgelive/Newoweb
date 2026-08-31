@@ -366,7 +366,7 @@ const mediosSinTarjeta = computed(() => {
  * `null` en todo lo que no sea un adelanto en una sola moneda con resto: pidiendo el total no
  * hay segundo momento que anunciar.
  */
-const saldoAlLlegar = computed(() => situacion.value?.saldoTrasAdelanto ?? null);
+const saldoAlLlegar = computed(() => situacion.value?.pagoAlLlegar ?? null);
 
 /** El precio sin recargo de ese tramo, y sus medios traducidos por código. */
 const mediosDelSaldo = computed(() => {

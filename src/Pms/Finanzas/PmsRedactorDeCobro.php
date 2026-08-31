@@ -89,8 +89,21 @@ final readonly class PmsRedactorDeCobro
                 // ellos era la otra mitad de la misma incoherencia.
                 $this->importe($total, $moneda, $this->equivalencia->de($total, $moneda, $reserva))
             );
-            $lineas[] = '';
         }
+
+        // Lo YA COBRADO, entre el total y lo que se pide. Sin esta línea, «total 890» y «a pagar
+        // 590» son dos cifras sin relación aparente: o parece un error, o el huésped pregunta.
+        $pagado = $this->yaPagado($reserva);
+
+        if ($pagado !== null) {
+            $lineas[] = sprintf(
+                '*%s:* %s',
+                $this->t('res_ya_pagado', $idioma),
+                $this->importe($pagado, $moneda, $this->equivalencia->de($pagado, $moneda, $reserva))
+            );
+        }
+
+        $lineas[] = '';
 
         // Qué se pide AHORA, con sus precios.
         $lineas[] = sprintf(
@@ -111,7 +124,7 @@ final readonly class PmsRedactorDeCobro
         // Y el segundo momento, cuando lo hay. Sus medios NO son los de arriba —aquí aparece el
         // efectivo y desaparece Western Union— y por eso se listan otra vez en vez de decir «lo
         // mismo». Ver PmsTramoDeCobro.
-        $saldo = $situacion->saldoTrasAdelanto;
+        $saldo = $situacion->pagoAlLlegar;
 
         if ($saldo !== null) {
             $lineas[] = '';
@@ -182,6 +195,32 @@ final readonly class PmsRedactorDeCobro
         }
 
         return (string) $totales->porMoneda[array_key_first($totales->porMoneda)]['cargos'];
+    }
+
+    /**
+     * Lo cobrado hasta ahora, o `null` si no hay nada que decir.
+     *
+     * Misma fuente que el total —`PmsTotalesPorMoneda`— y misma cautela: con varias monedas no
+     * hay una cifra única, y sumarlas sería convertir sin decirlo (§12.2b).
+     */
+    private function yaPagado(PmsReserva $reserva): ?string
+    {
+        $info = $reserva->getInformacionFinanciera();
+
+        if ($info === null) {
+            return null;
+        }
+
+        $totales = PmsTotalesPorMoneda::de($info);
+
+        if (count($totales->porMoneda) !== 1) {
+            return null;
+        }
+
+        $pagos = (string) $totales->porMoneda[array_key_first($totales->porMoneda)]['pagos'];
+
+        // Un cero no es información: «ya pagado: 0.00» sólo añade una línea que no dice nada.
+        return (float) $pagos > 0.0 ? $pagos : null;
     }
 
     /** Un importe con su moneda y, si procede, su equivalencia orientativa en soles. */
