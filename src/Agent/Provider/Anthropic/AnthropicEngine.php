@@ -232,7 +232,12 @@ final readonly class AnthropicEngine implements AgentEngineInterface
      * Meter el nombre arriba, como estaba, hace que el prefijo sea distinto en cada
      * conversación y el caché no acierte jamás.
      *
-     * @return list<array<string, mixed>>
+     * ⚠️ La forma es la que pide el SDK, con los tipos LITERALES: `type` es exactamente
+     * `'text'`, no un `string` cualquiera. Declararlo laxo hacía que la llamada a `create()`
+     * no se comprobara contra nada — y el día que el SDK cambie esa unión, el aviso saldría
+     * aquí en vez de en una petición fallida a la API.
+     *
+     * @return list<array{type: 'text', text: string, cacheControl?: array{type: 'ephemeral', ttl: '1h'}}>
      */
     private function bloquesDeSistema(ConversationRequest $peticion): array
     {
@@ -252,7 +257,8 @@ final readonly class AnthropicEngine implements AgentEngineInterface
 
     /**
      * @param list<array{rol: string, texto: string}> $historial
-     * @return list<array{role: string, content: string}>
+     * @return list<array{role: 'user'|'assistant', content: string}> `role` es una unión
+     *         cerrada en el SDK: con `string` a secas la llamada no se comprobaba.
      */
     private function turnosPrevios(array $historial): array
     {

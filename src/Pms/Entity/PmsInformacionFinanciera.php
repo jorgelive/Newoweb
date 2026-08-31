@@ -267,7 +267,12 @@ class PmsInformacionFinanciera
      * que sale de `PmsPoliticaPrepago::etiqueta()` — así la etiqueta sigue teniendo una
      * sola fuente y no hay que duplicarla en TypeScript.
      *
-     * @var array{monto: string, politica: string, politicaEtiqueta: string, politicaCorta: string, concepto: string}|null
+     * ⚠️ Sólo `monto` y `politica` están SIEMPRE. Las otras tres las arma
+     * `PmsInformacionFinancieraPorReservaProvider::prepago()` con un `array_filter()`, que
+     * **quita las claves nulas**: si la política no tiene etiqueta, esa clave no viaja.
+     * Declararlas obligatorias prometía que siempre están.
+     *
+     * @var array{monto: string, politica: string, politicaEtiqueta?: string, politicaCorta?: string, concepto?: string}|null
      */
     private ?array $prepagoPendiente = null;
 
@@ -275,8 +280,7 @@ class PmsInformacionFinanciera
     // que openapi-typescript genera para `util` sale inservible (`.monto` no existe en un
     // array de strings). Con esto el espejo TS se deriva del esquema como los demás.
     /**
-     * @return array{monto: string, politica: string, politicaEtiqueta: string, politicaCorta: string,
-     *      concepto: string}|null
+     * @return array{monto: string, politica: string, politicaEtiqueta?: string, politicaCorta?: string, concepto?: string}|null
      */
     #[ApiProperty(openapiContext: [
         'type' => 'object',
@@ -299,8 +303,7 @@ class PmsInformacionFinanciera
      * La misma forma que declara la propiedad: con `array<string, mixed>` se podía guardar un
      * prepago sin `monto`, y el getter promete que lo trae.
      *
-     * @param array{monto: string, politica: string, politicaEtiqueta: string, politicaCorta: string,
-     *      concepto: string}|null $prepago
+     * @param array{monto: string, politica: string, politicaEtiqueta?: string, politicaCorta?: string, concepto?: string}|null $prepago
      */
     public function setPrepagoPendiente(?array $prepago): self { $this->prepagoPendiente = $prepago; return $this; }
 

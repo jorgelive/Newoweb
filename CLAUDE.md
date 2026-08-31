@@ -13,7 +13,7 @@
   trata como unidireccional, la escritura funciona y **la lectura posterior en el mismo request
   se queda corta**. No hay error, hay una lista incompleta. Ni PHPStan ni los tests lo ven.
 
-  **Análisis estático:** PHPStan **nivel 6** sobre `src/` (menos `src/Oweb/`, que se retira
+  **Análisis estático:** PHPStan **nivel 7** sobre `src/` (menos `src/Oweb/`, que se retira
   entero), con `phpstan-baseline.neon` congelando la deuda que ya existía. Correrlo antes de
   cerrar un cambio no es opcional; es más barato que cualquier test que se pueda escribir para
   cubrir lo mismo.
@@ -27,6 +27,14 @@
 
   Y de ahí al **6**, que es el que cierra el agujero de raíz: **prohíbe el `array` sin declarar
   qué lleva dentro**. Con el 6 puesto, la firma que dejó pasar el fallo no habría compilado.
+
+  Y al **7 el 30/08/2026**, que revisa **uniones**: que se manejen todos los miembros de un
+  `A|B`. Sacó 144 avisos y se arreglaron los 144 — sin una entrada nueva en el baseline. Lo que
+  encontró, y que el 6 no veía: un `DateTime::createFromFormat()` metiendo `false` en un setter
+  de fecha, un secreto JWT vacío firmando tokens, `getUserIdentifier()` pudiendo devolver '',
+  ids de canal nulos en la lista de destinos de un envío, y el changeset de Doctrine leído como
+  `[viejo, nuevo]` cuando en una colección es una `PersistentCollection`. **Ninguno daba error
+  hoy.** El detalle está en la cabecera de `phpstan.dist.neon`.
 
   ⚠️ **Pero el 6 no cierra `mixed`, y por ahí volvió a entrar (30/08/2026).** Nivel 6 **no
   comprueba llamadas de método sobre `mixed`** —eso es `checkExplicitMixed`, del 9—, y

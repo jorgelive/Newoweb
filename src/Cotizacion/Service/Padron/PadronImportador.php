@@ -317,13 +317,17 @@ final readonly class PadronImportador
         }
 
         foreach ([...$primero, ...$ultimo] as $hoja) {
+            /** @var list<list<mixed>> $filas PhpSpreadsheet devuelve `array` a secas. */
             $filas = $hoja->toArray(null, true, false, false);
 
+            // `array_slice(…, true)` conserva las claves, así que `$i` es `int|string` para el
+            // analizador aunque aquí venga siempre numérica. Se pasa a int al devolverla: el
+            // consumidor la usa como número de fila de cabecera.
             foreach (array_slice($filas, 0, self::FILAS_A_MIRAR, true) as $i => $fila) {
                 foreach ($fila as $celda) {
                     $texto = (string) $celda;
                     if (PadronFormato::canonica($texto) === PadronFormato::COL_NOMBRES || PadronFormato::esNombreCompleto($texto)) {
-                        return [$filas, $i, $hoja->getTitle()];
+                        return [$filas, (int) $i, $hoja->getTitle()];
                     }
                 }
             }

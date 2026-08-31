@@ -65,12 +65,23 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
         // ⚠️ `GROUP BY c.id` y no `c.version`: `estado` y `titulo` dependen funcionalmente de la
         // clave, y así MySQL los acepta en el SELECT sin meterlos en el GROUP BY —agrupar por una
         // columna JSON funciona pero es pedirle al motor que compare documentos para nada—.
+        // ⚠️ El `WITH` del último JOIN es la condición EXACTA de `esEstadia` —la misma que aplican
+        // `PaxCotizacionGuiaView` y el chequeo `multidia-sin-noche`—, y no está ahí por elegancia:
+        // con `MAX(k.fechaHoraFin)` a secas, un traslado de las 22:00 que acaba a las 00:30
+        // adelantaría el fin del viaje un día entero. **Cruzar medianoche no es durar dos días.**
+        //
+        // Y hace falta además de `MAX(s.fechaInicioAbsoluta)` porque un viaje puede acabar en un
+        // checkout sin ningún servicio ese día: el último bloque del itinerario sería la víspera.
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT f.id AS fileId, c.id AS cotizacionId, c.version, c.estado, c.titulo,
-                   MIN(s.fechaInicioAbsoluta) AS fechaInicio
+                   MIN(s.fechaInicioAbsoluta) AS fechaInicio,
+                   MAX(s.fechaInicioAbsoluta) AS fechaUltimoServicio,
+                   MAX(k.fechaHoraFin) AS finEstadia
             FROM App\Cotizacion\Entity\CotizacionFile f
             JOIN f.cotizaciones c
             LEFT JOIN c.cotservicios s
+            LEFT JOIN s.cotcomponentes k
+                 WITH k.sinHorario = true AND DATE_DIFF(k.fechaHoraFin, k.fechaHoraInicio) > 0
             WHERE f.id IN (:fileIds)
             GROUP BY f.id, c.id
             ORDER BY c.version ASC
@@ -99,9 +110,14 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
                 // títulos. Resolverlo aquí obligaría a que el provider supiera qué idioma mira
                 // quien pidió la página.
                 'titulo'      => is_array($f['titulo'] ?? null) ? $f['titulo'] : [],
-                'fechaInicio' => $f['fechaInicio'] instanceof \DateTimeInterface
-                    ? $f['fechaInicio']->format('Y-m-d')
-                    : ($f['fechaInicio'] ? substr((string) $f['fechaInicio'], 0, 10) : null),
+                'fechaInicio' => self::soloFecha($f['fechaInicio']),
+                // El fin del viaje: el último día del itinerario, salvo que una estadía termine
+                // más tarde (el checkout que ya no tiene servicio propio). Se comparan como
+                // `Y-m-d`, que ordena igual que las fechas que representa.
+                'fechaFin'    => max(
+                    self::soloFecha($f['fechaUltimoServicio']) ?? '',
+                    self::soloFecha($f['finEstadia']) ?? ''
+                ) ?: null,
             ];
         }
 
@@ -118,5 +134,25 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
         }
 
         return $collection;
+    }
+
+    /**
+     * El día de un valor escalar de Doctrine, o `null` si no hay ninguno.
+     *
+     * Hoy las tres agregaciones llegan como **cadena** —`getArrayResult()` no aplica la
+     * conversión de tipo a lo que sale de un `MIN`/`MAX`, así que `fechaHoraFin` viene tal cual,
+     * `'2026-09-15 18:30:00'`—; de ahí el `substr()`, que es el que hace el trabajo real.
+     *
+     * La rama del `DateTimeInterface` se queda porque esa conversión sí depende de la plataforma
+     * y del driver, y perderla convertiría un cambio de versión en un `fechaFin` mudo a `null`.
+     * Se hereda del código anterior, que ya la traía.
+     */
+    private static function soloFecha(mixed $valor): ?string
+    {
+        if ($valor instanceof \DateTimeInterface) {
+            return $valor->format('Y-m-d');
+        }
+
+        return is_string($valor) && $valor !== '' ? substr($valor, 0, 10) : null;
     }
 }

@@ -1,5 +1,31 @@
 # Análisis estático — la red que faltaba
 #
+# **Nivel 7 desde el 30/08/2026**, y con el baseline SIN una sola entrada nueva: los 144 avisos
+# que sacó se arreglaron uno a uno. Esa es la regla desde ahora — se sube arreglando, no
+# congelando (ver `CLAUDE.md`).
+#
+# ── Qué encontró el 7 que el 6 no veía ──────────────────────────────────────
+# El 7 revisa UNIONES: que se manejen todos los miembros de un `A|B`. Lo que sacó, en un día:
+#
+#   · `DateTime::createFromFormat()` metiendo `false` en un setter de fecha, en la importación
+#     de reservas: o revienta, o corrompe la fecha que ya estaba guardada.
+#   · `mb_convert_encoding()` devolviendo `false` a `json_decode()`, y el bucle de paginación de
+#     Beds24 cortando como si el canal no hubiera devuelto nada.
+#   · Un secreto JWT vacío firmando tokens de Mercure. El síntoma habría sido «no llegan las
+#     notificaciones», no «el canal está abierto».
+#   · `getUserIdentifier()` pudiendo devolver '' — y ese método es la etiqueta de fallback en
+#     listados enteros, así que una fila mala son 500, no una celda en blanco.
+#   · Ids de canal `null` colándose en la lista de destinos de un envío: no casan con ninguno,
+#     no dan error, y el mensaje sale por menos sitios de los pedidos.
+#   · El changeset de Doctrine leído como `[viejo, nuevo]` cuando en una colección es una
+#     `PersistentCollection`: `$changeSet[$campo][0]` devolvía el PRIMER ELEMENTO de la colección.
+#   · `bcsub()`/`bcadd()` sobre columnas `decimal` sin comprobar: en PHP 8 lanzan, y eso no habría
+#     roto una cifra sino la lectura del expediente entero.
+#   · Dos formas de entidad que prometían claves obligatorias que en algunos casos no existen —el
+#     resumen financiero de una reserva `soloProgreso` no trae `total`, `pagado` ni `saldo`.
+#
+# Ninguno daba error hoy. Ésa es la familia entera.
+#
 # Nivel 6 desde el 15/08/2026. Antes era 2 —el que caza variables indefinidas y métodos que no
 # existen, la clase de fallo que ya costó caro: un `$message` donde la variable era `$msg` pasó
 # `php -l`, pasó los tests y habría tumbado todo el envío saliente en el primer mensaje—.
@@ -36,7 +62,7 @@ includes:
     - phpstan-baseline.neon
 
 parameters:
-    level: 6
+    level: 7
     paths:
         - src
     bootstrapFiles:

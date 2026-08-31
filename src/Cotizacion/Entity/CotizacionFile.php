@@ -303,16 +303,20 @@ class CotizacionFile
     }
 
     /**
-     * Fecha de primer servicio (MIN fechaInicioAbsoluta) de cada versión del
-     * expediente. La llena CotizacionFileCollectionProvider con UN query
-     * escalar batched para toda la página del dashboard (sin N+1), evitando
-     * hidratar $cotizaciones/$cotservicios por cada fila.
+     * El tramo que ocupa cada versión del expediente —primer servicio y fin del viaje— más su
+     * estado y su título. La llena CotizacionFileCollectionProvider con UN query escalar batched
+     * para toda la página del dashboard (sin N+1), evitando hidratar
+     * $cotizaciones/$cotservicios por cada fila.
+     *
+     * `fechaFin` NO es `MAX(fechaInicioAbsoluta)` a secas: un viaje puede acabar en un checkout
+     * que ya no tiene servicio propio, así que se toma también el fin de las estadías. El porqué
+     * de la condición exacta está en el provider.
      *
      * Lleva además el ESTADO y el TÍTULO de cada versión: el dashboard enseñaba «V1: 30 oct.» y
      * nada más, así que un expediente con tres propuestas —una confirmada, una cancelada y un
      * histórico— se leía igual que uno con tres pendientes.
      *
-     * @var array<int, array{id: string, version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string}>
+     * @var array<int, array{id: string, version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}>
      */
     private array $versionesFechas = [];
 
@@ -320,7 +324,7 @@ class CotizacionFile
      * La misma forma que declara la propiedad. Con `list<array<string, mixed>>` aquí se podía
      * guardar una fila sin `version`, y el getter promete que la trae.
      *
-     * @param array<int, array{id: string, version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string}> $versionesFechas
+     * @param array<int, array{id: string, version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}> $versionesFechas
      */
     public function setVersionesFechas(array $versionesFechas): self
     {
@@ -329,10 +333,11 @@ class CotizacionFile
     }
 
     /**
-     * La misma forma que declara la propiedad: `array<string, mixed>` prometía menos y admitía
-     * más — quien lo lee necesita saber que cada fila trae `version` y `fechaInicio`.
+     * La misma forma que declara la propiedad. Anunciaba sólo `version` y `fechaInicio` —dos de
+     * las seis claves que realmente viajan—, así que `estado`, `titulo` y las fechas del tramo
+     * eran invisibles para quien lo leyera desde fuera.
      *
-     * @return array<int, array{version: int, fechaInicio: ?string}>
+     * @return array<int, array{id: string, version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}>
      */
     #[Groups(['file:read'])]
     public function getVersionesFechas(): array
