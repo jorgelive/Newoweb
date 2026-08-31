@@ -1725,3 +1725,31 @@ traducida. Partirlo mete la puntuación de un idioma en el código, y ahí sólo
 ⚠️ Se escribió por **SQL**, como las correcciones de `res_cargos`: el listener de `AutoTranslate`
 retraduce en `preUpdate` y se llevaría por delante la puntuación de cada lengua. Es la excepción
 documentada en `docs/Mensajeria.md`.
+
+
+## 💬 «Este chat» en una pantalla que no es un chat (31/08/2026)
+
+El aviso de «ya pagué» decía: *«Avísanos por **este chat** cuando lo hayas hecho… hazlo por
+WhatsApp: **este chat** no admite imágenes»*. Se redactó pensando en un mensaje, y donde se lee
+es en la **ficha web** del huésped — abierta desde un enlace, sin ningún chat delante. El «este»
+señalaba algo que la persona no tiene.
+
+Las dos frases se reescribieron sin el deíctico:
+
+| Clave | Ahora |
+|---|---|
+| `res_aviso_pago` | «Avísanos cuando lo hayas hecho y el equipo lo confirma. Si quieres, mándanos la captura.» |
+| `res_aviso_pago_sin_imagenes` | «…Si quieres mandarnos la captura, hazlo por WhatsApp.» |
+
+La distinción entre las dos **se mantiene** —el canal de Booking no transporta imágenes y esa
+variante la elige `PmsReservaPaxProvider` por el canal de la reserva— pero dicha sin señalar un
+«este» que no existe.
+
+⚠️ **Es la tercera vez que un deíctico da problemas** en este módulo: «a ese nombre» en la nota de
+Western Union, el saludo partido, y ahora «este chat». El patrón es siempre el mismo — una frase
+escrita para un sitio y leída en otro. **Antes de escribir «este», «aquí» o «arriba», comprobar
+en qué pantallas se pinta la cadena.**
+
+Se reescribió dejando **sólo el español** y dejando que `AutoTranslate` rellenara los seis
+restantes, que es el modo seguro: son frases con contexto suficiente y salieron bien a la primera
+—al revés que las de una sola palabra, ver `docs/Mensajeria.md`.

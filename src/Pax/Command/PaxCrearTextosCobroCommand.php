@@ -79,8 +79,14 @@ final class PaxCrearTextosCobroCommand extends Command
         // según el canal de la reserva, no el texto. Estuvo metido dentro de las notas de Yape
         // y Plin del catálogo de cobro, y así se le hablaba del chat de Booking a huéspedes de
         // reservas directas. Ver `PmsChannel::CHAT_SIN_IMAGENES`.
-        'res_aviso_pago' => 'Avísanos por este chat cuando lo hayas hecho y el equipo lo confirma. Si quieres, mándanos la captura.',
-        'res_aviso_pago_sin_imagenes' => 'Avísanos por este chat cuando lo hayas hecho y el equipo lo confirma. Si quieres mandarnos la captura, hazlo por WhatsApp: este chat no admite imágenes.',
+        //
+        // ⚠️ **Sin «este chat»** (31/08/2026). Estas dos frases se redactaron pensando en un
+        // mensaje, y donde se leen es en la FICHA WEB del huésped: allí no hay ningún chat al
+        // que referirse, y «avísanos por este chat» manda a un sitio que la persona no tiene
+        // delante. Se mantiene la distinción entre las dos —el canal de Booking no transporta
+        // imágenes— pero dicha sin señalar un «este» que no existe.
+        'res_aviso_pago' => 'Avísanos cuando lo hayas hecho y el equipo lo confirma. Si quieres, mándanos la captura.',
+        'res_aviso_pago_sin_imagenes' => 'Avísanos cuando lo hayas hecho y el equipo lo confirma. Si quieres mandarnos la captura, hazlo por WhatsApp.',
 
         // En qué moneda es la cuenta, con palabras. El símbolo a secas —«S/. +51 958191965»—
         // se lee como el prefijo de un precio que no está, no como «esta cuenta es en soles»:
