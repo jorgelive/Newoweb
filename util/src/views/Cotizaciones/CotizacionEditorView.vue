@@ -960,6 +960,45 @@ const etiquetaDeComponente = (comp: ComponenteCompleto | null | undefined): stri
   return delSegmento || getNombreMaestroRef(comp);
 };
 
+/** El cotsegmento del que cuelga un componente, o null si va suelto. */
+const segmentoDeComponente = (comp: ComponenteCompleto | null | undefined): CotSegmento | null => {
+  if (!comp) return null;
+
+  const segId = store.idSegmentoDeComponente(comp);
+
+  return (store.servicioActivo?.cotsegmentos ?? []).find(
+    (x: CotSegmento) => store.extractIdStr(x.id) === segId
+  ) ?? null;
+};
+
+/**
+ * La tarjeta de identificadores tiene dos caras, y cuál va delante lo decide el TIPO.
+ *
+ * Delante va **lo que de verdad lee alguien**: el título que ve el cliente y el nombre con el que
+ * se despacha al proveedor. Detrás, lo secundario. En transporte, tren y vuelo eso significa el
+ * SEGMENTO delante y el componente detrás; en el resto, al revés.
+ *
+ * ⚠️ **Es el mismo intercambio que hace el backend**, no una decisión de pantalla:
+ * `OperacionOrdenServicioItem::getSecundarioParaProveedor()` pone atrás «el que NO subió». Si esa
+ * regla cambia, esta tarjeta enseñaría delante lo que la orden manda detrás.
+ *
+ * ⚠️ **Y lo de atrás NO es basura técnica.** El nombre interno del componente se imprime en la
+ * orden como segunda línea del encargo: la cara trasera es la del proveedor, no un cajón de
+ * referencia. Por eso se rotula por quién lo lee y no como «datos internos».
+ */
+const traseraAbierta = ref(false);
+
+/** ¿Se están viendo los campos del COMPONENTE, estén delante o detrás? */
+const mostrandoComponente = computed(() => {
+  const mandaSeg = mandaElSegmento(store.componenteActivo?.tipo);
+
+  return mandaSeg ? traseraAbierta.value : !traseraAbierta.value;
+});
+
+// Cambiar de componente vuelve a la cara de delante: la trasera es una consulta puntual, y
+// dejarla pegada haría que el siguiente se abriera por su cara secundaria sin motivo.
+watch(() => store.componenteActivo?.id, () => { traseraAbierta.value = false; });
+
 const componentesDeSegmento = (segmentoId: string): ComponenteCompleto[] =>
   (store.servicioActivo?.cotcomponentes ?? []).filter(
     (c: ComponenteCompleto) => store.idSegmentoDeComponente(c) === segmentoId
@@ -2707,6 +2746,63 @@ store.$onAction(({ name, args }) => {
 
             <div class="grid grid-cols-2 gap-4">
 
+              <!-- ══ TARJETA DE IDENTIFICADORES, con dos caras ══════════════
+                   Delante lo que lee alguien de verdad; detrás lo secundario. Cuál es cuál lo
+                   decide el tipo, igual que en la orden (ver `mostrandoComponente`).
+
+                   ⚠️ **No es un flip 3D.** `transform: rotateY()` crea contexto de apilamiento y
+                   rompe el posicionamiento de lo que lleve dentro —aquí hay inputs y, dos bloques
+                   más abajo, un VueDatePicker teleportado—. Se intercambia el contenido con una
+                   transición: mismo gesto, sin ese riesgo. Misma familia de trampa que la «x» de
+                   `clearable`, ver docs/UI_Componentes_Compartidos.md §1.5. -->
+              <div class="col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="flex items-center justify-between gap-2 px-4 py-2 bg-slate-50 border-b border-slate-200">
+                  <span class="text-[9px] font-black uppercase tracking-widest"
+                        :class="traseraAbierta ? 'text-slate-400' : 'text-sky-600'">
+                    <i class="fas" :class="traseraAbierta ? 'fa-rotate-left' : 'fa-eye'"></i>
+                    {{ traseraAbierta ? 'Lo secundario' : 'Lo que se lee: cliente y proveedor' }}
+                  </span>
+                  <button type="button" @click="traseraAbierta = !traseraAbierta"
+                          class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-[10px] font-black uppercase tracking-wider text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors shadow-sm">
+                    <i class="fas fa-repeat text-[9px]"></i>
+                    {{ traseraAbierta ? 'Volver' : 'Voltear' }}
+                  </button>
+                </div>
+
+                <!-- ── Cara del SEGMENTO: sólo lectura, porque el dato vive en el párrafo ──
+                     Editable aquí sería una segunda puerta al mismo campo, y la de verdad está
+                     en el segmento. -->
+                <transition name="fade-cara" mode="out-in">
+                <div v-if="!mostrandoComponente" key="seg" class="p-4 grid gap-3">
+                  <template v-if="segmentoDeComponente(store.componenteActivo)">
+                    <div>
+                      <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">
+                        Título del párrafo <span class="text-slate-400 normal-case font-bold">— lo que ve el pasajero</span>
+                      </label>
+                      <p class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700">
+                        {{ store.getI18nText(segmentoDeComponente(store.componenteActivo)?.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
+                      </p>
+                    </div>
+                    <div>
+                      <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">
+                        Nombre interno del párrafo <span class="text-slate-400 normal-case font-bold">— encabeza la orden</span>
+                      </label>
+                      <p class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700">
+                        {{ store.getI18nText(segmentoDeComponente(store.componenteActivo)?.nombreInternoSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
+                      </p>
+                    </div>
+                    <p class="text-[10px] font-bold text-slate-400 leading-snug ml-1">
+                      Se editan en el párrafo, no aquí: es el mismo dato y una segunda puerta acabaría
+                      con dos versiones. Voltea la tarjeta para el nombre del insumo.
+                    </p>
+                  </template>
+                  <p v-else class="text-[11px] font-bold text-amber-600 leading-snug">
+                    Este componente no cuelga de ningún párrafo, así que quien lo nombra es él mismo.
+                    Voltea la tarjeta.
+                  </p>
+                </div>
+
+                <div v-else key="comp" class="p-4 grid gap-3">
               <!-- ── El nombre INTERNO, en TODOS los componentes ─────────────
                    Éste es el que mandan la orden y el cuadro de tráfico; el de abajo es lo único
                    que ve el pasajero.
@@ -2729,7 +2825,7 @@ store.$onAction(({ name, args }) => {
                    venía a matar: no falla, devuelve otra cosa plausible.
 
                    Ver `BibliaSnapshotService::resolverNombreComponente()` y docs §2.b. -->
-              <div class="col-span-2">
+              <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
                   Nombre interno <span class="text-slate-400 normal-case font-bold">— para la orden y La Biblia</span>
                 </label>
@@ -2744,8 +2840,16 @@ store.$onAction(({ name, args }) => {
                 </p>
               </div>
 
-              <div class="col-span-2">
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
+              <div>
+                <!-- ⚠️ El asterisco cae en transporte, tren y vuelo: ahí este texto NO se publica.
+                     Las dos superficies del cliente —el itinerario y el «qué incluye»— toman el
+                     título del párrafo, así que marcarlo obligatorio pedía pulir algo que no se
+                     enseña. Sigue guardándose: es el último recurso de La Biblia si el nombre
+                     interno quedara vacío. -->
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
+                  Nombre Público <span v-if="!mandaElSegmento(store.componenteActivo.tipo)">*</span>
+                  <span v-else class="text-slate-400 normal-case font-bold">— aquí no se publica: manda el párrafo</span>
+                </label>
 
                 <div class="flex gap-2" v-if="!isComponenteSoloItems(store.componenteActivo)">
                   <input :value="store.getI18nText(store.componenteActivo.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
@@ -2765,6 +2869,16 @@ store.$onAction(({ name, args }) => {
                          class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none cursor-not-allowed">
                 </div>
               </div>
+
+                  <!-- De qué insumo del catálogo cuelga la línea. Sólo lectura: elegirlo se hace
+                       arriba, y aquí sólo hace falta saber cuál es. -->
+                  <p v-if="nombreMaestroDelComponenteActivo" class="text-[10px] font-bold text-slate-400 leading-snug ml-1">
+                    <i class="fas fa-box-open mr-1"></i> Insumo: {{ nombreMaestroDelComponenteActivo }}
+                  </p>
+                </div>
+                </transition>
+              </div>
+              <!-- ══ fin de la tarjeta de identificadores ══ -->
 
               <div class="col-span-2 grid grid-cols-2 gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
 
@@ -4277,6 +4391,15 @@ store.$onAction(({ name, args }) => {
 
 .fade-scale-enter-active, .fade-scale-leave-active { transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
 .fade-scale-enter-from, .fade-scale-leave-to { opacity: 0; transform: scale(0.95); }
+
+/* El volteo de la tarjeta de identificadores.
+   ⚠️ Un desplazamiento lateral corto, NO un `rotateY`: el 3D crea contexto de apilamiento y
+   rompería el posicionamiento de los inputs y del date picker que viven en ese panel. El gesto
+   se lee igual y no arrastra ese riesgo. `mode="out-in"` evita que las dos caras se solapen y
+   den un salto de altura. */
+.fade-cara-enter-active, .fade-cara-leave-active { transition: opacity 0.14s ease, transform 0.14s ease; }
+.fade-cara-enter-from { opacity: 0; transform: translateX(8px); }
+.fade-cara-leave-to { opacity: 0; transform: translateX(-8px); }
 </style>
 
 <style>

@@ -3663,6 +3663,67 @@ tarjeta de un segmento el título del segmento ya está arriba.
 ⚠️ **Las propuestas ya guardadas no se arreglan solas.** El «qué incluye» es snapshot: hay que
 **re-guardar** la cotización para que la corrección le entre.
 
+### Los tres nombres de una línea, y quién lee cada uno
+
+Auditado el 31/08/2026 leyendo los grupos de serialización, porque la intuición falla: los tres
+parecen «internos» y sólo uno lo es de verdad.
+
+| | Campo | Grupos | Quién lo lee |
+|---|---|---|---|
+| **Insumo maestro** | `componenteMaestroId` | interno | Nadie fuera del editor. Es el vínculo, y de su `nombreInterno` se **copia** el nombre interno al añadir el componente |
+| **Nombre interno** | `nombreInternoSnapshot` | `cotizacion:*`, `operacion:item:read` — **sin `pax_cotizacion:read`** | **El proveedor.** `BibliaSnapshotService::resolverNombreComponente()` lo congela en la orden |
+| **Nombre público** | `tituloSnapshot` | incluye `pax_cotizacion:read` | El cliente… salvo en transporte, tren y vuelo |
+
+⚠️ **En esos tres tipos el nombre interno NO es referencia muerta: el proveedor lo lee.**
+`OperacionOrdenServicioItem` pone el segmento arriba y **el componente como segunda línea** —
+`getSecundarioParaProveedor()` devuelve literalmente «el que NO subió». La orden lleva los dos a
+propósito: con el genérico arriba, al proveedor le llegaba una flecha de dos puntas en grande y el
+destino de hoy en letra pequeña, así que se invirtió el orden, no se quitó nada.
+
+El que sí quedó sin lector en esos tipos es el **nombre público**: el itinerario y el «qué incluye»
+toman el título del párrafo. Sobrevive sólo como último recurso de La Biblia si el nombre interno
+estuviera vacío — y el editor repone el del catálogo al vaciarlo, así que en la práctica no se
+llega ahí. Por eso su asterisco de obligatorio **desaparece** en transporte, tren y vuelo: pedía
+pulir un texto que no se publica.
+
+`pax` no recibe `nombreInternoSnapshot` en absoluto. Lo confirma el grupo, no el código que lo usa.
+
+### La tarjeta de identificadores tiene dos caras, y el tipo decide cuál va delante
+
+De lo anterior sale el diseño: en el inspector del componente, los nombres viven en una tarjeta con
+**delante lo que alguien lee de verdad** y **detrás lo secundario**.
+
+```
+transporte · tren · vuelo     delante: el PÁRRAFO (título + nombre interno, sólo lectura)
+                              detrás:  el componente (interno, público, insumo)
+
+los demás tipos               delante: el componente
+                              detrás:  el párrafo
+```
+
+⚠️ **El intercambio no es una decisión de pantalla: espeja `getSecundarioParaProveedor()`.** Si esa
+regla cambiara y la tarjeta no, el editor enseñaría delante justo lo que la orden manda detrás.
+
+⚠️ **La cara de atrás se rotula por quién la lee, no como «datos internos».** El nombre interno se
+imprime en la orden; llamarlo referencia técnica haría que alguien dejara de cuidarlo.
+
+⚠️ **La cara del párrafo es de SÓLO LECTURA.** Ese dato vive en el segmento y editarlo aquí sería
+una segunda puerta al mismo campo — con dos versiones al final. La tarjeta lo dice en una línea.
+
+⚠️ **La hora se queda FUERA de la tarjeta.** Es lo que se viene a hacer en esta pantalla y no es un
+identificador: meterla dentro la escondería medio tiempo detrás de un clic.
+
+### 🐛 El volteo NO es un `rotateY`, y es deliberado
+
+La tentación es un flip 3D. `transform` crea **contexto de apilamiento**, y dentro de ese panel hay
+inputs y —dos bloques más abajo— un `VueDatePicker` con `teleport`. Un `rotateY` en el contenedor
+rompe el posicionamiento de lo que se teleporta desde dentro, y el síntoma aparece lejos: el
+calendario abriéndose en el sitio equivocado o recortado.
+
+Se intercambia el contenido con un desplazamiento lateral corto y `mode="out-in"` (que además evita
+el salto de altura al solaparse las dos caras). El gesto se lee igual. Misma familia que la «x» de
+`clearable`: la propiedad *parecía* la natural y el fallo no habría dado ningún error.
+
 ⚠️ **Manda por un motivo distinto en cada lado, y conviene no confundirlos.** En La Biblia porque
 el nombre OPERATIVO ya no dice la dirección; en `pax` porque el TÍTULO PÚBLICO tampoco puede
 decirla y encima lo intenta. Misma regla, dos razones — si algún día una de las dos cambia, la
