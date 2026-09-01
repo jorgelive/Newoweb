@@ -15,6 +15,7 @@ Si un patrón se repite en dos vistas, su sitio es aquí y no duplicado en cada 
 3.c [AsistenteBar — preguntar al PMS en lenguaje natural](#3c-asistentebar--preguntar-al-pms-en-lenguaje-natural)
 3.d [ConversacionVistaPrevia — asomarse a un chat sin abrirlo](#3d-conversacionvistaprevia--asomarse-a-un-chat-sin-abrirlo)
 3.e [InfoTooltip — la ayuda detrás de una «i», y el hover que no existe en táctil](#3e-infotooltip--la-ayuda-detrás-de-una-i-y-el-hover-que-no-existe-en-táctil)
+3.n [WysiwygEditor — la barra flotante sobre la selección](#3n-wysiwygeditor--la-barra-flotante-sobre-la-selección)
 4. [Dónde tocar para cambiar X](#4-dónde-tocar-para-cambiar-x)
 
 ---
@@ -1063,10 +1064,60 @@ Lo destapó el **nivel 7 de PHPStan** (uniones): con `object` no había nada que
 mismo patrón que los contratos de `Exchange` de esta semana — *el contrato decía menos de lo que
 el código exigía*—, sólo que aquí no había contrato en absoluto.
 
+## 3.n `WysiwygEditor` — la barra flotante sobre la selección (01/09/2026)
+
+`util/src/components/WysiwygEditor.vue` es `contenteditable` + `execCommand`, sin librería. Lo
+usan el resumen de la cotización y el cuerpo de cada párrafo. Al seleccionar texto ahora sale una
+burbuja con negrita, cursiva, viñetas, numeración y limpiar formato.
+
+**El repertorio es el mismo que el del panel a propósito.** Allí se resolvió activando el plugin
+`quickbars` de TinyMCE (`assets/controllers/panel/tinymce_controller.js`); aquí no hay plugins y la
+burbuja se monta a mano. Quien redacta salta entre las dos pantallas, así que el gesto debe ser
+idéntico aunque los motores no lo sean — si se añade un botón en un lado, va en los dos.
+
+### Las tres trampas, y ninguna da error
+
+| Qué | Qué pasa sin ello |
+|---|---|
+| `@mousedown.prevent` en **cada** botón | El navegador mueve el foco al pulsar y la selección se pierde **antes** de que `execCommand` se aplique: el botón no hace nada, en silencio |
+| `Teleport` al `body` | El editor vive dentro de tarjetas con `overflow-hidden` y de un panel con scroll propio: la burbuja se recorta justo al seleccionar cerca del margen |
+| Recalcular la posición al hacer scroll | La selección sigue viva pero su rect se mueve, y la burbuja se queda flotando sobre otro párrafo |
+
+### 🔥 Tailwind y una transición no pueden compartir `transform`
+
+La que merece salir de este componente, porque **aplica a cualquier elemento animado del
+proyecto**: si el estado base se centra con las utilidades de Tailwind
+
+```html
+class="-translate-x-1/2 -translate-y-full"
+```
+
+y la transición anima `transform` en la hoja de estilos
+
+```css
+.burbuja-enter-from { transform: translate(-50%, -100%) scale(0.94); }
+```
+
+**son dos dueños de la misma propiedad**. Durante la animación gana la hoja y al terminar vuelve
+Tailwind, así que el elemento *salta de sitio* al aparecer — un fallo visual que se lee como «la
+burbuja parpadea» y que nadie relaciona con el centrado.
+
+La regla: **el centrado va donde va la animación**. Aquí, una clase propia:
+
+```css
+.burbuja-flotante { transform: translate(-50%, -100%); }
+```
+
+Misma familia que la «x» de `clearable` (§1.5): la utilidad *parecía* la natural, no daba ningún
+error, y el síntoma aparecía lejos de la causa.
+
+---
+
 ## 4. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
+| Añadir un botón a la barra flotante del editor | `util/src/components/WysiwygEditor.vue` **y** `assets/controllers/panel/tinymce_controller.js` | los dos: el gesto es el mismo en las dos pantallas (§3.n) |
 | **Que una pantalla deje de editar teléfono/correo** | la vista | `ContactoDeIdentidad.vue` con `contextType` + `contextId` (§3.h) |
 | **Cambiar cuánto hay que tirar para que recargue** | `GestoDeRecarga.vue` | `UMBRAL` (88 px) y `ROCE` (2.4) — sólo se juzga en un móvil real (§3.g) |
 | Que el gesto refresque datos en vez de recargar la página | `GestoDeRecarga.vue` | `alSoltar()` — es el único punto que cambia (§3.g) |
