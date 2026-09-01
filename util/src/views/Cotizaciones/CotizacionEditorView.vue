@@ -951,24 +951,12 @@ const etiquetaDeComponente = (comp: ComponenteCompleto | null | undefined): stri
 
   if (!mandaElSegmento(comp.tipo)) return getNombreMaestroRef(comp);
 
-  const segId = store.idSegmentoDeComponente(comp);
-  const seg = (store.servicioActivo?.cotsegmentos ?? []).find(
-    (x: CotSegmento) => store.extractIdStr(x.id) === segId
-  );
+  // ⚠️ Por el store: `servicioActivo` es null dentro del inspector del componente, así que un
+  // resolutor local que lo usara se apagaba justo en la pantalla que lo necesita.
+  const seg = store.segmentoDeComponente(comp);
   const delSegmento = store.getI18nText(seg?.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es');
 
   return delSegmento || getNombreMaestroRef(comp);
-};
-
-/** El cotsegmento del que cuelga un componente, o null si va suelto. */
-const segmentoDeComponente = (comp: ComponenteCompleto | null | undefined): CotSegmento | null => {
-  if (!comp) return null;
-
-  const segId = store.idSegmentoDeComponente(comp);
-
-  return (store.servicioActivo?.cotsegmentos ?? []).find(
-    (x: CotSegmento) => store.extractIdStr(x.id) === segId
-  ) ?? null;
 };
 
 /**
@@ -2774,13 +2762,13 @@ store.$onAction(({ name, args }) => {
                      en el segmento. -->
                 <transition name="fade-cara" mode="out-in">
                 <div v-if="!mostrandoComponente" key="seg" class="p-4 grid gap-3">
-                  <template v-if="segmentoDeComponente(store.componenteActivo)">
+                  <template v-if="store.segmentoDeComponente(store.componenteActivo)">
                     <div>
                       <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">
                         Título del párrafo <span class="text-slate-400 normal-case font-bold">— lo que ve el pasajero</span>
                       </label>
                       <p class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700">
-                        {{ store.getI18nText(segmentoDeComponente(store.componenteActivo)?.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
+                        {{ store.getI18nText(store.segmentoDeComponente(store.componenteActivo)?.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
                       </p>
                     </div>
                     <div>
@@ -2788,7 +2776,7 @@ store.$onAction(({ name, args }) => {
                         Nombre interno del párrafo <span class="text-slate-400 normal-case font-bold">— encabeza la orden</span>
                       </label>
                       <p class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700">
-                        {{ store.getI18nText(segmentoDeComponente(store.componenteActivo)?.nombreInternoSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
+                        {{ store.getI18nText(store.segmentoDeComponente(store.componenteActivo)?.nombreInternoSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
                       </p>
                     </div>
                     <p class="text-[10px] font-bold text-slate-400 leading-snug ml-1">

@@ -3713,6 +3713,33 @@ una segunda puerta al mismo campo — con dos versiones al final. La tarjeta lo 
 ⚠️ **La hora se queda FUERA de la tarjeta.** Es lo que se viene a hacer en esta pantalla y no es un
 identificador: meterla dentro la escondería medio tiempo detrás de un clic.
 
+### 🔥 `servicioActivo` es `null` fuera de su propio nivel
+
+La trampa que hizo que la primera versión de esto **funcionara en la lista y se apagara dentro del
+inspector**, sin dar un solo error:
+
+```ts
+const servicioActivo = computed(() =>
+    inspectorActivo.value === 'servicio' ? (dataActiva.value as CotServicio) : null);
+```
+
+Es un computed **por nivel del inspector**, no «el servicio en el que estoy trabajando». En cuanto
+se entra al componente vale `null`, así que cualquier resolutor escrito como
+`store.servicioActivo?.cotsegmentos` recibe una lista vacía y concluye que la línea **no cuelga de
+ningún párrafo** — que es exactamente lo que llegó a decir la tarjeta de un componente que sí
+colgaba de uno.
+
+El síntoma es cruel porque **la mitad visible funciona**: en la lista de componentes el inspector
+sí está en «servicio», así que ahí el nombre del párrafo salía bien y parecía todo correcto.
+
+**La regla:** para llegar de un componente a su servicio se usa `findServicioByComponenteId()`, que
+lo busca por id y funciona mire quien mire. De ahí sale `segmentoDeComponente()` en el store, y por
+eso vive en el store y no en la vista: la vista no tiene forma de saber en qué nivel está el
+inspector cuando la llaman desde dos sitios.
+
+⚠️ **Y esto no lo caza `vue-tsc` ni `eslint`.** El tipo es `CotServicio | null` y el `?.` es
+correcto; lo que falla es la semántica. Se caza abriendo la pantalla — que es lo que faltó.
+
 ### 🐛 El volteo NO es un `rotateY`, y es deliberado
 
 La tentación es un flip 3D. `transform` crea **contexto de apilamiento**, y dentro de ese panel hay

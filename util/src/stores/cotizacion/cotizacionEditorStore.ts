@@ -2798,6 +2798,32 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const idSegmentoDeComponente = (comp: ComponenteCompleto): string | null =>
         comp.cotsegmentoId || (comp.cotsegmento ? extractIdStr(comp.cotsegmento) : null);
 
+    /**
+     * El cotsegmento del que cuelga un componente, mire quien mire.
+     *
+     * ⚠️ **Busca el servicio por el id del componente y NO usa `servicioActivo`**, que es la
+     * trampa que costó un despliegue el 31/08/2026: ese computed sólo tiene valor cuando el
+     * inspector está en el nivel «servicio» —`inspectorActivo.value === 'servicio'`— y devuelve
+     * `null` en cuanto se entra al componente. Un resolutor que lo usara funcionaba en la lista y
+     * se apagaba dentro del inspector, sin dar error: enseñaba el nombre del componente como si
+     * la línea no colgara de ningún párrafo.
+     *
+     * Devolver el segmento y no sólo su id es lo que permite que el llamador no tenga que volver
+     * a buscar el servicio para nada.
+     */
+    const segmentoDeComponente = (comp: ComponenteCompleto | null | undefined): CotSegmento | null => {
+        if (!comp) return null;
+
+        const segId = idSegmentoDeComponente(comp);
+        if (!segId) return null;
+
+        const servicio = findServicioByComponenteId(comp.id);
+
+        return (servicio?.cotsegmentos ?? []).find(
+            (x) => extractIdStr(x.id) === extractIdStr(segId)
+        ) ?? null;
+    };
+
     const findServicioByComponenteId = (compId: string) => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return null;
 
@@ -4814,7 +4840,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarSegmentoIndividual, reordenarSegmentos, reordenarServicios, soltarOrdenDelDia, diaOrdenadoAMano, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
         onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange, onCambioModoComponente,
-        onTipoManualChange, marcarComponenteManual, idSegmentoDeComponente,
+        onTipoManualChange, marcarComponenteManual, idSegmentoDeComponente, segmentoDeComponente,
         actualizarInicioManteniendoRango, agregarDetalleOperativo, eliminarDetalleOperativo, alternarAudienciaDetalle,
         fetchProveedorServiciosDeProveedor, onProveedorServicioChange, limpiarServicioProveedor, marcarTarifaComoEstandar,
         componenteActualDeTarifa, componenteEnEdicion, tarifasHermanas, irATarifaAdyacente,
