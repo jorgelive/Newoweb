@@ -529,8 +529,12 @@ class MessageTemplate
      * pidió.
      *
      * Ocultar los botones tiene que apagar las DOS mitades del contrato, no sólo el render.
+     *
+     * ⚠️ **Sin `#[Groups]`, y no por olvido.** El serializador sólo admite ese atributo en
+     * métodos que empiezan por `get`/`is`/`has`/`can`/`set`, y con uno que no cumple **la
+     * aplicación no arranca**: revienta al compilar el contenedor, no al serializar. No es un
+     * dato que la API necesite, así que se queda fuera en vez de deformarle el nombre.
      */
-    #[Groups(['template:read'])]
     public function emulaBotonesEnAlgunCanal(): bool
     {
         return !$this->isBeds24MetaButtonsDisabled() || !$this->isWhatsappLinkMetaButtonsDisabled();
