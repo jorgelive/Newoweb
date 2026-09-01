@@ -85,6 +85,53 @@ final class MessageCrearPlantillasPagoCommand extends Command
         👇 Ábrelo con el botón de abajo.
         TXT;
 
+    /**
+     * La garantía de Booking. **Sólo por Beds24, y eso es el punto.**
+     *
+     * ── Para qué existe de verdad ───────────────────────────────────────────────
+     * No es un mensaje informativo: es una PRUEBA. Booking busca lo mínimo para sostener que no
+     * se le dio toda la información al huésped, y no cancela ni cuando el huésped no contesta a
+     * nadie. Lo que queda escrito en SU chat es lo que cuenta en una disputa — por eso va por
+     * Beds24 y no por WhatsApp, que ellos no ven.
+     *
+     * De ahí sale cada decisión del texto:
+     *
+     * - **El importe y el plazo van dentro**, vía `{{ bloque_pago }}`: «se le dijo cuánto y
+     *   hasta cuándo» no se puede demostrar con un enlace.
+     * - **Las cuentas también**, y por lo mismo. Pero salen del catálogo
+     *   (`{{ medios_de_pago }}`), no tecleadas: así el filtro de audiencia se aplica solo y a un
+     *   huésped que no paga desde Perú no se le ofrece una cuenta peruana.
+     * - **Y el bloque dice que hay más.** Un chat con dos cuentas, leído fuera de contexto, se
+     *   lee como información incompleta; con esa línea queda dicho que se dio todo y que el
+     *   resto estaba a una pregunta.
+     * - **El plazo se redacta como derecho reservado** —«podemos liberar la reserva»— y no como
+     *   cuenta atrás: es lo que permite cancelar cuando haga falta, sin obligar a perseguir un
+     *   reloj que nadie mira.
+     */
+    private const string CUERPO_POLITICAS = <<<'TXT'
+        Hola {{guest_name}}, gracias por reservar con nosotros.
+
+        Tu reserva: {{estancias}}
+
+        📄 *Confirmación de Booking.com*
+        Envíanos el PDF de tu reserva: App de Booking.com → tu reserva → Opciones → Descargar para usar sin conexión.
+
+        💳 *Prepago para asegurar tu reserva*
+        {{bloque_pago}}
+
+        Si no recibimos el prepago dentro de las 24 horas siguientes, de acuerdo con nuestras políticas en Booking.com, podemos liberar la reserva.
+
+        Puedes pagarlo por:
+
+        {{medios_de_pago}}
+
+        ▪️ *Tarjeta de crédito*
+        El enlace de pago seguro y el detalle de tu cuenta están aquí:
+        🔗 {{account_url}}
+
+        Una vez hecho el prepago, envíanos el comprobante por aquí.
+        TXT;
+
     public function __construct(private readonly EntityManagerInterface $em)
     {
         parent::__construct();
@@ -102,7 +149,7 @@ final class MessageCrearPlantillasPagoCommand extends Command
         $repo = $this->em->getRepository(MessageTemplate::class);
         $filas = [];
 
-        foreach ([$this->detalle(), $this->meta()] as $plantilla) {
+        foreach ([$this->detalle(), $this->meta(), $this->politicasBooking()] as $plantilla) {
             if ($repo->findOneBy(['code' => $plantilla->getCode()]) !== null) {
                 $filas[] = [$plantilla->getCode(), '<comment>ya existe, no se toca</comment>'];
                 continue;
@@ -169,6 +216,41 @@ final class MessageCrearPlantillasPagoCommand extends Command
             // «Plantilla NO oficial fuera de ventana», que es el mensaje correcto — para eso
             // está `pago`. El cuerpo se deja vacío a propósito: no hay versión de Meta de esto.
             ->setWhatsappMetaTmpl(['is_active' => true, 'is_official_meta' => false, 'body' => []])
+            ->setEmailTmpl(['is_active' => false, 'subject' => [], 'body' => []]);
+    }
+
+    /** `politicas_booking`: la garantía, sólo por el chat de Booking. Ver `CUERPO_POLITICAS`. */
+    private function politicasBooking(): MessageTemplate
+    {
+        return (new MessageTemplate())
+            ->setCode('politicas_booking')
+            ->setName('Políticas y prepago (Booking)')
+            ->setContextType('pms_reserva')
+            // ⚠️ Sólo Booking, y se valida por código: el motor no manda una plantilla acotada
+            // hacia una reserva de otro canal aunque alguien se equivoque de código.
+            ->setAllowedSources(['booking'])
+            // No es de autoenvío: no es algo que el huésped pida, es algo que nosotros
+            // establecemos. La manda la regla del hito, o el equipo.
+            ->setAutoenvioHabilitada(false)
+            ->setAgenteUso(
+                'La garantía de Booking: plazo del prepago, consecuencia de no hacerlo, y los '
+                . 'datos para pagar. Va por el chat de Booking porque su valor es dejar '
+                . 'constancia allí. NO la uses para responder «¿cómo pago?» —para eso está '
+                . 'pago_texto— ni la mandes a reservas que no sean de Booking.'
+            )
+            ->setBeds24Tmpl([
+                'is_active' => true,
+                'disable_meta_buttons' => true,
+                'body' => [['language' => 'es', 'content' => self::CUERPO_POLITICAS]],
+            ])
+            // ⚠️ **Apagado el canal de WhatsApp entero**, que es lo que gobierna `is_active` de
+            // este bloque (ver `MessageDispatcher::resolveChannels()`). Aquí sí se quiere: esta
+            // plantilla vale por quedar escrita en el chat de Booking, y mandarla por WhatsApp
+            // sería decírselo donde la OTA no lo ve — el trabajo que hace no se haría.
+            //
+            // Con `is_official_meta` en false no se le exige «Nombre en Meta»: nunca va a subir.
+            ->setWhatsappMetaTmpl(['is_active' => false, 'is_official_meta' => false, 'body' => []])
+            ->setWhatsappLinkTmpl(['disable_meta_buttons' => true, 'body' => []])
             ->setEmailTmpl(['is_active' => false, 'subject' => [], 'body' => []]);
     }
 
