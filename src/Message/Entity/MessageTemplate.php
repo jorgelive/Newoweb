@@ -519,6 +519,23 @@ class MessageTemplate
         return ($this->whatsappLinkTmpl['disable_meta_buttons'] ?? true) === true;
     }
 
+    /**
+     * ¿Esta plantilla emula la botonera en ALGÚN canal de texto?
+     *
+     * ⚠️ **La usa el camino de VUELTA, no el de ida.** {@see \App\Message\Service\Inbound\InboundMenuResolver}
+     * traduce un «2» del huésped al botón número dos del menú que se le mandó. Si el menú no se
+     * pintó —porque la botonera está oculta en los dos canales—, ese «2» no se refiere a nada
+     * nuestro: es una persona contestando «somos 2», y mapearlo dispararía una acción que nadie
+     * pidió.
+     *
+     * Ocultar los botones tiene que apagar las DOS mitades del contrato, no sólo el render.
+     */
+    #[Groups(['template:read'])]
+    public function emulaBotonesEnAlgunCanal(): bool
+    {
+        return !$this->isBeds24MetaButtonsDisabled() || !$this->isWhatsappLinkMetaButtonsDisabled();
+    }
+
     #[Groups(['template:read'])]
     public function isWhatsappMetaActive(): bool
     {

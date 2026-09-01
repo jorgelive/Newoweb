@@ -25,6 +25,9 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  * ⚠️ La numeración tiene que seguir siendo simétrica con la del render: ambos lados filtran
  * SOLO los `quick_reply` y los cuentan 1..N ignorando los botones de tipo `url`. Si tocas uno,
  * tocas el otro. Ver docs/Mensajeria.md §8.
+ *
+ * ⚠️ **Y la simetría incluye el interruptor**: con la botonera oculta en los dos canales, el menú
+ * no se pintó y aquí no hay nada que deshacer. Ver `MessageTemplate::emulaBotonesEnAlgunCanal()`.
  */
 final readonly class InboundMenuResolver
 {
@@ -88,6 +91,18 @@ final readonly class InboundMenuResolver
         // mensaje, el hilo se rompió y el número del huésped ya no se refiere a estas opciones.
         $efectiva = $ultimo->getScheduledAt() ?? $ultimo->getCreatedAt();
         if ($efectiva === null || $efectiva < new \DateTimeImmutable(self::VENTANA_VALIDEZ)) {
+            return null;
+        }
+
+        // ⚠️ **Si la botonera está oculta, este contrato no existe.** El menú numerado es un
+        // acuerdo de dos mitades: se pinta «1️⃣ Guía / 2️⃣ Tours» al salir y se deshace la
+        // numeración al volver. Con la botonera apagada la primera mitad no ocurre, así que un
+        // «2» del huésped **no se refiere a ninguna opción nuestra** — es alguien contestando
+        // «somos 2», y mapearlo dispararía una acción que nadie pidió.
+        //
+        // Se pregunta por los DOS canales de texto y no por el que trajo el mensaje: la vuelta
+        // llega por WhatsApp aunque el menú saliera por Beds24, y al revés.
+        if (!$template->emulaBotonesEnAlgunCanal()) {
             return null;
         }
 

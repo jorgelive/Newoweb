@@ -155,7 +155,8 @@ final class MessageCrearPlantillasPagoCommand extends Command
             // `disable_meta_buttons`: el enlace ya va escrito en el texto. Con la emulación de
             // botones encendida saldría dos veces, igual que en `welcome_airbnb` y `enviar_guia`.
             ->setBeds24Tmpl(['is_active' => true, 'disable_meta_buttons' => true, 'body' => $cuerpo])
-            ->setWhatsappLinkTmpl(['body' => $cuerpo])
+            // Igual que Beds24: el enlace ya va escrito dentro del texto.
+            ->setWhatsappLinkTmpl(['disable_meta_buttons' => true, 'body' => $cuerpo])
             // ⚠️ **`is_active` SÍ, pero `is_official_meta` NO**, y la diferencia es toda.
             //
             // El canal de WhatsApp se ofrece por esta columna (`MessageDispatcher::resolveChannels()`),
@@ -212,7 +213,7 @@ final class MessageCrearPlantillasPagoCommand extends Command
             // Por Beds24 no hay ventana que se cierre, así que ahí siempre sirve `pago_texto`.
             // Tener las dos activas sería dos formas de decir lo mismo por el mismo canal.
             ->setBeds24Tmpl(['is_active' => false, 'body' => []])
-            ->setWhatsappLinkTmpl(['body' => []])
+            ->setWhatsappLinkTmpl(['disable_meta_buttons' => true, 'body' => []])
             ->setEmailTmpl(['is_active' => false, 'subject' => [], 'body' => []]);
     }
 }

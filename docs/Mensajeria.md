@@ -6644,6 +6644,37 @@ una plantilla de Meta— no tenía cuerpo que mandar por ahí. Salía vacía.
 `wa.me`. Mismo destino, mismo formato, sin el corsé de la aprobación. Ahora se prefiere, y el de
 Meta queda de respaldo para las plantillas que sólo tengan ése.
 
+#### 🔌 Y apagarla apaga las DOS mitades del contrato (01/09/2026)
+
+El menú numerado es un acuerdo de dos partes: al salir se pinta «1️⃣ Guía / 2️⃣ Tours», y al volver
+{@see \App\Message\Service\Inbound\InboundMenuResolver} deshace la numeración y traduce el «2»
+del huésped al payload del segundo botón.
+
+**Ocultar la botonera apagaba sólo la primera mitad.** Con el menú sin pintar, un «2» del huésped
+ya no se refiere a ninguna opción nuestra: es alguien contestando «somos 2» — y el resolutor lo
+mapeaba igual, disparando una acción que nadie pidió. La ventana de 24 h lo acotaba, no lo
+evitaba.
+
+Ahora el resolutor pregunta primero por `MessageTemplate::emulaBotonesEnAlgunCanal()`, y por los
+**dos** canales de texto y no por el que trajo el mensaje: la respuesta puede llegar por WhatsApp
+aunque el menú saliera por Beds24, y al revés.
+
+#### Hoy está apagada en TODAS (decisión de producto)
+
+`Version20260901140000` pone `disable_meta_buttons = true` en `beds24_tmpl` y
+`whatsapp_link_tmpl` de todas las plantillas. Sigue siendo una casilla y el código se queda: es
+una opción que puede volver.
+
+Y en un caso arreglaba algo real: **`recordatorio_llegada`** tenía la casilla sin poner en Beds24
+y su cuerpo ya escribe «👉 {{ guide_url }}» dentro del texto, así que el huésped recibía **el
+mismo enlace dos veces** — una en la frase y otra en la botonera de abajo.
+
+⚠️ **Se escribe el valor también donde el default ya lo hacía.** `whatsapp_link_tmpl` estaba en
+`NULL` en todas y su getter devuelve `true` por defecto, así que el comportamiento era correcto —
+pero **el formulario pinta la casilla desde el JSON**, y con la clave ausente se veía
+*desmarcada* mientras el sistema hacía lo contrario. Una casilla que miente sobre lo que está
+pasando es peor que no tenerla.
+
 #### La botonera, con su interruptor y no con una regla implícita
 
 Si el cuerpo sale del rico y además se emula la botonera de Meta debajo, los enlaces salen **dos
