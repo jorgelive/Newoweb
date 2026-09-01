@@ -62,6 +62,25 @@ export default class extends Controller {
             quickbars_insert_toolbar: false,
             quickbars_image_toolbar: false,
 
+            // ── Clic derecho / pulsación larga: el menú del NAVEGADOR ────────
+            //
+            // ⚠️ **Devolver el menú nativo es lo único que da copiar y pegar de verdad.** El menú
+            // propio de TinyMCE los trae, pero **no funcionan**: los navegadores llevan años sin
+            // dejar tocar el portapapeles desde un menú, y el propio editor lleva dentro el aviso
+            // de consolación —«Your browser doesn't support direct access to the clipboard. Please
+            // use the Ctrl+X/C/V keyboard shortcuts instead»—. O sea que ponerlos ahí sería
+            // prometer tres acciones y cumplir cero.
+            //
+            // El default era `link linkchecker image editimage table spellchecker
+            // configurepermanentpen`, y de esos siete aquí sólo existen `link` e `image`: sin una
+            // imagen seleccionada el menú se quedaba en **un solo elemento, «Link…»**. No era que
+            // el enlace estuviera elegido, es que era lo único que sobrevivía.
+            //
+            // Con `false` el menú se queda vacío y pasa el del sistema: seleccionar todo, copiar,
+            // pegar, corrector ortográfico, traducir. El formato sigue a un gesto de distancia en
+            // la barra flotante de arriba, que es la que sí puede hacer su trabajo.
+            contextmenu: false,
+
             // Configuración de imagen (Solo URL)
             image_title: true,
             automatic_uploads: false,
