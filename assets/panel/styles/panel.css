@@ -34,7 +34,20 @@
 
 pre.ea-codigo-crudo {
     margin: 0;
-    min-width: 0;
+    /* ⚠️ **`width: 0` + `min-width: 100%` es lo que de verdad cierra esto**, y no es un apaño:
+       es la única forma de no depender de la cadena de ancestros.
+
+       Medido con el bloque ya puesto: `scrollWidth === clientWidth === 4720`, o sea que el `pre`
+       medía lo que su contenido y no había nada que desplazar. Encoger `.field-value` con
+       `min-inline-size: 0` no bastó porque más arriba hay otro flex item que también crece —las
+       `.col` de Bootstrap llevan `min-width: auto`—, y perseguir esa cadena a golpe de `:has()`
+       es frágil: cambia con cualquier versión de EasyAdmin.
+
+       Con `width: 0` el ancho PREFERIDO del bloque pasa a ser cero, así que ningún ancestro crece
+       por su culpa; `min-width: 100%` lo devuelve al ancho disponible ya calculado. El contenido
+       desborda dentro y `overflow: auto` por fin tiene qué desplazar. */
+    width: 0;
+    min-width: 100%;
     max-width: 100%;
     padding: .75rem 1rem;
     /* Sin esto lo pinta de rojo `code,pre { color: var(--code-color) }` de EasyAdmin, pensado
