@@ -6600,6 +6600,27 @@ Se guardó copia de sus 7 idiomas con sus ids antes de tocar nada. Y ojo: borrar
 **bloquea reutilizar ese nombre unos 30 días**, cosa que aquí da igual porque la plantilla viva
 se llama `welcome_booking_command`.
 
+### 📋 Los tres cuerpos, y cuál sale cuándo
+
+Es la tabla que faltaba, y la que ahora está escrita en las ayudas del panel — porque quien edita
+una plantilla no lee este documento:
+
+| Cuerpo | Cuándo sale | Límites |
+|---|---|---|
+| `beds24_tmpl` | chat de la OTA (Booking, Airbnb) | ninguno; **no hay ventana** que se cierre. Booking no transporta imágenes |
+| `whatsapp_link_tmpl` | WhatsApp **dentro** de la ventana de 24 h · y el enlace manual `wa.me` | ninguno: es el sitio del texto bueno |
+| `whatsapp_meta_tmpl` | WhatsApp **fuera** de la ventana | 1024 caracteres, texto congelado por Meta, sin saltos de línea en los parámetros |
+
+**Las ayudas del panel** (`MessageTemplateCrudController` y los `*TemplateType`) dicen esto mismo
+campo por campo, en colapsables: qué hace cada casilla, por qué `is_active` y `is_official_meta`
+no son lo mismo, por qué el nombre de Meta lleva sufijo desde el primer día, y qué variables caben
+en cada sitio. Estaba todo aquí y en ningún lado donde lo viera quien escribe los textos.
+
+⚠️ **Si cambias algo de esto, cambia las dos:** el documento reconstruye el porqué, la ayuda evita
+el error en el momento. Una ayuda desactualizada es peor que ninguna — la de
+`whatsapp_link_tmpl` decía «esta plantilla no se envía automáticamente» justo cuando pasó a ser el
+cuerpo principal.
+
 ### 🔥 Dentro de la ventana se mandaba el cuerpo de META, no el rico (01/09/2026)
 
 `WhatsappMetaSendMappingStrategy` tiene dos ramas: fuera de la ventana manda la plantilla

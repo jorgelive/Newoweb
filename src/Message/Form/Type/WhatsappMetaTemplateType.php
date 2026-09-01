@@ -26,20 +26,30 @@ class WhatsappMetaTemplateType extends AbstractType
         $builder
             ->add('is_active', CheckboxType::class, [
                 'label' => 'Activar canal WhatsApp (Meta)',
+                'help' => 'Decide si el canal de WhatsApp <b>se ofrece siquiera</b> para esta plantilla — a mano y al agente. '
+                    . '⚠️ <b>No confundir con la casilla de abajo:</b> una plantilla pensada sólo para texto libre va '
+                    . '<b>activada</b> aquí y <b>no oficial</b> abajo. Apagando esto no sale por WhatsApp ni dentro de la ventana.',
+                'help_html' => true,
                 'required' => false,
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
             ->add('is_official_meta', CheckboxType::class, [
                 'label' => 'Es plantilla oficial de Meta',
                 'required' => false,
-                'help' => 'Desmárcalo si es un "Quick Reply" interno del PMS. Las plantillas no oficiales solo pueden enviarse dentro de la ventana de 24 horas de atención al cliente.',
+                'help' => 'Decide si puede salir <b>fuera</b> de la ventana de 24 h. Desmárcalo si no está aprobada en Meta '
+                    . '(un «Quick Reply» interno, o una plantilla que sólo existe como texto libre). '
+                    . 'Sin esto, fuera de la ventana el envío se rechaza con un aviso — que es lo correcto: ahí hay que mandar una aprobada.',
+                'help_html' => true,
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
             ->add('meta_template_name', TextType::class, [
                 'label' => 'Nombre Base de Plantilla Oficial',
                 'required' => false,
                 'attr' => ['placeholder' => 'Ej: welcome_confirmation'],
-                'help' => 'El nombre exacto aprobado en Facebook Business Manager. (Ignorar si es un Quick Reply).',
+                'help' => 'El nombre exacto aprobado en Facebook Business Manager. Sin él, la plantilla es <b>invisible en las dos direcciones</b>: ni se sube ni se reconoce al sincronizar.<br>'
+                    . '⚠️ <b>Ponle sufijo desde el primer día</b> (<code>pago_v1</code>). Meta no deja editar una plantilla aprobada: reescribirla es crear otra y borrar la vieja, '
+                    . 'y <b>borrar bloquea ese nombre 30 días</b>. Con sufijo, la siguiente es <code>_v2</code> y no te topas con el bloqueo.',
+                'help_html' => true,
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
             ->add('category', ChoiceType::class, [
@@ -74,7 +84,12 @@ class WhatsappMetaTemplateType extends AbstractType
             ->add('body', CollectionType::class, [
                 'entry_type' => WhatsappMetaBodyType::class,
                 'label' => 'Textos Base, Variables y Estado',
-                'help' => 'El estado (Aprobada/Pendiente) se sincroniza desde Meta. Las variables se extraen automáticamente al enviar.',
+                'help' => '<b>Este cuerpo sólo se usa FUERA de la ventana de 24 h.</b> Dentro sale el de «Enlace WhatsApp», que es más largo y libre.<br><br>'
+                    . '<b>Límites de Meta:</b> 1024 caracteres; el texto no puede empezar ni acabar con una variable, ni llevar dos seguidas; '
+                    . 'y <b>ningún parámetro puede tener saltos de línea</b>. Por eso <code>{{bloque_pago}}</code> no cabe aquí —son varias líneas— '
+                    . 'y sí cabe <code>{{importe_a_pagar}}</code>, que es una.<br><br>'
+                    . 'El estado (Aprobada/Pendiente) lo sincroniza Meta. Las variables se convierten al formato posicional al enviarlas.',
+                'help_html' => true,
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,

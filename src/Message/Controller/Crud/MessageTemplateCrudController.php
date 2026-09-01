@@ -302,7 +302,31 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setIcon('fab fa-whatsapp')
             ->collapsible()
             ->renderCollapsed()
-            ->setHelp('💡 <b>¡Importante!</b> Utiliza llaves dobles y nombres descriptivos para tus variables (ej. <code>{{guest_name}}</code> o <code>{{url_checkin}}</code>). El sistema las detectará y convertirá automáticamente al formato posicional que exige Meta.');
+            ->setHelp(
+                '<b>Este cuerpo se usa SÓLO fuera de la ventana de 24 h.</b> Si el huésped '
+                . 'escribió hace menos de 24 h, lo que sale es el de «Enlace WhatsApp» — más '
+                . 'largo y sin restricciones. Aquí escribe la versión corta.<br><br>'
+
+                . '⚠️ <b>Meta aprueba este texto y lo congela.</b> Cambiar una palabra obliga a '
+                . 'subir una plantilla nueva con otro nombre y borrar la vieja, y borrar bloquea '
+                . 'ese nombre <b>30 días</b>. Por eso el «Nombre en Meta» lleva sufijo '
+                . '(<code>pago_v1</code>): la siguiente es <code>_v2</code> y no te topas con el '
+                . 'bloqueo.<br><br>'
+
+                . '<b>Lo que Meta NO acepta aquí:</b> parámetros con saltos de línea, tabuladores '
+                . 'o cuatro espacios seguidos; el cuerpo no puede empezar ni acabar con una '
+                . 'variable, ni llevar dos seguidas; y el tope son <b>1024 caracteres</b>. Por eso '
+                . '<code>{{bloque_pago}}</code> no cabe: son varias líneas. Sí cabe '
+                . '<code>{{importe_a_pagar}}</code>, que es una.<br><br>'
+
+                . '💡 Escribe las variables con llaves dobles y nombre (<code>{{guest_name}}</code>); '
+                . 'el sistema las convierte al formato posicional que exige Meta al subirlas.<br><br>'
+
+                . '🔑 <b>«Activar» y «Es oficial de Meta» son cosas distintas:</b> lo primero '
+                . 'decide si el canal de WhatsApp se ofrece siquiera; lo segundo, si puede salir '
+                . 'fuera de la ventana. Una plantilla pensada sólo para texto libre va '
+                . '<b>activada</b> y <b>no oficial</b>.'
+            );
         yield Field::new('whatsappMetaTmpl', '')
             ->setFormType(WhatsappMetaTemplateType::class)
             ->onlyOnForms()
@@ -316,7 +340,19 @@ class MessageTemplateCrudController extends BaseCrudController
         yield FormField::addPanel('Configuración Beds24 / OTAs')
             ->setIcon('fa fa-bed')
             ->collapsible()
-            ->renderCollapsed();
+            ->renderCollapsed()
+            ->setHelp(
+                '<b>El chat de la OTA</b> (Booking, Airbnb) a través de Beds24. Aquí <b>no hay '
+                . 'ventana de 24 h</b>: se puede escribir siempre, con el largo que haga falta.<br><br>'
+
+                . '⚠️ <b>El chat de Booking no transporta imágenes.</b> Si el texto pide una '
+                . 'captura, dilo mandándola por WhatsApp.<br><br>'
+
+                . '☑️ <b>«Ocultar botones interactivos»:</b> el sistema puede añadir al final del '
+                . 'mensaje una lista con los enlaces de los botones, porque el chat de la OTA no '
+                . 'tiene botones de verdad. Márcala si <b>ya escribiste los enlaces dentro del '
+                . 'texto</b>, o saldrán dos veces.'
+            );
 
         yield Field::new('beds24Tmpl', '')
             ->setFormType(Beds24TemplateType::class)
@@ -328,10 +364,25 @@ class MessageTemplateCrudController extends BaseCrudController
             ->formatValue(fn($val) => empty($val) ? '' : (is_array($val) ? json_encode($val, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) : $val));
 
         // --- PANEL 5: WHATSAPP LINK MANUAL ---
-        yield FormField::addPanel('Configuración Enlace WhatsApp (Manual)')
-            ->setIcon('fa fa-external-link-alt')
+        yield FormField::addPanel('Configuración Enlace WhatsApp (dentro de la ventana + manual)')
+            ->setIcon('fab fa-whatsapp')
             ->collapsible()
-            ->renderCollapsed();
+            ->renderCollapsed()
+            ->setHelp(
+                '⚠️ <b>Esto ya no es sólo el botón de «abrir WhatsApp Web».</b> Desde el '
+                . '01/09/2026, cuando el huésped escribió hace menos de 24 h, <b>éste es el cuerpo '
+                . 'que se le envía</b> — no el de Meta. Lo que escribas aquí es lo que va a leer.<br><br>'
+
+                . '<b>Es el sitio para el texto bueno:</b> sin tope de caracteres, sin aprobación '
+                . 'de nadie, y admite variables que ocupan varias líneas como '
+                . '<code>{{bloque_pago}}</code> o <code>{{estancias}}</code>, que en una plantilla '
+                . 'de Meta no caben.<br><br>'
+
+                . '☑️ <b>«Ocultar botones interactivos» viene marcada</b>, y casi siempre es lo '
+                . 'correcto: estos textos se escriben con sus enlaces dentro. Desmárcala sólo si '
+                . 'escribiste el cuerpo <b>sin</b> enlaces y quieres que el sistema los añada al '
+                . 'final.'
+            );
 
         yield Field::new('whatsappLinkTmpl', '')
             ->setFormType(WhatsappLinkTemplateType::class)

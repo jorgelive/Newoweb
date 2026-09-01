@@ -24,13 +24,22 @@ class WhatsappLinkTemplateType extends AbstractType
             // para leerse solos y con sus enlaces dentro.
             ->add('disable_meta_buttons', CheckboxType::class, [
                 'label' => 'Ocultar botones interactivos (No emular botonera de WhatsApp al final del mensaje)',
+                'help' => '<b>Viene marcada, y casi siempre es lo correcto:</b> estos textos se escriben con sus enlaces dentro. '
+                    . 'Desmárcala sólo si escribiste el cuerpo <b>sin</b> enlaces y quieres que el sistema los añada al final.',
+                'help_html' => true,
                 'required' => false,
                 'row_attr' => ['class' => 'col-md-12 mb-3 text-warning font-weight-bold'],
             ])
             ->add('body', CollectionType::class, [
                 'entry_type' => TranslationLongTextType::class,
                 'label' => 'Textos para WhatsApp (envío dentro de la ventana y enlace manual wa.me)',
-                'help' => '💡 <b>Ojo:</b> desde el 01/09/2026 este cuerpo NO es sólo para el enlace manual: es el que se envía por WhatsApp cuando la ventana de 24 h está abierta, en vez del cuerpo de Meta — que es más corto porque tiene que caber en una plantilla aprobada. Lo que escribas aquí es lo que va a leer el huésped.',
+                'help' => '💡 <b>Ojo:</b> desde el 01/09/2026 este cuerpo NO es sólo para el enlace manual. '
+                    . 'Cuando el huésped escribió hace menos de 24 h, <b>es el que se le envía</b> — en vez del de Meta, '
+                    . 'que es más corto porque tiene que caber en una plantilla aprobada.<br><br>'
+                    . '<b>Es el sitio para el texto bueno:</b> sin tope de caracteres y sin aprobación de nadie. '
+                    . 'Admite variables de varias líneas como <code>{{bloque_pago}}</code> o <code>{{estancias}}</code>, '
+                    . 'que en Meta no caben.',
+                'help_html' => true,
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,

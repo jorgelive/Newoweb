@@ -18,17 +18,26 @@ class Beds24TemplateType extends AbstractType
         $builder
             ->add('is_active', CheckboxType::class, [
                 'label' => 'Activar envío por Beds24',
+                'help' => 'Sin esto marcado, esta plantilla <b>no se ofrece</b> para el chat de la OTA — ni a mano ni al agente.',
+                'help_html' => true,
                 'required' => false,
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
             ->add('disable_meta_buttons', CheckboxType::class, [
                 'label' => 'Ocultar botones interactivos (No emular botonera de WhatsApp al final del mensaje)',
+                'help' => 'El chat de la OTA no tiene botones, así que el sistema los añade como una lista de enlaces al final. '
+                    . '<b>Márcalo si ya escribiste los enlaces dentro del texto</b>, o el huésped los verá dos veces.',
+                'help_html' => true,
                 'required' => false,
                 'row_attr' => ['class' => 'col-md-12 mb-3 text-warning font-weight-bold'],
             ])
             ->add('body', CollectionType::class, [
                 'entry_type' => TranslationLongTextType::class,
-                'label' => 'Cuerpo del Mensaje ( Soporta {{ guest_name }}, {{ localizador }}, {{ casita_url }} )',
+                'label' => 'Cuerpo del mensaje',
+                'help' => 'Va al chat de Booking o Airbnb. <b>Aquí no hay ventana de 24 h</b>: se puede escribir siempre y con el largo que haga falta.<br>'
+                    . 'Variables: <code>{{guest_name}}</code>, <code>{{estancias}}</code>, <code>{{bloque_pago}}</code>, <code>{{account_url}}</code>, <code>{{guide_url}}</code>…<br>'
+                    . '⚠️ El chat de <b>Booking no transporta imágenes</b>: si pides una captura, di que la manden por WhatsApp.',
+                'help_html' => true,
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,
