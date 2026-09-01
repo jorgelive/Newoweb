@@ -3146,6 +3146,17 @@ en qué orden ve el pasajero lo que le pasa en un día. **No es intuitiva**, y d
 trampas que ya se midieron.
 
 ### 🔥 Un spinner de página completa borra el trabajo del operador (01/09/2026)
+⚠️ **Y quitar ese spinner dejó guardar sin ninguna señal.** El aviso de «estoy trabajando» era un
+efecto colateral de la pantalla que se destruía: al dejar de destruirse, pulsar Guardar no producía
+nada visible y parecía roto. El aviso se mudó a dos sitios que **no tapan el trabajo**: el propio
+botón, que pasa a «Guardando…» con su spinner y se deshabilita, y una barra de 3 px bajo la
+cabecera. La barra existe además del botón porque las operaciones largas —aplicar plantilla,
+actualizar textos— se lanzan **desde dentro del modal**, donde el botón Guardar no se ve.
+
+No es una barra de progreso: no sabemos cuánto falta, así que no llena, sólo recorre. Fingir un
+porcentaje habría sido peor que no poner nada.
+
+
 
 El editor pintaba su estado de carga así:
 

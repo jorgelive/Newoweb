@@ -1616,13 +1616,32 @@ store.$onAction(({ name, args }) => {
           <i class="fas fa-eye"></i> <span class="hidden md:inline">Vista Cliente</span>
         </button>
         <!-- La acción primaria: siempre visible y siempre con su nombre. Un icono suelto de
-             disquete no se lee como «guardar» en un móvil. -->
+             disquete no se lee como «guardar» en un móvil.
+
+             ⚠️ **El aviso de «estoy trabajando» vive AQUÍ desde que la pantalla no se desmonta.**
+             Antes lo daba el spinner de página completa, con el efecto de borrar el scroll; al
+             quitarlo, guardar se quedó sin ninguna señal y parecía que no hacía nada. El botón es
+             el sitio correcto: está donde el operador acaba de pulsar y no tapa su trabajo. -->
         <button @click="handleGuardar"
-                class="flex items-center gap-2 px-3 md:px-5 py-2 bg-[#E07845] hover:bg-[#c96636] rounded-lg text-xs font-bold transition-colors shrink-0 whitespace-nowrap">
-          <i class="fas fa-save"></i> <span>Guardar</span>
+                :disabled="store.isLoading"
+                :title="store.isLoading ? 'Guardando…' : 'Guardar los cambios'"
+                class="flex items-center gap-2 px-3 md:px-5 py-2 rounded-lg text-xs font-bold transition-colors shrink-0 whitespace-nowrap"
+                :class="store.isLoading
+                    ? 'bg-[#E07845]/60 cursor-wait'
+                    : 'bg-[#E07845] hover:bg-[#c96636]'">
+          <i class="fas" :class="store.isLoading ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+          <span>{{ store.isLoading ? 'Guardando…' : 'Guardar' }}</span>
         </button>
       </div>
     </header>
+
+    <!-- La barra de actividad. Dos razones para que exista además del botón: las operaciones
+         largas —aplicar plantilla, actualizar textos— se lanzan desde DENTRO del modal, donde el
+         botón Guardar no se ve; y en el móvil la cabecera puede quedar fuera de vista. Tres
+         píxeles que no desplazan nada. -->
+    <div v-if="store.isLoading" class="h-[3px] bg-[#E07845]/20 overflow-hidden shrink-0" role="status" aria-label="Trabajando">
+      <div class="h-full w-1/3 bg-[#E07845] barra-actividad"></div>
+    </div>
 
     <!-- ⚠️ `isCargaInicial`, NO `isLoading`. Este `v-if` tiene debajo un `v-else` con el editor
          ENTERO, así que mientras esté activo Vue desmonta y remonta todo el árbol: los scroll
@@ -4435,6 +4454,11 @@ store.$onAction(({ name, args }) => {
    rompería el posicionamiento de los inputs y del date picker que viven en ese panel. El gesto
    se lee igual y no arrastra ese riesgo. `mode="out-in"` evita que las dos caras se solapen y
    den un salto de altura. */
+/* La barra de actividad: un tramo que recorre la anchura. No es una barra de progreso —no
+   sabemos cuánto falta— y por eso no llena: sólo dice «esto sigue vivo». */
+@keyframes barra-actividad { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
+.barra-actividad { animation: barra-actividad 1.1s ease-in-out infinite; }
+
 .fade-cara-enter-active, .fade-cara-leave-active { transition: opacity 0.14s ease, transform 0.14s ease; }
 .fade-cara-enter-from { opacity: 0; transform: translateX(8px); }
 .fade-cara-leave-to { opacity: 0; transform: translateX(-8px); }
