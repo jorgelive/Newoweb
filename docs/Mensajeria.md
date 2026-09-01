@@ -6623,10 +6623,29 @@ una plantilla de Meta— no tenía cuerpo que mandar por ahí. Salía vacía.
 `wa.me`. Mismo destino, mismo formato, sin el corsé de la aprobación. Ahora se prefiere, y el de
 Meta queda de respaldo para las plantillas que sólo tengan ése.
 
-⚠️ **Y si el cuerpo sale del rico, NO se emulan los botones.** Ese cuerpo se escribe para leerse
-solo y ya trae sus enlaces dentro; añadirle debajo la emulación los pintaría dos veces. Es
-exactamente la razón por la que `beds24_tmpl` tiene su `disable_meta_buttons`, aplicada al canal
-que faltaba.
+#### La botonera, con su interruptor y no con una regla implícita
+
+Si el cuerpo sale del rico y además se emula la botonera de Meta debajo, los enlaces salen **dos
+veces**: ese texto se escribe para leerse solo y ya los trae dentro. Es el mismo problema que
+`beds24_tmpl` resolvió con su casilla, y ahora `whatsapp_link_tmpl` tiene la suya —
+`isWhatsappLinkMetaButtonsDisabled()`, editable en el panel como la de Beds24.
+
+**Es una casilla y no una regla automática** a propósito: quien escriba un cuerpo *sin* enlaces
+puede querer la botonera, y deducírselo sería quitársela sin decir nada.
+
+⚠️ **Su default es `true`, al revés que el de Beds24.** No es un descuido: estos textos nacieron
+para el enlace `wa.me`, escritos para leerse solos y con sus enlaces dentro. Con el default
+convencional (`?? false`), el día que se encendiera esta opción las ocho plantillas existentes
+habrían empezado a duplicar enlaces de golpe, sin que nadie tocara nada.
+
+#### ⚠️ Y la ayuda del panel decía lo contrario
+
+El campo se llamaba «Textos para el Enlace Manual (wa.me)» y su nota decía: *«Esta plantilla no
+se envía automáticamente. Solo se usa para generar botones que el personal presionará»*. Era
+cierto hasta este cambio y dejó de serlo en el mismo commit — o sea que el panel le habría dicho
+a quien editara ese campo que no afectaba a ningún envío, justo cuando pasó a ser **el** cuerpo
+que lee el huésped dentro de la ventana. Corregido a la vez, porque una etiqueta que miente sobre
+lo que hace un campo es peor que no tenerla.
 
 #### El corolario: `is_active` y `is_official_meta` son cosas distintas
 

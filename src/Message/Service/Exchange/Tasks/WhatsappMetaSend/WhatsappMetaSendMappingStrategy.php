@@ -360,11 +360,14 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
                 // 🎯 EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE (UX MEJORADO)
                 //
-                // ⚠️ **No, si el cuerpo salió del rico.** Ése se escribe para leerse solo y ya
-                // trae sus enlaces dentro del texto; añadirle debajo la emulación de los botones
-                // de Meta los pinta DOS veces. Es exactamente la razón por la que `beds24_tmpl`
-                // tiene su `disable_meta_buttons`, aplicada al canal que faltaba.
-                if (!$desdeElRico && !empty($metaJson['buttons_map'])) {
+                // ⚠️ **Depende de dónde salió el cuerpo.** El del enlace se escribe para leerse
+                // solo y suele traer sus enlaces dentro del texto; añadirle debajo la emulación
+                // los pinta DOS veces. Lo gobierna su propia casilla —gemela de la que Beds24 ya
+                // tenía— y **no una regla implícita**: quien escriba un cuerpo sin enlaces puede
+                // querer la botonera, y adivinárselo sería quitársela sin decir nada.
+                $ocultarBotones = $desdeElRico && $template?->isWhatsappLinkMetaButtonsDisabled() === true;
+
+                if (!$ocultarBotones && !empty($metaJson['buttons_map'])) {
 
                     // 1. Detección Inteligente: ¿Hay opciones para interactuar o son puros links?
                     $hasQuickReplies = false;

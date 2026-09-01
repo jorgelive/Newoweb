@@ -497,6 +497,28 @@ class MessageTemplate
         return ($this->beds24Tmpl['disable_meta_buttons'] ?? false) === true;
     }
 
+    /**
+     * ¿Se ocultan los botones cuando el cuerpo sale de `whatsapp_link_tmpl`?
+     *
+     * Gemelo de {@see self::isBeds24MetaButtonsDisabled()} para el canal que faltaba: desde el
+     * 01/09/2026, dentro de la ventana de 24 h el envío por WhatsApp toma **este** cuerpo y no el
+     * de Meta, así que hereda el mismo problema — un cuerpo que ya trae sus enlaces escritos, más
+     * la emulación de la botonera debajo, los pinta dos veces.
+     *
+     * ⚠️ **Por defecto TRUE, al revés que el de Beds24.** No es un descuido: este cuerpo nació
+     * para el enlace `wa.me`, o sea escrito para leerse **solo y con sus enlaces dentro**. Con el
+     * default convencional (`?? false`), encender esta opción habría hecho que las ocho
+     * plantillas existentes empezaran a duplicar sus enlaces de golpe, sin que nadie tocara nada.
+     *
+     * Quien quiera la botonera en un cuerpo escrito sin enlaces la enciende desmarcando la
+     * casilla, que es la decisión rara y por eso es la que se declara.
+     */
+    #[Groups(['template:read'])]
+    public function isWhatsappLinkMetaButtonsDisabled(): bool
+    {
+        return ($this->whatsappLinkTmpl['disable_meta_buttons'] ?? true) === true;
+    }
+
     #[Groups(['template:read'])]
     public function isWhatsappMetaActive(): bool
     {
