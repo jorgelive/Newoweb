@@ -2470,8 +2470,15 @@ store.$onAction(({ name, args }) => {
                          pegados a la derecha, así que el primero le quedaba DEBAJO: en un móvil
                          «INCLUIDO» aparecía cortado y con el icono encima. El `pr` es el ancho del
                          botón (28 px) más su separación; no se toca la papelera porque su posición
-                         absoluta es lo que la mantiene fija al pasar la tarjeta a columna. -->
-                    <div class="flex flex-col items-end gap-1 shrink-0 pr-9">
+                         absoluta es lo que la mantiene fija al pasar la tarjeta a columna.
+
+                         ⚠️ **Y sólo cuando la papelera EXISTE.** Un componente bloqueado —los
+                         inyectados desde un párrafo, «Insumo Autogenerado»— no la lleva, así que
+                         el hueco se quedaba reservado para un botón que no está y las pastillas
+                         flotaban a 36 px del borde. Misma condición que el botón, para que las dos
+                         no puedan discrepar. -->
+                    <div class="flex flex-col items-end gap-1 shrink-0"
+                         :class="{ 'pr-9': !store.isComponenteBloqueado(comp) }">
                       <span class="text-[10px] font-black px-2 py-1 rounded border shadow-sm whitespace-nowrap flex items-center gap-1"
                             :class="[getModoItemConfig(comp.modo).bg, getModoItemConfig(comp.modo).text, getModoItemConfig(comp.modo).border]">
                             <i class="fas text-[9px]" :class="getModoItemConfig(comp.modo).icon"></i>
