@@ -203,6 +203,17 @@ final readonly class PmsRedactorDeCobro
                     $ficha->getMoneda(),
                     $ficha->getTitular(),
                 ]));
+
+                // ⚠️ **Y su nota, que en un caso vale dinero.** La de Western Union es la que
+                // dice que el giro va para recojo en tienda y NO a una cuenta bancaria: WU
+                // ofrece las dos y ese dinero no lo podemos cobrar. En la ficha del huésped la
+                // nota sale dentro de la «i»; aquí, donde no hay «i», tiene que ir escrita o el
+                // mensaje ofrece un medio sin la advertencia que lo hace utilizable.
+                $nota = trim((string) $ficha->getNotaEn($idioma));
+
+                if ($nota !== '') {
+                    $lineas[] = '   _' . $nota . '_';
+                }
             }
         }
 
