@@ -6644,6 +6644,25 @@ una plantilla de Meta— no tenía cuerpo que mandar por ahí. Salía vacía.
 `wa.me`. Mismo destino, mismo formato, sin el corsé de la aprobación. Ahora se prefiere, y el de
 Meta queda de respaldo para las plantillas que sólo tengan ése.
 
+#### Lo que el panel decía mal, y ya no
+
+Al pasar `whatsapp_link_tmpl` a ser el cuerpo principal dentro de la ventana, dos cosas del panel
+quedaron mintiendo:
+
+**1 · La validación impedía guardar `pago_texto`.** `validarNombreDeMeta()` exigía el «Nombre en
+Meta» en cuanto la plantilla estuviera **activa** para WhatsApp. Pero desde ahora existe la
+combinación legítima **activa + no oficial**: una plantilla que sólo vive como texto libre dentro
+de las 24 h, con su cuerpo en `whatsapp_link_tmpl` y sin nada que subir a Meta. Ahora el nombre
+se exige cuando es **oficial**, que es cuando de verdad tiene que existir allí.
+
+**2 · La columna «WA enlace» del listado salía siempre apagada.** Se pintaba con
+`whatsapp_link_tmpl['is_active']`, y ese bloque **nunca ha tenido esa clave**. O sea que el
+cuerpo que sí se manda se veía como desactivado.
+
+Las columnas pasan a llamarse **«WA dentro»** y **«WA fuera»**, que es lo que son: el mismo canal
+con dos cuerpos —uno para dentro de la ventana de 24 h y otro para fuera— y por eso los dos leen
+el mismo interruptor, el del bloque de Meta.
+
 #### 🔌 Y apagarla apaga las DOS mitades del contrato (01/09/2026)
 
 El menú numerado es un acuerdo de dos partes: al salir se pinta «1️⃣ Guía / 2️⃣ Tours», y al volver

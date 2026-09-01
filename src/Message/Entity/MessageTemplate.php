@@ -375,6 +375,11 @@ class MessageTemplate
      * - `habilitado`: el interruptor `is_active` del JSON está en `true`, que es lo que mira
      *   {@see \App\Message\Service\Queue\MessageDispatcher} para decidir si sale por ahí.
      *
+     * ⚠️ **«WA dentro» y «WA fuera» son el MISMO canal con dos cuerpos**: el de
+     * `whatsapp_link_tmpl` sale cuando el huésped escribió hace menos de 24 h y el de
+     * `whatsapp_meta_tmpl` cuando no. Por eso los dos leen el mismo interruptor — el del bloque
+     * de Meta— aunque el texto salga de sitios distintos.
+     *
      * Una plantilla redactada pero apagada es el caso que más confunde al leer la lista:
      * el texto está, se ve al editar, y sin embargo no se envía por ese canal.
      *
@@ -389,8 +394,8 @@ class MessageTemplate
         $canales = [
             'Correo' => $this->emailTmpl,
             'Beds24' => $this->beds24Tmpl,
-            'WhatsApp' => $this->whatsappMetaTmpl,
-            'WA enlace' => $this->whatsappLinkTmpl,
+            'WA fuera' => $this->whatsappMetaTmpl,
+            'WA dentro' => $this->whatsappLinkTmpl,
         ];
 
         $estado = [];
@@ -400,7 +405,15 @@ class MessageTemplate
 
             $estado[$etiqueta] = [
                 'creado' => is_array($body) && $body !== [],
-                'habilitado' => is_array($tmpl) && ($tmpl['is_active'] ?? false) === true,
+                // ⚠️ **El cuerpo de dentro de la ventana no tiene interruptor propio**, y salía
+                // siempre apagado en la lista porque `whatsapp_link_tmpl` nunca ha llevado
+                // `is_active`. Quien decide si ese texto sale es el interruptor del CANAL de
+                // WhatsApp, que vive en el bloque de Meta — son dos cuerpos del mismo canal, uno
+                // para dentro de las 24 h y otro para fuera. Enseñarlo apagado hacía creer que
+                // el texto que sí se manda no se manda.
+                'habilitado' => $etiqueta === 'WA dentro'
+                    ? $this->isWhatsappMetaActive()
+                    : is_array($tmpl) && ($tmpl['is_active'] ?? false) === true,
             ];
         }
 
@@ -650,7 +663,14 @@ class MessageTemplate
     #[Assert\Callback]
     public function validarNombreDeMeta(ExecutionContextInterface $contexto): void
     {
-        if (!$this->isWhatsappMetaActive()) {
+        // ⚠️ **Activa NO basta: tiene que ser OFICIAL.** Las dos banderas gobiernan cosas
+        // distintas —`is_active` decide si el canal de WhatsApp se ofrece, `is_official_meta` si
+        // puede salir fuera de la ventana— y desde el 01/09/2026 existe la combinación legítima
+        // «activa y no oficial»: una plantilla que sólo vive como texto libre dentro de las 24 h,
+        // con su cuerpo en `whatsapp_link_tmpl` y sin nada que subir a Meta. `pago_texto` es
+        // justo eso, y con la comprobación vieja **no se podía guardar desde el panel**: pedía un
+        // nombre para una plantilla que nunca va a viajar a Meta.
+        if (!$this->isWhatsappMetaActive() || !$this->isWhatsappMetaOfficial()) {
             return;
         }
 
@@ -661,7 +681,7 @@ class MessageTemplate
         }
 
         $contexto->buildViolation(
-            'Esta plantilla está activa para WhatsApp Meta, así que necesita un «Nombre en Meta» '
+            'Esta plantilla está marcada como OFICIAL de Meta, así que necesita un «Nombre en Meta» '
             . '(«meta_template_name» dentro del JSON). Sin él no se puede subir a Meta ni reconocer '
             . 'lo que Meta devuelva, y el estado que verías aquí sería falso. Suele ser el mismo código: «%code%».'
         )
