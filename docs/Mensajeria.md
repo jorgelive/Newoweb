@@ -6600,6 +6600,49 @@ Se guardó copia de sus 7 idiomas con sus ids antes de tocar nada. Y ojo: borrar
 **bloquea reutilizar ese nombre unos 30 días**, cosa que aquí da igual porque la plantilla viva
 se llama `welcome_booking_command`.
 
+### 🔥 Dentro de la ventana se mandaba el cuerpo de META, no el rico (01/09/2026)
+
+`WhatsappMetaSendMappingStrategy` tiene dos ramas: fuera de la ventana manda la plantilla
+oficial —correcto— y dentro manda texto libre. Pero el texto libre **lo sacaba de
+`whatsapp_meta_tmpl.body`**, o sea del cuerpo aprobado por Meta: corto por obligación, con su
+tope de 1024, sin bloques multilínea ni variables compuestas.
+
+**Dentro de la ventana nada de eso aplica.** Se estaban heredando las limitaciones de Meta sin
+ninguna necesidad, en cada envío:
+
+| Plantilla | Cuerpo rico (`whatsapp_link_tmpl`) | El de Meta que salía | Se perdían |
+|---|---|---|---|
+| `recordatorio_llegada` | 763 | 556 | **207** |
+| `check_out` | 1097 | 970 | 127 |
+| `welcome_booking` | 1100 | 980 | 120 |
+
+Y peor: una plantilla escrita **sólo** para texto libre —`pago_texto`, cuyo detalle no cabe en
+una plantilla de Meta— no tenía cuerpo que mandar por ahí. Salía vacía.
+
+**`whatsapp_link_tmpl` no es otra cosa**: es este mismo texto, el que el operador copia al enlace
+`wa.me`. Mismo destino, mismo formato, sin el corsé de la aprobación. Ahora se prefiere, y el de
+Meta queda de respaldo para las plantillas que sólo tengan ése.
+
+⚠️ **Y si el cuerpo sale del rico, NO se emulan los botones.** Ese cuerpo se escribe para leerse
+solo y ya trae sus enlaces dentro; añadirle debajo la emulación los pintaría dos veces. Es
+exactamente la razón por la que `beds24_tmpl` tiene su `disable_meta_buttons`, aplicada al canal
+que faltaba.
+
+#### El corolario: `is_active` y `is_official_meta` son cosas distintas
+
+Se ve en `pago_texto`, y lo aprendí equivocándome al crearla:
+
+| Bandera | Qué gobierna |
+|---|---|
+| `whatsapp_meta_tmpl.is_active` | **si el canal de WhatsApp se ofrece** (`MessageDispatcher::resolveChannels()` mira esta columna) |
+| `whatsapp_meta_tmpl.is_official_meta` | si puede salir **fuera** de la ventana |
+
+Apagar `is_active` para decir «esto no es una plantilla de Meta» dejaba a `pago_texto` sin poder
+salir por WhatsApp **ni dentro de la ventana**, que es justo el caso para el que se escribió. Lo
+correcto es `is_active: true` + `is_official_meta: false`: el canal se ofrece, dentro de la
+ventana sale el cuerpo rico, y fuera salta «Plantilla NO oficial fuera de ventana» — que es el
+aviso correcto, porque para eso está `pago`.
+
 ### 🚪 La ventana de 24 h cerrada: se avisa, no se decide por el operador
 
 Fuera de las 24 h siguientes al último mensaje del huésped, WhatsApp no acepta texto libre. El

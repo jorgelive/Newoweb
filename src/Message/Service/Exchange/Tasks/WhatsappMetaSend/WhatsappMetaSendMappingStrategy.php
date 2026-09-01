@@ -294,12 +294,36 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 $footerText = $template?->getWhatsappMetaFooter($templateLang);
                 $bodyText = '';
 
-                if (!empty($metaJson['body'])) {
-                    foreach ($metaJson['body'] as $bodyNode) {
+                // ── 🔥 DENTRO DE LA VENTANA MANDA EL CUERPO RICO ─────────────────────
+                //
+                // Aquí se leía `whatsapp_meta_tmpl.body`, o sea **el cuerpo aprobado por Meta**:
+                // corto por obligación, con su tope de 1024, sin poder llevar bloques
+                // multilínea ni variables compuestas. Dentro de la ventana **nada de eso
+                // aplica** —es texto libre— así que se heredaban las limitaciones de Meta sin
+                // ninguna necesidad. Medido el 01/09/2026: `recordatorio_llegada` perdía 207
+                // caracteres, `check_out` 127 y `welcome_booking` 120, en cada envío.
+                //
+                // Y una plantilla escrita SÓLO para texto libre —`pago_texto`, cuyo detalle no
+                // cabe en una plantilla de Meta— no tenía cuerpo que mandar: salía vacía.
+                //
+                // `whatsapp_link_tmpl` no es otra cosa: es este mismo texto, el que el operador
+                // copia al enlace `wa.me`. Mismo destino, mismo formato, sin el corsé de la
+                // aprobación. Se prefiere, y el de Meta queda de respaldo para las plantillas
+                // que sólo tengan ése.
+                $linkJson = $template?->getWhatsappLinkTmpl() ?? [];
+                $desdeElRico = false;
+
+                foreach ([$linkJson['body'] ?? [], $metaJson['body'] ?? []] as $indice => $cuerpos) {
+                    foreach ($cuerpos as $bodyNode) {
                         if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'] ?? '')) === $metaLang) {
                             $bodyText = $bodyNode['content'] ?? '';
                             break;
                         }
+                    }
+
+                    if (trim($bodyText) !== '') {
+                        $desdeElRico = $indice === 0;
+                        break;
                     }
                 }
 
@@ -335,7 +359,12 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 $finalContent = $this->hydrateVariables($finalContent, $variables);
 
                 // 🎯 EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE (UX MEJORADO)
-                if (!empty($metaJson['buttons_map'])) {
+                //
+                // ⚠️ **No, si el cuerpo salió del rico.** Ése se escribe para leerse solo y ya
+                // trae sus enlaces dentro del texto; añadirle debajo la emulación de los botones
+                // de Meta los pinta DOS veces. Es exactamente la razón por la que `beds24_tmpl`
+                // tiene su `disable_meta_buttons`, aplicada al canal que faltaba.
+                if (!$desdeElRico && !empty($metaJson['buttons_map'])) {
 
                     // 1. Detección Inteligente: ¿Hay opciones para interactuar o son puros links?
                     $hasQuickReplies = false;

@@ -156,8 +156,18 @@ final class MessageCrearPlantillasPagoCommand extends Command
             // botones encendida saldría dos veces, igual que en `welcome_airbnb` y `enviar_guia`.
             ->setBeds24Tmpl(['is_active' => true, 'disable_meta_buttons' => true, 'body' => $cuerpo])
             ->setWhatsappLinkTmpl(['body' => $cuerpo])
-            // Apagada A PROPÓSITO. Ver el docblock de la clase.
-            ->setWhatsappMetaTmpl(['is_active' => false, 'is_official_meta' => false, 'body' => []])
+            // ⚠️ **`is_active` SÍ, pero `is_official_meta` NO**, y la diferencia es toda.
+            //
+            // El canal de WhatsApp se ofrece por esta columna (`MessageDispatcher::resolveChannels()`),
+            // así que apagarla dejaba a esta plantilla **sin poder salir por WhatsApp ni dentro de
+            // la ventana** — cuando es justo el caso para el que se escribió. Encendida, el canal
+            // se ofrece y `WhatsappMetaSendMappingStrategy` toma el cuerpo de
+            // `whatsapp_link_tmpl`, que es el rico.
+            //
+            // Y `is_official_meta` en `false` es lo que la bloquea FUERA de la ventana: ahí salta
+            // «Plantilla NO oficial fuera de ventana», que es el mensaje correcto — para eso
+            // está `pago`. El cuerpo se deja vacío a propósito: no hay versión de Meta de esto.
+            ->setWhatsappMetaTmpl(['is_active' => true, 'is_official_meta' => false, 'body' => []])
             ->setEmailTmpl(['is_active' => false, 'subject' => [], 'body' => []]);
     }
 
