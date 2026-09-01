@@ -16,9 +16,30 @@
    ⚠️ `-webkit-overflow-scrolling: touch` y `overscroll-behavior-x: contain` para que el arrastre
    dentro del bloque no arrastre la página entera detrás, que en móvil es lo que hace que
    revisar un payload sea desesperante. */
+/* ⚠️ **El scroll no lo impedía el `pre`, lo impedía su PADRE.** EasyAdmin monta el detalle así:
+
+       .ea-detail .field-group             { display: flex }
+       .ea-detail .field-group .field-value { flex: 1; min-inline-size: 66% }
+
+   Un flex item con `min-inline-size` no se encoge por debajo de su contenido, así que el `<pre>`
+   ensanchaba a `.field-value` hasta la línea más larga: no quedaba nada que desbordar y
+   `overflow: auto` no tenía qué desplazar. Es la trampa clásica de flexbox —el `min-width: auto`
+   implícito— y por eso el síntoma es «no scrollea» en vez de «se ve mal».
+
+   Se acota con `:has()` para no encoger los demás campos del detalle, que sí quieren ese 66%. */
+.ea-detail .field-group:has(> .field-value > pre.ea-codigo-crudo) .field-value {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+}
+
 pre.ea-codigo-crudo {
     margin: 0;
+    min-width: 0;
+    max-width: 100%;
     padding: .75rem 1rem;
+    /* Sin esto lo pinta de rojo `code,pre { color: var(--code-color) }` de EasyAdmin, pensado
+       para código inline dentro de un texto. Un payload de 600 caracteres en rojo no se lee. */
+    color: var(--bs-body-color, #212529);
     background: var(--bs-body-bg, #fff);
     border: 1px solid var(--bs-border-color, #dee2e6);
     border-radius: .5rem;
