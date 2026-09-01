@@ -159,6 +159,57 @@ final readonly class PmsRedactorDeCobro
     }
 
     /**
+     * Los DATOS para pagar —cuentas, número de Yape, destino del giro— escritos para un mensaje.
+     *
+     * ── Por qué existe, si la ficha ya los enseña ───────────────────────────────
+     * Para la plantilla de políticas de Booking. Ahí las cuentas **tienen que ir en el texto**:
+     * ese mensaje viaja por el chat de la OTA y su trabajo es dejar constancia de que se dieron
+     * los plazos y los medios, que es lo que permite cancelar la reserva si el prepago no llega.
+     * Un enlace no deja esa constancia.
+     *
+     * ⚠️ **Pero no se escriben a mano en la plantilla, que es como estaban.** El cuerpo viejo de
+     * `welcome_booking` llevaba la cuenta de BCP y el número de Yape tecleados, y eso ofrecía a
+     * TODO el mundo lo que sólo vale para algunos: a un huésped de Booking desde Europa se le
+     * daba una cuenta peruana, con el riesgo de que mandara una transferencia internacional que
+     * se come en comisiones buena parte del adelanto.
+     *
+     * Saliendo del catálogo, el filtro de audiencia se aplica solo: quien no paga desde Perú ve
+     * Western Union y tarjeta, y ni se entera de que hay cuentas. Y cuando cambie un número, el
+     * mensaje cambia con él.
+     *
+     * Sólo los `prioritario` — ver {@see \App\Finanzas\Entity\FinMedioCobro::isPrioritario()}.
+     * La tarjeta no sale: no tiene ficha que dar y su enlace lo escribe el cuerpo.
+     */
+    public function mediosConDatos(PmsReserva $reserva, string $idioma): string
+    {
+        $situacion = $this->situaciones->paraHuesped($reserva);
+        $lineas = [];
+
+        foreach ($situacion->medios as $medio) {
+            if ($medio->fichas === []) {
+                continue;
+            }
+
+            $nombre = $this->t('res_medio_' . $medio->codigo, $idioma) ?: $medio->etiqueta;
+            $lineas[] = sprintf('▪️ *%s*', $nombre);
+
+            foreach ($medio->fichas as $ficha) {
+                // Titular incluido en cada línea y no una vez al pie: aquí no hay un desplegable
+                // que agrupe, y en un chat la línea tiene que poder leerse suelta — es la que el
+                // huésped copia a su banca.
+                $lineas[] = '   ' . implode(' · ', array_filter([
+                    $ficha->getBanco(),
+                    $ficha->getNumero(),
+                    $ficha->getMoneda(),
+                    $ficha->getTitular(),
+                ]));
+            }
+        }
+
+        return implode("\n", $lineas);
+    }
+
+    /**
      * Lo que se le pide AHORA, en una línea: «USD 60.96» o «USD 35.91 (S/ 120.30)».
      *
      * ── Por qué existe, si ya está el bloque ────────────────────────────────────

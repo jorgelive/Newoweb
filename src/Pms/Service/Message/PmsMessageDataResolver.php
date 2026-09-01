@@ -231,6 +231,12 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // El mismo dato del bloque, en UNA línea: es lo único de todo esto que cabe en un
             // parámetro de plantilla de Meta. Ver `PmsRedactorDeCobro::importeAPagar()`.
             'importe_a_pagar'       => $idioma !== null ? $this->redactor->importeAPagar($reserva) : null,
+            // Los datos para pagar, escritos. Es para la plantilla de políticas de Booking, donde
+            // las cuentas TIENEN que ir en el texto porque su trabajo es dejar constancia en el
+            // chat de la OTA. Salen del catálogo y no tecleadas: así el filtro de audiencia se
+            // aplica solo —un europeo ve Western Union, no una cuenta peruana— y cuando cambie un
+            // número, cambia el mensaje. Ver `PmsRedactorDeCobro::mediosConDatos()`.
+            'medios_de_pago'        => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma) : null,
         ];
     }
 
