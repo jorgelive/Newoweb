@@ -3713,6 +3713,33 @@ una segunda puerta al mismo campo — con dos versiones al final. La tarjeta lo 
 ⚠️ **La hora se queda FUERA de la tarjeta.** Es lo que se viene a hacer en esta pantalla y no es un
 identificador: meterla dentro la escondería medio tiempo detrás de un clic.
 
+### Sin párrafo manda el componente, sea del tipo que sea
+
+`mandaElSegmento()` dice quién manda **cuando existen los dos**; no promete que el segmento exista.
+El backend ya lo tenía en cuenta y la tarjeta no:
+
+```php
+if ($this->mandaElSegmento() && $segmento !== '') { return $segmento; }
+return $componente ?: …                       // ← la segunda condición es la que faltaba
+```
+
+Un componente **manual** de tipo transporte no cuelga de ningún párrafo, y mirando sólo el tipo la
+tarjeta abría por una cara que únicamente podía disculparse —«no cuelga de ningún párrafo,
+voltea»—: un clic obligatorio para llegar a lo único que había. No es un caso teórico; medidos el
+31/08/2026 en producción: **2 de transporte y 3 de ticket variable sin párrafo**.
+
+Ahora, sin párrafo:
+
+- manda el componente y su cara va delante;
+- **el botón de voltear desaparece** —no hay segunda cara— y en su sitio queda una línea que dice
+  por qué, para que no parezca que falta algo;
+- y el asterisco de «Nombre Público» **vuelve**, porque ahí sí se publica. Es lo que impide el
+  fallo real de esta rama: sin él la línea saldría sin nombre en la propuesta.
+
+Las otras dos superficies ya lo hacían bien por casualidad —`etiquetaDeComponente()` y
+`nombrePublicoDeLinea()` caen al componente cuando el título del párrafo viene vacío—, pero
+conviene que la condición esté escrita y no sea un efecto colateral del `||`.
+
 ### 🔥 `servicioActivo` es `null` fuera de su propio nivel
 
 La trampa que hizo que la primera versión de esto **funcionara en la lista y se apagara dentro del

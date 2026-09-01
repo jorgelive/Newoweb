@@ -976,8 +976,42 @@ const etiquetaDeComponente = (comp: ComponenteCompleto | null | undefined): stri
  */
 const traseraAbierta = ref(false);
 
-/** ¿Se están viendo los campos del COMPONENTE, estén delante o detrás? */
+/**
+ * ¿Cuelga de un párrafo? Sin él no hay dos caras que intercambiar.
+ *
+ * ⚠️ **Un componente MANUAL de tipo transporte existe y no tiene párrafo** —medidos 2 en
+ * producción el 31/08/2026, más 3 de ticket variable—. El tipo decía «manda el segmento» y la
+ * tarjeta abría por una cara que sólo podía disculparse: «no cuelga de ningún párrafo, voltea».
+ * Un clic obligatorio para llegar a lo único que había.
+ */
+const tieneParrafo = computed(() => store.segmentoDeComponente(store.componenteActivo) !== null);
+
+/**
+ * ¿Se están viendo los campos del COMPONENTE, estén delante o detrás?
+ *
+ * ⚠️ **Sin párrafo manda siempre el componente, sea del tipo que sea.** Es la misma cascada del
+ * backend, que no pregunta sólo por el tipo:
+ *
+ *     if ($this->mandaElSegmento() && $segmento !== '') { return $segmento; }
+ *     return $componente ?: …
+ *
+ * La segunda condición es la que faltaba aquí. `mandaElSegmento()` dice quién manda **cuando hay
+ * los dos**; no promete que el segmento exista.
+ */
+/**
+ * ¿El título público del COMPONENTE llega al cliente?
+ *
+ * No cuando manda el párrafo: el itinerario y el «qué incluye» toman el suyo. Pero **sí en cuanto
+ * no hay párrafo**, aunque el tipo sea transporte — y ahí volver a marcarlo obligatorio no es un
+ * detalle: sin él la línea saldría sin nombre en la propuesta.
+ */
+const elComponenteSePublica = computed(
+    () => !tieneParrafo.value || !mandaElSegmento(store.componenteActivo?.tipo)
+);
+
 const mostrandoComponente = computed(() => {
+  if (!tieneParrafo.value) return true;
+
   const mandaSeg = mandaElSegmento(store.componenteActivo?.tipo);
 
   return mandaSeg ? traseraAbierta.value : !traseraAbierta.value;
@@ -2750,11 +2784,16 @@ store.$onAction(({ name, args }) => {
                     <i class="fas" :class="traseraAbierta ? 'fa-rotate-left' : 'fa-eye'"></i>
                     {{ traseraAbierta ? 'Lo secundario' : 'Lo que se lee: cliente y proveedor' }}
                   </span>
-                  <button type="button" @click="traseraAbierta = !traseraAbierta"
+                  <!-- Sin párrafo no hay segunda cara: el botón desaparece en vez de llevar a
+                       una disculpa. Se dice por qué, para que no parezca que falta algo. -->
+                  <button v-if="tieneParrafo" type="button" @click="traseraAbierta = !traseraAbierta"
                           class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-[10px] font-black uppercase tracking-wider text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors shadow-sm">
                     <i class="fas fa-repeat text-[9px]"></i>
                     {{ traseraAbierta ? 'Volver' : 'Voltear' }}
                   </button>
+                  <span v-else class="shrink-0 text-[9px] font-bold text-slate-400 normal-case">
+                    sin párrafo: lo nombra él mismo
+                  </span>
                 </div>
 
                 <!-- ── Cara del SEGMENTO: sólo lectura, porque el dato vive en el párrafo ──
@@ -2762,7 +2801,6 @@ store.$onAction(({ name, args }) => {
                      en el segmento. -->
                 <transition name="fade-cara" mode="out-in">
                 <div v-if="!mostrandoComponente" key="seg" class="p-4 grid gap-3">
-                  <template v-if="store.segmentoDeComponente(store.componenteActivo)">
                     <div>
                       <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">
                         Título del párrafo <span class="text-slate-400 normal-case font-bold">— lo que ve el pasajero</span>
@@ -2783,11 +2821,6 @@ store.$onAction(({ name, args }) => {
                       Se editan en el párrafo, no aquí: es el mismo dato y una segunda puerta acabaría
                       con dos versiones. Voltea la tarjeta para el nombre del insumo.
                     </p>
-                  </template>
-                  <p v-else class="text-[11px] font-bold text-amber-600 leading-snug">
-                    Este componente no cuelga de ningún párrafo, así que quien lo nombra es él mismo.
-                    Voltea la tarjeta.
-                  </p>
                 </div>
 
                 <div v-else key="comp" class="p-4 grid gap-3">
@@ -2835,7 +2868,7 @@ store.$onAction(({ name, args }) => {
                      enseña. Sigue guardándose: es el último recurso de La Biblia si el nombre
                      interno quedara vacío. -->
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
-                  Nombre Público <span v-if="!mandaElSegmento(store.componenteActivo.tipo)">*</span>
+                  Nombre Público <span v-if="elComponenteSePublica">*</span>
                   <span v-else class="text-slate-400 normal-case font-bold">— aquí no se publica: manda el párrafo</span>
                 </label>
 
