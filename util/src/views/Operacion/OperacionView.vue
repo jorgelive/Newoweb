@@ -21,6 +21,7 @@ import FechaHoraPicker from '@/components/common/FechaHoraPicker.vue';
 import { getUrls } from '@/services/apiClient';
 import { mensajeDeErrorApi } from '@/utils/errorApi';
 import { extractIdStr } from '@/utils/recurso';
+import { mandaElSegmento } from '@/utils/componenteTipo';
 import {
     getEstadoOsConfig,
     getEstadoReservaProveedorConfig,
@@ -810,16 +811,16 @@ const nombreComponenteDe = (s: OperacionServicio): string | null => operacionSto
  * anunciaba como «Full Day HUAYNA: MAPI OLLA CUZ» y salía duplicado en la ficha.
  */
 /**
- * ¿Quién identifica la fila: el SEGMENTO o el componente? **Espejo de
- * `ComponenteTipoEnum::mandaElSegmento()`** — si cambia la regla, se tocan LOS DOS.
+ * ¿Quién identifica la fila: el SEGMENTO o el componente?
  *
  * Manda el segmento donde el componente nombra una RUTA —transporte, tren, vuelo—: en cuanto esa
  * ruta se fusiona por sentido, su nombre deja de decir hacia dónde se va hoy y el único que lo
  * sabe es el segmento. En lo demás el componente nombra la COSA comprada y la variante lo termina
  * de distinguir: «Guiado Machu Picchu» + «Privado Circuito 3» no necesita el segmento.
+ *
+ * ⚠️ La regla vivía aquí copiada. Se mudó a `@/utils/componenteTipo` cuando el editor de
+ * cotizaciones resultó ser la única pantalla que no la tenía: una copia más habría sido la cuarta.
  */
-const mandaElSegmento = (tipo?: string | null): boolean =>
-    tipo === 'transporte' || tipo === 'tren' || tipo === 'vuelo';
 
 const tituloDeFila = (s: OperacionServicio): string => {
     const segmento = (nombreSegmentoDe(s) || '').trim();

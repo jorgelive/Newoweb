@@ -1,4 +1,5 @@
 import { extractIdStr } from '@/utils/recurso';
+import { mandaElSegmento } from '@/utils/componenteTipo';
 import {defineStore} from 'pinia';
 import { extractApiErrorMessage } from '@/services/apiError';
 import {computed, ref, type Ref} from 'vue';
@@ -1422,6 +1423,35 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 if (estado === 'cancelado' || modo === 'reemplazado') return;
                 if (modo !== 'incluido' && modo !== 'no_incluido' && modo !== 'cortesia') return;
 
+                /**
+                 * El nombre con el que esta línea sale en «qué incluye».
+                 *
+                 * ⚠️ **En transporte, tren y vuelo lo pone el SEGMENTO**, igual que en la guía y
+                 * en La Biblia. El componente de esos tres tipos nombra una RUTA y no un sentido
+                 * —«Transporte Aeropuerto Lima ↔ Miraflores (ida o vuelta)»—, así que su título
+                 * público no puede decir hacia dónde se va y encima lo intenta con vocabulario de
+                 * catálogo: la flecha y el paréntesis.
+                 *
+                 * 🔥 **Esto se escapó porque aquí se CONGELA y allí se PINTA.** La regla se añadió
+                 * a los dos consumidores que resuelven al leer (`tituloDeComponente` en pax,
+                 * `OperacionOrdenServicioItem` en La Biblia) y nadie miró al que resuelve al
+                 * escribir. Resultado: en la misma propuesta el itinerario decía «Lima –
+                 * Miraflores» y el «qué incluye» decía «Lima ↔ Miraflores». Corregido el
+                 * 31/08/2026; las propuestas ya guardadas necesitan re-guardarse.
+                 */
+                const nombrePublicoDeLinea = (): I18nContent[] => {
+                    if (!mandaElSegmento(componente.tipo)) return componente.tituloSnapshot;
+
+                    const seg = componente.cotsegmento;
+                    const delSegmento = seg && typeof seg === 'object'
+                        ? (seg as CotSegmento).tituloSnapshot
+                        : null;
+
+                    return Array.isArray(delSegmento) && delSegmento.length
+                        ? delSegmento as I18nContent[]
+                        : componente.tituloSnapshot;
+                };
+
                 const fecha = getFechaLimpia(componente.fechaHoraInicio);
                 const cCant = unidadesDe(componente.cantidad);
                 const tieneNombre = !!componente.tituloSnapshot?.length;
@@ -1500,7 +1530,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 bloque.opcionales.push({
                                     origen: 'componente',
                                     modo: 'opcional',
-                                    nombre: componente.tituloSnapshot,
+                                    nombre: nombrePublicoDeLinea(),
                                     grupoOpcion: etiquetaGrupoTarifa(g, false).indice,
                                     fecha,
                                     cantidadComponente: cCant,
@@ -1529,7 +1559,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         destino(modo).push({
                             origen: 'componente',
                             modo: modo as ModoFinanciero,
-                            nombre: componente.tituloSnapshot,
+                            nombre: nombrePublicoDeLinea(),
                             fecha,
                             cantidadComponente: cCant,
                             modalidad: tarifaRef?.modalidadSnapshot || null,

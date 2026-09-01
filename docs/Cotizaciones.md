@@ -3605,7 +3605,63 @@ que es peor.
 
 La corrección es aplicar allí el **mismo criterio de prioridad** que en el despacho: en los tipos
 que nombran una ruta manda el segmento. `PaxCotizacionGuiaView.vue::tituloDeComponente()`, espejo
-de `ComponenteTipoEnum::mandaElSegmento()` — **son TRES espejos ahora**: el enum, `util` y `pax`.
+de `ComponenteTipoEnum::mandaElSegmento()`.
+
+**Los espejos son TRES y están fijados así desde el 31/08/2026:**
+
+| Copia | Dónde | Qué rotula |
+|---|---|---|
+| El enum | `ComponenteTipoEnum::mandaElSegmento()` | La orden y La Biblia |
+| `util` | `util/src/utils/componenteTipo.ts` | El editor **y** Operaciones, que antes tenía la suya aparte |
+| `pax` | `PaxCotizacionGuiaView.vue` | La guía del pasajero |
+
+⚠️ Eran cuatro copias en camino de ser cinco: `OperacionView.vue` llevaba la regla duplicada y el
+editor de cotizaciones no la tenía. Al arreglar el editor se extrajo el helper en vez de copiarla
+otra vez, así que `util` volvió a tener una.
+
+### 🔥 Faltaban dos superficies, y la causa es que una CONGELA y las otras PINTAN (31/08/2026)
+
+La regla se puso donde el nombre se resuelve **al leer** y nadie miró al que lo resuelve **al
+escribir**. El resultado era una misma propuesta contándose dos cosas:
+
+```
+pax · itinerario        tituloDeComponente()        resuelve AL PINTAR    «Del aeropuerto a Miraflores» ✓
+util · La Biblia        OperacionOrdenServicioItem  resuelve AL PINTAR    correcto                      ✓
+pax · «qué incluye»     construirInclusiones()      congela AL GUARDAR    «…Lima ↔ Miraflores»          ✗
+util · editor           la cabecera y las tarjetas  no conocía la regla   «…Lima ↔ Miraflores»          ✗
+```
+
+`construirInclusiones()` vive en `cotizacionEditorStore.ts`, corre al pulsar Guardar y escribe el
+texto ya resuelto dentro de `clasificacionFinancieraCliente`. Pax sólo lo lee. Por eso la regla,
+añadida a los dos consumidores que resuelven en tiempo de lectura, no llegó nunca al que resuelve
+en tiempo de escritura.
+
+**La lección general:** al añadir una regla de presentación, la lista de sitios a tocar no es «los
+que pintan», es «los que deciden el texto» — y un snapshot decide texto aunque no pinte nada.
+
+### El editor era la superficie que más dolía, y no por el cliente
+
+Con un componente por ruta, las dos líneas de una escala **se llaman exactamente igual** en el
+editor. Medido en la propuesta de Lima:
+
+```
+componente                                 segmento                      hora
+Transporte Aeropuerto Lima ↔ Miraflores    Del aeropuerto a Miraflores   08:30   ← el IN
+Transporte Aeropuerto Lima ↔ Miraflores    Regreso al aeropuerto         10:00   ← el OUT
+```
+
+El operador tenía que **abrir cada una y deducir cuál era por la hora que ya tenía puesta** — o
+sea, por el dato que venía a poner. `etiquetaDeComponente()` rotula ahora esas líneas con el
+título del segmento en la tarjeta de la lista y en la cabecera del inspector, y baja el nombre del
+insumo a la línea pequeña con un icono de caja.
+
+⚠️ **No se cambia en todas partes.** Donde el rótulo dice «Insumo Maestro», donde cuelga una tarifa
+y en la lista de componentes de un segmento, lo pertinente sigue siendo el nombre del componente:
+la tarifa es del componente bidireccional y es la misma para los dos sentidos, y dentro de la
+tarjeta de un segmento el título del segmento ya está arriba.
+
+⚠️ **Las propuestas ya guardadas no se arreglan solas.** El «qué incluye» es snapshot: hay que
+**re-guardar** la cotización para que la corrección le entre.
 
 ⚠️ **Manda por un motivo distinto en cada lado, y conviene no confundirlos.** En La Biblia porque
 el nombre OPERATIVO ya no dice la dirección; en `pax` porque el TÍTULO PÚBLICO tampoco puede

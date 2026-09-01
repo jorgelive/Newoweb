@@ -15,6 +15,7 @@ import PlanOperacionModal from '@/components/operacion/PlanOperacionModal.vue';
 // 🔥 IMPORTS DEL DATEPICKER Y MÁSCARAS
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import { usePantallaEstrecha } from '@/composables/usePantallaEstrecha';
+import { mandaElSegmento } from '@/utils/componenteTipo';
 import '@vuepic/vue-datepicker/dist/main.css';
 import IMask from 'imask';
 import {
@@ -929,6 +930,36 @@ const plantillaSeleccionada = ref<string | null>(null);
 // El dato ya está en memoria: los componentes cuelgan del SERVICIO y apuntan al segmento con un
 // ManyToOne opcional, así que basta filtrar. Se usa el helper del store y no un `===` a mano
 // porque el vínculo llega unas veces como IRI y otras como id plano.
+/**
+ * Cómo se rotula un componente en las listas y cabeceras del editor.
+ *
+ * ⚠️ **En un traslado, un tren o un vuelo, el nombre del componente NO distingue la ida de la
+ * vuelta**, y ésa es justo la pregunta del operador cuando va a ponerles hora. El catálogo carga
+ * esos tres tipos como **un componente por ruta, no por sentido** —«Transporte Aeropuerto Lima ↔
+ * Miraflores (ida o vuelta)»—, así que las dos líneas de una escala se llamaban exactamente igual
+ * y había que abrirlas y deducirlo por la hora ya puesta. Quien sí dice el sentido es el segmento.
+ *
+ * `mandaElSegmento()` es la misma regla que ya aplicaban la guía del pasajero y La Biblia; el
+ * editor era la única pantalla de las cuatro que no la tenía. Ver `@/utils/componenteTipo`.
+ *
+ * ⚠️ **No sustituye al nombre del maestro en todas partes.** Donde el rótulo dice «Insumo Maestro»
+ * o cuelga una tarifa, lo pertinente sigue siendo el componente: la tarifa es del componente
+ * bidireccional y es la misma para los dos sentidos.
+ */
+const etiquetaDeComponente = (comp: ComponenteCompleto | null | undefined): string => {
+  if (!comp) return getNombreMaestroRef(comp);
+
+  if (!mandaElSegmento(comp.tipo)) return getNombreMaestroRef(comp);
+
+  const segId = store.idSegmentoDeComponente(comp);
+  const seg = (store.servicioActivo?.cotsegmentos ?? []).find(
+    (x: CotSegmento) => store.extractIdStr(x.id) === segId
+  );
+  const delSegmento = store.getI18nText(seg?.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es');
+
+  return delSegmento || getNombreMaestroRef(comp);
+};
+
 const componentesDeSegmento = (segmentoId: string): ComponenteCompleto[] =>
   (store.servicioActivo?.cotcomponentes ?? []).filter(
     (c: ComponenteCompleto) => store.idSegmentoDeComponente(c) === segmentoId
@@ -2361,7 +2392,7 @@ store.$onAction(({ name, args }) => {
                     <h4 class="font-black text-sm text-slate-800 leading-tight pr-8 flex flex-col">
                       <span class="flex items-center gap-1.5">
                         <i v-if="store.isComponenteConAlerta(comp)" class="fas fa-exclamation-triangle text-red-500" title="Tarifas no cuadran"></i>
-                        {{ getNombreMaestroRef(comp) }}
+                        {{ etiquetaDeComponente(comp) }}
                       </span>
                       <!-- ⚠️ «Horario libre» es del COMPONENTE; «al final del día» es del
                            SERVICIO, y estaban pegados en la misma etiqueta. Un check-in sin hora
@@ -2536,9 +2567,18 @@ store.$onAction(({ name, args }) => {
                 <i class="fas fa-route"></i>
                 {{ store.getI18nText(store.servicioActualDeComponente?.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Servicio' }}
               </p>
-              <h2 class="text-sm font-black truncate">{{ getNombreMaestroRef(store.componenteActivo) }}</h2>
-              <p v-if="store.componentesHermanos.length > 1" class="text-[11px] font-bold text-sky-200 mt-0.5">
-                Componente {{ store.componentesHermanos.findIndex(c => c.id === store.componenteActivo?.id) + 1 }} de {{ store.componentesHermanos.length }}
+              <h2 class="text-sm font-black truncate">{{ etiquetaDeComponente(store.componenteActivo) }}</h2>
+              <p v-if="store.componentesHermanos.length > 1 || etiquetaDeComponente(store.componenteActivo) !== getNombreMaestroRef(store.componenteActivo)"
+                 class="text-[11px] font-bold text-sky-200 mt-0.5 truncate">
+                <span v-if="store.componentesHermanos.length > 1">
+                  Componente {{ store.componentesHermanos.findIndex(c => c.id === store.componenteActivo?.id) + 1 }} de {{ store.componentesHermanos.length }}
+                </span>
+                <!-- El insumo, en pequeño: la cabecera ya no lo lleva arriba, pero saber de qué
+                     componente del catálogo cuelga la línea sigue haciendo falta. -->
+                <span v-if="etiquetaDeComponente(store.componenteActivo) !== getNombreMaestroRef(store.componenteActivo)">
+                  <span v-if="store.componentesHermanos.length > 1"> · </span>
+                  <i class="fas fa-box-open text-[9px]"></i> {{ getNombreMaestroRef(store.componenteActivo) }}
+                </span>
               </p>
             </div>
 
