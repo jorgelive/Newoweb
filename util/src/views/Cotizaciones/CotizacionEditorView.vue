@@ -1624,7 +1624,17 @@ store.$onAction(({ name, args }) => {
       </div>
     </header>
 
-    <div v-if="store.isLoading" class="flex-1 flex items-center justify-center bg-[#F8FAFC]">
+    <!-- ⚠️ `isCargaInicial`, NO `isLoading`. Este `v-if` tiene debajo un `v-else` con el editor
+         ENTERO, así que mientras esté activo Vue desmonta y remonta todo el árbol: los scroll
+         vuelven a cero. Con `isLoading` eso pasaba también al Aplicar plantilla y al Actualizar
+         textos —operaciones que ocurren DENTRO del modal abierto—, y había que volver a buscar el
+         servicio en el que se estaba trabajando. En un programa de veinte días, rehacer el camino
+         en cada retoque.
+
+         `isLoading` sigue existiendo y sigue siendo el candado que consulta `guardarCotizacion()`;
+         lo que ya no hace es tirar la pantalla. El aviso de esas operaciones lo dan los botones,
+         que tienen su propio spinner y se deshabilitan. -->
+    <div v-if="store.isCargaInicial" class="flex-1 flex items-center justify-center bg-[#F8FAFC]">
       <div class="text-center text-slate-400">
         <i class="fas fa-spinner fa-spin text-4xl mb-4 text-[#376875]"></i>
         <p class="font-black tracking-widest uppercase text-xs">Sincronizando con Servidor...</p>

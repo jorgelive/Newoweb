@@ -3145,6 +3145,84 @@ La regla vive en `itinerarioVista` (`pax/src/views/cotizacion/PaxCotizacionGuiaV
 en qué orden ve el pasajero lo que le pasa en un día. **No es intuitiva**, y de ella salen dos
 trampas que ya se midieron.
 
+### 🔥 Un spinner de página completa borra el trabajo del operador (01/09/2026)
+
+El editor pintaba su estado de carga así:
+
+```html
+<div v-if="store.isLoading"> … spinner … </div>
+<div v-else-if="store.cotizacion">   ← el editor ENTERO cuelga de aquí
+```
+
+Con el editor entero en el `v-else`, **cualquier cosa que levante el flag desmonta el árbol y lo
+remonta**: todos los `scrollTop` vuelven a cero. Y no lo levantaba sólo la carga inicial —también
+`aplicarPlantilla()` y `actualizarTextosSegmentos()`, que son operaciones que ocurren **dentro del
+Constructor de Storytelling, con el modal abierto**—. Cada retoque devolvía al operador al
+principio de la lista, a buscar otra vez el servicio en el que estaba. En un programa de veinte
+días eso es rehacer el camino cada vez.
+
+⚠️ **Y `isLoading` no se podía quitar de esas acciones, que es la trampa.** No es «pinta un
+spinner»: `guardarCotizacion()` lo consulta para **negarse** —«el editor está ocupado terminando
+otra operación»—. Quitarlo habría dejado guardar a mitad de una plantilla a medio aplicar, que es
+mucho peor que perder el scroll.
+
+La salida es separar las dos responsabilidades que el flag tenía mezcladas:
+
+| | Quién lo levanta | Para qué |
+|---|---|---|
+| `isLoading` | carga inicial, aplicar plantilla, actualizar textos | **Candado**: bloquea guardar y deshabilita botones |
+| `isCargaInicial` | **sólo** `inicializarEditor()` | Pintar el spinner de página completa |
+
+En la carga inicial desmontar es correcto: no hay nada que preservar. En las demás, el aviso ya lo
+dan los botones, que tienen su propio spinner y se deshabilitan solos con el candado.
+
+**La regla general:** un `v-if` de carga que envuelve la pantalla entera no puede colgar de un flag
+que también usan las operaciones parciales. Si el flag sirve además de candado, hacen falta dos.
+
+### ⚠️ `itinerarioVista` es la ÚNICA fuente del itinerario, y vive en TypeScript (01/09/2026)
+
+Salió al intentar generar un PDF del itinerario para los clientes que piden «un papel». Cualquier
+consumidor nuevo —un PDF, un correo, un resumen— que quiera enseñar el viaje **tiene que rehacer
+este cálculo**, porque no existe en ninguna otra parte. Y no es una lista de párrafos ordenados:
+son al menos tres reglas que no se adivinan leyendo las entidades.
+
+| Regla | Qué pasa si un consumidor nuevo no la replica |
+|---|---|
+| La hora de un párrafo es **min(inicio) / max(fin)** de sus componentes | Enseña la hora de un componente cualquiera |
+| Se **excluyen los `horaServicioCompleto`**: su hora es de la excursión entera, no de ese párrafo | La excursión aparece empezando a la hora de su ancla, dos veces |
+| **Estadías**: un párrafo sin horas cuyos componentes acaban en fecha posterior se repite **cada día** del periodo | Un viaje con hotel **pierde los días intermedios** |
+
+La tercera es la que convierte el error en algo visible: un itinerario de ocho días saldría con
+tres. La primera versión del servicio de PDF cayó exactamente ahí.
+
+**La salida NO es replicarlo en PHP.** Sería un espejo de la lógica que este mismo capítulo abre
+diciendo que «no es intuitiva», y de esos ya se pagó uno esta semana con `mandaElSegmento()`. Las
+opciones reales, por si se retoma:
+
+| | Qué implica |
+|---|---|
+| **Subir la composición a PHP** y que `pax` la consuma | El PDF y la guía comparten origen **por construcción**; colapsa también los espejos del título. Es lo correcto, y toca la pantalla del cliente |
+| **Generar el PDF en `pax`** reusando el computed | Cero espejo, pero no se puede adjuntar desde el backend y el paginado sale como imagen |
+| Documento con reglas propias | Dos verdades que el cliente puede comparar. Descartada |
+
+Lo que sí quedó hecho y sirve para las dos primeras, porque es andamiaje y no reglas: la ruta
+pública por `(localizador, versión)`, `Cotizacion::esVisibleParaCliente()`, dompdf configurado
+como en la orden al proveedor y una plantilla en tablas.
+
+### La visibilidad pública de una propuesta se pregunta a la entidad
+
+`Cotizacion::esVisibleParaCliente()` responde «estado público **y** no expirada», que son las dos
+condiciones que `CotizacionFilePublicProvider` ya evaluaba en DQL.
+
+⚠️ **Es una regla de SEGURIDAD, y por eso importa que tenga un solo sitio.** Un espejo aquí no
+falla ruidosamente: al desalinearse **publica lo que el otro lado ya ocultaba**. El provider la
+sigue aplicando en SQL —ahí no puede llamar a un método de PHP, el filtro va en la consulta—, así
+que la parte que de verdad manda, «qué estados son públicos», vive en
+`CotizacionEstadoEnum::esPublico()` y la consultan los dos.
+
+Cualquier superficie pública nueva llama a `esVisibleParaCliente()` y devuelve **404 uniforme**:
+distinguir «no existe» de «no es pública» le diría a quien prueba localizadores cuáles existen.
+
 ### El algoritmo, en tres pasos
 
 ```

@@ -101,7 +101,29 @@ const unidadesDe = (valor: unknown, porDefecto = 1): number => {
 
 export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () => {
 
+    /**
+     * El CANDADO: hay una operación en curso que toca la cotización entera.
+     *
+     * ⚠️ **No es «pinta un spinner»: `guardarCotizacion()` lo consulta para negarse** («el editor
+     * está ocupado terminando otra operación»). Por eso lo levantan también aplicar plantilla y
+     * actualizar textos, y por eso no se puede quitar de ellas.
+     */
     const isLoading = ref<boolean>(false);
+
+    /**
+     * ¿Se está montando el editor por primera vez? Sólo lo levanta `inicializarEditor()`.
+     *
+     * ⚠️ **Existe para que la pantalla deje de destruirse en cada operación.** La vista pintaba
+     * su spinner de página completa con `v-if="store.isLoading"` y el editor entero colgaba del
+     * `v-else`, así que cualquier acción que levantara el candado —Aplicar plantilla, Actualizar
+     * textos— **desmontaba el DOM y lo remontaba**: todos los `scrollTop` volvían a cero y había
+     * que buscar otra vez el servicio en el que se estaba trabajando. En un programa de veinte
+     * días eso es rehacer el camino en cada retoque.
+     *
+     * En la carga inicial sí procede: no hay nada que preservar. En las demás, cada botón ya
+     * enseña su propio spinner y los controles se deshabilitan con `isLoading`.
+     */
+    const isCargaInicial = ref<boolean>(false);
     const idiomasDisponibles = ref<ApiIdioma[]>([]);
     const tipoCambioSugerido = ref<number>(1);
 
@@ -1762,6 +1784,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         modoCatalogo.value = esCatalogo;
         isLoading.value = true;
+        // La única operación que SÍ debe desmontar la pantalla: no hay nada que preservar.
+        isCargaInicial.value = true;
         try {
             try {
                 const tcResponse = await apiClient.post('/platform/maestro/tipo-cambio/consultar', { fecha: getFechaLimpia(new Date().toISOString()) });
@@ -1820,6 +1844,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             alert("No se pudo cargar el Expediente. Verifica la URL.");
         } finally {
             isLoading.value = false;
+            isCargaInicial.value = false;
         }
     };
 
@@ -4822,7 +4847,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     return {
-        catalogos, cotizacion, fileActual, modoCatalogo, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
+        catalogos, cotizacion, fileActual, modoCatalogo, idiomasDisponibles, isLoading, isCargaInicial, inspectorActivo, dataActiva,
         esMonoSegmentoSinPlantilla, segmentoUnicoMaestro,
         puntosPorServicio, puntosDeServicio, fetchPuntosDeServicios,
         // Vistas tipadas del nodo abierto: es por donde deben leerlo las vistas.
