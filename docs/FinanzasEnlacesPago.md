@@ -2069,3 +2069,34 @@ dinero a una tarjeta.
 
 La fontanería ya estaba: `FinEnlacePago` guarda su propia `moneda` y `crear()` acepta cualquier
 `monedaId`. El único que forzaba una sola era el resolver.
+
+
+## 🎯 `prioritario`: cuáles se le enseñan al huésped (01/09/2026)
+
+Detrás de la «i» de «Transferencia bancaria» salían **ocho cuentas** —BCP, BBVA, Interbank y
+Scotiabank, cada una en soles y en dólares— y el huésped sólo busca la suya. Una lista de ocho es
+la que hace que no se lea ninguna.
+
+`FinMedioCobro::$prioritario` marca cuáles se enseñan. El resto **no se borra ni se desactiva**:
+sigue en el catálogo para dárselo a mano cuando alguien pida su banco por chat.
+
+⚠️ **El filtro es POR TIPO, no general.** Si algún medio de un tipo está marcado, se enseñan sólo
+los marcados; si ninguno lo está, se enseñan todos. Así basta con marcar las dos transferencias
+buenas: Yape, Plin, Western Union y el efectivo siguen saliendo sin que nadie tenga que acordarse
+de ellos, **y un medio de un tipo nuevo no nace invisible por olvido** — que es el fallo caro,
+porque nadie echa de menos lo que no sabía que existía. Se aplica en
+`PmsSituacionDeCobroResolver::medios()`, después de `ofrecibles()`.
+
+### Por qué las dos de DÓLARES
+
+Marcadas **BCP USD** (`285-03306263-1-25`) e **Interbank USD** (`4263078214241`).
+
+Los cargos son en dólares, así que cobrar en dólares **quita de raíz el cruce de monedas**: hoy
+`XTHRMQ`, `GASUNN` y `V6WDDQ` están esperando una imputación a mano porque alguien pagó en soles
+una cuenta emitida en dólares (§12.2b de `PmsBeds24ReservasSync.md`), y el read-model calla sobre
+esas reservas mientras tanto.
+
+⚠️ **Tiene un coste y conviene saberlo:** los cuatro bancos existían para que cada huésped
+transfiriera dentro del suyo —gratis e inmediato—. Con dos, quien no sea de BCP ni de Interbank
+paga comisión interbancaria o usa el CCI. Se eligieron dos y no uno justamente por eso.
+

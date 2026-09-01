@@ -166,6 +166,18 @@ final class FinMedioCobroCrudController extends BaseCrudController
             ->renderAsSwitch(true)
             ->setHelp('Apagarlo lo retira de todas partes sin perder el número.');
 
+        yield BooleanField::new('prioritario', 'Se le enseña al huésped')
+            ->renderAsSwitch(true)
+            ->setHelp(
+                'Detrás de la «i» de «Transferencia bancaria» salían <b>ocho cuentas</b> y el huésped '
+                . 'sólo busca la suya. Marcando algunas, se le enseñan <b>sólo ésas</b>; el resto se '
+                . 'queda en el catálogo para dárselo a mano cuando pida su banco.<br><br>'
+                . '⚠️ <b>Funciona por tipo:</b> si marcas alguna transferencia, se enseñan sólo las '
+                . 'marcadas — pero Yape, Plin, Western Union y el efectivo siguen saliendo aunque no '
+                . 'los marques, porque en su tipo no hay ninguno marcado. Así un medio nuevo no nace '
+                . 'invisible por olvido.'
+            );
+
         yield IntegerField::new('orden', 'Orden')
             ->setHelp('En qué orden se le enseñan al cliente. Lo primero es lo que más se usa.');
     }

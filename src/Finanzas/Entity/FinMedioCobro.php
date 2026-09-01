@@ -222,6 +222,28 @@ class FinMedioCobro
     /** @param list<array{language?: string, content?: string|null}>|null $nota */
     public function setNota(?array $nota): self { $this->nota = $nota ?? []; return $this; }
 
+    /**
+     * ¿Es de los que se le enseñan al huésped, o queda para dárselo a mano?
+     *
+     * ── Por qué hace falta ──────────────────────────────────────────────────────
+     * Detrás de la «i» de «Transferencia bancaria» salían **ocho cuentas** —cuatro bancos por dos
+     * monedas— y el huésped sólo busca la suya. La lista larga es la que hace que nadie la lea.
+     *
+     * ⚠️ **Filtra DENTRO de su tipo, no en general.** Si algún medio de ese tipo está marcado, se
+     * enseñan sólo los marcados; si ninguno lo está, se enseñan todos. Así basta con marcar las
+     * dos transferencias buenas: Yape, Plin, Western Union y el efectivo siguen saliendo sin que
+     * nadie tenga que acordarse de marcarlos, y añadir un tipo nuevo no lo deja invisible por
+     * olvido — que es el fallo caro, porque nadie echa de menos lo que no sabía que existía.
+     *
+     * El resto no se borra ni se desactiva: sigue en el catálogo para cuando alguien pida su
+     * banco por chat.
+     */
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $prioritario = false;
+
+    public function isPrioritario(): bool { return $this->prioritario; }
+    public function setPrioritario(bool $prioritario): self { $this->prioritario = $prioritario; return $this; }
+
     public function isActivo(): bool { return $this->activo; }
     public function setActivo(bool $activo): self { $this->activo = $activo; return $this; }
 

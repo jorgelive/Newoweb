@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Finanzas;
 
+use App\Finanzas\Entity\FinMedioCobro;
 use App\Finanzas\Repository\FinMedioCobroRepository;
 use App\Finanzas\Service\FinEnlacePagoService;
 use App\Pms\Entity\PmsChannel;
@@ -290,6 +291,24 @@ final readonly class PmsSituacionDeCobroResolver
 
         foreach ($this->catalogo->ofrecibles($desdePeru, $dias) as $medio) {
             $porTipo[$medio->getTipo()->value][] = $medio;
+        }
+
+        // ── Los PRIORITARIOS, dentro de cada tipo ───────────────────────────────
+        //
+        // Detrás de la «i» de «Transferencia bancaria» salían ocho cuentas y el huésped sólo
+        // busca la suya; una lista de ocho es la que hace que no se lea ninguna.
+        //
+        // ⚠️ El filtro es POR TIPO y no general: si algún medio de ese tipo está marcado se
+        // quedan sólo los marcados, y si ninguno lo está se quedan todos. Así basta con marcar
+        // las dos transferencias buenas — Yape, Plin, Western Union y el efectivo siguen
+        // saliendo sin que nadie tenga que acordarse de ellos, y un tipo nuevo no nace invisible
+        // por olvido. Nadie echa de menos lo que no sabía que existía.
+        foreach ($porTipo as $codigo => $fichas) {
+            $prioritarias = array_values(array_filter($fichas, static fn (FinMedioCobro $m): bool => $m->isPrioritario()));
+
+            if ($prioritarias !== []) {
+                $porTipo[$codigo] = $prioritarias;
+            }
         }
 
         $salida = [];
