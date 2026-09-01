@@ -40,9 +40,27 @@ export default class extends Controller {
             plugins: [
                 'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'anchor',
                 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                'media', 'table', 'help', 'wordcount'
+                'media', 'table', 'help', 'wordcount', 'quickbars'
             ],
             toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter | bullist numlist | link image | removeformat | code',
+
+            // ── La barra flotante que sale al seleccionar texto ──────────────
+            //
+            // ⚠️ **Antes salía sólo «Link… ⌘K», que es lo que menos se usa aquí.** No era una
+            // configuración: `quickbars` NO estaba cargado, así que lo único flotante era el
+            // context toolbar que el plugin `link` trae de serie. Sin `quickbars` en la lista de
+            // arriba, estas tres opciones no hacen nada.
+            //
+            // El repertorio sale de lo que se escribe de verdad en estos campos —el cuerpo del
+            // relato de un segmento— que son listas de viñetas con negritas y emojis. Por eso
+            // negrita, cursiva y viñetas van primero y el enlace queda al final: sigue estando,
+            // pero deja de ser lo único.
+            quickbars_selection_toolbar: 'bold italic | bullist numlist | removeformat | quicklink',
+
+            // La barra de «insertar» que aparece al poner el cursor en una línea VACÍA ofrece
+            // tabla e imagen. En un relato estorba: aparece sola mientras se redacta.
+            quickbars_insert_toolbar: false,
+            quickbars_image_toolbar: false,
 
             // Configuración de imagen (Solo URL)
             image_title: true,
