@@ -543,6 +543,16 @@ class MessageTemplate
      *
      * Ocultar los botones tiene que apagar las DOS mitades del contrato, no sólo el render.
      *
+     * ⚠️ **El `true` de la última rama no es un descuido.** En texto libre, el cuerpo puede salir
+     * de `whatsapp_link_tmpl` —y ahí manda su casilla— o caer al de Meta cuando aquél está vacío,
+     * y en ese camino los botones se emulan SIEMPRE, sin mirar casilla ninguna. Es lo que
+     * mantiene con enlace a los avisos internos, cuyo cuerpo dice «Abre el chat» y no escribe la
+     * URL: viven sólo en el bloque de Meta.
+     *
+     * Si aquí se contestara sólo por las casillas, ese menú se pintaría y **la vuelta se
+     * ignoraría**: el huésped teclea «2», nadie lo recoge, y no hay error en ningún sitio. La
+     * pregunta tiene que ser «¿pudo pintarse?», no «¿están las casillas puestas?».
+     *
      * ⚠️ **Sin `#[Groups]`, y no por olvido.** El serializador sólo admite ese atributo en
      * métodos que empiezan por `get`/`is`/`has`/`can`/`set`, y con uno que no cumple **la
      * aplicación no arranca**: revienta al compilar el contenedor, no al serializar. No es un
@@ -550,7 +560,25 @@ class MessageTemplate
      */
     public function emulaBotonesEnAlgunCanal(): bool
     {
-        return !$this->isBeds24MetaButtonsDisabled() || !$this->isWhatsappLinkMetaButtonsDisabled();
+        if (!$this->isBeds24MetaButtonsDisabled() || !$this->isWhatsappLinkMetaButtonsDisabled()) {
+            return true;
+        }
+
+        // Con las dos casillas puestas todavía queda el camino del cuerpo de Meta, que emula sin
+        // preguntar. Sólo se descarta si **ningún idioma** del cuerpo del enlace está vacío,
+        // porque entonces nunca se cae allí.
+        //
+        // Se mira idioma por idioma y no si el cuerpo existe: basta con que alguien vacíe UNA
+        // traducción desde el panel para que ese huésped reciba el menú numerado. Contestando
+        // que sí en la duda, el peor caso es reconocer un «2» de más —recuperable—; al revés
+        // queda un menú muerto que no da error en ningún sitio.
+        foreach ($this->whatsappLinkTmpl['body'] ?? [] as $nodo) {
+            if (trim((string) ($nodo['content'] ?? '')) === '') {
+                return true;
+            }
+        }
+
+        return ($this->whatsappLinkTmpl['body'] ?? []) === [];
     }
 
     #[Groups(['template:read'])]

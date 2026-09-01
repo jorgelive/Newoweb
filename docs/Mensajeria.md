@@ -6600,6 +6600,54 @@ Se guardó copia de sus 7 idiomas con sus ids antes de tocar nada. Y ojo: borrar
 **bloquea reutilizar ese nombre unos 30 días**, cosa que aquí da igual porque la plantilla viva
 se llama `welcome_booking_command`.
 
+### 🧪 Revisión adversarial del envío (Fable, 01/09/2026)
+
+Se pidió una revisión externa del fallback, el hidratado y las variables. **Lo que salió limpio:**
+la barrera fuera-de-ventana no tiene fugas —ningún camino manda texto libre ni plantilla no
+aprobada—, en la rama oficial los `disable_meta_buttons` correctamente **no** se respetan (allí
+los botones son de verdad), y el cruce medido de variables da **cero huérfanas**: ninguna
+plantilla de producción usa una `{{ }}` que el resolver no produzca, y ningún `resolver_key` de
+botón apunta al vacío.
+
+Cuatro fallos reales, los cuatro arreglados:
+
+**1 · Una guarda de política tumbaba el LOTE, no el mensaje.** Los `throw` estaban dentro del
+bucle de `map()`, que se llama sin red por ítem: la excepción subía al orquestador como fallo
+catastrófico del batch. Un mensaje que violara la política se llevaba por delante a sus
+compañeros de lote —«Catastrophic Error», +5 min— y juntos gastaban los cinco intentos. El caso
+es corriente: un recordatorio se encola con la ventana abierta —el enqueuer valida al despachar,
+que para un `scheduledAt` futuro ocurre días antes— y al llegar su hora ya cerró.
+
+Ahora cada ítem va envuelto: el que viola se **aparta**, viaja en `metadata['saltados']` y
+`parseResponse()` lo convierte en un `ItemResult` fallido con su motivo. Los dos `throw` de
+configuración —sin `MetaConfig`, sin `phoneId`— siguen siendo del lote, porque con ellos ningún
+ítem podría salir.
+
+**2 · `{{ importe_a_pagar }}` salía LITERAL al huésped.** `hydrateVariables()` usaba `??`, que
+trata `null` como ausente y deja el marcador crudo — y hay variables que valen `null` a propósito.
+Beds24 y Email ya distinguían «existe pero vacía» de «no existe»; éste era el que no. Ahora usa
+`array_key_exists`: vacía se sustituye por nada, ausente deja el marcador —que es un fallo de la
+plantilla y tiene que verse.
+
+**3 · El correo pasaba el idioma del HUÉSPED**, sin la bifurcación de prioridad 0. Con un idioma
+que no traducimos, el cuerpo caía al inglés y el bloque de dinero se componía en la lengua del
+huésped: `TextosUi` no la tiene, `t()` devuelve `''`, y salía «*:* USD 60.96». Latente —las 14
+plantillas tienen el correo apagado— y por eso mismo se arregla ahora: el día que se encienda,
+nadie va a estar mirando. Los dos sitios que elegían idioma ahí usan ya un único
+`idiomaDelCuerpo()`.
+
+**4 · El menú podía pintarse y la vuelta ignorarse.** Cuando el cuerpo cae al de Meta, los botones
+se emulan **sin mirar las casillas** — y es lo que mantiene con enlace a los avisos internos. Pero
+`emulaBotonesEnAlgunCanal()` sólo miraba las casillas, así que habría dicho «no hay menú» mientras
+se pintaba uno. Ahora la pregunta es «¿pudo pintarse?»: con las dos casillas puestas, sólo se
+descarta si **ningún idioma** del cuerpo del enlace está vacío. Basta vaciar una traducción desde
+el panel para que ese huésped reciba el menú, y en la duda se contesta que sí — reconocer un «2»
+de más es recuperable; ignorarlo deja un menú muerto que no da error en ningún sitio.
+
+De paso, los dos avisos internos decían «Abre el chat para contestarle» y su enlace venía **sólo**
+del botón emulado. Ahora lo llevan escrito (`{{ chat_url }}`, `{{ finanzas_url }}`), que además se
+lee mejor que una botonera sintética.
+
 ### 📋 Los tres cuerpos, y cuál sale cuándo
 
 Es la tabla que faltaba, y la que ahora está escrita en las ayudas del panel — porque quien edita

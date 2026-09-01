@@ -77,371 +77,396 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
         $payload = [];
         $correlation = [];
 
+        /** @var array<string, string> $saltados Id de cola => por qué ese mensaje no sale. */
+        $saltados = [];
+
+        // ⚠️ **Cada ítem va envuelto, y no es una red de seguridad genérica.**
+        //
+        // Las guardas de política de más abajo lanzaban dentro de este bucle, y `map()` se llama
+        // sin red por ítem: la excepción sube al orquestador, que la trata como **fallo
+        // catastrófico del LOTE**. Un solo mensaje que violara la política se llevaba por delante
+        // a todos sus compañeros —«Catastrophic Error», reintento a +5 min— y juntos gastaban los
+        // cinco intentos.
+        //
+        // Y el caso es corriente, no rebuscado: un recordatorio se encola con la ventana ABIERTA
+        // —el enqueuer valida la sesión al despachar, que para un `scheduledAt` futuro ocurre
+        // días antes— y al llegar su hora la ventana ya cerró. Ese mensaje tiene que fallar solo.
+        //
+        // Lo que NO se captura son los dos `throw` de arriba —sin `MetaConfig`, sin `phoneId`—:
+        // ésos sí son del lote entero, porque con ellos ningún ítem podría salir.
         foreach ($batch->getItems() as $index => $item) {
             /** @var WhatsappMetaSendQueue $item */
             $msg = $item->getMessage();
 
-            // 🔥 ESCENARIO A: RECIBO DE LECTURA
-            if ($endpoint->getAccion() === 'MARK_WHATSAPP_MESSAGE_READ'
-                && $msg->getDirection() === Message::DIRECTION_INCOMING
-                && $msg->getStatus() === Message::STATUS_QUEUED
-            ) {
-                $remoteIdToRead = $msg->getWhatsappMetaExternalId();
+            try {
 
-                if ($remoteIdToRead) {
-                    $payload[] = [
-                        'messaging_product' => 'whatsapp',
-                        'status'            => 'read',
-                        'message_id'        => $remoteIdToRead,
-                    ];
-                    $correlation[$index] = (string) $item->getId();
+                // 🔥 ESCENARIO A: RECIBO DE LECTURA
+                if ($endpoint->getAccion() === 'MARK_WHATSAPP_MESSAGE_READ'
+                    && $msg->getDirection() === Message::DIRECTION_INCOMING
+                    && $msg->getStatus() === Message::STATUS_QUEUED
+                ) {
+                    $remoteIdToRead = $msg->getWhatsappMetaExternalId();
+
+                    if ($remoteIdToRead) {
+                        $payload[] = [
+                            'messaging_product' => 'whatsapp',
+                            'status'            => 'read',
+                            'message_id'        => $remoteIdToRead,
+                        ];
+                        $correlation[$index] = (string) $item->getId();
+                    }
+
+                    continue;
                 }
 
-                continue;
-            }
+                // 🔥 ESCENARIO B: ENVÍO DE MENSAJE
+                $conversation = $msg->getConversation();
 
-            // 🔥 ESCENARIO B: ENVÍO DE MENSAJE
-            $conversation = $msg->getConversation();
+                // ── De QUÉ asunto se redacta ─────────────────────────────────────
+                // Del asunto del MENSAJE cuando lo lleva estampado, y sólo si no, del contexto de la
+                // conversación. Con varios asuntos colgando de un mismo hilo, tomar siempre el de la
+                // conversación redactaría el recordatorio de la reserva B con las fechas, la casita y
+                // el nombre de la A. No daría error: mandaría un mensaje impecable con los datos de
+                // otro, que es la peor forma de fallar que tiene esto.
+                //
+                // Hoy coinciden siempre —una conversación, un asunto— y por eso no se nota; deja de
+                // coincidir en cuanto se fusionen los hilos duplicados por persona.
+                $asuntoType = $msg->getAsuntoType() ?? $conversation->getContextType();
+                $asuntoId = $msg->getAsuntoId() ?? $conversation->getContextId();
 
-            // ── De QUÉ asunto se redacta ─────────────────────────────────────
-            // Del asunto del MENSAJE cuando lo lleva estampado, y sólo si no, del contexto de la
-            // conversación. Con varios asuntos colgando de un mismo hilo, tomar siempre el de la
-            // conversación redactaría el recordatorio de la reserva B con las fechas, la casita y
-            // el nombre de la A. No daría error: mandaría un mensaje impecable con los datos de
-            // otro, que es la peor forma de fallar que tiene esto.
-            //
-            // Hoy coinciden siempre —una conversación, un asunto— y por eso no se nota; deja de
-            // coincidir en cuanto se fusionen los hilos duplicados por persona.
-            $asuntoType = $msg->getAsuntoType() ?? $conversation->getContextType();
-            $asuntoId = $msg->getAsuntoId() ?? $conversation->getContextId();
+                $resolver = $this->resolverRegistry->getResolver($asuntoType);
 
-            $resolver = $this->resolverRegistry->getResolver($asuntoType);
+                $livePhone = $resolver?->getPhoneNumber($asuntoId);
+                $destination = $livePhone ?: $item->getDestinationPhone();
 
-            $livePhone = $resolver?->getPhoneNumber($asuntoId);
-            $destination = $livePhone ?: $item->getDestinationPhone();
-
-            if ($livePhone && $livePhone !== $item->getDestinationPhone()) {
-                $item->setDestinationPhone($livePhone);
-            }
-
-            // ESTRUCTURA BASE NATIVA DE META CLOUD API
-            $messagePayload = [
-                'messaging_product' => 'whatsapp',
-                'recipient_type'    => 'individual',
-                'to'                => $destination,
-            ];
-
-            $attachment = $msg->getAttachments()->first() ?: null;
-            $template = $msg->getTemplate();
-
-            // -------------------------------------------------------------------------
-            // 🌐 RESOLUCIÓN DE IDIOMAS (Local vs Meta API)
-            // -------------------------------------------------------------------------
-            $idiomaEntity = $conversation->getIdioma();
-            $internalLang = strtolower($idiomaEntity->getId());
-            // NUEVO: Bifurcación. Si la prioridad es 0, las plantillas y menús caen en inglés.
-            $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
-
-            $metaLang = $this->normalizeLanguageForMeta($templateLang);
-
-            $isSessionActive = $conversation->isWhatsappSessionActive();
-
-            // Variables de la plantilla, resueltas UNA vez para las tres ramas que las usan
-            // (header, body, botones) en lugar de tres veces como antes.
-            //
-            // Las del propio mensaje pisan a las del resolver: hay avisos cuyo contenido no está
-            // en el contexto de la conversación sino en el hecho que los provocó —el escalado, que
-            // llega a la conversación interna de un operador y habla de OTRO huésped—. Ver
-            // Message::getVariablesPlantilla().
-            $variables = $resolver ? $resolver->getMessageVariables($asuntoId, $templateLang) : [];
-            $variables = $msg->getVariablesPlantilla() + $variables;
-
-            // Obtenemos el nuevo JSON Greenfield completo
-            $metaJson = $template !== null ? $template->getWhatsappMetaTmpl() : [];
-            $isOfficialMeta = $metaJson['is_official_meta'] ?? true;
-
-            // 🛡️ BARRERA DE SEGURIDAD
-            if (!$isSessionActive && empty($metaJson)) {
-                throw new RuntimeException(sprintf('Violación de política: Intento de envío libre fuera de ventana a %s.', $destination));
-            }
-
-            // Si hay plantilla, PERO no es oficial (Quick Reply), bloqueamos si estamos fuera de sesión
-            if (!empty($metaJson) && !$isOfficialMeta && !$isSessionActive) {
-                throw new RuntimeException(sprintf('Violación de política: Plantilla NO oficial "%s" fuera de ventana.', $template->getCode()));
-            }
-
-            if (!empty($metaJson) && !$isSessionActive) {
-                // -----------------------------------------------------------------
-                // ENVÍO DE PLANTILLA OFICIAL (FUERA DE 24H)
-                // -----------------------------------------------------------------
-                $templateName = $metaJson['meta_template_name'] ?? null;
-
-                if (!$templateName) {
-                    throw new RuntimeException(sprintf('Plantilla "%s" sin Nombre Meta.', $template->getCode()));
+                if ($livePhone && $livePhone !== $item->getDestinationPhone()) {
+                    $item->setDestinationPhone($livePhone);
                 }
 
-                $messagePayload['type'] = 'template';
-                $messagePayload['template'] = [
-                    'name' => $templateName,
-                    'language' => ['code' => $metaLang],
-                    'components' => []
+                // ESTRUCTURA BASE NATIVA DE META CLOUD API
+                $messagePayload = [
+                    'messaging_product' => 'whatsapp',
+                    'recipient_type'    => 'individual',
+                    'to'                => $destination,
                 ];
 
-                // 1. HEADER
-                $headerData = $template->getWhatsappMetaHeader($templateLang);
-                if ($headerData) {
-                    $format = $headerData['format'];
-                    $headerComponent = ['type' => 'header', 'parameters' => []];
+                $attachment = $msg->getAttachments()->first() ?: null;
+                $template = $msg->getTemplate();
 
-                    if ($format === 'TEXT' && !empty($headerData['content'])) {
-                        $headerText = $headerData['content'];
-                        if (preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $headerText, $matches)) {
-                            foreach (array_unique($matches[1]) as $paramName) {
-                                if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
-                                    throw new RuntimeException(sprintf('Error (Header): Variable "%s" vacía.', $paramName));
+                // -------------------------------------------------------------------------
+                // 🌐 RESOLUCIÓN DE IDIOMAS (Local vs Meta API)
+                // -------------------------------------------------------------------------
+                $idiomaEntity = $conversation->getIdioma();
+                $internalLang = strtolower($idiomaEntity->getId());
+                // NUEVO: Bifurcación. Si la prioridad es 0, las plantillas y menús caen en inglés.
+                $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
+
+                $metaLang = $this->normalizeLanguageForMeta($templateLang);
+
+                $isSessionActive = $conversation->isWhatsappSessionActive();
+
+                // Variables de la plantilla, resueltas UNA vez para las tres ramas que las usan
+                // (header, body, botones) en lugar de tres veces como antes.
+                //
+                // Las del propio mensaje pisan a las del resolver: hay avisos cuyo contenido no está
+                // en el contexto de la conversación sino en el hecho que los provocó —el escalado, que
+                // llega a la conversación interna de un operador y habla de OTRO huésped—. Ver
+                // Message::getVariablesPlantilla().
+                $variables = $resolver ? $resolver->getMessageVariables($asuntoId, $templateLang) : [];
+                $variables = $msg->getVariablesPlantilla() + $variables;
+
+                // Obtenemos el nuevo JSON Greenfield completo
+                $metaJson = $template !== null ? $template->getWhatsappMetaTmpl() : [];
+                $isOfficialMeta = $metaJson['is_official_meta'] ?? true;
+
+                // 🛡️ BARRERA DE SEGURIDAD
+                if (!$isSessionActive && empty($metaJson)) {
+                    throw new RuntimeException(sprintf('Violación de política: Intento de envío libre fuera de ventana a %s.', $destination));
+                }
+
+                // Si hay plantilla, PERO no es oficial (Quick Reply), bloqueamos si estamos fuera de sesión
+                if (!empty($metaJson) && !$isOfficialMeta && !$isSessionActive) {
+                    throw new RuntimeException(sprintf('Violación de política: Plantilla NO oficial "%s" fuera de ventana.', $template->getCode()));
+                }
+
+                if (!empty($metaJson) && !$isSessionActive) {
+                    // -----------------------------------------------------------------
+                    // ENVÍO DE PLANTILLA OFICIAL (FUERA DE 24H)
+                    // -----------------------------------------------------------------
+                    $templateName = $metaJson['meta_template_name'] ?? null;
+
+                    if (!$templateName) {
+                        throw new RuntimeException(sprintf('Plantilla "%s" sin Nombre Meta.', $template->getCode()));
+                    }
+
+                    $messagePayload['type'] = 'template';
+                    $messagePayload['template'] = [
+                        'name' => $templateName,
+                        'language' => ['code' => $metaLang],
+                        'components' => []
+                    ];
+
+                    // 1. HEADER
+                    $headerData = $template->getWhatsappMetaHeader($templateLang);
+                    if ($headerData) {
+                        $format = $headerData['format'];
+                        $headerComponent = ['type' => 'header', 'parameters' => []];
+
+                        if ($format === 'TEXT' && !empty($headerData['content'])) {
+                            $headerText = $headerData['content'];
+                            if (preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $headerText, $matches)) {
+                                foreach (array_unique($matches[1]) as $paramName) {
+                                    if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
+                                        throw new RuntimeException(sprintf('Error (Header): Variable "%s" vacía.', $paramName));
+                                    }
+                                    $headerComponent['parameters'][] = [
+                                        'type' => 'text',
+                                        'parameter_name' => $paramName,
+                                        'text' => (string) ($variables[$paramName] ?? '')
+                                    ];
                                 }
-                                $headerComponent['parameters'][] = [
-                                    'type' => 'text',
-                                    'parameter_name' => $paramName,
-                                    'text' => (string) ($variables[$paramName] ?? '')
-                                ];
                             }
+                        } elseif (in_array($format, ['IMAGE', 'VIDEO', 'DOCUMENT'])) {
+                            if (!$attachment) {
+                                throw new RuntimeException(sprintf('La plantilla "%s" requiere adjunto %s en el Header.', $template->getCode(), $format));
+                            }
+                            $mediaType = strtolower($format);
+                            $headerComponent['parameters'][] = [
+                                'type' => $mediaType,
+                                $mediaType => ['link' => $this->getAbsoluteAttachmentUrl($attachment)]
+                            ];
                         }
-                    } elseif (in_array($format, ['IMAGE', 'VIDEO', 'DOCUMENT'])) {
-                        if (!$attachment) {
-                            throw new RuntimeException(sprintf('La plantilla "%s" requiere adjunto %s en el Header.', $template->getCode(), $format));
-                        }
-                        $mediaType = strtolower($format);
-                        $headerComponent['parameters'][] = [
-                            'type' => $mediaType,
-                            $mediaType => ['link' => $this->getAbsoluteAttachmentUrl($attachment)]
-                        ];
+                        if (!empty($headerComponent['parameters'])) $messagePayload['template']['components'][] = $headerComponent;
                     }
-                    if (!empty($headerComponent['parameters'])) $messagePayload['template']['components'][] = $headerComponent;
-                }
 
-                // 2. BODY
-                $templateContent = '';
-                foreach ($metaJson['body'] ?? [] as $bodyNode) {
-                    if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'] ?? '')) === $metaLang) {
-                        $templateContent = $bodyNode['content'] ?? '';
-                        break;
-                    }
-                }
-
-                $resolvedBodyParams = [];
-                if ($templateContent && preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $templateContent, $matches)) {
-                    foreach (array_unique($matches[1]) as $paramName) {
-                        if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
-                            throw new RuntimeException(sprintf('Error (Body): Variable "%s" vacía en plantilla "%s".', $paramName, $template->getCode()));
-                        }
-
-                        $resolvedBodyParams[] = [
-                            'type' => 'text',
-                            'parameter_name' => $paramName,
-                            'text' => (string) ($variables[$paramName] ?? '')
-                        ];
-                    }
-                }
-
-                if (!empty($resolvedBodyParams)) {
-                    $messagePayload['template']['components'][] = ['type' => 'body', 'parameters' => $resolvedBodyParams];
-                }
-
-                // 3. BOTONES NATIVOS (Modificado para soportar URL y QUICK_REPLY)
-                foreach ($metaJson['buttons_map'] ?? [] as $btn) {
-                    $btnType = strtolower((string)($btn['type'] ?? ''));
-                    $indexStr = (string) ($btn['index'] ?? '0');
-
-                    if ($btnType === 'url') {
-                        $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
-                        $urlValue = (string) ($variables[$resolverKey] ?? '');
-
-                        $messagePayload['template']['components'][] = [
-                            'type' => 'button',
-                            'sub_type' => 'url',
-                            'index' => $indexStr,
-                            'parameters' => [
-                                ['type' => 'text', 'text' => $urlValue]
-                            ]
-                        ];
-                    } elseif ($btnType === 'quick_reply') {
-                        // 🔥 INYECCIÓN DE PAYLOAD: Aquí mandamos tu CMD_ a Meta en el envío
-                        $resolverKey = (string)($btn['resolver_key'] ?? '');
-
-                        if ($resolverKey === '') {
-                            throw new RuntimeException(sprintf('Error (Botones): La plantilla "%s" intenta enviar un Quick Reply sin "resolver_key".', $template->getCode()));
-                        }
-
-                        $messagePayload['template']['components'][] = [
-                            'type' => 'button',
-                            'sub_type' => 'quick_reply',
-                            'index' => $indexStr,
-                            'parameters' => [
-                                ['type' => 'payload', 'payload' => $resolverKey]
-                            ]
-                        ];
-                    }
-                }
-
-            } else {
-                // -----------------------------------------------------------------
-                // ENVÍO DE MENSAJE LIBRE O QUICK REPLY INTERNO (DENTRO DE 24H)
-                // -----------------------------------------------------------------
-
-                // Usamos templateLang para consultar las plantillas locales de Doctrine
-                $headerData = $template?->getWhatsappMetaHeader($templateLang);
-                $footerText = $template?->getWhatsappMetaFooter($templateLang);
-                $bodyText = '';
-
-                // ── 🔥 DENTRO DE LA VENTANA MANDA EL CUERPO RICO ─────────────────────
-                //
-                // Aquí se leía `whatsapp_meta_tmpl.body`, o sea **el cuerpo aprobado por Meta**:
-                // corto por obligación, con su tope de 1024, sin poder llevar bloques
-                // multilínea ni variables compuestas. Dentro de la ventana **nada de eso
-                // aplica** —es texto libre— así que se heredaban las limitaciones de Meta sin
-                // ninguna necesidad. Medido el 01/09/2026: `recordatorio_llegada` perdía 207
-                // caracteres, `check_out` 127 y `welcome_booking` 120, en cada envío.
-                //
-                // Y una plantilla escrita SÓLO para texto libre —`pago_texto`, cuyo detalle no
-                // cabe en una plantilla de Meta— no tenía cuerpo que mandar: salía vacía.
-                //
-                // `whatsapp_link_tmpl` no es otra cosa: es este mismo texto, el que el operador
-                // copia al enlace `wa.me`. Mismo destino, mismo formato, sin el corsé de la
-                // aprobación. Se prefiere, y el de Meta queda de respaldo para las plantillas
-                // que sólo tengan ése.
-                $linkJson = $template?->getWhatsappLinkTmpl() ?? [];
-                $desdeElRico = false;
-
-                foreach ([$linkJson['body'] ?? [], $metaJson['body'] ?? []] as $indice => $cuerpos) {
-                    foreach ($cuerpos as $bodyNode) {
+                    // 2. BODY
+                    $templateContent = '';
+                    foreach ($metaJson['body'] ?? [] as $bodyNode) {
                         if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'] ?? '')) === $metaLang) {
-                            $bodyText = $bodyNode['content'] ?? '';
+                            $templateContent = $bodyNode['content'] ?? '';
                             break;
                         }
                     }
 
-                    if (trim($bodyText) !== '') {
-                        $desdeElRico = $indice === 0;
-                        break;
-                    }
-                }
+                    $resolvedBodyParams = [];
+                    if ($templateContent && preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $templateContent, $matches)) {
+                        foreach (array_unique($matches[1]) as $paramName) {
+                            if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
+                                throw new RuntimeException(sprintf('Error (Body): Variable "%s" vacía en plantilla "%s".', $paramName, $template->getCode()));
+                            }
 
-                if (empty(trim($bodyText))) {
-                    $bodyText = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
-
-                    // Texto libre (sin plantilla): se normaliza el Markdown que se le escapa
-                    // al modelo (**negrita** → *negrita*) y se quita el __subrayado__, que
-                    // WhatsApp no tiene. Las plantillas no pasan por aquí: su cuerpo ya viene
-                    // escrito en el formato de WhatsApp. Ver FormatoDeTexto.
-                    if ($template === null) {
-                        $bodyText = $this->formato->paraWhatsapp($bodyText);
-                    }
-                }
-
-                // CONCATENACIÓN VIRTUAL (Simulando visualmente la UI de Meta)
-                $finalContent = "";
-
-                // 1. Header (Solo si es de texto)
-                if ($headerData && ($headerData['format'] ?? 'TEXT') === 'TEXT' && !empty($headerData['content'])) {
-                    $finalContent .= "*" . trim($headerData['content']) . "*\n\n";
-                }
-
-                // 2. Body
-                $finalContent .= trim($bodyText);
-
-                // 3. Footer
-                if (!empty($footerText)) {
-                    $finalContent .= "\n\n_" . trim($footerText) . "_";
-                }
-
-                // Hidratamos todas las variables del bloque de texto principal
-                $finalContent = $this->hydrateVariables($finalContent, $variables);
-
-                // 🎯 EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE (UX MEJORADO)
-                //
-                // ⚠️ **Depende de dónde salió el cuerpo.** El del enlace se escribe para leerse
-                // solo y suele traer sus enlaces dentro del texto; añadirle debajo la emulación
-                // los pinta DOS veces. Lo gobierna su propia casilla —gemela de la que Beds24 ya
-                // tenía— y **no una regla implícita**: quien escriba un cuerpo sin enlaces puede
-                // querer la botonera, y adivinárselo sería quitársela sin decir nada.
-                $ocultarBotones = $desdeElRico && $template?->isWhatsappLinkMetaButtonsDisabled() === true;
-
-                if (!$ocultarBotones && !empty($metaJson['buttons_map'])) {
-
-                    // 1. Detección Inteligente: ¿Hay opciones para interactuar o son puros links?
-                    $hasQuickReplies = false;
-                    foreach ($metaJson['buttons_map'] as $btn) {
-                        if (strtolower($btn['type'] ?? '') === 'quick_reply') {
-                            $hasQuickReplies = true;
-                            break;
+                            $resolvedBodyParams[] = [
+                                'type' => 'text',
+                                'parameter_name' => $paramName,
+                                'text' => (string) ($variables[$paramName] ?? '')
+                            ];
                         }
                     }
 
-                    // 2. Obtenemos las traducciones del menú adaptado
-                    $menuTexts = $this->getMenuTranslations($templateLang);
+                    if (!empty($resolvedBodyParams)) {
+                        $messagePayload['template']['components'][] = ['type' => 'body', 'parameters' => $resolvedBodyParams];
+                    }
 
-                    // 3. Inyectamos el título semánticamente correcto
-                    $headerTitle = $hasQuickReplies ? $menuTexts['header_options'] : $menuTexts['header_links'];
-                    $finalContent .= "\n\n" . $headerTitle . "\n\n";
+                    // 3. BOTONES NATIVOS (Modificado para soportar URL y QUICK_REPLY)
+                    foreach ($metaJson['buttons_map'] ?? [] as $btn) {
+                        $btnType = strtolower((string)($btn['type'] ?? ''));
+                        $indexStr = (string) ($btn['index'] ?? '0');
 
-                    $quickReplyIndex = 1;
+                        if ($btnType === 'url') {
+                            $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
+                            $urlValue = (string) ($variables[$resolverKey] ?? '');
 
-                    foreach ($metaJson['buttons_map'] as $btn) {
-                        $btnType = strtolower($btn['type'] ?? '');
+                            $messagePayload['template']['components'][] = [
+                                'type' => 'button',
+                                'sub_type' => 'url',
+                                'index' => $indexStr,
+                                'parameters' => [
+                                    ['type' => 'text', 'text' => $urlValue]
+                                ]
+                            ];
+                        } elseif ($btnType === 'quick_reply') {
+                            // 🔥 INYECCIÓN DE PAYLOAD: Aquí mandamos tu CMD_ a Meta en el envío
+                            $resolverKey = (string)($btn['resolver_key'] ?? '');
 
-                        // 3. Usamos el botón dinámico con fallback traducido
-                        $btnText = $menuTexts['default_btn'];
+                            if ($resolverKey === '') {
+                                throw new RuntimeException(sprintf('Error (Botones): La plantilla "%s" intenta enviar un Quick Reply sin "resolver_key".', $template->getCode()));
+                            }
 
-                        foreach ($btn['button_text'] ?? [] as $tr) {
-                            if ($this->normalizeLanguageForMeta(strtolower($tr['language'] ?? '')) === $metaLang) {
-                                $btnText = $tr['content'] ?? $btnText;
+                            $messagePayload['template']['components'][] = [
+                                'type' => 'button',
+                                'sub_type' => 'quick_reply',
+                                'index' => $indexStr,
+                                'parameters' => [
+                                    ['type' => 'payload', 'payload' => $resolverKey]
+                                ]
+                            ];
+                        }
+                    }
+
+                } else {
+                    // -----------------------------------------------------------------
+                    // ENVÍO DE MENSAJE LIBRE O QUICK REPLY INTERNO (DENTRO DE 24H)
+                    // -----------------------------------------------------------------
+
+                    // Usamos templateLang para consultar las plantillas locales de Doctrine
+                    $headerData = $template?->getWhatsappMetaHeader($templateLang);
+                    $footerText = $template?->getWhatsappMetaFooter($templateLang);
+                    $bodyText = '';
+
+                    // ── 🔥 DENTRO DE LA VENTANA MANDA EL CUERPO RICO ─────────────────────
+                    //
+                    // Aquí se leía `whatsapp_meta_tmpl.body`, o sea **el cuerpo aprobado por Meta**:
+                    // corto por obligación, con su tope de 1024, sin poder llevar bloques
+                    // multilínea ni variables compuestas. Dentro de la ventana **nada de eso
+                    // aplica** —es texto libre— así que se heredaban las limitaciones de Meta sin
+                    // ninguna necesidad. Medido el 01/09/2026: `recordatorio_llegada` perdía 207
+                    // caracteres, `check_out` 127 y `welcome_booking` 120, en cada envío.
+                    //
+                    // Y una plantilla escrita SÓLO para texto libre —`pago_texto`, cuyo detalle no
+                    // cabe en una plantilla de Meta— no tenía cuerpo que mandar: salía vacía.
+                    //
+                    // `whatsapp_link_tmpl` no es otra cosa: es este mismo texto, el que el operador
+                    // copia al enlace `wa.me`. Mismo destino, mismo formato, sin el corsé de la
+                    // aprobación. Se prefiere, y el de Meta queda de respaldo para las plantillas
+                    // que sólo tengan ése.
+                    $linkJson = $template?->getWhatsappLinkTmpl() ?? [];
+                    $desdeElRico = false;
+
+                    foreach ([$linkJson['body'] ?? [], $metaJson['body'] ?? []] as $indice => $cuerpos) {
+                        foreach ($cuerpos as $bodyNode) {
+                            if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'] ?? '')) === $metaLang) {
+                                $bodyText = $bodyNode['content'] ?? '';
                                 break;
                             }
                         }
 
-                        if ($btnType === 'url') {
-                            $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
-                            $fallbackKey = str_ends_with($resolverKey, '_path') ? str_replace('_path', '_url', $resolverKey) : $resolverKey;
-                            $urlValue = (string) ($variables[$fallbackKey] ?? $variables[$resolverKey] ?? '');
-
-                            if ($urlValue !== '') {
-                                $finalContent .= "🔗 *" . trim($btnText) . "*:\n" . $urlValue . "\n\n";
-                            }
-                        } elseif ($btnType === 'quick_reply') {
-                            $finalContent .= $quickReplyIndex . "️⃣ *" . trim($btnText) . "*\n\n";
-                            $quickReplyIndex++;
+                        if (trim($bodyText) !== '') {
+                            $desdeElRico = $indice === 0;
+                            break;
                         }
                     }
 
-                    // 4. Inyectamos el footer dinámico SOLO si hay Quick Replies reales
-                    if ($hasQuickReplies) {
-                        $finalContent = rtrim($finalContent) . "\n\n" . $menuTexts['footer'];
+                    if (empty(trim($bodyText))) {
+                        $bodyText = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
+
+                        // Texto libre (sin plantilla): se normaliza el Markdown que se le escapa
+                        // al modelo (**negrita** → *negrita*) y se quita el __subrayado__, que
+                        // WhatsApp no tiene. Las plantillas no pasan por aquí: su cuerpo ya viene
+                        // escrito en el formato de WhatsApp. Ver FormatoDeTexto.
+                        if ($template === null) {
+                            $bodyText = $this->formato->paraWhatsapp($bodyText);
+                        }
+                    }
+
+                    // CONCATENACIÓN VIRTUAL (Simulando visualmente la UI de Meta)
+                    $finalContent = "";
+
+                    // 1. Header (Solo si es de texto)
+                    if ($headerData && ($headerData['format'] ?? 'TEXT') === 'TEXT' && !empty($headerData['content'])) {
+                        $finalContent .= "*" . trim($headerData['content']) . "*\n\n";
+                    }
+
+                    // 2. Body
+                    $finalContent .= trim($bodyText);
+
+                    // 3. Footer
+                    if (!empty($footerText)) {
+                        $finalContent .= "\n\n_" . trim($footerText) . "_";
+                    }
+
+                    // Hidratamos todas las variables del bloque de texto principal
+                    $finalContent = $this->hydrateVariables($finalContent, $variables);
+
+                    // 🎯 EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE (UX MEJORADO)
+                    //
+                    // ⚠️ **Depende de dónde salió el cuerpo.** El del enlace se escribe para leerse
+                    // solo y suele traer sus enlaces dentro del texto; añadirle debajo la emulación
+                    // los pinta DOS veces. Lo gobierna su propia casilla —gemela de la que Beds24 ya
+                    // tenía— y **no una regla implícita**: quien escriba un cuerpo sin enlaces puede
+                    // querer la botonera, y adivinárselo sería quitársela sin decir nada.
+                    $ocultarBotones = $desdeElRico && $template?->isWhatsappLinkMetaButtonsDisabled() === true;
+
+                    if (!$ocultarBotones && !empty($metaJson['buttons_map'])) {
+
+                        // 1. Detección Inteligente: ¿Hay opciones para interactuar o son puros links?
+                        $hasQuickReplies = false;
+                        foreach ($metaJson['buttons_map'] as $btn) {
+                            if (strtolower($btn['type'] ?? '') === 'quick_reply') {
+                                $hasQuickReplies = true;
+                                break;
+                            }
+                        }
+
+                        // 2. Obtenemos las traducciones del menú adaptado
+                        $menuTexts = $this->getMenuTranslations($templateLang);
+
+                        // 3. Inyectamos el título semánticamente correcto
+                        $headerTitle = $hasQuickReplies ? $menuTexts['header_options'] : $menuTexts['header_links'];
+                        $finalContent .= "\n\n" . $headerTitle . "\n\n";
+
+                        $quickReplyIndex = 1;
+
+                        foreach ($metaJson['buttons_map'] as $btn) {
+                            $btnType = strtolower($btn['type'] ?? '');
+
+                            // 3. Usamos el botón dinámico con fallback traducido
+                            $btnText = $menuTexts['default_btn'];
+
+                            foreach ($btn['button_text'] ?? [] as $tr) {
+                                if ($this->normalizeLanguageForMeta(strtolower($tr['language'] ?? '')) === $metaLang) {
+                                    $btnText = $tr['content'] ?? $btnText;
+                                    break;
+                                }
+                            }
+
+                            if ($btnType === 'url') {
+                                $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
+                                $fallbackKey = str_ends_with($resolverKey, '_path') ? str_replace('_path', '_url', $resolverKey) : $resolverKey;
+                                $urlValue = (string) ($variables[$fallbackKey] ?? $variables[$resolverKey] ?? '');
+
+                                if ($urlValue !== '') {
+                                    $finalContent .= "🔗 *" . trim($btnText) . "*:\n" . $urlValue . "\n\n";
+                                }
+                            } elseif ($btnType === 'quick_reply') {
+                                $finalContent .= $quickReplyIndex . "️⃣ *" . trim($btnText) . "*\n\n";
+                                $quickReplyIndex++;
+                            }
+                        }
+
+                        // 4. Inyectamos el footer dinámico SOLO si hay Quick Replies reales
+                        if ($hasQuickReplies) {
+                            $finalContent = rtrim($finalContent) . "\n\n" . $menuTexts['footer'];
+                        } else {
+                            $finalContent = rtrim($finalContent);
+                        }
+                    }
+
+                    // Construcción del Payload de Texto Libre o Multimedia
+                    if ($attachment) {
+                        $mediaType = $this->getWhatsappMetaMediaType($attachment);
+                        $messagePayload['type'] = $mediaType;
+                        $messagePayload[$mediaType] = ['link' => $this->getAbsoluteAttachmentUrl($attachment)];
+
+                        if (!empty(trim($finalContent)) && in_array($mediaType, ['image', 'video', 'document'])) {
+                            $messagePayload[$mediaType]['caption'] = $finalContent;
+                        }
                     } else {
-                        $finalContent = rtrim($finalContent);
+                        $messagePayload['type'] = 'text';
+                        $messagePayload['text'] = ['preview_url' => true, 'body' => trim($finalContent)];
                     }
                 }
 
-                // Construcción del Payload de Texto Libre o Multimedia
-                if ($attachment) {
-                    $mediaType = $this->getWhatsappMetaMediaType($attachment);
-                    $messagePayload['type'] = $mediaType;
-                    $messagePayload[$mediaType] = ['link' => $this->getAbsoluteAttachmentUrl($attachment)];
-
-                    if (!empty(trim($finalContent)) && in_array($mediaType, ['image', 'video', 'document'])) {
-                        $messagePayload[$mediaType]['caption'] = $finalContent;
-                    }
-                } else {
-                    $messagePayload['type'] = 'text';
-                    $messagePayload['text'] = ['preview_url' => true, 'body' => trim($finalContent)];
-                }
+                    $payload[] = $messagePayload;
+                    $correlation[$index] = (string) $item->getId();
+            } catch (RuntimeException $e) {
+                // Se anota y se sigue. `parseResponse()` lo convierte en un `ItemResult` fallido
+                // con este mismo motivo — la maquinaria que ya existe para contarle a cada fila
+                // de la cola qué le pasó, en vez de un «Catastrophic Error» compartido.
+                $saltados[(string) $item->getId()] = $e->getMessage();
             }
-
-            $payload[] = $messagePayload;
-            $correlation[$index] = (string) $item->getId();
         }
 
-        return new MappingResult($method, $fullUrl, $payload, $config, $correlation);
+        return new MappingResult($method, $fullUrl, $payload, $config, $correlation, ['saltados' => $saltados]);
     }
 
     /**
@@ -466,6 +491,20 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
         $results = [];
+
+        // Los que `map()` apartó por política: nunca llegaron a la API, así que no hay respuesta
+        // que interpretar — pero sí una fila de cola esperando saber por qué no salió. Van
+        // PRIMERO para que, si algo del lote coincidiera en id, mande lo que dijo la API.
+        /** @var array<string, string> $saltados */
+        $saltados = is_array($mapping->metadata['saltados'] ?? null) ? $mapping->metadata['saltados'] : [];
+
+        foreach ($saltados as $queueId => $motivo) {
+            $results[$queueId] = new ItemResult(
+                queueItemId: $queueId,
+                success: false,
+                message: $motivo,
+            );
+        }
 
         if (isset($apiResponse['messages']) || isset($apiResponse['error']) || isset($apiResponse['success'])) {
             $apiResponse = [$apiResponse];
@@ -501,7 +540,22 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
     private function hydrateVariables(string $content, array $variables): string
     {
         if ($variables !== [] && str_contains($content, '{{')) {
-            return preg_replace_callback('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', fn($m) => (string)($variables[$m[1]] ?? $m[0]), $content);
+            return preg_replace_callback(
+                '/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/',
+                // ⚠️ `array_key_exists` y no `??`: el `??` trata **null como ausente** y dejaba el
+                // marcador crudo en el mensaje. Y hay variables que valen null a propósito —
+                // `importe_a_pagar` cuando no hay nada que cobrar, `bloque_pago` sin idioma—, así
+                // que un huésped podía leer literalmente «Queda pendiente un pago por
+                // {{ importe_a_pagar }}».
+                //
+                // Existe pero vacía = se sustituye por nada, que es lo que hace la frase legible.
+                // No existe = se deja el marcador, que es un fallo de la plantilla y tiene que
+                // verse. Beds24 y Email ya distinguían las dos cosas; éste era el que no.
+                static fn (array $m): string => array_key_exists($m[1], $variables)
+                    ? (string) $variables[$m[1]]
+                    : $m[0],
+                $content
+            );
         }
         return $content;
     }

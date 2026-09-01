@@ -9,6 +9,7 @@ use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
 use App\Message\Entity\EmailSendQueue;
+use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageTemplate;
 use App\Message\Service\MessageDataResolverRegistry;
 
@@ -42,7 +43,10 @@ final readonly class EmailSendMappingStrategy implements MappingStrategyInterfac
 
             $clave = (string) $item->getId();
             $mensaje = $item->getMessage();
-            $idioma = $mensaje?->getConversation()?->getIdioma()->getId() ?? 'es';
+            // Mismo criterio que en `variables()`: el idioma del CUERPO. Aquí acertaba de
+            // rebote —`extract()` cae al inglés cuando no encuentra la lengua— pero con dos
+            // criterios distintos para la misma pregunta, el día que uno cambie el otro miente.
+            $idioma = self::idiomaDelCuerpo($mensaje?->getConversation());
 
             $cuerpo = trim((string) $mensaje?->getContentExternal());
 
@@ -76,6 +80,28 @@ final readonly class EmailSendMappingStrategy implements MappingStrategyInterfac
     }
 
     /**
+     * En qué idioma va el CUERPO de este mensaje. **No es el del huésped.**
+     *
+     * Los idiomas con prioridad 0 son los que no traducimos: la plantilla cae al inglés. Pasarle
+     * a las variables el del huésped componía el bloque de dinero en su lengua —cuerpo en
+     * inglés, rótulos en japonés— y como `TextosUi` no tiene esa lengua, los rótulos salían
+     * VACÍOS: «*:* USD 60.96».
+     *
+     * Es la misma bifurcación que hacen `Beds24SendMappingStrategy` y
+     * `WhatsappMetaSendMappingStrategy` con su `$templateLang`.
+     */
+    private static function idiomaDelCuerpo(?MessageConversation $conversacion): string
+    {
+        $idioma = $conversacion?->getIdioma();
+
+        if ($idioma === null) {
+            return 'es';
+        }
+
+        return $idioma->getPrioridad() > 0 ? strtolower($idioma->getId()) : 'en';
+    }
+
+    /**
      * Las variables del asunto del mensaje, más las que el propio mensaje traiga.
      *
      * ⚠️ El orden importa: las del MENSAJE ganan. Un aviso de escalado lleva sus datos ahí
@@ -95,9 +121,15 @@ final readonly class EmailSendMappingStrategy implements MappingStrategyInterfac
         $asuntoType = $mensaje->getAsuntoType() ?? $conversacion->getContextType();
         $asuntoId = $mensaje->getAsuntoId() ?? $conversacion->getContextId();
 
-        // El mismo idioma con el que se elige el cuerpo unas líneas más arriba: si el bloque de
-        // dinero se compusiera en otro, saldrían el texto y las cifras en lenguas distintas.
-        $idioma = $conversacion->getIdioma()->getId();
+        // ⚠️ **El idioma del CUERPO, no el del huésped**, que es la bifurcación que hacen los
+        // otros dos mapeadores y éste no. Con prioridad 0 —un idioma fuera de los siete que
+        // traducimos— la plantilla cae al inglés, y pasando aquí el del huésped se componía el
+        // bloque de dinero en su lengua: cuerpo en inglés, rótulos en japonés. Y como `TextosUi`
+        // no tiene esa lengua, los rótulos salían VACÍOS: «*:* USD 60.96».
+        //
+        // Hoy es latente —las 14 plantillas tienen el correo apagado— y por eso mismo hay que
+        // arreglarlo ahora: el día que se encienda el primero, nadie va a estar mirando.
+        $idioma = self::idiomaDelCuerpo($conversacion);
 
         $delAsunto = $this->resolvers->getResolver($asuntoType)?->getMessageVariables($asuntoId, $idioma) ?? [];
 
