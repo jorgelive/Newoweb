@@ -23,9 +23,18 @@
 {# @var entity \EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto #}
 {% if ea().crud.currentAction == 'detail' %}
     {% set configuredHeight = field.customOptions.get('height') %}
-    <pre class="ea-codigo-crudo"
-         style="{{ configuredHeight is null ? 'max-height: 500px;' : 'max-height: unset; height: ' ~ configuredHeight ~ 'px' }}"
-    >{{- field.formattedValue -}}</pre>
+    {# El botón existe porque «Seleccionar todo» del menú nativo marca el DOCUMENTO entero, no el
+       bloque: ver `assets/controllers/panel/copiar_bloque_controller.js`. #}
+    <div class="ea-bloque-crudo" data-controller="panel--copiar-bloque">
+        <button type="button"
+                class="ea-bloque-crudo__copiar"
+                data-action="panel--copiar-bloque#copiar"
+                data-panel--copiar-bloque-target="boton">Copiar</button>
+        <pre class="ea-codigo-crudo"
+             data-panel--copiar-bloque-target="fuente"
+             style="{{ configuredHeight is null ? 'max-height: 500px;' : 'max-height: unset; height: ' ~ configuredHeight ~ 'px' }}"
+        >{{- field.formattedValue -}}</pre>
+    </div>
 {% else %}
     {% set html_id = 'ea-code-editor-' ~ field.uniqueId %}
     <a href="#" data-bs-toggle="modal" data-bs-target="#{{ html_id }}">

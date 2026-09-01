@@ -67,3 +67,30 @@ pre.ea-codigo-crudo {
     -webkit-user-select: text;
     user-select: text;
 }
+
+/* El botón «Copiar» del bloque de datos crudos. Va superpuesto y translúcido hasta que se
+   apunta: en un payload de 500 px de alto, un botón opaco arriba tapa justo la primera línea,
+   que es la que más se mira. */
+.ea-bloque-crudo { position: relative; }
+.ea-bloque-crudo__copiar {
+    position: absolute;
+    top: .4rem;
+    right: .4rem;
+    z-index: 2;
+    padding: .2rem .6rem;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: .35rem;
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-secondary-color, #6c757d);
+    font-size: .72rem;
+    font-weight: 600;
+    line-height: 1.6;
+    opacity: .55;
+    cursor: pointer;
+    transition: opacity .12s ease, color .12s ease;
+}
+.ea-bloque-crudo__copiar:hover,
+.ea-bloque-crudo__copiar:focus-visible { opacity: 1; }
+.ea-bloque-crudo__copiar.is-ok { opacity: 1; color: var(--bs-success, #198754); border-color: currentColor; }
+/* El bloque ya trae su propio scroll; el botón no debe empujarlo ni viajar con él. */
+.ea-bloque-crudo > pre.ea-codigo-crudo { padding-right: 4.5rem; }
