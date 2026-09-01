@@ -237,6 +237,10 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // aplica solo —un europeo ve Western Union, no una cuenta peruana— y cuando cambie un
             // número, cambia el mensaje. Ver `PmsRedactorDeCobro::mediosConDatos()`.
             'medios_de_pago'        => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma) : null,
+            // La versión LARGA, con todas las cuentas. No es para el mensaje de siempre —sería
+            // una sábana— sino para cuando hay que demostrarle a la OTA que se dio la
+            // información completa. Se manda a mano desde el panel, no por una regla.
+            'medios_de_pago_todos'  => $idioma !== null ? $this->redactor->mediosConDatos($reserva, $idioma, todas: true) : null,
         ];
     }
 

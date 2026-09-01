@@ -69,9 +69,15 @@ final readonly class PmsSituacionDeCobroResolver
     }
 
     /** Lo que se le puede decir al HUÉSPED: sin comisión interna ni coste teórico. */
-    public function paraHuesped(PmsReserva $reserva): PmsSituacionDeCobro
+    /**
+     * @param bool $soloPrioritarios Con `false` se enseñan TODAS las cuentas, no sólo las
+     *        marcadas. Es para el caso de disputa con la OTA: si Booking pide demostrar que se
+     *        dio la información completa, el mensaje corto —una o dos cuentas para no ser una
+     *        sábana— se lee mal fuera de contexto. Ver `PmsRedactorDeCobro::mediosConDatos()`.
+     */
+    public function paraHuesped(PmsReserva $reserva, bool $soloPrioritarios = true): PmsSituacionDeCobro
     {
-        return $this->componer($reserva, paraHuesped: true);
+        return $this->componer($reserva, paraHuesped: true, soloPrioritarios: $soloPrioritarios);
     }
 
     /** Lo que ve el EQUIPO. Misma decisión, más campos. */
@@ -80,7 +86,7 @@ final readonly class PmsSituacionDeCobroResolver
         return $this->componer($reserva, paraHuesped: false);
     }
 
-    private function componer(PmsReserva $reserva, bool $paraHuesped): PmsSituacionDeCobro
+    private function componer(PmsReserva $reserva, bool $paraHuesped, bool $soloPrioritarios = true): PmsSituacionDeCobro
     {
         $info = $reserva->getInformacionFinanciera();
 
@@ -168,7 +174,7 @@ final readonly class PmsSituacionDeCobroResolver
             queSePide: $queSePide,
             motivo: null,
             importes: $importes,
-            medios: $this->medios($reserva, $importes[0], $this->diasHastaLlegada($reserva)),
+            medios: $this->medios($reserva, $importes[0], $this->diasHastaLlegada($reserva), $soloPrioritarios),
             enlacePago: $this->enlaceVivo($reserva),
             paraHuesped: $paraHuesped,
             pagoAlLlegar: $this->pagoAlLlegar($totales, $reserva, $importes[0], $queSePide),
@@ -279,7 +285,7 @@ final readonly class PmsSituacionDeCobroResolver
      *
      * @return list<PmsMedioDeCobro>
      */
-    private function medios(PmsReserva $reserva, PmsImporteMoneda $importe, ?int $dias): array
+    private function medios(PmsReserva $reserva, PmsImporteMoneda $importe, ?int $dias, bool $soloPrioritarios = true): array
     {
         $desdePeru = $this->procedencia->pagaDesdePeru($reserva);
 
@@ -307,7 +313,9 @@ final readonly class PmsSituacionDeCobroResolver
         $ocultas = [];
 
         foreach ($porTipo as $codigo => $fichas) {
-            $prioritarias = array_values(array_filter($fichas, static fn (FinMedioCobro $m): bool => $m->isPrioritario()));
+            $prioritarias = $soloPrioritarios
+                ? array_values(array_filter($fichas, static fn (FinMedioCobro $m): bool => $m->isPrioritario()))
+                : [];
 
             if ($prioritarias !== []) {
                 $porTipo[$codigo] = $prioritarias;

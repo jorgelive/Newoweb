@@ -35,12 +35,39 @@ use App\Pms\Service\Finance\PmsTotalesPorMoneda;
  * Lo que nunca se traduce: importes, códigos de moneda y el enlace. Ver §22.24 de
  * `docs/Mensajeria.md` — «a ese nombre» traducido al italiano dejó un giro sin poder cobrar.
  */
-final readonly class PmsRedactorDeCobro
+final class PmsRedactorDeCobro
 {
+    /**
+     * La situación del mensaje en curso, memorizada por reserva.
+     *
+     * ── Por qué esta clase dejó de ser `readonly` ───────────────────────────────
+     * Cada variable de plantilla —`bloque_pago`, `importe_a_pagar`, `medios_de_pago`— resolvía
+     * la situación por su cuenta, y todas se piden para el MISMO mensaje: tres resoluciones
+     * idénticas, con sus consultas de medios y de enlaces vivos, por cada envío. Con una cuarta
+     * forma más ya era ridículo.
+     *
+     * ⚠️ **Se guarda por id de reserva y no una sola**, porque un lote mapea varios mensajes
+     * seguidos en el mismo proceso y el caché de uno no puede contestar por otro.
+     *
+     * ⚠️ Y **no sobrevive al proceso**: es un servicio de Symfony, así que muere con la petición
+     * o con el ciclo del worker. Es justo lo que hace falta — un caché que durara más sería una
+     * foto vieja contestando dentro de la misma petición que acaba de registrar un cobro, que es
+     * el fallo que este módulo lleva meses evitando.
+     *
+     * @var array<string, PmsSituacionDeCobro>
+     */
+    private array $memoria = [];
+
     public function __construct(
-        private PmsSituacionDeCobroResolver $situaciones,
-        private TextosUi $textos,
+        private readonly PmsSituacionDeCobroResolver $situaciones,
+        private readonly TextosUi $textos,
     ) {
+    }
+
+    /** La situación de esta reserva, resuelta UNA vez para todas las variables del mensaje. */
+    private function situacion(PmsReserva $reserva): PmsSituacionDeCobro
+    {
+        return $this->memoria[(string) $reserva->getId()] ??= $this->situaciones->paraHuesped($reserva);
     }
 
     /**
@@ -54,7 +81,7 @@ final readonly class PmsRedactorDeCobro
      */
     public function bloque(PmsReserva $reserva, string $idioma): string
     {
-        $situacion = $this->situaciones->paraHuesped($reserva);
+        $situacion = $this->situacion($reserva);
 
         if (!$situacion->hayAlgoQuePedir()) {
             // Sólo se dice lo que es seguro decir. «Saldada» es un hecho que el huésped agradece
@@ -180,10 +207,13 @@ final readonly class PmsRedactorDeCobro
      * Sólo los `prioritario` — ver {@see \App\Finanzas\Entity\FinMedioCobro::isPrioritario()}.
      * La tarjeta no sale: no tiene ficha que dar y su enlace lo escribe el cuerpo.
      */
-    public function mediosConDatos(PmsReserva $reserva, string $idioma): string
+    public function mediosConDatos(PmsReserva $reserva, string $idioma, bool $todas = false): string
     {
-        $situacion = $this->situaciones->paraHuesped($reserva);
+        $situacion = $todas
+            ? $this->situaciones->paraHuesped($reserva, soloPrioritarios: false)
+            : $this->situacion($reserva);
         $lineas = [];
+        $hayMas = false;
 
         foreach ($situacion->medios as $medio) {
             if ($medio->fichas === []) {
@@ -215,6 +245,18 @@ final readonly class PmsRedactorDeCobro
                     $lineas[] = '   _' . $nota . '_';
                 }
             }
+
+            $hayMas = $hayMas || $medio->hayMasFichas;
+        }
+
+        // ⚠️ **Que se sepa que hay más, aunque no se listen.** El bloque enseña una o dos cuentas
+        // para no ser una sábana, y sin esta línea quien no sea de esos bancos concluye que el
+        // suyo no está — y en una disputa con la OTA, un chat con dos cuentas se lee como
+        // «información incompleta». Con ella, lo que queda dicho es que se dio todo y que el
+        // resto está a una pregunta.
+        if ($hayMas && $lineas !== []) {
+            $lineas[] = '';
+            $lineas[] = $this->t('res_mas_cuentas', $idioma);
         }
 
         return implode("\n", $lineas);
@@ -237,11 +279,7 @@ final readonly class PmsRedactorDeCobro
      */
     public function importeAPagar(PmsReserva $reserva): ?string
     {
-        // Resuelve la situación por segunda vez si también se pidió el bloque. Son dos consultas
-        // más por mensaje y se prefiere a memorizar estado dentro de un servicio: con veinte
-        // mensajes al día no se nota, y un caché aquí es una foto que puede quedarse vieja
-        // dentro de la misma petición que acaba de registrar un cobro.
-        $situacion = $this->situaciones->paraHuesped($reserva);
+        $situacion = $this->situacion($reserva);
 
         if (!$situacion->hayAlgoQuePedir()) {
             return null;
