@@ -41,7 +41,23 @@ class SecurityController extends AbstractController
         $targetPath = $this->getTargetPath($request->getSession(), 'main');
 
         // 2. Si el usuario YA está logueado y entra a /login por error:
-        if ($this->getUser()) {
+        //
+        // ⚠️ **`IS_AUTHENTICATED_FULLY`, NO `getUser()`.** Ahí había un bucle infinito de
+        // redirecciones, y sólo aparecía con la sesión caducada y la cookie «Recordarme» viva:
+        //
+        //   1. una ruta con `#[IsGranted('IS_AUTHENTICATED_FULLY')]` —`/tipo/user/enum/permisos`,
+        //      que el SPA pide en cada arranque— no se cumple estando sólo RECORDADO, así que
+        //      Symfony guarda el target y redirige aquí;
+        //   2. `getUser()` devuelve usuario, porque `remember_me` SÍ autentica;
+        //   3. se redirige al target… que vuelve a rebotar al paso 1.
+        //
+        // El navegador corta con `ERR_TOO_MANY_REDIRECTS` y la aplicación queda inservible sin
+        // que nada aparezca en el log del servidor: son 302 perfectamente válidos.
+        //
+        // Comprobando el nivel de autenticación, un usuario sólo recordado **ve el formulario**,
+        // que es lo que le corresponde: `IS_AUTHENTICATED_FULLY` existe justamente para exigir
+        // credenciales frescas.
+        if ($this->isGranted('IS_AUTHENTICATED_FULLY')) {
             // Si tenemos una ruta pendiente, lo mandamos ahí. Si no, al dashboard.
             return $this->redirect($targetPath ?? $this->generateUrl('panel_dashboard'));
         }
