@@ -44,6 +44,16 @@ final readonly class PmsMedioDeCobro
          * @var list<FinMedioCobro>
          */
         public array $fichas,
+        /**
+         * ¿Se le están ocultando fichas de este medio?
+         *
+         * Con `prioritario` puesto en unas pocas cuentas, el huésped ve dos donde hay ocho — y
+         * quien tenga otro banco no puede saber que existe. Esta bandera es lo que permite
+         * decírselo sin volcarle la lista: «¿necesitas otro banco? pídenoslo».
+         *
+         * Es un HECHO y no una frase: quién lo dice y con qué palabras es de quien rinde.
+         */
+        public bool $hayMasFichas = false,
     ) {
     }
 

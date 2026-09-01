@@ -159,6 +159,11 @@ final class PaxCrearTextosCobroCommand extends Command
         // vive aquí y no en el código, igual que el saludo. Las fechas las formatea ICU con el
         // patrón que cada locale considera correcto («28 de agosto» / «August 28»).
         'res_estancia_tramo' => 'del {{ desde }} al {{ hasta }}',
+
+        // Cuando se le enseñan sólo algunas cuentas (ver `FinMedioCobro::$prioritario`).
+        // Sin esta línea, quien no sea de esos bancos concluye que el suyo no está — y las otras
+        // seis siguen ahí, sólo que sin volcárselas en la primera pantalla.
+        'res_mas_cuentas' => '¿Necesitas otro banco? Escríbenos y te lo pasamos.',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

@@ -271,6 +271,11 @@ const titularComun = computed(() => {
  * Sacándola de la columna de los números se lee como lo que es: una frase, alineada a la
  * izquierda y a lo ancho, en vez de tres renglones estrechos junto a un importe.
  */
+/** ¿Al medio abierto se le están ocultando cuentas? Ver `FinMedioCobro::$prioritario`. */
+const abiertoTieneMas = computed(() =>
+    !!fichaAbierta.value
+    && (situacion.value?.medios ?? []).some(g => (g.hayMasFichas ?? []).includes(fichaAbierta.value as string)));
+
 const notaComun = computed(() => {
     // Se traduce AQUÍ y no en el servidor: el idioma lo manda el selector de la ficha, no el
     // `idioma` que se dedujo al crear la reserva. Hay reservas con `en` guardado que se están
@@ -1110,6 +1115,14 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
                   </span>
                 </span>
               </div>
+
+              <!-- ⚠️ «Hay más cuentas». Sin esto, quien no sea de estos dos bancos concluye
+                   que el suyo no está — y las otras seis siguen en el catálogo, sólo que no se
+                   le vuelcan en la primera pantalla. Se dice, no se enseña. -->
+              <p v-if="abiertoTieneMas"
+                 class="mt-2 border-t border-slate-100 pt-1.5 text-[11px] font-medium text-slate-500 leading-snug">
+                {{ maestroStore.t('res_mas_cuentas') || '¿Necesitas otro banco? Escríbenos y te lo pasamos.' }}
+              </p>
 
               <!-- A nombre de quién, una vez. Es lo que la app de destino le enseña antes de
                    confirmar, y verlo coincidir es lo que le dice que no se equivocó. -->

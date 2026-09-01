@@ -303,11 +303,17 @@ final readonly class PmsSituacionDeCobroResolver
         // las dos transferencias buenas — Yape, Plin, Western Union y el efectivo siguen
         // saliendo sin que nadie tenga que acordarse de ellos, y un tipo nuevo no nace invisible
         // por olvido. Nadie echa de menos lo que no sabía que existía.
+        /** @var array<string, bool> $ocultas Tipos a los que se les escondió alguna ficha. */
+        $ocultas = [];
+
         foreach ($porTipo as $codigo => $fichas) {
             $prioritarias = array_values(array_filter($fichas, static fn (FinMedioCobro $m): bool => $m->isPrioritario()));
 
             if ($prioritarias !== []) {
                 $porTipo[$codigo] = $prioritarias;
+                // Se anota que hay más para que el huésped pueda enterarse de que existen. Sin
+                // esto, quien tenga otro banco ve dos cuentas y concluye que no hay más.
+                $ocultas[(string) $codigo] = count($prioritarias) < count($fichas);
             }
         }
 
@@ -321,6 +327,7 @@ final readonly class PmsSituacionDeCobroResolver
                 enSoles: $importe->enSoles,
                 recargoPorcentaje: '0.00',
                 fichas: $fichas,
+                hayMasFichas: $ocultas[(string) $codigo] ?? false,
             );
         }
 

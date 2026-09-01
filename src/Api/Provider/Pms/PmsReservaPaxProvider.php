@@ -395,12 +395,28 @@ final class PmsReservaPaxProvider implements ProviderInterface
             }
         }
 
+        // Qué medios tienen fichas escondidas por `prioritario`. Se manda el HECHO —no una
+        // frase—: el huésped ve dos cuentas donde hay ocho, y sin esto no puede saber que
+        // existen las otras. Quién lo dice y cómo, lo pone la app con su cadena traducida.
+        $conMas = [];
+
+        foreach ($situacion->medios as $medio) {
+            if ($medio->hayMasFichas) {
+                $conMas[$medio->codigo] = true;
+            }
+        }
+
         return array_map(
-            static function (array $grupo) use ($porCodigo): array {
+            static function (array $grupo) use ($porCodigo, $conMas): array {
                 $grupo['fichas'] = [];
+                $grupo['hayMasFichas'] = [];
 
                 foreach ($grupo['codigos'] as $codigo) {
                     $grupo['fichas'][$codigo] = $porCodigo[$codigo] ?? [];
+
+                    if (isset($conMas[$codigo])) {
+                        $grupo['hayMasFichas'][] = $codigo;
+                    }
                 }
 
                 return $grupo;

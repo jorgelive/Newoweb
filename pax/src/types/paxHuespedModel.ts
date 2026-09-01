@@ -134,6 +134,14 @@ export interface PmsSituacionDeCobro {
              */
             nota?: PmsContenidoTraducible[];
         }[]>;
+        /**
+         * Códigos con fichas OCULTAS por `prioritario` — «hay más cuentas que éstas».
+         *
+         * El huésped ve dos transferencias donde el catálogo tiene ocho, y sin esto no puede
+         * saber que existen las otras: concluiría que su banco no está. La app lo dice con una
+         * línea, no volcando la lista, que es lo que este recorte viene a evitar.
+         */
+        hayMasFichas?: string[];
     }[];
     /**
      * Clave i18n del aviso de «ya pagué»: `res_aviso_pago` o `res_aviso_pago_sin_imagenes`.
