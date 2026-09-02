@@ -1,0 +1,4056 @@
+{
+ "cotservicios": [
+  {
+   "id": "019f7d55-cc44-7cbf-a51f-fa69776592e4",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Alojamiento"
+    },
+    {
+     "language": "en",
+     "content": "Accommodation"
+    },
+    {
+     "language": "pt",
+     "content": "Alojamento"
+    },
+    {
+     "language": "fr",
+     "content": "Hébergement"
+    },
+    {
+     "language": "it",
+     "content": "Alloggio"
+    },
+    {
+     "language": "de",
+     "content": "Unterkunft"
+    },
+    {
+     "language": "nl",
+     "content": "Accommodatie"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc48-7b24-8124-a756ffe579c0",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-08-31T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Lima"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Lima"
+      },
+      {
+       "language": "pt",
+       "content": "Acomodação em Lima"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Lima"
+      },
+      {
+       "language": "it",
+       "content": "Alloggio a Lima"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Lima"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc4a-757e-a6c3-9a12d6b5f086",
+     "cotsegmento": {
+      "id": "019f7d55-cc48-7b24-8124-a756ffe579c0"
+     },
+     "fechaHoraInicio": "2026-08-31T00:00:00",
+     "fechaHoraFin": "2026-09-04T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 90,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Lima"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Lima"
+      },
+      {
+       "language": "pt",
+       "content": "Hospedagem em Lima"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Lima"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi a Lima"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Lima"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc51-7ef2-a3e1-eafb62a8b6dd",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Transporte en Lima"
+    },
+    {
+     "language": "en",
+     "content": "Transportation in Lima"
+    },
+    {
+     "language": "pt",
+     "content": "Transporte em Lima"
+    },
+    {
+     "language": "fr",
+     "content": "Transports à Lima"
+    },
+    {
+     "language": "it",
+     "content": "Trasporti a Lima"
+    },
+    {
+     "language": "de",
+     "content": "Verkehr in Lima"
+    },
+    {
+     "language": "nl",
+     "content": "Vervoer in Lima"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc52-7ecc-9e6a-d6f8f9c83461",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-08-31T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el Aeropuerto de Lima al hotel en Lima"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Lima Airport to the hotel in Lima"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do Aeroporto de Lima para o hotel em Lima"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert de l'aéroport de Lima à l'hôtel à Lima"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'aeroporto di Lima all'hotel di Lima"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Flughafen Lima zum Hotel in Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van de luchthaven van Lima naar het hotel in Lima."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc53-7aa3-b3dc-9147da1287dc",
+     "cotsegmento": {
+      "id": "019f7d55-cc52-7ecc-9e6a-d6f8f9c83461"
+     },
+     "fechaHoraInicio": "2026-08-31T22:00:00",
+     "fechaHoraFin": "2026-09-01T23:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el Aeropuerto de Lima al alojamiento en Lima"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Lima Airport to accommodation in Lima"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do Aeroporto de Lima até a sua acomodação em Lima."
+      },
+      {
+       "language": "fr",
+       "content": "Transferts de l'aéroport de Lima à votre hébergement à Lima"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'aeroporto di Lima all'alloggio a Lima"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Flughafen Lima zur Unterkunft in Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van de luchthaven van Lima naar uw accommodatie in Lima."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc54-7934-a2e4-a1a760516419",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Excursión de dia completo a Paracas y la Huacachina"
+    },
+    {
+     "language": "en",
+     "content": "Full-day excursion to Paracas and Huacachina"
+    },
+    {
+     "language": "pt",
+     "content": "Excursão de um dia inteiro a Paracas e Huacachina"
+    },
+    {
+     "language": "fr",
+     "content": "Excursion d'une journée à Paracas et Huacachina"
+    },
+    {
+     "language": "it",
+     "content": "Escursione di un'intera giornata a Paracas e Huacachina"
+    },
+    {
+     "language": "de",
+     "content": "Ganztagesausflug nach Paracas und Huacachina"
+    },
+    {
+     "language": "nl",
+     "content": "Dagtocht naar Paracas en Huacachina"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc55-7c42-b34c-187c1487196d",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Traslado Costero de Lima a Paracas"
+      },
+      {
+       "language": "en",
+       "content": "Coastal Transfer from Lima to Paracas"
+      },
+      {
+       "language": "pt",
+       "content": "Transferência costeira de Lima para Paracas"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert côtier de Lima à Paracas"
+      },
+      {
+       "language": "it",
+       "content": "Trasferimento costiero da Lima a Paracas"
+      },
+      {
+       "language": "de",
+       "content": "Küstentransfer von Lima nach Paracas"
+      },
+      {
+       "language": "nl",
+       "content": "Kusttransfer van Lima naar Paracas"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc55-7c42-b34c-187c1578060f",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Expedición Marina: Islas Ballestas y El Candelabro"
+      },
+      {
+       "language": "en",
+       "content": "Marine Expedition: Ballestas Islands and the Candelabro"
+      },
+      {
+       "language": "pt",
+       "content": "Expedição Marinha: Ilhas Ballestas e o Candelabro"
+      },
+      {
+       "language": "fr",
+       "content": "Expédition maritime : les îles Ballestas et le Candelabro"
+      },
+      {
+       "language": "it",
+       "content": "Spedizione marina: Isole Ballestas e Candelabro"
+      },
+      {
+       "language": "de",
+       "content": "Marineexpedition: Ballestas-Inseln und Candelabro"
+      },
+      {
+       "language": "nl",
+       "content": "Zee-expeditie: Ballestas-eilanden en de Candelabro"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc55-7c42-b34c-187c15c33008",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ruta del Sol y Sabores Iqueños"
+      },
+      {
+       "language": "en",
+       "content": "Route of the Sun and Flavors of Ica"
+      },
+      {
+       "language": "pt",
+       "content": "Rota do Sol e Sabores de Ica"
+      },
+      {
+       "language": "fr",
+       "content": "Route du Soleil et Saveurs d'Ica"
+      },
+      {
+       "language": "it",
+       "content": "Percorso del Sole e Sapori di Ica"
+      },
+      {
+       "language": "de",
+       "content": "Route der Sonne und Aromen von Ica"
+      },
+      {
+       "language": "nl",
+       "content": "Route van de Zon en Smaken van Ica"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc55-7c42-b34c-187c1623325b",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-09-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Oasis de Huacachina: Buggies y Sandboard"
+      },
+      {
+       "language": "en",
+       "content": "Huacachina Oasis: Buggies and Sandboard"
+      },
+      {
+       "language": "pt",
+       "content": "Oásis de Huacachina: Buggies e Sandboard"
+      },
+      {
+       "language": "fr",
+       "content": "Oasis de Huacachina : buggies et sandboard"
+      },
+      {
+       "language": "it",
+       "content": "Oasi di Huacachina: buggy e sandboard"
+      },
+      {
+       "language": "de",
+       "content": "Huacachina-Oase: Buggys und Sandboard"
+      },
+      {
+       "language": "nl",
+       "content": "Huacachina Oasis: Buggy's en sandboarden"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc55-7c42-b34c-187c168912ee",
+     "dia": 1,
+     "orden": 5,
+     "fechaAbsoluta": "2026-09-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Retorno a Lima al Atardecer"
+      },
+      {
+       "language": "en",
+       "content": "Return to Lima at Sunset"
+      },
+      {
+       "language": "pt",
+       "content": "Retorno a Lima ao pôr do sol"
+      },
+      {
+       "language": "fr",
+       "content": "Retour à Lima au coucher du soleil"
+      },
+      {
+       "language": "it",
+       "content": "Ritorno a Lima al tramonto"
+      },
+      {
+       "language": "de",
+       "content": "Rückkehr nach Lima bei Sonnenuntergang"
+      },
+      {
+       "language": "nl",
+       "content": "Keer bij zonsondergang terug naar Lima."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc56-7210-9363-6cb94cd73625",
+     "cotsegmento": {
+      "id": "019f7d55-cc55-7c42-b34c-187c1487196d"
+     },
+     "fechaHoraInicio": "2026-09-02T04:00:00",
+     "fechaHoraFin": "2026-09-02T23:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": true,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": []
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc57-73ac-83b6-77f50c18ea7a",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Transporte en Cusco"
+    },
+    {
+     "language": "en",
+     "content": "Transportation in Cusco"
+    },
+    {
+     "language": "pt",
+     "content": "Transporte em Cusco"
+    },
+    {
+     "language": "fr",
+     "content": "Transports à Cusco"
+    },
+    {
+     "language": "it",
+     "content": "Trasporti a Cusco"
+    },
+    {
+     "language": "de",
+     "content": "Transport in Cusco"
+    },
+    {
+     "language": "nl",
+     "content": "Vervoer in Cusco"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc58-78be-a1e8-0aab832694e4",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-04T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el Aeropuerto de Cusco al hotel en Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Cusco Airport to the hotel in Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do Aeroporto de Cusco para o hotel em Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert de l'aéroport de Cusco à l'hôtel à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'aeroporto di Cusco all'hotel di Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Flughafen Cusco zum Hotel in Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van de luchthaven van Cusco naar het hotel in Cusco."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc59-71e1-96a7-820b513b14d8",
+     "cotsegmento": {
+      "id": "019f7d55-cc58-78be-a1e8-0aab832694e4"
+     },
+     "fechaHoraInicio": "2026-09-04T13:35:00",
+     "fechaHoraFin": "2026-09-04T14:35:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte"
+      },
+      {
+       "language": "en",
+       "content": "Transport"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte"
+      },
+      {
+       "language": "fr",
+       "content": "Transport"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto"
+      },
+      {
+       "language": "de",
+       "content": "Transport"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc5a-7cfb-a2ff-0a1a6e9e66a4",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Alojamiento"
+    },
+    {
+     "language": "en",
+     "content": "Accommodation"
+    },
+    {
+     "language": "pt",
+     "content": "Alojamento"
+    },
+    {
+     "language": "fr",
+     "content": "Hébergement"
+    },
+    {
+     "language": "it",
+     "content": "Alloggio"
+    },
+    {
+     "language": "de",
+     "content": "Unterkunft"
+    },
+    {
+     "language": "nl",
+     "content": "Accommodatie"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc5a-7cfb-a2ff-0a1a6f8a6b88",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-04T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Acomodação em Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Alloggio a Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Cusco"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc5b-790f-aaf6-9f8bdd461866",
+     "cotsegmento": {
+      "id": "019f7d55-cc5a-7cfb-a2ff-0a1a6f8a6b88"
+     },
+     "fechaHoraInicio": "2026-09-04T00:00:00",
+     "fechaHoraFin": "2026-09-06T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 90,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Hospedagem em Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi a Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Cusco"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc5c-73e5-92ac-f13b87f20ed0",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Transporte en Lima"
+    },
+    {
+     "language": "en",
+     "content": "Transportation in Lima"
+    },
+    {
+     "language": "pt",
+     "content": "Transporte em Lima"
+    },
+    {
+     "language": "fr",
+     "content": "Transports à Lima"
+    },
+    {
+     "language": "it",
+     "content": "Trasporti a Lima"
+    },
+    {
+     "language": "de",
+     "content": "Verkehr in Lima"
+    },
+    {
+     "language": "nl",
+     "content": "Vervoer in Lima"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc5d-7364-9737-815ec5d4d30b",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-04T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el hotel en Lima al Aeropuerto de Lima"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from the hotel in Lima to Lima Airport"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do hotel em Lima para o Aeroporto de Lima"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert de l'hôtel à Lima à l'aéroport de Lima"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'hotel di Lima all'aeroporto di Lima"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Hotel in Lima zum Flughafen Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van het hotel in Lima naar de luchthaven van Lima."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc5d-7364-9737-815ec6661f9c",
+     "cotsegmento": {
+      "id": "019f7d55-cc5d-7364-9737-815ec5d4d30b"
+     },
+     "fechaHoraInicio": "2026-09-04T08:30:00",
+     "fechaHoraFin": "2026-09-04T10:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el alojamiento en Lima al Aeropuerto de Lima"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from accommodation in Lima to Lima Airport"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do seu alojamento em Lima até o Aeroporto de Lima."
+      },
+      {
+       "language": "fr",
+       "content": "Transferts depuis votre hébergement à Lima jusqu'à l'aéroport de Lima"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'alloggio a Lima all'aeroporto di Lima"
+      },
+      {
+       "language": "de",
+       "content": "Transfer von der Unterkunft in Lima zum Flughafen Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van uw accommodatie in Lima naar de luchthaven van Lima."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc5e-7d26-a161-4cf7c5460d35",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Vuelo"
+    },
+    {
+     "language": "en",
+     "content": "Flight"
+    },
+    {
+     "language": "pt",
+     "content": "Voo"
+    },
+    {
+     "language": "fr",
+     "content": "Vol"
+    },
+    {
+     "language": "it",
+     "content": "Volo"
+    },
+    {
+     "language": "de",
+     "content": "Flug"
+    },
+    {
+     "language": "nl",
+     "content": "Vlucht"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc5f-7e05-be64-0d776b20eabe",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-04T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Vuelo desde la ciudad de Lima a la ciudad de Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Flight from the city of Lima to the city of Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Voo da cidade de Lima para a cidade de Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Vol de la ville de Lima à la ville de Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Volo dalla città di Lima alla città di Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Flug von der Stadt Lima nach der Stadt Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Vlucht van Lima naar Cusco"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc60-78ad-8b5e-395b8f6e2735",
+     "cotsegmento": {
+      "id": "019f7d55-cc5f-7e05-be64-0d776b20eabe"
+     },
+     "fechaHoraInicio": "2026-09-04T12:10:00",
+     "fechaHoraFin": "2026-09-04T13:35:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ticket aereo"
+      },
+      {
+       "language": "en",
+       "content": "Airline ticket"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete aéreo"
+      },
+      {
+       "language": "fr",
+       "content": "billet d'avion"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto aereo"
+      },
+      {
+       "language": "de",
+       "content": "Flugticket"
+      },
+      {
+       "language": "nl",
+       "content": "Vliegticket"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc61-704b-b873-4dd8efacc552",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Camino Inca corto a Machupicchu de 2 dias"
+    },
+    {
+     "language": "en",
+     "content": "Short Inca Trail to Machu Picchu (2 days)"
+    },
+    {
+     "language": "pt",
+     "content": "Trilha Inca curta até Machu Picchu (2 dias)"
+    },
+    {
+     "language": "fr",
+     "content": "Chemin inca court vers le Machu Picchu (2 jours)"
+    },
+    {
+     "language": "it",
+     "content": "Breve percorso Inca per Machu Picchu (2 giorni)"
+    },
+    {
+     "language": "de",
+     "content": "Kurzer Inka-Pfad nach Machu Picchu (2 Tage)"
+    },
+    {
+     "language": "nl",
+     "content": "Korte Inca-route naar Machu Picchu (2 dagen)"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc63-7600-a829-7c02526558f5",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-06T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Traslado a la estación de Ollantaytambo"
+      },
+      {
+       "language": "en",
+       "content": "Transfer to Ollantaytambo station"
+      },
+      {
+       "language": "pt",
+       "content": "Transferência para a estação de Ollantaytambo"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert à la gare d'Ollantaytambo"
+      },
+      {
+       "language": "it",
+       "content": "Trasferimento alla stazione di Ollantaytambo"
+      },
+      {
+       "language": "de",
+       "content": "Umstieg zum Bahnhof Ollantaytambo"
+      },
+      {
+       "language": "nl",
+       "content": "Overstap naar station Ollantaytambo"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc63-7600-a829-7c0252b5cc8b",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-06T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Viaje en tren desde Ollantaytambo"
+      },
+      {
+       "language": "en",
+       "content": "Train journey from Ollantaytambo"
+      },
+      {
+       "language": "pt",
+       "content": "Viagem de trem de Ollantaytambo"
+      },
+      {
+       "language": "fr",
+       "content": "Voyage en train depuis Ollantaytambo"
+      },
+      {
+       "language": "it",
+       "content": "Viaggio in treno da Ollantaytambo"
+      },
+      {
+       "language": "de",
+       "content": "Zugfahrt von Ollantaytambo"
+      },
+      {
+       "language": "nl",
+       "content": "Treinreis vanuit Ollantaytambo"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc63-7600-a829-7c0253452f3e",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-06T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Caminata del Km 104 a Machu Picchu"
+      },
+      {
+       "language": "en",
+       "content": "Walk from Km 104 to Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Caminhada do Km 104 até Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Marchez du km 104 jusqu'au Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Camminata dal km 104 a Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Fußweg von Kilometer 104 nach Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Loop van kilometer 104 naar Machu Picchu."
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc63-7600-a829-7c02541530ec",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-09-06T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Descenso en bus a Machu Picchu Pueblo"
+      },
+      {
+       "language": "en",
+       "content": "Bus descent to Machu Picchu Pueblo"
+      },
+      {
+       "language": "pt",
+       "content": "Descida de ônibus até Machu Picchu Pueblo"
+      },
+      {
+       "language": "fr",
+       "content": "Descente en bus vers le pueblo de Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Discesa in autobus verso Machu Picchu Pueblo"
+      },
+      {
+       "language": "de",
+       "content": "Busabfahrt nach Machu Picchu Pueblo"
+      },
+      {
+       "language": "nl",
+       "content": "Busafdaling naar Machu Picchu Pueblo"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc63-7600-a829-7c0254abb524",
+     "dia": 1,
+     "orden": 5,
+     "fechaAbsoluta": "2026-09-06T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Cena de Recuperación en Aguas Calientes"
+      },
+      {
+       "language": "en",
+       "content": "Recovery Dinner in Aguas Calientes"
+      },
+      {
+       "language": "pt",
+       "content": "Jantar de Recuperação em Aguas Calientes"
+      },
+      {
+       "language": "fr",
+       "content": "Dîner de récupération à Aguas Calientes"
+      },
+      {
+       "language": "it",
+       "content": "Cena di recupero ad Aguas Calientes"
+      },
+      {
+       "language": "de",
+       "content": "Erholungsdinner in Aguas Calientes"
+      },
+      {
+       "language": "nl",
+       "content": "Hersteldiner in Aguas Calientes"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc63-7600-a829-7c0255494dc5",
+     "dia": 1,
+     "orden": 6,
+     "fechaAbsoluta": "2026-09-06T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Machu Picchu Pueblo"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Machu Picchu Pueblo"
+      },
+      {
+       "language": "pt",
+       "content": "Acomodações em Machu Picchu Pueblo"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Machu Picchu Pueblo"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi a Machu Picchu Pueblo"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Machu Picchu Pueblo"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Machu Picchu Pueblo"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc63-7600-a829-7c0255bc6b0d",
+     "dia": 2,
+     "orden": 7,
+     "fechaAbsoluta": "2026-09-07T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ascenso en bus al Santuario"
+      },
+      {
+       "language": "en",
+       "content": "Bus ride up to the Sanctuary"
+      },
+      {
+       "language": "pt",
+       "content": "Viagem de ônibus até o Santuário"
+      },
+      {
+       "language": "fr",
+       "content": "Trajet en bus jusqu'au sanctuaire"
+      },
+      {
+       "language": "it",
+       "content": "Viaggio in autobus fino al Santuario"
+      },
+      {
+       "language": "de",
+       "content": "Busfahrt hinauf zum Heiligtum"
+      },
+      {
+       "language": "nl",
+       "content": "Busrit naar het heiligdom"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc63-7600-a829-7c02561fdf28",
+     "dia": 2,
+     "orden": 8,
+     "fechaAbsoluta": "2026-09-07T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Machu Picchu: Ruta de la Realeza (Circuito 3)"
+      },
+      {
+       "language": "en",
+       "content": "Machu Picchu: Route of Royalty (Circuit 3)"
+      },
+      {
+       "language": "pt",
+       "content": "Machu Picchu: Rota da Realeza (Circuito 3)"
+      },
+      {
+       "language": "fr",
+       "content": "Machu Picchu : Route de la Royauté (Circuit 3)"
+      },
+      {
+       "language": "it",
+       "content": "Machu Picchu: Itinerario Reale (Circuito 3)"
+      },
+      {
+       "language": "de",
+       "content": "Machu Picchu: Route der Könige (Rundweg 3)"
+      },
+      {
+       "language": "nl",
+       "content": "Machu Picchu: Koninklijke Route (Circuit 3)"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc63-7600-a829-7c025688ba21",
+     "dia": 2,
+     "orden": 9,
+     "fechaAbsoluta": "2026-09-07T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Descenso en bus a Machu Picchu Pueblo"
+      },
+      {
+       "language": "en",
+       "content": "Bus descent to Machu Picchu Pueblo"
+      },
+      {
+       "language": "pt",
+       "content": "Descida de ônibus até Machu Picchu Pueblo"
+      },
+      {
+       "language": "fr",
+       "content": "Descente en bus vers le pueblo de Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Discesa in autobus verso Machu Picchu Pueblo"
+      },
+      {
+       "language": "de",
+       "content": "Busabfahrt nach Machu Picchu Pueblo"
+      },
+      {
+       "language": "nl",
+       "content": "Busafdaling naar Machu Picchu Pueblo"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc63-7600-a829-7c0256b72f06",
+     "dia": 2,
+     "orden": 10,
+     "fechaAbsoluta": "2026-09-07T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo Buffet en Machu Picchu"
+      },
+      {
+       "language": "en",
+       "content": "Buffet Lunch in Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço buffet em Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Déjeuner buffet à Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet a Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Mittagsbuffet in Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetlunch in Machu Picchu"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc65-74fb-8641-fa6a6a59a36a",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c0255494dc5"
+     },
+     "fechaHoraInicio": "2026-09-06T00:00:00",
+     "fechaHoraFin": "2026-09-07T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 90,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Machu Picchu"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Alojamento em Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi a Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Machu Picchu"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc66-70c6-8ba7-32e141cae496",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c0254abb524"
+     },
+     "fechaHoraInicio": "2026-09-06T00:00:00",
+     "fechaHoraFin": "2026-09-06T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Cena"
+      },
+      {
+       "language": "en",
+       "content": "Dinner"
+      },
+      {
+       "language": "pt",
+       "content": "Jantar"
+      },
+      {
+       "language": "fr",
+       "content": "Dîner"
+      },
+      {
+       "language": "it",
+       "content": "Cena"
+      },
+      {
+       "language": "de",
+       "content": "Abendessen"
+      },
+      {
+       "language": "nl",
+       "content": "Diner"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc66-70c6-8ba7-32e142570723",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c02526558f5"
+     },
+     "fechaHoraInicio": "2026-09-06T04:00:00",
+     "fechaHoraFin": "2026-09-06T05:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde Cusco a Estación de Ollantaytambo"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Cusco to Ollantaytambo Station"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte de Cusco para a Estação Ollantaytambo"
+      },
+      {
+       "language": "fr",
+       "content": "Transport de Cusco à la gare d'Ollantaytambo"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto da Cusco alla stazione di Ollantaytambo"
+      },
+      {
+       "language": "de",
+       "content": "Transport von Cusco zum Bahnhof Ollantaytambo"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van Cusco naar station Ollantaytambo"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc67-7f8c-9cf2-bd7d1635f23e",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c0252b5cc8b"
+     },
+     "fechaHoraInicio": "2026-09-06T06:10:00",
+     "fechaHoraFin": "2026-09-06T07:50:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ticket de tren desde estación de Ollantaytambo a Machupicchu"
+      },
+      {
+       "language": "en",
+       "content": "Train ticket from Ollantaytambo station to Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de trem da estação de Ollantaytambo para Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de train de la gare d'Ollantaytambo à Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto del treno dalla stazione di Ollantaytambo a Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Zugticket von der Ollantaytambo Station nach Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Treinkaartje van station Ollantaytambo naar Machu Picchu"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc68-7e37-8e4d-b17e8ee5461e",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c0253452f3e"
+     },
+     "fechaHoraInicio": "2026-09-06T08:00:00",
+     "fechaHoraFin": "2026-09-06T16:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": true,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": []
+    },
+    {
+     "id": "019f7d55-cc69-7ca1-958d-68881382ada1",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c02541530ec"
+     },
+     "fechaHoraInicio": "2026-09-06T16:00:00",
+     "fechaHoraFin": "2026-09-06T16:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de bus desde Santuario de Machupicchu a Aguas Calientes"
+      },
+      {
+       "language": "en",
+       "content": "Bus ticket from Aguas Calientes to the Sanctuary of Machu Picchu or vice versa (One Way)"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de ônibus de Aguas Calientes para o Santuário de Machu Picchu ou vice-versa (ida)"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de bus d'Aguas Calientes au sanctuaire du Machu Picchu ou vice versa (aller simple)"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto dell'autobus da Aguas Calientes al Santuario di Machu Picchu o viceversa (sola andata)"
+      },
+      {
+       "language": "de",
+       "content": "Busticket von Aguas Calientes zum Heiligtum von Machu Picchu oder umgekehrt (einfache Fahrt)"
+      },
+      {
+       "language": "nl",
+       "content": "Buskaartje van Aguas Calientes naar het heiligdom van Machu Picchu of vice versa (enkele reis)"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc69-7ca1-958d-688813d217d6",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c0256b72f06"
+     },
+     "fechaHoraInicio": "2026-09-07T00:00:00",
+     "fechaHoraFin": "2026-09-07T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo"
+      },
+      {
+       "language": "en",
+       "content": "Lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço"
+      },
+      {
+       "language": "fr",
+       "content": "Déjeuner"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo"
+      },
+      {
+       "language": "de",
+       "content": "Mittagessen"
+      },
+      {
+       "language": "nl",
+       "content": "Lunch"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc6a-75b7-b289-8e43b5451582",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c0255bc6b0d"
+     },
+     "fechaHoraInicio": "2026-09-07T09:00:00",
+     "fechaHoraFin": "2026-09-07T09:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de bus desde Aguas Calientes al Santuario de Machupicchu"
+      },
+      {
+       "language": "en",
+       "content": "Bus ticket from Aguas Calientes to the Sanctuary of Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de ônibus de Aguas Calientes ao Santuário de Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de bus d'Aguas Calientes au sanctuaire de Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto dell'autobus da Aguas Calientes al Santuario di Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Busticket von Aguas Calientes zum Heiligtum von Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Busticket van Aguas Calientes naar het heiligdom van Machu Picchu"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc6b-7595-9b0a-3f8b67343088",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c02561fdf28"
+     },
+     "fechaHoraInicio": "2026-09-07T10:00:00",
+     "fechaHoraFin": "2026-09-07T12:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Guiado"
+      },
+      {
+       "language": "en",
+       "content": "Guided"
+      },
+      {
+       "language": "pt",
+       "content": "Guiado"
+      },
+      {
+       "language": "fr",
+       "content": "Guidé"
+      },
+      {
+       "language": "it",
+       "content": "Guidato"
+      },
+      {
+       "language": "de",
+       "content": "Geführt"
+      },
+      {
+       "language": "nl",
+       "content": "Begeleid"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc6b-7595-9b0a-3f8b678f8f0f",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c02561fdf28"
+     },
+     "fechaHoraInicio": "2026-09-07T10:00:00",
+     "fechaHoraFin": "2026-09-07T10:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de ingreso a Machu Picchu"
+      },
+      {
+       "language": "en",
+       "content": "Entrance ticket to Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de entrada para Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Billet d'entrée pour le Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto d'ingresso a Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Eintrittskarte für Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Toegangskaartje voor Machu Picchu"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc6c-7255-9481-1e45411f20da",
+     "cotsegmento": {
+      "id": "019f7d55-cc63-7600-a829-7c025688ba21"
+     },
+     "fechaHoraInicio": "2026-09-07T12:30:00",
+     "fechaHoraFin": "2026-09-07T13:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de bus desde Santuario de Machupicchu a Aguas Calientes"
+      },
+      {
+       "language": "en",
+       "content": "Bus ticket from Aguas Calientes to the Sanctuary of Machu Picchu or vice versa (One Way)"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de ônibus de Aguas Calientes para o Santuário de Machu Picchu ou vice-versa (ida)"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de bus d'Aguas Calientes au sanctuaire du Machu Picchu ou vice versa (aller simple)"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto dell'autobus da Aguas Calientes al Santuario di Machu Picchu o viceversa (sola andata)"
+      },
+      {
+       "language": "de",
+       "content": "Busticket von Aguas Calientes zum Heiligtum von Machu Picchu oder umgekehrt (einfache Fahrt)"
+      },
+      {
+       "language": "nl",
+       "content": "Buskaartje van Aguas Calientes naar het heiligdom van Machu Picchu of vice versa (enkele reis)"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc6d-7409-bf7a-b65d1358eb9e",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Alojamiento"
+    },
+    {
+     "language": "en",
+     "content": "Accommodation"
+    },
+    {
+     "language": "pt",
+     "content": "Alojamento"
+    },
+    {
+     "language": "fr",
+     "content": "Hébergement"
+    },
+    {
+     "language": "it",
+     "content": "Alloggio"
+    },
+    {
+     "language": "de",
+     "content": "Unterkunft"
+    },
+    {
+     "language": "nl",
+     "content": "Accommodatie"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc6d-7409-bf7a-b65d13bcabbe",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-07T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Machu Picchu Pueblo"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Machu Picchu Pueblo"
+      },
+      {
+       "language": "pt",
+       "content": "Acomodações em Machu Picchu Pueblo"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Machu Picchu Pueblo"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi a Machu Picchu Pueblo"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Machu Picchu Pueblo"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Machu Picchu Pueblo"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc6e-7f6b-8630-fc13b47a934f",
+     "cotsegmento": {
+      "id": "019f7d55-cc6d-7409-bf7a-b65d13bcabbe"
+     },
+     "fechaHoraInicio": "2026-09-07T00:00:00",
+     "fechaHoraFin": "2026-09-08T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 90,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Machu Picchu"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Alojamento em Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi a Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Machu Picchu"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc6e-7f6b-8630-fc13b536df65",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Excursión a Huayna Picchu de 1 dia"
+    },
+    {
+     "language": "en",
+     "content": "Day trip to Huayna Picchu"
+    },
+    {
+     "language": "pt",
+     "content": "Excursão de um dia a Huayna Picchu"
+    },
+    {
+     "language": "fr",
+     "content": "Excursion d'une journée à Huayna Picchu"
+    },
+    {
+     "language": "it",
+     "content": "Escursione di un giorno a Huayna Picchu"
+    },
+    {
+     "language": "de",
+     "content": "Tagesausflug nach Huayna Picchu"
+    },
+    {
+     "language": "nl",
+     "content": "Dagtocht naar Huayna Picchu"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc70-7d3d-9f6d-7c2aed0eca47",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-08T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ascenso en bus al Santuario"
+      },
+      {
+       "language": "en",
+       "content": "Bus ride up to the Sanctuary"
+      },
+      {
+       "language": "pt",
+       "content": "Viagem de ônibus até o Santuário"
+      },
+      {
+       "language": "fr",
+       "content": "Trajet en bus jusqu'au sanctuaire"
+      },
+      {
+       "language": "it",
+       "content": "Viaggio in autobus fino al Santuario"
+      },
+      {
+       "language": "de",
+       "content": "Busfahrt hinauf zum Heiligtum"
+      },
+      {
+       "language": "nl",
+       "content": "Busrit naar het heiligdom"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc70-7d3d-9f6d-7c2aee017cfe",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-08T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Machu Picchu: Montaña Huayna Picchu (Circuito 3A)"
+      },
+      {
+       "language": "en",
+       "content": "Machu Picchu: Huayna Picchu Mountain (Circuit 3A)"
+      },
+      {
+       "language": "pt",
+       "content": "Machu Picchu: Montanha Huayna Picchu (Circuito 3A)"
+      },
+      {
+       "language": "fr",
+       "content": "Machu Picchu : Montagne Huayna Picchu (Circuit 3A)"
+      },
+      {
+       "language": "it",
+       "content": "Machu Picchu: Montagna Huayna Picchu (Circuito 3A)"
+      },
+      {
+       "language": "de",
+       "content": "Machu Picchu: Berg Huayna Picchu (Strecke 3A)"
+      },
+      {
+       "language": "nl",
+       "content": "Machu Picchu: Huayna Picchu-berg (circuit 3A)"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc70-7d3d-9f6d-7c2aee5723c8",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-08T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Descenso en bus a Machu Picchu Pueblo"
+      },
+      {
+       "language": "en",
+       "content": "Bus descent to Machu Picchu Pueblo"
+      },
+      {
+       "language": "pt",
+       "content": "Descida de ônibus até Machu Picchu Pueblo"
+      },
+      {
+       "language": "fr",
+       "content": "Descente en bus vers le pueblo de Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Discesa in autobus verso Machu Picchu Pueblo"
+      },
+      {
+       "language": "de",
+       "content": "Busabfahrt nach Machu Picchu Pueblo"
+      },
+      {
+       "language": "nl",
+       "content": "Busafdaling naar Machu Picchu Pueblo"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc70-7d3d-9f6d-7c2aef13ede2",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-09-08T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Tiempo libre para almorzar"
+      },
+      {
+       "language": "en",
+       "content": "Free time for lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Tempo livre para almoço"
+      },
+      {
+       "language": "fr",
+       "content": "Temps libre pour le déjeuner"
+      },
+      {
+       "language": "it",
+       "content": "Tempo libero per il pranzo."
+      },
+      {
+       "language": "de",
+       "content": "Zeit für Mittagessen"
+      },
+      {
+       "language": "nl",
+       "content": "Vrije tijd voor de lunch"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc70-7d3d-9f6d-7c2aefb6e12e",
+     "dia": 1,
+     "orden": 5,
+     "fechaAbsoluta": "2026-09-08T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Viaje en tren de retorno a Ollantaytambo"
+      },
+      {
+       "language": "en",
+       "content": "Return train journey to Ollantaytambo"
+      },
+      {
+       "language": "pt",
+       "content": "Viagem de trem de volta para Ollantaytambo"
+      },
+      {
+       "language": "fr",
+       "content": "Voyage aller-retour en train jusqu'à Ollantaytambo"
+      },
+      {
+       "language": "it",
+       "content": "Viaggio di ritorno in treno per Ollantaytambo"
+      },
+      {
+       "language": "de",
+       "content": "Rückfahrt mit dem Zug nach Ollantaytambo"
+      },
+      {
+       "language": "nl",
+       "content": "De terugreis met de trein naar Ollantaytambo"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc70-7d3d-9f6d-7c2af02bcf33",
+     "dia": 1,
+     "orden": 6,
+     "fechaAbsoluta": "2026-09-08T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Recepción y traslado al hotel en Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Reception and transfer to the hotel in the Sacred Valley"
+      },
+      {
+       "language": "pt",
+       "content": "Recepção e traslado para o hotel no Vale Sagrado."
+      },
+      {
+       "language": "fr",
+       "content": "Accueil et transfert à l'hôtel dans la Vallée Sacrée"
+      },
+      {
+       "language": "it",
+       "content": "Accoglienza e trasferimento in hotel nella Valle Sacra"
+      },
+      {
+       "language": "de",
+       "content": "Empfang und Transfer zum Hotel im Heiligen Tal"
+      },
+      {
+       "language": "nl",
+       "content": "Ontvangst en transfer naar het hotel in de Heilige Vallei."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc71-7334-bf1a-cf0cd6b479ba",
+     "cotsegmento": {
+      "id": "019f7d55-cc70-7d3d-9f6d-7c2aef13ede2"
+     },
+     "fechaHoraInicio": "2026-09-08T00:00:00",
+     "fechaHoraFin": "2026-09-08T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo"
+      },
+      {
+       "language": "en",
+       "content": "Lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço"
+      },
+      {
+       "language": "fr",
+       "content": "Déjeuner"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo"
+      },
+      {
+       "language": "de",
+       "content": "Mittagessen"
+      },
+      {
+       "language": "nl",
+       "content": "Lunch"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc71-7334-bf1a-cf0cd6c92ae7",
+     "cotsegmento": {
+      "id": "019f7d55-cc70-7d3d-9f6d-7c2aed0eca47"
+     },
+     "fechaHoraInicio": "2026-09-08T00:00:00",
+     "fechaHoraFin": "2026-09-08T00:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de bus desde Aguas Calientes al Santuario de Machupicchu"
+      },
+      {
+       "language": "en",
+       "content": "Bus ticket from Aguas Calientes to the Sanctuary of Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de ônibus de Aguas Calientes ao Santuário de Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de bus d'Aguas Calientes au sanctuaire de Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto dell'autobus da Aguas Calientes al Santuario di Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Busticket von Aguas Calientes zum Heiligtum von Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Busticket van Aguas Calientes naar het heiligdom van Machu Picchu"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc72-7614-b0a1-3243b144141a",
+     "cotsegmento": {
+      "id": "019f7d55-cc70-7d3d-9f6d-7c2aee017cfe"
+     },
+     "fechaHoraInicio": "2026-09-08T07:00:00",
+     "fechaHoraFin": "2026-09-08T10:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Guiado"
+      },
+      {
+       "language": "en",
+       "content": "Guided"
+      },
+      {
+       "language": "pt",
+       "content": "Guiado"
+      },
+      {
+       "language": "fr",
+       "content": "Guidé"
+      },
+      {
+       "language": "it",
+       "content": "Guidato"
+      },
+      {
+       "language": "de",
+       "content": "Geführt"
+      },
+      {
+       "language": "nl",
+       "content": "Begeleid"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc73-7d0d-8aa0-b30d6062bc0b",
+     "cotsegmento": {
+      "id": "019f7d55-cc70-7d3d-9f6d-7c2aee017cfe"
+     },
+     "fechaHoraInicio": "2026-09-08T07:00:00",
+     "fechaHoraFin": "2026-09-09T07:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de ingreso a Machu Picchu + Circuitos Largos"
+      },
+      {
+       "language": "en",
+       "content": "Entrance ticket to Machu Picchu + Long Circuits"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de entrada para Machu Picchu + Circuitos Longos"
+      },
+      {
+       "language": "fr",
+       "content": "Billet d'entrée pour le Machu Picchu + Circuits longs"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto d'ingresso a Machu Picchu + percorsi lunghi"
+      },
+      {
+       "language": "de",
+       "content": "Eintrittskarte für Machu Picchu + Lange Rundgänge"
+      },
+      {
+       "language": "nl",
+       "content": "Toegangsticket voor Machu Picchu + Lange Rondleidingen"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc73-7d0d-8aa0-b30d6142d9d7",
+     "cotsegmento": {
+      "id": "019f7d55-cc70-7d3d-9f6d-7c2aee5723c8"
+     },
+     "fechaHoraInicio": "2026-09-08T12:00:00",
+     "fechaHoraFin": "2026-09-08T12:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de bus desde Santuario de Machupicchu a Aguas Calientes"
+      },
+      {
+       "language": "en",
+       "content": "Bus ticket from Aguas Calientes to the Sanctuary of Machu Picchu or vice versa (One Way)"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de ônibus de Aguas Calientes para o Santuário de Machu Picchu ou vice-versa (ida)"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de bus d'Aguas Calientes au sanctuaire du Machu Picchu ou vice versa (aller simple)"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto dell'autobus da Aguas Calientes al Santuario di Machu Picchu o viceversa (sola andata)"
+      },
+      {
+       "language": "de",
+       "content": "Busticket von Aguas Calientes zum Heiligtum von Machu Picchu oder umgekehrt (einfache Fahrt)"
+      },
+      {
+       "language": "nl",
+       "content": "Buskaartje van Aguas Calientes naar het heiligdom van Machu Picchu of vice versa (enkele reis)"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc74-773d-bf1d-40f8faffc8cf",
+     "cotsegmento": {
+      "id": "019f7d55-cc70-7d3d-9f6d-7c2aefb6e12e"
+     },
+     "fechaHoraInicio": "2026-09-08T16:22:00",
+     "fechaHoraFin": "2026-09-08T18:10:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ticket de tren de Machupicchu a estación de Ollantaytambo"
+      },
+      {
+       "language": "en",
+       "content": "Train ticket from Machu Picchu to Ollantaytambo station"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de trem de Machu Picchu para a estação de Ollantaytambo"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de train de Machu Picchu à la gare d'Ollantaytambo"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto del treno da Machu Picchu alla stazione di Ollantaytambo."
+      },
+      {
+       "language": "de",
+       "content": "Zugticket von Machu Picchu zum Bahnhof Ollantaytambo"
+      },
+      {
+       "language": "nl",
+       "content": "Treinkaartje van Machu Picchu naar station Ollantaytambo"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc75-70d1-bcf4-01d0171c62a0",
+     "cotsegmento": {
+      "id": "019f7d55-cc70-7d3d-9f6d-7c2af02bcf33"
+     },
+     "fechaHoraInicio": "2026-09-08T18:10:00",
+     "fechaHoraFin": "2026-09-08T20:10:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde Estación de Ollantaytambo a Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Ollantaytambo Station to Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte da estação de Ollantaytambo para Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Transport de la gare d'Ollantaytambo à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dalla stazione di Ollantaytambo a Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Transport vom Bahnhof Ollantaytambo nach Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van station Ollantaytambo naar Cusco"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc75-70d1-bcf4-01d0175f30c3",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Alojamiento"
+    },
+    {
+     "language": "en",
+     "content": "Accommodation"
+    },
+    {
+     "language": "pt",
+     "content": "Alojamento"
+    },
+    {
+     "language": "fr",
+     "content": "Hébergement"
+    },
+    {
+     "language": "it",
+     "content": "Alloggio"
+    },
+    {
+     "language": "de",
+     "content": "Unterkunft"
+    },
+    {
+     "language": "nl",
+     "content": "Accommodatie"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc76-7b2c-8124-47f01b36dbf3",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-08T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Acomodação em Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Alloggio a Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Cusco"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc77-731e-b48c-f1c0a0e29eb3",
+     "cotsegmento": {
+      "id": "019f7d55-cc76-7b2c-8124-47f01b36dbf3"
+     },
+     "fechaHoraInicio": "2026-09-08T00:00:00",
+     "fechaHoraFin": "2026-09-11T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 90,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Hospedagem em Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi a Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Cusco"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc78-7e9f-9e66-aea32793e541",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Excursión compartida en Cusco y alrededores"
+    },
+    {
+     "language": "en",
+     "content": "Shared tour in Cusco and surroundings"
+    },
+    {
+     "language": "pt",
+     "content": "Excursão compartilhada em Cusco e arredores."
+    },
+    {
+     "language": "fr",
+     "content": "Visite partagée de Cusco et de ses environs"
+    },
+    {
+     "language": "it",
+     "content": "Tour di gruppo a Cusco e dintorni."
+    },
+    {
+     "language": "de",
+     "content": "Gemeinsame Tour in Cusco und Umgebung"
+    },
+    {
+     "language": "nl",
+     "content": "Gezamenlijke tour door Cusco en omgeving"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc79-7532-89fe-861a35b24412",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-09T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Recojo e inicio de excursión (Servicio Grupal)"
+      },
+      {
+       "language": "en",
+       "content": "Pick-up and start of excursion (Group Service)"
+      },
+      {
+       "language": "pt",
+       "content": "Traslado e início da excursão (Serviço em grupo)"
+      },
+      {
+       "language": "fr",
+       "content": "Prise en charge et début de l'excursion (Service de groupe)"
+      },
+      {
+       "language": "it",
+       "content": "Prelievo e inizio dell'escursione (Servizio di gruppo)"
+      },
+      {
+       "language": "de",
+       "content": "Abholung und Beginn des Ausflugs (Gruppenservice)"
+      },
+      {
+       "language": "nl",
+       "content": "Ophalen en start van de excursie (groepsservice)"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc79-7532-89fe-861a360ca032",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-09T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "La Catedral: Encuentro e Inmersión Colonial"
+      },
+      {
+       "language": "en",
+       "content": "The Cathedral: Colonial Encounter and Immersion"
+      },
+      {
+       "language": "pt",
+       "content": "A Catedral: Encontro e Imersão Colonial"
+      },
+      {
+       "language": "fr",
+       "content": "La cathédrale : rencontre et immersion coloniales"
+      },
+      {
+       "language": "it",
+       "content": "La Cattedrale: Incontro e Immersione nell'epoca coloniale"
+      },
+      {
+       "language": "de",
+       "content": "Die Kathedrale: Koloniale Begegnung und Eintauchen"
+      },
+      {
+       "language": "nl",
+       "content": "De kathedraal: koloniale ontmoeting en onderdompeling"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc79-7532-89fe-861a370970df",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-09T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Koricancha: El Corazón Espiritual del Imperio"
+      },
+      {
+       "language": "en",
+       "content": "Koricancha: The Spiritual Heart of the Empire"
+      },
+      {
+       "language": "pt",
+       "content": "Koricancha: O Coração Espiritual do Império"
+      },
+      {
+       "language": "fr",
+       "content": "Koricancha : le cœur spirituel de l'empire"
+      },
+      {
+       "language": "it",
+       "content": "Koricancha: il cuore spirituale dell'Impero"
+      },
+      {
+       "language": "de",
+       "content": "Koricancha: Das spirituelle Herz des Imperiums"
+      },
+      {
+       "language": "nl",
+       "content": "Koricancha: het spirituele hart van het rijk"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc79-7532-89fe-861a373eade8",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-09-09T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Sacsayhuamán: Arquitectura Megalítica"
+      },
+      {
+       "language": "en",
+       "content": "Sacsayhuamán: Megalithic Architecture"
+      },
+      {
+       "language": "pt",
+       "content": "Sacsayhuamán: Arquitetura Megalítica"
+      },
+      {
+       "language": "fr",
+       "content": "Sacsayhuamán : architecture mégalithique"
+      },
+      {
+       "language": "it",
+       "content": "Sacsayhuamán: architettura megalitica"
+      },
+      {
+       "language": "de",
+       "content": "Sacsayhuamán: Megalitharchitektur"
+      },
+      {
+       "language": "nl",
+       "content": "Sacsayhuamán: megalithische architectuur"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc79-7532-89fe-861a37538ff5",
+     "dia": 1,
+     "orden": 5,
+     "fechaAbsoluta": "2026-09-09T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Q’enqo: Rituales y Adoración a la Tierra"
+      },
+      {
+       "language": "en",
+       "content": "Q’enqo: Rituals and Worship of the Earth"
+      },
+      {
+       "language": "pt",
+       "content": "Q’enqo: Rituais e Culto da Terra"
+      },
+      {
+       "language": "fr",
+       "content": "Q’enqo : Rituels et culte de la Terre"
+      },
+      {
+       "language": "it",
+       "content": "Q’enqo: Rituali e culto della Terra"
+      },
+      {
+       "language": "de",
+       "content": "Q’enqo: Rituale und Verehrung der Erde"
+      },
+      {
+       "language": "nl",
+       "content": "Q’enqo: Rituelen en verering van de aarde"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc79-7532-89fe-861a384bba9a",
+     "dia": 1,
+     "orden": 6,
+     "fechaAbsoluta": "2026-09-09T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Pucapucara y Tambomachay: Control Imperial y Purificación"
+      },
+      {
+       "language": "en",
+       "content": "Pucapucara and Tambomachay: Imperial Control and Purification"
+      },
+      {
+       "language": "pt",
+       "content": "Pucapucara e Tambomachay: Controle Imperial e Purificação"
+      },
+      {
+       "language": "fr",
+       "content": "Pucapucara et Tambomachay : Contrôle impérial et purification"
+      },
+      {
+       "language": "it",
+       "content": "Pucapucara e Tambomachay: controllo imperiale e purificazione"
+      },
+      {
+       "language": "de",
+       "content": "Pucapucara und Tambomachay: Kaiserliche Kontrolle und Säuberung"
+      },
+      {
+       "language": "nl",
+       "content": "Pucapucara en Tambomachay: Keizerlijke controle en zuivering"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc79-7532-89fe-861a38ce9f98",
+     "dia": 1,
+     "orden": 7,
+     "fechaAbsoluta": "2026-09-09T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Retorno al centro de Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Return to Cusco city center"
+      },
+      {
+       "language": "pt",
+       "content": "Retorno ao centro de Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Retour au centre-ville de Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Ritorno al centro di Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Rückkehr in das Zentrum von Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Terugkeer naar het centrum van Cusco"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc7a-75db-b289-7f15212908b2",
+     "cotsegmento": {
+      "id": "019f7d55-cc79-7532-89fe-861a360ca032"
+     },
+     "fechaHoraInicio": "2026-09-09T00:00:00",
+     "fechaHoraFin": "2026-09-09T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de ingreso a la Catedral de Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Entrance ticket to the Cusco Cathedral"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de entrada para a Catedral de Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Billet d'entrée à la cathédrale de Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto d'ingresso alla Cattedrale di Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Eintrittskarte für die Kathedrale von Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Toegangskaartje voor de kathedraal van Cusco"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc7b-7c38-b573-34941c267530",
+     "cotsegmento": {
+      "id": "019f7d55-cc79-7532-89fe-861a370970df"
+     },
+     "fechaHoraInicio": "2026-09-09T00:00:00",
+     "fechaHoraFin": "2026-09-09T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de ingreso al templo de Koricancha"
+      },
+      {
+       "language": "en",
+       "content": "Entrance ticket to the Koricancha temple"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de entrada para o templo de Koricancha"
+      },
+      {
+       "language": "fr",
+       "content": "Billet d'entrée pour le temple Koricancha"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto d'ingresso al tempio di Koricancha"
+      },
+      {
+       "language": "de",
+       "content": "Eintrittskarte für den Koricancha-Tempel"
+      },
+      {
+       "language": "nl",
+       "content": "Toegangskaartje voor de Koricancha-tempel"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc7b-7c38-b573-34941d364000",
+     "cotsegmento": {
+      "id": "019f7d55-cc79-7532-89fe-861a373eade8"
+     },
+     "fechaHoraInicio": "2026-09-09T00:00:00",
+     "fechaHoraFin": "2026-09-09T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto Turístico Parcial de Sacsaywaman"
+      },
+      {
+       "language": "en",
+       "content": "Sacsaywaman Partial Tourist Ticket"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete turístico parcial de Sacsayhuaman"
+      },
+      {
+       "language": "fr",
+       "content": "Billet touristique partiel pour Sacsaywaman"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto turistico parziale per Sacsaywaman"
+      },
+      {
+       "language": "de",
+       "content": "Sacsaywaman Teiltouristenticket"
+      },
+      {
+       "language": "nl",
+       "content": "Sacsaywaman Gedeeltelijk Toeristenticket"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc7c-7957-afd3-1b0223fba468",
+     "cotsegmento": {
+      "id": "019f7d55-cc79-7532-89fe-861a35b24412"
+     },
+     "fechaHoraInicio": "2026-09-09T13:00:00",
+     "fechaHoraFin": "2026-09-09T18:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": true,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": []
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc7d-7225-8925-f6960f6e3e38",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Alojamiento"
+    },
+    {
+     "language": "en",
+     "content": "Accommodation"
+    },
+    {
+     "language": "pt",
+     "content": "Alojamento"
+    },
+    {
+     "language": "fr",
+     "content": "Hébergement"
+    },
+    {
+     "language": "it",
+     "content": "Alloggio"
+    },
+    {
+     "language": "de",
+     "content": "Unterkunft"
+    },
+    {
+     "language": "nl",
+     "content": "Accommodatie"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc7d-7225-8925-f6960f94d1be",
+     "dia": 2,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-11T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Urubamba"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Urubamba"
+      },
+      {
+       "language": "pt",
+       "content": "Acomodação em Urubamba"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Urubamba"
+      },
+      {
+       "language": "it",
+       "content": "Alloggio a Urubamba"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Urubamba"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Urubamba"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc7e-7664-a643-8b4731b353f1",
+     "cotsegmento": {
+      "id": "019f7d55-cc7d-7225-8925-f6960f94d1be"
+     },
+     "fechaHoraInicio": "2026-09-11T00:00:00",
+     "fechaHoraFin": "2026-09-12T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 90,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Urubamba"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Urubamba"
+      },
+      {
+       "language": "pt",
+       "content": "Alojamento em Urubamba"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Urubamba"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi a Urubamba"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Urubamba"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Urubamba"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc7f-7282-9c3c-7e2378a06bc0",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Excursion al Valle Sagrado"
+    },
+    {
+     "language": "en",
+     "content": "Excursion to the Sacred Valley"
+    },
+    {
+     "language": "pt",
+     "content": "Excursão ao Vale Sagrado"
+    },
+    {
+     "language": "fr",
+     "content": "Excursion dans la Vallée Sacrée"
+    },
+    {
+     "language": "it",
+     "content": "Escursione nella Valle Sacra"
+    },
+    {
+     "language": "de",
+     "content": "Ausflug ins Heilige Tal"
+    },
+    {
+     "language": "nl",
+     "content": "Excursie naar de Heilige Vallei"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc80-7647-8569-3bf073b0f404",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-11T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Recojo e inicio de excursión (Servicio Grupal)"
+      },
+      {
+       "language": "en",
+       "content": "Pick-up and start of excursion (Group Service)"
+      },
+      {
+       "language": "pt",
+       "content": "Traslado e início da excursão (Serviço em Grupo)"
+      },
+      {
+       "language": "fr",
+       "content": "Prise en charge et début de l'excursion (Service de Groupe)"
+      },
+      {
+       "language": "it",
+       "content": "Prelievo e inizio escursione (Servizio di Gruppo)"
+      },
+      {
+       "language": "de",
+       "content": "Abholung und Beginn des Ausflugs (Gruppenservice)"
+      },
+      {
+       "language": "nl",
+       "content": "Ophalen en start van excursie (Groepsservice)"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc80-7647-8569-3bf074416a37",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-11T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Parque Arqueológico de Pisac"
+      },
+      {
+       "language": "en",
+       "content": "Pisac Archaeological Park"
+      },
+      {
+       "language": "pt",
+       "content": "Parque Arqueológico de Pisac"
+      },
+      {
+       "language": "fr",
+       "content": "Parc Archéologique de Pisac"
+      },
+      {
+       "language": "it",
+       "content": "Parco Archeologico di Pisac"
+      },
+      {
+       "language": "de",
+       "content": "Archäologischer Park Pisac"
+      },
+      {
+       "language": "nl",
+       "content": "Archeologisch Park van Pisac"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc80-7647-8569-3bf074940baf",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-11T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Mercado Artesanal de Pisac"
+      },
+      {
+       "language": "en",
+       "content": "Pisac Artisan Market"
+      },
+      {
+       "language": "pt",
+       "content": "Mercado de Artesanato de Pisac"
+      },
+      {
+       "language": "fr",
+       "content": "Marché artisanal de Pisac"
+      },
+      {
+       "language": "it",
+       "content": "Mercato Artigianale di Pisac"
+      },
+      {
+       "language": "de",
+       "content": "Handwerksmarkt von Pisac"
+      },
+      {
+       "language": "nl",
+       "content": "Ambachtelijke Markt van Pisac"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc80-7647-8569-3bf0757b4bdc",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-09-11T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo Buffet en Urubamba"
+      },
+      {
+       "language": "en",
+       "content": "Buffet Lunch in Urubamba"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço Buffet em Urubamba"
+      },
+      {
+       "language": "fr",
+       "content": "Déjeuner Buffet à Urubamba"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a Buffet a Urubamba"
+      },
+      {
+       "language": "de",
+       "content": "Mittagsbuffet in Urubamba"
+      },
+      {
+       "language": "nl",
+       "content": "Lunchbuffet in Urubamba"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc80-7647-8569-3bf075a19fd2",
+     "dia": 1,
+     "orden": 5,
+     "fechaAbsoluta": "2026-09-11T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Parque Arqueológico de Ollantaytambo"
+      },
+      {
+       "language": "en",
+       "content": "Ollantaytambo Archaeological Park"
+      },
+      {
+       "language": "pt",
+       "content": "Parque Arqueológico de Ollantaytambo"
+      },
+      {
+       "language": "fr",
+       "content": "Parc Archéologique d'Ollantaytambo"
+      },
+      {
+       "language": "it",
+       "content": "Parco Archeologico di Ollantaytambo"
+      },
+      {
+       "language": "de",
+       "content": "Archäologischer Park Ollantaytambo"
+      },
+      {
+       "language": "nl",
+       "content": "Archeologisch Park van Ollantaytambo"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc80-7647-8569-3bf076235bca",
+     "dia": 1,
+     "orden": 6,
+     "fechaAbsoluta": "2026-09-11T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Descanso en el Valle Sagrado"
+      },
+      {
+       "language": "en",
+       "content": "Rest in the Sacred Valley"
+      },
+      {
+       "language": "pt",
+       "content": "Descanse no Vale Sagrado"
+      },
+      {
+       "language": "fr",
+       "content": "Reposez-vous dans la Vallée Sacrée"
+      },
+      {
+       "language": "it",
+       "content": "Riposa nella Valle Sacra"
+      },
+      {
+       "language": "de",
+       "content": "Erholung im Heiligen Tal"
+      },
+      {
+       "language": "nl",
+       "content": "Rust uit in de Heilige Vallei"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc80-7647-8569-3bf07696ea0f",
+     "cotsegmento": {
+      "id": "019f7d55-cc80-7647-8569-3bf0757b4bdc"
+     },
+     "fechaHoraInicio": "2026-09-11T00:00:00",
+     "fechaHoraFin": "2026-09-11T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo"
+      },
+      {
+       "language": "en",
+       "content": "Lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço"
+      },
+      {
+       "language": "fr",
+       "content": "Déjeuner"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo"
+      },
+      {
+       "language": "de",
+       "content": "Mittagessen"
+      },
+      {
+       "language": "nl",
+       "content": "Lunch"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc81-75cb-9b57-e11c17ec9fce",
+     "cotsegmento": {
+      "id": "019f7d55-cc80-7647-8569-3bf073b0f404"
+     },
+     "fechaHoraInicio": "2026-09-11T00:00:00",
+     "fechaHoraFin": "2026-09-11T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto Turístico Parcial del Valle Sagrado y Moray"
+      },
+      {
+       "language": "en",
+       "content": "Partial Tourist Ticket for the Sacred Valley and Moray"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete turístico parcial para o Vale Sagrado e Moray"
+      },
+      {
+       "language": "fr",
+       "content": "Billet touristique partiel pour la Vallée Sacrée et le Moray"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto turistico parziale per la Valle Sacra e Moray"
+      },
+      {
+       "language": "de",
+       "content": "Teilweise Touristenkarte für das Heilige Tal und Moray"
+      },
+      {
+       "language": "nl",
+       "content": "Gedeeltelijk toeristenticket voor de Heilige Vallei en Moray"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc82-70e8-b1b3-17c584f111cf",
+     "cotsegmento": {
+      "id": "019f7d55-cc80-7647-8569-3bf073b0f404"
+     },
+     "fechaHoraInicio": "2026-09-11T08:00:00",
+     "fechaHoraFin": "2026-09-11T15:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": true,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": []
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc82-70e8-b1b3-17c585f4171b",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Noche y Actividades en Skylodge"
+    },
+    {
+     "language": "en",
+     "content": "Night and Activities at Skylodge"
+    },
+    {
+     "language": "pt",
+     "content": "Noite e atividades no Skylodge"
+    },
+    {
+     "language": "fr",
+     "content": "Soirée et activités au Skylodge"
+    },
+    {
+     "language": "it",
+     "content": "Attività notturne allo Skylodge"
+    },
+    {
+     "language": "de",
+     "content": "Nachtleben und Aktivitäten in der Skylodge"
+    },
+    {
+     "language": "nl",
+     "content": "Overnachting en activiteiten in Skylodge"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc84-7b93-aec1-a8ba61fd118c",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-12T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Traslado desde el Valle Sagrado"
+      },
+      {
+       "language": "en",
+       "content": "Transfer from the Sacred Valley"
+      },
+      {
+       "language": "pt",
+       "content": "Transferência do Vale Sagrado"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert depuis la Vallée Sacrée"
+      },
+      {
+       "language": "it",
+       "content": "Trasferimento dalla Valle Sacra"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Heiligen Tal"
+      },
+      {
+       "language": "nl",
+       "content": "Transfer vanuit de Heilige Vallei"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc84-7b93-aec1-a8ba622ea30e",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-12T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ascenso por Vía Ferrata (Escalada Vertical)"
+      },
+      {
+       "language": "en",
+       "content": "Ascent via Via Ferrata (Vertical Climbing)"
+      },
+      {
+       "language": "pt",
+       "content": "Subida via Via Ferrata (Escalada Vertical)"
+      },
+      {
+       "language": "fr",
+       "content": "Ascension par via ferrata (escalade verticale)"
+      },
+      {
+       "language": "it",
+       "content": "Salita tramite Via Ferrata (Arrampicata Verticale)"
+      },
+      {
+       "language": "de",
+       "content": "Aufstieg über einen Klettersteig (Via Ferrata)"
+      },
+      {
+       "language": "nl",
+       "content": "Beklimming via Via Ferrata (verticaal klimmen)"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc84-7b93-aec1-a8ba6245a8f5",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-12T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Capsula Colgante del Skylodge"
+      },
+      {
+       "language": "en",
+       "content": "Skylodge Hanging Capsule Accommodation"
+      },
+      {
+       "language": "pt",
+       "content": "Acomodação em cápsula suspensa Skylodge"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement en capsule suspendue Skylodge"
+      },
+      {
+       "language": "it",
+       "content": "Sistemazione in capsula sospesa Skylodge"
+      },
+      {
+       "language": "de",
+       "content": "Skylodge Hängekapsel-Unterkunft"
+      },
+      {
+       "language": "nl",
+       "content": "Skylodge Hangende Capsule Accommodatie"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc84-7b93-aec1-a8ba629cbd12",
+     "dia": 2,
+     "orden": 4,
+     "fechaAbsoluta": "2026-09-13T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Descenso por Zipline (Circuito de Tirolesas Completo)"
+      },
+      {
+       "language": "en",
+       "content": "Zipline Descent (Complete Zipline Circuit)"
+      },
+      {
+       "language": "pt",
+       "content": "Descida de tirolesa (circuito completo de tirolesa)"
+      },
+      {
+       "language": "fr",
+       "content": "Descente en tyrolienne (circuit complet de tyrolienne)"
+      },
+      {
+       "language": "it",
+       "content": "Discesa in teleferica (percorso completo in teleferica)"
+      },
+      {
+       "language": "de",
+       "content": "Seilrutschenabfahrt (Kompletter Seilrutschenparcours)"
+      },
+      {
+       "language": "nl",
+       "content": "Zipline-afdaling (complete zipline-route)"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc84-7b93-aec1-a8ba63248b86",
+     "dia": 2,
+     "orden": 5,
+     "fechaAbsoluta": "2026-09-13T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Retorno hacia la Ciudad de Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Return to the City of Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Retorno à cidade de Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Retour à la ville de Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Ritorno alla città di Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Rückkehr in die Stadt Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Keer terug naar de stad Cusco."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc85-722f-91cf-461afeda849e",
+     "cotsegmento": {
+      "id": "019f7d55-cc84-7b93-aec1-a8ba6245a8f5"
+     },
+     "fechaHoraInicio": "2026-09-12T00:00:00",
+     "fechaHoraFin": "2026-09-13T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 90,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Capsulas flotantes"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in floating capsules"
+      },
+      {
+       "language": "pt",
+       "content": "Acomodação em cápsulas flutuantes"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement en capsules flottantes"
+      },
+      {
+       "language": "it",
+       "content": "Alloggio in capsule galleggianti"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in schwimmenden Kapseln"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in drijvende capsules"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc86-7534-a6cb-29165d6442e3",
+     "cotsegmento": {
+      "id": "019f7d55-cc84-7b93-aec1-a8ba61fd118c"
+     },
+     "fechaHoraInicio": "2026-09-12T15:00:00",
+     "fechaHoraFin": "2026-09-12T16:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde Valle Sagrado a Skylodge"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Sacred Valley to Skylodge"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do Vale Sagrado para o Skylodge"
+      },
+      {
+       "language": "fr",
+       "content": "Transport de la Vallée Sacrée au Skylodge"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dalla Valle Sacra allo Skylodge"
+      },
+      {
+       "language": "de",
+       "content": "Transport vom Heiligen Tal zur Skylodge"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van Sacred Valley naar Skylodge"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc87-73d3-9d18-76ee885a2f70",
+     "cotsegmento": {
+      "id": "019f7d55-cc84-7b93-aec1-a8ba622ea30e"
+     },
+     "fechaHoraInicio": "2026-09-12T16:00:00",
+     "fechaHoraFin": "2026-09-12T17:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Experiencia de la Via Ferrata"
+      },
+      {
+       "language": "en",
+       "content": "Via Ferrata Experience"
+      },
+      {
+       "language": "pt",
+       "content": "Experiência de Via Ferrata"
+      },
+      {
+       "language": "fr",
+       "content": "Expérience de via ferrata"
+      },
+      {
+       "language": "it",
+       "content": "Esperienza della Via Ferrata"
+      },
+      {
+       "language": "de",
+       "content": "Via-Ferrata-Erlebnis"
+      },
+      {
+       "language": "nl",
+       "content": "Via Ferrata-ervaring"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc87-73d3-9d18-76ee89ef0dc6",
+     "cotsegmento": {
+      "id": "019f7d55-cc84-7b93-aec1-a8ba629cbd12"
+     },
+     "fechaHoraInicio": "2026-09-13T09:00:00",
+     "fechaHoraFin": "2026-09-13T11:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Experiencia del Zipline"
+      },
+      {
+       "language": "en",
+       "content": "Zipline Experience"
+      },
+      {
+       "language": "pt",
+       "content": "Experiência de tirolesa"
+      },
+      {
+       "language": "fr",
+       "content": "Expérience de tyrolienne"
+      },
+      {
+       "language": "it",
+       "content": "Esperienza di zipline"
+      },
+      {
+       "language": "de",
+       "content": "Zipline-Erlebnis"
+      },
+      {
+       "language": "nl",
+       "content": "Zipline-ervaring"
+      }
+     ]
+    },
+    {
+     "id": "019f7d55-cc88-7682-976b-b79d46972670",
+     "cotsegmento": {
+      "id": "019f7d55-cc84-7b93-aec1-a8ba63248b86"
+     },
+     "fechaHoraInicio": "2026-09-13T11:00:00",
+     "fechaHoraFin": "2026-09-13T12:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde Skylodge a Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Skylodge to Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do Skylodge para Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Transport de Skylodge à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto da Skylodge a Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Transport von der Skylodge nach Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van Skylodge naar Cusco"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc89-7b90-bcad-19293d63f2f7",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Alojamiento"
+    },
+    {
+     "language": "en",
+     "content": "Accommodation"
+    },
+    {
+     "language": "pt",
+     "content": "Alojamento"
+    },
+    {
+     "language": "fr",
+     "content": "Hébergement"
+    },
+    {
+     "language": "it",
+     "content": "Alloggio"
+    },
+    {
+     "language": "de",
+     "content": "Unterkunft"
+    },
+    {
+     "language": "nl",
+     "content": "Accommodatie"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc89-7b90-bcad-19293e10833f",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-13T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Acomodação em Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Alloggio a Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Cusco"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc8a-7a96-875a-763a41f7d3a6",
+     "cotsegmento": {
+      "id": "019f7d55-cc89-7b90-bcad-19293e10833f"
+     },
+     "fechaHoraInicio": "2026-09-13T00:00:00",
+     "fechaHoraFin": "2026-09-15T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 90,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Accommodation in Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Hospedagem em Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi a Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Unterkunft in Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Accommodatie in Cusco"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "019f7d55-cc8b-7f13-9151-c30b9a6159eb",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Transporte en Cusco"
+    },
+    {
+     "language": "en",
+     "content": "Transportation in Cusco"
+    },
+    {
+     "language": "pt",
+     "content": "Transporte em Cusco"
+    },
+    {
+     "language": "fr",
+     "content": "Transports à Cusco"
+    },
+    {
+     "language": "it",
+     "content": "Trasporti a Cusco"
+    },
+    {
+     "language": "de",
+     "content": "Transport in Cusco"
+    },
+    {
+     "language": "nl",
+     "content": "Vervoer in Cusco"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "019f7d55-cc8b-7f13-9151-c30b9a941c2f",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-15T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el hotel en Cusco al Aeropuerto de Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from the hotel in Cusco to Cusco Airport"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do hotel em Cusco para o Aeroporto de Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert de l'hôtel à Cusco à l'aéroport de Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'hotel di Cusco all'aeroporto di Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Hotel in Cusco zum Flughafen Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van het hotel in Cusco naar de luchthaven van Cusco."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "019f7d55-cc8c-70d8-bbde-510e273f4902",
+     "cotsegmento": {
+      "id": "019f7d55-cc8b-7f13-9151-c30b9a941c2f"
+     },
+     "fechaHoraInicio": "2026-09-15T09:00:00",
+     "fechaHoraFin": "2026-09-15T10:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte"
+      },
+      {
+       "language": "en",
+       "content": "Transport"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte"
+      },
+      {
+       "language": "fr",
+       "content": "Transport"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto"
+      },
+      {
+       "language": "de",
+       "content": "Transport"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

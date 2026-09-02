@@ -1,0 +1,1763 @@
+{
+ "cotservicios": [
+  {
+   "id": "c8c593ba-ca1a-497d-b9b4-d9b57fa97c90",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Transporte en Lima"
+    },
+    {
+     "language": "en",
+     "content": "Transportation in Lima"
+    },
+    {
+     "language": "pt",
+     "content": "Transporte em Lima"
+    },
+    {
+     "language": "fr",
+     "content": "Transports à Lima"
+    },
+    {
+     "language": "it",
+     "content": "Trasporti a Lima"
+    },
+    {
+     "language": "de",
+     "content": "Verkehr in Lima"
+    },
+    {
+     "language": "nl",
+     "content": "Vervoer in Lima"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "31c94322-b279-49f0-9e2c-f3135d38b23f",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-10-30T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el Aeropuerto de Lima al hotel en Lima"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Lima Airport to the hotel in Lima"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do Aeroporto de Lima para o hotel em Lima"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert de l'aéroport de Lima à l'hôtel à Lima"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'aeroporto di Lima all'hotel di Lima"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Flughafen Lima zum Hotel in Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van de luchthaven van Lima naar het hotel in Lima."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "de243a43-cba3-4fce-bd36-5810c112c6e9",
+     "cotsegmento": {
+      "id": "31c94322-b279-49f0-9e2c-f3135d38b23f"
+     },
+     "fechaHoraInicio": "2026-10-30T08:00:00",
+     "fechaHoraFin": "2026-10-30T10:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el Aeropuerto de Lima al alojamiento en Lima"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Lima Airport to accommodation in Lima"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do Aeroporto de Lima até a sua acomodação em Lima."
+      },
+      {
+       "language": "fr",
+       "content": "Transferts de l'aéroport de Lima à votre hébergement à Lima"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'aeroporto di Lima all'alloggio a Lima"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Flughafen Lima zur Unterkunft in Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van de luchthaven van Lima naar uw accommodatie in Lima."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "99ca6453-1505-4661-92f0-0eaaa60f0a21",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Excursión de dia completo a Paracas y la Huacachina"
+    },
+    {
+     "language": "en",
+     "content": "Full-day excursion to Paracas and Huacachina"
+    },
+    {
+     "language": "pt",
+     "content": "Excursão de um dia inteiro a Paracas e Huacachina"
+    },
+    {
+     "language": "fr",
+     "content": "Excursion d'une journée à Paracas et Huacachina"
+    },
+    {
+     "language": "it",
+     "content": "Escursione di un'intera giornata a Paracas e Huacachina"
+    },
+    {
+     "language": "de",
+     "content": "Ganztagesausflug nach Paracas und Huacachina"
+    },
+    {
+     "language": "nl",
+     "content": "Dagtocht naar Paracas en Huacachina"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "152dac9f-7d36-46e5-bbf4-5bf499376cf1",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-10-31T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Traslado Costero de Lima a Paracas"
+      },
+      {
+       "language": "en",
+       "content": "Coastal Transfer from Lima to Paracas"
+      },
+      {
+       "language": "pt",
+       "content": "Transferência costeira de Lima para Paracas"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert côtier de Lima à Paracas"
+      },
+      {
+       "language": "it",
+       "content": "Trasferimento costiero da Lima a Paracas"
+      },
+      {
+       "language": "de",
+       "content": "Küstentransfer von Lima nach Paracas"
+      },
+      {
+       "language": "nl",
+       "content": "Kusttransfer van Lima naar Paracas"
+      }
+     ]
+    },
+    {
+     "id": "ba5f2434-2649-4fc9-9b57-7d67b22fa563",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-10-31T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Expedición Marina: Islas Ballestas y El Candelabro"
+      },
+      {
+       "language": "en",
+       "content": "Marine Expedition: Ballestas Islands and the Candelabro"
+      },
+      {
+       "language": "pt",
+       "content": "Expedição Marinha: Ilhas Ballestas e o Candelabro"
+      },
+      {
+       "language": "fr",
+       "content": "Expédition maritime : les îles Ballestas et le Candelabro"
+      },
+      {
+       "language": "it",
+       "content": "Spedizione marina: Isole Ballestas e Candelabro"
+      },
+      {
+       "language": "de",
+       "content": "Marineexpedition: Ballestas-Inseln und Candelabro"
+      },
+      {
+       "language": "nl",
+       "content": "Zee-expeditie: Ballestas-eilanden en de Candelabro"
+      }
+     ]
+    },
+    {
+     "id": "848b0d74-4d9e-4943-b15f-117f99517cce",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-10-31T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ruta del Sol y Sabores Iqueños"
+      },
+      {
+       "language": "en",
+       "content": "Route of the Sun and Flavors of Ica"
+      },
+      {
+       "language": "pt",
+       "content": "Rota do Sol e Sabores de Ica"
+      },
+      {
+       "language": "fr",
+       "content": "Route du Soleil et Saveurs d'Ica"
+      },
+      {
+       "language": "it",
+       "content": "Percorso del Sole e Sapori di Ica"
+      },
+      {
+       "language": "de",
+       "content": "Route der Sonne und Aromen von Ica"
+      },
+      {
+       "language": "nl",
+       "content": "Route van de Zon en Smaken van Ica"
+      }
+     ]
+    },
+    {
+     "id": "687c5124-c44e-4a9b-9259-7946c091ea23",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-10-31T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Oasis de Huacachina: Buggies y Sandboard"
+      },
+      {
+       "language": "en",
+       "content": "Huacachina Oasis: Buggies and Sandboard"
+      },
+      {
+       "language": "pt",
+       "content": "Oásis de Huacachina: Buggies e Sandboard"
+      },
+      {
+       "language": "fr",
+       "content": "Oasis de Huacachina : buggies et sandboard"
+      },
+      {
+       "language": "it",
+       "content": "Oasi di Huacachina: buggy e sandboard"
+      },
+      {
+       "language": "de",
+       "content": "Huacachina-Oase: Buggys und Sandboard"
+      },
+      {
+       "language": "nl",
+       "content": "Huacachina Oasis: Buggy's en sandboarden"
+      }
+     ]
+    },
+    {
+     "id": "c3ff5a49-29cf-47d0-a52f-1b07938afdc6",
+     "dia": 1,
+     "orden": 5,
+     "fechaAbsoluta": "2026-10-31T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Retorno a Lima al Atardecer"
+      },
+      {
+       "language": "en",
+       "content": "Return to Lima at Sunset"
+      },
+      {
+       "language": "pt",
+       "content": "Retorno a Lima ao pôr do sol"
+      },
+      {
+       "language": "fr",
+       "content": "Retour à Lima au coucher du soleil"
+      },
+      {
+       "language": "it",
+       "content": "Ritorno a Lima al tramonto"
+      },
+      {
+       "language": "de",
+       "content": "Rückkehr nach Lima bei Sonnenuntergang"
+      },
+      {
+       "language": "nl",
+       "content": "Keer bij zonsondergang terug naar Lima."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "e7db1b8e-c2ce-4abd-b0d6-5e50d6246e3d",
+     "cotsegmento": {
+      "id": "152dac9f-7d36-46e5-bbf4-5bf499376cf1"
+     },
+     "fechaHoraInicio": "2026-10-31T04:00:00",
+     "fechaHoraFin": "2026-10-31T22:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": true,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": []
+    }
+   ]
+  },
+  {
+   "id": "b3d13297-f30a-4966-a97c-17c74f0c2d86",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Transporte en Lima"
+    },
+    {
+     "language": "en",
+     "content": "Transportation in Lima"
+    },
+    {
+     "language": "pt",
+     "content": "Transporte em Lima"
+    },
+    {
+     "language": "fr",
+     "content": "Transports à Lima"
+    },
+    {
+     "language": "it",
+     "content": "Trasporti a Lima"
+    },
+    {
+     "language": "de",
+     "content": "Verkehr in Lima"
+    },
+    {
+     "language": "nl",
+     "content": "Vervoer in Lima"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "f9fab28c-04b1-4a0e-a667-983245519e92",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-11-01T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el hotel en Lima al Aeropuerto de Lima"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from the hotel in Lima to Lima Airport"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do hotel em Lima para o Aeroporto de Lima"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert de l'hôtel à Lima à l'aéroport de Lima"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'hotel di Lima all'aeroporto di Lima"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Hotel in Lima zum Flughafen Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van het hotel in Lima naar de luchthaven van Lima."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "35f7a7ce-fba6-4a34-acef-98112fc5e936",
+     "cotsegmento": {
+      "id": "f9fab28c-04b1-4a0e-a667-983245519e92"
+     },
+     "fechaHoraInicio": "2026-11-01T08:00:00",
+     "fechaHoraFin": "2026-11-01T10:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el alojamiento en Lima al Aeropuerto de Lima"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from accommodation in Lima to Lima Airport"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do seu alojamento em Lima até o Aeroporto de Lima."
+      },
+      {
+       "language": "fr",
+       "content": "Transferts depuis votre hébergement à Lima jusqu'à l'aéroport de Lima"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'alloggio a Lima all'aeroporto di Lima"
+      },
+      {
+       "language": "de",
+       "content": "Transfer von der Unterkunft in Lima zum Flughafen Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van uw accommodatie in Lima naar de luchthaven van Lima."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ce70bade-c8c9-4c17-962d-1e07da799a2c",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Vuelo"
+    },
+    {
+     "language": "en",
+     "content": "Flight"
+    },
+    {
+     "language": "pt",
+     "content": "Voo"
+    },
+    {
+     "language": "fr",
+     "content": "Vol"
+    },
+    {
+     "language": "it",
+     "content": "Volo"
+    },
+    {
+     "language": "de",
+     "content": "Flug"
+    },
+    {
+     "language": "nl",
+     "content": "Vlucht"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "041f0a1e-c1ef-4b27-8334-423fa1a50753",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-11-01T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Vuelo desde la ciudad de Lima a la ciudad de Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Flight from the city of Lima to the city of Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Voo da cidade de Lima para a cidade de Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Vol de la ville de Lima à la ville de Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Volo dalla città di Lima alla città di Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Flug von der Stadt Lima nach der Stadt Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Vlucht van Lima naar Cusco"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "195fccee-2df3-4dcb-9591-b510ffeecf1a",
+     "cotsegmento": {
+      "id": "041f0a1e-c1ef-4b27-8334-423fa1a50753"
+     },
+     "fechaHoraInicio": "2026-11-01T10:30:00",
+     "fechaHoraFin": "2026-11-01T11:50:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ticket aereo"
+      },
+      {
+       "language": "en",
+       "content": "Airline ticket"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete aéreo"
+      },
+      {
+       "language": "fr",
+       "content": "billet d'avion"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto aereo"
+      },
+      {
+       "language": "de",
+       "content": "Flugticket"
+      },
+      {
+       "language": "nl",
+       "content": "Vliegticket"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "f1a7ee46-0813-41db-9f55-66b354514780",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Transporte en Cusco"
+    },
+    {
+     "language": "en",
+     "content": "Transportation in Cusco"
+    },
+    {
+     "language": "pt",
+     "content": "Transporte em Cusco"
+    },
+    {
+     "language": "fr",
+     "content": "Transports à Cusco"
+    },
+    {
+     "language": "it",
+     "content": "Trasporti a Cusco"
+    },
+    {
+     "language": "de",
+     "content": "Transport in Cusco"
+    },
+    {
+     "language": "nl",
+     "content": "Vervoer in Cusco"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "e6a809a3-c29c-4602-a7da-d05f706ea333",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-11-01T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el Aeropuerto de Cusco al hotel en Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Cusco Airport to the hotel in Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do Aeroporto de Cusco para o hotel em Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert de l'aéroport de Cusco à l'hôtel à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'aeroporto di Cusco all'hotel di Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Flughafen Cusco zum Hotel in Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van de luchthaven van Cusco naar het hotel in Cusco."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "44fffe22-0ea4-47e9-8044-c6c6d2170533",
+     "cotsegmento": {
+      "id": "e6a809a3-c29c-4602-a7da-d05f706ea333"
+     },
+     "fechaHoraInicio": "2026-11-01T11:50:00",
+     "fechaHoraFin": "2026-11-01T12:50:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte"
+      },
+      {
+       "language": "en",
+       "content": "Transport"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte"
+      },
+      {
+       "language": "fr",
+       "content": "Transport"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto"
+      },
+      {
+       "language": "de",
+       "content": "Transport"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "3f3cdef5-f980-4087-b478-dab23edd1209",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Excursión a Machupicchu de 1 dia"
+    },
+    {
+     "language": "en",
+     "content": "Day trip to Machu Picchu"
+    },
+    {
+     "language": "pt",
+     "content": "Excursão de um dia a Machu Picchu"
+    },
+    {
+     "language": "fr",
+     "content": "Excursion d'une journée au Machu Picchu"
+    },
+    {
+     "language": "it",
+     "content": "Escursione di un giorno a Machu Picchu"
+    },
+    {
+     "language": "de",
+     "content": "Tagesausflug nach Machu Picchu"
+    },
+    {
+     "language": "nl",
+     "content": "Dagtocht naar Machu Picchu"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "47b8f121-2051-447f-9b07-9dfa6c7e7b53",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-11-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Traslado Bimodal de Ida (Vía Ollantaytambo)"
+      },
+      {
+       "language": "en",
+       "content": "Bimodal Transfer (Via Ollantaytambo)"
+      },
+      {
+       "language": "pt",
+       "content": "Transferência Bimodal (Via Ollantaytambo)"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert bimodal (Via Ollantaytambo)"
+      },
+      {
+       "language": "it",
+       "content": "Trasferimento bimodale (Via Ollantaytambo)"
+      },
+      {
+       "language": "de",
+       "content": "Bimodaler Transfer (Via Ollantaytambo)"
+      },
+      {
+       "language": "nl",
+       "content": "Bimodale overdracht (via Ollantaytambo)"
+      }
+     ]
+    },
+    {
+     "id": "b49f2179-5f08-416a-b0dd-526cecf83236",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-11-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Viaje en tren desde Ollantaytambo"
+      },
+      {
+       "language": "en",
+       "content": "Train journey from Ollantaytambo"
+      },
+      {
+       "language": "pt",
+       "content": "Viagem de trem de Ollantaytambo"
+      },
+      {
+       "language": "fr",
+       "content": "Voyage en train depuis Ollantaytambo"
+      },
+      {
+       "language": "it",
+       "content": "Viaggio in treno da Ollantaytambo"
+      },
+      {
+       "language": "de",
+       "content": "Zugfahrt von Ollantaytambo"
+      },
+      {
+       "language": "nl",
+       "content": "Treinreis vanuit Ollantaytambo"
+      }
+     ]
+    },
+    {
+     "id": "c89a67a3-04a4-4349-a3d2-976bd09795c4",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-11-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ascenso en bus al Santuario"
+      },
+      {
+       "language": "en",
+       "content": "Bus ride up to the Sanctuary"
+      },
+      {
+       "language": "pt",
+       "content": "Viagem de ônibus até o Santuário"
+      },
+      {
+       "language": "fr",
+       "content": "Trajet en bus jusqu'au sanctuaire"
+      },
+      {
+       "language": "it",
+       "content": "Viaggio in autobus fino al Santuario"
+      },
+      {
+       "language": "de",
+       "content": "Busfahrt hinauf zum Heiligtum"
+      },
+      {
+       "language": "nl",
+       "content": "Busrit naar het heiligdom"
+      }
+     ]
+    },
+    {
+     "id": "5a49d321-0d14-43b3-a2b6-09949a98e3c7",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-11-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Machu Picchu: Ruta de la Realeza (Circuito 3)"
+      },
+      {
+       "language": "en",
+       "content": "Machu Picchu: Route of Royalty (Circuit 3)"
+      },
+      {
+       "language": "pt",
+       "content": "Machu Picchu: Rota da Realeza (Circuito 3)"
+      },
+      {
+       "language": "fr",
+       "content": "Machu Picchu : Route de la Royauté (Circuit 3)"
+      },
+      {
+       "language": "it",
+       "content": "Machu Picchu: Itinerario Reale (Circuito 3)"
+      },
+      {
+       "language": "de",
+       "content": "Machu Picchu: Route der Könige (Rundweg 3)"
+      },
+      {
+       "language": "nl",
+       "content": "Machu Picchu: Koninklijke Route (Circuit 3)"
+      }
+     ]
+    },
+    {
+     "id": "593ba857-ade8-431b-bc41-c3a18e246fe7",
+     "dia": 1,
+     "orden": 5,
+     "fechaAbsoluta": "2026-11-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Descenso en bus a Machu Picchu Pueblo"
+      },
+      {
+       "language": "en",
+       "content": "Bus descent to Machu Picchu Pueblo"
+      },
+      {
+       "language": "pt",
+       "content": "Descida de ônibus até Machu Picchu Pueblo"
+      },
+      {
+       "language": "fr",
+       "content": "Descente en bus vers le pueblo de Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Discesa in autobus verso Machu Picchu Pueblo"
+      },
+      {
+       "language": "de",
+       "content": "Busabfahrt nach Machu Picchu Pueblo"
+      },
+      {
+       "language": "nl",
+       "content": "Busafdaling naar Machu Picchu Pueblo"
+      }
+     ]
+    },
+    {
+     "id": "26811121-1cca-4da7-b7ba-582e8f863bdb",
+     "dia": 1,
+     "orden": 6,
+     "fechaAbsoluta": "2026-11-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Viaje en tren de retorno a Ollantaytambo"
+      },
+      {
+       "language": "en",
+       "content": "Return train journey to Ollantaytambo"
+      },
+      {
+       "language": "pt",
+       "content": "Viagem de trem de volta para Ollantaytambo"
+      },
+      {
+       "language": "fr",
+       "content": "Voyage aller-retour en train jusqu'à Ollantaytambo"
+      },
+      {
+       "language": "it",
+       "content": "Viaggio di ritorno in treno per Ollantaytambo"
+      },
+      {
+       "language": "de",
+       "content": "Rückfahrt mit dem Zug nach Ollantaytambo"
+      },
+      {
+       "language": "nl",
+       "content": "De terugreis met de trein naar Ollantaytambo"
+      }
+     ]
+    },
+    {
+     "id": "8eff937f-d82a-432a-9ccb-0218056e2f0e",
+     "dia": 1,
+     "orden": 7,
+     "fechaAbsoluta": "2026-11-02T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Retorno Bimodal a Cusco (Vía Ollantaytambo)"
+      },
+      {
+       "language": "en",
+       "content": "Bimodal Return to Cusco (Via Ollantaytambo)"
+      },
+      {
+       "language": "pt",
+       "content": "Retorno bimodal a Cusco (Via Ollantaytambo)"
+      },
+      {
+       "language": "fr",
+       "content": "Retour bimodal à Cusco (Via Ollantaytambo)"
+      },
+      {
+       "language": "it",
+       "content": "Ritorno bimodale a Cusco (Via Ollantaytambo)"
+      },
+      {
+       "language": "de",
+       "content": "Bimodale Rückfahrt nach Cusco (Via Ollantaytambo)"
+      },
+      {
+       "language": "nl",
+       "content": "Bimodale terugkeer naar Cusco (Via Ollantaytambo)"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "ace49b1e-fc2c-438f-85c9-a1afee51c8c5",
+     "cotsegmento": {
+      "id": "47b8f121-2051-447f-9b07-9dfa6c7e7b53"
+     },
+     "fechaHoraInicio": "2026-11-02T04:20:00",
+     "fechaHoraFin": "2026-11-02T04:40:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte dentro de Cusco hasta Terminal de bus (servicio bimodal)"
+      },
+      {
+       "language": "en",
+       "content": "Transportation within Cusco to the bus terminal (bimodal service)"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte dentro de Cusco até o terminal rodoviário (serviço bimodal)"
+      },
+      {
+       "language": "fr",
+       "content": "Transport à l'intérieur de Cusco jusqu'à la gare routière (service bimodal)"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto all'interno di Cusco verso il terminal degli autobus (servizio bimodale)"
+      },
+      {
+       "language": "de",
+       "content": "Transport innerhalb von Cusco zum Busbahnhof (bimodaler Service)"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer binnen Cusco naar het busstation (bimodale dienst)"
+      }
+     ]
+    },
+    {
+     "id": "cc578ded-6632-4db4-bb54-16749c410109",
+     "cotsegmento": {
+      "id": "47b8f121-2051-447f-9b07-9dfa6c7e7b53"
+     },
+     "fechaHoraInicio": "2026-11-02T05:10:00",
+     "fechaHoraFin": "2026-11-02T07:10:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde Terminal de bus (servicio bimodal) a Estación de Ollantaytambo"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Bus Terminal (bimodal service) to Ollantaytambo Station"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do Terminal Rodoviário (serviço bimodal) para a Estação Ollantaytambo"
+      },
+      {
+       "language": "fr",
+       "content": "Transport depuis la gare routière (service bimodal) jusqu'à la gare d'Ollantaytambo"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dal terminal degli autobus (servizio bimodale) alla stazione di Ollantaytambo."
+      },
+      {
+       "language": "de",
+       "content": "Transport vom Busbahnhof (bimodaler Service) zum Bahnhof Ollantaytambo"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van het busstation (bimodale dienst) naar station Ollantaytambo"
+      }
+     ]
+    },
+    {
+     "id": "47b8a9e2-8f42-4c4d-8966-cdf8f7e669ff",
+     "cotsegmento": {
+      "id": "b49f2179-5f08-416a-b0dd-526cecf83236"
+     },
+     "fechaHoraInicio": "2026-11-02T07:45:00",
+     "fechaHoraFin": "2026-11-02T09:15:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ticket de tren desde estación de Ollantaytambo a Machupicchu"
+      },
+      {
+       "language": "en",
+       "content": "Train ticket from Ollantaytambo station to Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de trem da estação de Ollantaytambo para Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de train de la gare d'Ollantaytambo à Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto del treno dalla stazione di Ollantaytambo a Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Zugticket von der Ollantaytambo Station nach Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Treinkaartje van station Ollantaytambo naar Machu Picchu"
+      }
+     ]
+    },
+    {
+     "id": "b8772ba6-97c0-4463-b380-ec751a1e9ed4",
+     "cotsegmento": {
+      "id": "c89a67a3-04a4-4349-a3d2-976bd09795c4"
+     },
+     "fechaHoraInicio": "2026-11-02T10:00:00",
+     "fechaHoraFin": "2026-11-02T10:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de bus desde Aguas Calientes al Santuario de Machupicchu"
+      },
+      {
+       "language": "en",
+       "content": "Bus ticket from Aguas Calientes to the Sanctuary of Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de ônibus de Aguas Calientes ao Santuário de Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de bus d'Aguas Calientes au sanctuaire de Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto dell'autobus da Aguas Calientes al Santuario di Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Busticket von Aguas Calientes zum Heiligtum von Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Busticket van Aguas Calientes naar het heiligdom van Machu Picchu"
+      }
+     ]
+    },
+    {
+     "id": "75b6c5e0-5706-4348-8030-e2cdf77b089b",
+     "cotsegmento": {
+      "id": "5a49d321-0d14-43b3-a2b6-09949a98e3c7"
+     },
+     "fechaHoraInicio": "2026-11-02T11:00:00",
+     "fechaHoraFin": "2026-11-03T11:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de ingreso a Machu Picchu"
+      },
+      {
+       "language": "en",
+       "content": "Entrance ticket to Machu Picchu"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de entrada para Machu Picchu"
+      },
+      {
+       "language": "fr",
+       "content": "Billet d'entrée pour le Machu Picchu"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto d'ingresso a Machu Picchu"
+      },
+      {
+       "language": "de",
+       "content": "Eintrittskarte für Machu Picchu"
+      },
+      {
+       "language": "nl",
+       "content": "Toegangskaartje voor Machu Picchu"
+      }
+     ]
+    },
+    {
+     "id": "8612953f-1372-4ed7-90dd-ccd31e09409c",
+     "cotsegmento": {
+      "id": "5a49d321-0d14-43b3-a2b6-09949a98e3c7"
+     },
+     "fechaHoraInicio": "2026-11-02T11:00:00",
+     "fechaHoraFin": "2026-11-02T13:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Guiado"
+      },
+      {
+       "language": "en",
+       "content": "Guided"
+      },
+      {
+       "language": "pt",
+       "content": "Guiado"
+      },
+      {
+       "language": "fr",
+       "content": "Guidé"
+      },
+      {
+       "language": "it",
+       "content": "Guidato"
+      },
+      {
+       "language": "de",
+       "content": "Geführt"
+      },
+      {
+       "language": "nl",
+       "content": "Begeleid"
+      }
+     ]
+    },
+    {
+     "id": "3801c60d-a334-4f48-8be1-685bd1f83e37",
+     "cotsegmento": {
+      "id": "593ba857-ade8-431b-bc41-c3a18e246fe7"
+     },
+     "fechaHoraInicio": "2026-11-02T14:00:00",
+     "fechaHoraFin": "2026-11-02T14:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de bus desde Santuario de Machupicchu a Aguas Calientes"
+      },
+      {
+       "language": "en",
+       "content": "Bus ticket from Aguas Calientes to the Sanctuary of Machu Picchu or vice versa (One Way)"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de ônibus de Aguas Calientes para o Santuário de Machu Picchu ou vice-versa (ida)"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de bus d'Aguas Calientes au sanctuaire du Machu Picchu ou vice versa (aller simple)"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto dell'autobus da Aguas Calientes al Santuario di Machu Picchu o viceversa (sola andata)"
+      },
+      {
+       "language": "de",
+       "content": "Busticket von Aguas Calientes zum Heiligtum von Machu Picchu oder umgekehrt (einfache Fahrt)"
+      },
+      {
+       "language": "nl",
+       "content": "Buskaartje van Aguas Calientes naar het heiligdom van Machu Picchu of vice versa (enkele reis)"
+      }
+     ]
+    },
+    {
+     "id": "9a235b0b-a3cf-44be-bb80-44f5f6a3d23e",
+     "cotsegmento": {
+      "id": "26811121-1cca-4da7-b7ba-582e8f863bdb"
+     },
+     "fechaHoraInicio": "2026-11-02T16:22:00",
+     "fechaHoraFin": "2026-11-02T18:10:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Ticket de tren de Machupicchu a  estación de Ollantaytambo"
+      },
+      {
+       "language": "en",
+       "content": "Train ticket from Machu Picchu to Ollantaytambo station"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de trem de Machu Picchu para a estação de Ollantaytambo"
+      },
+      {
+       "language": "fr",
+       "content": "Billet de train de Machu Picchu à la gare d'Ollantaytambo"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto del treno da Machu Picchu alla stazione di Ollantaytambo."
+      },
+      {
+       "language": "de",
+       "content": "Zugticket von Machu Picchu zum Bahnhof Ollantaytambo"
+      },
+      {
+       "language": "nl",
+       "content": "Treinkaartje van Machu Picchu naar station Ollantaytambo"
+      }
+     ]
+    },
+    {
+     "id": "6ad4e451-71f5-41e8-bab8-7a55bfd8beb8",
+     "cotsegmento": {
+      "id": "8eff937f-d82a-432a-9ccb-0218056e2f0e"
+     },
+     "fechaHoraInicio": "2026-11-02T18:20:00",
+     "fechaHoraFin": "2026-11-02T20:20:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde Estación de Ollantaytambo a  Terminal de bus (servicio bimodal)"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from Ollantaytambo Station to Bus Terminal (bimodal service)"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte da Estação Ollantaytambo para o Terminal Rodoviário (serviço bimodal)"
+      },
+      {
+       "language": "fr",
+       "content": "Transport de la gare d'Ollantaytambo à la gare routière (service bimodal)"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dalla stazione di Ollantaytambo al terminal degli autobus (servizio bimodale)"
+      },
+      {
+       "language": "de",
+       "content": "Transport vom Bahnhof Ollantaytambo zum Busbahnhof (bimodaler Service)"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van station Ollantaytambo naar het busstation (bimodale dienst)"
+      }
+     ]
+    },
+    {
+     "id": "ccd8c77c-e8b5-4bad-b454-fe8b00d70d9c",
+     "cotsegmento": {
+      "id": "8eff937f-d82a-432a-9ccb-0218056e2f0e"
+     },
+     "fechaHoraInicio": "2026-11-02T20:20:00",
+     "fechaHoraFin": "2026-11-02T21:20:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte dentro de Cusco desde Terminal de bus (servicio bimodal)"
+      },
+      {
+       "language": "en",
+       "content": "Transportation within Cusco from the bus terminal (bimodal service)"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte dentro de Cusco a partir do terminal rodoviário (serviço bimodal)"
+      },
+      {
+       "language": "fr",
+       "content": "Transports à l'intérieur de Cusco depuis la gare routière (service bimodal)"
+      },
+      {
+       "language": "it",
+       "content": "Trasporti all'interno di Cusco dal terminal degli autobus (servizio bimodale)"
+      },
+      {
+       "language": "de",
+       "content": "Transport innerhalb von Cusco ab dem Busbahnhof (bimodaler Service)"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer binnen Cusco vanaf het busstation (bimodale dienstregeling)"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "b4ae1af7-2b7c-42a9-aaca-0c5ea05e46ca",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Excursión a la Laguna de Humantay"
+    },
+    {
+     "language": "en",
+     "content": "Excursion to the Humantay Lagoon via the classic route"
+    },
+    {
+     "language": "pt",
+     "content": "Excursão à Lagoa Humantay pela rota clássica"
+    },
+    {
+     "language": "fr",
+     "content": "Excursion à la lagune Humantay par l'itinéraire classique"
+    },
+    {
+     "language": "it",
+     "content": "Escursione alla laguna di Humantay attraverso l'itinerario classico"
+    },
+    {
+     "language": "de",
+     "content": "Ausflug zur Humantay-Lagune über die klassische Route"
+    },
+    {
+     "language": "nl",
+     "content": "Excursie naar de Humantay-lagune via de klassieke route."
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "3e3f22c5-08f4-4f71-94ac-6dcab8263f77",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-11-03T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Laguna de Humantay (Caminata Clásica)"
+      },
+      {
+       "language": "en",
+       "content": "Humantay Lagoon (Classic Hike)"
+      },
+      {
+       "language": "pt",
+       "content": "Lagoa Humantay (Trilha Clássica)"
+      },
+      {
+       "language": "fr",
+       "content": "Lagune Humantay (Randonnée classique)"
+      },
+      {
+       "language": "it",
+       "content": "Laguna di Humantay (Escursione classica)"
+      },
+      {
+       "language": "de",
+       "content": "Humantay-Lagune (Klassische Wanderung)"
+      },
+      {
+       "language": "nl",
+       "content": "Humantay Lagoon (klassieke wandeling)"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "340118fa-d6dc-4d19-9e0e-39b1ed6ef7a8",
+     "cotsegmento": {
+      "id": "3e3f22c5-08f4-4f71-94ac-6dcab8263f77"
+     },
+     "fechaHoraInicio": "2026-11-03T00:00:00",
+     "fechaHoraFin": "2026-11-03T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de ingreso a la laguna de Humantay"
+      },
+      {
+       "language": "en",
+       "content": "Entrance ticket to Humantay Lagoon"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de entrada para a Lagoa Humantay"
+      },
+      {
+       "language": "fr",
+       "content": "Billet d'entrée pour le lagon Humantay"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto d'ingresso alla laguna di Humantay"
+      },
+      {
+       "language": "de",
+       "content": "Eintrittskarte zur Humantay-Lagune"
+      },
+      {
+       "language": "nl",
+       "content": "Toegangskaartje voor Humantay Lagoon"
+      }
+     ]
+    },
+    {
+     "id": "9c7af937-ddc9-4080-bb8f-65a2c3a3cd34",
+     "cotsegmento": {
+      "id": "3e3f22c5-08f4-4f71-94ac-6dcab8263f77"
+     },
+     "fechaHoraInicio": "2026-11-03T04:00:00",
+     "fechaHoraFin": "2026-11-03T18:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": true,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": []
+    }
+   ]
+  },
+  {
+   "id": "755d9a0f-4642-4f09-a625-b34fa83d15ec",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Excursión a la montaña de colores por las ruta clásica"
+    },
+    {
+     "language": "en",
+     "content": "Excursion to Rainbow Mountain via the classic route"
+    },
+    {
+     "language": "pt",
+     "content": "Excursão à Montanha Arco-Íris pela rota clássica"
+    },
+    {
+     "language": "fr",
+     "content": "Excursion à la Montagne Arc-en-ciel par l'itinéraire classique"
+    },
+    {
+     "language": "it",
+     "content": "Escursione alla Montagna Arcobaleno attraverso il percorso classico"
+    },
+    {
+     "language": "de",
+     "content": "Ausflug zum Regenbogenberg über die klassische Route"
+    },
+    {
+     "language": "nl",
+     "content": "Excursie naar Rainbow Mountain via de klassieke route"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "7d399d0e-768c-42b3-bfc4-e3a84bc464bd",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-11-04T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Montaña de 7 Colores (Caminata Clásica)"
+      },
+      {
+       "language": "en",
+       "content": "Rainbow Mountain (Classic Hike)"
+      },
+      {
+       "language": "pt",
+       "content": "Montanha Arco-Íris (Trilha Clássica)"
+      },
+      {
+       "language": "fr",
+       "content": "Montagne Arc-en-ciel (Randonnée classique)"
+      },
+      {
+       "language": "it",
+       "content": "Montagna Arcobaleno (Escursione Classica)"
+      },
+      {
+       "language": "de",
+       "content": "Regenbogenberg (Klassische Wanderung)"
+      },
+      {
+       "language": "nl",
+       "content": "Regenboogberg (klassieke wandeling)"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "46ce0cb6-3308-481b-aedf-e5bbed49769c",
+     "cotsegmento": {
+      "id": "7d399d0e-768c-42b3-bfc4-e3a84bc464bd"
+     },
+     "fechaHoraInicio": "2026-11-04T00:00:00",
+     "fechaHoraFin": "2026-11-04T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Boleto de ingreso a la Montaña de 7 colores"
+      },
+      {
+       "language": "en",
+       "content": "Entrance ticket to the Rainbow Mountain"
+      },
+      {
+       "language": "pt",
+       "content": "Bilhete de entrada para a Montanha Arco-Íris"
+      },
+      {
+       "language": "fr",
+       "content": "Billet d'entrée pour la Montagne Arc-en-ciel"
+      },
+      {
+       "language": "it",
+       "content": "Biglietto d'ingresso alla Montagna Arcobaleno"
+      },
+      {
+       "language": "de",
+       "content": "Eintrittskarte für den Regenbogenberg"
+      },
+      {
+       "language": "nl",
+       "content": "Toegangskaartje voor de Regenboogberg"
+      }
+     ]
+    },
+    {
+     "id": "91fe3260-9123-487f-b78d-98699b688fcb",
+     "cotsegmento": {
+      "id": "7d399d0e-768c-42b3-bfc4-e3a84bc464bd"
+     },
+     "fechaHoraInicio": "2026-11-04T04:00:00",
+     "fechaHoraFin": "2026-11-04T17:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": true,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": []
+    }
+   ]
+  },
+  {
+   "id": "57afd64a-c410-42f0-b124-df720390023d",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Transporte en Cusco"
+    },
+    {
+     "language": "en",
+     "content": "Transportation in Cusco"
+    },
+    {
+     "language": "pt",
+     "content": "Transporte em Cusco"
+    },
+    {
+     "language": "fr",
+     "content": "Transports à Cusco"
+    },
+    {
+     "language": "it",
+     "content": "Trasporti a Cusco"
+    },
+    {
+     "language": "de",
+     "content": "Transport in Cusco"
+    },
+    {
+     "language": "nl",
+     "content": "Vervoer in Cusco"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "b6feafd2-f1e4-482f-ad43-451a84dd81a3",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-11-05T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte desde el hotel en Cusco al Aeropuerto de Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Transportation from the hotel in Cusco to Cusco Airport"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte do hotel em Cusco para o Aeroporto de Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert de l'hôtel à Cusco à l'aéroport de Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto dall'hotel di Cusco all'aeroporto di Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Transfer vom Hotel in Cusco zum Flughafen Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer van het hotel in Cusco naar de luchthaven van Cusco."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "f930bd20-6d9d-4ce6-abd1-c93a9bd7a034",
+     "cotsegmento": {
+      "id": "b6feafd2-f1e4-482f-ad43-451a84dd81a3"
+     },
+     "fechaHoraInicio": "2026-11-05T08:00:00",
+     "fechaHoraFin": "2026-11-05T09:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte"
+      },
+      {
+       "language": "en",
+       "content": "Transport"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte"
+      },
+      {
+       "language": "fr",
+       "content": "Transport"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto"
+      },
+      {
+       "language": "de",
+       "content": "Transport"
+      },
+      {
+       "language": "nl",
+       "content": "Vervoer"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
