@@ -1766,6 +1766,9 @@ Expediente
 
 Ninguna de las tres consume número de propuesta: se distinguen por estado (§6.j).
 
+⚠️ **La OPERATIVA todavía no existe**: está diseñada, no construida. El plan —con el orden por
+riesgo y las trampas localizadas— está en `docs/PlanPropuestaOperativa.md`.
+
 ### Qué se renombró
 
 | | Antes | Ahora |
