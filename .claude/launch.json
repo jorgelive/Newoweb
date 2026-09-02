@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pax",
+      "url": "https://pax.openperu.test:8890",
+      "port": 8890
+    },
+    {
+      "name": "util",
+      "url": "https://util.openperu.test:8890",
+      "port": 8890
+    }
+  ]
+}

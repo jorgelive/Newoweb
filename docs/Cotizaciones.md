@@ -28,6 +28,15 @@ Las plantillas Twig deciden con `{% if is_dev %}`:
 
 Ambas apps son **PWA con service worker** (`vite-plugin-pwa`, `generateSW`). Si hay caché raro en dev, el sospechoso es el SW (DevTools → Application → Service Workers → Unregister), no el bundle.
 
+**Ver el BUILD sin cambiar el entorno: `?mode=build`.** `PaxAppController` (y su gemelo de `util`)
+aceptan ese parámetro y sirven el bundle compilado aunque `APP_ENV=dev`. Es la puerta prevista para
+comprobar lo que de verdad se va a desplegar.
+
+⚠️ **Y es la única forma de mirar la app desde un navegador que aísle orígenes.** El panel de
+navegador del agente bloquea los módulos del dev server —viven en otro puerto—, así que la página
+carga en blanco con `ERR_BLOCKED_BY_CLIENT` y ningún error que hable de eso. Con `?mode=build` todo
+sale del mismo origen y funciona. Costó media hora descubrirlo la primera vez.
+
 ---
 
 ## 2. Modelo de dominio (el "árbol" de la cotización)
