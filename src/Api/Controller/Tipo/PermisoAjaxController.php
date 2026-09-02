@@ -57,8 +57,18 @@ class PermisoAjaxController extends AbstractController
         Roles::MENSAJES_DELETE,
     ];
 
+    // ⚠️ **`ROLE_USER`, NO `IS_AUTHENTICATED_FULLY`.** Aquí estuvo `FULLY` del 16/08 al 02/09/2026
+    // y dejó «Recordarme» sin efecto para toda la aplicación: `FULLY` significa «credenciales
+    // frescas de este login», que una cookie REMEMBERME nunca cumple, y el SPA pide esta ruta en
+    // **cada arranque**. Con la sesión caducada y la cookie viva, quien había marcado «Recordarme»
+    // no entraba: primero con `ERR_TOO_MANY_REDIRECTS` (ver `SecurityController::login()`), y
+    // luego —ya arreglado el bucle— con el formulario de contraseña otra vez.
+    //
+    // Este endpoint es de sólo lectura y devuelve los permisos **del propio usuario**: no hay nada
+    // que unas credenciales frescas protejan y `ROLE_USER` no proteja ya. `FULLY` se reserva para
+    // lo que sí lo pide —cambiar contraseña, cobrar, borrar—, no para arrancar la interfaz.
     #[Route('', name: '', methods: ['GET'])]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('ROLE_USER')]
     public function __invoke(): JsonResponse
     {
         $data = [];

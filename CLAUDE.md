@@ -193,6 +193,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Travel/` (catálogo maestro: servicios, itinerarios, segmentos, componentes, tarifas, proveedores) | `docs/Travel.md` |
 | **Cargar** contenido de catálogo por comando (segmentos, componentes, tarifas, pools, plantillas) | `docs/TravelCargaDeCatalogo.md` — la receta y sus trampas |
 | `src/Api/Filter/` (filtros de API compartidos entre módulos) | `docs/Operacion.md` §8 — ahí está el porqué de `UuidRelacionFilter` y la regla relación vs. texto |
+| `config/packages/security.yaml`, `src/Controller/SecurityController.php`, login y «Recordarme» en `util/` | `docs/Autenticacion.md` — y la regla de cuándo vale `IS_AUTHENTICATED_FULLY` |
 
 Si el módulo que tocas no tiene doc (`src/Pax/`…), **créalo**
 siguiendo el formato de los existentes y agrégalo a esta tabla.
