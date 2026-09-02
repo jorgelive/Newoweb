@@ -129,7 +129,13 @@
   - `util/` — app interna de operación (calendario de reservas, tarifas, cotizaciones, chat).
   - `pax/` — app pública del huésped (guía, vista cliente de cotizaciones).
   Verificación: `cd util && npm run typecheck` **y** `npx eslint .` (idem en `pax/`). Las dos
-  tienen que salir limpias.
+  tienen que salir limpias. En `pax` además **`npm test`** (Vitest), que cubre los módulos de
+  `pax/src/dominio/` — ver `docs/NodeEnElStack.md` §5.
+
+  ⚠️ **Hasta el 02/09/2026 no había NI UN test de TypeScript** —540 en PHP, cero aquí— y ningún
+  runner instalado. Se instaló al ir a mover cálculo de negocio a módulos compartibles: hacerlo
+  antes habría sido pasar lógica del lado con red al lado sin ella. Un snapshot que cambia se lee
+  y se decide; **no se actualiza con `-u` porque salió en rojo**.
 
   **ESLint** (config plana, `eslint.config.js` en cada app: `eslint-plugin-vue` +
   `typescript-eslint`). Está afinado para que **cada aviso sea un aviso**: todas las reglas de
@@ -174,6 +180,9 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Pms/`, `src/Exchange/` (reservas, webhooks, push/pull Beds24) | `docs/PmsBeds24ReservasSync.md` |
 | `src/Calendar/`, vistas de calendario de `util/` (Reservas, Tarifas) | `docs/Calendar_architecture.md` |
 | `src/Cotizacion/`, cotizaciones y catálogo en `util/` y `pax/` | `docs/Cotizaciones.md` |
+| `pax/src/dominio/` (módulos puros: reglas sin Vue ni store, importables desde Node) | `docs/NodeEnElStack.md` §9 — y el doc del módulo que corresponda |
+| Procesos Node compartidos entre back y front (plan de ejecución por fases) | `docs/PlanProcesamientoCompartido.md` |
+| `src/Pax/Entity/UiI18n.php`, `src/Pax/Command/` (las cadenas de UI de la app del huésped) | El doc de la pantalla donde se leen. Entran por comando ORM, **nunca** por SQL: llevan `#[AutoTranslate]` |
 | `util/src/components/` y `common/`, `util/src/types/modulosApp.ts` (UI y navegación reutilizables entre módulos) | `docs/UI_Componentes_Compartidos.md` |
 | `src/Operacion/`, La Biblia y Órdenes de Servicio en `util/` | `docs/Operacion.md` |
 | `src/Pms/Guia/`, entidades `PmsGuia*`, guía del huésped y catálogo en `pax/` | `docs/PmsGuiaHuesped.md` |
