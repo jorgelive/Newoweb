@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { componerItinerario, type CotizacionParaItinerario, type DiaVista } from './itinerarioVista';
+import { componerItinerario, type ServicioMinimo, type DiaVista } from './itinerarioVista';
 import cot2KVBMX from './__fixtures__/2KVBMX.json';
 import cotVQ2EG5 from './__fixtures__/VQ2EG5.json';
 import cot5SRAJV from './__fixtures__/5SRAJV.json';
@@ -23,20 +23,20 @@ import cot5SRAJV from './__fixtures__/5SRAJV.json';
  * a ciegas con `-u` vacía el propósito entero de este archivo.
  */
 
-// ⚠️ Los fixtures traen los doce campos que el módulo lee, no la serialización completa de la
-// API. `componerItinerario()` todavía declara su entrada como `PaxCotServicio[]` —la forma
-// pública entera— así que hay que afirmarla. **Este cast es la prueba de que ese tipo es
-// demasiado ancho**: el día que el módulo declare su contrato mínimo, los fixtures encajarán
-// solos y esta línea desaparece.
-const como = (fixture: unknown): CotizacionParaItinerario => fixture as CotizacionParaItinerario;
+// ⚠️ **Aquí ya no hay ningún `as`, y eso es el test de verdad del contrato.** Hasta el
+// 02/09/2026 el módulo declaraba su entrada como la serialización pública entera de `pax`, así
+// que un fixture con los doce campos que de verdad lee **no encajaba** y había que afirmarlo.
+// Que estos JSON compilen tal cual demuestra que el contrato describe lo que el módulo usa y no
+// la forma de un consumidor concreto — que es lo que permite que `util` lo llame con los suyos.
 
 /** La forma legible de un itinerario: lo que se compara en los snapshots. */
-const resumir = (dias: DiaVista[]): string[] =>
+const resumir = <S extends ServicioMinimo>(dias: DiaVista<S>[]): string[] =>
     dias.flatMap((dia) => [
         `── Día ${dia.numeroDia} · ${dia.fecha}`,
         ...dia.bloques.map((b) => {
             const hora = b.horaServicioInicio ?? b.horaInicio ?? '  —  ';
-            const titulo = b.segmento.tituloSnapshot?.find((t) => t.content)?.content ?? '(sin título)';
+            const titulos = (b.segmento as { tituloSnapshot?: { content?: string | null }[] }).tituloSnapshot;
+            const titulo = titulos?.find((t) => t.content)?.content ?? '(sin título)';
             const marca = b.esEstadia
                 ? (b.esRepeticion ? ` [noche ${b.noche}/${b.totalNoches}]` : ` [estadía ${b.totalNoches}n]`)
                 : '';
@@ -46,7 +46,7 @@ const resumir = (dias: DiaVista[]): string[] =>
 
 describe('componerItinerario · cotizaciones reales', () => {
     it('2KVBMX v2 — 16 días con estadías encadenadas', () => {
-        const dias = componerItinerario(como(cot2KVBMX));
+        const dias = componerItinerario(cot2KVBMX);
 
         // El número de días es la aserción que más grita: un viaje con hoteles pierde los días
         // intermedios en cuanto la regla de estadías se rompe. La primera versión del PDF en PHP
@@ -56,7 +56,7 @@ describe('componerItinerario · cotizaciones reales', () => {
     });
 
     it('VQ2EG5 v1 — 7 días sin estadías', () => {
-        const dias = componerItinerario(como(cotVQ2EG5));
+        const dias = componerItinerario(cotVQ2EG5);
 
         expect(dias).toHaveLength(7);
         expect(resumir(dias)).toMatchSnapshot();
@@ -64,7 +64,7 @@ describe('componerItinerario · cotizaciones reales', () => {
 });
 
 describe('las tres reglas que no se adivinan leyendo las entidades', () => {
-    const dias = componerItinerario(como(cot2KVBMX));
+    const dias = componerItinerario(cot2KVBMX);
     const bloques = dias.flatMap((d) => d.bloques);
 
     it('una estadía se repite cada día de su periodo, y sólo la primera no es repetición', () => {
@@ -137,7 +137,7 @@ describe('el orden del día', () => {
         // servicio se coloca por su hora más temprana y **todo lo suyo se pinta seguido**, así que
         // dentro de un grupo conviven bloques con hora y sin ella. Comprobarlo bloque a bloque
         // falla contra datos correctos — lo hizo al escribir este test.
-        for (const dia of componerItinerario(como(cot2KVBMX))) {
+        for (const dia of componerItinerario(cot2KVBMX)) {
             const grupos: { clave: string; conHora: boolean; esEstadia: boolean }[] = [];
 
             for (const b of dia.bloques) {
@@ -175,7 +175,7 @@ describe('el orden del día', () => {
      * cotización en la base de pruebas.
      */
     it('con orden manual, sobre datos reales: el orden del operador se respeta', () => {
-        const dias = componerItinerario(como(cot5SRAJV));
+        const dias = componerItinerario(cot5SRAJV);
 
         // Los servicios ordenados a mano conviven en un mismo día con otros sin `orden`.
         const conOrden = cot5SRAJV.cotservicios.filter((s) => (s.orden ?? 0) > 0).map((s) => s.id);
@@ -199,7 +199,7 @@ describe('el orden del día', () => {
      * ocurre en producción; éste prueba QUÉ hace exactamente.
      */
     it('con orden manual: manda el orden de la persona, no el reloj', () => {
-        const cot: CotizacionParaItinerario = como({
+        const cot = {
             cotservicios: [
                 {
                     id: 'tarde', orden: 1, tituloSnapshot: [],
@@ -212,7 +212,7 @@ describe('el orden del día', () => {
                     cotcomponentes: [{ id: 'c-manana', cotsegmento: { id: 's-manana' }, fechaHoraInicio: '2030-01-01T08:00:00', fechaHoraFin: null, sinHorario: false, horaServicioCompleto: false, ordenNarrativo: 30, tituloSnapshot: [] }],
                 },
             ],
-        });
+        };
 
         const [dia] = componerItinerario(cot);
 
@@ -228,18 +228,36 @@ describe('bordes', () => {
         expect(componerItinerario({ cotservicios: [] })).toEqual([]);
     });
 
-    it('el botón de inclusiones sale una vez por servicio y día, y nunca en una repetición', () => {
-        const conInclusiones = new Set(cot2KVBMX.cotservicios.map((s) => s.id));
-        const dias = componerItinerario(como(cot2KVBMX), conInclusiones);
+    /**
+     * `esPrimeroDelServicioEnElDia` sustituyó a dos flags de pantalla que el módulo devolvía
+     * —`mostrarTituloServicio` y `mostrarAccionInclusiones`—. De este hecho estructural cuelgan
+     * los dos, y cualquier consumidor futuro colgará el suyo; el módulo ya no sabe qué se pinta.
+     */
+    it('exactamente un bloque por servicio y día lleva la marca de «primero»', () => {
+        for (const dia of componerItinerario(cot2KVBMX)) {
+            const marcados = dia.bloques.filter((b) => b.esPrimeroDelServicioEnElDia);
+            const serviciosDelDia = new Set(dia.bloques.map((b) => b.servicio.id));
 
-        for (const dia of dias) {
-            const marcados = dia.bloques.filter((b) => b.mostrarAccionInclusiones);
-            expect(marcados.every((b) => !b.esRepeticion)).toBe(true);
-            expect(new Set(marcados.map((b) => b.servicio.id)).size).toBe(marcados.length);
+            // Uno por servicio presente, ni más ni menos.
+            expect(marcados, `día ${dia.numeroDia}`).toHaveLength(serviciosDelDia.size);
+            expect(new Set(marcados.map((b) => b.servicio.id))).toEqual(serviciosDelDia);
+
+            // Y es el PRIMERO en el orden ya compuesto, no uno cualquiera.
+            const vistos = new Set<string>();
+            for (const b of dia.bloques) {
+                expect(b.esPrimeroDelServicioEnElDia, `bloque ${b.key}`).toBe(!vistos.has(b.servicio.id));
+                vistos.add(b.servicio.id);
+            }
         }
+    });
 
-        // Sin el dato, ningún bloque lo enseña: lista vacía = nadie tiene inclusiones.
-        const sinDato = componerItinerario(como(cot2KVBMX));
-        expect(sinDato.flatMap((d) => d.bloques).some((b) => b.mostrarAccionInclusiones)).toBe(false);
+    it('la hora promovida se adjunta al primero del servicio, no a los demás', () => {
+        for (const dia of componerItinerario(cot2KVBMX)) {
+            for (const b of dia.bloques) {
+                if (b.horaServicioInicio) {
+                    expect(b.esPrimeroDelServicioEnElDia, `bloque ${b.key}`).toBe(true);
+                }
+            }
+        }
     });
 });

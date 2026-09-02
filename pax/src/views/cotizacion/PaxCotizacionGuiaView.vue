@@ -22,9 +22,12 @@ import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
-import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
+import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
 import { componerItinerario, dateOf, hhmm, compConHora, diffDays } from '@/dominio/itinerarioVista';
-import type { BloqueVista, DiaVista } from '@/dominio/itinerarioVista';
+import type { BloqueVista as BloqueVistaBase } from '@/dominio/itinerarioVista';
+
+/** El bloque con los tipos de `pax` dentro: el módulo es genérico y los devuelve intactos. */
+type BloqueVista = BloqueVistaBase<PaxCotServicio>;
 
 
 
@@ -156,8 +159,18 @@ const fechaChip = (iso: string) => {
 // La composición vive en `@/dominio/itinerarioVista`: es lógica de negocio, no de pantalla, y
 // encerrada en este componente no la podía importar nadie —ni un PDF, ni un test, ni Node—.
 // Sigue siendo un `computed`, así que la reactividad es la misma de antes.
-const itinerarioVista = computed<DiaVista[]>(() =>
-    componerItinerario(store.cotizacion, serviciosConInclusiones.value));
+const itinerarioVista = computed(() => componerItinerario(store.cotizacion));
+
+/**
+ * Las dos decisiones de pantalla que ANTES devolvía el módulo, ahora aquí — que es donde deben
+ * estar. El módulo dice el hecho estructural (`esPrimeroDelServicioEnElDia`); la guía decide qué
+ * hace con él, y otro consumidor decidirá otra cosa.
+ */
+const tituloGrandeDeServicio = (b: BloqueVista): boolean =>
+    b.esPrimeroDelServicioEnElDia && b.totalSegmentosServicio > 1 && !b.esRepeticion;
+
+const mostrarAccionInclusiones = (b: BloqueVista): boolean =>
+    b.esPrimeroDelServicioEnElDia && !b.esRepeticion && serviciosConInclusiones.value.has(b.servicio.id);
 
 const totalDiasViaje = computed(() =>
     itinerarioVista.value.length ? itinerarioVista.value[itinerarioVista.value.length - 1].numeroDia : 0);
@@ -1213,7 +1226,7 @@ const adelantoVista = computed(() => {
 
             <!-- Título grande del servicio (1er segmento de servicios multi-segmento) -->
             <h3
-                v-if="item.mostrarTituloServicio && !item.esRepeticion"
+                v-if="tituloGrandeDeServicio(item)"
                 class="text-xl md:text-2xl font-black text-[#376875] leading-tight mb-3 mt-2 flex items-start gap-2.5"
             >
               <i class="fas fa-route text-[#E07845] text-sm mt-2 shrink-0"></i>
@@ -1238,7 +1251,7 @@ const adelantoVista = computed(() => {
             <!-- Fila de acción: botón que abre el modal con las inclusiones del servicio completo.
                  Va entre el <h3> (multi-segmento) y la card, o encima de la card (single) → simetría. -->
             <div
-                v-if="item.mostrarAccionInclusiones"
+                v-if="mostrarAccionInclusiones(item)"
                 class="flex justify-end mb-3 no-imprimir"
             >
               <button
@@ -1304,7 +1317,7 @@ const adelantoVista = computed(() => {
                 </template>
 
                 <div class="absolute bottom-0 left-0 p-5 md:p-6 pointer-events-none">
-                  <p v-if="!item.mostrarTituloServicio" class="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1 drop-shadow">
+                  <p v-if="!tituloGrandeDeServicio(item)" class="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1 drop-shadow">
                     {{ store.traducir(item.servicio.tituloSnapshot) }}
                   </p>
                   <h4 class="text-white text-lg md:text-xl font-black leading-tight drop-shadow-md">
@@ -1318,7 +1331,7 @@ const adelantoVista = computed(() => {
                      Resumen (donde la galería se oculta y el título toma su lugar). -->
                 <div v-if="modoResumen || !imagenesDe(item.segmento).length" class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
-                    <p v-if="!item.mostrarTituloServicio" class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
+                    <p v-if="!tituloGrandeDeServicio(item)" class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
                       {{ store.traducir(item.servicio.tituloSnapshot) }}
                     </p>
                     <h4

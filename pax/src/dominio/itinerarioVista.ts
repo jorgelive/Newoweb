@@ -6,37 +6,88 @@
  * nadie**: ni un generador de PDF, ni un test, ni un proceso Node. Un `computed` enterrado en un
  * componente es lógica de negocio con una sola puerta, y la puerta es el navegador.
  *
- * Aquí no hay Vue, ni store, ni `window`: entra la cotización, salen los días. La vista lo sigue
- * llamando desde un `computed` de una línea, así que **la reactividad no cambia** — es la misma
- * función, invocada desde el mismo sitio.
+ * Aquí no hay Vue, ni store, ni `window`: entra la cotización, salen los días.
  *
- * ── Es el primer inquilino de la capa compartida ────────────────────────────
- * `docs/NodeEnElStack.md` §4 fija la frontera: *Node calcula, PHP persiste*. Para llegar ahí hace
- * falta que las reglas se puedan importar desde fuera del navegador, y esto es el primer paso
- * medido: 209 líneas que dejan de estar encerradas.
+ * ── Qué NO hace, y es deliberado ────────────────────────────────────────────
+ * ⚠️ **No decide nada de pantalla.** Devuelve *hechos de estructura* —«este bloque es el primero
+ * de su servicio en el día»— y cada consumidor decide qué pinta con ellos. La versión anterior
+ * devolvía `mostrarTituloServicio` y `mostrarAccionInclusiones`, que son decisiones del panel del
+ * huésped: el día que `util` lo importara, las habría recibido vacías y el paso siguiente habría
+ * sido un `modo: 'editor' | 'guia'` — **el primer `if` por consumidor dentro del único módulo
+ * compartido**. Un flag de presentación en un módulo compartido es una bomba de relojería.
  *
- * ⚠️ Cuando exista el paquete compartido entre `util` y `pax`, este archivo se muda tal cual —
- * por eso no importa nada de `@/stores` ni de `vue`. Mantenerlo así es lo que hace barata la
- * mudanza; el día que alguien le meta un `import { useX } from '@/stores/…'`, deja de poder salir.
+ * ── Genérico sobre los tres nodos, y por qué ────────────────────────────────
+ * No declara su entrada como la serialización pública de `pax`: declara **los doce campos que
+ * lee** y se hace genérico sobre el resto. Así `pax` y `util` lo llaman con sus propios tipos y
+ * los recuperan intactos en la salida —`bloque.servicio.tituloSnapshot` sigue tipado en cada
+ * app—, sin fusionar dos formas que la API mantiene separadas a propósito.
+ *
+ * ⚠️ **Los tipos de `pax` y `util` NO se fusionan.** `pax` es subconjunto estricto de `util` en
+ * las tres entidades, así que fusionarlos compilaría; y aun así no se hace, porque los campos de
+ * diferencia son los que la API decide no mandarle al cliente. El compilador de `pax` es la única
+ * comprobación automática de esa frontera.
+ *
+ * ── Corre fuera del navegador ───────────────────────────────────────────────
+ * Sin `vue`, sin `@/stores`, sin DOM. Es la condición para que pueda mudarse a la capa compartida
+ * (`docs/NodeEnElStack.md` §9) y para que PHP pueda invocarlo por Node.
+ *
+ * ⚠️ **Sólo sintaxis borrable.** Producción es Node 22, que ejecuta TypeScript pero rechaza lo que
+ * no se puede borrar: un `enum` muere con `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` — y Vite lo compila
+ * sin quejarse, así que el fallo saldría en el servidor y no aquí.
  *
  * ── El espejo que sigue vivo ────────────────────────────────────────────────
- * ⚠️ `posicionDeServicio()` está también en `util/src/stores/cotizacion/cotizacionEditorStore.ts`.
- * Si cambia una, se cambian las dos, o el editor y la guía enseñan días distintos. Ese espejo es
- * justamente lo que se borra cuando este módulo pase al paquete compartido — hasta entonces,
- * sigue siendo trabajo a mano.
+ * ⚠️ `posicionDeServicio()` está también en `util/src/stores/cotizacion/cotizacionEditorStore.ts`
+ * y en `src/Operacion/Entity/OperacionServicio.php`. Los tres cambian juntos hasta que `util`
+ * importe este módulo y el de PHP se desnormalice. Ver `docs/PlanProcesamientoCompartido.md` §4.
  */
-import type { PaxCotServicio, PaxCotSegmento, PaxCotComponente } from '@/types/paxCotizacionModel';
+
+// ── El contrato de entrada: lo que el módulo LEE, y nada más ─────────────────
+
+/** Lo que se lee de un componente. Todo opcional salvo el id: el módulo tolera lo que falte. */
+export interface ComponenteMinimo {
+  id: string;
+  cotsegmento?: { id: string } | null;
+  fechaHoraInicio?: string | null;
+  fechaHoraFin?: string | null;
+  sinHorario?: boolean | null;
+  horaServicioCompleto?: boolean | null;
+  ordenNarrativo?: number | null;
+}
+
+/** Lo que se lee de un segmento. */
+export interface SegmentoMinimo {
+  id: string;
+  dia: number;
+  orden: number;
+  fechaAbsoluta: string;
+}
+
+/** Lo que se lee de un servicio. */
+export interface ServicioMinimo {
+  id: string;
+  orden?: number | null;
+  cotsegmentos?: SegmentoMinimo[] | null;
+  cotcomponentes?: ComponenteMinimo[] | null;
+}
+
+/**
+ * Los tipos reales de segmento y componente se **derivan** del servicio que entra, en vez de ser
+ * dos parámetros más. Así basta con llamar `componerItinerario(cot)` y cada app recupera sus
+ * propios tipos sin escribir ninguno.
+ */
+type SegmentoDe<S extends ServicioMinimo> = NonNullable<S['cotsegmentos']>[number];
+type ComponenteDe<S extends ServicioMinimo> = NonNullable<S['cotcomponentes']>[number];
 
 // ── Helpers de fecha/hora ────────────────────────────────────────────────────
-// Viven aquí y no en la vista porque son la aritmética sobre la que se apoyan las reglas de abajo.
-// La vista los importa; no tiene su propia copia.
+// Viven aquí porque son la aritmética sobre la que se apoyan las reglas de abajo. La vista los
+// importa; no tiene su propia copia.
 
 /** La parte `YYYY-MM-DD` de un ISO naive. */
 export const dateOf = (iso: string): string => iso.substring(0, 10);
 
 /** `HH:mm` de un ISO naive, o null si el string no trae hora. */
 export const hhmm = (iso?: string | null): string | null =>
-    (iso && iso.length >= 16) ? iso.substring(11, 16) : null;
+  (iso && iso.length >= 16) ? iso.substring(11, 16) : null;
 
 export const addDays = (ymd: string, n: number): string => {
   const d = new Date(ymd + 'T00:00:00Z');
@@ -46,16 +97,16 @@ export const addDays = (ymd: string, n: number): string => {
 };
 
 export const diffDays = (a: string, b: string): number =>
-    Math.round((new Date(b + 'T00:00:00Z').getTime() - new Date(a + 'T00:00:00Z').getTime()) / 86400000);
+  Math.round((new Date(b + 'T00:00:00Z').getTime() - new Date(a + 'T00:00:00Z').getTime()) / 86400000);
 
 /**
  * ¿El componente lleva hora? Por el flag del snapshot.
  *
- * El fallback —«la hora es real si no es 00:00»— es para datos anteriores al flag. No se quita
- * hasta que no quede ninguna cotización guardada sin él: sin fallback, esas líneas perderían su
+ * El respaldo —«la hora es real si no es 00:00»— es para datos anteriores al flag. No se quita
+ * hasta que no quede ninguna cotización guardada sin él: sin respaldo, esas líneas perderían su
  * hora en silencio.
  */
-export const compConHora = (c: PaxCotComponente): boolean => {
+export const compConHora = (c: ComponenteMinimo): boolean => {
   if (typeof c?.sinHorario === 'boolean') return !c.sinHorario;
   const t = hhmm(c?.fechaHoraInicio);
   return !!t && t !== '00:00';
@@ -63,11 +114,11 @@ export const compConHora = (c: PaxCotComponente): boolean => {
 
 // ── La forma de la salida ────────────────────────────────────────────────────
 
-export interface BloqueVista {
+export interface BloqueVista<S extends ServicioMinimo> {
   key: string;
-  servicio: PaxCotServicio;
-  segmento: PaxCotSegmento;
-  componentes: PaxCotComponente[];
+  servicio: S;
+  segmento: SegmentoDe<S>;
+  componentes: ComponenteDe<S>[];
   horaInicio: string | null;       // derivada del primer componente con hora
   horaFin: string | null;          // derivada del último componente con hora
   // Horario global de la excursión (componente promovido a "servicio completo").
@@ -80,47 +131,43 @@ export interface BloqueVista {
   noche: number;                   // 1..totalNoches (solo estadías)
   totalNoches: number;
   totalSegmentosServicio: number;
-  mostrarTituloServicio: boolean;  // título grande: 1er segmento de servicio multi-segmento en el día
-  mostrarAccionInclusiones: boolean; // fila de acción (botón modal): 1er bloque del servicio en el día
+  /**
+   * ¿Es el primer bloque de su servicio en este día?
+   *
+   * Es un **hecho de estructura**, no una decisión de pantalla. De él cuelgan cosas distintas en
+   * cada consumidor: la guía pinta aquí el título grande del servicio y el botón de inclusiones;
+   * otro consumidor hará otra cosa, o ninguna.
+   */
+  esPrimeroDelServicioEnElDia: boolean;
 }
 
-export interface DiaVista {
+export interface DiaVista<S extends ServicioMinimo> {
   fecha: string;      // YYYY-MM-DD
   numeroDia: number;  // basado en calendario (salta días vacíos)
-  bloques: BloqueVista[];
-}
-
-/** Lo mínimo que hace falta de una cotización para armar el itinerario. */
-export interface CotizacionParaItinerario {
-  cotservicios?: PaxCotServicio[] | null;
+  bloques: BloqueVista<S>[];
 }
 
 /**
  * Compone los días del itinerario.
  *
- * @param cot La cotización (sólo se lee `cotservicios`).
- * @param serviciosConInclusiones Ids de servicio que tienen alguna línea de inclusiones. Entra
- *   como dato y no se calcula aquí a propósito: las inclusiones son otra vista de la cotización
- *   —con su propio filtrado por fecha— y meterla dentro ataría este módulo a esa forma. Lo único
- *   que se necesita de ella es un sí/no por servicio, para decidir si el bloque enseña el botón.
+ * @param cot La cotización. Sólo se lee `cotservicios`.
  */
-export function componerItinerario(
-    cot: CotizacionParaItinerario | null | undefined,
-    serviciosConInclusiones: ReadonlySet<string> = new Set(),
-): DiaVista[] {
+export function componerItinerario<S extends ServicioMinimo>(
+  cot: { cotservicios?: S[] | null } | null | undefined,
+): DiaVista<S>[] {
   if (!cot?.cotservicios?.length) return [];
 
-  const porFecha = new Map<string, BloqueVista[]>();
-  const push = (fecha: string, b: BloqueVista) => {
+  const porFecha = new Map<string, BloqueVista<S>[]>();
+  const push = (fecha: string, b: BloqueVista<S>) => {
     if (!porFecha.has(fecha)) porFecha.set(fecha, []);
     porFecha.get(fecha)!.push(b);
   };
 
   for (const servicio of cot.cotservicios) {
-    const segs = [...(servicio.cotsegmentos ?? [])].sort((a, b) => (a.dia - b.dia) || (a.orden - b.orden));
+    const segs = [...(servicio.cotsegmentos ?? [])].sort((a, b) => (a.dia - b.dia) || (a.orden - b.orden)) as SegmentoDe<S>[];
 
     for (const segmento of segs) {
-      const comps = (servicio.cotcomponentes ?? []).filter((c) => c.cotsegmento?.id === segmento.id);
+      const comps = (servicio.cotcomponentes ?? []).filter((c) => c.cotsegmento?.id === segmento.id) as ComponenteDe<S>[];
 
       // Hora dinámica del segmento: min inicio / max fin de componentes con hora real.
       // Se excluyen los componentes promovidos a "servicio completo": su hora no
@@ -143,8 +190,8 @@ export function componerItinerario(
 
       // Estadías: se pintan cada día del periodo [checkin .. checkout)
       const fechas = esEstadia
-          ? Array.from({ length: totalNoches }, (_, i) => addDays(base, i))
-          : [base];
+        ? Array.from({ length: totalNoches }, (_, i) => addDays(base, i))
+        : [base];
 
       fechas.forEach((fecha, rep) => {
         push(fecha, {
@@ -155,8 +202,7 @@ export function componerItinerario(
           esEstadia, esRepeticion: rep > 0,
           noche: rep + 1, totalNoches,
           totalSegmentosServicio: segs.length,
-          mostrarTituloServicio: false,
-          mostrarAccionInclusiones: false,
+          esPrimeroDelServicioEnElDia: false,
         });
       });
     }
@@ -166,7 +212,7 @@ export function componerItinerario(
   if (!fechasOrdenadas.length) return [];
   const fechaBase = fechasOrdenadas[0];
 
-  const dias: DiaVista[] = fechasOrdenadas.map((fecha) => {
+  return fechasOrdenadas.map((fecha) => {
     const bloques = porFecha.get(fecha)!;
 
     // 1) Agrupar los bloques del día por servicio.
@@ -182,7 +228,7 @@ export function componerItinerario(
     //
     // La primera noche sí conserva su sitio en el relato —llegar y dormir allí es parte de lo que
     // se compró—; las repeticiones son un «sigues aquí», que es nota de cierre y no de apertura.
-    const grupos = new Map<string, BloqueVista[]>();
+    const grupos = new Map<string, BloqueVista<S>[]>();
     for (const b of bloques) {
       const clave = b.esRepeticion ? `${b.servicio.id}::repeticion` : b.servicio.id;
       if (!grupos.has(clave)) grupos.set(clave, []);
@@ -209,8 +255,7 @@ export function componerItinerario(
 
     /**
      * Dónde va un servicio cuando el reloj no lo decide. **Espejo de `posicionDeServicio()` en
-     * `util/src/stores/cotizacion/cotizacionEditorStore.ts`** — si cambia una, se cambian las dos,
-     * o el editor y la guía vuelven a enseñar días distintos.
+     * `util`** y de `posicionDelServicio()` en `OperacionServicio.php` — los tres cambian juntos.
      *
      * ⚠️ Antes era `min(segmento.orden)`: un número pensado para ordenar DENTRO de un servicio,
      * usado para comparar ENTRE servicios. Cada plantilla empieza por su segmento 1, así que
@@ -220,17 +265,16 @@ export function componerItinerario(
      * Ahora manda el `orden` del servicio si alguien lo puso a mano (0 = automático), y si no la
      * naturaleza de lo que es: llegar y moverse abre la jornada, dormir la cierra.
      */
-    const posicionDeServicio = (servicio: PaxCotServicio, bloquesDelGrupo: BloqueVista[]): number => {
+    const posicionDeServicio = (servicio: S, bloquesDelGrupo: BloqueVista<S>[]): number => {
       if ((servicio.orden ?? 0) > 0) {
         return servicio.orden as number;
       }
 
       // ⚠️ `ordenNarrativo` llega SERIALIZADO en cada componente. Escribir la tabla de tipos
-      // aquí sería la segunda copia de una regla que ya vive en `ComponenteTipoEnum` — lo que
-      // el docblock de `componentesOrdenados` en el store prohíbe explícitamente.
+      // aquí sería la segunda copia de una regla que ya vive en `ComponenteTipoEnum`.
       const naturales = bloquesDelGrupo
-          .flatMap(b => b.componentes)
-          .map(c => c?.ordenNarrativo ?? 30);
+        .flatMap(b => b.componentes)
+        .map(c => c?.ordenNarrativo ?? 30);
 
       return naturales.length ? Math.min(...naturales) : 30;
     };
@@ -238,7 +282,7 @@ export function componerItinerario(
     // 2) Metadatos por grupo: hora absoluta más temprana y orden mínimo del día.
     //    Si el servicio no tiene hora en sus segmentos pero sí una hora promovida
     //    (servicio completo), se usa esa para posicionarlo en la cronología.
-    const metaGrupo = (gb: BloqueVista[]) => {
+    const metaGrupo = (gb: BloqueVista<S>[]) => {
       const horas = gb.map(b => b.horaInicio).filter(Boolean) as string[];
       const promoInicio = promoPorServicio.get(gb[0]?.servicio.id)?.inicio ?? null;
       if (promoInicio) horas.push(promoInicio);
@@ -274,41 +318,25 @@ export function componerItinerario(
     });
 
     // 4) Dentro de cada grupo, los segmentos por su campo `orden`
-    const ordenados: BloqueVista[] = [];
+    const ordenados: BloqueVista<S>[] = [];
     for (const g of gruposOrdenados) {
       g.sort((a, b) => (a.segmento.orden ?? 0) - (b.segmento.orden ?? 0));
       ordenados.push(...g);
     }
 
-    // Título grande en el 1er segmento (por día) de servicios multi-segmento;
-    // y adjuntamos el horario global al primer bloque de cada servicio en el día.
+    // 5) Marcar el primer bloque de cada servicio en el día, y adjuntarle el horario global.
     const vistos = new Set<string>();
-    const vistosPromo = new Set<string>();
     for (const b of ordenados) {
-      b.mostrarTituloServicio = b.totalSegmentosServicio > 1 && !vistos.has(b.servicio.id);
+      b.esPrimeroDelServicioEnElDia = !vistos.has(b.servicio.id);
       vistos.add(b.servicio.id);
 
       const promo = promoPorServicio.get(b.servicio.id);
-      if (promo && !vistosPromo.has(b.servicio.id)) {
+      if (promo && b.esPrimeroDelServicioEnElDia) {
         b.horaServicioInicio = promo.inicio;
         b.horaServicioFin = promo.fin;
-        vistosPromo.add(b.servicio.id);
       }
     }
 
     return { fecha, numeroDia: diffDays(fechaBase, fecha) + 1, bloques: ordenados };
   });
-
-  // Fila de acción (botón "Incluye / No incluye"): primer bloque de cada servicio por día,
-  // solo si ese servicio tiene inclusiones y no es una repetición de estadía.
-  for (const dia of dias) {
-    const vistosServicio = new Set<string>();
-    for (const b of dia.bloques) {
-      const sid = b.servicio.id;
-      b.mostrarAccionInclusiones = !b.esRepeticion && !vistosServicio.has(sid) && serviciosConInclusiones.has(sid);
-      vistosServicio.add(sid);
-    }
-  }
-
-  return dias;
 }

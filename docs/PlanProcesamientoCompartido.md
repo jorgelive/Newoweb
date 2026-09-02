@@ -6,7 +6,7 @@ autoridad**, siendo consumible desde el navegador y desde el servidor.
 **Alcance:** plan de ejecución con fases, criterios de «hecho» y lo que se deja fuera a propósito.
 La arquitectura y su porqué están en `docs/NodeEnElStack.md`; aquí está el orden y el trabajo.
 
-**Estado:** reescrito el 02/09/2026 tras una revisión externa que encontró tres errores de hecho en
+**Estado:** fases 0, 1 y 2 hechas. Reescrito el 02/09/2026 tras una revisión externa que encontró tres errores de hecho en
 la versión anterior (ver §9). Fase 0 en curso.
 
 ---
@@ -126,9 +126,9 @@ dentro y declara su entrada como la serialización pública entera.
 
 | | Acción | Hecho cuando |
 |---|---|---|
-| 2.1 | Sacar la presentación: `componerItinerario()` puro + `decorarParaGuia()` en `pax` | `mostrarAccionInclusiones` y `mostrarTituloServicio` ya no están en el módulo |
-| 2.2 | Contrato **estrecho y genérico** sobre los tres nodos (los 12 campos) | `pax` y `util` lo llaman con sus tipos y los recuperan en la salida |
-| 2.3 | El `as` de los fixtures desaparece | El test no castea nada |
+| 2.1 | ~~Sacar la presentación~~ **HECHO 02/09/2026**: el módulo devuelve `esPrimeroDelServicioEnElDia` y la guía decide | ✅ Los dos flags de pantalla salieron del módulo |
+| 2.2 | ~~Contrato estrecho y genérico~~ **HECHO**: `ServicioMinimo` + tipos derivados | ✅ `pax` recupera los suyos; `util` podrá en 3.6 |
+| 2.3 | ~~El `as` de los fixtures desaparece~~ **HECHO** | ✅ El test no castea nada |
 
 ⚠️ **2.1 antes que nada.** El módulo produce hoy dos flags del panel del huésped. Si `util` lo
 importa antes de sacarlos, lo llamará con un `Set` vacío y dos flags muertos, y el paso siguiente

@@ -3229,6 +3229,40 @@ capítulo abre diciendo que «no es intuitiva». Se hicieron dos cosas:
 El servicio PHP (`CotizacionItinerarioPdf`), su controlador y su plantilla Twig **se borraron**, y
 con ellos `Cotizacion::esVisibleParaCliente()`, que sólo existía para aquella ruta.
 
+### El módulo no decide nada de pantalla (02/09/2026)
+
+⚠️ La primera versión devolvía `mostrarTituloServicio` y `mostrarAccionInclusiones`. Son
+**decisiones del panel del huésped**, y estaban dentro del único módulo compartido: el día que
+`util` lo importara las habría recibido vacías, y el paso siguiente habría sido un
+`modo: 'editor' | 'guia'` — el primer `if` por consumidor.
+
+Ahora devuelve el **hecho estructural**, `esPrimeroDelServicioEnElDia`, y cada consumidor cuelga
+de él lo suyo. La guía lo hace en dos funciones de una línea (`tituloGrandeDeServicio()`,
+`mostrarAccionInclusiones()`); otro consumidor hará otra cosa, o nada.
+
+**La regla:** un módulo compartido devuelve hechos, no decisiones de pintado. Un flag de
+presentación ahí dentro es una bomba de relojería con el nombre del segundo consumidor escrito.
+
+### La entrada es un contrato ESTRECHO, no la serialización de nadie
+
+`componerItinerario()` declara **los doce campos que lee** (`ServicioMinimo`, `SegmentoMinimo`,
+`ComponenteMinimo`) y es genérico sobre el resto. Los tipos de segmento y componente se **derivan**
+del servicio que entra, así que se llama sin escribir ningún tipo y cada app recupera los suyos:
+`bloque.servicio.tituloSnapshot` sigue tipado en `pax` y lo estará en `util`.
+
+⚠️ **La prueba de que el contrato es correcto es que en el test no hay ni un `as`.** Antes había
+uno, porque el módulo pedía la serialización pública entera y un fixture con los doce campos reales
+no encajaba. Que los JSON compilen tal cual demuestra que describe lo que el módulo usa y no la
+forma de un consumidor concreto.
+
+⚠️ **Y esto NO es fusionar los tipos de `pax` y `util`**, que se midió y sería posible —`pax` es
+subconjunto estricto— y sigue sin hacerse: los campos de diferencia son los que la API decide no
+mandarle al cliente, y el compilador de `pax` es la única comprobación automática de esa frontera.
+
+**Cómo se verificó que no cambió nada:** los snapshots no se movieron, y el DOM renderizado es
+idéntico al del código anterior en producción sobre la misma propuesta — 16 días, 8 títulos
+grandes, 19 botones de inclusiones, 30 pastillas de hora en los dos.
+
 ⚠️ **El módulo no importa nada de `@/stores` ni de `vue`, y eso es deliberado.** Es la condición
 para que pueda mudarse al paquete compartido con `util` cuando exista (`docs/NodeEnElStack.md` §9).
 El día que alguien le meta una dependencia de store, deja de poder salir.
