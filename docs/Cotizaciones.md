@@ -3190,7 +3190,7 @@ dan los botones, que tienen su propio spinner y se deshabilitan solos con el can
 **La regla general:** un `v-if` de carga que envuelve la pantalla entera no puede colgar de un flag
 que también usan las operaciones parciales. Si el flag sirve además de candado, hacen falta dos.
 
-### ⚠️ `itinerarioVista` es la ÚNICA fuente del itinerario, y vive en TypeScript (01/09/2026)
+### ⚠️ `itinerarioVista` era la ÚNICA fuente del itinerario, y estaba encerrada (02/09/2026)
 
 Salió al intentar generar un PDF del itinerario para los clientes que piden «un papel». Cualquier
 consumidor nuevo —un PDF, un correo, un resumen— que quiera enseñar el viaje **tiene que rehacer
@@ -3203,36 +3203,77 @@ son al menos tres reglas que no se adivinan leyendo las entidades.
 | Se **excluyen los `horaServicioCompleto`**: su hora es de la excursión entera, no de ese párrafo | La excursión aparece empezando a la hora de su ancla, dos veces |
 | **Estadías**: un párrafo sin horas cuyos componentes acaban en fecha posterior se repite **cada día** del periodo | Un viaje con hotel **pierde los días intermedios** |
 
-La tercera es la que convierte el error en algo visible: un itinerario de ocho días saldría con
-tres. La primera versión del servicio de PDF cayó exactamente ahí.
+La tercera es la que convierte el error en algo visible. Medido sobre la propuesta `2KVBMX`: la
+composición real da **16 días**, y el servicio de PDF escrito en PHP daba **11**. Cinco días de
+hotel desaparecidos, sin un solo error.
 
-**La salida NO es replicarlo en PHP.** Sería un espejo de la lógica que este mismo capítulo abre
-diciendo que «no es intuitiva», y de esos ya se pagó uno esta semana con `mandaElSegmento()`. Las
-opciones reales, por si se retoma:
+**Lo que se hizo, y lo que NO.** No se replicó en PHP: sería un espejo de una lógica que este mismo
+capítulo abre diciendo que «no es intuitiva». Se hicieron dos cosas:
 
-| | Qué implica |
-|---|---|
-| **Subir la composición a PHP** y que `pax` la consuma | El PDF y la guía comparten origen **por construcción**; colapsa también los espejos del título. Es lo correcto, y toca la pantalla del cliente |
-| **Generar el PDF en `pax`** reusando el computed | Cero espejo, pero no se puede adjuntar desde el backend y el paginado sale como imagen |
-| Documento con reglas propias | Dos verdades que el cliente puede comparar. Descartada |
+1. **La composición salió del componente**, a `pax/src/dominio/itinerarioVista.ts`. Vivía como
+   `computed` dentro de un `.vue` de 1.953 líneas, y allí **no la podía importar nadie**: ni un
+   PDF, ni un test, ni un proceso Node. La vista la sigue llamando desde un `computed` de una
+   línea, así que **la reactividad no cambió** — es la misma función desde el mismo sitio.
+2. **El PDF se imprime desde la propia página** (ver abajo). No hay servicio, ni plantilla, ni
+   librería: lo que se imprime es la misma vista, así que no puede desalinearse con ella.
 
-Lo que sí quedó hecho y sirve para las dos primeras, porque es andamiaje y no reglas: la ruta
-pública por `(localizador, versión)`, `Cotizacion::esVisibleParaCliente()`, dompdf configurado
-como en la orden al proveedor y una plantilla en tablas.
+El servicio PHP (`CotizacionItinerarioPdf`), su controlador y su plantilla Twig **se borraron**, y
+con ellos `Cotizacion::esVisibleParaCliente()`, que sólo existía para aquella ruta.
 
-### La visibilidad pública de una propuesta se pregunta a la entidad
+⚠️ **El módulo no importa nada de `@/stores` ni de `vue`, y eso es deliberado.** Es la condición
+para que pueda mudarse al paquete compartido con `util` cuando exista (`docs/NodeEnElStack.md` §9).
+El día que alguien le meta una dependencia de store, deja de poder salir.
 
-`Cotizacion::esVisibleParaCliente()` responde «estado público **y** no expirada», que son las dos
-condiciones que `CotizacionFilePublicProvider` ya evaluaba en DQL.
+**El espejo que sigue vivo:** `posicionDeServicio()` está aquí **y** en
+`util/src/stores/cotizacion/cotizacionEditorStore.ts`. Es el espejo que la capa compartida borra;
+hasta entonces, si cambia una se cambian las dos o el editor y la guía enseñan días distintos.
 
-⚠️ **Es una regla de SEGURIDAD, y por eso importa que tenga un solo sitio.** Un espejo aquí no
-falla ruidosamente: al desalinearse **publica lo que el otro lado ya ocultaba**. El provider la
-sigue aplicando en SQL —ahí no puede llamar a un método de PHP, el filtro va en la consulta—, así
-que la parte que de verdad manda, «qué estados son públicos», vive en
-`CotizacionEstadoEnum::esPublico()` y la consultan los dos.
+### El PDF del itinerario es una hoja de impresión, no un documento (02/09/2026)
 
-Cualquier superficie pública nueva llama a `esVisibleParaCliente()` y devuelve **404 uniforme**:
-distinguir «no existe» de «no es pública» le diría a quien prueba localizadores cuáles existen.
+El botón **Imprimir** de la guía fuerza el modo Resumen, espera un `nextTick()` y llama a
+`window.print()`. El modo Resumen ya deja fuera fotos y descripciones largas —existía desde antes
+para leer en pantalla—, así que el papel no necesita una segunda maqueta.
+
+⚠️ **La restauración va en `afterprint`, no en la línea siguiente.** `window.print()` devuelve el
+control en cuanto se abre el diálogo, no cuando se cierra: restaurar el modo justo después lo
+deshace mientras el navegador todavía está componiendo las hojas.
+
+⚠️ **Y `nextTick()` no es adorno**: sin él se imprime el DOM anterior al cambio de modo y salen las
+fotos igual.
+
+**Dos caminos, no uno.** El botón no es la única forma de imprimir: un `Cmd+P` desde el menú del
+navegador **no pasa por él**, así que las galerías se ocultan *también* en CSS
+(`[data-galeria]`). No es duplicar el requisito: son dos caminos distintos y cada uno necesita su
+defensa.
+
+⚠️ **Chrome no imprime fondos salvo que marques «Gráficos de fondo», y nadie lo marca.** Todo lo
+que en pantalla es texto blanco sobre color —el número del día, las pastillas de hora— saldría
+blanco sobre blanco: **invisible**. Y las horas son justamente lo que el cliente se lleva. Por eso
+`.chip-dia` y `.pastilla-hora` se invierten en `@media print` a texto oscuro con borde. Se
+descubrió mirando el simulacro, no leyendo el CSS.
+
+Qué se quita del papel (clase `no-imprimir`): la fila superior de la cabecera, el conmutador de
+moneda, el panel de precio, la barra Detalle/Resumen, la navegación de días y las filas de acción
+que abren modales. Y el panel de inclusiones se **despliega** (`.panel-inclusiones`): en pantalla
+lo abre un botón, y en papel no hay botón que pulsar — sin esa regla se imprimen 128 px de lista y
+el resto no existe.
+
+**Qué NO va en la hoja de impresión:** ocultar *contenido*. Eso va en el modo Resumen. Si una regla
+de contenido vive sólo en el CSS de impresión, la pantalla dice una cosa y el papel otra.
+
+### 🔥 Una clave de i18n que falta no falla: se lee en castellano (02/09/2026)
+
+El botón se probó sobre una propuesta **en inglés** y salió «IMPRIMIR» entre «DETAILS» y «SUMMARY».
+`maestroStore.t()` devuelve `''` para una clave inexistente y el `|| 'Imprimir'` la rellena: la
+pantalla se pinta entera y no falla nada.
+
+Es la misma familia de fallo mudo de todo este proyecto, y **no lo caza ninguna herramienta**: ni
+el typecheck ni ESLint saben qué claves existen en la base. Se ve mirando la pantalla en un idioma
+que no sea el español.
+
+Las cadenas entran por **comando ORM, nunca por SQL**: `UiI18n::$contenido` lleva
+`#[AutoTranslate]`, y un `INSERT` directo se salta el listener y la cadena nace sólo en castellano.
+Ver `App\Pax\Command\PaxCrearTextosItinerarioCommand` (idempotente por la clave, con `--dry-run`).
 
 ### El algoritmo, en tres pasos
 
@@ -4381,6 +4422,9 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Badges modalidad/categoría** → `modCatBadges` (`cotizacionEditorModel.ts` en util; local en `PaxCotizacionGuiaView.vue` en pax).
 - **Que el cliente lea una descripción del hotel o de lo que contrató** → `descripcion` (i18n) de `TravelOrganizacion` y `TravelOrganizacionServicio`, en EasyAdmin. Viaja como `prestadorDescripcion` / `prestadorServicioDescripcion` desde `CotizacionCotcomponentePrestadorPublicNormalizer` y se pinta en el modal del proveedor de `PaxCotizacionGuiaView.vue`. Mismo gate que el nombre: sin `prestadorVisible` no sale. Ver §6.t.
 - **De dónde salen las fotos de la tarjeta de un segmento** → `galeriaPorBloque` en `PaxCotizacionGuiaView.vue`. Propias del segmento si las hay; si no, las del servicio del prestador de sus componentes, deduplicadas por foto en toda la guía (§6.t). Si no sale ninguna, mira antes `prestadorVisible` que el código: sin él no se inyectan.
+- **Cómo se compone el itinerario del cliente (días, bloques, estadías, orden)** → `componerItinerario()` en `pax/src/dominio/itinerarioVista.ts`. **No lo replicques en PHP** (§6.u): la vista lo llama desde un `computed` de una línea y cualquier consumidor nuevo debe importar ese módulo. Ojo con el espejo de `posicionDeServicio()` en el store del editor.
+- **Lo que se imprime del itinerario (el «PDF»)** → los dos bloques `@media print` al final de `PaxCotizacionGuiaView.vue` + la función `imprimir()`. **Contenido** que sobre en papel se quita en el modo Resumen, no en el CSS (§6.u).
+- **Una cadena de UI de la guía que sale en castellano estando en otro idioma** → falta la clave en `pax_ui_i18n`; se crea por comando (`pax:textos:itinerario`), nunca por SQL — lleva `#[AutoTranslate]` (§6.u).
 - **Serialización pública / ocultar precio o proveedor** → `src/Cotizacion/Serializer/CotizacionPublicNormalizer.php` + grupos `pax_cotizacion:read` en las entidades.
 - **Portada o duración de un tour de catálogo (en el panel o en pax)** → `TourTarjetaResolver` (§6.b). Nunca reimplementar la derivación en la entidad ni en el front.
 - **La tarjeta de precio de la guía (colapsada/expandida, textos del pie)** → sección "TARJETA DE PRECIO" de `PaxCotizacionGuiaView.vue` + `finanzasAbiertas` / `hayPanelPrecio`. Ojo con el vocabulario: §6.

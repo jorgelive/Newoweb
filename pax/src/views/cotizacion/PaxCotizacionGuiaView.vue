@@ -22,7 +22,9 @@ import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
-import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
+import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
+import { componerItinerario, dateOf, hhmm, compConHora, diffDays } from '@/dominio/itinerarioVista';
+import type { BloqueVista, DiaVista } from '@/dominio/itinerarioVista';
 
 
 
@@ -119,32 +121,9 @@ const mv = (soles: number, dolares: number) =>
     monedaVista.value === 'PEN' ? fmtPEN(soles) : `$ ${n2(dolares)}`;
 
 // ── Helpers de fecha/hora ────────────────────────────────────────────────────
-const dateOf = (iso: string) => iso.substring(0, 10);
-
-/** Hora 'HH:mm' solo si es una hora real (≠ medianoche) */
-/** 'HH:mm' de un ISO naive, o null si el string no trae hora */
-const hhmm = (iso?: string | null): string | null =>
-    (iso && iso.length >= 16) ? iso.substring(11, 16) : null;
-
-/**
- * ¿El componente lleva hora? Ahora por el flag del snapshot.
- * Fallback legacy (data sin el flag aún): la hora es real si no es 00:00.
- */
-const compConHora = (c: PaxCotComponente): boolean => {
-  if (typeof c?.sinHorario === 'boolean') return !c.sinHorario;
-  const t = hhmm(c?.fechaHoraInicio);
-  return !!t && t !== '00:00';
-};
-
-const addDays = (ymd: string, n: number) => {
-  const d = new Date(ymd + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() + n);
-  const p = (x: number) => String(x).padStart(2, '0');
-  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
-};
-
-const diffDays = (a: string, b: string) =>
-    Math.round((new Date(b + 'T00:00:00Z').getTime() - new Date(a + 'T00:00:00Z').getTime()) / 86400000);
+// Ya no viven aquí: son la aritmética sobre la que se apoyan las reglas del itinerario, así que
+// se importan del módulo de dominio junto con ellas. Tenerlos en los dos sitios era la forma más
+// fácil de que una copia se corrigiera y la otra no.
 
 /** Día relativo del programa (1-based) a partir de la fecha nominal. */
 const diaNumDe = (iso: string): number => {
@@ -174,241 +153,11 @@ const fechaChip = (iso: string) => {
 };
 
 // ── Itinerario de vista (segmentos → bloques por día) ────────────────────────
-interface BloqueVista {
-  key: string;
-  servicio: PaxCotServicio;
-  segmento: PaxCotSegmento;
-  componentes: PaxCotComponente[];
-  horaInicio: string | null;       // derivada del primer componente con hora
-  horaFin: string | null;          // derivada del último componente con hora
-  // Horario global de la excursión (componente promovido a "servicio completo").
-  // Se adjunta al 1er bloque del servicio en el día; representa el span de toda
-  // la experiencia, no el del segmento donde el componente está anclado.
-  horaServicioInicio: string | null;
-  horaServicioFin: string | null;
-  esEstadia: boolean;              // alojamiento / periodo multi-día sin horas
-  esRepeticion: boolean;           // repetición de la estadía en días siguientes
-  noche: number;                   // 1..totalNoches (solo estadías)
-  totalNoches: number;
-  totalSegmentosServicio: number;
-  mostrarTituloServicio: boolean;  // título grande: 1er segmento de servicio multi-segmento en el día
-  mostrarAccionInclusiones: boolean; // fila de acción (botón modal): 1er bloque del servicio en el día
-}
-
-interface DiaVista {
-  fecha: string;      // YYYY-MM-DD
-  numeroDia: number;  // basado en calendario (salta días vacíos)
-  bloques: BloqueVista[];
-}
-
-const itinerarioVista = computed<DiaVista[]>(() => {
-  const cot = store.cotizacion;
-  if (!cot?.cotservicios?.length) return [];
-
-  const porFecha = new Map<string, BloqueVista[]>();
-  const push = (fecha: string, b: BloqueVista) => {
-    if (!porFecha.has(fecha)) porFecha.set(fecha, []);
-    porFecha.get(fecha)!.push(b);
-  };
-
-  for (const servicio of cot.cotservicios) {
-    const segs = [...(servicio.cotsegmentos ?? [])].sort((a, b) => (a.dia - b.dia) || (a.orden - b.orden));
-
-    for (const segmento of segs) {
-      const comps = (servicio.cotcomponentes ?? []).filter((c) => c.cotsegmento?.id === segmento.id);
-
-      // Hora dinámica del segmento: min inicio / max fin de componentes con hora real.
-      // Se excluyen los componentes promovidos a "servicio completo": su hora no
-      // pertenece a este segmento sino a toda la excursión (se muestra aparte).
-      const conHora = comps.filter((c) => compConHora(c) && !c.horaServicioCompleto);
-      const inicios = conHora.map((c) => c.fechaHoraInicio).filter(Boolean) as string[];
-      const fines   = conHora.map((c) => c.fechaHoraFin).filter(Boolean) as string[];
-      const horaInicio = inicios.length ? hhmm(inicios.sort()[0]) : null;
-      const horaFin    = fines.length   ? hhmm(fines.sort()[fines.length - 1]) : null;
-
-      const base = dateOf(segmento.fechaAbsoluta);
-
-      // Estadía: sin horas reales y con componentes que terminan en fecha posterior (hoteles)
-      let finPeriodo = base;
-      for (const c of comps) {
-        if (c.fechaHoraFin && dateOf(c.fechaHoraFin) > finPeriodo) finPeriodo = dateOf(c.fechaHoraFin);
-      }
-      const esEstadia = !horaInicio && !horaFin && finPeriodo > base;
-      const totalNoches = esEstadia ? diffDays(base, finPeriodo) : 1;
-
-      // Estadías: se pintan cada día del periodo [checkin .. checkout)
-      const fechas = esEstadia
-          ? Array.from({ length: totalNoches }, (_, i) => addDays(base, i))
-          : [base];
-
-      fechas.forEach((fecha, rep) => {
-        push(fecha, {
-          key: `${segmento.id}-${fecha}`,
-          servicio, segmento, componentes: comps,
-          horaInicio, horaFin,
-          horaServicioInicio: null, horaServicioFin: null,
-          esEstadia, esRepeticion: rep > 0,
-          noche: rep + 1, totalNoches,
-          totalSegmentosServicio: segs.length,
-          mostrarTituloServicio: false,
-          mostrarAccionInclusiones: false,
-        });
-      });
-    }
-  }
-
-  const fechasOrdenadas = [...porFecha.keys()].sort();
-  if (!fechasOrdenadas.length) return [];
-  const fechaBase = fechasOrdenadas[0];
-
-  const dias: DiaVista[] = fechasOrdenadas.map((fecha) => {
-    const bloques = porFecha.get(fecha)!;
-
-    // 1) Agrupar los bloques del día por servicio.
-    //
-    // ⚠️ Las REPETICIONES de una estadía van en su propio grupo, y por eso flotan a donde
-    // estarían si el hotel fuera un servicio suelto: al final del día.
-    //
-    // Sin esto, la noche 2 de un hotel que vive DENTRO de un servicio con actividades —el
-    // Skylodge, tres noches— se pintaba en la posición que le daba su `orden`, que era la de la
-    // PRIMERA noche. Al cliente le salía «sigues alojado en la cápsula» encabezando un día que
-    // empieza con un descenso en tirolesa a las 09:00: el número era correcto el día 1 y lo
-    // arrastraba a los siguientes.
-    //
-    // La primera noche sí conserva su sitio en el relato —llegar y dormir allí es parte de lo que
-    // se compró—; las repeticiones son un «sigues aquí», que es nota de cierre y no de apertura.
-    const grupos = new Map<string, BloqueVista[]>();
-    for (const b of bloques) {
-      const clave = b.esRepeticion ? `${b.servicio.id}::repeticion` : b.servicio.id;
-      if (!grupos.has(clave)) grupos.set(clave, []);
-      grupos.get(clave)!.push(b);
-    }
-
-    // Horario global de la excursión: por cada servicio del día, la hora de su
-    // componente promovido a "servicio completo" (si existe). Se calcula ANTES de
-    // ordenar porque esa hora es la que representa al servicio en la cronología: su
-    // segmento ancla no la expone en `horaInicio` (a propósito, para no estirar el
-    // segmento donde se apoya).
-    const promoPorServicio = new Map<string, { inicio: string; fin: string | null }>();
-    for (const b of bloques) {
-      if (promoPorServicio.has(b.servicio.id)) continue;
-      for (const c of b.componentes) {
-        if (!c?.horaServicioCompleto) continue;
-        const pi = hhmm(c.fechaHoraInicio);
-        if (!pi || pi === '00:00') continue;
-        const pf = hhmm(c.fechaHoraFin);
-        promoPorServicio.set(b.servicio.id, { inicio: pi, fin: (pf && pf !== '00:00' && pf !== pi) ? pf : null });
-        break;
-      }
-    }
-
-    /**
-     * Dónde va un servicio cuando el reloj no lo decide. **Espejo de `posicionDeServicio()` en
-     * `util/src/stores/cotizacion/cotizacionEditorStore.ts`** — si cambia una, se cambian las dos,
-     * o el editor y la guía vuelven a enseñar días distintos.
-     *
-     * ⚠️ Antes era `min(segmento.orden)`: un número pensado para ordenar DENTRO de un servicio,
-     * usado para comparar ENTRE servicios. Cada plantilla empieza por su segmento 1, así que
-     * valía 1 para todas y el desempate lo decidía el orden de inserción — de ahí la sensación de
-     * que los servicios sin hora flotaban.
-     *
-     * Ahora manda el `orden` del servicio si alguien lo puso a mano (0 = automático), y si no la
-     * naturaleza de lo que es: llegar y moverse abre la jornada, dormir la cierra.
-     */
-    const posicionDeServicio = (servicio: PaxCotServicio, bloques: BloqueVista[]): number => {
-      if ((servicio.orden ?? 0) > 0) {
-        return servicio.orden as number;
-      }
-
-      // ⚠️ `ordenNarrativo` llega SERIALIZADO en cada componente. Escribir la tabla de tipos
-      // aquí sería la segunda copia de una regla que ya vive en `ComponenteTipoEnum` — lo que
-      // el docblock de `componentesOrdenados` en el store prohíbe explícitamente.
-      const naturales = bloques
-          .flatMap(b => b.componentes)
-          .map(c => c?.ordenNarrativo ?? 30);
-
-      return naturales.length ? Math.min(...naturales) : 30;
-    };
-
-    // 2) Metadatos por grupo: hora absoluta más temprana y orden mínimo del día.
-    //    Si el servicio no tiene hora en sus segmentos pero sí una hora promovida
-    //    (servicio completo), se usa esa para posicionarlo en la cronología.
-    const metaGrupo = (gb: BloqueVista[]) => {
-      const horas = gb.map(b => b.horaInicio).filter(Boolean) as string[];
-      const promoInicio = promoPorServicio.get(gb[0]?.servicio.id)?.inicio ?? null;
-      if (promoInicio) horas.push(promoInicio);
-      const horaMin = horas.length ? [...horas].sort()[0] : null; // null = sin hora absoluta
-      const ordenMin = posicionDeServicio(gb[0]!.servicio, gb);
-      const esEstadia = gb.every(b => b.esEstadia);
-      return { horaMin, ordenMin, esEstadia };
-    };
-
-    // 3) Ordenar los GRUPOS:
-    //    con hora → primero (por su hora más temprana) · sin hora → luego · estadías → al final
-    // ⚠️ **Un día ordenado a mano se ordena SÓLO por su `orden`**, igual que en el editor. Si la
-    // hora siguiera mandando, el operador colocaría el día y el huésped lo leería en otro orden.
-    //
-    // Las ESTADÍAS repetidas se quedan al final igualmente: son la nota de cierre, no una parada
-    // del relato, y no es eso lo que nadie está colocando cuando arrastra.
-    const diaAMano = [...grupos.values()].some(g => (g[0]?.servicio.orden ?? 0) > 0);
-
-    const gruposOrdenados = [...grupos.values()].sort((ga, gb) => {
-      const ma = metaGrupo(ga), mb = metaGrupo(gb);
-      const tier = (m: typeof ma) => (m.horaMin ? 0 : (m.esEstadia ? 2 : 1));
-      const ta = tier(ma), tb = tier(mb);
-
-      if (diaAMano) {
-        // La estadía sigue cerrando el día; lo demás va por el orden que puso la persona.
-        if (ta === 2 || tb === 2) return (ta === 2 ? 1 : 0) - (tb === 2 ? 1 : 0);
-        return ma.ordenMin - mb.ordenMin;
-      }
-
-      if (ta !== tb) return ta - tb;
-      if (ma.horaMin && mb.horaMin) return ma.horaMin.localeCompare(mb.horaMin);
-      return ma.ordenMin - mb.ordenMin; // desempate estable entre grupos sin hora
-    });
-
-    // 4) Dentro de cada grupo, los segmentos por su campo `orden`
-    const ordenados: BloqueVista[] = [];
-    for (const g of gruposOrdenados) {
-      g.sort((a, b) => (a.segmento.orden ?? 0) - (b.segmento.orden ?? 0));
-      ordenados.push(...g);
-    }
-
-    // Título grande en el 1er segmento (por día) de servicios multi-segmento;
-    // y adjuntamos el horario global al primer bloque de cada servicio en el día.
-    const vistos = new Set<string>();
-    const vistosPromo = new Set<string>();
-    for (const b of ordenados) {
-      b.mostrarTituloServicio = b.totalSegmentosServicio > 1 && !vistos.has(b.servicio.id);
-      vistos.add(b.servicio.id);
-
-      const promo = promoPorServicio.get(b.servicio.id);
-      if (promo && !vistosPromo.has(b.servicio.id)) {
-        b.horaServicioInicio = promo.inicio;
-        b.horaServicioFin = promo.fin;
-        vistosPromo.add(b.servicio.id);
-      }
-    }
-
-    return { fecha, numeroDia: diffDays(fechaBase, fecha) + 1, bloques: ordenados };
-  });
-  // Fila de acción (botón "Incluye / No incluye"): primer bloque de cada servicio por día,
-  // solo si ese servicio tiene inclusiones y no es una repetición de estadía.
-  for (const dia of dias) {
-    const vistosServicio = new Set<string>();
-    for (const b of dia.bloques) {
-      const sid = b.servicio.id;
-      const srv = inclusionPorServicio.value.get(sid);
-      const tieneLineas = !!srv &&
-          (srv.incluidos.length + srv.noIncluidos.length + srv.cortesias.length + srv.opcionales.length) > 0;
-      b.mostrarAccionInclusiones = !b.esRepeticion && !vistosServicio.has(sid) && tieneLineas;
-      vistosServicio.add(sid);
-    }
-  }
-
-  return dias;
-});
+// La composición vive en `@/dominio/itinerarioVista`: es lógica de negocio, no de pantalla, y
+// encerrada en este componente no la podía importar nadie —ni un PDF, ni un test, ni Node—.
+// Sigue siendo un `computed`, así que la reactividad es la misma de antes.
+const itinerarioVista = computed<DiaVista[]>(() =>
+    componerItinerario(store.cotizacion, serviciosConInclusiones.value));
 
 const totalDiasViaje = computed(() =>
     itinerarioVista.value.length ? itinerarioVista.value[itinerarioVista.value.length - 1].numeroDia : 0);
@@ -540,6 +289,35 @@ const toggle = (set: Set<string>, key: string) => {
 // 'resumen' colapsa las narrativas y deja títulos, subtítulos y horas, en tipografía
 // más compacta. Es global a toda la vista.
 const modoResumen = ref(false);
+
+/**
+ * Imprimir el itinerario (o guardarlo como PDF desde el diálogo del navegador).
+ *
+ * ⚠️ **Fuerza el modo Resumen y lo devuelve al terminar.** El papel quiere títulos y horas, no
+ * descripciones ni galerías — que es exactamente lo que ese modo ya deja fuera. Reusarlo evita
+ * una segunda maqueta: lo que se imprime es la misma vista, no una copia con sus propias reglas.
+ *
+ * `nextTick()` no es adorno: sin él se imprime el DOM anterior al cambio de modo y salen las
+ * fotos igual. Y la restauración va en `afterprint` porque `window.print()` devuelve el control
+ * en cuanto se abre el diálogo, no cuando se cierra — restaurar en la línea siguiente deshace el
+ * modo mientras el navegador todavía está componiendo las hojas.
+ */
+const imprimiendo = ref(false);
+const imprimir = async () => {
+  const modoPrevio = modoResumen.value;
+  imprimiendo.value = true;
+  modoResumen.value = true;
+  await nextTick();
+
+  const restaurar = () => {
+    modoResumen.value = modoPrevio;
+    imprimiendo.value = false;
+    window.removeEventListener('afterprint', restaurar);
+  };
+  window.addEventListener('afterprint', restaurar);
+
+  window.print();
+};
 
 /** ¿La descripción es lo bastante larga como para truncarla? */
 const descEsLarga = (segmento: PaxCotSegmento) => (store.traducir(segmento.contenidoSnapshot) || '').length > 450;
@@ -699,6 +477,21 @@ const inclusionPorServicio = computed(() => {
   const m = new Map<string, (typeof store.inclusiones)[number]>();
   for (const srv of store.inclusiones) m.set(srv.servicioId, srv);
   return m;
+});
+
+/**
+ * Qué servicios tienen alguna línea de inclusiones. Es lo único que el itinerario necesita saber
+ * de ellas —para decidir si el bloque enseña el botón—, y pasarlo como dato es lo que mantiene
+ * `componerItinerario()` sin conocer la forma del panel de inclusiones.
+ */
+const serviciosConInclusiones = computed(() => {
+  const ids = new Set<string>();
+  for (const srv of store.inclusiones) {
+    if (srv.incluidos.length + srv.noIncluidos.length + srv.cortesias.length + srv.opcionales.length > 0) {
+      ids.add(srv.servicioId);
+    }
+  }
+  return ids;
 });
 
 const seccionesInclusion = (srv: { incluidos: PaxInclusionItem[]; noIncluidos: PaxInclusionItem[]; cortesias: PaxInclusionItem[]; opcionales: PaxInclusionItem[] }) => ([
@@ -1000,7 +793,7 @@ const adelantoVista = computed(() => {
       <header class="bg-[#376875] text-white relative overflow-hidden">
         <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 24px 24px;"></div>
         <div class="max-w-3xl mx-auto px-4 py-5 md:py-8 relative z-10">
-          <div class="flex items-center justify-between gap-3 mb-4">
+          <div class="flex items-center justify-between gap-3 mb-4 no-imprimir">
             <button @click="volverPortada" class="flex items-center gap-2 text-white/80 hover:text-white text-xs font-black uppercase tracking-widest transition-colors">
               <i class="fas fa-arrow-left"></i>
               <span class="truncate max-w-35 sm:max-w-none">
@@ -1041,7 +834,7 @@ const adelantoVista = computed(() => {
             <!-- SELECTOR DE MONEDA (efecto cristal). Se queda en el hero y no dentro de
                  la tarjeta de precio: las filas de esa tarjeta son <button> y no pueden
                  anidar otro botón. -->
-            <div v-if="store.precioVisible" class="flex items-center bg-white/15 backdrop-blur-md border border-white/30 rounded-xl p-0.5 gap-0.5 shrink-0 shadow-[0_4px_12px_rgb(0,0,0,0.05)]">
+            <div v-if="store.precioVisible" class="flex items-center bg-white/15 backdrop-blur-md border border-white/30 rounded-xl p-0.5 gap-0.5 shrink-0 shadow-[0_4px_12px_rgb(0,0,0,0.05)] no-imprimir">
               <button
                   @click="monedaVista = 'PEN'"
                   :class="monedaVista === 'PEN' ? 'bg-white text-[#376875] shadow-sm font-extrabold' : 'text-white/80 hover:text-white font-bold'"
@@ -1071,7 +864,7 @@ const adelantoVista = computed(() => {
            Terminología: aquí se habla de PERFILES/PRECIOS, nunca de "detalle" ni
            "resumen" — esas dos palabras son el modo de lectura del itinerario (abajo)
            y usarlas en los dos sitios hacía que parecieran el mismo interruptor. ══ -->
-      <section v-if="hayPanelPrecio" class="relative z-20 max-w-3xl mx-auto px-4 -mt-9 md:-mt-11">
+      <section v-if="hayPanelPrecio" class="relative z-20 max-w-3xl mx-auto px-4 -mt-9 md:-mt-11 no-imprimir">
         <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_12px_40px_rgb(55,104,117,0.15)] overflow-hidden">
 
           <!-- FILA RESUMEN (también actúa de disparador) -->
@@ -1317,7 +1110,7 @@ const adelantoVista = computed(() => {
       <!-- Modo de lectura del ITINERARIO (no confundir con la tarjeta de precio):
            'Resumen' colapsa descripciones y fotos, dejando títulos, subtítulos y horas.
            Afecta a todos los días. -->
-      <div class="max-w-3xl mx-auto px-4 mt-5 md:mt-6 mb-4 flex justify-center sm:justify-start">
+      <div class="max-w-3xl mx-auto px-4 mt-5 md:mt-6 mb-4 flex justify-center sm:justify-start gap-2 no-imprimir">
         <div class="inline-flex items-center bg-slate-100 border border-slate-200 rounded-2xl p-1 gap-1">
           <button
               @click="modoResumen = false"
@@ -1336,10 +1129,22 @@ const adelantoVista = computed(() => {
             {{ maestroStore.t('cot_modo_resumen') || 'Resumen' }}
           </button>
         </div>
+
+        <!-- Imprimir / guardar como PDF. No genera archivo: abre el diálogo del navegador, que
+             en móvil y escritorio ofrece «Guardar como PDF». -->
+        <button
+            @click="imprimir"
+            :disabled="imprimiendo"
+            class="inline-flex items-center gap-2 px-4 py-2 md:py-2.5 rounded-2xl border border-slate-200 bg-white text-[#376875]/70 hover:text-[#376875] hover:border-[#376875]/40 text-[11px] md:text-xs font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+            :title="maestroStore.t('cot_imprimir') || 'Imprimir o guardar en PDF'"
+        >
+          <i class="fas fa-print text-[#E07845]"></i>
+          <span class="hidden sm:inline">{{ maestroStore.t('cot_imprimir') || 'Imprimir' }}</span>
+        </button>
       </div>
 
       <!-- Day-nav sticky con flechas -->
-      <nav class="sticky top-0 z-30 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200/60 shadow-sm">
+      <nav class="sticky top-0 z-30 bg-[#F8FAFC]/95 backdrop-blur-sm border-b border-slate-200/60 shadow-sm no-imprimir">
         <div class="max-w-3xl mx-auto px-2 py-2.5 flex items-center gap-1">
           <button
               @click="desplazarNav(-1)"
@@ -1382,11 +1187,11 @@ const adelantoVista = computed(() => {
             :key="dia.fecha"
             :id="`dia-${dia.numeroDia}`"
             :data-dia="dia.numeroDia"
-            class="pt-8 scroll-mt-16"
+            class="pt-8 scroll-mt-16 dia-imprimible"
         >
           <!-- Título del día -->
           <div class="flex items-center gap-3 mb-5">
-            <span class="w-12 h-12 rounded-2xl bg-[#376875] text-white flex flex-col items-center justify-center shrink-0 shadow-lg shadow-[#376875]/20">
+            <span class="chip-dia w-12 h-12 rounded-2xl bg-[#376875] text-white flex flex-col items-center justify-center shrink-0 shadow-lg shadow-[#376875]/20">
               <span class="text-[8px] font-black uppercase leading-none opacity-70">{{ maestroStore.t('cot_dia') || 'Día' }}</span>
               <span class="text-lg font-black leading-none">{{ dia.numeroDia }}</span>
             </span>
@@ -1421,7 +1226,7 @@ const adelantoVista = computed(() => {
                 v-if="item.horaServicioInicio && !item.esRepeticion"
                 class="mb-3 -mt-1 flex items-center gap-2"
             >
-              <span class="inline-flex items-center gap-2 text-sm font-black text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30">
+              <span class="inline-flex items-center gap-2 text-sm font-black pastilla-hora text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30">
                 <i class="far fa-clock"></i>
                 {{ item.horaServicioInicio }}<template v-if="item.horaServicioFin"> – {{ item.horaServicioFin }}</template>
               </span>
@@ -1434,7 +1239,7 @@ const adelantoVista = computed(() => {
                  Va entre el <h3> (multi-segmento) y la card, o encima de la card (single) → simetría. -->
             <div
                 v-if="item.mostrarAccionInclusiones"
-                class="flex justify-end mb-3"
+                class="flex justify-end mb-3 no-imprimir"
             >
               <button
                   @click="abrirInclusiones(item.servicio.id, item.servicio.tituloSnapshot)"
@@ -1526,7 +1331,7 @@ const adelantoVista = computed(() => {
                   <!-- Rango horario del segmento (derivado de componentes) -->
                   <span
                       v-if="item.horaInicio"
-                      class="shrink-0 inline-flex items-center font-black text-white bg-[#E07845] tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30"
+                      class="shrink-0 inline-flex items-center font-black pastilla-hora text-white bg-[#E07845] tabular-nums whitespace-nowrap shadow-md shadow-[#E07845]/30"
                       :class="modoResumen ? 'gap-1.5 text-xs rounded-lg px-2.5 py-1' : 'gap-2 text-sm rounded-xl px-3.5 py-2'"
                   >
                     <i class="far fa-clock" :class="modoResumen ? 'text-[10px]' : ''"></i>
@@ -1536,7 +1341,7 @@ const adelantoVista = computed(() => {
                 <!-- Hora cuando sí hay galería -->
                 <span
                     v-else-if="item.horaInicio"
-                    class="inline-flex items-center gap-2 text-sm font-black text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums mb-3 shadow-md shadow-[#E07845]/30"
+                    class="inline-flex items-center gap-2 text-sm font-black pastilla-hora text-white bg-[#E07845] rounded-xl px-3.5 py-2 tabular-nums mb-3 shadow-md shadow-[#E07845]/30"
                 >
                   <i class="far fa-clock"></i>
                   {{ item.horaInicio }}<template v-if="item.horaFin && item.horaFin !== item.horaInicio"> – {{ item.horaFin }}</template>
@@ -1623,7 +1428,7 @@ const adelantoVista = computed(() => {
 
             <div class="relative">
               <div
-                  class="space-y-7 transition-all"
+                  class="space-y-7 transition-all panel-inclusiones"
                   :class="inclusionesPorDia.get(dia.fecha)?.largo && !incExpandida.has(dia.fecha) ? 'max-h-32 overflow-hidden' : ''"
               >
                 <!-- Un bloque por servicio del día, dentro del mismo panel -->
@@ -1676,7 +1481,7 @@ const adelantoVista = computed(() => {
                             <button
                                 v-if="chip.proveedor"
                                 @click="abrirProveedor(chip.proveedor)"
-                                class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white bg-[#E07845] hover:bg-[#D06535] rounded-md px-2 py-0.5 shadow-sm shadow-[#E07845]/30 transition-colors"
+                                class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider pastilla-hora text-white bg-[#E07845] hover:bg-[#D06535] rounded-md px-2 py-0.5 shadow-sm shadow-[#E07845]/30 transition-colors"
                             >
                               <i class="fas fa-hotel text-[8px]"></i>
                               {{ store.traducir(chip.proveedor.titulo) }}
@@ -1709,7 +1514,7 @@ const adelantoVista = computed(() => {
               <button
                   v-if="inclusionesPorDia.get(dia.fecha)?.largo && !incExpandida.has(dia.fecha)"
                   @click="toggle(incExpandida, dia.fecha)"
-                  class="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white via-white/90 to-transparent flex items-end justify-center pb-1"
+                  class="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white via-white/90 to-transparent flex items-end justify-center pb-1 no-imprimir"
               >
                 <span class="text-[10px] font-black uppercase tracking-widest text-[#E07845] bg-white/90 border border-[#E07845]/20 rounded-full px-3.5 py-1.5 shadow-sm">
                   <i class="fas fa-chevron-down mr-1"></i>{{ maestroStore.t('cot_ver_todo') || 'Ver todo' }}
@@ -1719,7 +1524,7 @@ const adelantoVista = computed(() => {
 
             <div
                 v-if="inclusionesPorDia.get(dia.fecha)?.largo && incExpandida.has(dia.fecha)"
-                class="flex justify-center mt-5"
+                class="flex justify-center mt-5 no-imprimir"
             >
               <button
                   @click="toggle(incExpandida, dia.fecha)"
@@ -1920,7 +1725,7 @@ const adelantoVista = computed(() => {
                     <button
                         v-if="chip.proveedor"
                         @click="abrirProveedor(chip.proveedor)"
-                        class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white bg-[#E07845] hover:bg-[#D06535] rounded-md px-2 py-0.5 shadow-sm shadow-[#E07845]/30 transition-colors"
+                        class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider pastilla-hora text-white bg-[#E07845] hover:bg-[#D06535] rounded-md px-2 py-0.5 shadow-sm shadow-[#E07845]/30 transition-colors"
                     >
                       <i class="fas fa-hotel text-[8px]"></i>
                       {{ store.traducir(chip.proveedor.titulo) }}
@@ -1950,5 +1755,75 @@ const adelantoVista = computed(() => {
 }
 .arrow-pulse-blur {
   animation: arrow-pulse-blur 5s ease-in-out infinite;
+}
+</style>
+<!--
+    ── El papel ────────────────────────────────────────────────────────────────
+    Esta hoja es todo lo que hay del «PDF del itinerario». No hay servicio, ni plantilla, ni
+    librería: se imprime **la misma vista**, y por eso no puede desalinearse con ella. Cualquier
+    regla nueva del itinerario aparece aquí sola.
+
+    ⚠️ El contenido lo recorta el modo Resumen (JS), no el CSS. Aquí sólo se quita el mobiliario
+    de pantalla —navegación, botones, precio— y se arregla la paginación. Si algún día hay que
+    ocultar contenido de verdad, va en el modo, no en esta hoja: si no, se ve una cosa en la
+    pantalla y otra en el papel, que es justo el fallo que este proyecto persigue.
+-->
+<style>
+@media print {
+  /* Fondo blanco de verdad: el gris de la app se imprime como una mancha y gasta tinta. */
+  html, body { background: #fff !important; }
+
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+}
+</style>
+
+<style scoped>
+@media print {
+  /* Mobiliario de pantalla: nada de esto hace nada en papel. */
+  .no-imprimir { display: none !important; }
+
+  /* La cabecera pierde su bloque de color pero conserva el título. */
+  header { background: #fff !important; color: #1f2933 !important; overflow: visible !important; }
+  header :deep(h1), header :deep(p), header :deep(span) { color: #1f2933 !important; }
+
+  /* Un día no se parte entre hojas: la mitad de abajo se quedaría sin su fecha, que es lo único
+     que la ubica. Si un día no cabe entero, `avoid` cede y al menos empieza en hoja nueva. */
+  .dia-imprimible {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    padding-top: 0.75rem;
+  }
+
+  /* El panel de inclusiones se imprime entero: en pantalla lo despliega un botón, y en papel no
+     hay botón. Sin esto se imprimen 128px de lista y el resto no existe. */
+  .panel-inclusiones {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* ⚠️ **Chrome no imprime fondos salvo que el usuario marque «Gráficos de fondo»**, y nadie lo
+     marca. Todo lo que era texto blanco sobre color —el número del día, las horas— saldría en
+     blanco sobre blanco: invisible. Y las horas son justamente lo que se lleva el cliente.
+     Por eso se invierten a texto oscuro con borde, que se imprime siempre. */
+  .chip-dia, :deep(.pastilla-hora) {
+    background: transparent !important;
+    color: #1f2933 !important;
+    border: 1px solid #1f2933 !important;
+  }
+  :deep(.pastilla-hora i) { color: #1f2933 !important; }
+
+  /* ⚠️ Las galerías también se quitan aquí, y no sólo con el modo Resumen: un Cmd+P desde el menú
+     del navegador no pasa por el botón, así que sin esta regla ese camino imprime las fotos. Dos
+     defensas para el mismo requisito porque son dos caminos distintos, no por duplicar. */
+  :deep([data-galeria]) { display: none !important; }
+
+  /* Las sombras y los bordes redondeados se imprimen como manchas grises. */
+  :deep(*) {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
 }
 </style>
