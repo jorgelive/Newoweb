@@ -56,6 +56,21 @@ export default defineConfigWithVueTs(
             // (HomeView, ChatView…) y renombrarlos ahora no aporta nada.
             'vue/multi-word-component-names': 'off',
 
+            // ── La puerta pública de `dominio/` ─────────────────────────────────
+            //
+            // ⚠️ Las apps importan de `@dominio/<modulo>/index.ts` y de ningún archivo de
+            // dentro. Un import profundo ata al consumidor a la organización interna del
+            // módulo, y entonces mover un archivo rompe a alguien que no sabías que existía.
+            //
+            // Con una sola puerta, dentro se reorganiza libre. Sin la regla, la puerta es una
+            // convención — y una convención no falla.
+            'no-restricted-imports': ['error', {
+                patterns: [{
+                    group: ['@dominio/*/*', '!@dominio/*/index.ts'],
+                    message: 'Importa de @dominio/<modulo>/index.ts, no de un archivo interno.',
+                }],
+            }],
+
             // ── FORMATO: TODO APAGADO, Y A PROPÓSITO ────────────────────────────
             //
             // Con estas activadas el informe salía con 1.344 avisos, de los que 1.251
