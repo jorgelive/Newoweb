@@ -26,8 +26,8 @@ const cargar = async () => {
 onMounted(cargar);
 watch(() => route.params.localizador, cargar);
 
-const verTour = (version: number) => {
-  router.push(`/catalogo/${store.portadaCatalogo?.localizador}/p/${version}`);
+const verTour = (propuesta: number) => {
+  router.push(`/catalogo/${store.portadaCatalogo?.localizador}/p/${propuesta}`);
 };
 
 // Idioma manual pisa al idiomaCliente del catálogo (mismo criterio que la guía).
@@ -116,8 +116,8 @@ const resumenPlano = (tour: PaxTourResumen): string =>
            un CTA gigante en cada una competía con la foto y alargaba el scroll; el
            precio "Desde" con la flecha ya dice a dónde se va. -->
       <main class="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-10 pb-20 space-y-6 md:space-y-7">
-        <article v-for="(tour, idx) in store.tours" :key="tour.version"
-                 @click="verTour(tour.version)"
+        <article v-for="(tour, idx) in store.tours" :key="tour.propuesta"
+                 @click="verTour(tour.propuesta)"
                  class="group bg-white rounded-3xl border border-slate-200/70 shadow-[0_10px_30px_rgb(15,23,42,0.06)] hover:shadow-[0_18px_45px_rgb(55,104,117,0.15)] hover:border-slate-300 hover:-translate-y-0.5 overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.995]">
 
           <!-- Portada -->
@@ -138,7 +138,7 @@ const resumenPlano = (tour: PaxTourResumen): string =>
 
             <!-- Título flotante: sin caja, directo sobre el degradado -->
             <h2 class="absolute bottom-0 left-0 right-0 px-5 pb-4 md:px-6 md:pb-5 text-xl md:text-3xl font-black text-white tracking-tight leading-tight line-clamp-2 drop-shadow-lg">
-              {{ store.traducir(tour.titulo) || `Tour ${tour.version}` }}
+              {{ store.traducir(tour.titulo) || `Tour ${tour.propuesta}` }}
             </h2>
           </div>
 

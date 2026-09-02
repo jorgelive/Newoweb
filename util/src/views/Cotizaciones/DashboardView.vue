@@ -10,7 +10,7 @@ import {
     ESTADO_FILE_CONFIG,
     ESTADO_COTIZACION_CONFIG,
     type EstadoFile,
-    type VersionDelFile,
+    type PropuestaDelFile,
 } from '@/types/cotizacionEditorModel';
 
 /** Las tres vistas del dashboard. `null` = todos, para cuando hay que buscar algo viejo. */
@@ -41,7 +41,7 @@ const uiEstadoCotizacion = (estado?: string | null) =>
  * veía antes. Una versión sin título es normal —se pone al redactarla— y dejar el hueco en
  * blanco haría que la fila pareciera rota.
  */
-function tituloDeVersion(v: VersionDelFile): string {
+function tituloDeVersion(v: PropuestaDelFile): string {
     const entradas = v.titulo ?? [];
     const elegida = entradas.find(e => e.language === 'es') ?? entradas[0];
 
@@ -100,7 +100,7 @@ const diaYMes = (d: Date): string => {
  * Devuelve cadena vacía —no 'S/F'— si no hay fechas: quien la llama decide si eso deja hueco o
  * cae a otra cosa. Una versión sin servicios todavía es normal.
  */
-function rangoDeVersion(v: VersionDelFile): string {
+function rangoDeVersion(v: PropuestaDelFile): string {
   const ini = v.fechaInicio ?? null;
   const fin = v.fechaFin ?? null;
 
@@ -150,7 +150,7 @@ const sortDir = ref<'asc' | 'desc'>('desc');
 
 /** Fecha de primer servicio más próxima entre todas las versiones del file (o null si ninguna tiene). */
 const primeraFechaServicio = (file: ApiCotizacionFile): string | null => {
-  const fechas = (file.versionesFechas || [])
+  const fechas = (file.propuestasFechas || [])
     .map(v => v.fechaInicio)
     .filter((f): f is string => !!f)
     .sort();
@@ -375,8 +375,8 @@ const loadMore = (): void => {
                En filas y no en pastillas porque el título es texto libre y de largo variable;
                apretado en una pastilla se recortaba a dos palabras y dejaba de distinguir una
                versión de otra, que es justo para lo que sirve. -->
-          <div v-if="file.versionesFechas?.length" class="mt-3 space-y-1">
-            <div v-for="v in file.versionesFechas" :key="v.id ?? v.version"
+          <div v-if="file.propuestasFechas?.length" class="mt-3 space-y-1">
+            <div v-for="v in file.propuestasFechas" :key="v.id ?? v.version"
                  class="flex items-start gap-2 px-2 py-1.5 bg-slate-50 border border-slate-100 rounded-lg">
               <span class="text-[10px] font-black text-slate-400 shrink-0 leading-4">V{{ v.version }}</span>
 

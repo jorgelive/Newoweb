@@ -132,7 +132,7 @@ export interface ExpedienteOpcion {
 /** Cotización reducida para el selector de filtros de La Biblia. */
 export interface CotizacionOpcion {
     id: string;
-    version?: number | null;
+    propuesta?: number | null;
     titulo?: string | null;
     estado?: string | null;
 }
@@ -630,7 +630,7 @@ export const useOperacionStore = defineStore('operacionStore', () => {
 
             return cotizaciones.map((c: Record<string, unknown>) => ({
                 id: String(c.id ?? ''),
-                version: (c.version as number | null) ?? null,
+                propuesta: (c.propuesta as number | null) ?? null,
                 titulo: (c.titulo as string | null) ?? null,
                 estado: (c.estado as string | null) ?? null,
             }));

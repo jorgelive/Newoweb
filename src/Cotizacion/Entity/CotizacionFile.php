@@ -73,10 +73,10 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         ),
         // DETALLE público: File + cotización completa de una versión
         new Get(
-            uriTemplate: '/client/cotizacion/cotizacion_file/{localizador}/{version}',
+            uriTemplate: '/client/cotizacion/cotizacion_file/{localizador}/{propuesta}',
             uriVariables: [
                 'localizador' => new Link(fromClass: CotizacionFile::class, identifiers: ['localizador']),
-                'version'     => new Link(fromClass: CotizacionFile::class, identifiers: ['version']),
+                'propuesta'     => new Link(fromClass: CotizacionFile::class, identifiers: ['propuesta']),
             ],
             normalizationContext: ['groups' => ['pax_file:read', 'pax_cotizacion:read']],
             security: "is_granted('PUBLIC_ACCESS')",
@@ -174,7 +174,7 @@ class CotizacionFile
     #[ApiProperty(fetchEager: false)]
     #[Groups(['file:item:read'])]
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: Cotizacion::class, cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EXTRA_LAZY')]
-    #[ORM\OrderBy(['version' => 'DESC'])]
+    #[ORM\OrderBy(['propuesta' => 'DESC'])]
     private Collection $cotizaciones;
 
     /**
@@ -241,7 +241,7 @@ class CotizacionFile
      *
      * @var array<int, array<string, mixed>>
      */
-    private array $versionesParaCliente = [];
+    private array $propuestasParaCliente = [];
 
     /** Cotización completa de la versión solicitada en la URL (solo detalle). */
     private ?Cotizacion $cotizacionParaCliente = null;
@@ -277,9 +277,9 @@ class CotizacionFile
     /**
      * @param list<array<string, mixed>> $versiones
      */
-    public function setVersionesParaCliente(array $versiones): self
+    public function setPropuestasParaCliente(array $versiones): self
     {
-        $this->versionesParaCliente = $versiones;
+        $this->propuestasParaCliente = $versiones;
         return $this;
     }
 
@@ -291,9 +291,9 @@ class CotizacionFile
      * @return array<int, array<string, mixed>>
      */
     #[Groups(['pax_file:read'])]
-    public function getVersionesParaCliente(): array
+    public function getPropuestasParaCliente(): array
     {
-        return $this->versionesParaCliente;
+        return $this->propuestasParaCliente;
     }
 
     public function setCotizacionParaCliente(?Cotizacion $cotizacion): self
@@ -316,33 +316,33 @@ class CotizacionFile
      * nada más, así que un expediente con tres propuestas —una confirmada, una cancelada y un
      * histórico— se leía igual que uno con tres pendientes.
      *
-     * @var array<int, array{id: string, version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}>
+     * @var array<int, array{id: string, propuesta: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}>
      */
-    private array $versionesFechas = [];
+    private array $propuestasFechas = [];
 
     /**
      * La misma forma que declara la propiedad. Con `list<array<string, mixed>>` aquí se podía
-     * guardar una fila sin `version`, y el getter promete que la trae.
+     * guardar una fila sin `propuesta`, y el getter promete que la trae.
      *
-     * @param array<int, array{id: string, version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}> $versionesFechas
+     * @param array<int, array{id: string, propuesta: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}> $propuestasFechas
      */
-    public function setVersionesFechas(array $versionesFechas): self
+    public function setPropuestasFechas(array $propuestasFechas): self
     {
-        $this->versionesFechas = $versionesFechas;
+        $this->propuestasFechas = $propuestasFechas;
         return $this;
     }
 
     /**
-     * La misma forma que declara la propiedad. Anunciaba sólo `version` y `fechaInicio` —dos de
+     * La misma forma que declara la propiedad. Anunciaba sólo `propuesta` y `fechaInicio` —dos de
      * las seis claves que realmente viajan—, así que `estado`, `titulo` y las fechas del tramo
      * eran invisibles para quien lo leyera desde fuera.
      *
-     * @return array<int, array{id: string, version: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}>
+     * @return array<int, array{id: string, propuesta: int, estado: string, titulo: array<int, array<string, mixed>>, fechaInicio: ?string, fechaFin: ?string}>
      */
     #[Groups(['file:read'])]
-    public function getVersionesFechas(): array
+    public function getPropuestasFechas(): array
     {
-        return $this->versionesFechas;
+        return $this->propuestasFechas;
     }
 
     /**

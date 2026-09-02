@@ -308,10 +308,10 @@ const handleGuardar = async (): Promise<boolean> => {
 // ruta /catalogo/...; si no, /file/... Requiere localizador + versión.
 const paxPreviewUrl = computed<string | null>(() => {
   const loc = store.fileActual?.localizador;
-  const version = store.cotizacion?.version;
-  if (!loc || !version) return null;
+  const propuesta = store.cotizacion?.propuesta;
+  if (!loc || !propuesta) return null;
   const seg = store.modoCatalogo ? 'catalogo' : 'file';
-  return `${getUrls().pax}/${seg}/${loc}/p/${version}`;
+  return `${getUrls().pax}/${seg}/${loc}/p/${propuesta}`;
 });
 
 const abrirVistaPax = async () => {
@@ -1570,7 +1570,7 @@ store.$onAction(({ name, args }) => {
           </h1>
           <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
             {{ store.modoCatalogo ? 'Catálogo de Tours' : 'Motor Operativo' }}
-            <span v-if="store.cotizacion">• {{ store.modoCatalogo ? 'Tour' : 'V' }}{{ store.cotizacion.version ?? 1 }}</span>
+            <span v-if="store.cotizacion">• {{ store.modoCatalogo ? 'Tour' : 'P' }}{{ store.cotizacion.propuesta ?? 1 }}</span>
 
             <!-- ⚠️ Estás EDITANDO una foto del pasado. Va en la cabecera y en violeta porque
                  todo lo demás de esta pantalla se ve exactamente igual que en la versión viva:
@@ -2111,7 +2111,7 @@ store.$onAction(({ name, args }) => {
             <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2 grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-4">
                 <div>
-                  <span class="block text-xs font-bold text-slate-500 uppercase mb-1">{{ store.modoCatalogo ? 'Estado del Tour' : 'Estado Versión' }}</span>
+                  <span class="block text-xs font-bold text-slate-500 uppercase mb-1">{{ store.modoCatalogo ? 'Estado del Tour' : 'Estado Propuesta' }}</span>
                   <select v-model="store.cotizacion.estado" class="w-full font-black text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] text-sm appearance-none shadow-sm">
                     <option v-for="(cfg, valor) in ESTADO_COTIZACION_CONFIG" :key="valor" :value="valor">
                       {{ cfg.label }}
@@ -3830,7 +3830,7 @@ store.$onAction(({ name, args }) => {
       <i class="fas fa-unlink text-6xl text-slate-300 mb-6"></i>
       <h2 class="text-2xl font-black text-slate-700 tracking-tight">Enlace Incompleto</h2>
       <p class="text-slate-500 mt-2 font-medium max-w-md">
-        El motor operativo necesita saber exactamente qué Expediente y qué Versión cargar. Revisa que la URL contenga los identificadores correctos.
+        El motor operativo necesita saber exactamente qué Expediente y qué Propuesta cargar. Revisa que la URL contenga los identificadores correctos.
       </p>
       <button @click="router.push('/cotizacion')" class="mt-8 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all">
         <i class="fas fa-arrow-left mr-2"></i> Volver al Dashboard
@@ -4395,7 +4395,7 @@ store.$onAction(({ name, args }) => {
 
   <PlanOperacionModal
       :cotizacion-id="planOperacionId"
-      :titulo="store.cotizacion ? `Versión ${store.cotizacion.version ?? '?'}` : undefined"
+      :titulo="store.cotizacion ? `Propuesta ${store.cotizacion.propuesta ?? '?'}` : undefined"
       @cerrar="planOperacionId = null"
   />
 

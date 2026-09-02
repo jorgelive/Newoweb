@@ -18,7 +18,7 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  *
  * - GET .../{localizador}            → PORTADA: Catálogo + cards escalares de
  *                                      todos los tours públicos vigentes.
- * - GET .../{localizador}/{version}  → DETALLE: lo anterior + la cotización
+ * - GET .../{localizador}/{propuesta}  → DETALLE: lo anterior + la cotización
  *                                      completa de ese tour.
  *
  * Mismo patrón de rendimiento que CotizacionFilePublicProvider: las cards
@@ -54,7 +54,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
 
         // ── 1. Cards para la portada: un solo query escalar ──────────────────
         $filas = $this->em->createQuery(<<<'DQL'
-            SELECT c.id, c.imagenPortada, c.version, c.estado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
+            SELECT c.id, c.imagenPortada, c.propuesta, c.estado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
                    c.monedaGlobal, c.precioOculto, c.totalVenta,
                    c.preciosDesde, c.orden,
                    MIN(s.fechaInicioAbsoluta) AS fechaMin, MAX(s.fechaInicioAbsoluta) AS fechaMax
@@ -63,7 +63,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
             WHERE c.catalogo = :catalogo
               AND c.estado IN (:publicos)
             GROUP BY c.id
-            ORDER BY c.orden ASC, c.version ASC
+            ORDER BY c.orden ASC, c.propuesta ASC
         DQL)
             ->setParameter('catalogo', $catalogo->getId(), UuidType::NAME)
             ->setParameter('publicos', $estadosPublicos)
@@ -82,7 +82,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
             $estado = $f['estado'] instanceof CotizacionEstadoEnum ? $f['estado']->value : $f['estado'];
 
             return [
-                'version'           => $f['version'],
+                'propuesta'           => $f['propuesta'],
                 'estado'            => $estado,
                 'numPax'            => $f['numPax'],
                 'titulo'            => $f['titulo'] ?? [],         // I18nContent[] (texto)
@@ -100,10 +100,10 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
         }, $filas)));
 
         // ── 2. Detalle: cargar SOLO el tour solicitado ────────────────────────
-        if (isset($uriVariables['version'])) {
+        if (isset($uriVariables['propuesta'])) {
             $cotizacion = $this->em->getRepository(Cotizacion::class)->findOneBy([
                 'catalogo' => $catalogo,
-                'version'  => (int) $uriVariables['version'],
+                'propuesta'  => (int) $uriVariables['propuesta'],
             ]);
 
             if (!$cotizacion || !$cotizacion->getEstado()->esPublico()) {

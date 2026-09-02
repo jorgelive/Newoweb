@@ -64,10 +64,10 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         ),
         // DETALLE público: Catálogo + cotización completa de un tour
         new Get(
-            uriTemplate: '/client/cotizacion/cotizacion_catalogo/{localizador}/{version}',
+            uriTemplate: '/client/cotizacion/cotizacion_catalogo/{localizador}/{propuesta}',
             uriVariables: [
                 'localizador' => new Link(fromClass: CotizacionCatalogo::class, identifiers: ['localizador']),
-                'version'     => new Link(fromClass: CotizacionCatalogo::class, identifiers: ['version']),
+                'propuesta'     => new Link(fromClass: CotizacionCatalogo::class, identifiers: ['propuesta']),
             ],
             normalizationContext: ['groups' => ['pax_catalogo:read', 'pax_cotizacion:read']],
             security: "is_granted('PUBLIC_ACCESS')",
@@ -135,7 +135,7 @@ class CotizacionCatalogo
     #[ApiProperty(fetchEager: false)]
     #[Groups(['catalogo:item:read'])]
     #[ORM\OneToMany(mappedBy: 'catalogo', targetEntity: Cotizacion::class, cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EXTRA_LAZY')]
-    #[ORM\OrderBy(['version' => 'DESC'])]
+    #[ORM\OrderBy(['propuesta' => 'DESC'])]
     private Collection $cotizaciones;
 
     // ══════════════════════════════════════════════════════════════════════

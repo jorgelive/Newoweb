@@ -29,7 +29,7 @@ const router = createRouter({
         //
         // ⚠️ «Propuesta», no «versión»: no se sustituyen entre sí. Un expediente puede tener
         // varias vivas a la vez, y el cliente puede aprobar más de una porque a veces son
-        // COMPLEMENTARIAS —una la parte de Lima y otra la de Bolivia—. `versionesParaCliente`
+        // COMPLEMENTARIAS —una la parte de Lima y otra la de Bolivia—. `propuestasParaCliente`
         // lleva por cada una su propio `titulo` y su tramo de fechas: eso es una propuesta, no
         // una revisión. Renombrado el 02/09/2026.
         //

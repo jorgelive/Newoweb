@@ -34,13 +34,13 @@ final class CloneCotizacionProcessor implements ProcessorInterface
         if ($padre) {
             $ultimaVersion = 0;
             foreach ($padre->getCotizaciones() as $c) {
-                if ($c->getVersion() > $ultimaVersion) {
-                    $ultimaVersion = $c->getVersion();
+                if ($c->getPropuesta() > $ultimaVersion) {
+                    $ultimaVersion = $c->getPropuesta();
                 }
             }
-            $clon->setVersion($ultimaVersion + 1);
+            $clon->setPropuesta($ultimaVersion + 1);
         } else {
-            $clon->setVersion($data->getVersion() + 1);
+            $clon->setPropuesta($data->getPropuesta() + 1);
         }
 
         $clon->setEstado(CotizacionEstadoEnum::PENDIENTE);

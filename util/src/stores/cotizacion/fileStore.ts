@@ -478,10 +478,10 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
-    const updateCotizacionVersion = async (iri: string, version: number): Promise<boolean> => {
+    const updateCotizacionPropuesta = async (iri: string, propuesta: number): Promise<boolean> => {
         error.value = null;
         try {
-            await apiClient.patch(iri, { version });
+            await apiClient.patch(iri, { propuesta });
             return true;
         } catch (err: unknown) {
             error.value = extractApiErrorMessage(err, 'Error al actualizar la versión.');
@@ -597,7 +597,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         deletePassenger,
         deleteCotizacion,
         deleteFile,
-        updateCotizacionVersion,
+        updateCotizacionPropuesta,
         extraerResumenPreview,
         updatePassenger,
         updateDocument,

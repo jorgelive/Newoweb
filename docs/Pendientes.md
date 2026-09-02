@@ -17,39 +17,6 @@ la siguiente persona lo investiga otra vez.
 
 ---
 
-## ⏳ Esperando su ocasión — `version` → `propuesta` (02/09/2026)
-
-**Disparador: cuando alguien escriba una migración sobre `cotizacion_cotizacion`.** No antes.
-
-El 02/09/2026 se renombró todo lo que ve una persona —URL `/file/{loc}/p/{n}`, rutas, props,
-vistas, docs— y **la columna se quedó como `version`**, traducida en la frontera y con un
-comentario donde se lee. Ver `docs/Cotizaciones.md` §6.j.0.
-
-El renombrado profundo se midió y no compensa por sí solo:
-
-| | |
-|---|---|
-| PHP (`Cotizacion`, `Api`, `Operacion`) | 19 archivos |
-| `util/src` · `pax/src` | 46 · 32 líneas |
-| Los dos `api.d.ts` | regenerar |
-| Migración | renombrar `int NOT NULL` en producción |
-| Beneficio restante | que nadie se confunda leyendo la entidad — ya cubierto por un comentario |
-
-Con una migración ya de por medio el coste marginal se desploma, y **ésa es la ocasión**.
-
-⚠️ **Pero no en el mismo diff que un cambio de comportamiento.** Un renombrado mecánico mezclado
-con lógica hace imposible revisar ninguno de los dos — es el mismo argumento por el que están
-apagadas las reglas de formato de ESLint.
-
-⚠️ **Y si la ocasión no llega nunca, no pasa nada.** Un nombre heredado con su traducción en la
-frontera es deuda que no crece. Esto NO es una tarea pendiente: es una condición a la espera.
-
-**El recordatorio no depende de que alguien lea esto:** `.claude/hooks/deuda-guard.sh` lo saca solo
-al escribir una migración que mencione esa tabla. Esta entrada cubre a quien la escriba a mano
-desde el IDE, donde el hook no llega.
-
----
-
 ## 1. Nunca se marca la entrega ni la lectura en la cola de WhatsApp
 
 `msg_whatsapp_meta_send_queue` tiene `delivered_at` y `read_at`, y están **vacías en las 2368

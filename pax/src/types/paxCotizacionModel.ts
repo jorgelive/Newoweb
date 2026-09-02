@@ -373,8 +373,8 @@ export interface PaxFilearchivo {
 // --- Resumen de propuesta (card de la portada) ----------------------------------
 
 /** Item de getVersionesParaCliente(): resumen liviano para comparar propuestas */
-export interface PaxVersionResumen {
-    version: number;
+export interface PaxPropuestaResumen {
+    propuesta: number;
     estado: string;
     numPax: number;
     titulo?: I18n; // título comercial multiidioma (opcional)
@@ -400,7 +400,7 @@ export interface PaxCotizacionFile {
     pasajeroPrincipal?: string | null;
     idiomaCliente?: string;
     /** Cards de todas las propuestas públicas vigentes (siempre presente) */
-    versionesParaCliente: PaxVersionResumen[];
+    propuestasParaCliente: PaxPropuestaResumen[];
     /** Cotización completa; solo viene cuando la URL incluye /{version} */
     cotizacionParaCliente?: PaxCotizacion | null;
     documentosParaCliente: PaxFilearchivo[];
@@ -418,7 +418,7 @@ export interface PaxPrecioDesdeRango {
 
 /** Card liviana de un tour del catálogo (portada del escaparate). */
 export interface PaxTourResumen {
-    version: number;
+    propuesta: number;
     estado: string;
     numPax: number;
     titulo: I18n;

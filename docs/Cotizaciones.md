@@ -1766,14 +1766,28 @@ Expediente
 
 Ninguna de las tres consume número de propuesta: se distinguen por estado (§6.j).
 
-### Qué se renombró y qué NO
+### Qué se renombró
 
 | | Antes | Ahora |
 |---|---|---|
-| URL de la guía | `/file/{loc}/v/{n}` | **`/file/{loc}/p/{n}`** |
-| URL del catálogo | `/catalogo/{loc}/v/{n}` | **`/catalogo/{loc}/p/{n}`** |
-| Parámetro de ruta, prop, variables de vista | `version` | **`propuesta`** |
-| Columna, campo de la API, `versionesParaCliente` | `version` | **`version`** — sin tocar |
+| URL de la guía y del catálogo | `/…/v/{n}` | **`/…/p/{n}`** |
+| Parámetro de ruta, prop, variables | `version` | **`propuesta`** |
+| **Columna** `cotizacion_cotizacion` | `version` | **`propuesta`** |
+| **Campo de la API** y sus dos `api.d.ts` | `version` | **`propuesta`** |
+| `versionesParaCliente` · `versionesFechas` | | **`propuestasParaCliente`** · **`propuestasFechas`** |
+| Textos de interfaz | «Versión N» · «V2» | «Propuesta N» · «P2» |
+
+**Se hizo entero el 02/09/2026, no a medias.** La primera intención fue renombrar sólo lo visible y
+dejar la columna con su nombre heredado, esperando una migración que lo llevara gratis. Se descartó
+al comprobar dos cosas:
+
+1. **La ocasión no iba a llegar.** El trabajo que viene —la propuesta operativa— **no toca esta
+   tabla**: `estado` es `varchar(30)` (un `case` nuevo no necesita migración) y `derivadaDe` ya
+   existe. El recordatorio habría esperado para siempre dando falsa tranquilidad.
+2. **La deuda no crece con los datos, pero sí con las funciones.** `RENAME COLUMN` en MySQL 8 es
+   metadatos —no reescribe filas, daba igual 12 que 12.000—, pero cada función nueva sobre
+   cotizaciones sumaba un sitio más leyendo el nombre equivocado. Y lo que viene son justo
+   funciones sobre cotizaciones, donde razonar «versión = revisión» lleva al diseño equivocado.
 
 **La interfaz ya decía «Propuesta»** (`cot_propuesta` en `PaxFilePortadaView`). Lo que iba por
 detrás era la fontanería, no el vocabulario del usuario.
@@ -1784,10 +1798,16 @@ propuesta, este cambio ya no se puede repetir sin alias: un enlace que deja de f
 cambie nada del lado del cliente es de los fallos más caros que tiene este sistema —ya pasó con el
 provider público, ver §6.j—.
 
-⚠️ **La columna se queda como `version` a propósito.** Renombrarla arrastra la API, los dos
-`api.d.ts`, `versionesParaCliente` y el editor; es otro trabajo y no compra nada hoy. La traducción
-se hace **en la frontera**: la ruta y las vistas dicen `propuesta`, y donde se lee la columna hay un
-comentario que lo dice.
+🔥 **El typecheck fue la red, y encontró 21 sitios.** Regenerar los dos `api.d.ts` desde el esquema
+nuevo hizo que TypeScript señalara uno por uno cada consumidor del campo viejo — stores, vistas,
+modelos, el payload de guardado. Ninguno se encontró leyendo: los encontró el compilador. Es
+exactamente el argumento de por qué los tipos se generan y no se escriben a mano.
+
+⚠️ **Lo que el typecheck NO podía ver, y casi se escapa:** `uriVariables` de API Platform declaraba
+`'version' => new Link(…)`. Es una clave de array en un atributo PHP, así que ningún tipo la
+vigilaba: la API devolvía **404 con «Parameter "version" not found»** y sólo salió al pedir el
+endpoint de verdad. La lección de siempre — un atributo mal puesto no falla, deja de hacer su
+trabajo — con una vuelta más: aquí sí fallaba, pero en un sitio donde nada estático miraba.
 
 ## 6.j Versiones e históricos: dos clones en direcciones opuestas (23/08/2026)
 

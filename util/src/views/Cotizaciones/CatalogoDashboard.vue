@@ -71,7 +71,7 @@ const linkPublico = (cat: CatalogoResumen): string =>
 
 const toursOrdenados = computed(() =>
   [...(seleccionado.value?.cotizaciones || [])].sort(
-    (a, b) => ((a.orden || 0) - (b.orden || 0)) || ((a.version || 0) - (b.version || 0))
+    (a, b) => ((a.orden || 0) - (b.orden || 0)) || ((a.propuesta || 0) - (b.propuesta || 0))
   )
 );
 
@@ -496,9 +496,9 @@ onMounted(() => {
 
                   <div class="absolute inset-0 bg-linear-to-t from-black/80 via-black/15 to-transparent pointer-events-none"></div>
 
-                  <!-- Versión y duración -->
+                  <!-- Propuesta y duración -->
                   <div class="absolute top-3 left-3 flex items-center gap-1.5">
-                    <span class="bg-slate-900/85 backdrop-blur text-white text-[9px] font-black px-2 py-1 rounded-lg tracking-widest">T{{ tour.version }}</span>
+                    <span class="bg-slate-900/85 backdrop-blur text-white text-[9px] font-black px-2 py-1 rounded-lg tracking-widest">T{{ tour.propuesta }}</span>
                     <span v-if="diasLabel(tour)" class="bg-white/95 backdrop-blur text-[#376875] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg">
                       <i class="fas fa-route mr-1 text-[#E07845]"></i>{{ diasLabel(tour) }}
                     </span>
@@ -519,7 +519,7 @@ onMounted(() => {
                   <!-- Título flotante -->
                   <div class="absolute bottom-0 left-0 right-0 p-3.5 pointer-events-none">
                     <h5 class="text-sm font-black text-white leading-tight line-clamp-2 drop-shadow-md">
-                      {{ t18(tour.titulo) || `Tour ${tour.version}` }}
+                      {{ t18(tour.titulo) || `Tour ${tour.propuesta}` }}
                     </h5>
                     <p v-if="resumenPreview(tour.resumen)" class="text-[10px] font-medium text-white/70 truncate mt-1">
                       {{ resumenPreview(tour.resumen) }}

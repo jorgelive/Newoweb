@@ -484,7 +484,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/sales/client/cotizacion/cotizacion_catalogo/{localizador}/{version}": {
+    "/platform/sales/client/cotizacion/cotizacion_catalogo/{localizador}/{propuesta}": {
         parameters: {
             query?: never;
             header?: never;
@@ -495,7 +495,7 @@ export interface paths {
          * Retrieves a CotizacionCatalogo resource.
          * @description Retrieves a CotizacionCatalogo resource.
          */
-        get: operations["api_salesclientcotizacioncotizacion_catalogo_localizador_version_get"];
+        get: operations["api_salesclientcotizacioncotizacion_catalogo_localizador_propuesta_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -640,7 +640,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/sales/client/cotizacion/cotizacion_file/{localizador}/{version}": {
+    "/platform/sales/client/cotizacion/cotizacion_file/{localizador}/{propuesta}": {
         parameters: {
             query?: never;
             header?: never;
@@ -651,7 +651,7 @@ export interface paths {
          * Retrieves a CotizacionFile resource.
          * @description Retrieves a CotizacionFile resource.
          */
-        get: operations["api_salesclientcotizacioncotizacion_file_localizador_version_get"];
+        get: operations["api_salesclientcotizacioncotizacion_file_localizador_propuesta_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3068,7 +3068,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3116,7 +3116,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3140,7 +3140,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3162,7 +3162,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3184,7 +3184,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3204,7 +3204,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3252,7 +3252,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3276,7 +3276,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3298,7 +3298,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3318,7 +3318,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3366,7 +3366,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3390,7 +3390,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3412,7 +3412,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3432,7 +3432,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3480,7 +3480,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3504,7 +3504,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -3526,7 +3526,7 @@ export interface components {
              * @default extras
              * @enum {string}
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren" | "contacto";
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "transporte_excursion" | "alojamiento" | "alimentacion_fijo" | "alimentacion_variable" | "pool" | "privada" | "personal_extra" | "extras" | "actividad_fijo" | "vuelo" | "tren" | "contacto";
             /** @description Obtiene la duración estimada en horas. */
             duracion?: string | null;
             /** @description Obtiene los días de anticipación para alertas operativas. */
@@ -4384,8 +4384,11 @@ export interface components {
             readonly contextFinancialIsCleared?: boolean;
         };
         "Cotizacion-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -4475,8 +4478,11 @@ export interface components {
         "Cotizacion-cotizacion.read_timestamp.read": {
             file?: components["schemas"]["CotizacionFile-cotizacion.read_timestamp.read"] | null;
             catalogo?: components["schemas"]["CotizacionCatalogo-cotizacion.read_timestamp.read"] | null;
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -4577,8 +4583,11 @@ export interface components {
              * @example https://example.com/
              */
             catalogo?: string | null;
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -4665,8 +4674,11 @@ export interface components {
              * @example https://example.com/
              */
             catalogo?: string | null;
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -4741,8 +4753,11 @@ export interface components {
             sobreescribirTraduccion: boolean;
         };
         "Cotizacion-file.item.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -4812,8 +4827,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion-file.read_file.item.read_timestamp.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -4887,8 +4905,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion-pax_catalogo.read_pax_cotizacion.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -4947,8 +4968,11 @@ export interface components {
             cotservicios?: components["schemas"]["CotizacionCotservicio-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "Cotizacion-pax_file.read_pax_cotizacion.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5099,8 +5123,11 @@ export interface components {
             mensaje?: string;
         };
         "Cotizacion.html-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5190,8 +5217,11 @@ export interface components {
         "Cotizacion.html-cotizacion.read_timestamp.read": {
             file?: components["schemas"]["CotizacionFile.html-cotizacion.read_timestamp.read"] | null;
             catalogo?: components["schemas"]["CotizacionCatalogo.html-cotizacion.read_timestamp.read"] | null;
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5280,8 +5310,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.html-file.item.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5351,8 +5384,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.html-file.read_file.item.read_timestamp.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5426,8 +5462,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.html-pax_catalogo.read_pax_cotizacion.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5486,8 +5525,11 @@ export interface components {
             cotservicios?: components["schemas"]["CotizacionCotservicio.html-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "Cotizacion.html-pax_file.read_pax_cotizacion.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5546,8 +5588,11 @@ export interface components {
             cotservicios?: components["schemas"]["CotizacionCotservicio.html-pax_file.read_pax_cotizacion.read"][];
         };
         "Cotizacion.jsonld-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5637,8 +5682,11 @@ export interface components {
         "Cotizacion.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             file?: components["schemas"]["CotizacionFile.jsonld-cotizacion.read_timestamp.read"] | null;
             catalogo?: components["schemas"]["CotizacionCatalogo.jsonld-cotizacion.read_timestamp.read"] | null;
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5727,8 +5775,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5798,8 +5849,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5873,8 +5927,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5933,8 +5990,11 @@ export interface components {
             cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "Cotizacion.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -5993,8 +6053,11 @@ export interface components {
             cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-pax_file.read_pax_cotizacion.read"][];
         };
         "Cotizacion.multipart-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -6084,8 +6147,11 @@ export interface components {
         "Cotizacion.multipart-cotizacion.read_timestamp.read": {
             file?: components["schemas"]["CotizacionFile.multipart-cotizacion.read_timestamp.read"] | null;
             catalogo?: components["schemas"]["CotizacionCatalogo.multipart-cotizacion.read_timestamp.read"] | null;
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -6174,8 +6240,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.multipart-file.item.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -6245,8 +6314,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.multipart-file.read_file.item.read_timestamp.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -6320,8 +6392,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.multipart-pax_catalogo.read_pax_cotizacion.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -6380,8 +6455,11 @@ export interface components {
             cotservicios?: components["schemas"]["CotizacionCotservicio.multipart-pax_catalogo.read_pax_cotizacion.read"][];
         };
         "Cotizacion.multipart-pax_file.read_pax_cotizacion.read": {
-            /** @default 1 */
-            version: number;
+            /**
+             * @description Cuál de las propuestas del expediente es ésta.
+             * @default 1
+             */
+            propuesta: number;
             /**
              * @default pendiente
              * @enum {string}
@@ -9759,7 +9837,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -9774,7 +9852,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -9830,7 +9908,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -9871,7 +9949,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -9968,7 +10046,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
@@ -9991,7 +10069,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion-pax_file.read_pax_cotizacion.read"] | null;
@@ -10042,7 +10120,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -10057,7 +10135,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -10113,7 +10191,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -10154,7 +10232,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -10199,7 +10277,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
@@ -10222,7 +10300,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.html-pax_file.read_pax_cotizacion.read"] | null;
@@ -10244,7 +10322,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -10259,7 +10337,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -10331,7 +10409,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -10388,7 +10466,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -10435,7 +10513,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
@@ -10458,7 +10536,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.jsonld-pax_file.read_pax_cotizacion.read"] | null;
@@ -10509,7 +10587,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             /**
@@ -10524,7 +10602,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -10580,7 +10658,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -10621,7 +10699,7 @@ export interface components {
              *     para toda la página del dashboard (sin N+1), evitando hidratar
              *     $cotizaciones/$cotservicios por cada fila.
              */
-            versionesFechas?: {
+            propuestasFechas?: {
                 [key: string]: {
                     [key: string]: string | null;
                 }[] | number | string | null;
@@ -10666,7 +10744,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             readonly localizador?: string | null;
@@ -10689,7 +10767,7 @@ export interface components {
              */
             modo: "estandar" | "grupo";
             /** @description Resúmenes livianos de las propuestas públicas vigentes (portada). */
-            versionesParaCliente?: {
+            propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.multipart-pax_file.read_pax_cotizacion.read"] | null;
@@ -18343,7 +18421,7 @@ export interface components {
             /**
              * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
              *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
-             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
              */
             readonly cotizacionVersion?: number | null;
             /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
@@ -18425,7 +18503,7 @@ export interface components {
             /**
              * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
              *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
-             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
              */
             readonly cotizacionVersion?: number | null;
             /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
@@ -18746,7 +18824,7 @@ export interface components {
             /**
              * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
              *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
-             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
              */
             readonly cotizacionVersion?: number | null;
             /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
@@ -18828,7 +18906,7 @@ export interface components {
             /**
              * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
              *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
-             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
              */
             readonly cotizacionVersion?: number | null;
             /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
@@ -18959,7 +19037,7 @@ export interface components {
             /**
              * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
              *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
-             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
              */
             readonly cotizacionVersion?: number | null;
             /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
@@ -19041,7 +19119,7 @@ export interface components {
             /**
              * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
              *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
-             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
              */
             readonly cotizacionVersion?: number | null;
             /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
@@ -19172,7 +19250,7 @@ export interface components {
             /**
              * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
              *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
-             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
              */
             readonly cotizacionVersion?: number | null;
             /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
@@ -19254,7 +19332,7 @@ export interface components {
             /**
              * @description La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
              *     forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
-             *     vista del cliente (`/file/{localizador}/v/{version}` en pax).
+             *     vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
              */
             readonly cotizacionVersion?: number | null;
             /** @description De dónde sale el `costoCotizado`: una línea por tarifa, con su unitario y sus factores. */
@@ -25963,6 +26041,7 @@ export interface components {
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
             readonly nombreApellido?: string | null;
+            /** @description Las noches que esta persona duerme aquí: la **UNIÓN** de sus estancias, no el intervalo. */
             readonly noches?: number;
             readonly urlBeds24?: string | null;
             /**
@@ -26228,6 +26307,7 @@ export interface components {
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
             readonly nombreApellido?: string | null;
+            /** @description Las noches que esta persona duerme aquí: la **UNIÓN** de sus estancias, no el intervalo. */
             readonly noches?: number;
             readonly urlBeds24?: string | null;
             /**
@@ -26436,6 +26516,7 @@ export interface components {
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
             readonly nombreApellido?: string | null;
+            /** @description Las noches que esta persona duerme aquí: la **UNIÓN** de sus estancias, no el intervalo. */
             readonly noches?: number;
             readonly urlBeds24?: string | null;
             /**
@@ -26645,6 +26726,7 @@ export interface components {
             readonly nombreHotel?: string;
             readonly nombreHabitacion?: string;
             readonly nombreApellido?: string | null;
+            /** @description Las noches que esta persona duerme aquí: la **UNIÓN** de sus estancias, no el intervalo. */
             readonly noches?: number;
             readonly urlBeds24?: string | null;
             /**
@@ -29475,6 +29557,8 @@ export interface components {
              *     al momento de enviar este mensaje a través de Beds24 (OTAs).
              */
             readonly beds24MetaButtonsDisabled?: boolean;
+            /** @description ¿Se ocultan los botones cuando el cuerpo sale de `whatsapp_link_tmpl`? */
+            readonly whatsappLinkMetaButtonsDisabled?: boolean;
             readonly whatsappMetaActive?: boolean;
             /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
             whatsappMetaOfficial?: boolean;
@@ -29516,6 +29600,8 @@ export interface components {
              *     al momento de enviar este mensaje a través de Beds24 (OTAs).
              */
             readonly beds24MetaButtonsDisabled?: boolean;
+            /** @description ¿Se ocultan los botones cuando el cuerpo sale de `whatsapp_link_tmpl`? */
+            readonly whatsappLinkMetaButtonsDisabled?: boolean;
             readonly whatsappMetaActive?: boolean;
             /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
             whatsappMetaOfficial?: boolean;
@@ -29557,6 +29643,8 @@ export interface components {
              *     al momento de enviar este mensaje a través de Beds24 (OTAs).
              */
             readonly beds24MetaButtonsDisabled?: boolean;
+            /** @description ¿Se ocultan los botones cuando el cuerpo sale de `whatsapp_link_tmpl`? */
+            readonly whatsappLinkMetaButtonsDisabled?: boolean;
             readonly whatsappMetaActive?: boolean;
             /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
             whatsappMetaOfficial?: boolean;
@@ -29598,6 +29686,8 @@ export interface components {
              *     al momento de enviar este mensaje a través de Beds24 (OTAs).
              */
             readonly beds24MetaButtonsDisabled?: boolean;
+            /** @description ¿Se ocultan los botones cuando el cuerpo sale de `whatsapp_link_tmpl`? */
+            readonly whatsappLinkMetaButtonsDisabled?: boolean;
             readonly whatsappMetaActive?: boolean;
             /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
             whatsappMetaOfficial?: boolean;
@@ -34663,7 +34753,7 @@ export interface operations {
             };
         };
     };
-    api_salesclientcotizacioncotizacion_catalogo_localizador_version_get: {
+    api_salesclientcotizacioncotizacion_catalogo_localizador_propuesta_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -34671,7 +34761,7 @@ export interface operations {
                 /** @description CotizacionCatalogo identifier */
                 localizador: string;
                 /** @description CotizacionCatalogo identifier */
-                version: string;
+                propuesta: string;
             };
             cookie?: never;
         };
@@ -35241,7 +35331,7 @@ export interface operations {
             };
         };
     };
-    api_salesclientcotizacioncotizacion_file_localizador_version_get: {
+    api_salesclientcotizacioncotizacion_file_localizador_propuesta_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -35249,7 +35339,7 @@ export interface operations {
                 /** @description CotizacionFile identifier */
                 localizador: string;
                 /** @description CotizacionFile identifier */
-                version: string;
+                propuesta: string;
             };
             cookie?: never;
         };

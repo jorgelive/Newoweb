@@ -122,10 +122,10 @@ const linkPublico = computed(() => {
  */
 const vcardUrl = computed(() => (fileId.value ? `${getUrls().api}/cotizacion/files/${fileId.value}/vcard` : ''));
 
-const linkPublicoVersion = (version?: number) => {
+const linkPublicoPropuesta = (propuesta?: number) => {
   if (!file.value?.localizador) return '';
   const base = `${getUrls().pax}/file/${file.value.localizador}`;
-  return version ? `${base}/p/${version}` : base;
+  return propuesta ? `${base}/p/${propuesta}` : base;
 };
 
 const copiarLink = async () => {
@@ -158,20 +158,20 @@ const getDocNombre = (doc: ApiCotizacionFilearchivo | null | undefined, lang = i
 };
 
 const editandoVersion = ref<string | null>(null);
-const versionTemp = ref<number>(1);
+const propuestaTemp = ref<number>(1);
 const eliminandoItem = ref<string | null>(null);
 const clonandoItem = ref<string | null>(null);
 
 const iniciarEdicionVersion = (cot: ApiCotizacionVersion) => {
   editandoVersion.value = cot['@id'] || cot.id || '';
-  versionTemp.value = cot.version;
+  propuestaTemp.value = cot.propuesta;
 };
 
 const guardarVersion = async (cot: ApiCotizacionVersion) => {
   const iri = cot['@id'] || `/platform/sales/cotizacions/${extractIdStr(cot.id)}`;
-  const success = await fileStore.updateCotizacionVersion(iri, versionTemp.value);
+  const success = await fileStore.updateCotizacionPropuesta(iri, propuestaTemp.value);
   if (success) {
-    cot.version = versionTemp.value;
+    cot.propuesta = propuestaTemp.value;
     editandoVersion.value = null;
   } else {
     alert(fileStore.error || 'Error al actualizar versión.');
@@ -179,7 +179,7 @@ const guardarVersion = async (cot: ApiCotizacionVersion) => {
 };
 
 const eliminarVersion = async (cot: ApiCotizacionVersion) => {
-  if (!confirm(`¿Eliminar la Versión ${cot.version}? Esta acción no se puede deshacer.`)) return;
+  if (!confirm(`¿Eliminar la Propuesta ${cot.propuesta}? Esta acción no se puede deshacer.`)) return;
   const iri = cot['@id'] || `/platform/sales/cotizacions/${extractIdStr(cot.id)}`;
   eliminandoItem.value = iri;
   const success = await fileStore.deleteCotizacion(iri);
@@ -192,7 +192,7 @@ const eliminarVersion = async (cot: ApiCotizacionVersion) => {
  * Clona una versión existente delegando la llamada al store.
  * Al completarse, refresca la vista del expediente para mostrar la nueva tarjeta.
  */
-// ── Versiones vivas y sus fotos del pasado ─────────────────────────────────
+// ── Propuestas vivas y sus fotos del pasado ─────────────────────────────────
 //
 // Un histórico conserva a propósito el número de la versión de la que salió, así que si se
 // listaran juntos habría dos tarjetas diciendo «V1» sin forma de saber cuál es la buena. Cuelgan
@@ -259,7 +259,7 @@ const guardarHistorico = async (cot: ApiCotizacionVersion) => {
   if (!idStr) return;
 
   if (!confirm(
-    `¿Guardar una foto de la Versión ${cot.version} tal como está ahora?\n\n`
+    `¿Guardar una foto de la Propuesta ${cot.propuesta} tal como está ahora?\n\n`
     + 'Queda como histórico y esta versión sigue viva: sus órdenes de servicio no se mueven.'
   )) return;
 
@@ -284,7 +284,7 @@ const clonarVersion = async (cot: ApiCotizacionVersion) => {
     return;
   }
 
-  if (!confirm(`¿Estás seguro de duplicar la Versión ${cot.version}?\nSe creará una copia idéntica y segura con una nueva versión.`)) return;
+  if (!confirm(`¿Estás seguro de duplicar la Propuesta ${cot.propuesta}?\nSe creará una copia idéntica y segura como propuesta nueva.`)) return;
 
   clonandoItem.value = idStr;
 
@@ -313,7 +313,7 @@ const abrirPlanOperacion = (cot: ApiCotizacionVersion) => {
   const idStr = extractIdStr(cot.id || cot['@id']);
   if (!idStr) return;
 
-  planOperacionTitulo.value = `Versión ${cot.version} · ${file.value.nombreGrupo ?? ''}`.trim();
+  planOperacionTitulo.value = `Propuesta ${cot.propuesta} · ${file.value.nombreGrupo ?? ''}`.trim();
   planOperacionId.value = idStr;
 };
 
@@ -1719,7 +1719,7 @@ const eliminarDocumento = async (iri?: string) => {
           <span class="hidden md:inline">{{ linkCopiado ? 'Copiado' : 'Copiar Link' }}</span>
         </button>
 
-        <a v-if="file?.localizador" :href="linkPublicoVersion()" target="_blank" rel="noopener"
+        <a v-if="file?.localizador" :href="linkPublicoPropuesta()" target="_blank" rel="noopener"
            class="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-sm rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
           <i class="fas fa-external-link-alt"></i> <span class="hidden md:inline">Vista Cliente</span>
         </a>
@@ -1731,7 +1731,7 @@ const eliminarDocumento = async (iri?: string) => {
 
         <button @click="nuevaVersion"
            class="px-4 py-2.5 bg-[#376875] hover:bg-[#2d5662] text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center gap-2 ml-auto">
-          <i class="fas fa-rocket"></i> <span class="hidden md:inline">Crear Nueva Versión</span>
+          <i class="fas fa-rocket"></i> <span class="hidden md:inline">Crear Nueva Propuesta</span>
         </button>
       </div>
     </header>
@@ -2458,30 +2458,30 @@ const eliminarDocumento = async (iri?: string) => {
 
           <div>
           </div>
-            <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4"><i class="fas fa-code-branch mr-2 text-[#E07845]"></i> Historial de Versiones</h2>
+            <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4"><i class="fas fa-code-branch mr-2 text-[#E07845]"></i> Historial de Propuestas</h2>
 
             <div v-if="!file.cotizaciones || file.cotizaciones.length === 0" class="bg-white border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-400">
               <i class="fas fa-clipboard-list text-4xl mb-4 opacity-50"></i>
               <p class="text-sm font-bold uppercase tracking-widest">No hay cotizaciones</p>
-              <p class="text-xs mt-2 font-medium">Haz clic en "Crear Nueva Versión" para arrancar el motor operativo.</p>
+              <p class="text-xs mt-2 font-medium">Haz clic en "Crear Nueva Propuesta" para arrancar el motor operativo.</p>
             </div>
 
             <div v-else v-for="cot in versionesVivas" :key="cot.id" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm hover:border-[#376875] transition-colors group mb-4">
 
-              <!-- 1. CABECERA: Versión, Estado y Botones -->
+              <!-- 1. CABECERA: Propuesta, Estado y Botones -->
               <div class="flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 mb-4">
 
-                <!-- Izquierda: Versión y Estado -->
+                <!-- Izquierda: Propuesta y Estado -->
                 <div class="flex items-center gap-3">
                   <!-- Badge de versión, editable -->
                   <div v-if="editandoVersion !== (cot['@id'] || cot.id)"
                        @click="iniciarEdicionVersion(cot)"
                        class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-700 text-lg border-2 border-white shadow-sm group-hover:bg-[#376875] group-hover:text-white transition-colors cursor-pointer shrink-0"
                        title="Click para editar versión">
-                    V{{ cot.version }}
+                    P{{ cot.propuesta }}
                   </div>
                   <div v-else class="flex items-center gap-1 shrink-0">
-                    <input v-model.number="versionTemp" type="number" min="1"
+                    <input v-model.number="propuestaTemp" type="number" min="1"
                            class="w-14 h-12 text-center font-black rounded-full border-2 border-[#376875] outline-none"
                            @keyup.enter="guardarVersion(cot)" @keyup.esc="editandoVersion = null">
                     <button @click="guardarVersion(cot)" class="text-emerald-600 w-8 h-8 flex items-center justify-center bg-emerald-50 rounded-full"><i class="fas fa-check"></i></button>
@@ -2491,7 +2491,7 @@ const eliminarDocumento = async (iri?: string) => {
                   <div class="min-w-0">
                     <div class="flex items-center gap-2 leading-none flex-wrap">
                       <p class="text-sm sm:text-base font-black text-slate-800">
-                        {{ t18(cot.titulo) || `Versión ${cot.version}` }}
+                        {{ t18(cot.titulo) || `Propuesta ${cot.propuesta}` }}
                       </p>
                       <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 uppercase shrink-0">{{ cot.estado || 'Pendiente' }}</span>
                       <span class="text-[9px] font-black bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100 uppercase shrink-0">{{ cot.monedaGlobal || 'USD' }}</span>
@@ -2508,9 +2508,9 @@ const eliminarDocumento = async (iri?: string) => {
                     Editar <i class="fas fa-arrow-right"></i>
                   </button>
 
-                  <a :href="linkPublicoVersion(cot.version)" target="_blank" rel="noopener"
+                  <a :href="linkPublicoPropuesta(cot.propuesta)" target="_blank" rel="noopener"
                      class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50 transition-colors"
-                     :title="`Abrir vista cliente (V${cot.version})`">
+                     :title="`Abrir vista cliente (P${cot.propuesta})`">
                     <i class="fas fa-external-link-alt text-xs"></i>
                   </a>
 
@@ -2622,7 +2622,7 @@ const eliminarDocumento = async (iri?: string) => {
                     <div class="flex items-center justify-between gap-3">
                       <span class="text-[11px] font-bold text-violet-800 min-w-0 truncate">
                         <i class="fas fa-clock-rotate-left text-[9px] mr-1.5 text-violet-400"></i>
-                        V{{ h.version }} · {{ h.createdAt ? new Date(h.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }) : 'sin fecha' }}
+                        P{{ h.propuesta }} · {{ h.createdAt ? new Date(h.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }) : 'sin fecha' }}
                       </span>
                       <button @click="abrirMotor(h)"
                               class="text-[10px] font-black text-violet-600 hover:text-violet-900 underline underline-offset-2 shrink-0">

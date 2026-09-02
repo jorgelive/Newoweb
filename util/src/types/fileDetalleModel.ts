@@ -1,6 +1,6 @@
 import type { components } from '@/types/api';
 import type { ApiIdioma, ApiPais } from '@/types/maestroModel';
-import type { I18nContent, VersionDelFile } from "@/types/cotizacionEditorModel.ts";
+import type { I18nContent, PropuestaDelFile } from "@/types/cotizacionEditorModel.ts";
 
 // Reexportada, no redefinida: la fuente única es `cotizacionEditorModel`. Los importadores
 // que ya la traían de aquí siguen funcionando, y no hay dos declaraciones que puedan divergir.
@@ -114,7 +114,7 @@ export const GRUPO_TIPO_LABELS: Record<string, { label: string; plural: string; 
     servicio:      { label: 'Servicio',      plural: 'servicios',      icon: 'fa-circle-check',    color: 'emerald' },
 };
 
-export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 'filepasajeros' | 'filearchivos' | 'grupos' | 'cotizaciones' | 'versionesFechas'> & {
+export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 'filepasajeros' | 'filearchivos' | 'grupos' | 'cotizaciones' | 'propuestasFechas'> & {
     '@id'?: string;
     '@type'?: string;
     id?: string;
@@ -130,13 +130,13 @@ export type ApiCotizacionFile = Omit<BaseApiCotizacionFile, 'pais' | 'idioma' | 
      * Tramo, estado y título de cada versión. Viene del listado admin (GetCollection), inyectado
      * por `CotizacionFileCollectionProvider`.
      *
-     * ⚠️ Se estrecha porque el esquema no puede decir nada útil: `getVersionesFechas()` devuelve
-     * un `array` y OpenAPI lo exporta como diccionario abierto. El tipo real es `VersionDelFile`
+     * ⚠️ Se estrecha porque el esquema no puede decir nada útil: `getPropuestasFechas()` devuelve
+     * un `array` y OpenAPI lo exporta como diccionario abierto. El tipo real es `PropuestaDelFile`
      * —el mismo que consume el dashboard—, y **se reutiliza en vez de reescribirlo**: escrito a
      * mano aquí ya se quedó corto una vez (anunciaba `version` y `fechaInicio`, y desde el
      * 30/08/2026 viajan seis claves), lo que obligaba a castear en la plantilla.
      */
-    versionesFechas?: VersionDelFile[];
+    propuestasFechas?: PropuestaDelFile[];
 };
 
 /**

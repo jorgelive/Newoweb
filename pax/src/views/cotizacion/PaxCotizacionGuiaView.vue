@@ -55,9 +55,9 @@ const cargar = async () => {
   try {
     await maestroStore.cargarConfiguracion();
     if (esCatalogo.value) {
-      await store.cargarVersionCatalogo(props.localizador, Number(props.propuesta));
+      await store.cargarPropuestaCatalogo(props.localizador, Number(props.propuesta));
     } else {
-      await store.cargarVersion(props.localizador, Number(props.propuesta));
+      await store.cargarPropuesta(props.localizador, Number(props.propuesta));
     }
   } catch (error) {
     console.error('Error en carga inicial:', error);
@@ -816,7 +816,7 @@ const adelantoVista = computed(() => {
 
             <div class="flex items-center gap-2 shrink-0">
               <span v-if="!esCatalogo" class="px-2.5 py-1 rounded-lg bg-[#E07845] text-white text-[10px] font-black uppercase tracking-widest shadow-sm">
-                V{{ store.cotizacion.version }}
+                V{{ store.cotizacion.propuesta }}
               </span>
               <div class="relative">
                 <select

@@ -1828,11 +1828,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             }
 
             if (cotizacionId === 'nueva') {
-                const maxVersion: number = fileActual.value?.cotizaciones?.reduce((max: number, c) => Math.max(max, c.version), 0) || 0;
+                const maxPropuesta: number = fileActual.value?.cotizaciones?.reduce((max: number, c) => Math.max(max, c.propuesta), 0) || 0;
                 crearCotizacionVacia(fileId);
 
                 if (cotizacion.value) {
-                    cotizacion.value.version = maxVersion + 1;
+                    cotizacion.value.propuesta = maxPropuesta + 1;
                 }
             } else {
                 await fetchCotizacion(cotizacionId);
@@ -2197,7 +2197,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             ...(modoCatalogo.value
                 ? { catalogo: `/platform/sales/cotizacion_catalogos/${fileId}`, preciosDesde: [], orden: 0 }
                 : { file: `/platform/sales/cotizacion_files/${fileId}` }),
-            version: 1,
+            propuesta: 1,
             estado: 'pendiente',
             monedaGlobal: 'USD',
             idiomaCliente: idiomaDefault,

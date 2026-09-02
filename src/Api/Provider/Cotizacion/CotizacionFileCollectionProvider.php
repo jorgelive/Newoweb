@@ -62,7 +62,7 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
             $files
         );
 
-        // ⚠️ `GROUP BY c.id` y no `c.version`: `estado` y `titulo` dependen funcionalmente de la
+        // ⚠️ `GROUP BY c.id` y no `c.propuesta`: `estado` y `titulo` dependen funcionalmente de la
         // clave, y así MySQL los acepta en el SELECT sin meterlos en el GROUP BY —agrupar por una
         // columna JSON funciona pero es pedirle al motor que compare documentos para nada—.
         // ⚠️ El `WITH` del último JOIN es la condición EXACTA de `esEstadia` —la misma que aplican
@@ -73,7 +73,7 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
         // Y hace falta además de `MAX(s.fechaInicioAbsoluta)` porque un viaje puede acabar en un
         // checkout sin ningún servicio ese día: el último bloque del itinerario sería la víspera.
         $filas = $this->em->createQuery(<<<'DQL'
-            SELECT f.id AS fileId, c.id AS cotizacionId, c.version, c.estado, c.titulo,
+            SELECT f.id AS fileId, c.id AS cotizacionId, c.propuesta, c.estado, c.titulo,
                    MIN(s.fechaInicioAbsoluta) AS fechaInicio,
                    MAX(s.fechaInicioAbsoluta) AS fechaUltimoServicio,
                    MAX(k.fechaHoraFin) AS finEstadia
@@ -84,7 +84,7 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
                  WITH k.sinHorario = true AND DATE_DIFF(k.fechaHoraFin, k.fechaHoraInicio) > 0
             WHERE f.id IN (:fileIds)
             GROUP BY f.id, c.id
-            ORDER BY c.version ASC
+            ORDER BY c.propuesta ASC
         DQL)
             ->setParameter('fileIds', $fileIds)
             ->getArrayResult();
@@ -99,9 +99,9 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
                 // Un `historico` comparte número con la viva a propósito —es su foto congelada
                 // antes de tocarla, ver §6 del doc— y `2KVBMX` tiene hoy dos filas en la V1.
                 // Agrupando por `c.id` salen las dos, que es lo que se quiere; pero el front las
-                // pinta con `v-for` y con `version` de clave habría dos claves iguales.
+                // pinta con `v-for` y con `propuesta` de clave habría dos claves iguales.
                 'id'          => (string) $f['cotizacionId'],
-                'version'     => $f['version'],
+                'propuesta'   => $f['propuesta'],
                 // El estado y el título de CADA versión: en el dashboard se veía «V1: 30 oct.» y
                 // nada más, así que un expediente con tres propuestas —una confirmada, una
                 // cancelada y un histórico— se leía igual que uno con tres pendientes.
@@ -130,7 +130,7 @@ final class CotizacionFileCollectionProvider implements ProviderInterface
         // (`api_platform.doctrine.orm.state.collection_provider`) sirve esta colección. Eso vive
         // en la metadata del recurso, no en este archivo. Si cambia, la anotación miente.
         foreach ($files as $file) {
-            $file->setVersionesFechas($porFile[(string) $file->getId()] ?? []);
+            $file->setPropuestasFechas($porFile[(string) $file->getId()] ?? []);
         }
 
         return $collection;

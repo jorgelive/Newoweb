@@ -1962,7 +1962,7 @@ const cerrarModal = (): void => {
 };
 
 // ── MODAL DE EXPEDIENTE (namelist + documentos + salto a cotización) ─────────
-const expedienteAbierto = ref<{ fileId: string; nombre: string; cotizacionId: string | null; fileIdParaRuta: string; localizador: string | null; version: number | null } | null>(null);
+const expedienteAbierto = ref<{ fileId: string; nombre: string; cotizacionId: string | null; fileIdParaRuta: string; localizador: string | null; propuesta: number | null } | null>(null);
 const localizadorCopiado = ref(false);
 
 // «HJDLDB-v1»: localizador del expediente + versión de la cotización. Es el identificador que
@@ -1970,14 +1970,14 @@ const localizadorCopiado = ref(false);
 const localizadorVersion = computed(() => {
     const e = expedienteAbierto.value;
     if (!e?.localizador) return '';
-    return e.version != null ? `${e.localizador}-v${e.version}` : e.localizador;
+    return e.propuesta != null ? `${e.localizador}-p${e.propuesta}` : e.localizador;
 });
 
 // Enlace a la vista del cliente (app pax, otro dominio). Abre en otra pestaña.
 const linkPax = computed(() => {
     const e = expedienteAbierto.value;
-    if (!e?.localizador || e.version == null) return '';
-    return `${getUrls().pax}/file/${e.localizador}/p/${e.version}`;
+    if (!e?.localizador || e.propuesta == null) return '';
+    return `${getUrls().pax}/file/${e.localizador}/p/${e.propuesta}`;
 });
 
 const copiarLocalizador = async (): Promise<void> => {
@@ -2004,7 +2004,7 @@ const abrirExpediente = async (servicio: OperacionServicio): Promise<void> => {
         nombre: servicio.file?.nombreGrupo || 'Expediente',
         cotizacionId: (servicio as { cotizacionId?: string }).cotizacionId ?? null,
         localizador: (servicio.file as { localizador?: string | null } | undefined)?.localizador ?? null,
-        version: (servicio as { cotizacionVersion?: number | null }).cotizacionVersion ?? null,
+        propuesta: (servicio as { cotizacionPropuesta?: number | null }).cotizacionPropuesta ?? null,
     };
     expedienteDetalle.value = null;
     cargandoExpediente.value = true;
@@ -2669,7 +2669,7 @@ onMounted(async () => {
                          él y sólo cuando hay alguna. Suelta en un panel de filtros no se entendía
                          de qué era versión. -->
                     <label v-if="cotizacionesDelExpediente.length" class="mt-2 flex items-center gap-2">
-                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0">Versión</span>
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0">Propuesta</span>
                         <select
                             v-model="cotizacionSeleccionada"
                             @change="cargarBiblia"
@@ -2677,7 +2677,7 @@ onMounted(async () => {
                         >
                             <option value="">Todas las versiones</option>
                             <option v-for="c in cotizacionesDelExpediente" :key="c.id" :value="c.id">
-                                v{{ c.version ?? '?' }} · {{ c.titulo || 'Sin título' }} ({{ c.estado }})
+                                P{{ c.propuesta ?? '?' }} · {{ c.titulo || 'Sin título' }} ({{ c.estado }})
                             </option>
                         </select>
                     </label>

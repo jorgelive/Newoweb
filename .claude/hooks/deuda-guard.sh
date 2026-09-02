@@ -31,31 +31,18 @@ aviso() {
     }'
 }
 
-# ── DEUDA 1 · `version` → `propuesta` en la columna y la API ─────────────────
+# ── (sin deudas esperando ahora mismo) ──────────────────────────────────────
 #
-# Decidido el 02/09/2026: NO se hace por sí sola. Se renombró la cadena que ve una persona —URL,
-# rutas, props, vistas, docs— y la columna se quedó con su nombre heredado, traducida en la
-# frontera. El renombrado profundo cuesta 19 archivos PHP, 78 líneas de front, los dos `api.d.ts`
-# regenerados y una migración sobre `int NOT NULL` en producción; el beneficio que quedaba era que
-# alguien no se confunda al leer la entidad, y eso ya lo cubre un comentario.
+# La primera fue `version` → `propuesta` en la columna y la API. Se pagó el 02/09/2026 sin esperar
+# a su ocasión: al ir a implementar la propuesta operativa se comprobó que ese trabajo NO toca
+# `cotizacion_cotizacion`, así que la ocasión no iba a llegar — el recordatorio habría esperado
+# para siempre dando falsa tranquilidad, mientras cada función nueva sumaba un sitio más leyendo
+# el nombre equivocado.
 #
-# Pero si YA hay una migración sobre esa tabla, el coste marginal se desploma. Ésa es la ocasión.
-case "$ARCHIVO" in
-    */migrations/Version*.php)
-        if grep -qi "cotizacion_cotizacion" "$ARCHIVO" 2>/dev/null; then
-            aviso "💡 Estás escribiendo una migración sobre \`cotizacion_cotizacion\`, que es LA ocasión que esperaba una deuda anotada.
-
-**\`version\` → \`propuesta\` en la columna y la API.** El 02/09/2026 se renombró todo lo que ve una persona (URL \`/p/\`, rutas, props, vistas, docs) y la columna se dejó con su nombre heredado, traducida en la frontera — porque una migración sólo para eso no compensaba.
-
-Ahora sí hay migración. Decide **a conciencia**, no por inercia:
-
-- **Si la migración es pequeña y el renombrado cabe sin enturbiarla** → llévalo, y regenera los dos \`api.d.ts\`.
-- **Si el diff se vuelve difícil de revisar** → NO lo metas. Mezclar un renombrado mecánico con un cambio de comportamiento hace imposible revisar ninguno de los dos.
-
-Contexto completo en \`docs/Cotizaciones.md\` §6.j.0 y \`docs/Pendientes.md\`."
-            exit 0
-        fi
-        ;;
-esac
+# La lección, para la próxima entrada: **antes de poner a esperar una deuda, comprueba que su
+# disparador puede dispararse.** Un recordatorio que nunca salta es peor que ninguno.
+#
+# Para añadir una: un `case` sobre la ruta del archivo que abre la ventana, y `aviso "..."` con el
+# contexto entero y el criterio de cuándo NO hacerlo.
 
 exit 0

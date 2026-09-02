@@ -13,7 +13,7 @@ import type {
     PaxDiaItinerario,
     PaxSegmentoConServicio,
     PaxInclusionServicio,
-    PaxVersionResumen,
+    PaxPropuestaResumen,
     PaxCatalogo,
     PaxTourResumen,
     PaxOpcionUpgrade,
@@ -133,7 +133,7 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
      * Sincroniza el idioma preferido del cliente al abrirla por primera vez.
      *
      * @param {string} localizador Código localizador del expediente.
-     * @param {number} version Número de versión de la propuesta.
+     * @param {number} propuesta Número de versión de la propuesta.
      */
 /**
  * Reordena los componentes de cada servicio para CONTAR el viaje.
@@ -151,7 +151,7 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
  * y rango, manda la hora real.
  */
 const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
-    // La versión completa sólo viene cuando la URL lleva /{version}; en la portada no hay nada
+    // La versión completa sólo viene cuando la URL lleva /{propuesta}; en la portada no hay nada
     // que ordenar y el `?.` se encarga.
     [data?.cotizacionParaCliente].forEach((cot: PaxCotizacion | null | undefined) => {
         cot?.cotservicios?.forEach((servicio: PaxCotServicio) => {
@@ -172,12 +172,12 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
     });
 };
 
-    const cargarVersion = async (localizador: string, version: number): Promise<void> => {
+    const cargarPropuesta = async (localizador: string, propuesta: number): Promise<void> => {
         const ahora = Date.now();
         const hayInternet = navigator.onLine;
         const datosExisten = detalle.value !== null
             && currentLocalizador.value === localizador
-            && currentVersion.value === version;
+            && currentVersion.value === propuesta;
         const esFresco = (ahora - lastUpdateDetalle.value) < CACHE_TTL;
 
         if (datosExisten && !hayInternet) {
@@ -191,12 +191,12 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
         detallePromise = (async () => {
             try {
                 await asegurarMaestro();
-                const data = await paxCotizacionService.getFileVersion(localizador, version);
+                const data = await paxCotizacionService.getFileVersion(localizador, propuesta);
 
                 ordenarComponentesPorRelato(data);
                 detalle.value = data;
                 currentLocalizador.value = localizador;
-                currentVersion.value = version;
+                currentVersion.value = propuesta;
                 lastUpdateDetalle.value = Date.now();
                 error.value = null;
 
@@ -272,14 +272,14 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
      * getters (`cotizacion`, `itinerario`, etc.) funcionen sin cambios.
      *
      * @param {string} localizador Código localizador del catálogo.
-     * @param {number} version Número de tour dentro del catálogo.
+     * @param {number} propuesta Número de tour dentro del catálogo.
      */
-    const cargarVersionCatalogo = async (localizador: string, version: number): Promise<void> => {
+    const cargarPropuestaCatalogo = async (localizador: string, propuesta: number): Promise<void> => {
         const ahora = Date.now();
         const hayInternet = navigator.onLine;
         const datosExisten = detalle.value !== null
             && currentLocalizador.value === localizador
-            && currentVersion.value === version
+            && currentVersion.value === propuesta
             && esCatalogo.value;
         const esFresco = (ahora - lastUpdateDetalle.value) < CACHE_TTL;
 
@@ -291,12 +291,12 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
         detallePromise = (async () => {
             try {
                 await asegurarMaestro();
-                const data = await paxCotizacionService.getCatalogoVersion(localizador, version);
+                const data = await paxCotizacionService.getCatalogoVersion(localizador, propuesta);
 
                 detalle.value = { ...data, nombreGrupo: data.nombre } as unknown as PaxCotizacionFile;
                 esCatalogo.value = true;
                 currentLocalizador.value = localizador;
-                currentVersion.value = version;
+                currentVersion.value = propuesta;
                 lastUpdateDetalle.value = Date.now();
                 error.value = null;
 
@@ -321,9 +321,9 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
     const file = computed<PaxCotizacionFile | null>(() => detalle.value ?? portada.value);
 
     /** Cards de propuestas públicas (portada) */
-    const versiones = computed<PaxVersionResumen[]>(() => file.value?.versionesParaCliente ?? []);
+    const propuestas = computed<PaxPropuestaResumen[]>(() => file.value?.propuestasParaCliente ?? []);
 
-    /** Cards de tours del catálogo, ya ordenadas por el backend (orden, version) */
+    /** Cards de tours del catálogo, ya ordenadas por el backend (orden, propuesta) */
     const tours = computed<PaxTourResumen[]>(() => portadaCatalogo.value?.toursParaCliente ?? []);
 
     /** Cotización completa de la versión abierta */
@@ -422,11 +422,11 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
         lastUpdatePortada, lastUpdateDetalle,
         portadaCatalogo, lastUpdatePortadaCatalogo, esCatalogo,
         // getters
-        file, versiones, tours, cotizacion, documentos, pasajeros,
+        file, propuestas, tours, cotizacion, documentos, pasajeros,
         inclusiones, gruposUpgrade, precioVisible, totalVenta, itinerario,
         // acciones
-        cargarPortada, cargarVersion, traducir,
-        cargarPortadaCatalogo, cargarVersionCatalogo,
+        cargarPortada, cargarPropuesta, traducir,
+        cargarPortadaCatalogo, cargarPropuestaCatalogo,
     };
 }, {
     persist: {

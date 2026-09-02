@@ -61,7 +61,7 @@ final class GuardarHistoricoProcessor implements ProcessorInterface
         }
 
         $foto = $data->duplicar();
-        $foto->setVersion($data->getVersion());   // ⚠️ el MISMO número, a propósito
+        $foto->setPropuesta($data->getPropuesta());   // ⚠️ el MISMO número, a propósito
         $foto->setEstado(CotizacionEstadoEnum::HISTORICO);
         $foto->setDerivadaDe($data);
 

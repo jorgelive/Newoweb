@@ -142,9 +142,9 @@ use Symfony\Component\Uid\Uuid;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_cotizacion')]
-#[ORM\Index(columns: ['file_id', 'version'], name: 'idx_cotizacion_file_version')]
+#[ORM\Index(columns: ['file_id', 'propuesta'], name: 'idx_cotizacion_file_propuesta')]
 #[ORM\Index(columns: ['derivada_de_id'], name: 'idx_cotizacion_derivada_de')]
-#[ORM\Index(columns: ['catalogo_id', 'version'], name: 'idx_cotizacion_catalogo_version')]
+#[ORM\Index(columns: ['catalogo_id', 'propuesta'], name: 'idx_cotizacion_catalogo_propuesta')]
 #[ORM\HasLifecycleCallbacks]
 class Cotizacion
 {
@@ -164,9 +164,20 @@ class Cotizacion
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?CotizacionCatalogo $catalogo = null;
 
+    /**
+     * Cuál de las propuestas del expediente es ésta.
+     *
+     * ⚠️ **No es una versión**: las propuestas NO se sustituyen entre sí. Un expediente puede
+     * tener varias vivas a la vez y el cliente puede aprobar más de una, porque a veces son
+     * complementarias —una la parte de Lima del itinerario y otra la de Bolivia—. Se llamó
+     * `version` hasta el 02/09/2026 y ese nombre hacía razonar mal a todo el que lo leía.
+     *
+     * Dentro de una misma propuesta conviven sus históricos, la aprobada y —si hace falta— la
+     * operativa: se distinguen por `estado`, no por este número. Ver `docs/Cotizaciones.md` §6.j.0.
+     */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read', 'pax_cotizacion:read'])]
     #[ORM\Column(type: 'integer')]
-    private int $version = 1;
+    private int $propuesta = 1;
 
     /**
      * De qué cotización VIVA salió este histórico.
@@ -365,7 +376,7 @@ class Cotizacion
     public function __toString(): string
     {
         $padre = $this->file?->getNombreGrupo() ?? $this->catalogo?->getNombre() ?? 'Sin File';
-        return sprintf('V%d - %s', $this->version, $padre);
+        return sprintf('P%d - %s', $this->propuesta, $padre);
     }
 
     public function duplicar(): self
@@ -512,8 +523,8 @@ class Cotizacion
     public function getNumDias(): ?int { return $this->numDias; }
     public function setNumDias(?int $numDias): self { $this->numDias = $numDias; return $this; }
 
-    public function getVersion(): int { return $this->version; }
-    public function setVersion(int $version): self { $this->version = $version; return $this; }
+    public function getPropuesta(): int { return $this->propuesta; }
+    public function setPropuesta(int $propuesta): self { $this->propuesta = $propuesta; return $this; }
 
     public function getFechaExpiracion(): ?\DateTimeImmutable { return $this->fechaExpiracion; }
     public function setFechaExpiracion(?\DateTimeImmutable $fechaExpiracion): self { $this->fechaExpiracion = $fechaExpiracion; return $this; }

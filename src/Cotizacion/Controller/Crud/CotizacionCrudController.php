@@ -49,7 +49,7 @@ class CotizacionCrudController extends BaseCrudController
     {
         yield AssociationField::new('file', 'Expediente Padre')->setColumns(4);
 
-        yield IntegerField::new('version', 'V°')->setColumns(2);
+        yield IntegerField::new('propuesta', 'Prop.')->setColumns(2);
 
         yield DateTimeField::new('fechaExpiracion', 'Válido Hasta')->setColumns(3);
 

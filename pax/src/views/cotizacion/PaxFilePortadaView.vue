@@ -243,7 +243,7 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
       </div>
 
       <!-- SECCIÓN 2: Propuestas activas (puede haber varias) -->
-      <div v-if="store.versiones.length">
+      <div v-if="store.propuestas.length">
         <div class="flex items-center gap-4 mb-6 ml-2">
           <span class="h-px bg-[#376875]/20 flex-1"></span>
           <h2 class="text-[#376875]/60 font-black uppercase tracking-[0.2em] text-[11px]">
@@ -254,8 +254,8 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
 
         <!-- Tarjeta de propuesta (Opción B): precio discreto, CTA protagonista, borde definido -->
         <article
-            v-for="v in store.versiones"
-            :key="v.version"
+            v-for="v in store.propuestas"
+            :key="v.propuesta"
             class="bg-white rounded-4xl border border-slate-200 border-t-4 border-t-[#E07845] shadow-lg shadow-slate-300/40 mb-8 overflow-hidden group hover:shadow-xl hover:shadow-[#376875]/10 hover:border-slate-300 transition-all duration-500"
         >
           <div class="p-6 md:p-8">
@@ -264,7 +264,7 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
             <div class="flex items-start justify-between gap-4 mb-4">
               <div class="min-w-0">
                 <span class="inline-block px-3 py-1 rounded-lg bg-[#376875] text-white text-[10px] font-black uppercase tracking-widest">
-                  {{ maestroStore.t('cot_propuesta') || 'Propuesta' }} V{{ v.version }}
+                  {{ maestroStore.t('cot_propuesta') || 'Propuesta' }} P{{ v.propuesta }}
                 </span>
                 <h3 v-if="store.traducir(v.titulo)" class="text-xl md:text-2xl font-black text-[#376875] leading-tight tracking-tight mt-2">
                   {{ store.traducir(v.titulo) }}
@@ -308,7 +308,7 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
 
             <!-- CTA protagonista -->
             <button
-                @click="verGuia(v.version)"
+                @click="verGuia(v.propuesta)"
                 class="group/btn relative w-full rounded-3xl flex items-center justify-between gap-4 px-6 py-5 transition-all active:scale-[0.98] shadow-lg shadow-orange-100 hover:shadow-orange-200 bg-[#E07845] hover:bg-[#D06535] overflow-hidden text-left"
             >
               <i class="fas fa-map-signs absolute -right-3 -bottom-4 text-6xl text-white/10 group-hover/btn:scale-110 group-hover/btn:rotate-12 transition-transform duration-500"></i>

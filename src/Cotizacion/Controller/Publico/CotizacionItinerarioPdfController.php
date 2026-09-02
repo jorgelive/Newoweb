@@ -94,7 +94,7 @@ final class CotizacionItinerarioPdfController extends AbstractController
         $cotizacion = $file === null ? null : $this->em->getRepository(Cotizacion::class)
             // ⚠️ La columna sigue llamándose `version`: es el nombre heredado. El concepto es
             // PROPUESTA — no se sustituyen entre sí y pueden convivir varias aprobadas.
-            ->findOneBy(['file' => $file, 'version' => $propuesta]);
+            ->findOneBy(['file' => $file, 'propuesta' => $propuesta]);
 
         // 404 uniforme: no existe, no es pública o expiró. Distinguirlos le diría a quien prueba
         // localizadores cuáles existen.

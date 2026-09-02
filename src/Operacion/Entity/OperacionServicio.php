@@ -920,12 +920,12 @@ class OperacionServicio
     /**
      * La versión de la COTIZACIÓN de la que cuelga el servicio. Con el localizador del file
      * forma el identificador que el operador copia y comparte —«HJDLDB-v1»— y el enlace a la
-     * vista del cliente (`/file/{localizador}/v/{version}` en pax).
+     * vista del cliente (`/file/{localizador}/v/{propuesta}` en pax).
      */
     #[Groups(['operacion:read', 'operacion:item:read'])]
     public function getCotizacionVersion(): ?int
     {
-        return $this->cotizacionServicio?->getCotizacion()?->getVersion();
+        return $this->cotizacionServicio?->getCotizacion()?->getPropuesta();
     }
 
     /**

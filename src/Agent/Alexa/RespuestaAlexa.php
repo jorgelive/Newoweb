@@ -71,7 +71,7 @@ final readonly class RespuestaAlexa
         }
 
         return [
-            'version' => '1.0',
+            'propuesta' => '1.0',
             // Un array vacío de PHP se serializa `[]`, y Alexa espera un OBJETO aquí. El cast
             // lo fuerza a `{}`. Es el clásico que sólo se ve cuando la sesión no lleva
             // atributos —justo los turnos de bienvenida y de cierre—, así que pasa las pruebas

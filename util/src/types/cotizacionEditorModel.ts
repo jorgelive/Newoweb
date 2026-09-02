@@ -628,7 +628,7 @@ export type EstadoFile = CotizacionFileBase['estado'];
  * expediente con tres propuestas —una confirmada, una cancelada y un histórico— se leía en el
  * dashboard igual que uno con tres pendientes.
  */
-export interface VersionDelFile {
+export interface PropuestaDelFile {
     /**
      * ⚠️ La clave del `v-for` es ÉSTA y no `version`: **la versión no es única** dentro del
      * expediente. Un `historico` comparte número con la viva a propósito —es su foto congelada—
