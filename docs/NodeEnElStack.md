@@ -342,8 +342,10 @@ y una validación que no tipa— y pasa a ser uno que hace las dos cosas. Misma 
 
 ### El orden
 
-El detalle por fases, con criterios de «hecho» y lo que se deja fuera a propósito, está en
-**`docs/PlanProcesamientoCompartido.md`**. Resumido:
+El detalle por fases está en **`docs/PlanProcesamientoCompartido.md`**, reescrito el 02/09/2026:
+la meta no es «compartir código» sino **una implementación y una autoridad que la hace cumplir al
+escribir** — hoy `totalVenta` y `totalCosto` están en el grupo de escritura y ningún código PHP los
+calcula, así que el servidor persiste lo que le mande el navegador. Resumido:
 
 1. **Vitest + fixtures** sobre una pieza que no sea dinero. ✅ Hecho (§5).
 2. **Contrato estrecho** en el módulo, para que deje de declarar la serialización entera.
