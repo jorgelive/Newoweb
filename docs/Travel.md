@@ -665,7 +665,7 @@ tono semántico y traducirlo en el front.
 
 | Enum | Casos | Dónde manda |
 |---|---|---|
-| `ComponenteTipoEnum` | `TICKET_HORARIO_FIJO`, `TICKET_HORARIO_VAR`, `GUIADO`, `TRANSPORTE`, `ALOJAMIENTO`, `ALIMENTACION_HORARIO_FIJO`, `ALIMENTACION_HORARIO_VAR`, `EXCURSION_POOL`, `EXCURSION_PRIVADA`, `PERSONAL_EXTRA`, `EXTRAS`, `VUELO`, `TREN` | Clasifica el componente; su `prioridad()` ordena el despacho en Operación. |
+| `ComponenteTipoEnum` | `TICKET_HORARIO_FIJO`, `TICKET_HORARIO_VAR`, `GUIADO`, `TRANSPORTE`, `ALOJAMIENTO`, `ALIMENTACION_HORARIO_FIJO`, `ALIMENTACION_HORARIO_VAR`, `EXCURSION_POOL`, `EXCURSION_PRIVADA`, `PERSONAL_EXTRA`, `EXTRAS`, `ACTIVIDAD_HORARIO_FIJO`, `VUELO`, `TREN` | Clasifica el componente; su `prioridad()` ordena el despacho en Operación. |
 | `ComponenteModoEnum` | `INCLUIDO`, `NO_INCLUIDO`, `CORTESIA`, `REEMPLAZADO` | Vocabulario comercial cerrado. Se **ejerce** en Cotización y Operación, no aquí (§8). Añadir un caso es cambio transversal. |
 | `ItemModoEnum` | `INCLUIDO`, `OPCIONAL`, `NO_INCLUIDO` | Modo del ítem descriptivo en `TravelComponenteItem`. Misma lógica de propiedad. |
 | `TarifaCategoriaEnum`, `TarifaRolEnum`, `TarifaModalidadEnum`, `TarifaProcedenciaEnum` | — | Clasificación de `TravelTarifa`. |
@@ -884,6 +884,61 @@ apuntando a una propiedad que se llama `nombreParaPrestador` — una cadena que 
   llamadas al item.
 
 ---
+
+### Añadir un caso al enum de tipos: qué cuesta de verdad (01/09/2026)
+
+Se hizo con `ACTIVIDAD_HORARIO_FIJO` y el coste resultó **mucho menor de lo que dice la fama**,
+pero por un motivo concreto que conviene saber antes de temerlo:
+
+**El front no se toca.** `TravelEnumAjaxController::getComponenteTipos()` recorre `cases()` y
+expone `id`, `sinHorario` y `prioridad`; `util` lo consume por `tipoComponenteConfig(tipo)`, sin
+ninguna lista quemada. Un caso nuevo aparece solo.
+
+⚠️ **Pero ese endpoint cachea una hora** (`setSharedMaxAge(3600)`). Tras añadir un tipo, el
+editor puede tardar en verlo — y si alguien concluye «no funciona» y toca otra cosa, empieza el
+baile.
+
+**Lo que sí hay que decidir, y PHP te obliga a la mitad.** Los `match` exhaustivos —`sinHorario()`
+y `ordenNarrativo()`— no compilan sin el caso nuevo. Los demás métodos tienen `default`, así que
+**deciden en silencio**: hay que revisarlos uno a uno aunque nada falle.
+
+| Método | Qué hereda por `default` | ¿Sirve? |
+|---|---|---|
+| `puntosDeServicio()` | `NINGUNO` | Sí para algo que ocurre dentro del hotel |
+| `prioridad()` | `5` | Sí: no encabeza el despacho |
+| `esAnclaDeUbicacion()` | `false` (sólo `ALOJAMIENTO`) | Sí |
+| `esCompartido()` | `false` (sólo `EXCURSION_POOL`) | Sí |
+| `ocultaElSegmento()` | `false` | Sí: el párrafo se enseña |
+| `nombraUnaRuta()` / `mandaElSegmento()` | `false` | Sí: nombra la cosa, no un trayecto |
+
+**La regla:** los dos que rompen la compilación son los baratos. Los peligrosos son los que
+compilan.
+
+⚠️ **Y el `value` se congela en snapshots** —`CotizacionCotcomponente::$tipo` y
+`OperacionServicio::$modoComponente` son strings—, así que renombrarlo después obliga a migrar
+datos. El nombre se acierta a la primera.
+
+### `EXTRAS` tira la hora, y por eso hizo falta un caso nuevo
+
+`EXTRAS` declara `sinHorario() = true`. Una actividad programada de resort tipada así **guardaba
+su hora en el pivote y no la llevaba a la cotización**: el componente nacía con `sinHorario` y el
+bloque caía al final del día. Ni error ni aviso.
+
+No es un defecto de `EXTRAS` —un extra es «algo más que se incluye», una botella de bienvenida, y
+ponerle hora sería inventarle una cita—. Faltaba el otro caso, y el enum ya tenía la pauta:
+`TICKET_HORARIO_FIJO` frente a `TICKET_HORARIO_VAR`, `ALIMENTACION_HORARIO_FIJO` frente a `..._VAR`.
+**Cuando algo existe con y sin horario, son dos casos y no un booleano suelto.**
+
+Para mover un componente ya cargado está `app:travel:retipar-componente`, que enseña el antes y el
+después de cada regla antes de escribir:
+
+```
+extras → actividad_fijo
+ * pide hora: no → sí          ← lo que se buscaba
+ * manda el segmento: no → no
+ * oculta el segmento: no → no
+ * puntos: ninguno → ninguno
+```
 
 ## 11 bis. Escribirle a un proveedor (21/08/2026)
 
