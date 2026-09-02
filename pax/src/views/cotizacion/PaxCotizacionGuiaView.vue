@@ -1190,7 +1190,7 @@ const adelantoVista = computed(() => {
             class="pt-8 scroll-mt-16 dia-imprimible"
         >
           <!-- Título del día -->
-          <div class="flex items-center gap-3 mb-5">
+          <div class="cabecera-dia flex items-center gap-3 mb-5">
             <span class="chip-dia w-12 h-12 rounded-2xl bg-[#376875] text-white flex flex-col items-center justify-center shrink-0 shadow-lg shadow-[#376875]/20">
               <span class="text-[8px] font-black uppercase leading-none opacity-70">{{ maestroStore.t('cot_dia') || 'Día' }}</span>
               <span class="text-lg font-black leading-none">{{ dia.numeroDia }}</span>
@@ -1351,20 +1351,20 @@ const adelantoVista = computed(() => {
                 <div v-if="!modoResumen" class="relative">
                   <!-- eslint-disable vue/no-v-html -- Contenido del catálogo maestro, redactado por el equipo. HTML a propósito. -->
                   <div
-                      class="prose prose-sm max-w-none text-slate-600 prose-strong:text-[#376875] prose-a:text-[#E07845] prose-p:leading-relaxed transition-all"
+                      class="descripcion-narrativa prose prose-sm max-w-none text-slate-600 prose-strong:text-[#376875] prose-a:text-[#E07845] prose-p:leading-relaxed transition-all"
                       :class="descEsLarga(item.segmento) && !descExpandida.has(item.key) ? 'max-h-36 overflow-hidden' : ''"
                       v-html="store.traducir(item.segmento.contenidoSnapshot)"
                   />
                   <!-- eslint-enable vue/no-v-html -->
                   <div
                       v-if="descEsLarga(item.segmento) && !descExpandida.has(item.key)"
-                      class="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-white to-transparent pointer-events-none"
+                      class="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-white to-transparent pointer-events-none no-imprimir"
                   ></div>
                 </div>
                 <button
                     v-if="!modoResumen && descEsLarga(item.segmento)"
                     @click="toggle(descExpandida, item.key)"
-                    class="mt-1 text-[10px] font-black uppercase tracking-widest text-[#E07845] hover:text-[#D06535] transition-colors"
+                    class="mt-1 text-[10px] font-black uppercase tracking-widest text-[#E07845] hover:text-[#D06535] transition-colors no-imprimir"
                 >
                   <i class="fas mr-1" :class="descExpandida.has(item.key) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                   {{ descExpandida.has(item.key) ? (maestroStore.t('cot_leer_menos') || 'Leer menos') : (maestroStore.t('cot_leer_mas') || 'Leer más') }}
@@ -1789,13 +1789,42 @@ const adelantoVista = computed(() => {
   header { background: #fff !important; color: #1f2933 !important; overflow: visible !important; }
   header :deep(h1), header :deep(p), header :deep(span) { color: #1f2933 !important; }
 
-  /* Un día no se parte entre hojas: la mitad de abajo se quedaría sin su fecha, que es lo único
-     que la ubica. Si un día no cabe entero, `avoid` cede y al menos empieza en hoja nueva. */
-  .dia-imprimible {
+  /* ⚠️ **Aquí NO va `break-inside: avoid` sobre el día**, aunque sea lo primero que uno escribe.
+     Se probó imprimiendo de verdad: un día de un viaje real ocupa entre una y tres hojas, así que
+     la regla no se puede cumplir y el navegador la ignora — pedirla sólo daba la sensación de
+     tenerlo resuelto. Lo que sí se puede garantizar es lo de abajo. */
+  .dia-imprimible { padding-top: 0.75rem; }
+
+  /* La cabecera del día nunca se queda sola al pie: o arrastra contenido detrás, o baja entera.
+     Es el fallo que de verdad estropea un itinerario impreso — una fecha huérfana al final de la
+     hoja y su jornada empezando en la siguiente. */
+  .cabecera-dia {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Una tarjeta no se parte por la mitad. Esto SÍ se cumple: caben de sobra en una hoja. */
+  article {
     break-inside: avoid;
     page-break-inside: avoid;
-    padding-top: 0.75rem;
   }
+
+  /* ⚠️ **Lo que se recorta en pantalla se imprime entero.** En la app estos bloques se abren
+     pulsando algo; en papel no hay nada que pulsar, así que el recorte deja de ser «ver menos» y
+     pasa a ser «no existe». Se descubrió imprimiendo: salían descripciones cortadas a media
+     frase con un «LEER MÁS» muerto debajo. */
+  .descripcion-narrativa {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Un `<details>` cerrado no imprime su contenido. Las notas del segmento —«se recomienda
+     llevar…»— son justo lo que alguien quiere en el papel. */
+  :deep(details > *:not(summary)) {
+    display: block !important;
+    content-visibility: visible !important;
+  }
+  :deep(details summary) { list-style: none; }
 
   /* El panel de inclusiones se imprime entero: en pantalla lo despliega un botón, y en papel no
      hay botón. Sin esto se imprimen 128px de lista y el resto no existe. */

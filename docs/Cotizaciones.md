@@ -3267,6 +3267,43 @@ que abren modales. Y el panel de inclusiones se **despliega** (`.panel-inclusion
 lo abre un botón, y en papel no hay botón que pulsar — sin esa regla se imprimen 128 px de lista y
 el resto no existe.
 
+### 🔥 Lo que sólo se ve imprimiendo de verdad (02/09/2026)
+
+La hoja se había comprobado **simulando** —inyectando las reglas `@media print` en la página— y esa
+técnica valida los colores y lo que se oculta, pero **no puede mostrar la paginación**. Al imprimir
+de verdad con Chrome en modo headless (`--print-to-pdf` sobre `?mode=build`) salieron tres fallos
+que la simulación no podía enseñar:
+
+| Fallo | Por qué pasaba |
+|---|---|
+| **19 descripciones cortadas a media frase**, con un «LEER MÁS» muerto debajo | El recorte es `max-h-36 overflow-hidden` y lo abre un botón. En papel no hay botón |
+| **Las notas del segmento no salían** | Son `<details>` cerrados, y un `<details>` sin `open` no imprime su contenido |
+| `break-inside: avoid` sobre el día **no hacía nada** | Un día real ocupa entre una y tres hojas: la regla no se puede cumplir y el navegador la ignora |
+
+⚠️ **La tercera es la lección que vale.** Pedir `break-inside: avoid` sobre un bloque más alto que
+una página no falla: **se ignora en silencio**, y quien la escribió se queda con la sensación de
+haberlo resuelto. Lo que sí se puede garantizar, y es lo que de verdad estropea un itinerario
+impreso, es que **la cabecera del día no se quede huérfana al pie de la hoja** — eso es
+`break-after: avoid` sobre la cabecera, no sobre el día. Y que una tarjeta no se parta por la
+mitad, que sí cabe.
+
+⚠️ **Y la primera generaliza:** en pantalla, recortar contenido tras un botón es «ver menos»; en
+papel es **«no existe»**. Cualquier bloque plegado —descripciones, inclusiones, `<details>`— tiene
+que abrirse en `@media print`. Ya había pasado con el panel de inclusiones y volvió a pasar con
+las descripciones y las notas: es un patrón, no un descuido puntual.
+
+**Cómo se comprueba, sin abrir el diálogo:**
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+  --ignore-certificate-errors --no-pdf-header-footer --virtual-time-budget=15000 \
+  --print-to-pdf=/tmp/prueba.pdf "https://pax.openperu.test:8890/file/LOCALIZADOR/v/1?mode=build"
+pdftotext -layout /tmp/prueba.pdf - | grep -c "LEER MÁS"   # tiene que dar 0
+```
+
+Resultado del arreglo, sobre la misma propuesta: 26 → **24 páginas**, «LEER MÁS» 19 → **0**, y
+7.700 caracteres más de texto útil que antes no se imprimían.
+
 **Qué NO va en la hoja de impresión:** ocultar *contenido*. Eso va en el modo Resumen. Si una regla
 de contenido vive sólo en el CSS de impresión, la pantalla dice una cosa y el papel otra.
 
