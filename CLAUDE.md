@@ -228,6 +228,21 @@ el cierre del turno si se escribieron archivos bajo cualquier `src/` y ningún a
 `docs/`. No es un permiso para relajarse: es el último filtro. Si el cambio de verdad no
 requiere doc, dilo en una línea y sigue.
 
+`.claude/hooks/tests-guard.sh` hace lo mismo con los **tests**: corre sólo las suites cuyo
+territorio se tocó —`pax/src/dominio/` → `npm test`, `src/` → `phpunit`— y corta si salen en rojo.
+
+⚠️ **Existió durante meses una asimetría absurda:** la documentación tenía candado y el código no.
+Se podía cerrar un turno con los tests en rojo y nadie se enteraba. Creado el 02/09/2026, el mismo
+día que aparecieron los primeros tests de TypeScript.
+
+⚠️ **Corre sólo lo que toca, y eso es la mitad del diseño.** Tocar una vista de `pax` no dispara
+PHPUnit (33 ms); tocar `src/` sí (1,1 s). Un candado que tarda en cada turno se acaba desactivando,
+y un candado desactivado es peor que ninguno porque da sensación de red.
+
+Para añadir una suite —`util` cuando tenga tests de dominio— es una línea en `comprobar`. Ojo con
+los prefijos: son **rutas absolutas** a propósito, porque `src/` a secas también casaría con
+`util/src/` y `pax/src/`.
+
 ## Convenciones de código
 
 - Comentarios y nombres de dominio en **español**; términos técnicos del framework en inglés.

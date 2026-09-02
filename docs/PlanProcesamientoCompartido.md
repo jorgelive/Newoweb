@@ -110,10 +110,14 @@ lo que `NodeEnElStack.md` §5 prohíbe.
 
 | | Acción | Hecho cuando |
 |---|---|---|
-| 1.1 | `npm test` deja de depender de la memoria: hook de cierre o `verify:deploy` | Cerrar con tests en rojo es imposible sin decirlo a mano |
+| 1.1 | ~~`npm test` deja de depender de la memoria~~ **HECHO 02/09/2026**: `.claude/hooks/tests-guard.sh` | ✅ Probado en verde, en rojo, y que los territorios no se confunden |
 
-⚠️ Hay una asimetría que conviene cerrar: existe un hook `Stop` que bloquea el turno si se toca
-`src/` sin documentar, y **nada** que impida cerrar con los tests en rojo.
+La asimetría que cerró: existía un hook `Stop` que bloqueaba el turno si se tocaba `src/` sin
+documentar, y **nada** que impidiera cerrar con los tests en rojo — la documentación estaba mejor
+protegida que el código.
+
+⚠️ Falta `util`: hoy no tiene tests, así que su territorio no está vigilado. Es una línea en el
+hook el día que los tenga (fase 2).
 
 ### Fase 2 — el módulo, limpio y movible
 
