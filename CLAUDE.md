@@ -181,6 +181,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Calendar/`, vistas de calendario de `util/` (Reservas, Tarifas) | `docs/Calendar_architecture.md` |
 | `src/Cotizacion/`, cotizaciones y catálogo en `util/` y `pax/` | `docs/Cotizaciones.md` |
 | `dominio/` (reglas compartidas por el navegador y el servidor: sin Vue, sin DOM, sin base) | `docs/NodeEnElStack.md` §9 — y el doc del módulo que corresponda |
+| `src/Dominio/` (la puerta de PHP al cálculo compartido: ejecutor, contrato, operaciones) | `docs/NodeEnElStack.md` §9 |
 | Procesos Node compartidos entre back y front (plan de ejecución por fases) | `docs/PlanProcesamientoCompartido.md` |
 | `src/Pax/Entity/UiI18n.php`, `src/Pax/Command/` (las cadenas de UI de la app del huésped) | El doc de la pantalla donde se leen. Entran por comando ORM, **nunca** por SQL: llevan `#[AutoTranslate]` |
 | `util/src/components/` y `common/`, `util/src/types/modulosApp.ts` (UI y navegación reutilizables entre módulos) | `docs/UI_Componentes_Compartidos.md` |
@@ -605,3 +606,13 @@ git pull --ff-only && composer dump-autoload --no-dev --optimize && php bin/cons
 
 Node vive en nvm y no está en el PATH de una sesión ssh no interactiva; los logs de producción
 ocultan el nivel `info`, así que los errores se buscan en `var/log/error.log`.
+
+⚠️ **Y por lo mismo, `node` tampoco está en el PATH de php-fpm.** Desde que PHP invoca el cálculo
+compartido (`App\Dominio\EjecutorDeDominio`), el servidor necesita **`DOMINIO_NODE_BINARIO` con la
+ruta absoluta** del binario de nvm. Sin esa variable el valor por defecto es `node` a secas:
+funciona en local y **falla en producción**. El error nombra el binario, así que se reconoce — pero
+es un paso nuevo de despliegue que nadie tiene en los dedos, igual que `pax:textos:itinerario`.
+
+```bash
+ssh openperu 'export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; which node'   # → la ruta que va en .env.local
+```
