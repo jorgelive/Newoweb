@@ -311,7 +311,7 @@ const paxPreviewUrl = computed<string | null>(() => {
   const version = store.cotizacion?.version;
   if (!loc || !version) return null;
   const seg = store.modoCatalogo ? 'catalogo' : 'file';
-  return `${getUrls().pax}/${seg}/${loc}/v/${version}`;
+  return `${getUrls().pax}/${seg}/${loc}/p/${version}`;
 });
 
 const abrirVistaPax = async () => {

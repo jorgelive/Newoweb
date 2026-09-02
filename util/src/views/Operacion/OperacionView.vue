@@ -1977,7 +1977,7 @@ const localizadorVersion = computed(() => {
 const linkPax = computed(() => {
     const e = expedienteAbierto.value;
     if (!e?.localizador || e.version == null) return '';
-    return `${getUrls().pax}/file/${e.localizador}/v/${e.version}`;
+    return `${getUrls().pax}/file/${e.localizador}/p/${e.version}`;
 });
 
 const copiarLocalizador = async (): Promise<void> => {

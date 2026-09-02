@@ -27,7 +27,7 @@ onMounted(cargar);
 watch(() => route.params.localizador, cargar);
 
 const verTour = (version: number) => {
-  router.push(`/catalogo/${store.portadaCatalogo?.localizador}/v/${version}`);
+  router.push(`/catalogo/${store.portadaCatalogo?.localizador}/p/${version}`);
 };
 
 // Idioma manual pisa al idiomaCliente del catálogo (mismo criterio que la guía).

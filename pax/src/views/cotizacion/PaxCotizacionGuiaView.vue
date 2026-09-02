@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * src/views/cotizacion/PaxCotizacionGuiaView.vue
- * Ruta: /file/:localizador/v/:version — guía visual día a día de una propuesta.
+ * Ruta: /file/:localizador/p/:propuesta — guía visual día a día de una propuesta.
  *
  * Reglas de armado del itinerario (vista):
  *  - La hora de un segmento se deriva de sus componentes (min inicio / max fin con hora real).
@@ -34,7 +34,7 @@ type BloqueVista = BloqueVistaBase<PaxCotServicio>;
 
 const props = defineProps<{
   localizador: string;
-  version: string | number;
+  propuesta: string | number;
 }>();
 
 const store = usePaxCotizacionStore();
@@ -55,9 +55,9 @@ const cargar = async () => {
   try {
     await maestroStore.cargarConfiguracion();
     if (esCatalogo.value) {
-      await store.cargarVersionCatalogo(props.localizador, Number(props.version));
+      await store.cargarVersionCatalogo(props.localizador, Number(props.propuesta));
     } else {
-      await store.cargarVersion(props.localizador, Number(props.version));
+      await store.cargarVersion(props.localizador, Number(props.propuesta));
     }
   } catch (error) {
     console.error('Error en carga inicial:', error);
@@ -70,7 +70,7 @@ const cargar = async () => {
 };
 
 onMounted(cargar);
-watch(() => [props.localizador, props.version], cargar);
+watch(() => [props.localizador, props.propuesta], cargar);
 onBeforeUnmount(() => observer?.disconnect());
 
 // ── Scroll-spy de días ───────────────────────────────────────────────────────

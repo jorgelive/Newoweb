@@ -1742,6 +1742,53 @@ documento sigue diciendo lo que decía.
 - Dato: `store.idSegmentoDeComponente()`, que ya existía y **ahora se exporta**. El vínculo llega
   unas veces como IRI y otras como id plano, así que un `===` a mano falla la mitad de las veces.
 
+## 6.j.0 No son versiones: son PROPUESTAS (02/09/2026)
+
+El campo se llama `version` y eso hizo razonar mal a más de uno, porque «versión» implica *sustituye
+a la anterior*. **No se sustituyen.** Un expediente puede tener varias vivas a la vez, y el cliente
+puede aprobar **más de una** — porque a veces son complementarias: una la parte de Lima del
+itinerario y otra la de Bolivia.
+
+⚠️ **El propio dato ya lo estaba denunciando.** `getVersionesFechas()` devuelve por cada fila
+`{id, version, estado, titulo, fechaInicio, fechaFin}`. Una *revisión* no tiene título propio ni
+tramo de fechas propio; una **propuesta** sí. La estructura describía propuestas mientras el nombre
+decía versiones.
+
+### Las tres capas, que antes se confundían
+
+```
+Expediente
+ └── PROPUESTA          alternativas o COMPLEMENTOS · el cliente elige una o varias
+       ├── HISTÓRICO ×N       fotos de esa propuesta · no pública · `derivadaDe` → la viva
+       ├── la aprobada        pública
+       └── OPERATIVA          opcional · la realidad de lo que se opera (ver §6.j.2)
+```
+
+Ninguna de las tres consume número de propuesta: se distinguen por estado (§6.j).
+
+### Qué se renombró y qué NO
+
+| | Antes | Ahora |
+|---|---|---|
+| URL de la guía | `/file/{loc}/v/{n}` | **`/file/{loc}/p/{n}`** |
+| URL del catálogo | `/catalogo/{loc}/v/{n}` | **`/catalogo/{loc}/p/{n}`** |
+| Parámetro de ruta, prop, variables de vista | `version` | **`propuesta`** |
+| Columna, campo de la API, `versionesParaCliente` | `version` | **`version`** — sin tocar |
+
+**La interfaz ya decía «Propuesta»** (`cot_propuesta` en `PaxFilePortadaView`). Lo que iba por
+detrás era la fontanería, no el vocabulario del usuario.
+
+⚠️ **El renombrado de la URL fue seguro porque lo compartido con clientes es el EXPEDIENTE**
+(`/file/{localizador}`), no una propuesta concreta. Si algún día se comparte un enlace a una
+propuesta, este cambio ya no se puede repetir sin alias: un enlace que deja de funcionar sin que
+cambie nada del lado del cliente es de los fallos más caros que tiene este sistema —ya pasó con el
+provider público, ver §6.j—.
+
+⚠️ **La columna se queda como `version` a propósito.** Renombrarla arrastra la API, los dos
+`api.d.ts`, `versionesParaCliente` y el editor; es otro trabajo y no compra nada hoy. La traducción
+se hace **en la frontera**: la ruta y las vistas dicen `propuesta`, y donde se lee la columna hay un
+comentario que lo dice.
+
 ## 6.j Versiones e históricos: dos clones en direcciones opuestas (23/08/2026)
 
 Un expediente tiene N `Cotizacion`, numeradas `version`. **Son propuestas**, no versiones de un

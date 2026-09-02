@@ -25,10 +25,19 @@ const router = createRouter({
         },
 
         // -----------------------------------------------------------------
-        // COTIZACIÓN — Guía día a día de una propuesta (versión)
+        // COTIZACIÓN — Guía día a día de una PROPUESTA
+        //
+        // ⚠️ «Propuesta», no «versión»: no se sustituyen entre sí. Un expediente puede tener
+        // varias vivas a la vez, y el cliente puede aprobar más de una porque a veces son
+        // COMPLEMENTARIAS —una la parte de Lima y otra la de Bolivia—. `versionesParaCliente`
+        // lleva por cada una su propio `titulo` y su tramo de fechas: eso es una propuesta, no
+        // una revisión. Renombrado el 02/09/2026.
+        //
+        // El campo de la API y la columna siguen llamándose `version`: es el nombre heredado y
+        // cambiarlo es otro trabajo. Aquí se traduce en la frontera.
         // -----------------------------------------------------------------
         {
-            path: '/file/:localizador/v/:version',
+            path: '/file/:localizador/p/:propuesta',
             name: 'cotizacion_guia',
             component: () => import('@/views/cotizacion/PaxCotizacionGuiaView.vue'),
             props: true
@@ -48,7 +57,7 @@ const router = createRouter({
         // CATÁLOGO DE TOURS — Guía día a día de un tour (reusa la vista guía)
         // -----------------------------------------------------------------
         {
-            path: '/catalogo/:localizador/v/:version',
+            path: '/catalogo/:localizador/p/:propuesta',
             name: 'catalogo_guia',
             component: () => import('@/views/cotizacion/PaxCotizacionGuiaView.vue'),
             props: true,

@@ -46,14 +46,14 @@ final class CotizacionItinerarioPdfController extends AbstractController
     }
 
     #[Route(
-        '/client/cotizacion/{localizador}/{version}/itinerario.pdf',
+        '/client/cotizacion/{localizador}/{propuesta}/itinerario.pdf',
         name: 'cotizacion_itinerario_pdf',
-        requirements: ['version' => '\d+'],
+        requirements: ['propuesta' => '\d+'],
         methods: ['GET'],
     )]
-    public function __invoke(string $localizador, int $version): Response
+    public function __invoke(string $localizador, int $propuesta): Response
     {
-        $cotizacion = $this->cotizacion($localizador, $version);
+        $cotizacion = $this->cotizacion($localizador, $propuesta);
 
         try {
             $dias = $this->itinerario->dias($cotizacion);
@@ -74,7 +74,7 @@ final class CotizacionItinerarioPdfController extends AbstractController
             'dias' => $dias,
             'titulo' => $this->tituloDe($cotizacion),
             'localizador' => $localizador,
-            'version' => $version,
+            'propuesta' => $propuesta,
         ]));
         $dompdf->setPaper('a4');
         $dompdf->render();
@@ -83,16 +83,18 @@ final class CotizacionItinerarioPdfController extends AbstractController
             'Content-Type' => 'application/pdf',
             // `inline`: en el móvil abre el visor en vez de bajar un archivo que luego hay que
             // buscar. Quien lo quiera guardar tiene el botón del propio visor.
-            'Content-Disposition' => sprintf('inline; filename="%s-v%d.pdf"', $localizador, $version),
+            'Content-Disposition' => sprintf('inline; filename="%s-p%d.pdf"', $localizador, $propuesta),
         ]);
     }
 
-    private function cotizacion(string $localizador, int $version): Cotizacion
+    private function cotizacion(string $localizador, int $propuesta): Cotizacion
     {
         $file = $this->em->getRepository(CotizacionFile::class)->findOneBy(['localizador' => $localizador]);
 
         $cotizacion = $file === null ? null : $this->em->getRepository(Cotizacion::class)
-            ->findOneBy(['file' => $file, 'version' => $version]);
+            // ⚠️ La columna sigue llamándose `version`: es el nombre heredado. El concepto es
+            // PROPUESTA — no se sustituyen entre sí y pueden convivir varias aprobadas.
+            ->findOneBy(['file' => $file, 'version' => $propuesta]);
 
         // 404 uniforme: no existe, no es pública o expiró. Distinguirlos le diría a quien prueba
         // localizadores cuáles existen.

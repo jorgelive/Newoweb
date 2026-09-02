@@ -54,10 +54,10 @@ onMounted(cargar);
 // 🔥 Recarga al cambiar el localizador (el buscador hace push sobre la misma ruta)
 watch(() => props.localizador, cargar);
 
-const verGuia = (version: number) => {
+const verGuia = (propuesta: number) => {
   router.push({
     name: 'cotizacion_guia',
-    params: { localizador: props.localizador, version },
+    params: { localizador: props.localizador, propuesta },
   });
 };
 

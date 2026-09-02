@@ -103,7 +103,7 @@ const fileId = computed<string | null>(() => uuidDe(file.value ?? null));
 const paisFileIri = ref('');
 
 // ============================================================================
-// LINKS VISTA CLIENTE  (pax + /file/ + localizador [+ /v/N])
+// LINKS VISTA CLIENTE  (pax + /file/ + localizador [+ /p/N])
 // ============================================================================
 const linkPublico = computed(() => {
   if (!file.value?.localizador) return '';
@@ -125,7 +125,7 @@ const vcardUrl = computed(() => (fileId.value ? `${getUrls().api}/cotizacion/fil
 const linkPublicoVersion = (version?: number) => {
   if (!file.value?.localizador) return '';
   const base = `${getUrls().pax}/file/${file.value.localizador}`;
-  return version ? `${base}/v/${version}` : base;
+  return version ? `${base}/p/${version}` : base;
 };
 
 const copiarLink = async () => {
