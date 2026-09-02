@@ -918,6 +918,46 @@ compilan.
 `OperacionServicio::$modoComponente` son strings—, así que renombrarlo después obliga a migrar
 datos. El nombre se acierta a la primera.
 
+### 🔥 El catálogo dejaba poner hora a lo que no la admite, y la validación tenía dos huecos
+
+Auditado el 01/09/2026 a raíz de la pregunta «¿hay más casos?». Los había: **9 filas de
+`travel_segmento_componente` con hora sobre componentes cuyo tipo declara `sinHorario()`**.
+
+```
+alojamiento       Alojamiento en Machu Picchu       hora_fin 09:00     ← rompe la estadía
+extras            Check-in resort AM / PM           10:00 / 15:00
+extras            Check-out resort AM / PM          08:00 / 15:00
+extras            Espectáculo nocturno              21:30
+extras            Día libre en resort (resumen)     07:00
+ticket_variable   Coco Bongo general / f. blanca    22:00 (×2)
+```
+
+**Esa hora no es que se pierda al mostrarla: no llega.**
+`CotizacionCotcomponente::normalizarHorarioAlCrear()` —un `#[ORM\PrePersist]`— pone inicio y fin a
+`00:00:00` en todo lo que cumpla `sinHorario()`. El catálogo prometía un horario que la cotización
+descartaba en la inserción.
+
+⚠️ **`validarAlojamientoSinHora()` debía impedirlo y tenía DOS huecos**, los dos de la misma
+familia —cubrir un caso y no la regla—:
+
+| Hueco | Qué dejó pasar |
+|---|---|
+| Miraba `hora` y **no `horaFin`** | El alojamiento de Machu Picchu, con `hora_fin` y sin `hora` |
+| Cubría **sólo `ALOJAMIENTO`**, no los otros cuatro tipos `sinHorario()` | Los ocho `extras` y `ticket_variable` |
+
+Ahora la validación pregunta al **tipo** (`$tipo->sinHorario()`) y mira **los dos campos**. El
+alojamiento conserva su mensaje propio, porque su motivo no es «esta hora no se usa» sino «esta
+hora rompe la estadía», y quien lo lea tiene que entender cuál de las dos cosas le pasa.
+
+⚠️ **Y no cubre las cargas por comando**: `#[Assert\Callback]` sólo corre cuando alguien llama al
+Validator, y un `persist()` en consola no lo llama (§4 bis de `docs/TravelCargaDeCatalogo.md`). Es
+una red para el panel, que es por donde entraron estos nueve.
+
+**Dos arreglos posibles por fila, y la diferencia es de negocio:** si la actividad tiene franja
+real y se le quiere decir al cliente, se **retipa** a `ACTIVIDAD_HORARIO_FIJO`; si la hora era
+decorativa, se **quita**. Confundirlos borra un dato bueno o publica uno inventado, así que se
+decide una por una — no en bloque.
+
 ### `EXTRAS` tira la hora, y por eso hizo falta un caso nuevo
 
 `EXTRAS` declara `sinHorario() = true`. Una actividad programada de resort tipada así **guardaba

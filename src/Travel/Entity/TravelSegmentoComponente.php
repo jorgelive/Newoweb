@@ -369,17 +369,45 @@ class TravelSegmentoComponente
     #[Assert\Callback]
     public function validarAlojamientoSinHora(ExecutionContextInterface $context): void
     {
-        if ($this->hora === null || $this->componente?->getTipo() !== ComponenteTipoEnum::ALOJAMIENTO) {
+        $tipo = $this->componente?->getTipo();
+
+        if ($tipo === null || !$tipo->sinHorario()) {
             return;
         }
 
-        $context->buildViolation(
-            'Un alojamiento no puede llevar hora: la guía del huésped deduce de ahí que es una '
-            . 'estadía, y con hora dejaría de repetirse cada noche. La hora de llegada al hotel '
-            . 'se pone en «Hora de recojo» desde La Biblia.',
-        )
-            ->atPath('hora')
-            ->addViolation();
+        // El alojamiento tiene su propio motivo, y merece decirlo: no es «esta hora no se usa»,
+        // es «esta hora rompe la estadía».
+        if ($tipo === ComponenteTipoEnum::ALOJAMIENTO) {
+            foreach (['hora' => $this->hora, 'horaFin' => $this->horaFin] as $campo => $valor) {
+                if ($valor !== null) {
+                    $context->buildViolation(
+                        'Un alojamiento no puede llevar hora: la guía del huésped deduce de ahí que es una '
+                        . 'estadía, y con hora dejaría de repetirse cada noche. La hora de llegada al hotel '
+                        . 'se pone en «Hora de recojo» desde La Biblia.',
+                    )
+                        ->atPath($campo)
+                        ->addViolation();
+                }
+            }
+
+            return;
+        }
+
+        foreach (['hora' => $this->hora, 'horaFin' => $this->horaFin] as $campo => $valor) {
+            if ($valor === null) {
+                continue;
+            }
+
+            $context->buildViolation(sprintf(
+                'Un componente de tipo «%s» no lleva hora: se descarta al pasar a la cotización '
+                . '(«normalizarHorarioAlCrear» la deja en 00:00), así que aquí sólo prometería un '
+                . 'horario que el cliente no verá. Si esta actividad SÍ tiene franja, cámbiale el '
+                . 'tipo a «actividad_fijo» con `app:travel:retipar-componente`.',
+                $tipo->value,
+            ))
+                ->atPath($campo)
+                ->addViolation();
+        }
     }
 
     #[Assert\Callback]

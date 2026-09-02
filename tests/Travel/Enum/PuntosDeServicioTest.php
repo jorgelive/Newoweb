@@ -114,7 +114,12 @@ final class PuntosDeServicioTest extends TestCase
             // saltar es porque hay otro tipo nuevo sin clasificar, y ése es justo el aviso que se
             // quiere. Hoy hizo su trabajo: el tipo nuevo se añadió por otro motivo —quién manda
             // en el display— y este test obligó a decidir también dónde empieza y acaba.
-            [P::INICIO_Y_FIN->value => 6, P::SOLO_INICIO->value => 2, P::NINGUNO->value => 7],
+            //
+            // 01/09/2026: NINGUNO pasa de 7 a 8 al entrar ACTIVIDAD_HORARIO_FIJO. Ocurre DENTRO
+            // del hotel —la discoteca, las olimpiadas—, así que no hay dónde recoger ni dónde
+            // dejar: el pasajero ya está ahí. Otra vez el test hizo su trabajo: el caso se añadió
+            // para que la hora no se perdiera, y obligó a decidir también esto.
+            [P::INICIO_Y_FIN->value => 6, P::SOLO_INICIO->value => 2, P::NINGUNO->value => 8],
             $cuenta
         );
     }
