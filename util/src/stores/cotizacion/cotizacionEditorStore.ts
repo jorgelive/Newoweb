@@ -1741,8 +1741,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             grupos[fecha].sort((a: CotServicio, b: CotServicio) => {
                 if (aMano) {
-                    return posicionDeServicio(a, componentesDelDia(a, fecha))
-                        - posicionDeServicio(b, componentesDelDia(b, fecha));
+                    return posicionDeServicio(a, componentesDelDia(a, fecha), true)
+                        - posicionDeServicio(b, componentesDelDia(b, fecha), true);
                 }
 
                 const horaA = getHoraClaveServicio(a);
@@ -2888,6 +2888,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             ? getFechaLimpia(cots[cots.length - 1].fechaInicioAbsoluta)
             : (modoCatalogo.value ? FECHA_BASE_NOMINAL : getFechaLimpia(new Date().toISOString()));
 
+        /**
+         * ⚠️ **Si el día ya está colocado a mano, el servicio nuevo NACE con sitio.**
+         *
+         * `orden = 0` significa «automático», y en un día automático es lo correcto. Pero si
+         * alguien ya ordenó ese día, un 0 rompe el invariante que sostiene todo esto —«o el día
+         * entero lo colocó una persona, o lo coloca el reloj»— y el servicio nuevo se colaba
+         * **en medio** de lo curado: medido, un día 10/20 más un traslado añadido después salía
+         * `colocado1 → NUEVO → colocado2`, empatando con el primero y desempatando por el orden
+         * del array.
+         *
+         * Al final del día, que es donde uno espera lo que acaba de añadir. Desde ahí se arrastra,
+         * y arrastrar renumera el día entero.
+         */
+        const delDia = cots.filter((s) => getFechaLimpia(s.fechaInicioAbsoluta) === fechaBase);
+        const diaAMano = delDia.some((s) => (s.orden ?? 0) > 0);
+        const ordenInicial = diaAMano
+            ? Math.max(...delDia.map((s) => s.orden ?? 0)) + 10
+            : 0;
+
         const nuevoServicio = {
             id: crypto.randomUUID(),
             servicioMaestroId: null,
@@ -2896,8 +2915,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             tituloSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             fechaInicioAbsoluta: fechaBase,
             // 0 = automático: se coloca por la hora de sus componentes, y sin hora por lo que es.
-            // Sólo deja de ser 0 si alguien lo mueve a mano.
-            orden: 0,
+            // Deja de ser 0 si alguien lo mueve a mano, o si el día ya estaba colocado (arriba).
+            orden: ordenInicial,
             cotsegmentos: [],
             cotcomponentes: [],
             sobreescribirTraduccion: false

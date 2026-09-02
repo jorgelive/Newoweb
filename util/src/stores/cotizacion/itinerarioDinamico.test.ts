@@ -175,6 +175,41 @@ describe('itinerarioDinamico · cómo ordena el editor un día', () => {
         expect(dia1.cotservicios.map((s) => s.id)).toEqual(['enMedio', 'trek']);
     });
 
+    /**
+     * 🔥 **El bug que destapó unificar el cálculo** (02/09/2026).
+     *
+     * El invariante que sostiene el orden a mano —«o el día entero lo colocó una persona, o lo
+     * coloca el reloj»— lo *establece* `reordenarServicios()` (numera todo el día 10, 20, 30…),
+     * pero nada lo **mantenía**: un servicio añadido después nacía con `orden = 0`, caía a su
+     * `ordenNarrativo` y se comparaba contra los órdenes manuales, que están en el mismo rango.
+     *
+     * Medido antes del arreglo, con un día 10/20 y un traslado nuevo (narrativo 10):
+     *
+     *     colocado1 → NUEVO → colocado2
+     *
+     * Se metía en medio de lo curado, empatado con el primero y desempatado por el orden del
+     * array. Es el bug de «los servicios flotan» por otra puerta.
+     */
+    it('🔥 en un día a mano, un servicio sin colocar va AL FINAL, no a su orden narrativo', () => {
+        const store = montar([
+            servicio('colocado1', '2030-01-01', 10, [{ ordenNarrativo: 30 }]),
+            servicio('colocado2', '2030-01-01', 20, [{ ordenNarrativo: 30 }]),
+            // Traslado: su naturaleza diría 10 —abre la jornada— pero la persona ya ordenó el día.
+            servicio('nuevo', '2030-01-01', 0, [{ ordenNarrativo: 10 }]),
+        ]);
+
+        expect(idsPorDia(store)).toEqual([['colocado1', 'colocado2', 'nuevo']]);
+    });
+
+    it('en un día automático el orden narrativo SÍ manda: la regla anterior no se pierde', () => {
+        const store = montar([
+            servicio('actividad', '2030-01-01', 0, [{ ordenNarrativo: 30 }]),
+            servicio('traslado', '2030-01-01', 0, [{ ordenNarrativo: 10 }]),
+        ]);
+
+        expect(idsPorDia(store)).toEqual([['traslado', 'actividad']]);
+    });
+
     it('los días salen en orden de fecha', () => {
         const store = montar([
             servicio('b', '2030-01-02', 0, [{ hora: '2030-01-02T08:00:00' }]),
@@ -182,5 +217,39 @@ describe('itinerarioDinamico · cómo ordena el editor un día', () => {
         ]);
 
         expect(idsPorDia(store)).toEqual([['a'], ['b']]);
+    });
+});
+
+/**
+ * La otra mitad del arreglo: que el estado roto no se produzca, en vez de sobrevivir a él.
+ *
+ * El de arriba hace determinista un día ya mezclado; éste comprueba que **el editor no lo mezcla**.
+ * Hacen falta los dos: el primero cubre lo que entre por fuera —el agente, un import, la API—,
+ * donde nadie corrió `reordenarServicios()`.
+ */
+describe('agregarServicio · no rompe un día ya colocado', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    it('en un día a mano, el servicio nuevo nace con sitio propio (max + 10)', () => {
+        const store = montar([
+            servicio('colocado1', '2030-01-01', 10, [{ ordenNarrativo: 30 }]),
+            servicio('colocado2', '2030-01-01', 20, [{ ordenNarrativo: 30 }]),
+        ]);
+
+        store.agregarServicio();
+
+        const nuevo = store.cotizacion?.cotservicios?.at(-1);
+        expect(nuevo?.orden).toBe(30);
+        expect(idsPorDia(store).at(-1)?.at(-1)).toBe(nuevo?.id);
+    });
+
+    it('en un día automático sigue naciendo con 0, que es lo correcto ahí', () => {
+        const store = montar([
+            servicio('a', '2030-01-01', 0, [{ ordenNarrativo: 30 }]),
+        ]);
+
+        store.agregarServicio();
+
+        expect(store.cotizacion?.cotservicios?.at(-1)?.orden).toBe(0);
     });
 });

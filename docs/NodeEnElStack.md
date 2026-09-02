@@ -353,10 +353,42 @@ Se unificó con el **alcance del día**, y no por mayoría —era la minoría—
 pregunta significa: con alcance global, un trek de dos días se coloca el segundo día como si algo
 llegara. Además PHP compone `día × 1000 + posición`, o sea ya reconoce que la posición es de un día.
 
-⚠️ **Queda una decisión anotada y sin tomar:** el `orden` que pone una persona (10, 20, 30 en datos
-reales) y el `ordenNarrativo` del enum (10–90) **se restan como si fueran la misma magnitud**, así
-que un servicio sin colocar puede caer en medio de los colocados a mano. No se cambió —congelar y
-cambiar a la vez es lo que §5 prohíbe— pero ahora hay **un solo sitio** donde tomarla.
+### 🔥 Y unificar destapó un bug que ninguna de las tres copias tenía sola
+
+Con el cálculo en un solo sitio se pudo mirar de frente lo que antes estaba repartido: el `orden`
+que pone una persona (10, 20, 30…) y el `ordenNarrativo` del enum (10–90) **se restaban como si
+fueran la misma magnitud**.
+
+El invariante que sostiene el orden a mano —«o el día entero lo colocó una persona, o lo coloca el
+reloj»— lo *establece* `reordenarServicios()`, que numera el día entero. Pero **nada lo mantenía**:
+un servicio añadido después nacía con `orden = 0`, caía a su orden narrativo y competía contra los
+manuales. Medido, con un día 10/20 y un traslado nuevo (narrativo 10):
+
+```
+colocado1 → NUEVO → colocado2      ← se cuela en medio de lo curado
+```
+
+Y empataba con el primero: lo desempataba el orden del array. Es el bug de «los servicios flotan»
+que este mismo cálculo dice haber arreglado, reapareciendo por otra puerta.
+
+**El arreglo tiene dos mitades, y hacen falta las dos:**
+
+1. **Que el estado no se produzca.** `agregarServicio()` da al nuevo `max + 10` si el día ya está
+   colocado. Aparece al final, que es donde uno espera lo que acaba de añadir.
+2. **Que lo que llegue roto sea determinista.** En un día a mano, un servicio con `orden = 0` va al
+   final (`MAX_SAFE_INTEGER`), no a su orden narrativo — en un día que una persona curó, la
+   naturaleza del servicio ya fue anulada. Cubre lo que entre por fuera del editor, donde nadie
+   corrió `reordenarServicios()`.
+
+⚠️ **No se arregló reescalando.** Mover un rango hace la colisión improbable en vez de imposible.
+Cuando dos números significan cosas distintas, la solución no es separarlos: es no restarlos.
+
+⚠️ Se devuelve `MAX_SAFE_INTEGER` y no `Infinity` porque el comparador hace `a - b`, y
+`Infinity - Infinity` es `NaN`.
+
+**Lo que esto demuestra del plan entero:** el bug llevaba ahí desde que existen las dos escalas, y
+sólo se vio al juntar las tres copias en una. Un cálculo repartido no es sólo más caro de mantener
+— **es más difícil de mirar**.
 
 ## 10. Qué framework para Node (ninguno, todavía) — 02/09/2026
 

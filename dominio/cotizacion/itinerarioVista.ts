@@ -135,11 +135,24 @@ export const compConHora = (c: ComponenteMinimo): boolean => {
  * llegara, y el día 2 no llega nadie. Además PHP compone `día × 1000 + posición`, o sea ya
  * reconoce que la posición es de un día.
  *
- * ── ⚠️ Dos escalas que se comparan como una ─────────────────────────────────
- * El `orden` que pone una persona (10, 20, 30 en datos reales) y el `ordenNarrativo` del enum
- * (10–90) se restan directamente. Un servicio sin colocar puede caer **en medio** de los que el
- * operador colocó. Está anotado y no resuelto: cambiarlo es una decisión de producto, y ahora al
- * menos hay **un solo sitio** donde tomarla.
+ * ── ⚠️ Las dos escalas NO se comparan nunca ─────────────────────────────────
+ * El `orden` que pone una persona (10, 20, 30…) y el `ordenNarrativo` del enum (10–90) son
+ * magnitudes distintas, y **restarlas producía el bug que este cálculo dice haber arreglado**.
+ * Medido el 02/09/2026: en un día colocado a mano (10, 20), un servicio añadido después —`orden`
+ * 0, traslado, narrativo 10— salía `colocado1 → NUEVO → colocado2`. Se metía en medio de lo que
+ * la persona había curado, y encima empataba con el primero: lo desempataba el orden del array.
+ *
+ * Por eso existe `diaColocadoAMano`. **En un día que una persona colocó, la naturaleza del
+ * servicio ya fue anulada**: algo sin `orden` no tiene posición declarada, así que va al final de
+ * forma estable, no a donde su tipo sugeriría. El operador lo ve ahí y lo arrastra si quiere —y
+ * arrastrar renumera el día entero, que es lo que restaura el invariante.
+ *
+ * ⚠️ **No se arregló reescalando** (`orden × 1000` o mover el narrativo a otro rango). Eso hace
+ * la colisión improbable en vez de imposible y deja el mismo defecto esperando. Cuando dos
+ * números significan cosas distintas, la solución no es separarlos: es no restarlos.
+ *
+ * ⚠️ Se devuelve `MAX_SAFE_INTEGER` y no `Infinity` a propósito: el comparador hace `a - b`, y
+ * `Infinity - Infinity` es `NaN`, que deja el `sort` sin definir.
  *
  * ⚠️ `ordenNarrativo` llega SERIALIZADO desde `CotizacionCotcomponente::getOrdenNarrativo()`, que
  * es un getter —no una columna— y deriva de `ComponenteTipoEnum`. Leerlo aquí ES leer el enum:
@@ -149,9 +162,15 @@ export const compConHora = (c: ComponenteMinimo): boolean => {
 export function posicionDeServicio(
   servicio: Pick<ServicioMinimo, 'orden'>,
   componentesDelDia: Pick<ComponenteMinimo, 'ordenNarrativo'>[],
+  diaColocadoAMano = false,
 ): number {
   if ((servicio.orden ?? 0) > 0) {
     return servicio.orden as number;
+  }
+
+  // Día curado por una persona y esto no lleva sitio: al final, sin inventarle uno.
+  if (diaColocadoAMano) {
+    return Number.MAX_SAFE_INTEGER;
   }
 
   const naturales = componentesDelDia.map(c => c?.ordenNarrativo ?? 30);
@@ -303,12 +322,14 @@ export function componerItinerario<S extends ServicioMinimo>(
     // 2) Metadatos por grupo: hora absoluta más temprana y orden mínimo del día.
     //    Si el servicio no tiene hora en sus segmentos pero sí una hora promovida
     //    (servicio completo), se usa esa para posicionarlo en la cronología.
+    const diaAMano = [...grupos.values()].some(g => (g[0]?.servicio.orden ?? 0) > 0);
+
     const metaGrupo = (gb: BloqueVista<S>[]) => {
       const horas = gb.map(b => b.horaInicio).filter(Boolean) as string[];
       const promoInicio = promoPorServicio.get(gb[0]?.servicio.id)?.inicio ?? null;
       if (promoInicio) horas.push(promoInicio);
       const horaMin = horas.length ? [...horas].sort()[0] : null; // null = sin hora absoluta
-      const ordenMin = posicionDeServicio(gb[0]!.servicio, gb.flatMap(b => b.componentes));
+      const ordenMin = posicionDeServicio(gb[0]!.servicio, gb.flatMap(b => b.componentes), diaAMano);
       const esEstadia = gb.every(b => b.esEstadia);
       return { horaMin, ordenMin, esEstadia };
     };
@@ -320,8 +341,6 @@ export function componerItinerario<S extends ServicioMinimo>(
     //
     // Las ESTADÍAS repetidas se quedan al final igualmente: son la nota de cierre, no una parada
     // del relato, y no es eso lo que nadie está colocando cuando arrastra.
-    const diaAMano = [...grupos.values()].some(g => (g[0]?.servicio.orden ?? 0) > 0);
-
     const gruposOrdenados = [...grupos.values()].sort((ga, gb) => {
       const ma = metaGrupo(ga), mb = metaGrupo(gb);
       const tier = (m: typeof ma) => (m.horaMin ? 0 : (m.esEstadia ? 2 : 1));
