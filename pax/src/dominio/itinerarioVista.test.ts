@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { componerItinerario, type CotizacionParaItinerario, type DiaVista } from './itinerarioVista';
 import cot2KVBMX from './__fixtures__/2KVBMX.json';
 import cotVQ2EG5 from './__fixtures__/VQ2EG5.json';
+import cot5SRAJV from './__fixtures__/5SRAJV.json';
 
 /**
  * Fija el comportamiento de la composición del itinerario **antes** de moverla a ningún sitio.
@@ -165,10 +166,37 @@ describe('el orden del día', () => {
     });
 
     /**
-     * ⚠️ **Este caso es SINTÉTICO y hay que decirlo.** Ninguna de las dos cotizaciones reales
-     * tiene un servicio con `orden > 0`, así que la rama «día colocado a mano» —donde el orden
-     * manda sobre la hora— no la cubre ningún dato de producción. Es justo la rama que más
-     * cuesta si se rompe: el operador coloca el día y el huésped lo lee en otro orden.
+     * La rama «día colocado a mano» sobre datos REALES: `5SRAJV` tiene tres servicios con
+     * `orden` 10, 20 y 30 puestos por un operador —vuelo, escala en Lima, varios en el
+     * aeropuerto—, que es exactamente el caso que el itinerario tiene que respetar.
+     *
+     * Es la rama que más cuesta si se rompe: el operador coloca el día y el huésped lo lee en
+     * otro orden. Estuvo cubierta sólo por el caso mínimo de abajo hasta que apareció esta
+     * cotización en la base de pruebas.
+     */
+    it('con orden manual, sobre datos reales: el orden del operador se respeta', () => {
+        const dias = componerItinerario(como(cot5SRAJV));
+
+        // Los servicios ordenados a mano conviven en un mismo día con otros sin `orden`.
+        const conOrden = cot5SRAJV.cotservicios.filter((s) => (s.orden ?? 0) > 0).map((s) => s.id);
+        expect(conOrden).toHaveLength(3);
+
+        for (const dia of dias) {
+            const ordenes = dia.bloques
+                .filter((b) => conOrden.includes(b.servicio.id))
+                .map((b) => b.servicio.orden as number);
+
+            // Dentro de un día, los colocados a mano nunca aparecen en orden decreciente.
+            expect(ordenes, `día ${dia.numeroDia}`).toEqual([...ordenes].sort((a, b) => a - b));
+        }
+
+        expect(resumir(dias)).toMatchSnapshot();
+    });
+
+    /**
+     * El caso mínimo, sintético a propósito: dos servicios y nada más, para que la regla quede
+     * fijada sin depender de la forma de ninguna cotización concreta. El de arriba prueba que
+     * ocurre en producción; éste prueba QUÉ hace exactamente.
      */
     it('con orden manual: manda el orden de la persona, no el reloj', () => {
         const cot: CotizacionParaItinerario = como({

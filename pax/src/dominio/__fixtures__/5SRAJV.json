@@ -1,0 +1,3530 @@
+{
+ "cotservicios": [
+  {
+   "id": "6eb0269e-a2e9-4c1e-b34a-44f0a71a78c7",
+   "orden": 20,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Varios en el aeropuerto de Lima"
+    },
+    {
+     "language": "en",
+     "content": "Several at Lima airport"
+    },
+    {
+     "language": "pt",
+     "content": "Vários no aeroporto de Lima"
+    },
+    {
+     "language": "fr",
+     "content": "Plusieurs à l'aéroport de Lima"
+    },
+    {
+     "language": "it",
+     "content": "Diversi all'aeroporto di Lima"
+    },
+    {
+     "language": "de",
+     "content": "Mehrere am Flughafen Lima"
+    },
+    {
+     "language": "nl",
+     "content": "Diverse op de luchthaven van Lima"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "ae002a1b-ca6e-4dfc-93a4-c8d05a6d6e28",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-17T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Desayuno en el aeropuerto"
+      },
+      {
+       "language": "en",
+       "content": "Breakfast at the airport"
+      },
+      {
+       "language": "pt",
+       "content": "Café da manhã no aeroporto"
+      },
+      {
+       "language": "fr",
+       "content": "Petit-déjeuner à l'aéroport"
+      },
+      {
+       "language": "it",
+       "content": "Colazione in aeroporto"
+      },
+      {
+       "language": "de",
+       "content": "Frühstück am Flughafen"
+      },
+      {
+       "language": "nl",
+       "content": "Ontbijt op de luchthaven"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "11027c11-9452-471c-ba2c-c044a5a1e4ae",
+     "cotsegmento": {
+      "id": "ae002a1b-ca6e-4dfc-93a4-c8d05a6d6e28"
+     },
+     "fechaHoraInicio": "2026-09-17T00:00:00",
+     "fechaHoraFin": "2026-09-17T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Desayuno en el aeropuerto"
+      },
+      {
+       "language": "en",
+       "content": "Breakfast at the airport"
+      },
+      {
+       "language": "pt",
+       "content": "Café da manhã no aeroporto"
+      },
+      {
+       "language": "fr",
+       "content": "Petit-déjeuner à l'aéroport"
+      },
+      {
+       "language": "it",
+       "content": "Colazione in aeroporto"
+      },
+      {
+       "language": "de",
+       "content": "Frühstück am Flughafen"
+      },
+      {
+       "language": "nl",
+       "content": "Ontbijt op de luchthaven"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "a869c383-546d-4a8b-bdca-3d0a68057217",
+   "orden": 30,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Escala de día completo en Lima"
+    },
+    {
+     "language": "en",
+     "content": "Full-day layover in Lima"
+    },
+    {
+     "language": "pt",
+     "content": "Escala de um dia inteiro em Lima"
+    },
+    {
+     "language": "fr",
+     "content": "Escale d'une journée complète à Lima"
+    },
+    {
+     "language": "it",
+     "content": "Sosta di un'intera giornata a Lima."
+    },
+    {
+     "language": "de",
+     "content": "Ganztägiger Zwischenstopp in Lima"
+    },
+    {
+     "language": "nl",
+     "content": "Een volledige dag tussenstop in Lima"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "626156e2-e133-4b10-a95c-40b9ab5e5524",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-17T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Del aeropuerto a Miraflores"
+      },
+      {
+       "language": "en",
+       "content": "From the airport to Miraflores"
+      },
+      {
+       "language": "pt",
+       "content": "Do aeroporto até Miraflores"
+      },
+      {
+       "language": "fr",
+       "content": "De l'aéroport à Miraflores"
+      },
+      {
+       "language": "it",
+       "content": "Dall'aeroporto a Miraflores"
+      },
+      {
+       "language": "de",
+       "content": "Vom Flughafen nach Miraflores"
+      },
+      {
+       "language": "nl",
+       "content": "Van de luchthaven naar Miraflores"
+      }
+     ]
+    },
+    {
+     "id": "61e66a51-a6cc-4b6e-ba52-b48c160210e7",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-17T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Parque Kennedy"
+      },
+      {
+       "language": "en",
+       "content": "Kennedy Park"
+      },
+      {
+       "language": "pt",
+       "content": "Parque Kennedy"
+      },
+      {
+       "language": "fr",
+       "content": "Parc Kennedy"
+      },
+      {
+       "language": "it",
+       "content": "Parco Kennedy"
+      },
+      {
+       "language": "de",
+       "content": "Kennedy Park"
+      },
+      {
+       "language": "nl",
+       "content": "Kennedy Park"
+      }
+     ]
+    },
+    {
+     "id": "99383751-dc19-44a4-92ce-6a4cecf4533b",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-17T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "El malecón y el Pacífico"
+      },
+      {
+       "language": "en",
+       "content": "The boardwalk and the Pacific"
+      },
+      {
+       "language": "pt",
+       "content": "O calçadão e o Pacífico"
+      },
+      {
+       "language": "fr",
+       "content": "La promenade et le Pacifique"
+      },
+      {
+       "language": "it",
+       "content": "La passeggiata e il Pacifico"
+      },
+      {
+       "language": "de",
+       "content": "Die Strandpromenade und der Pazifik"
+      },
+      {
+       "language": "nl",
+       "content": "De boulevard en de Stille Oceaan"
+      }
+     ]
+    },
+    {
+     "id": "6b24ef9b-0fc2-4ee8-a726-392f009d2ff6",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-09-17T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo en Larcomar"
+      },
+      {
+       "language": "en",
+       "content": "Lunch at Larcomar"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço no Larcomar"
+      },
+      {
+       "language": "fr",
+       "content": "Déjeuner à Larcomar"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo al Larcomar"
+      },
+      {
+       "language": "de",
+       "content": "Mittagessen in Larcomar"
+      },
+      {
+       "language": "nl",
+       "content": "Lunch bij Larcomar"
+      }
+     ]
+    },
+    {
+     "id": "c19d2716-51f7-485f-bff2-0b93b3907c76",
+     "dia": 1,
+     "orden": 5,
+     "fechaAbsoluta": "2026-09-17T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Tarde libre en Larcomar"
+      },
+      {
+       "language": "en",
+       "content": "Free afternoon at Larcomar"
+      },
+      {
+       "language": "pt",
+       "content": "Tarde livre no Larcomar"
+      },
+      {
+       "language": "fr",
+       "content": "Après-midi libre à Larcomar"
+      },
+      {
+       "language": "it",
+       "content": "Pomeriggio libero al Larcomar"
+      },
+      {
+       "language": "de",
+       "content": "Freier Nachmittag in Larcomar"
+      },
+      {
+       "language": "nl",
+       "content": "Vrije middag in Larcomar"
+      }
+     ]
+    },
+    {
+     "id": "5787f7ca-fb8a-4740-adf2-7c4ec0fcaf31",
+     "dia": 1,
+     "orden": 6,
+     "fechaAbsoluta": "2026-09-17T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Regreso al aeropuerto"
+      },
+      {
+       "language": "en",
+       "content": "Return to the airport"
+      },
+      {
+       "language": "pt",
+       "content": "Retorno ao aeroporto"
+      },
+      {
+       "language": "fr",
+       "content": "Retour à l'aéroport"
+      },
+      {
+       "language": "it",
+       "content": "Ritorno all'aeroporto"
+      },
+      {
+       "language": "de",
+       "content": "Rückkehr zum Flughafen"
+      },
+      {
+       "language": "nl",
+       "content": "Terugkeer naar de luchthaven"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "d466ab18-62ac-4d43-b153-2d311a75fd7a",
+     "cotsegmento": {
+      "id": "6b24ef9b-0fc2-4ee8-a726-392f009d2ff6"
+     },
+     "fechaHoraInicio": "2026-09-17T00:00:00",
+     "fechaHoraFin": "2026-09-17T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo en Larcomar"
+      },
+      {
+       "language": "en",
+       "content": "Lunch at Larcomar"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço no Larcomar"
+      },
+      {
+       "language": "fr",
+       "content": "Déjeuner à Larcomar"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo al Larcomar"
+      },
+      {
+       "language": "de",
+       "content": "Mittagessen in Larcomar"
+      },
+      {
+       "language": "nl",
+       "content": "Lunch bij Larcomar"
+      }
+     ]
+    },
+    {
+     "id": "5da0ab7b-1398-4afa-9f94-960094b8b888",
+     "cotsegmento": {
+      "id": "626156e2-e133-4b10-a95c-40b9ab5e5524"
+     },
+     "fechaHoraInicio": "2026-09-17T10:00:00",
+     "fechaHoraFin": "2026-09-17T11:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": true,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte Aeropuerto Lima ↔ Miraflores"
+      },
+      {
+       "language": "en",
+       "content": "Lima Airport ↔ Miraflores Transport"
+      },
+      {
+       "language": "pt",
+       "content": "Aeroporto de Lima ↔ Transporte Miraflores"
+      },
+      {
+       "language": "fr",
+       "content": "Aéroport de Lima ↔ Transports Miraflores"
+      },
+      {
+       "language": "it",
+       "content": "Aeroporto di Lima ↔ Trasporti Miraflores"
+      },
+      {
+       "language": "de",
+       "content": "Flughafen Lima ↔ Miraflores Transport"
+      },
+      {
+       "language": "nl",
+       "content": "Lima luchthaven ↔ Miraflores Transport"
+      }
+     ]
+    },
+    {
+     "id": "da19c44c-7da5-4f38-9518-d9cf5973ec23",
+     "cotsegmento": {
+      "id": "5787f7ca-fb8a-4740-adf2-7c4ec0fcaf31"
+     },
+     "fechaHoraInicio": "2026-09-17T17:00:00",
+     "fechaHoraFin": "2026-09-17T18:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte Aeropuerto Lima ↔ Miraflores"
+      },
+      {
+       "language": "en",
+       "content": "Lima Airport ↔ Miraflores Transport"
+      },
+      {
+       "language": "pt",
+       "content": "Aeroporto de Lima ↔ Transporte Miraflores"
+      },
+      {
+       "language": "fr",
+       "content": "Aéroport de Lima ↔ Transports Miraflores"
+      },
+      {
+       "language": "it",
+       "content": "Aeroporto di Lima ↔ Trasporti Miraflores"
+      },
+      {
+       "language": "de",
+       "content": "Flughafen Lima ↔ Miraflores Transport"
+      },
+      {
+       "language": "nl",
+       "content": "Lima luchthaven ↔ Miraflores Transport"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "b633c1bc-f4a0-4e35-876b-cf42c582beec",
+   "orden": 10,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Vuelo"
+    },
+    {
+     "language": "en",
+     "content": "Flight"
+    },
+    {
+     "language": "pt",
+     "content": "Voo"
+    },
+    {
+     "language": "fr",
+     "content": "Vol"
+    },
+    {
+     "language": "it",
+     "content": "Volo"
+    },
+    {
+     "language": "de",
+     "content": "Flug"
+    },
+    {
+     "language": "nl",
+     "content": "Vlucht"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "20464f2a-ad41-40b1-b4d7-498a7112fa09",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-17T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Vuelo de Cusco a Lima"
+      },
+      {
+       "language": "en",
+       "content": "Flight from Cusco to Lima"
+      },
+      {
+       "language": "pt",
+       "content": "Voo de Cusco para Lima"
+      },
+      {
+       "language": "fr",
+       "content": "Vol de Cusco à Lima"
+      },
+      {
+       "language": "it",
+       "content": "Volo da Cusco a Lima"
+      },
+      {
+       "language": "de",
+       "content": "Flug von Cusco nach Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vlucht van Cusco naar Lima"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "514b5707-2dae-4705-996e-9630254213d3",
+     "cotsegmento": {
+      "id": "20464f2a-ad41-40b1-b4d7-498a7112fa09"
+     },
+     "fechaHoraInicio": "2026-09-17T08:00:00",
+     "fechaHoraFin": "2026-09-17T08:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Vuelo desde la ciudad de Cusco a la ciudad de Lima"
+      },
+      {
+       "language": "en",
+       "content": "Flight from the city of Cusco to the city of Lima"
+      },
+      {
+       "language": "pt",
+       "content": "Voo da cidade de Cusco para a cidade de Lima"
+      },
+      {
+       "language": "fr",
+       "content": "Vol de la ville de Cusco à la ville de Lima"
+      },
+      {
+       "language": "it",
+       "content": "Volo dalla città di Cusco alla città di Lima"
+      },
+      {
+       "language": "de",
+       "content": "Flug von der Stadt Cusco nach der Stadt Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vlucht van Cusco naar Lima"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "23167cd9-0fae-4451-9c07-af515ab1335e",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Actividades en resort"
+    },
+    {
+     "language": "en",
+     "content": "Resort activities"
+    },
+    {
+     "language": "pt",
+     "content": "Atividades do resort"
+    },
+    {
+     "language": "fr",
+     "content": "Activités de villégiature"
+    },
+    {
+     "language": "it",
+     "content": "Attività del resort"
+    },
+    {
+     "language": "de",
+     "content": "Resortaktivitäten"
+    },
+    {
+     "language": "nl",
+     "content": "Resortactiviteiten"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "b00cf40d-8436-40be-b2ab-c4a94f411ae4",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-18T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Llegada y Registro en el Resort"
+      },
+      {
+       "language": "en",
+       "content": "Arrival and Check-in at the Resort"
+      },
+      {
+       "language": "pt",
+       "content": "Chegada e check-in no resort"
+      },
+      {
+       "language": "fr",
+       "content": "Arrivée et enregistrement au complexe hôtelier"
+      },
+      {
+       "language": "it",
+       "content": "Arrivo e check-in presso il resort."
+      },
+      {
+       "language": "nl",
+       "content": "Aankomst en inchecken bij het resort"
+      },
+      {
+       "language": "de",
+       "content": "Ankunft und Check-in im Resort"
+      }
+     ]
+    },
+    {
+     "id": "8d18be5e-d025-4991-b281-67af90ada87d",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-18T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço buffet"
+      },
+      {
+       "language": "fr",
+       "content": "déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Mittagsbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetlunch"
+      }
+     ]
+    },
+    {
+     "id": "923ba5ee-f99b-43ed-8d29-e57a62e6cf99",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-18T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Piscina y playa"
+      },
+      {
+       "language": "en",
+       "content": "Pool and beach"
+      },
+      {
+       "language": "pt",
+       "content": "Piscina e praia"
+      },
+      {
+       "language": "fr",
+       "content": "Piscine et plage"
+      },
+      {
+       "language": "it",
+       "content": "Piscina e spiaggia"
+      },
+      {
+       "language": "de",
+       "content": "Pool und Strand"
+      },
+      {
+       "language": "nl",
+       "content": "Zwembad en strand"
+      }
+     ]
+    },
+    {
+     "id": "d6de7f7f-8a24-4b77-9d9a-525d48ff222c",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-09-18T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Cena buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet dinner"
+      },
+      {
+       "language": "pt",
+       "content": "Jantar buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Dîner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Buffet-Abendessen"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetdiner"
+      }
+     ]
+    },
+    {
+     "id": "dca9bf8c-0214-4f16-bf3c-2f288a4cf8a5",
+     "dia": 1,
+     "orden": 5,
+     "fechaAbsoluta": "2026-09-18T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Espectáculo nocturno"
+      },
+      {
+       "language": "en",
+       "content": "Night show"
+      },
+      {
+       "language": "pt",
+       "content": "Espetáculo noturno"
+      },
+      {
+       "language": "fr",
+       "content": "spectacle nocturne"
+      },
+      {
+       "language": "it",
+       "content": "Spettacolo serale"
+      },
+      {
+       "language": "de",
+       "content": "Nachtshow"
+      },
+      {
+       "language": "nl",
+       "content": "Avondshow"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "56975f1d-1db4-47ed-a67c-563dfa7c1a82",
+     "cotsegmento": {
+      "id": "dca9bf8c-0214-4f16-bf3c-2f288a4cf8a5"
+     },
+     "fechaHoraInicio": "2026-09-18T00:00:00",
+     "fechaHoraFin": "2026-09-18T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 60,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Espectáculo nocturno"
+      },
+      {
+       "language": "en",
+       "content": "Night show"
+      },
+      {
+       "language": "pt",
+       "content": "Espetáculo noturno"
+      },
+      {
+       "language": "fr",
+       "content": "spectacle nocturne"
+      },
+      {
+       "language": "it",
+       "content": "Spettacolo serale"
+      },
+      {
+       "language": "de",
+       "content": "Nachtshow"
+      },
+      {
+       "language": "nl",
+       "content": "Avondshow"
+      }
+     ]
+    },
+    {
+     "id": "daf6f909-be78-45e0-9810-426c7f5e168b",
+     "cotsegmento": {
+      "id": "b00cf40d-8436-40be-b2ab-c4a94f411ae4"
+     },
+     "fechaHoraInicio": "2026-09-18T00:00:00",
+     "fechaHoraFin": "2026-09-18T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 60,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Llegada y check-in"
+      },
+      {
+       "language": "en",
+       "content": "Arrival and check-in"
+      },
+      {
+       "language": "pt",
+       "content": "Chegada e check-in"
+      },
+      {
+       "language": "fr",
+       "content": "Arrivée et enregistrement"
+      },
+      {
+       "language": "it",
+       "content": "Arrivo e check-in"
+      },
+      {
+       "language": "de",
+       "content": "Ankunft und Check-in"
+      },
+      {
+       "language": "nl",
+       "content": "Aankomst en inchecken"
+      }
+     ]
+    },
+    {
+     "id": "fe247a08-a754-493e-8df0-25c7fcb4e3fa",
+     "cotsegmento": {
+      "id": "923ba5ee-f99b-43ed-8d29-e57a62e6cf99"
+     },
+     "fechaHoraInicio": "2026-09-18T00:00:00",
+     "fechaHoraFin": "2026-09-18T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 60,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Piscina y playa"
+      },
+      {
+       "language": "en",
+       "content": "Pool and beach"
+      },
+      {
+       "language": "pt",
+       "content": "Piscina e praia"
+      },
+      {
+       "language": "fr",
+       "content": "Piscine et plage"
+      },
+      {
+       "language": "it",
+       "content": "Piscina e spiaggia"
+      },
+      {
+       "language": "de",
+       "content": "Pool und Strand"
+      },
+      {
+       "language": "nl",
+       "content": "Zwembad en strand"
+      }
+     ]
+    },
+    {
+     "id": "7c142a11-8890-4b76-9403-33769e90479c",
+     "cotsegmento": {
+      "id": "8d18be5e-d025-4991-b281-67af90ada87d"
+     },
+     "fechaHoraInicio": "2026-09-18T12:30:00",
+     "fechaHoraFin": "2026-09-18T15:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço buffet"
+      },
+      {
+       "language": "fr",
+       "content": "déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Mittagsbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetlunch"
+      }
+     ]
+    },
+    {
+     "id": "5e546a0f-d4f0-4c8c-a1bb-a2ee7f0d5495",
+     "cotsegmento": {
+      "id": "d6de7f7f-8a24-4b77-9d9a-525d48ff222c"
+     },
+     "fechaHoraInicio": "2026-09-18T18:00:00",
+     "fechaHoraFin": "2026-09-18T20:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Cena buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet dinner"
+      },
+      {
+       "language": "pt",
+       "content": "Jantar buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Dîner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Buffet-Abendessen"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetdiner"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "629c2253-330b-43c8-9a7f-7271fc0e92c5",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Alojamiento"
+    },
+    {
+     "language": "en",
+     "content": "Accommodation"
+    },
+    {
+     "language": "pt",
+     "content": "Alojamento"
+    },
+    {
+     "language": "fr",
+     "content": "Hébergement"
+    },
+    {
+     "language": "it",
+     "content": "Alloggio"
+    },
+    {
+     "language": "de",
+     "content": "Unterkunft"
+    },
+    {
+     "language": "nl",
+     "content": "Accommodatie"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "75aecdb9-9c79-4d84-a5f7-bcdf64a6ddcc",
+     "dia": -4,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-18T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Resort en Punta Cana"
+      },
+      {
+       "language": "en",
+       "content": "Resort accommodation in Punta Cana"
+      },
+      {
+       "language": "pt",
+       "content": "Hospedagem em resort em Punta Cana"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement de villégiature à Punta Cana"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi in resort a Punta Cana"
+      },
+      {
+       "language": "de",
+       "content": "Resortunterkünfte in Punta Cana"
+      },
+      {
+       "language": "nl",
+       "content": "Resortaccommodatie in Punta Cana"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "cb32519c-2f3f-43a8-ba93-472008111a6e",
+     "cotsegmento": {
+      "id": "75aecdb9-9c79-4d84-a5f7-bcdf64a6ddcc"
+     },
+     "fechaHoraInicio": "2026-09-18T00:00:00",
+     "fechaHoraFin": "2026-09-22T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 90,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Alojamiento en Resort en Punta Cana"
+      },
+      {
+       "language": "en",
+       "content": "Resort accommodation in Punta Cana"
+      },
+      {
+       "language": "pt",
+       "content": "Hospedagem em resort em Punta Cana"
+      },
+      {
+       "language": "fr",
+       "content": "Hébergement de villégiature à Punta Cana"
+      },
+      {
+       "language": "it",
+       "content": "Alloggi in resort a Punta Cana"
+      },
+      {
+       "language": "de",
+       "content": "Resortunterkünfte in Punta Cana"
+      },
+      {
+       "language": "nl",
+       "content": "Resortaccommodatie in Punta Cana"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "6cd9d3a9-fb89-4b47-9d9f-e28b563c73dd",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Vuelo"
+    },
+    {
+     "language": "en",
+     "content": "Flight"
+    },
+    {
+     "language": "pt",
+     "content": "Voo"
+    },
+    {
+     "language": "fr",
+     "content": "Vol"
+    },
+    {
+     "language": "it",
+     "content": "Volo"
+    },
+    {
+     "language": "de",
+     "content": "Flug"
+    },
+    {
+     "language": "nl",
+     "content": "Vlucht"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "e5988cd1-b4ba-4189-a669-800d12fc8003",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-18T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Vuelo de Lima a Punta Cana"
+      },
+      {
+       "language": "en",
+       "content": "Flight from Lima to Punta Cana"
+      },
+      {
+       "language": "pt",
+       "content": "Voo de Lima para Punta Cana"
+      },
+      {
+       "language": "fr",
+       "content": "Vol de Lima à Punta Cana"
+      },
+      {
+       "language": "it",
+       "content": "Volo da Lima a Punta Cana"
+      },
+      {
+       "language": "de",
+       "content": "Flug von Lima nach Punta Cana"
+      },
+      {
+       "language": "nl",
+       "content": "Vlucht van Lima naar Punta Cana"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "24b28ce1-06d8-4eed-bad9-d499dd1ddf9d",
+     "cotsegmento": {
+      "id": "e5988cd1-b4ba-4189-a669-800d12fc8003"
+     },
+     "fechaHoraInicio": "2026-09-18T00:30:00",
+     "fechaHoraFin": "2026-09-18T06:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Vuelo desde la ciudad de Lima a la ciudad de Punta Cana"
+      },
+      {
+       "language": "en",
+       "content": "Flight from the city of Lima to the city of Punta Cana"
+      },
+      {
+       "language": "pt",
+       "content": "Voo da cidade de Lima para a cidade de Punta Cana"
+      },
+      {
+       "language": "fr",
+       "content": "Vol de la ville de Lima à la ville de Punta Cana"
+      },
+      {
+       "language": "it",
+       "content": "Volo dalla città di Lima alla città di Punta Cana"
+      },
+      {
+       "language": "de",
+       "content": "Flug von der Stadt Lima nach der Stadt Punta Cana"
+      },
+      {
+       "language": "nl",
+       "content": "Vlucht van Lima naar Punta Cana"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "85889625-bd76-4569-a6cd-f76e0741804c",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Transporte en Punta Cana"
+    },
+    {
+     "language": "en",
+     "content": "Transportation in Punta Cana"
+    },
+    {
+     "language": "pt",
+     "content": "Transporte em Punta Cana"
+    },
+    {
+     "language": "fr",
+     "content": "Transports à Punta Cana"
+    },
+    {
+     "language": "it",
+     "content": "Trasporti a Punta Cana"
+    },
+    {
+     "language": "de",
+     "content": "Transport in Punta Cana"
+    },
+    {
+     "language": "nl",
+     "content": "Vervoer in Punta Cana"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "8d12de58-855a-4f2a-b0e8-b498dc281ad4",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-18T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte del aeropuerto al resort"
+      },
+      {
+       "language": "en",
+       "content": "Airport transfer to resort"
+      },
+      {
+       "language": "pt",
+       "content": "Traslado do aeroporto para o resort"
+      },
+      {
+       "language": "fr",
+       "content": "Transfert aéroport vers le complexe hôtelier"
+      },
+      {
+       "language": "it",
+       "content": "Trasferimento dall'aeroporto al resort."
+      },
+      {
+       "language": "de",
+       "content": "Flughafentransfer zum Resort"
+      },
+      {
+       "language": "nl",
+       "content": "Luchthaventransfer naar resort"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "dc7c89f8-7974-4ee9-99e1-3876d476518e",
+     "cotsegmento": {
+      "id": "8d12de58-855a-4f2a-b0e8-b498dc281ad4"
+     },
+     "fechaHoraInicio": "2026-09-18T08:00:00",
+     "fechaHoraFin": "2026-09-18T10:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Del aeropuerto de Punta Cana al alojamiento"
+      },
+      {
+       "language": "en",
+       "content": "From Punta Cana airport to accommodation"
+      },
+      {
+       "language": "pt",
+       "content": "Do aeroporto de Punta Cana até a acomodação"
+      },
+      {
+       "language": "fr",
+       "content": "De l'aéroport de Punta Cana à l'hébergement"
+      },
+      {
+       "language": "it",
+       "content": "Dall'aeroporto di Punta Cana all'alloggio."
+      },
+      {
+       "language": "de",
+       "content": "Vom Flughafen Punta Cana zur Unterkunft"
+      },
+      {
+       "language": "nl",
+       "content": "Van de luchthaven van Punta Cana naar de accommodatie"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "3bab2ad5-e7cf-4959-8dc9-3ec9a17a0add",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Actividades en resort"
+    },
+    {
+     "language": "en",
+     "content": "Resort activities"
+    },
+    {
+     "language": "pt",
+     "content": "Atividades do resort"
+    },
+    {
+     "language": "fr",
+     "content": "Activités de villégiature"
+    },
+    {
+     "language": "it",
+     "content": "Attività del resort"
+    },
+    {
+     "language": "de",
+     "content": "Resortaktivitäten"
+    },
+    {
+     "language": "nl",
+     "content": "Resortactiviteiten"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "e0f6eb20-beca-4647-9eb8-4ca4854e2ee4",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-19T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Cena en restaurante temático"
+      },
+      {
+       "language": "en",
+       "content": "Dinner at a themed restaurant"
+      },
+      {
+       "language": "pt",
+       "content": "Jantar em um restaurante temático"
+      },
+      {
+       "language": "fr",
+       "content": "Dîner dans un restaurant à thème"
+      },
+      {
+       "language": "it",
+       "content": "Cena in un ristorante a tema"
+      },
+      {
+       "language": "de",
+       "content": "Abendessen in einem Themenrestaurant"
+      },
+      {
+       "language": "nl",
+       "content": "Dineren in een themarestaurant"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "6800cddd-ee7f-40f1-866a-a8d7c3a9486f",
+     "cotsegmento": {
+      "id": "e0f6eb20-beca-4647-9eb8-4ca4854e2ee4"
+     },
+     "fechaHoraInicio": "2026-09-19T19:00:00",
+     "fechaHoraFin": "2026-09-19T22:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Cena en restaurante temático"
+      },
+      {
+       "language": "en",
+       "content": "Dinner at a themed restaurant"
+      },
+      {
+       "language": "pt",
+       "content": "Jantar em um restaurante temático"
+      },
+      {
+       "language": "fr",
+       "content": "Dîner dans un restaurant à thème"
+      },
+      {
+       "language": "it",
+       "content": "Cena in un ristorante a tema"
+      },
+      {
+       "language": "de",
+       "content": "Abendessen in einem Themenrestaurant"
+      },
+      {
+       "language": "nl",
+       "content": "Dineren in een themarestaurant"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "4e67a5dc-31e2-4e49-b8ee-91ed98463d10",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Actividades en resort"
+    },
+    {
+     "language": "en",
+     "content": "Resort activities"
+    },
+    {
+     "language": "pt",
+     "content": "Atividades do resort"
+    },
+    {
+     "language": "fr",
+     "content": "Activités de villégiature"
+    },
+    {
+     "language": "it",
+     "content": "Attività del resort"
+    },
+    {
+     "language": "de",
+     "content": "Resortaktivitäten"
+    },
+    {
+     "language": "nl",
+     "content": "Resortactiviteiten"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "c6197abd-33af-48c8-9716-d694b15e14bd",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-19T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Desayuno buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet breakfast"
+      },
+      {
+       "language": "pt",
+       "content": "Café da manhã tipo buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Petit-déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "colazione a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Frühstücksbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Ontbijtbuffet"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "b6498680-5327-4966-8edc-90a90a181ba5",
+     "cotsegmento": {
+      "id": "c6197abd-33af-48c8-9716-d694b15e14bd"
+     },
+     "fechaHoraInicio": "2026-09-19T06:00:00",
+     "fechaHoraFin": "2026-09-19T07:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Desayuno buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet breakfast"
+      },
+      {
+       "language": "pt",
+       "content": "Café da manhã tipo buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Petit-déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "colazione a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Frühstücksbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Ontbijtbuffet"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "7a335a8d-ed3d-4ecf-b150-c674f0dd37c4",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Isla Saona"
+    },
+    {
+     "language": "en",
+     "content": "Saona Island"
+    },
+    {
+     "language": "pt",
+     "content": "Ilha Saona"
+    },
+    {
+     "language": "fr",
+     "content": "Île de Saona"
+    },
+    {
+     "language": "it",
+     "content": "Isola di Saona"
+    },
+    {
+     "language": "de",
+     "content": "Insel Saona"
+    },
+    {
+     "language": "nl",
+     "content": "Saona-eiland"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "6d7ec23e-864c-40bd-9232-2ceb9002befc",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-19T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Día completo en Isla Saona"
+      },
+      {
+       "language": "en",
+       "content": "Full day on Saona Island"
+      },
+      {
+       "language": "pt",
+       "content": "Dia inteiro na Ilha Saona"
+      },
+      {
+       "language": "fr",
+       "content": "Journée complète sur l'île de Saona"
+      },
+      {
+       "language": "it",
+       "content": "Intera giornata sull'isola di Saona."
+      },
+      {
+       "language": "de",
+       "content": "Ganzer Tag auf der Insel Saona"
+      },
+      {
+       "language": "nl",
+       "content": "Een hele dag op het eiland Saona."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "3986669e-76ff-4aa5-9030-5ddc9045b115",
+     "cotsegmento": {
+      "id": "6d7ec23e-864c-40bd-9232-2ceb9002befc"
+     },
+     "fechaHoraInicio": "2026-09-19T08:00:00",
+     "fechaHoraFin": "2026-09-19T18:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 30,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Día completo en Isla Saona"
+      },
+      {
+       "language": "en",
+       "content": "Full day on Saona Island"
+      },
+      {
+       "language": "pt",
+       "content": "Dia inteiro na Ilha Saona"
+      },
+      {
+       "language": "fr",
+       "content": "Journée complète sur l'île de Saona"
+      },
+      {
+       "language": "it",
+       "content": "Intera giornata sull'isola di Saona."
+      },
+      {
+       "language": "de",
+       "content": "Ganzer Tag auf der Insel Saona"
+      },
+      {
+       "language": "nl",
+       "content": "Een hele dag op het eiland Saona."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "65627dee-23e1-499e-808c-73c1de0398f6",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Actividades en resort"
+    },
+    {
+     "language": "en",
+     "content": "Resort activities"
+    },
+    {
+     "language": "pt",
+     "content": "Atividades do resort"
+    },
+    {
+     "language": "fr",
+     "content": "Activités de villégiature"
+    },
+    {
+     "language": "it",
+     "content": "Attività del resort"
+    },
+    {
+     "language": "de",
+     "content": "Resortaktivitäten"
+    },
+    {
+     "language": "nl",
+     "content": "Resortactiviteiten"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "e4e51cf0-cda8-4393-a8f1-59f1d0ce9a7e",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-20T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Desayuno buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet breakfast"
+      },
+      {
+       "language": "pt",
+       "content": "Café da manhã tipo buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Petit-déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "colazione a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Frühstücksbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Ontbijtbuffet"
+      }
+     ]
+    },
+    {
+     "id": "8c2a76f6-208a-4b9d-baf7-245f8d589678",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-20T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Actividades recreativas"
+      },
+      {
+       "language": "en",
+       "content": "Recreational activities"
+      },
+      {
+       "language": "pt",
+       "content": "Atividades recreativas"
+      },
+      {
+       "language": "fr",
+       "content": "activités récréatives"
+      },
+      {
+       "language": "it",
+       "content": "Attività ricreative"
+      },
+      {
+       "language": "de",
+       "content": "Freizeitaktivitäten"
+      },
+      {
+       "language": "nl",
+       "content": "Recreatieve activiteiten"
+      }
+     ]
+    },
+    {
+     "id": "fb92ebd8-0cec-489a-989d-81b55c1173d7",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-20T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço buffet"
+      },
+      {
+       "language": "fr",
+       "content": "déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Mittagsbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetlunch"
+      }
+     ]
+    },
+    {
+     "id": "985ec662-cbf9-4514-9d7d-f433f85cc7d5",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-09-20T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Piscina y playa"
+      },
+      {
+       "language": "en",
+       "content": "Pool and beach"
+      },
+      {
+       "language": "pt",
+       "content": "Piscina e praia"
+      },
+      {
+       "language": "fr",
+       "content": "Piscine et plage"
+      },
+      {
+       "language": "it",
+       "content": "Piscina e spiaggia"
+      },
+      {
+       "language": "de",
+       "content": "Pool und Strand"
+      },
+      {
+       "language": "nl",
+       "content": "Zwembad en strand"
+      }
+     ]
+    },
+    {
+     "id": "2f3f58fb-5c1f-42ff-8bed-40d75834a80b",
+     "dia": 1,
+     "orden": 5,
+     "fechaAbsoluta": "2026-09-20T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Cena en restaurante temático"
+      },
+      {
+       "language": "en",
+       "content": "Dinner at a themed restaurant"
+      },
+      {
+       "language": "pt",
+       "content": "Jantar em um restaurante temático"
+      },
+      {
+       "language": "fr",
+       "content": "Dîner dans un restaurant à thème"
+      },
+      {
+       "language": "it",
+       "content": "Cena in un ristorante a tema"
+      },
+      {
+       "language": "de",
+       "content": "Abendessen in einem Themenrestaurant"
+      },
+      {
+       "language": "nl",
+       "content": "Dineren in een themarestaurant"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "828129c0-b235-4a17-9514-fe9da30ffb89",
+     "cotsegmento": {
+      "id": "8c2a76f6-208a-4b9d-baf7-245f8d589678"
+     },
+     "fechaHoraInicio": "2026-09-20T00:00:00",
+     "fechaHoraFin": "2026-09-20T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 60,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Actividades recreativas"
+      },
+      {
+       "language": "en",
+       "content": "Recreational activities"
+      },
+      {
+       "language": "pt",
+       "content": "Atividades recreativas"
+      },
+      {
+       "language": "fr",
+       "content": "activités récréatives"
+      },
+      {
+       "language": "it",
+       "content": "Attività ricreative"
+      },
+      {
+       "language": "de",
+       "content": "Freizeitaktivitäten"
+      },
+      {
+       "language": "nl",
+       "content": "Recreatieve activiteiten"
+      }
+     ]
+    },
+    {
+     "id": "83cc19a6-67a8-4cc6-a535-fdbdd7231877",
+     "cotsegmento": {
+      "id": "985ec662-cbf9-4514-9d7d-f433f85cc7d5"
+     },
+     "fechaHoraInicio": "2026-09-20T00:00:00",
+     "fechaHoraFin": "2026-09-20T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 60,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Piscina y playa"
+      },
+      {
+       "language": "en",
+       "content": "Pool and beach"
+      },
+      {
+       "language": "pt",
+       "content": "Piscina e praia"
+      },
+      {
+       "language": "fr",
+       "content": "Piscine et plage"
+      },
+      {
+       "language": "it",
+       "content": "Piscina e spiaggia"
+      },
+      {
+       "language": "de",
+       "content": "Pool und Strand"
+      },
+      {
+       "language": "nl",
+       "content": "Zwembad en strand"
+      }
+     ]
+    },
+    {
+     "id": "f9ca069b-a536-499e-8f85-047646841740",
+     "cotsegmento": {
+      "id": "e4e51cf0-cda8-4393-a8f1-59f1d0ce9a7e"
+     },
+     "fechaHoraInicio": "2026-09-20T07:00:00",
+     "fechaHoraFin": "2026-09-20T09:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Desayuno buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet breakfast"
+      },
+      {
+       "language": "pt",
+       "content": "Café da manhã tipo buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Petit-déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "colazione a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Frühstücksbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Ontbijtbuffet"
+      }
+     ]
+    },
+    {
+     "id": "65c67419-daae-4e22-910e-d5a45c9cc12b",
+     "cotsegmento": {
+      "id": "fb92ebd8-0cec-489a-989d-81b55c1173d7"
+     },
+     "fechaHoraInicio": "2026-09-20T12:30:00",
+     "fechaHoraFin": "2026-09-20T15:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço buffet"
+      },
+      {
+       "language": "fr",
+       "content": "déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Mittagsbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetlunch"
+      }
+     ]
+    },
+    {
+     "id": "7f1563a0-5a35-4f8a-9ffc-020a0c1f27c3",
+     "cotsegmento": {
+      "id": "2f3f58fb-5c1f-42ff-8bed-40d75834a80b"
+     },
+     "fechaHoraInicio": "2026-09-20T18:30:00",
+     "fechaHoraFin": "2026-09-20T21:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Cena en restaurante temático"
+      },
+      {
+       "language": "en",
+       "content": "Dinner at a themed restaurant"
+      },
+      {
+       "language": "pt",
+       "content": "Jantar em um restaurante temático"
+      },
+      {
+       "language": "fr",
+       "content": "Dîner dans un restaurant à thème"
+      },
+      {
+       "language": "it",
+       "content": "Cena in un ristorante a tema"
+      },
+      {
+       "language": "de",
+       "content": "Abendessen in einem Themenrestaurant"
+      },
+      {
+       "language": "nl",
+       "content": "Dineren in een themarestaurant"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "951eb2a7-988d-4212-aa1c-b172246fd618",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Coco Bongo"
+    },
+    {
+     "language": "en",
+     "content": "Coco Bongo"
+    },
+    {
+     "language": "pt",
+     "content": "Coco Bongo"
+    },
+    {
+     "language": "fr",
+     "content": "Coco Bongo"
+    },
+    {
+     "language": "it",
+     "content": "Coco Bongo"
+    },
+    {
+     "language": "de",
+     "content": "Coco Bongo"
+    },
+    {
+     "language": "nl",
+     "content": "Coco Bongo"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "0b561e17-3b3b-46ec-9a4b-64ac8c143145",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-20T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Del resort a Coco Bongo"
+      },
+      {
+       "language": "en",
+       "content": "From the resort to Coco Bongo"
+      },
+      {
+       "language": "pt",
+       "content": "Do resort ao Coco Bongo"
+      },
+      {
+       "language": "fr",
+       "content": "Du complexe hôtelier à Coco Bongo"
+      },
+      {
+       "language": "it",
+       "content": "Dal resort a Coco Bongo"
+      },
+      {
+       "language": "de",
+       "content": "Vom Resort nach Coco Bongo"
+      },
+      {
+       "language": "nl",
+       "content": "Van het resort naar Coco Bongo"
+      }
+     ]
+    },
+    {
+     "id": "e80c7da8-796c-4f70-bcd2-497ff7c90c43",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-20T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Noche en Coco Bongo · Fiesta Blanca"
+      },
+      {
+       "language": "en",
+       "content": "Night at Coco Bongo · White Party"
+      },
+      {
+       "language": "pt",
+       "content": "Noite no Coco Bongo · Festa Branca"
+      },
+      {
+       "language": "fr",
+       "content": "Soirée au Coco Bongo · Soirée blanche"
+      },
+      {
+       "language": "it",
+       "content": "Una notte al Coco Bongo · Festa in bianco"
+      },
+      {
+       "language": "de",
+       "content": "Nacht im Coco Bongo · White Party"
+      },
+      {
+       "language": "nl",
+       "content": "Avondje uit bij Coco Bongo · White Party"
+      }
+     ]
+    },
+    {
+     "id": "41f42b82-f4fd-4ec5-86ff-13121156a512",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-20T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Regreso de Coco Bongo al resort"
+      },
+      {
+       "language": "en",
+       "content": "Coco Bongo's return to the resort"
+      },
+      {
+       "language": "pt",
+       "content": "O retorno de Coco Bongo ao resort"
+      },
+      {
+       "language": "fr",
+       "content": "Le retour de Coco Bongo à la station balnéaire"
+      },
+      {
+       "language": "it",
+       "content": "Il ritorno di Coco Bongo al resort"
+      },
+      {
+       "language": "de",
+       "content": "Coco Bongos Rückkehr ins Resort"
+      },
+      {
+       "language": "nl",
+       "content": "Coco Bongo keert terug naar het resort."
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "26fd5b00-9786-43e4-a058-223d8dfd9c43",
+     "cotsegmento": {
+      "id": "e80c7da8-796c-4f70-bcd2-497ff7c90c43"
+     },
+     "fechaHoraInicio": "2026-09-20T00:00:00",
+     "fechaHoraFin": "2026-09-20T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 40,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Noche en Coco Bongo · Fiesta Blanca"
+      },
+      {
+       "language": "en",
+       "content": "Night at Coco Bongo · White Party"
+      },
+      {
+       "language": "pt",
+       "content": "Noite no Coco Bongo · Festa Branca"
+      },
+      {
+       "language": "fr",
+       "content": "Soirée au Coco Bongo · Soirée blanche"
+      },
+      {
+       "language": "it",
+       "content": "Una notte al Coco Bongo · Festa in bianco"
+      },
+      {
+       "language": "de",
+       "content": "Nacht im Coco Bongo · White Party"
+      },
+      {
+       "language": "nl",
+       "content": "Avondje uit bij Coco Bongo · White Party"
+      }
+     ]
+    },
+    {
+     "id": "e0fc8cbe-d6ef-438a-b488-842758d0ba07",
+     "cotsegmento": {
+      "id": "0b561e17-3b3b-46ec-9a4b-64ac8c143145"
+     },
+     "fechaHoraInicio": "2026-09-20T20:30:00",
+     "fechaHoraFin": "2026-09-20T21:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte urbano en Punta Cana"
+      },
+      {
+       "language": "en",
+       "content": "Urban transport in Punta Cana"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte urbano em Punta Cana"
+      },
+      {
+       "language": "fr",
+       "content": "Transports urbains à Punta Cana"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto urbano a Punta Cana"
+      },
+      {
+       "language": "de",
+       "content": "Städtischer Verkehr in Punta Cana"
+      },
+      {
+       "language": "nl",
+       "content": "Stedelijk vervoer in Punta Cana"
+      }
+     ]
+    },
+    {
+     "id": "d21b9134-6c7c-4bd5-bcea-267b1538909d",
+     "cotsegmento": {
+      "id": "41f42b82-f4fd-4ec5-86ff-13121156a512"
+     },
+     "fechaHoraInicio": "2026-09-20T23:30:00",
+     "fechaHoraFin": "2026-09-21T00:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Transporte urbano en Punta Cana"
+      },
+      {
+       "language": "en",
+       "content": "Urban transport in Punta Cana"
+      },
+      {
+       "language": "pt",
+       "content": "Transporte urbano em Punta Cana"
+      },
+      {
+       "language": "fr",
+       "content": "Transports urbains à Punta Cana"
+      },
+      {
+       "language": "it",
+       "content": "Trasporto urbano a Punta Cana"
+      },
+      {
+       "language": "de",
+       "content": "Städtischer Verkehr in Punta Cana"
+      },
+      {
+       "language": "nl",
+       "content": "Stedelijk vervoer in Punta Cana"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "e7cf6efe-258b-4e97-8b89-ba1d83e0f086",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Actividades en resort"
+    },
+    {
+     "language": "en",
+     "content": "Resort activities"
+    },
+    {
+     "language": "pt",
+     "content": "Atividades do resort"
+    },
+    {
+     "language": "fr",
+     "content": "Activités de villégiature"
+    },
+    {
+     "language": "it",
+     "content": "Attività del resort"
+    },
+    {
+     "language": "de",
+     "content": "Resortaktivitäten"
+    },
+    {
+     "language": "nl",
+     "content": "Resortactiviteiten"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "a322a5d7-1906-4bcd-be3f-fc1230f00d96",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-21T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Desayuno buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet breakfast"
+      },
+      {
+       "language": "pt",
+       "content": "Café da manhã tipo buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Petit-déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "colazione a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Frühstücksbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Ontbijtbuffet"
+      }
+     ]
+    },
+    {
+     "id": "5ae512d7-5785-43fa-8c26-eb4d3036e99e",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-21T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Olimpiadas y Roca Escaladora"
+      },
+      {
+       "language": "en",
+       "content": "Olympics and Rock Climbing"
+      },
+      {
+       "language": "pt",
+       "content": "Olimpíadas e escalada em rocha"
+      },
+      {
+       "language": "fr",
+       "content": "Jeux olympiques et escalade"
+      },
+      {
+       "language": "it",
+       "content": "Olimpiadi e arrampicata su roccia"
+      },
+      {
+       "language": "de",
+       "content": "Olympische Spiele und Felsklettern"
+      },
+      {
+       "language": "nl",
+       "content": "Olympische Spelen en rotsklimmen"
+      }
+     ]
+    },
+    {
+     "id": "2e4bd074-b1f4-482a-a4ef-076c38c9bea7",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-21T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço buffet"
+      },
+      {
+       "language": "fr",
+       "content": "déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Mittagsbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetlunch"
+      }
+     ]
+    },
+    {
+     "id": "6fbd35dd-5fa7-431c-b2f3-98f015f25743",
+     "dia": 1,
+     "orden": 4,
+     "fechaAbsoluta": "2026-09-21T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Piscina y playa"
+      },
+      {
+       "language": "en",
+       "content": "Pool and beach"
+      },
+      {
+       "language": "pt",
+       "content": "Piscina e praia"
+      },
+      {
+       "language": "fr",
+       "content": "Piscine et plage"
+      },
+      {
+       "language": "it",
+       "content": "Piscina e spiaggia"
+      },
+      {
+       "language": "de",
+       "content": "Pool und Strand"
+      },
+      {
+       "language": "nl",
+       "content": "Zwembad en strand"
+      }
+     ]
+    },
+    {
+     "id": "44295162-ad61-4b9e-9ac1-f4f87d9e14d8",
+     "dia": 1,
+     "orden": 6,
+     "fechaAbsoluta": "2026-09-21T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Cena buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet dinner"
+      },
+      {
+       "language": "pt",
+       "content": "Jantar buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Dîner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Cena a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Buffet-Abendessen"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetdiner"
+      }
+     ]
+    },
+    {
+     "id": "500691b0-5e47-464a-b106-664c5f2cfe0a",
+     "dia": 1,
+     "orden": 6,
+     "fechaAbsoluta": "2026-09-21T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Noche de discoteca privada"
+      },
+      {
+       "language": "en",
+       "content": "Private disco night"
+      },
+      {
+       "language": "pt",
+       "content": "Noite de discoteca privada"
+      },
+      {
+       "language": "fr",
+       "content": "Soirée disco privée"
+      },
+      {
+       "language": "it",
+       "content": "Serata discoteca privata"
+      },
+      {
+       "language": "de",
+       "content": "Private Disconacht"
+      },
+      {
+       "language": "nl",
+       "content": "Privé disco-avond"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "80364066-3418-4ebb-bba8-9e759399fa51",
+     "cotsegmento": {
+      "id": "6fbd35dd-5fa7-431c-b2f3-98f015f25743"
+     },
+     "fechaHoraInicio": "2026-09-21T00:00:00",
+     "fechaHoraFin": "2026-09-21T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 60,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Piscina y playa"
+      },
+      {
+       "language": "en",
+       "content": "Pool and beach"
+      },
+      {
+       "language": "pt",
+       "content": "Piscina e praia"
+      },
+      {
+       "language": "fr",
+       "content": "Piscine et plage"
+      },
+      {
+       "language": "it",
+       "content": "Piscina e spiaggia"
+      },
+      {
+       "language": "de",
+       "content": "Pool und Strand"
+      },
+      {
+       "language": "nl",
+       "content": "Zwembad en strand"
+      }
+     ]
+    },
+    {
+     "id": "b0da7321-e08f-47a1-8fcb-2030dd272fb0",
+     "cotsegmento": {
+      "id": "a322a5d7-1906-4bcd-be3f-fc1230f00d96"
+     },
+     "fechaHoraInicio": "2026-09-21T07:00:00",
+     "fechaHoraFin": "2026-09-21T10:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Desayuno buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet breakfast"
+      },
+      {
+       "language": "pt",
+       "content": "Café da manhã tipo buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Petit-déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "colazione a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Frühstücksbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Ontbijtbuffet"
+      }
+     ]
+    },
+    {
+     "id": "87da84af-2a13-49cb-a567-fd5376c15fe7",
+     "cotsegmento": {
+      "id": "5ae512d7-5785-43fa-8c26-eb4d3036e99e"
+     },
+     "fechaHoraInicio": "2026-09-21T11:00:00",
+     "fechaHoraFin": "2026-09-21T13:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 60,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Olimpiadas y Roca Escaladora"
+      },
+      {
+       "language": "en",
+       "content": "Olympics and Rock Climbing"
+      },
+      {
+       "language": "pt",
+       "content": "Olimpíadas e escalada em rocha"
+      },
+      {
+       "language": "fr",
+       "content": "Jeux olympiques et escalade"
+      },
+      {
+       "language": "it",
+       "content": "Olimpiadi e arrampicata su roccia"
+      },
+      {
+       "language": "de",
+       "content": "Olympische Spiele und Felsklettern"
+      },
+      {
+       "language": "nl",
+       "content": "Olympische Spelen en rotsklimmen"
+      }
+     ]
+    },
+    {
+     "id": "f137c567-98f0-4cf7-a6a1-b7c419388e55",
+     "cotsegmento": {
+      "id": "2e4bd074-b1f4-482a-a4ef-076c38c9bea7"
+     },
+     "fechaHoraInicio": "2026-09-21T12:30:00",
+     "fechaHoraFin": "2026-09-21T15:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço buffet"
+      },
+      {
+       "language": "fr",
+       "content": "déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Mittagsbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetlunch"
+      }
+     ]
+    },
+    {
+     "id": "9d96e72a-7eef-4c5a-909f-bb7fb6139f8e",
+     "cotsegmento": {
+      "id": "44295162-ad61-4b9e-9ac1-f4f87d9e14d8"
+     },
+     "fechaHoraInicio": "2026-09-21T18:00:00",
+     "fechaHoraFin": "2026-09-21T19:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Cena buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet dinner"
+      },
+      {
+       "language": "pt",
+       "content": "Jantar buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Dîner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Cena a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Buffet-Abendessen"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetdiner"
+      }
+     ]
+    },
+    {
+     "id": "faa77830-0f68-401d-a3b7-8725d177a8ff",
+     "cotsegmento": {
+      "id": "500691b0-5e47-464a-b106-664c5f2cfe0a"
+     },
+     "fechaHoraInicio": "2026-09-21T19:00:00",
+     "fechaHoraFin": "2026-09-21T22:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 60,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Discoteca Privada"
+      },
+      {
+       "language": "en",
+       "content": "Private Nightclub"
+      },
+      {
+       "language": "pt",
+       "content": "Boate Privada"
+      },
+      {
+       "language": "fr",
+       "content": "Boîte de nuit privée"
+      },
+      {
+       "language": "it",
+       "content": "Club privato"
+      },
+      {
+       "language": "de",
+       "content": "Privater Nachtclub"
+      },
+      {
+       "language": "nl",
+       "content": "Privé nachtclub"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "e497119c-7ec4-4094-81b4-52d42d70042d",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Actividades en resort"
+    },
+    {
+     "language": "en",
+     "content": "Resort activities"
+    },
+    {
+     "language": "pt",
+     "content": "Atividades do resort"
+    },
+    {
+     "language": "fr",
+     "content": "Activités de villégiature"
+    },
+    {
+     "language": "it",
+     "content": "Attività del resort"
+    },
+    {
+     "language": "de",
+     "content": "Resortaktivitäten"
+    },
+    {
+     "language": "nl",
+     "content": "Resortactiviteiten"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "2280c893-54be-4ff2-bdfd-b06ec6c745d4",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-22T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Desayuno buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet breakfast"
+      },
+      {
+       "language": "pt",
+       "content": "Café da manhã tipo buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Petit-déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "colazione a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Frühstücksbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Ontbijtbuffet"
+      }
+     ]
+    },
+    {
+     "id": "04463cb3-c14e-44a0-8cea-f3ff5b65d222",
+     "dia": 1,
+     "orden": 2,
+     "fechaAbsoluta": "2026-09-22T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Check-out"
+      },
+      {
+       "language": "en",
+       "content": "Check-out"
+      },
+      {
+       "language": "pt",
+       "content": "Confira"
+      },
+      {
+       "language": "fr",
+       "content": "Vérifier"
+      },
+      {
+       "language": "it",
+       "content": "Guardare"
+      },
+      {
+       "language": "de",
+       "content": "Kasse"
+      },
+      {
+       "language": "nl",
+       "content": "Afrekenen"
+      }
+     ]
+    },
+    {
+     "id": "77ab08c2-0c9b-4021-a483-831f66cca466",
+     "dia": 1,
+     "orden": 3,
+     "fechaAbsoluta": "2026-09-22T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço buffet"
+      },
+      {
+       "language": "fr",
+       "content": "déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Mittagsbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetlunch"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "0104f307-65e7-44c2-8244-1282b27760ba",
+     "cotsegmento": {
+      "id": "04463cb3-c14e-44a0-8cea-f3ff5b65d222"
+     },
+     "fechaHoraInicio": "2026-09-22T00:00:00",
+     "fechaHoraFin": "2026-09-22T00:00:00",
+     "sinHorario": true,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 60,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Check-out"
+      },
+      {
+       "language": "en",
+       "content": "Check-out"
+      },
+      {
+       "language": "pt",
+       "content": "Confira"
+      },
+      {
+       "language": "fr",
+       "content": "Vérifier"
+      },
+      {
+       "language": "it",
+       "content": "Guardare"
+      },
+      {
+       "language": "de",
+       "content": "Kasse"
+      },
+      {
+       "language": "nl",
+       "content": "Afrekenen"
+      }
+     ]
+    },
+    {
+     "id": "7177d799-80e7-4de3-ab29-969f29ad1fe4",
+     "cotsegmento": {
+      "id": "2280c893-54be-4ff2-bdfd-b06ec6c745d4"
+     },
+     "fechaHoraInicio": "2026-09-22T07:00:00",
+     "fechaHoraFin": "2026-09-22T10:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Desayuno buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet breakfast"
+      },
+      {
+       "language": "pt",
+       "content": "Café da manhã tipo buffet"
+      },
+      {
+       "language": "fr",
+       "content": "Petit-déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "colazione a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Frühstücksbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Ontbijtbuffet"
+      }
+     ]
+    },
+    {
+     "id": "48551f71-5f0b-4acb-bcd7-fe12470e32c5",
+     "cotsegmento": {
+      "id": "77ab08c2-0c9b-4021-a483-831f66cca466"
+     },
+     "fechaHoraInicio": "2026-09-22T12:30:00",
+     "fechaHoraFin": "2026-09-22T14:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 50,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Almuerzo buffet"
+      },
+      {
+       "language": "en",
+       "content": "Buffet lunch"
+      },
+      {
+       "language": "pt",
+       "content": "Almoço buffet"
+      },
+      {
+       "language": "fr",
+       "content": "déjeuner buffet"
+      },
+      {
+       "language": "it",
+       "content": "Pranzo a buffet"
+      },
+      {
+       "language": "de",
+       "content": "Mittagsbuffet"
+      },
+      {
+       "language": "nl",
+       "content": "Buffetlunch"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "e5030856-a5c9-493f-8dbc-6606c61513a4",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Transporte en Punta Cana"
+    },
+    {
+     "language": "en",
+     "content": "Transportation in Punta Cana"
+    },
+    {
+     "language": "pt",
+     "content": "Transporte em Punta Cana"
+    },
+    {
+     "language": "fr",
+     "content": "Transports à Punta Cana"
+    },
+    {
+     "language": "it",
+     "content": "Trasporti a Punta Cana"
+    },
+    {
+     "language": "de",
+     "content": "Transport in Punta Cana"
+    },
+    {
+     "language": "nl",
+     "content": "Vervoer in Punta Cana"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "6339dbb3-bb82-40c1-a470-54b898a03632",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-22T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Regreso al aeropuerto de Punta Cana"
+      },
+      {
+       "language": "en",
+       "content": "Return to Punta Cana airport"
+      },
+      {
+       "language": "pt",
+       "content": "Retorno ao aeroporto de Punta Cana"
+      },
+      {
+       "language": "fr",
+       "content": "Retour à l'aéroport de Punta Cana"
+      },
+      {
+       "language": "it",
+       "content": "Ritorno all'aeroporto di Punta Cana."
+      },
+      {
+       "language": "de",
+       "content": "Rückkehr zum Flughafen Punta Cana"
+      },
+      {
+       "language": "nl",
+       "content": "Terugkeer naar de luchthaven van Punta Cana"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "b5633f90-eac7-4abd-9e03-cd249de2ea00",
+     "cotsegmento": {
+      "id": "6339dbb3-bb82-40c1-a470-54b898a03632"
+     },
+     "fechaHoraInicio": "2026-09-22T14:00:00",
+     "fechaHoraFin": "2026-09-22T15:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Del aeropuerto de Punta Cana al alojamiento"
+      },
+      {
+       "language": "en",
+       "content": "From Punta Cana airport to accommodation"
+      },
+      {
+       "language": "pt",
+       "content": "Do aeroporto de Punta Cana até a acomodação"
+      },
+      {
+       "language": "fr",
+       "content": "De l'aéroport de Punta Cana à l'hébergement"
+      },
+      {
+       "language": "it",
+       "content": "Dall'aeroporto di Punta Cana all'alloggio."
+      },
+      {
+       "language": "de",
+       "content": "Vom Flughafen Punta Cana zur Unterkunft"
+      },
+      {
+       "language": "nl",
+       "content": "Van de luchthaven van Punta Cana naar de accommodatie"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "e791719f-8ac6-42cf-8685-4abf03874a8a",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Vuelo"
+    },
+    {
+     "language": "en",
+     "content": "Flight"
+    },
+    {
+     "language": "pt",
+     "content": "Voo"
+    },
+    {
+     "language": "fr",
+     "content": "Vol"
+    },
+    {
+     "language": "it",
+     "content": "Volo"
+    },
+    {
+     "language": "de",
+     "content": "Flug"
+    },
+    {
+     "language": "nl",
+     "content": "Vlucht"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "2e9fd028-ea71-4028-921b-fdd604c81d57",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-22T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Vuelo de Punta Cana a Lima"
+      },
+      {
+       "language": "en",
+       "content": "Flight from Punta Cana to Lima"
+      },
+      {
+       "language": "pt",
+       "content": "Voo de Punta Cana para Lima"
+      },
+      {
+       "language": "fr",
+       "content": "Vol de Punta Cana à Lima"
+      },
+      {
+       "language": "it",
+       "content": "Volo da Punta Cana a Lima"
+      },
+      {
+       "language": "de",
+       "content": "Flug von Punta Cana nach Lima"
+      },
+      {
+       "language": "nl",
+       "content": "Vlucht van Punta Cana naar Lima"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "3d06c555-353a-4c4b-a417-df4c95e1e805",
+     "cotsegmento": {
+      "id": "2e9fd028-ea71-4028-921b-fdd604c81d57"
+     },
+     "fechaHoraInicio": "2026-09-22T18:00:00",
+     "fechaHoraFin": "2026-09-23T00:30:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Vuelo desde la ciudad de Lima a la ciudad de Punta Cana"
+      },
+      {
+       "language": "en",
+       "content": "Flight from the city of Lima to the city of Punta Cana"
+      },
+      {
+       "language": "pt",
+       "content": "Voo da cidade de Lima para a cidade de Punta Cana"
+      },
+      {
+       "language": "fr",
+       "content": "Vol de la ville de Lima à la ville de Punta Cana"
+      },
+      {
+       "language": "it",
+       "content": "Volo dalla città di Lima alla città di Punta Cana"
+      },
+      {
+       "language": "de",
+       "content": "Flug von der Stadt Lima nach der Stadt Punta Cana"
+      },
+      {
+       "language": "nl",
+       "content": "Vlucht van Lima naar Punta Cana"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cb29fb5b-a8e2-43bd-a1e8-7ae072271791",
+   "orden": 0,
+   "tituloSnapshot": [
+    {
+     "language": "es",
+     "content": "Vuelo"
+    },
+    {
+     "language": "en",
+     "content": "Flight"
+    },
+    {
+     "language": "pt",
+     "content": "Voo"
+    },
+    {
+     "language": "fr",
+     "content": "Vol"
+    },
+    {
+     "language": "it",
+     "content": "Volo"
+    },
+    {
+     "language": "de",
+     "content": "Flug"
+    },
+    {
+     "language": "nl",
+     "content": "Vlucht"
+    }
+   ],
+   "cotsegmentos": [
+    {
+     "id": "43253c8e-5d8d-40bd-9e7f-941c4c451ee6",
+     "dia": 1,
+     "orden": 1,
+     "fechaAbsoluta": "2026-09-23T00:00:00",
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Vuelo de Lima a Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Flight from Lima to Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Voo de Lima para Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Vol de Lima à Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Volo da Lima a Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Flug von Lima nach Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Vlucht van Lima naar Cusco"
+      }
+     ]
+    }
+   ],
+   "cotcomponentes": [
+    {
+     "id": "cd66c9f1-9caf-46b8-81fa-dbcc4200d1c7",
+     "cotsegmento": {
+      "id": "43253c8e-5d8d-40bd-9e7f-941c4c451ee6"
+     },
+     "fechaHoraInicio": "2026-09-23T06:00:00",
+     "fechaHoraFin": "2026-09-23T07:00:00",
+     "sinHorario": false,
+     "horaServicioCompleto": false,
+     "ordenNarrativo": 10,
+     "tituloSnapshot": [
+      {
+       "language": "es",
+       "content": "Vuelo desde la ciudad de Lima a la ciudad de Cusco"
+      },
+      {
+       "language": "en",
+       "content": "Flight from the city of Lima to the city of Cusco"
+      },
+      {
+       "language": "pt",
+       "content": "Voo da cidade de Lima para a cidade de Cusco"
+      },
+      {
+       "language": "fr",
+       "content": "Vol de la ville de Lima à la ville de Cusco"
+      },
+      {
+       "language": "it",
+       "content": "Volo dalla città di Lima alla città di Cusco"
+      },
+      {
+       "language": "de",
+       "content": "Flug von der Stadt Lima nach der Stadt Cusco"
+      },
+      {
+       "language": "nl",
+       "content": "Vlucht van Lima naar Cusco"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
