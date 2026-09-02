@@ -51,6 +51,24 @@ final readonly class EjecutorDeDominio
     /** Sin límite no hay fallo: hay una petición colgada. */
     private const float TIMEOUT_SEGUNDOS = 30.0;
 
+    /**
+     * Cuántas invocaciones simultáneas se permiten.
+     *
+     * ⚠️ **El límite de esta máquina no es el tiempo: es la memoria.** Medido en el servidor:
+     * 1.835 MB totales y ~838 MB libres, con 2 CPU. Cada proceso de Node ronda los 45 MB, así que
+     * una ráfaga de veinte peticiones se llevaría toda la RAM libre — y lo que se cae entonces no
+     * es el PDF, es el servidor entero.
+     *
+     * Tres es holgado para lo que hay hoy (un PDF tarda ~120 ms) y deja el 90 % de la memoria
+     * libre para lo que de verdad la necesita. Si algún día esto se queda corto, la respuesta
+     * **no es subir el número**: es pasar a un servicio residente, que consume ~60 MB fijos pase
+     * lo que pase. Ver `docs/NodeEnElStack.md` §10.
+     */
+    private const int MAX_SIMULTANEOS = 3;
+
+    /** Cuánto se espera por una ranura antes de rendirse. Un PDF tarda ~120 ms. */
+    private const int ESPERA_MAX_MS = 1500;
+
     public function __construct(
         #[Autowire(param: 'kernel.project_dir')]
         private string $projectDir,
@@ -96,16 +114,26 @@ final readonly class EjecutorDeDominio
         $proceso->setInput($peticion);
         $proceso->setTimeout(self::TIMEOUT_SEGUNDOS);
 
+        // ⚠️ La ranura se pide ANTES de arrancar el proceso y se suelta pase lo que pase. Sin el
+        // `finally`, un fallo dejaría la ranura ocupada para siempre y el tope se iría cerrando
+        // solo hasta que nadie pudiera calcular nada — un fallo que empeora con el tiempo.
+        $ranura = $this->tomarRanura($operacion);
         $inicio = microtime(true);
 
         try {
             $proceso->run();
         } catch (ProcessTimedOutException) {
+            fclose($ranura);
+
             throw new DominioNoDisponible(sprintf(
                 'La operación «%s» pasó de %.0f s y se cortó.',
                 $operacion->contrato(),
                 self::TIMEOUT_SEGUNDOS,
             ));
+        } finally {
+            if (is_resource($ranura)) {
+                fclose($ranura);
+            }
         }
 
         $ms = (int) round((microtime(true) - $inicio) * 1000);
@@ -173,6 +201,59 @@ final readonly class EjecutorDeDominio
         ]);
 
         return $salidas;
+    }
+
+    /**
+     * Toma una de las `MAX_SIMULTANEOS` ranuras, o se rinde.
+     *
+     * `flock` sobre N archivos y no un contador: un contador en disco o en caché se queda
+     * desincronizado en cuanto un proceso muere a mitad, y entonces el tope se cierra solo sin
+     * que nadie entienda por qué. Un bloqueo del sistema operativo lo suelta el kernel cuando el
+     * proceso se va, pase lo que pase.
+     *
+     * @return resource El manejador; cerrarlo suelta la ranura.
+     *
+     * @throws DominioNoDisponible si no hay ninguna libre a tiempo.
+     */
+    private function tomarRanura(OperacionDominioInterface $operacion): mixed
+    {
+        $dir = $this->projectDir . '/var/dominio';
+
+        if (!is_dir($dir) && !@mkdir($dir, 0o775, true) && !is_dir($dir)) {
+            throw new DominioNoDisponible(sprintf('No se pudo crear «%s» para el tope de concurrencia.', $dir));
+        }
+
+        $limite = microtime(true) + (self::ESPERA_MAX_MS / 1000);
+
+        do {
+            for ($i = 0; $i < self::MAX_SIMULTANEOS; ++$i) {
+                $fh = @fopen($dir . '/ranura-' . $i . '.lock', 'c');
+
+                if ($fh === false) {
+                    continue;
+                }
+
+                if (flock($fh, LOCK_EX | LOCK_NB)) {
+                    return $fh;
+                }
+
+                fclose($fh);
+            }
+
+            usleep(25_000);
+        } while (microtime(true) < $limite);
+
+        $this->dominioLogger->warning('Dominio: sin ranura libre', [
+            'contrato' => $operacion->contrato(),
+            'max' => self::MAX_SIMULTANEOS,
+        ]);
+
+        // Falla CERRADO, que es la política: mejor no responder que tumbar la máquina.
+        throw new DominioNoDisponible(sprintf(
+            'La operación «%s» no encontró ranura libre (máx. %d simultáneas).',
+            $operacion->contrato(),
+            self::MAX_SIMULTANEOS,
+        ));
     }
 
     /**
