@@ -1138,6 +1138,45 @@ sesión; lo caza PHPStan, nunca la revisión a ojo.
 **Nombres internos duplicados.** Dos tarifas nombradas desde el título público quedaban
 indistinguibles: el título de los dos check-in es el mismo. Nombra desde `nombreInterno`.
 
+**Un segmento creado por el PANEL nace sin componente, y nada lo dice.** El CRUD deja escribir el
+párrafo entero —slug, título, cuerpo, traducido a siete idiomas— y ahí acaba: sin componente no
+hay nada que cobrar ni que despachar. El párrafo se guarda, se puede arrastrar a un día y se ve
+completo en la ficha del servicio. Pasó el 01/09/2026 con «Discoteca Privada» y «Olimpiadas y
+Roca Escaladora», los dos con 0 componentes.
+
+⚠️ **Y el comando grande NO los completa.** `crear-actividades-resort` es idempotente **por el
+slug del segmento**: encuentra el párrafo, hace `continue` y nunca llega a crear lo que le falta.
+No es un fallo suyo —es el atajo que hace idempotente todo lo que cuelga, ver §4 bis— pero
+convierte «lo relanzo y ya» en una pasada que no hace nada y parece que sí.
+
+**La salida es un comando aparte cuya clave de idempotencia sea el ENLACE, no el slug:**
+
+```php
+if (!$segmento->getSegmentoComponentes()->isEmpty()) { continue; }   // ya tiene algo colgando
+```
+
+Referencia: `app:travel:crear-componentes-resort-sueltos`. Y copia el `titulo` **del segmento** al
+componente y a la tarifa en vez de reescribirlo: el párrafo del panel ya viene traducido a siete
+idiomas, y escribirlo a mano lo haría nacer sólo en español.
+
+Se detecta con esta consulta, gemela de la 2 de §4 bis:
+
+```sql
+SELECT s.slug FROM travel_segmento s
+  LEFT JOIN travel_segmento_componente sc ON sc.segmento_id = s.id
+ WHERE sc.id IS NULL;
+```
+
+⚠️ **Pero NO es un semáforo de cero, y usarla como tal hace daño.** Devuelve 36, y la inmensa
+mayoría **están bien así**: en una excursión sólo el ancla lleva componente y los demás párrafos
+sólo cuentan (§2). El reparto lo dice todo —`VALLE_VIP` 10, `VALLE_SAGRADO` 8, `PARACAS_ICA` 8,
+`CITY_LIM` 6—: son exactamente los servicios montados con ancla.
+
+Quien la lea como una lista de errores «arreglará» segmentos que deben estar vacíos y acabará
+duplicando el componente del ancla. La forma de usarla es **mirar sólo los servicios de patrón
+un-componente-por-segmento** —`ACT_RESORT`, `VUELO`, `ALO`, los de transporte— o comparar el antes
+y el después de tu carga.
+
 ## 8. Lista de comprobación
 
 Antes de dar por cerrada una carga:
@@ -1184,6 +1223,7 @@ prueba de idempotencia**, y como ninguna clave natural está protegida por la ba
 | `app:travel:crear-actividades-resort` | un componente por segmento · pool sin plantilla |
 | `app:travel:crear-habitaciones-occidental` | servicios de prestador puros · **reconvierte** uno existente en vez de borrarlo, para no dejar huérfana la tarifa que colgaba de él |
 | `app:travel:separar-buffet-occidental` | partir un servicio de prestador en varios · reconvertir **y reapuntar** las tarifas que se quedan atrás, buscándolas por componente y no por nombre |
+| `app:travel:crear-componentes-resort-sueltos` | completar segmentos que ya existen · idempotencia por el **enlace** y no por el slug, que es lo que el comando grande no puede hacer |
 | `app:travel:crear-escala-miraflores` | ancla + segmentos que sólo cuentan · con plantilla |
 | `app:travel:crear-segmentos-vuelo` | segmento por ruta · puntos fijos · pool masivo |
 | `app:travel:crear-varios-aeropuerto-lima` | retirar un ancla traspasando la hora promovida · mudar un segmento de servicio |
