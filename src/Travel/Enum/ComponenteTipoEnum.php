@@ -42,6 +42,26 @@ enum ComponenteTipoEnum: string
     case EXCURSION_PRIVADA = 'privada';
     case PERSONAL_EXTRA = 'personal_extra';
     case EXTRAS = 'extras';
+
+    /**
+     * Una actividad con FRANJA: la discoteca de 19:00 a 22:00, las olimpiadas de 11:00 a 13:30.
+     *
+     * ⚠️ **Existe porque `EXTRAS` declara `sinHorario() = true` y por tanto tira la hora.** No es
+     * un descuido de aquel tipo: un extra es «algo más que se incluye» —una botella de bienvenida,
+     * el late check-out— y ponerle hora sería inventarle una cita. Pero las actividades programadas
+     * de un resort sí la tienen, y con `EXTRAS` la hora se guardaba en el pivote y **no llegaba a
+     * la cotización**: el componente nacía con `sinHorario = true` y el bloque caía al final del
+     * día. Sin error, como todo lo caro de este módulo.
+     *
+     * Sigue la pauta que el enum ya tenía para el mismo problema —`TICKET_HORARIO_FIJO` frente a
+     * `TICKET_HORARIO_VAR`, `ALIMENTACION_HORARIO_FIJO` frente a `..._VAR`—: cuando algo existe con
+     * y sin horario, son dos casos y no un booleano suelto.
+     *
+     * ⚠️ **El `value` se congela en los snapshots** (`CotizacionCotcomponente::$tipo` y
+     * `OperacionServicio::$modoComponente` son strings). Renombrarlo después obliga a migrar datos,
+     * así que se acierta ahora o no se acierta.
+     */
+    case ACTIVIDAD_HORARIO_FIJO = 'actividad_fijo';
     case VUELO = 'vuelo';
     case TREN = 'tren';
 
@@ -206,6 +226,9 @@ enum ComponenteTipoEnum: string
             self::ALIMENTACION_HORARIO_VAR,
             self::EXTRAS,
             self::PERSONAL_EXTRA => true,
+
+            // El caso que separa la actividad programada del extra suelto: aquí la hora es el dato.
+            self::ACTIVIDAD_HORARIO_FIJO => false,
         };
     }
 
@@ -254,7 +277,7 @@ enum ComponenteTipoEnum: string
             self::TICKET_HORARIO_FIJO, self::TICKET_HORARIO_VAR => 40,
             self::ALIMENTACION_HORARIO_FIJO, self::ALIMENTACION_HORARIO_VAR => 50,
             // Lo accesorio, antes de cerrar.
-            self::PERSONAL_EXTRA, self::EXTRAS => 60,
+            self::PERSONAL_EXTRA, self::EXTRAS, self::ACTIVIDAD_HORARIO_FIJO => 60,
             // Dormir CIERRA el día. Es la razón de existir de este método.
             self::ALOJAMIENTO => 90,
         };
