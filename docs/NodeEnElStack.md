@@ -123,6 +123,28 @@ faltan: heredarla dejaría `npm test` dependiendo de un certificado local —pas
 quien lo escribió y **moriría en cualquier otra**, con un error que no habla de tests—. Mientras se
 teste sólo dominio (TypeScript puro, sin Vue ni PWA), lo único que hay que replicar es el alias.
 
+### `util` también, y ahí salieron dos cosas (02/09/2026)
+
+Se instaló antes de tocar `util` porque es la app del operador: lo que se rompa ahí lo paga alguien
+trabajando. El primer test congela **`itinerarioDinamico`**, que es justo lo que la fase 3 va a
+borrar — sin él, sustituir esa copia por el módulo compartido sería un cambio a ciegas.
+
+⚠️ **`vitest.config.ts` de `util` necesita `jsdom`, y eso es un dato, no un detalle.**
+`src/services/apiClient.ts` lee `window.OPENPERU_CONFIG` **al importarse el módulo**, y los stores
+lo importan: sin DOM, cargar cualquier store revienta con `ReferenceError: window is not defined`
+antes de la primera aserción. Es la misma familia que tenía la composición del itinerario metida en
+un `.vue` —**lógica que sólo corre dentro de un navegador**—, un piso más abajo. Cuando una regla
+salga a `dominio/`, sus tests no necesitarán DOM: ésa es exactamente la diferencia que se busca.
+
+🔥 **Y el primer test destapó una comparación de escalas.** En un día ordenado a mano, el servicio
+que NO tiene `orden` no vale 0: cae a su `ordenNarrativo`, que por defecto es **30**. Ese 30 se
+compara directamente contra el `orden` manual del otro. Son **dos escalas con significados
+distintos comparadas como si fueran una** — y con los datos reales de `5SRAJV`, donde los órdenes
+manuales son 10, 20 y 30, un servicio sin colocar puede caer en medio de los colocados.
+
+No se cambió: el test congela lo que hace hoy, que es su trabajo. Queda anotado porque el mismo
+cálculo está en los tres sitios y una decisión sobre esto hay que tomarla en los tres a la vez.
+
 ### Las tres reglas del procedimiento, ya pagadas
 
 **1. Los fixtures son datos REALES, podados — no inventados.** Un caso de juguete no tiene lo que

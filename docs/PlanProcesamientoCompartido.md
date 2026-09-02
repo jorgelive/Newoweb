@@ -111,13 +111,15 @@ lo que `NodeEnElStack.md` §5 prohíbe.
 | | Acción | Hecho cuando |
 |---|---|---|
 | 1.1 | ~~`npm test` deja de depender de la memoria~~ **HECHO 02/09/2026**: `.claude/hooks/tests-guard.sh` | ✅ Probado en verde, en rojo, y que los territorios no se confunden |
+| 1.2 | ~~Vitest también en `util`~~ **HECHO 02/09/2026** | ✅ 6 tests congelando `itinerarioDinamico`, que es lo que la fase 3 borra |
 
 La asimetría que cerró: existía un hook `Stop` que bloqueaba el turno si se tocaba `src/` sin
 documentar, y **nada** que impidiera cerrar con los tests en rojo — la documentación estaba mejor
 protegida que el código.
 
-⚠️ Falta `util`: hoy no tiene tests, así que su territorio no está vigilado. Es una línea en el
-hook el día que los tenga (fase 2).
+⚠️ El territorio de `util` es más ancho (`util/src/stores/`) que el de `pax` (`pax/src/dominio/`)
+a propósito: allí las reglas todavía viven DENTRO de los stores, así que vigilar una sola carpeta
+no serviría de nada.
 
 ### Fase 2 — el módulo, limpio y movible
 

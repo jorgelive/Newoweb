@@ -77,6 +77,13 @@ Ejecuta 'cd pax && npm ci' antes de dar esto por bueno.
 "
 fi
 
+# El editor. Su territorio es más ancho que el de `pax` a propósito: aquí las reglas todavía viven
+# DENTRO de los stores, no en módulos aparte, así que vigilar sólo una carpeta no serviría.
+if [ -d "$RAIZ/util/node_modules/.bin" ]; then
+    comprobar "$RAIZ/util/src/stores/" "util · npm test" \
+        bash -c "cd '$RAIZ/util' && npm test --silent"
+fi
+
 # Backend. `bin/phpunit` tarda medio segundo con 540 tests, así que no molesta.
 comprobar "$RAIZ/src/" "PHP · phpunit" \
     bash -c "cd '$RAIZ' && php bin/phpunit"

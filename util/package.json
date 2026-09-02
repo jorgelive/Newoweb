@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "gen:api": "php ../bin/console cache:pool:clear --all --quiet && php ../bin/console api:openapi:export -o .openapi.json && openapi-typescript .openapi.json -o src/types/api.d.ts && rm .openapi.json",
@@ -42,12 +44,14 @@
     "@vue/eslint-config-typescript": "^14.9.0",
     "eslint": "^9.39.5",
     "eslint-plugin-vue": "^10.10.0",
+    "jsdom": "^29.1.1",
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.67.0",
     "vite": "^6.0.0",
     "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.11",
     "vue-tsc": "^3.2.4"
   },
   "overrides": {
