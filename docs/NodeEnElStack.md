@@ -315,6 +315,49 @@ Se eligió empezar por ahí a propósito, y no por el cálculo financiero:
 ⚠️ **La regla que lo mantiene mudable:** el día que alguien le meta un `import` de `@/stores` o de
 `vue`, deja de poder salir — y no lo dirá ningún error.
 
+### La casa existe: `dominio/` en la raíz (02/09/2026)
+
+Ya no es un plan. `dominio/` es un paquete propio —`package.json`, `tsconfig.json`,
+`vitest.config.ts`— que **no depende de ninguna app**: corre sus tests solo, sin alias, sin plugin
+de Vue y sin DOM. Las dos apps lo alcanzan por `@dominio/*`.
+
+Que su `vitest.config.ts` quepa en diez líneas **es la medida de que está sano**: el de `util`
+necesita `jsdom` porque allí las reglas viven dentro de stores que importan un cliente HTTP que lee
+`window` al cargarse. Si algún día el del dominio crece, algo se coló.
+
+⚠️ **`erasableSyntaxOnly: true`, y no es ceremonia.** Comprobado: un `enum` da
+`error TS1294 ... not allowed when 'erasableSyntaxOnly' is enabled` **al escribirlo**. Sin ese
+candado compilaría en Vite y moriría en el servidor con `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`.
+
+🔥 **Y el 403 que predijo el plan ocurrió.** Vite restringe qué archivos sirve a la raíz del
+proyecto: con el módulo fuera, el **build funcionaba** y el dev server devolvía
+`403 Restricted ... outside of Vite serving allow list`. Se arregla con `server.fs.allow: ['..']`
+en las dos apps. Es un fallo que sólo existe en desarrollo — el peor sitio para descubrirlo tarde,
+porque parece «la app está rota» y no «falta una línea de configuración».
+
+### 🔥 Los tres espejos nunca fueron el mismo cálculo
+
+Al ir a unificarlos se compararon línea a línea, y **no coincidían**:
+
+| | Alcance del `ordenNarrativo` |
+|---|---|
+| `OperacionServicio.php` | todos los componentes del servicio |
+| `cotizacionEditorStore.ts` | todos los componentes del servicio |
+| `pax` | **sólo los del día en curso** |
+
+Medido sobre `2KVBMX`: el «Camino Inca corto de 2 días» daba **10 en el editor y 30 en la guía**.
+Un espejo mantenido con un comentario que pide «cámbialos juntos» es un espejo **ya roto**: nadie
+comprueba que partieran iguales.
+
+Se unificó con el **alcance del día**, y no por mayoría —era la minoría— sino porque es lo que la
+pregunta significa: con alcance global, un trek de dos días se coloca el segundo día como si algo
+llegara. Además PHP compone `día × 1000 + posición`, o sea ya reconoce que la posición es de un día.
+
+⚠️ **Queda una decisión anotada y sin tomar:** el `orden` que pone una persona (10, 20, 30 en datos
+reales) y el `ordenNarrativo` del enum (10–90) **se restan como si fueran la misma magnitud**, así
+que un servicio sin colocar puede caer en medio de los colocados a mano. No se cambió —congelar y
+cambiar a la vez es lo que §5 prohíbe— pero ahora hay **un solo sitio** donde tomarla.
+
 ## 10. Qué framework para Node (ninguno, todavía) — 02/09/2026
 
 La pregunta llega sola en cuanto se planea migrar mucho cálculo: *«¿qué framework uso para

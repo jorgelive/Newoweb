@@ -65,6 +65,7 @@ mercure.Caddyfile
 /pax/.env.development
 /pax/.env.production
 /pax/certs/
+/dominio/node_modules/
 /pax/node_modules/
 
 /public/app_util/

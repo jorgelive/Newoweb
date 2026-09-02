@@ -108,6 +108,7 @@ export default defineConfig(({ command }) => {
         resolve: {
             alias: {
                 '@': fileURLToPath(new URL('./src', import.meta.url)),
+                '@dominio': fileURLToPath(new URL('../dominio', import.meta.url)),
             },
         },
 
@@ -134,6 +135,14 @@ export default defineConfig(({ command }) => {
         return {
             ...config,
             server: {
+                /**
+                 * ⚠️ **Sin esto el módulo compartido da 403 SÓLO en desarrollo.** Vite restringe
+                 * qué archivos sirve a la raíz del proyecto, y `dominio/` está fuera: el build
+                 * funciona —empaqueta el archivo— y el dev server responde
+                 * «403 Restricted ... outside of Vite serving allow list». Comprobado el
+                 * 02/09/2026 antes de que mordiera a nadie.
+                 */
+                fs: { allow: ['..'] },
                 host: true,
                 port: 5174,
                 strictPort: true,

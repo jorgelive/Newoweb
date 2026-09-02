@@ -131,6 +131,50 @@ describe('itinerarioDinamico · cómo ordena el editor un día', () => {
         expect(idsPorDia(store)).toEqual([['conHora', 'sinHora']]);
     });
 
+    /**
+     * 🔑 **El caso que motivó unificar los tres cálculos** (02/09/2026).
+     *
+     * ⚠️ Ojo a una diferencia estructural entre las dos apps, porque se descubrió escribiendo
+     * este test: **el editor agrupa por la fecha de INICIO del servicio**, así que un servicio de
+     * varios días aparece una sola vez; la guía del huésped reparte sus segmentos por día. O sea
+     * que aquí «el día» es siempre el primero del servicio.
+     *
+     * La divergencia estaba en qué componentes se miran. Este trek empieza con una actividad
+     * (`ordenNarrativo` 30) y el día 2 tiene el traslado de vuelta (10):
+     *
+     *     antes (alcance global)  → min(30, 10) = 10  · se colocaba como si algo llegara
+     *     ahora (alcance del día) → min(30)     = 30  · se coloca por lo que pasa ese día
+     *
+     * Es el mismo desacuerdo que se midió sobre `2KVBMX` con el «Camino Inca corto de 2 días»:
+     * 10 en el editor, 30 en la guía. Este test se pone rojo si alguien vuelve al alcance global.
+     */
+    it('🔑 un servicio de varios días se coloca por lo que pasa EN SU día, no por lo de otros', () => {
+        const trek = {
+            id: 'trek',
+            fechaInicioAbsoluta: '2030-01-01',
+            orden: 0,
+            cotsegmentos: [
+                { id: 'g1', dia: 1, orden: 1, fechaAbsoluta: '2030-01-01' },
+                { id: 'g2', dia: 2, orden: 1, fechaAbsoluta: '2030-01-02' },
+            ],
+            cotcomponentes: [
+                { id: 't-c1', cotsegmento: { id: 'g1' }, fechaHoraInicio: null, fechaHoraFin: null, sinHorario: true, ordenNarrativo: 30 },
+                { id: 't-c2', cotsegmento: { id: 'g2' }, fechaHoraInicio: null, fechaHoraFin: null, sinHorario: true, ordenNarrativo: 10 },
+            ],
+        };
+        // Un servicio del día 1 con orden narrativo 20: queda ENTRE los dos valores en disputa.
+        const enMedio = servicio('enMedio', '2030-01-01', 0, [{ ordenNarrativo: 20 }]);
+
+        const store = useCotizacionEditorStore();
+        (store.cotizacion as unknown) = { cotservicios: [trek, enMedio] };
+
+        const dia1 = store.itinerarioDinamico[0];
+
+        // Con el alcance del día el trek vale 30 y va DETRÁS del de 20.
+        // Con el alcance global valía 10 e iría delante: ése era el desacuerdo con la guía.
+        expect(dia1.cotservicios.map((s) => s.id)).toEqual(['enMedio', 'trek']);
+    });
+
     it('los días salen en orden de fecha', () => {
         const store = montar([
             servicio('b', '2030-01-02', 0, [{ hora: '2030-01-02T08:00:00' }]),

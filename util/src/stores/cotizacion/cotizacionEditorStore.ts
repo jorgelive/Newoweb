@@ -1,5 +1,6 @@
 import { extractIdStr } from '@/utils/recurso';
 import { mandaElSegmento } from '@/utils/componenteTipo';
+import { posicionDeServicio } from '@dominio/cotizacion/index.ts';
 import {defineStore} from 'pinia';
 import { extractApiErrorMessage } from '@/services/apiError';
 import {computed, ref, type Ref} from 'vue';
@@ -1704,28 +1705,25 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         };
 
         /**
-         * Dónde va un servicio cuando el reloj no lo decide.
+         * Dónde va un servicio cuando el reloj no lo decide. **Ya no se calcula aquí**: la regla
+         * vive en `@dominio/cotizacion` y la comparten el editor y la guía del huésped.
          *
-         * El `orden` manual si alguien lo puso —0 es «automático»—; si no, el orden narrativo
-         * del componente que más temprano abre la jornada. **Espejo de la misma cascada en
-         * `pax`**: si cambia una, se cambian las dos, o el editor y la guía vuelven a enseñar
-         * días distintos.
+         * ⚠️ Hasta el 02/09/2026 había una copia en este archivo con un comentario pidiendo que
+         * se cambiara junto con la de `pax`. **Nunca fueron iguales**: aquélla acota al día y
+         * ésta miraba todos los componentes del servicio. Medido sobre `2KVBMX`, el «Camino Inca
+         * corto de 2 días» daba 10 aquí y 30 allí. Un espejo mantenido con un comentario es un
+         * espejo ya roto.
+         *
+         * Se adoptó el alcance del DÍA, que es lo que la pregunta significa. Por eso hay que
+         * pasarle los componentes de ESE día, no los del servicio entero.
          */
-        const posicionDeServicio = (srv: CotServicio): number => {
-            if ((srv.orden ?? 0) > 0) {
-                return srv.orden as number;
-            }
-
-            // ⚠️ `ordenNarrativo` viene SERIALIZADO en cada componente, no se calcula aquí.
-            // La primera versión de esto se trajo la tabla de tipos al front — justo lo que
-            // prohíbe el docblock de `componentesOrdenados` 300 líneas más abajo: `util` y `pax`
-            // no comparten código, así que escribirla aquí es escribirla dos veces, y dos copias
-            // de una regla discrepan el día que alguien toca una. Lo decide
-            // `ComponenteTipoEnum::ordenNarrativo()` y llega por la API.
-            const naturales = (srv.cotcomponentes ?? []).map(c => c.ordenNarrativo ?? 30);
-
-            return naturales.length ? Math.min(...naturales) : 30;
-        };
+        // ⚠️ `cotsegmento` llega como IRI o como objeto según el endpoint, de ahí `extractIdStr`.
+        const componentesDelDia = (srv: CotServicio, fecha: string) =>
+            (srv.cotcomponentes ?? []).filter((c) => {
+                const segId = c.cotsegmento ? extractIdStr(c.cotsegmento) : null;
+                const seg = srv.cotsegmentos?.find((g) => g.id === segId);
+                return getFechaLimpia(seg?.fechaAbsoluta ?? srv.fechaInicioAbsoluta) === fecha;
+            });
 
         Object.keys(grupos).forEach((fecha) => {
             // ⚠️ **Un día ordenado a mano se ordena SÓLO por su `orden`.** Si la hora siguiera
@@ -1743,7 +1741,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             grupos[fecha].sort((a: CotServicio, b: CotServicio) => {
                 if (aMano) {
-                    return posicionDeServicio(a) - posicionDeServicio(b);
+                    return posicionDeServicio(a, componentesDelDia(a, fecha))
+                        - posicionDeServicio(b, componentesDelDia(b, fecha));
                 }
 
                 const horaA = getHoraClaveServicio(a);
@@ -1753,7 +1752,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 // inserción. Ahora manda el `orden` del servicio si alguien lo puso, y si no la
                 // naturaleza de lo que es —llegar abre el día, dormir lo cierra—.
                 if (horaA === null && horaB === null) {
-                    return posicionDeServicio(a) - posicionDeServicio(b);
+                    return posicionDeServicio(a, componentesDelDia(a, fecha))
+                        - posicionDeServicio(b, componentesDelDia(b, fecha));
                 }
                 // Solo A no tiene hora exacta -> A va al final
                 if (horaA === null) return 1;

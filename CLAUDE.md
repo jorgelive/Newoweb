@@ -180,7 +180,7 @@ código ya diga con claridad. Documentación de relleno es ruido que envejece ma
 | `src/Pms/`, `src/Exchange/` (reservas, webhooks, push/pull Beds24) | `docs/PmsBeds24ReservasSync.md` |
 | `src/Calendar/`, vistas de calendario de `util/` (Reservas, Tarifas) | `docs/Calendar_architecture.md` |
 | `src/Cotizacion/`, cotizaciones y catálogo en `util/` y `pax/` | `docs/Cotizaciones.md` |
-| `pax/src/dominio/` (módulos puros: reglas sin Vue ni store, importables desde Node) | `docs/NodeEnElStack.md` §9 — y el doc del módulo que corresponda |
+| `dominio/` (reglas compartidas por el navegador y el servidor: sin Vue, sin DOM, sin base) | `docs/NodeEnElStack.md` §9 — y el doc del módulo que corresponda |
 | Procesos Node compartidos entre back y front (plan de ejecución por fases) | `docs/PlanProcesamientoCompartido.md` |
 | `src/Pax/Entity/UiI18n.php`, `src/Pax/Command/` (las cadenas de UI de la app del huésped) | El doc de la pantalla donde se leen. Entran por comando ORM, **nunca** por SQL: llevan `#[AutoTranslate]` |
 | `util/src/components/` y `common/`, `util/src/types/modulosApp.ts` (UI y navegación reutilizables entre módulos) | `docs/UI_Componentes_Compartidos.md` |

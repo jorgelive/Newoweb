@@ -23,8 +23,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
-import { componerItinerario, dateOf, hhmm, compConHora, diffDays } from '@/dominio/itinerarioVista';
-import type { BloqueVista as BloqueVistaBase } from '@/dominio/itinerarioVista';
+import { componerItinerario, dateOf, hhmm, compConHora, diffDays } from '@dominio/cotizacion/index.ts';
+import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
 
 /** El bloque con los tipos de `pax` dentro: el módulo es genérico y los devuelve intactos. */
 type BloqueVista = BloqueVistaBase<PaxCotServicio>;

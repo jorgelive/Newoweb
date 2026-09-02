@@ -65,15 +65,15 @@ $(printf '%s' "$salida" | tail -25)
     fi
 }
 
-# Dominio compartido de pax: los módulos puros y sus fixtures.
-if [ -d "$RAIZ/pax/node_modules/.bin" ]; then
-    comprobar "$RAIZ/pax/src/dominio/" "pax · npm test" \
-        bash -c "cd '$RAIZ/pax' && npm test --silent"
+# El dominio compartido. Corre sus propios tests: no depende de ninguna app.
+if [ -d "$RAIZ/dominio/node_modules/.bin" ]; then
+    comprobar "$RAIZ/dominio/" "dominio · npm test" \
+        bash -c "cd '$RAIZ/dominio' && npm test --silent"
 else
-    printf '%s\n' "$TOCADOS" | grep -q "^$RAIZ/pax/src/dominio/" && FALLOS="${FALLOS}
-── pax ──
-Se tocó pax/src/dominio/ pero no hay node_modules: los tests NO se han corrido.
-Ejecuta 'cd pax && npm ci' antes de dar esto por bueno.
+    printf '%s\n' "$TOCADOS" | grep -q "^$RAIZ/dominio/" && FALLOS="${FALLOS}
+── dominio ──
+Se tocó dominio/ pero no hay node_modules: los tests NO se han corrido.
+Ejecuta 'cd dominio && npm ci' antes de dar esto por bueno.
 "
 fi
 

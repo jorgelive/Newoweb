@@ -22,11 +22,16 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': resolve(__dirname, 'src'),
+            '@dominio': resolve(__dirname, '..', 'dominio'),
         },
     },
     test: {
-        // Sólo dominio: lo que no toca el navegador. Ampliar esto es una decisión, no un descuido.
-        include: ['src/dominio/**/*.test.ts'],
+        include: ['src/**/*.test.ts'],
         environment: 'node',
+
+        // ⚠️ Hoy `pax` no tiene tests propios: los del itinerario se mudaron a `dominio/`, que
+        // corre los suyos. La config se queda —con su porqué— para el día que haga falta probar
+        // algo de esta app, y `passWithNoTests` evita que `npm test` salga en rojo por vacío.
+        passWithNoTests: true,
     },
 });

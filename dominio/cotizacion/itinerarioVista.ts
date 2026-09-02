@@ -112,6 +112,53 @@ export const compConHora = (c: ComponenteMinimo): boolean => {
   return !!t && t !== '00:00';
 };
 
+/**
+ * Dónde va un servicio dentro de un día cuando el reloj no lo decide.
+ *
+ * ── La regla ────────────────────────────────────────────────────────────────
+ * Manda el `orden` del servicio si alguien lo puso a mano (0 = automático); si no, la naturaleza
+ * de lo que ocurre: llegar y moverse abre la jornada, dormir la cierra.
+ *
+ * ⚠️ Antes era `min(segmento.orden)`: un número pensado para ordenar DENTRO de un servicio, usado
+ * para comparar ENTRE servicios. Cada plantilla empieza por su segmento 1, así que valía 1 para
+ * todas y el desempate lo decidía el orden de inserción — de ahí la sensación de que los
+ * servicios sin hora flotaban.
+ *
+ * ── ⚠️ El alcance es EL DÍA, y esto era el espejo roto ───────────────────────
+ * `componentesDelDia` son los del servicio **en ese día**, no todos los suyos. Hasta el
+ * 02/09/2026 había tres copias de este cálculo y **no eran iguales**: `util` y
+ * `OperacionServicio.php` usaban todos los componentes del servicio, `pax` sólo los del día.
+ * Medido sobre `2KVBMX`, el «Camino Inca corto de 2 días» daba 10 en el editor y 30 en la guía.
+ *
+ * Se unificó con el alcance del DÍA, y no por mayoría —era la minoría— sino porque es lo que la
+ * pregunta significa: con alcance global, un trek de dos días se coloca el día 2 como si algo
+ * llegara, y el día 2 no llega nadie. Además PHP compone `día × 1000 + posición`, o sea ya
+ * reconoce que la posición es de un día.
+ *
+ * ── ⚠️ Dos escalas que se comparan como una ─────────────────────────────────
+ * El `orden` que pone una persona (10, 20, 30 en datos reales) y el `ordenNarrativo` del enum
+ * (10–90) se restan directamente. Un servicio sin colocar puede caer **en medio** de los que el
+ * operador colocó. Está anotado y no resuelto: cambiarlo es una decisión de producto, y ahora al
+ * menos hay **un solo sitio** donde tomarla.
+ *
+ * ⚠️ `ordenNarrativo` llega SERIALIZADO desde `CotizacionCotcomponente::getOrdenNarrativo()`, que
+ * es un getter —no una columna— y deriva de `ComponenteTipoEnum`. Leerlo aquí ES leer el enum:
+ * no hay valor congelado. Escribir la tabla de tipos en TypeScript sería la segunda copia de una
+ * regla que ya vive en PHP.
+ */
+export function posicionDeServicio(
+  servicio: Pick<ServicioMinimo, 'orden'>,
+  componentesDelDia: Pick<ComponenteMinimo, 'ordenNarrativo'>[],
+): number {
+  if ((servicio.orden ?? 0) > 0) {
+    return servicio.orden as number;
+  }
+
+  const naturales = componentesDelDia.map(c => c?.ordenNarrativo ?? 30);
+
+  return naturales.length ? Math.min(...naturales) : 30;
+}
+
 // ── La forma de la salida ────────────────────────────────────────────────────
 
 export interface BloqueVista<S extends ServicioMinimo> {
@@ -253,32 +300,6 @@ export function componerItinerario<S extends ServicioMinimo>(
       }
     }
 
-    /**
-     * Dónde va un servicio cuando el reloj no lo decide. **Espejo de `posicionDeServicio()` en
-     * `util`** y de `posicionDelServicio()` en `OperacionServicio.php` — los tres cambian juntos.
-     *
-     * ⚠️ Antes era `min(segmento.orden)`: un número pensado para ordenar DENTRO de un servicio,
-     * usado para comparar ENTRE servicios. Cada plantilla empieza por su segmento 1, así que
-     * valía 1 para todas y el desempate lo decidía el orden de inserción — de ahí la sensación de
-     * que los servicios sin hora flotaban.
-     *
-     * Ahora manda el `orden` del servicio si alguien lo puso a mano (0 = automático), y si no la
-     * naturaleza de lo que es: llegar y moverse abre la jornada, dormir la cierra.
-     */
-    const posicionDeServicio = (servicio: S, bloquesDelGrupo: BloqueVista<S>[]): number => {
-      if ((servicio.orden ?? 0) > 0) {
-        return servicio.orden as number;
-      }
-
-      // ⚠️ `ordenNarrativo` llega SERIALIZADO en cada componente. Escribir la tabla de tipos
-      // aquí sería la segunda copia de una regla que ya vive en `ComponenteTipoEnum`.
-      const naturales = bloquesDelGrupo
-        .flatMap(b => b.componentes)
-        .map(c => c?.ordenNarrativo ?? 30);
-
-      return naturales.length ? Math.min(...naturales) : 30;
-    };
-
     // 2) Metadatos por grupo: hora absoluta más temprana y orden mínimo del día.
     //    Si el servicio no tiene hora en sus segmentos pero sí una hora promovida
     //    (servicio completo), se usa esa para posicionarlo en la cronología.
@@ -287,7 +308,7 @@ export function componerItinerario<S extends ServicioMinimo>(
       const promoInicio = promoPorServicio.get(gb[0]?.servicio.id)?.inicio ?? null;
       if (promoInicio) horas.push(promoInicio);
       const horaMin = horas.length ? [...horas].sort()[0] : null; // null = sin hora absoluta
-      const ordenMin = posicionDeServicio(gb[0]!.servicio, gb);
+      const ordenMin = posicionDeServicio(gb[0]!.servicio, gb.flatMap(b => b.componentes));
       const esEstadia = gb.every(b => b.esEstadia);
       return { horaMin, ordenMin, esEstadia };
     };

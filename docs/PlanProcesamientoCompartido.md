@@ -6,7 +6,7 @@ autoridad**, siendo consumible desde el navegador y desde el servidor.
 **Alcance:** plan de ejecución con fases, criterios de «hecho» y lo que se deja fuera a propósito.
 La arquitectura y su porqué están en `docs/NodeEnElStack.md`; aquí está el orden y el trabajo.
 
-**Estado:** fases 0, 1 y 2 hechas. Reescrito el 02/09/2026 tras una revisión externa que encontró tres errores de hecho en
+**Estado:** fases 0, 1, 2 y 3 hechas. Reescrito el 02/09/2026 tras una revisión externa que encontró tres errores de hecho en
 la versión anterior (ver §9). Fase 0 en curso.
 
 ---
@@ -80,11 +80,11 @@ puede hacer cumplir con un módulo que el servidor todavía no sabe llamar. Por 
 ## 4. El marcador de espejos
 
 La medida de si esto va bien no es cuántas fases hay hechas: es **cuántas reglas están escritas
-dos veces**. Hoy son tres.
+dos veces**. Empezaron siendo tres; quedan **dos**.
 
 | Regla | Dónde está hoy | Muere en |
 |---|---|---|
-| Composición del itinerario (`posicionDeServicio`) | módulo + `cotizacionEditorStore.ts` | Fase 3 |
+| ~~Composición del itinerario (`posicionDeServicio`)~~ | **MUERTO 02/09/2026** — compartido en `@dominio/cotizacion` | ✅ Fase 3 |
 | La misma, en PHP (`posicionDelServicio`) | `src/Operacion/Entity/OperacionServicio.php` | Fase 6 |
 | Cálculo financiero y validación | sólo el navegador; el servidor **no puede aplicarla** | Fases 5–6 |
 
@@ -148,11 +148,11 @@ automática de esa frontera. Es privacidad, no estilo.
 | | Acción | Hecho cuando |
 |---|---|---|
 | 3.1 | ~~Decidir workspace~~ **DECIDIDO 02/09/2026: sin workspace.** `dominio/package.json` propio y un tercer `npm ci`, metido en el guion de despliegue | El despliegue es **un comando**, no una lista de pasos |
-| 3.2 | `dominio/` en la raíz; alias en los dos `tsconfig` y los dos `vite.config` | `typecheck` y `build` limpios en las dos apps |
-| 3.3 | `erasableSyntaxOnly: true` en `dominio/tsconfig.json` + regla ESLint de extensión explícita | Un `enum` en `dominio/` **falla al escribirlo** |
-| 3.4 | Comprobar `server.fs.allow` de Vite en dev | El dev server sirve el módulo sin 403 |
-| 3.5 | Superficie pública: un `index.ts` por módulo; ESLint prohíbe imports profundos | Reorganizar dentro de `dominio/` no rompe consumidores |
-| 3.6 | `util` importa el módulo y **se borra `posicionDeServicio()` del store** | **Marcador de espejos: 3 → 2** |
+| 3.2 | ~~`dominio/` en la raíz~~ **HECHO**: paquete propio con sus tests | ✅ Corre solo, sin alias ni DOM |
+| 3.3 | ~~`erasableSyntaxOnly`~~ **HECHO** | ✅ Probado: un `enum` da TS1294 al escribirlo |
+| 3.4 | ~~Comprobar `server.fs.allow`~~ **HECHO** | 🔥 Daba 403 de verdad; arreglado en las dos apps |
+| 3.5 | ~~Superficie pública~~ **HECHO**: `dominio/cotizacion/index.ts` | ⚠️ Falta la regla ESLint que prohíba imports profundos |
+| 3.6 | ~~`util` importa el módulo~~ **HECHO**: `posicionDeServicio()` compartida | ✅ **Espejos 3 → 2** · verificado contra producción |
 
 **Por qué sin workspace.** El motivo por el que hacía falta decidirlo: `dominio/` sin
 `package.json` no puede resolver una dependencia. Un `import { z } from 'zod'` resuelve subiendo
