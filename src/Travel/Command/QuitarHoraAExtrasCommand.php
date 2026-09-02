@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Command;
 
-use App\Travel\Entity\TravelSegmento;
+use App\Travel\Entity\TravelSegmentoComponente;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -28,8 +28,19 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * que lo lea creerá que significa algo y ajustará el número equivocado.
  *
  * ⚠️ **No vale para cualquier componente.** En un tipo CON horario la hora sí manda —coloca el
- * componente en el día, ver `docs/TravelCargaDeCatalogo.md` §5—, así que este comando se ciñe a
- * la lista de abajo y comprueba el tipo antes de escribir.
+ * componente en el día, ver `docs/TravelCargaDeCatalogo.md` §5—, así que se comprueba el tipo
+ * antes de escribir.
+ *
+ * ── De lista de slugs a REGLA (01/09/2026) ──────────────────────────────────
+ * Nació con dos slugs escritos a mano. La auditoría del 01/09 encontró **nueve** filas en el
+ * mismo estado, así que una lista deja de servir: hay que mantenerla y siempre va por detrás de
+ * los datos. Ahora recorre **todos los enlaces cuyo tipo declare `sinHorario()`** y el propio
+ * predicado del enum decide, que es lo que lo vuelve auto-mantenible.
+ *
+ * ⚠️ **Se corre DESPUÉS de retipar, nunca antes.** Una actividad con franja real —el espectáculo
+ * de las 21:30— se arregla cambiándole el tipo a `ACTIVIDAD_HORARIO_FIJO`, no vaciándole la hora.
+ * Si este comando pasa primero, borra el dato bueno y ya no hay de dónde recuperarlo. Retipar
+ * primero además lo saca solo de esta pasada: deja de cumplir `sinHorario()`.
  */
 #[AsCommand(
     name: 'app:travel:quitar-hora-a-extras',
@@ -37,12 +48,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class QuitarHoraAExtrasCommand extends Command
 {
-    /** @var list<string> slugs de segmento cuya hora de catálogo no se usa */
-    private const SEGMENTOS = [
-        'ACT-RESORT-PISCINA_PLAYA',
-        'ACT-RESORT-RECREATIVAS',
-    ];
-
     public function __construct(private readonly EntityManagerInterface $em)
     {
         parent::__construct();
@@ -57,49 +62,45 @@ final class QuitarHoraAExtrasCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $simula = (bool) $input->getOption('dry-run');
-        $repo = $this->em->getRepository(TravelSegmento::class);
         $tocados = 0;
 
-        foreach (self::SEGMENTOS as $slug) {
-            $segmento = $repo->findOneBy(['slug' => $slug]);
+        /** @var list<TravelSegmentoComponente> $enlaces */
+        $enlaces = $this->em->getRepository(TravelSegmentoComponente::class)->findAll();
 
-            if ($segmento === null) {
-                $io->text(sprintf('  no existe · %s', $slug));
+        foreach ($enlaces as $enlace) {
+            $componente = $enlace->getComponente();
+            $tipo = $componente?->getTipo();
+
+            // El guarda que hace seguro este comando: si el componente es de un tipo CON horario
+            // la hora manda, y esto no debe vaciarla. Retipar antes es lo que saca de aquí a las
+            // actividades con franja real.
+            if ($tipo === null || !$tipo->sinHorario()) {
                 continue;
             }
 
-            foreach ($segmento->getSegmentoComponentes() as $enlace) {
-                $componente = $enlace->getComponente();
+            if ($enlace->getHora() === null && $enlace->getHoraFin() === null) {
+                continue;   // el caso normal: no se anuncia para que la salida sea legible
+            }
 
-                if ($componente === null) {
-                    continue;
-                }
+            $slug = $enlace->getSegmento()?->getSlug() ?? '(sin segmento)';
+            $antes = sprintf(
+                '%s-%s',
+                $enlace->getHora()?->format('H:i') ?? '—',
+                $enlace->getHoraFin()?->format('H:i') ?? '—',
+            );
 
-                // El guarda que hace seguro este comando: si algún día el componente se retipa a
-                // uno CON horario, la hora vuelve a mandar y esto no debe vaciarla.
-                if (!$componente->getTipo()->sinHorario()) {
-                    $io->text(sprintf(
-                        '  SALTADO · %s es «%s», que SÍ usa la hora',
-                        $slug,
-                        $componente->getTipo()->value,
-                    ));
-                    continue;
-                }
+            $io->text(sprintf(
+                '  %s · %-34s %-16s %-12s → sin hora',
+                $simula ? 'cambiaría' : 'cambiado ',
+                $slug,
+                $tipo->value,
+                $antes,
+            ));
+            ++$tocados;
 
-                $antes = $enlace->getHora()?->format('H:i') ?? '—';
-
-                if ($enlace->getHora() === null && $enlace->getHoraFin() === null) {
-                    $io->text(sprintf('  ya está · %-26s sin hora', $slug));
-                    continue;
-                }
-
-                $io->text(sprintf('  %s · %-26s %s  →  sin hora', $simula ? 'cambiaría' : 'cambiado ', $slug, $antes));
-                ++$tocados;
-
-                if (!$simula) {
-                    $enlace->setHora(null);
-                    $enlace->setHoraFin(null);
-                }
+            if (!$simula) {
+                $enlace->setHora(null);
+                $enlace->setHoraFin(null);
             }
         }
 
