@@ -121,6 +121,22 @@ finanzas_webhook_controllers:
 #
 # Mismo aviso que los de arriba: el host de api cae en PUBLIC_ACCESS, así que la protección es
 # el `denyAccessUnlessGranted()` del propio controlador. No lo quites.
+# COTIZACIONES — el itinerario en PDF que se ADJUNTA a un correo o un mensaje.
+#
+# Va al host de PAX porque es el público: se identifica por (localizador, versión), el mismo par
+# que ya tiene el cliente en su enlace. Inventar un token nuevo habría dado dos superficies que
+# caducan por separado.
+#
+# ⚠️ Aquí NO hay `IsGranted` a propósito — la llave es el par del enlace, y el propio controlador
+# pregunta `Cotizacion::esVisibleParaCliente()` y devuelve 404 uniforme.
+#
+# ⚠️ Y el recordatorio de siempre: un controlador NO tiene rutas hasta que su directorio se
+# declara aquí. Se descubre con un 404 en una ruta que `debug:router` no lista, y no con un error.
+cotizacion_publico_controllers:
+    resource: ../src/Cotizacion/Controller/Publico/
+    type: attribute
+    host: '%app.host.pax%'
+
 cotizacion_api_controllers:
     resource: ../src/Cotizacion/Controller/Api/
     type: attribute

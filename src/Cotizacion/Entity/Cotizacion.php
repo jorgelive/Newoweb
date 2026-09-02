@@ -592,6 +592,31 @@ class Cotizacion
         return $this;
     }
 
+    /**
+     * ¿Se le puede enseñar esta propuesta al cliente?
+     *
+     * Estado público **y** no expirada — las dos condiciones que `CotizacionFilePublicProvider`
+     * evalúa en DQL para el listado.
+     *
+     * ⚠️ **Es una regla de SEGURIDAD, y por eso importa que tenga un solo sitio.** Un espejo aquí
+     * no falla ruidosamente: al desalinearse **publica lo que el otro lado ya ocultaba**. El
+     * provider la sigue aplicando en SQL —ahí no puede llamar a un método de PHP— así que la
+     * parte que de verdad manda, «qué estados son públicos», vive en
+     * `CotizacionEstadoEnum::esPublico()` y la consultan los dos.
+     *
+     * Cualquier superficie pública nueva llama aquí y devuelve **404 uniforme**: distinguir «no
+     * existe» de «no es pública» le diría a quien prueba localizadores cuáles existen.
+     */
+    public function esVisibleParaCliente(?\DateTimeImmutable $ahora = null): bool
+    {
+        if (!$this->estado->esPublico()) {
+            return false;
+        }
+
+        return $this->fechaExpiracion === null
+            || $this->fechaExpiracion >= ($ahora ?? new \DateTimeImmutable());
+    }
+
     public function getEstado(): CotizacionEstadoEnum { return $this->estado; }
     public function setEstado(CotizacionEstadoEnum $estado): self { $this->estado = $estado; return $this; }
 

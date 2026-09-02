@@ -1,6 +1,10 @@
 monolog:
     channels:
         - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
+        # Canal propio del cálculo compartido (PHP → Node). Existe para poder ver una llamada
+        # lenta o rota SIN reproducirla: cada invocación deja contrato, nº de entradas y ms.
+        # Los fallos van además a `error.log`, que es donde se miran en producción.
+        - dominio
 
 when@dev:
     monolog:

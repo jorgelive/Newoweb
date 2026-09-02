@@ -6,7 +6,7 @@ autoridad**, siendo consumible desde el navegador y desde el servidor.
 **Alcance:** plan de ejecución con fases, criterios de «hecho» y lo que se deja fuera a propósito.
 La arquitectura y su porqué están en `docs/NodeEnElStack.md`; aquí está el orden y el trabajo.
 
-**Estado:** fases 0, 1, 2 y 3 hechas. Reescrito el 02/09/2026 tras una revisión externa que encontró tres errores de hecho en
+**Estado:** fases 0–4 hechas; el piloto funciona de punta a punta. Reescrito el 02/09/2026 tras una revisión externa que encontró tres errores de hecho en
 la versión anterior (ver §9). Fase 0 en curso.
 
 ---
@@ -151,7 +151,7 @@ automática de esa frontera. Es privacidad, no estilo.
 | 3.2 | ~~`dominio/` en la raíz~~ **HECHO**: paquete propio con sus tests | ✅ Corre solo, sin alias ni DOM |
 | 3.3 | ~~`erasableSyntaxOnly`~~ **HECHO** | ✅ Probado: un `enum` da TS1294 al escribirlo |
 | 3.4 | ~~Comprobar `server.fs.allow`~~ **HECHO** | 🔥 Daba 403 de verdad; arreglado en las dos apps |
-| 3.5 | ~~Superficie pública~~ **HECHO**: `dominio/cotizacion/index.ts` | ⚠️ Falta la regla ESLint que prohíba imports profundos |
+| 3.5 | ~~Superficie pública + regla ESLint~~ **HECHO** | ✅ Probado: un import profundo falla el lint |
 | 3.6 | ~~`util` importa el módulo~~ **HECHO**: `posicionDeServicio()` compartida | ✅ **Espejos 3 → 2** · verificado contra producción |
 
 **Por qué sin workspace.** El motivo por el que hacía falta decidirlo: `dominio/` sin
@@ -179,12 +179,12 @@ candado, una regla puede compilar en el navegador y **morir en producción**.
 
 | | Acción | Hecho cuando |
 |---|---|---|
-| 4.1 | `App\Dominio\EjecutorDeDominio`: **una** clase que invoca, mide y traduce fallos | Ningún controlador ni servicio llama a `Process` por su cuenta |
-| 4.2 | Una operación = una clase PHP + **un punto de entrada `.cli.ts`** que ella nombra | Añadir una operación no toca ningún registro, ni en PHP ni en TS |
-| 4.3 | Contrato de entrada **siempre en lote**: `{version, entradas[]}` → `{version, salidas[]}` | Un consumidor que pida N no obliga a N arranques |
-| 4.4 | `CONTRATO_VERSION` **por operación**; desajuste = fallo ruidoso | Un campo renombrado revienta, no devuelve `undefined` |
-| 4.5 | Canal de log propio: operación, duración, versión | Una llamada lenta o rota se ve sin reproducirla |
-| 4.6 | **Piloto de sólo lectura**: el PDF del itinerario en servidor | Un itinerario de 16 días sale con 16 días |
+| 4.1 | ~~`EjecutorDeDominio`~~ **HECHO 02/09/2026** | ✅ Única puerta; nadie más llama a `Process` |
+| 4.2 | ~~Una operación = una clase + un `.cli.ts`~~ **HECHO** | ✅ `ComponerItinerario`; sin registro que tocar |
+| 4.3 | ~~Contrato siempre en lote~~ **HECHO** | ✅ Medido: 1 cotización 121 ms · 3 cotizaciones **122 ms** |
+| 4.4 | ~~Contrato versionado por operación~~ **HECHO** | ✅ Probado: `itinerario@99` revienta, no devuelve nada a medias |
+| 4.5 | ~~Canal de log propio~~ **HECHO**: canal `dominio` | ✅ Contrato, nº de entradas y ms en cada llamada |
+| 4.6 | ~~Piloto: el PDF en servidor~~ **HECHO** | ✅ **16 días** donde la versión en PHP daba 11 |
 
 **Política de fallo, decidida de una vez:**
 

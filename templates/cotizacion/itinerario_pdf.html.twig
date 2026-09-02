@@ -1,0 +1,102 @@
+{#
+    El itinerario en seco, para adjuntar. Los días los compone `dominio/cotizacion` —el MISMO
+    módulo que ejecuta el navegador—, así que esta plantilla no decide nada del orden: pinta.
+
+    ⚠️ **Todo va con tablas y estilos en línea a propósito.** Dompdf no entiende flex ni grid, y su
+    soporte de CSS es el de 2010: una hoja moderna se renderiza como una columna de texto sin que
+    nada avise. Misma decisión que en `operacion/orden_publica.html.twig`.
+
+    ⚠️ **`break-inside: avoid` va en la TARJETA, no en el día.** Imprimiendo de verdad se midió que
+    un día real ocupa entre una y tres hojas: pedirlo sobre el día es una regla que el navegador
+    ignora en silencio. Lo que sí se puede garantizar es que la cabecera no quede huérfana al pie
+    (`break-after: avoid`) y que una línea no se parta. Ver `docs/Cotizaciones.md` §6.u.
+#}
+<!DOCTYPE html>
+<html lang="{{ cotizacion.idiomaCliente|default('es') }}">
+<head>
+    <meta charset="utf-8">
+    <title>{{ titulo }}</title>
+    <style>
+        @page { margin: 1.6cm 1.4cm; }
+        body { font-family: "DejaVu Sans", sans-serif; font-size: 10pt; color: #1f2933; line-height: 1.45; }
+
+        .cabecera { border-bottom: 2px solid #1f2933; padding-bottom: 8px; margin-bottom: 4px; }
+        .cabecera h1 { font-size: 15pt; margin: 0 0 2px; }
+        .cabecera .meta { font-size: 8.5pt; color: #66707a; }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        .dia { margin-top: 14px; }
+        .dia .fecha {
+            background: #f2f4f6; border-left: 3px solid #1f2933;
+            padding: 4px 8px; font-size: 9.5pt; font-weight: bold; text-transform: uppercase;
+            page-break-after: avoid;
+        }
+        .dia tr { page-break-inside: avoid; }
+        .dia td { padding: 5px 8px; border-bottom: 1px solid #e6e9ec; vertical-align: top; }
+        .hora { width: 58px; font-weight: bold; white-space: nowrap; }
+        /* Un guion en vez de un hueco: dice «no tiene hora», no «se nos olvidó». */
+        .hora.libre { color: #a8b0b8; font-weight: normal; }
+        .noche { font-size: 8pt; color: #8a939b; }
+
+        .pie { margin-top: 18px; padding-top: 8px; border-top: 1px solid #e6e9ec; font-size: 8pt; color: #8a939b; }
+    </style>
+</head>
+<body>
+
+<div class="cabecera">
+    <h1>{{ titulo }}</h1>
+    <div class="meta">
+        {{ localizador }} · v{{ version }}
+        {%- if cotizacion.numPax %} · {{ cotizacion.numPax }} pax{% endif %}
+    </div>
+</div>
+
+{% for dia in dias %}
+    <table class="dia">
+        <tr>
+            <td class="fecha" colspan="2">
+                {#- ⚠️ Nada de patrón escrito a mano: llevaba «de» en castellano y con un cliente
+                    en inglés salía «MONDAY 31 DE AUGUST DE 2026». `date_format: 'full'` deja que
+                    ICU use la gramática de cada idioma, que es de lo que va tener `idiomaCliente`. -#}
+                {{ dia.fecha|format_datetime(date_format: 'full', time_format: 'none', locale: cotizacion.idiomaCliente|default('es'))|capitalize }}
+            </td>
+        </tr>
+        {% for b in dia.bloques %}
+            {# La hora del servicio completo manda sobre la del bloque: representa la excursión
+               entera, no el párrafo donde está anclada. Lo decide el módulo; aquí sólo se lee. #}
+            {% set hora = b.horaServicioInicio ?? b.horaInicio %}
+            <tr>
+                <td class="hora{{ hora ? '' : ' libre' }}">
+                    {{- hora ?? '—' -}}
+                    {%- if hora and (b.horaServicioFin ?? b.horaFin) %}<br>{{ b.horaServicioFin ?? b.horaFin }}{% endif -%}
+                </td>
+                <td>
+                    {#- El título en el idioma del cliente; si no está, el primero que haya. Un
+                        hueco es peor que una línea en otro idioma: el cliente al menos ve que ese
+                        servicio existe. Se resuelve aquí y no con una extensión de Twig porque es
+                        el único sitio que lo necesita. -#}
+                    {%- set idioma = cotizacion.idiomaCliente|default('es') -%}
+                    {%- set titulos = b.segmento.tituloSnapshot|default([])|filter(t => t.content) -%}
+                    {%- set enIdioma = titulos|filter(t => t.language == idioma) -%}
+                    {%- set elegido = (enIdioma is not empty ? enIdioma : titulos)|first -%}
+                    {#- `|default()` sobre una propiedad no vale aquí: Twig usa el test `defined`,
+                        que sólo funciona con variables simples. El ternario sí. -#}
+                    {{ elegido ? elegido.content : '—' }}
+                    {%- if b.esEstadia %}
+                        <span class="noche">· noche {{ b.noche }} de {{ b.totalNoches }}</span>
+                    {%- endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p>Esta propuesta todavía no tiene servicios cargados.</p>
+{% endfor %}
+
+<div class="pie">
+    Itinerario de referencia. Los horarios pueden ajustarse por condiciones operativas.
+</div>
+
+</body>
+</html>

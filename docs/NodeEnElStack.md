@@ -390,6 +390,39 @@ Cuando dos números significan cosas distintas, la solución no es separarlos: e
 sólo se vio al juntar las tres copias en una. Un cálculo repartido no es sólo más caro de mantener
 — **es más difícil de mirar**.
 
+### La puerta a PHP existe, y el piloto pasa por ella (02/09/2026)
+
+`App\Dominio\EjecutorDeDominio` es la única clase que invoca el dominio compartido: lanza
+`node --experimental-strip-types`, mide, comprueba el contrato **de ida y de vuelta**, y traduce
+cualquier fallo a `DominioNoDisponible`.
+
+**Medido, y es el argumento entero del contrato en lote:**
+
+```
+una cotización     → 16 días        en 121 ms
+tres cotizaciones  → 16/16/16 días  en 122 ms      ← una sola invocación
+```
+
+El coste es el arranque de Node, no el cálculo. Por eso el contrato es **siempre una lista**, aunque
+lleve un elemento: `N × 50 ms` dentro de un runner sí duele, y la salida es invocar una vez con N
+entradas. Fijarlo ahora cuesta cero; cambiarlo después tocaría todas las operaciones.
+
+⚠️ **El contrato se comprueba en las dos direcciones**, y se probó rompiéndolo: `itinerario@99`
+revienta nombrando el desajuste en vez de devolver algo a medias.
+
+⚠️ **`node` no está en el PATH de php-fpm.** En producción vive en nvm, así que la ruta se
+configura con `DOMINIO_NODE_BINARIO`. Por defecto es `node` a secas: funciona en local y **puede
+fallar en el servidor**. El mensaje de error nombra el binario a propósito.
+
+**El piloto** —el PDF del itinerario, de sólo lectura— ejercita la tubería entera sin que un error
+cueste dinero, y salda su regresión conocida: **16 días donde la versión que replicaba las reglas
+en PHP daba 11**. No puede fallar en eso porque no replica nada.
+
+🔥 **Y el primer fallo del piloto no fue Node: fue Twig.** `|default()` sobre una propiedad usa el
+test `defined`, que sólo funciona con variables simples — y desde fuera se veía como
+`DominioNoDisponible`. Vale anotarlo: cuando una tubería nueva falla, el sospechoso obvio es el
+eslabón nuevo, y no siempre lo es.
+
 ## 10. Qué framework para Node (ninguno, todavía) — 02/09/2026
 
 La pregunta llega sola en cuanto se planea migrar mucho cálculo: *«¿qué framework uso para
