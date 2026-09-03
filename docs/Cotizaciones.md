@@ -2223,6 +2223,24 @@ la habitación 101 y 102», para «los que sí van a Coco Bongo» y para cualqui
 invente con el eje `GRUPO`, que es texto libre. **El acotador general es la gente, no el medio de
 transporte.**
 
+### El selector: buscador y CLAVE siempre visible
+
+```
+🔍 Buscar por nombre o localizador…
+  ☐ Vuelo · Nacional · Sky Airline    YMATXY   44 pax
+  ☑ Vuelo · Nacional · Sky Airline    YMFLHB   44 pax
+```
+
+⚠️ **La clave se enseña siempre**, y no es adorno: dos subgrupos pueden tener rótulo idéntico. Los
+dos de arriba son «Sky Airline · Nacional» con 44 pax cada uno, y **lo único que los distingue es
+el localizador**. Sin él la lista parece el mismo repetido y se marca el que no era.
+
+⚠️ El buscador mira **también la clave**, por lo mismo: buscar «Sky Airline» devuelve los dos y no
+sirve para elegir; buscar `YMFLHB` deja uno.
+
+⚠️ Y hace falta porque son **109 subgrupos** en un colegio: desplazarse por todos hasta encontrar
+un localizador es exactamente cómo se marca el equivocado.
+
 ### ⚠️ Basta con pertenecer a UNO
 
 Al filtrar, un componente acotado a siete PNRs lo ve quien esté en **cualquiera** de los siete: la

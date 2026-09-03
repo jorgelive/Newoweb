@@ -179,6 +179,33 @@ const repartosDelServicio = computed<Reparto[]>(() => {
 
 // ── «A quién aplica»: varios subgrupos por componente ───────────────────────
 const grupoAbierto = ref(false);
+const filtroGrupos = ref('');
+
+/**
+ * Los subgrupos que casan con lo escrito.
+ *
+ * ⚠️ **Busca también por CLAVE.** Es el dato por el que se busca de verdad: dos subgrupos pueden
+ * llamarse igual —«Vuelo · Nacional · Sky Airline» son `YMATXY` e `YMFLHB`, 44 pax cada uno— y lo
+ * único que los distingue es el localizador. Un buscador que sólo mirara el rótulo devolvería los
+ * dos y no serviría para elegir entre ellos.
+ *
+ * Sin acentos ni mayúsculas: nadie escribe «Habitación» con tilde en un buscador.
+ */
+const subgruposFiltrados = computed(() => {
+  const q = filtroGrupos.value.trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  if (!q) return store.subgruposDelFile;
+
+  return store.subgruposDelFile.filter(sg => {
+    const heno = `${etiquetaSubgrupo(sg)} ${sg.clave ?? ''}`.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    return heno.includes(q);
+  });
+});
+
+
 
 /** ¿Este componente está acotado a este subgrupo? */
 const tieneGrupo = (iri: string): boolean =>
@@ -212,7 +239,7 @@ const resumenDeGrupos = (comp: ComponenteCompleto): string => {
   if (iris.length === 1) {
     const sg = store.subgruposDelFile.find(s => s['@id'] === iris[0]);
 
-    return sg ? `${etiquetaSubgrupo(sg)} · ${pax} pax` : `1 subgrupo · ${pax} pax`;
+    return sg ? `${etiquetaSubgrupo(sg)} · ${sg.clave} · ${pax} pax` : `1 subgrupo · ${pax} pax`;
   }
 
   return `${iris.length} subgrupos · ${pax} pax`;
@@ -2843,7 +2870,11 @@ store.$onAction(({ name, args }) => {
                          el hueco se quedaba reservado para un botón que no está y las pastillas
                          flotaban a 36 px del borde. Misma condición que el botón, para que las dos
                          no puedan discrepar. -->
-                    <div class="flex flex-col items-end gap-1 shrink-0"
+                    <!-- ⚠️ `mt-8`: los botones de acción son `absolute top-3 right-3` y caían
+                         ENCIMA de estas etiquetas. Se baja el bloque en vez de mover los botones
+                         porque su sitio —la esquina— es el que espera la mano, y una etiqueta
+                         tapada no se lee mientras que un hueco arriba no molesta a nadie. -->
+                    <div class="flex flex-col items-end gap-1 shrink-0 mt-8"
                          :class="{ 'pr-9': !store.isComponenteBloqueado(comp) }">
                       <span class="text-[10px] font-black px-2 py-1 rounded border shadow-sm whitespace-nowrap flex items-center gap-1"
                             :class="[getModoItemConfig(comp.modo).bg, getModoItemConfig(comp.modo).text, getModoItemConfig(comp.modo).border]">
@@ -3429,21 +3460,39 @@ store.$onAction(({ name, args }) => {
                       <i class="fas fa-chevron-down text-[10px] opacity-60"></i>
                     </button>
 
-                    <div v-if="grupoAbierto" class="max-h-64 overflow-y-auto border-t border-slate-100 bg-white">
-                      <button type="button" @click="store.componenteActivo.grupos = []"
-                              class="w-full flex items-center gap-2 px-4 py-2 text-[11px] font-black text-left hover:bg-slate-50 border-b border-slate-100"
-                              :class="(store.componenteActivo.grupos?.length ?? 0) ? 'text-slate-500' : 'text-orange-700 bg-orange-50'">
-                        <i class="fas fa-users text-[10px] w-4"></i> Todo el grupo
-                      </button>
+                    <div v-if="grupoAbierto" class="border-t border-slate-100 bg-white">
+                      <!-- ⚠️ Buscador: en un colegio son 109 subgrupos, y desplazarse por todos
+                           para encontrar un localizador es cómo se marca el que no era. -->
+                      <div class="p-2 border-b border-slate-100">
+                        <input v-model="filtroGrupos" type="text" placeholder="Buscar por nombre o localizador…"
+                               class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-bold outline-none focus:border-[#376875]" />
+                      </div>
 
-                      <button v-for="sg in store.subgruposDelFile" :key="sg['@id']" type="button"
-                              @click="alternarGrupo(sg['@id'])"
-                              class="w-full flex items-center gap-2 px-4 py-2 text-[11px] font-bold text-left hover:bg-slate-50 transition-colors"
-                              :class="tieneGrupo(sg['@id']) ? 'bg-orange-50 text-orange-800' : 'text-slate-600'">
-                        <i class="fas text-[10px] w-4" :class="tieneGrupo(sg['@id']) ? 'fa-square-check' : 'fa-square text-slate-300'"></i>
-                        <span class="flex-1 truncate">{{ etiquetaSubgrupo(sg) }}</span>
-                        <span class="text-[10px] text-slate-400 shrink-0">{{ sg.totalMiembros ?? 0 }} pax</span>
-                      </button>
+                      <div class="max-h-64 overflow-y-auto">
+                        <button type="button" @click="store.componenteActivo.grupos = []"
+                                class="w-full flex items-center gap-2 px-4 py-2 text-[11px] font-black text-left hover:bg-slate-50 border-b border-slate-100"
+                                :class="(store.componenteActivo.grupos?.length ?? 0) ? 'text-slate-500' : 'text-orange-700 bg-orange-50'">
+                          <i class="fas fa-users text-[10px] w-4"></i> Todo el grupo
+                        </button>
+
+                        <button v-for="sg in subgruposFiltrados" :key="sg['@id']" type="button"
+                                @click="alternarGrupo(sg['@id'])"
+                                class="w-full flex items-center gap-2 px-4 py-2 text-[11px] font-bold text-left hover:bg-slate-50 transition-colors"
+                                :class="tieneGrupo(sg['@id']) ? 'bg-orange-50 text-orange-800' : 'text-slate-600'">
+                          <i class="fas text-[10px] w-4 shrink-0" :class="tieneGrupo(sg['@id']) ? 'fa-square-check' : 'fa-square text-slate-300'"></i>
+                          <span class="flex-1 truncate">{{ etiquetaSubgrupo(sg) }}</span>
+                          <!-- ⚠️ La CLAVE siempre, y en monoespaciado: es el localizador y es lo
+                               ÚNICO que distingue dos subgrupos con el mismo rótulo. «Vuelo ·
+                               Nacional · Sky Airline» son dos, YMATXY e YMFLHB, con 44 pax cada
+                               uno: sin esto parecen el mismo repetido. -->
+                          <span class="font-mono text-[10px] text-slate-400 shrink-0">{{ sg.clave }}</span>
+                          <span class="text-[10px] text-slate-500 shrink-0 w-12 text-right">{{ sg.totalMiembros ?? 0 }} pax</span>
+                        </button>
+
+                        <p v-if="!subgruposFiltrados.length" class="px-4 py-3 text-[11px] text-slate-400 font-bold">
+                          Ninguno con «{{ filtroGrupos }}»
+                        </p>
+                      </div>
                     </div>
                   </div>
 
