@@ -2585,7 +2585,19 @@ store.$onAction(({ name, args }) => {
                   <div class="absolute left-0 top-0 bottom-0 w-1.5"
                        :class="store.isComponenteConAlerta(comp) ? 'bg-red-400' : (!!comp.sinHorario ? 'bg-slate-300' : 'bg-sky-400')"></div>
 
-                  <button v-if="!store.isComponenteBloqueado(comp)" @click.stop="store.eliminarComponente(servicioActivoId, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
+                  <!-- Duplicar: la forma correcta de partir un servicio entre subgrupos. La copia
+                       conserva el SEGMENTO —y con él el relato— y se distingue por «A quién
+                       aplica». «+ Añadir Extra» no sirve: deja el componente sin segmento y ésos
+                       no aparecen nunca en la vista del cliente. -->
+                  <button v-tooltip-tactil @click.stop="store.duplicarComponente(servicioActivoId, comp.id)"
+                          class="absolute top-3 text-slate-300 hover:text-sky-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center"
+                          :class="store.isComponenteBloqueado(comp) ? 'right-3' : 'right-11'"
+                          title="Duplicar para repartirlo entre subgrupos">
+                    <i class="fas fa-clone text-sm"></i>
+                  </button>
+
+                  <button v-if="!store.isComponenteBloqueado(comp)" v-tooltip-tactil @click.stop="store.eliminarComponente(servicioActivoId, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center"
+                          :title="comp.esDuplicado ? 'Eliminar esta copia' : 'Eliminar este componente'">
                     <i class="fas fa-trash-alt text-sm"></i>
                   </button>
 
@@ -2594,6 +2606,15 @@ store.$onAction(({ name, args }) => {
                       <span class="flex items-center gap-1.5">
                         <i v-if="store.isComponenteConAlerta(comp)" class="fas fa-exclamation-triangle text-red-500" title="Tarifas no cuadran"></i>
                         {{ etiquetaDeComponente(comp) }}
+
+                        <!-- ⚠️ La marca importa porque los dos componentes se LLAMAN IGUAL: son el
+                             mismo vuelo repartido. Sin ella, ver «Vuelo de Cusco a Lima» dos veces
+                             parece un error de carga y alguien borra el que no debe. -->
+                        <span v-if="comp.esDuplicado" v-tooltip-tactil
+                              class="text-[8px] font-black bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded uppercase shrink-0 flex items-center gap-1"
+                              title="Copia creada para repartir el servicio entre subgrupos. Se puede eliminar.">
+                          <i class="fas fa-clone text-[7px]"></i> Copia
+                        </span>
                       </span>
                       <!-- ⚠️ «Horario libre» es del COMPONENTE; «al final del día» es del
                            SERVICIO, y estaban pegados en la misma etiqueta. Un check-in sin hora

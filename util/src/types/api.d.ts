@@ -7377,6 +7377,11 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /**
+             * @description Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+             * @default false
+             */
+            esDuplicado: boolean;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
@@ -7489,6 +7494,11 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /**
+             * @description Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+             * @default false
+             */
+            esDuplicado: boolean;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
@@ -7600,6 +7610,11 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /**
+             * @description Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+             * @default false
+             */
+            esDuplicado: boolean;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
@@ -7825,6 +7840,11 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /**
+             * @description Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+             * @default false
+             */
+            esDuplicado: boolean;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
@@ -7937,6 +7957,11 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /**
+             * @description Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+             * @default false
+             */
+            esDuplicado: boolean;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
@@ -8168,6 +8193,11 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /**
+             * @description Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+             * @default false
+             */
+            esDuplicado: boolean;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
@@ -8281,6 +8311,11 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /**
+             * @description Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+             * @default false
+             */
+            esDuplicado: boolean;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
@@ -8515,6 +8550,11 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /**
+             * @description Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+             * @default false
+             */
+            esDuplicado: boolean;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */
@@ -8627,6 +8667,11 @@ export interface components {
              * @default false
              */
             esManual: boolean;
+            /**
+             * @description Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+             * @default false
+             */
+            esDuplicado: boolean;
             /** @description Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco. */
             lugaresManuales?: string[];
             /** @description Cómo se llama esto **para nosotros y para el proveedor**. */

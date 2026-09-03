@@ -3,7 +3,7 @@ import { mandaElSegmento } from '@/utils/componenteTipo';
 import { posicionDeServicio } from '@dominio/cotizacion/index.ts';
 import {defineStore} from 'pinia';
 import { extractApiErrorMessage } from '@/services/apiError';
-import {computed, ref, type Ref} from 'vue';
+import {computed, ref, toRaw, type Ref} from 'vue';
 import {apiClient} from '@/services/apiClient';
 
 import {
@@ -710,6 +710,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const isComponenteBloqueado = (comp: ComponenteCompleto | null | undefined): boolean => {
         if (!comp) return false;
+
+        // ⚠️ **Un duplicado SÍ se borra, aunque tenga segmento.** El candado de abajo existe
+        // porque los componentes del itinerario los pone la plantilla y borrarlos rompe el relato.
+        // Una copia no la puso la plantilla: la hizo una persona para partir el servicio entre
+        // subgrupos, y una persona se equivoca al crearla. Sin esta línea, un duplicado por error
+        // se quedaba para siempre contando pax que no existen.
+        if (comp.esDuplicado) return false;
 
         // Bloqueado si pertenece a un segmento del itinerario (storytelling)
         if (comp.cotsegmentoId || comp.cotsegmento) return true;
@@ -3082,6 +3089,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 fechaHoraFin: fechaHoraInicio,
                 cotsegmentoId: null,
                 cotsegmento: null,
+                esDuplicado: false,
                 // Obligatorio en el contrato. `false`: un extra suelto no representa el
                 // horario global del día — esa promoción es única por (plantilla, día).
                 horaServicioCompleto: false,
@@ -3116,6 +3124,49 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * @param servicioId - Identificador único UUID del servicio contenedor.
      * @param componenteId - Identificador único UUID del componente logístico a remover.
      */
+    /**
+     * Duplica un componente **dentro de su mismo segmento**, para partir el servicio entre
+     * subgrupos.
+     *
+     * ── Por qué no vale «+ Añadir Extra» ────────────────────────────────────
+     * Aquélla crea el componente con `cotsegmento: null`, y la vista del cliente recorre
+     * **segmentos**: un componente huérfano no entra en ningún bloque y **no se ve nunca**. La
+     * copia conserva el segmento, así que comparte su relato —«vuelas de Cusco a Lima» es idéntico
+     * para los dos vuelos— y se distingue por `grupo`.
+     *
+     * ⚠️ **El `grupo` se vacía a propósito.** La copia nace «para todo el grupo», que es lo mismo
+     * que el original: dos componentes idénticos y visibles. Es un estado incoherente **a la
+     * vista**, y ésa es la idea — obliga a decir a quién aplica cada uno en vez de dejar una copia
+     * silenciosa duplicando cantidades.
+     *
+     * ⚠️ Las tarifas se copian con id nuevo: sin eso las dos filas compartirían la misma tarifa y
+     * editar el precio de un vuelo cambiaría el del otro.
+     */
+    const duplicarComponente = (servicioId: string, componenteId: string): void => {
+        const servicio = cotizacion.value?.cotservicios?.find((s: CotServicio) => s.id === servicioId);
+        const original = servicio?.cotcomponentes?.find((c: ComponenteCompleto) => c.id === componenteId);
+
+        if (!servicio || !original || !servicio.cotcomponentes) {
+            return;
+        }
+
+        const copia: ComponenteCompleto = {
+            ...structuredClone(toRaw(original)),
+            id: crypto.randomUUID(),
+            esDuplicado: true,
+            grupo: null,
+            cottarifas: (original.cottarifas ?? []).map((tarifa) => ({
+                ...structuredClone(toRaw(tarifa)),
+                id: crypto.randomUUID(),
+            })),
+        };
+
+        // Justo detrás del original: partir un vuelo es una decisión sobre ESE vuelo, y con la
+        // copia al final de la lista hay que buscarla.
+        const donde = servicio.cotcomponentes.findIndex((c: ComponenteCompleto) => c.id === componenteId);
+        servicio.cotcomponentes.splice(donde + 1, 0, copia);
+    };
+
     const eliminarComponente = (servicioId: string, componenteId: string): void => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
 
@@ -3254,6 +3305,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                     const nuevoComp: ComponenteCompleto = {
                         id: nuevoId,
+                        esDuplicado: false,
                         componenteMaestroId: compMaestro.id || compMaestro['@id'],
                         tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                         // El operativo viaja con el título: la ruta del nombre es una sola y no
@@ -3836,6 +3888,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 const nuevoComp: ComponenteCompleto = {
                     id: crypto.randomUUID(),
+                    esDuplicado: false,
                     componenteMaestroId: extractIdStr(compMaestro) || null,
                     tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                     // El operativo viaja con el título: la ruta del nombre es una sola y no
@@ -4923,7 +4976,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, calcularPernoctes,
         isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, getTarifaSublabel, getProveedorDeTarifa, getPapelesDeTarifa, extractIdStr,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,
-        updateNumPaxGlobal, agregarServicio, eliminarServicio, agregarComponente, eliminarComponente,
+        updateNumPaxGlobal, agregarServicio, eliminarServicio, agregarComponente, eliminarComponente, duplicarComponente,
         agregarSnapshotItem, eliminarSnapshotItem, toggleUpsellComponent, isComponenteBloqueado,
         agregarTarifa, eliminarTarifa, fetchComponenteMaestroSilencioso,
         abrirEditorSegmentos, cerrarEditorSegmentos, aplicarPlantilla,

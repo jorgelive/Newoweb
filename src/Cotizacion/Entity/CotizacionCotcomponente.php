@@ -176,6 +176,31 @@ class CotizacionCotcomponente
     private bool $esManual = false;
 
     /**
+     * Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+     *
+     * ── Para qué existe ─────────────────────────────────────────────────────
+     * Partir un vuelo en nacional e internacional es **dos componentes en el MISMO segmento**: así
+     * comparten relato —«vuelas de Cusco a Lima» es idéntico— y se distinguen por `grupo`. La
+     * copia se crea con «Duplicar», no con «+ Añadir Extra», que la dejaría sin segmento y por
+     * tanto invisible para el cliente.
+     *
+     * ── ⚠️ Y sobre todo: es lo que permite BORRARLO ─────────────────────────
+     * `isComponenteBloqueado()` bloquea todo componente atado a un segmento, porque lo puso la
+     * plantilla del itinerario y borrarlo rompería el relato. Una copia no: **la creó una persona,
+     * y una persona se equivoca al crearla**. Sin este campo, un duplicado por error se quedaba
+     * para siempre, contando pax que no existen.
+     *
+     * ── Por qué NO se reutiliza `esManual` ──────────────────────────────────
+     * `esManual` significa «no viene del catálogo y no va a venir», y de ahí cuelga que el editor
+     * esconda el buscador de insumos. Un duplicado **sí** tiene maestro —lo copia del original—,
+     * así que marcarlo como manual le quitaría el buscador sin motivo. Son dos hechos distintos
+     * sobre el mismo componente.
+     */
+    #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[ORM\Column(name: 'es_duplicado', type: 'boolean', options: ['default' => false])]
+    private bool $esDuplicado = false;
+
+    /**
      * Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco.
      *
      * Uuids de `TravelLugar` en RFC 4122 minúsculas, el mismo formato que `componenteMaestroId`.
@@ -505,6 +530,10 @@ class CotizacionCotcomponente
      * @param list<array{language?: string, content?: string|null}> $tituloSnapshot
      */
     public function setTituloSnapshot(array $tituloSnapshot): self { $this->tituloSnapshot = $tituloSnapshot; return $this; }
+
+    public function isEsDuplicado(): bool { return $this->esDuplicado; }
+
+    public function setEsDuplicado(bool $esDuplicado): self { $this->esDuplicado = $esDuplicado; return $this; }
 
     public function getGrupo(): ?CotizacionFileGrupo { return $this->grupo; }
 

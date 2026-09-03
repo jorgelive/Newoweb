@@ -2289,8 +2289,34 @@ Hoy eso **no se puede hacer desde el editor**:
 | Asignar el segmento a mano | No existe: no hay selector de segmento en el panel del componente |
 | Duplicar un componente | Tampoco existe |
 
-Falta una acción **«Duplicar componente»** que copie el componente dentro de su mismo segmento.
-Sin ella, F5 no puede usarse para el caso que lo motivó.
+### «Duplicar componente» — hecho el 03/09/2026
+
+Botón de copia en cada componente. La copia conserva el **segmento** —y con él el relato— y nace
+con `esDuplicado = true`.
+
+| | |
+|---|---|
+| El `grupo` se **vacía** | La copia nace «para todo el grupo», igual que el original: dos componentes idénticos y visibles. Es incoherente **a la vista** a propósito — obliga a decir a quién aplica cada uno en vez de dejar una copia silenciosa duplicando cantidades |
+| Las tarifas se copian **con id nuevo** | Sin eso las dos filas compartirían tarifa y editar el precio de un vuelo cambiaría el del otro |
+| Se inserta **justo detrás** del original | Partir un vuelo es una decisión sobre ese vuelo; al final de la lista hay que buscarla |
+
+### ⚠️ `esDuplicado` es lo que permite BORRARLO
+
+`isComponenteBloqueado()` bloquea todo componente atado a un segmento, porque lo puso la plantilla
+del itinerario y borrarlo rompe el relato. **Una copia no la puso la plantilla: la hizo una
+persona, y una persona se equivoca al crearla.** Sin el campo, un duplicado por error se quedaba
+para siempre contando pax que no existen.
+
+⚠️ **Y por eso NO se reutiliza `esManual`**, que significa «no viene del catálogo y no va a venir»
+y de ahí cuelga que el editor esconda el buscador de insumos. Un duplicado **sí** tiene maestro
+—lo copia del original—, así que marcarlo como manual le quitaría el buscador sin motivo. Son dos
+hechos distintos sobre el mismo componente.
+
+### La marca «COPIA», y por qué no es decorativa
+
+Los dos componentes **se llaman igual** —son el mismo vuelo repartido—. Sin la marca, ver «Vuelo de
+Cusco a Lima» dos veces parece un error de carga, y alguien borra el que no debe: el original, que
+es el único que no se puede recuperar sin rehacer la plantilla.
 
 ### Quién se queda fuera
 
