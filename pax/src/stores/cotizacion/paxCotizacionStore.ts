@@ -406,6 +406,15 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
     /** Cotización completa de la versión abierta */
     const cotizacion = computed<PaxCotizacion | null>(() => detalle.value?.cotizacionParaCliente ?? null);
 
+    /**
+     * Lo que es TUYO en este viaje: tu nombre y tus códigos. `null` si no te has identificado o si
+     * el expediente no lo pide.
+     *
+     * ⚠️ Sale del **detalle** y, si no, de la portada: identificarse vale para el expediente
+     * entero, así que tu localizador es tuyo también mirando la lista de propuestas.
+     */
+    const miIdentidad = computed(() => detalle.value?.miIdentidad ?? portada.value?.miIdentidad ?? null);
+
     const documentos = computed(() => file.value?.documentosParaCliente ?? []);
     const pasajeros = computed(() => file.value?.filepasajeros ?? []);
 
@@ -494,7 +503,7 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
 
     return {
         // estado
-        portada, detalle, loading, error,
+        portada, detalle, loading, error, miIdentidad,
         requiereIdentificacion, identificadoComo, identificarse,
         currentLocalizador, currentVersion,
         lastUpdatePortada, lastUpdateDetalle,

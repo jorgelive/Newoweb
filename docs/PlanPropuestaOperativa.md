@@ -233,7 +233,7 @@ que circulan por WhatsApp en un grupo de colegio.
 | 5.2 | ~~`CotizacionPasajeroGrupo.codigo`~~ **HECHO** | ✅ En la pertenencia, no en el pasajero |
 | 5.3 | ~~Editor: asignar subgrupo a un componente~~ **HECHO 03/09/2026** | ✅ Selector en el panel del componente · ⚠️ la paginación cortaba la lista en 30 de 109 |
 | 5.4 | ~~Chequeo: **unión(subgrupos) ⊇ pasajeros**~~ **HECHO** | ✅ `CoberturaDeSubgrupos` · 6 tests · aviso sin plegar en el editor |
-| 5.5 | ~~El identificado ve sólo lo suyo~~ **HECHO** | ✅ `getCotcomponentesParaCliente()` · falta pintar su `codigo` |
+| 5.5 | ~~El identificado ve sólo lo suyo, con su código~~ **HECHO 03/09/2026** | ✅ Tarjeta «Lo tuyo» · una sola persona · código por columna hermana en el padrón |
 | 5.6 | Órdenes: salen con la gente del subgrupo | ⏳ |
 
 🔥 **`make:migration` quería borrar cuatro tablas.** Además de las dos columnas, generó `DROP TABLE`

@@ -65,6 +65,13 @@ final class CotizacionFilePublicProvider implements ProviderInterface
          */
         $previsualiza = $this->security->isGranted('ROLE_USER');
 
+        // ── Lo que es TUYO: tu nombre y tus códigos ──────────────────────────
+        //
+        // Va antes de todo y para cualquier propuesta: si ya te identificaste, tu localizador de
+        // vuelo es tuyo también mirando la portada. Sale **una** persona —la de la sesión—; la
+        // relación entera nunca se expone, o sería el padrón otra vez.
+        $this->ponerIdentidad($file);
+
         // ── 1. Resúmenes para la portada: un solo query escalar ──────────────
         $filas = $this->em->createQuery(<<<'DQL'
             SELECT c.propuesta, c.estado, c.numPax, c.titulo, c.resumen, c.idiomaCliente,
@@ -202,5 +209,54 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         }
 
         return $file;
+    }
+
+    /**
+     * Copia al expediente lo que es del pasajero identificado: su nombre y sus códigos.
+     *
+     * ⚠️ **Se lee del `subeje` y la `clave` además del nombre.** Ninguno identifica solo: `clave`
+     * es el valor crudo —`YMFLHB`, `HA13`— y sin el eje delante no dice nada; `subeje` es lo que
+     * distingue «Nacional» de «Retorno», que pueden compartir clave porque las aerolíneas
+     * reutilizan códigos entre tramos.
+     *
+     * ⚠️ Y `codigo` sale de la **pertenencia**, no del grupo: es el localizador de esa persona en
+     * ese vuelo. El grupo dice en qué reserva va; el código, con qué número.
+     */
+    private function ponerIdentidad(CotizacionFile $file): void
+    {
+        $pasajero = $this->identidad->pasajeroIdentificado($file);
+
+        if ($pasajero === null) {
+            return;
+        }
+
+        $subgrupos = [];
+
+        foreach ($pasajero->getPertenencias() as $pertenencia) {
+            $grupo = $pertenencia->getGrupo();
+            $eje = $grupo?->getTipo();
+
+            // ⚠️ **El eje `servicio` se queda fuera.** Es binario —se va a Coco Bongo o no— y no
+            // lleva valor: sus 10 filas llenarían la tarjeta de «Lo tuyo» con cosas que ya cuenta
+            // el itinerario, y enterrarían las dos que de verdad son personales: el localizador de
+            // vuelo y el número de habitación. Lo decide el enum, que ya sabe distinguirlo.
+            if ($grupo === null || $eje === null || !$eje->esEjeConValor()) {
+                continue;
+            }
+
+            $subgrupos[] = [
+                'eje' => $eje->value,
+                'ejeLabel' => $eje->label(),
+                'subeje' => $grupo->getSubeje(),
+                'clave' => (string) $grupo->getClave(),
+                'nombre' => $grupo->getNombre(),
+                'codigo' => $pertenencia->getCodigo(),
+            ];
+        }
+
+        $file->setMiIdentidad([
+            'nombre' => trim($pasajero->getNombre() . ' ' . $pasajero->getApellido()),
+            'subgrupos' => $subgrupos,
+        ]);
     }
 }

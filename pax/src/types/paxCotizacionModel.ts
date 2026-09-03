@@ -391,21 +391,33 @@ export interface PaxPropuestaResumen {
 
 // --- Raíz: el expediente público ------------------------------------------------
 
-export interface PaxCotizacionFile {
+/**
+ * El expediente tal como lo ve el cliente.
+ *
+ * ⚠️ **Anclado al esquema, no escrito a mano.** Estuvo declarado campo a campo, y eso no falla al
+ * compilar: **miente**. Se vio al añadir `miIdentidad` en el backend — el campo llegaba en la
+ * respuesta y `vue-tsc` decía que no existía, porque sólo sabe lo que dice esta interfaz. Un tipo
+ * a mano describe una API que ya no existe. Ver la regla en `CLAUDE.md`.
+ *
+ * Los tres `Omit` son los overrides justificados: las tres son columnas JSON o relaciones que la
+ * introspección ve como diccionario abierto y que aquí se estrechan.
+ */
+type FileBase = components['schemas']['CotizacionFile-pax_file.read_pax_cotizacion.read'];
+
+export type PaxCotizacionFile = Omit<
+    FileBase,
+    'propuestasParaCliente' | 'cotizacionParaCliente' | 'documentosParaCliente' | 'filepasajeros'
+> & {
     '@context'?: string;
     '@id'?: string;
     '@type'?: string;
-    localizador: string;
-    nombreGrupo: string;
-    pasajeroPrincipal?: string | null;
-    idiomaCliente?: string;
     /** Cards de todas las propuestas públicas vigentes (siempre presente) */
     propuestasParaCliente: PaxPropuestaResumen[];
     /** Cotización completa; solo viene cuando la URL incluye /{version} */
     cotizacionParaCliente?: PaxCotizacion | null;
     documentosParaCliente: PaxFilearchivo[];
     filepasajeros: PaxFilepasajero[];
-}
+};
 
 // --- Catálogo de tours (escaparate público) -------------------------------------
 

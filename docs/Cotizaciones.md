@@ -2103,6 +2103,48 @@ viaje, sin ningún error que lo explicara**.
 Se completó el 03/09/2026, en la misma sesión: quien se identifica ve sólo los componentes sin
 subgrupo y los de los suyos. Falta pintarle su `codigo`.
 
+## 6.j.5.b «Lo tuyo»: lo que ve quien se identifica (03/09/2026)
+
+```
+Grupo         · Grupo 2
+Habitación    · DOBLE
+Vuelo Nacional      · Sky Airline   XKP4QT   ← su localizador
+Vuelo Internacional · Arajet
+```
+
+### ⚠️ Es un campo CALCULADO, no la relación
+
+La tentación es exponer `filepasajeros.pertenencias` a `pax` y que el front busque su fila. Eso
+**manda el padrón entero**: los 133 nombres con el localizador y la habitación de cada uno, a un
+F12 de distancia. Es exactamente lo que la identificación viene a impedir.
+
+`CotizacionFile::$miIdentidad` sale de `CotizacionFilePublicProvider::ponerIdentidad()` y contiene
+**una** persona: la de la sesión. Probado con datos reales — otra persona identificada en el mismo
+expediente no ve el código ajeno.
+
+### El eje `servicio` se queda fuera
+
+Es binario —se va a Coco Bongo o no— y no lleva valor. Sus 10 filas llenaban la tarjeta de cosas
+que ya cuenta el itinerario y enterraban las dos que sí son personales. Lo decide
+`GrupoTipoEnum::esEjeConValor()`, que ya existía.
+
+### Cómo se rellena el código: columna hermana en el padrón
+
+```
+#Reserva aérea internacional   Cód. #Reserva aérea internacional
+BONT3N                         XKP4QT
+```
+
+Mismo patrón que `Venc. ` para el vencimiento de un documento: una columna que cualifica a otra.
+
+⚠️ **Y no pegada a la clave.** La exportación parte «clave + rótulo» por el espacio, y aquí no
+vale: un localizador de grupo y un código individual son los dos seis caracteres sin espacios, así
+que no hay forma de saber cuál es cuál. Con el rótulo se puede porque es una palabra
+(«Jetsmart»); con dos códigos, no.
+
+⚠️ **Una celda en blanco NO borra.** En un reenvío del archivo significa «no lo sé», no
+«bórralo»: quien puso el localizador a mano no lo pierde porque el Excel no lo traiga.
+
 ## 6.j.6 Cuando el grupo se parte: subgrupos y códigos (03/09/2026)
 
 ```

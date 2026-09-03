@@ -10170,6 +10170,21 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -10373,6 +10388,21 @@ export interface components {
             propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
@@ -10397,6 +10427,21 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion-pax_file.read_pax_cotizacion.read"] | null;
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read_pax_cotizacion.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
@@ -10466,6 +10511,21 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -10617,6 +10677,21 @@ export interface components {
             propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
@@ -10641,6 +10716,21 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.html-pax_file.read_pax_cotizacion.read"] | null;
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read_pax_cotizacion.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
@@ -10710,6 +10800,21 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -10865,6 +10970,21 @@ export interface components {
             propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
@@ -10889,6 +11009,21 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.jsonld-pax_file.read_pax_cotizacion.read"] | null;
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read_pax_cotizacion.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
@@ -10958,6 +11093,21 @@ export interface components {
                     [key: string]: string | null;
                 }[] | number | string | null;
             }[];
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             /** @description Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`. */
             subgruposIncompletos?: {
                 eje: string;
@@ -11109,6 +11259,21 @@ export interface components {
             propuestasParaCliente?: {
                 [key: string]: string | null;
             }[];
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
@@ -11133,6 +11298,21 @@ export interface components {
                 [key: string]: string | null;
             }[];
             cotizacionParaCliente?: components["schemas"]["Cotizacion.multipart-pax_file.read_pax_cotizacion.read"] | null;
+            /**
+             * @description Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+             *     `CotizacionFilePublicProvider` cuando te identificas.
+             */
+            miIdentidad?: {
+                nombre: string;
+                subgrupos: {
+                    eje: string;
+                    ejeLabel: string;
+                    subeje: string;
+                    clave: string;
+                    nombre?: string | null;
+                    codigo?: string | null;
+                }[];
+            } | null;
             readonly localizador?: string | null;
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read_pax_cotizacion.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */

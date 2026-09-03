@@ -99,6 +99,27 @@ final class PadronFormato
     public const PREFIJO_VENCIMIENTO = 'Venc. ';
 
     /**
+     * El código de ESA persona en ESE subgrupo: su localizador aéreo, su asiento.
+     *
+     * ```
+     * #Reserva aérea internacional   Cód. #Reserva aérea internacional
+     * BONT3N                         XKP4QT
+     * ```
+     *
+     * ⚠️ **Columna hermana y no pegada a la clave.** Se probó la idea de partir `BONT3N XKP4QT`
+     * por el espacio, que es lo que ya hace la exportación con «clave + rótulo», y aquí no vale: un
+     * localizador y un código individual son los dos seis caracteres sin espacios, así que no hay
+     * forma de saber cuál es cuál. Con la clave y el rótulo se puede porque el rótulo es una
+     * palabra («Jetsmart»); con dos códigos, no.
+     *
+     * Es el mismo patrón que `Venc. `, que ya se entiende: una columna que cualifica a otra.
+     *
+     * ⚠️ Sólo tiene sentido en ejes **con valor**. El eje `servicio` es binario —se va a Coco Bongo
+     * o no— y una columna de código ahí sería un campo que nadie sabría rellenar.
+     */
+    public const PREFIJO_CODIGO = 'Cód. ';
+
+    /**
      * El identificador del pasajero. **Sólo lo pone la exportación.**
      *
      * ⚠️ Es lo que convierte la idempotencia en exacta. Sin él hay que casar por documento —y si

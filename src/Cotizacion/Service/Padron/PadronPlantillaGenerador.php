@@ -148,6 +148,10 @@ final readonly class PadronPlantillaGenerador
                 PadronFormato::MARCA_EJE.'Grupo' => '5',
                 PadronFormato::MARCA_EJE.'Habitación' => 'HA13',
                 PadronFormato::MARCA_EJE.'Vuelo Nacional' => 'Y9KZ7J',
+                // El localizador del GRUPO va en la columna del eje; el de ESTA persona, al lado.
+                // Casi siempre coinciden y la columna se deja en blanco; cuando la aerolínea da un
+                // código por pasajero, es lo único que el huésped ve como suyo.
+                PadronFormato::PREFIJO_CODIGO.PadronFormato::MARCA_EJE.'Vuelo Nacional' => 'XKP4QT',
                 PadronFormato::MARCA_EJE.'Vuelo Internacional' => 'JA2CWN',
                 PadronFormato::MARCA_SERVICIO.'Seguro' => 'SI',
                 PadronFormato::MARCA_SERVICIO.'Tour Saona' => 'SI',
@@ -236,6 +240,15 @@ final readonly class PadronPlantillaGenerador
         foreach ($cuantosPorEje as $etiqueta => $cuantos) {
             for ($i = 0; $i < $cuantos; ++$i) {
                 $cabeceras[] = PadronFormato::MARCA_EJE.$etiqueta;
+
+                // ⚠️ La columna de código va **pegada a la suya**, no todas al final: se rellena
+                // mirando la clave que tiene al lado, y con veinte columnas de por medio se
+                // rellena la del vuelo equivocado.
+                //
+                // Sale para todos los ejes de este mapa porque aquí ya no hay ninguno binario:
+                // `servicio` se excluye en las dos ramas de arriba. Es opcional al leer, así que
+                // dejarla en blanco no rompe nada.
+                $cabeceras[] = PadronFormato::PREFIJO_CODIGO.PadronFormato::MARCA_EJE.$etiqueta;
             }
         }
 

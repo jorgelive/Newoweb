@@ -541,6 +541,68 @@ class CotizacionFile
     public function isUsaPadron(): bool { return $this->modo->usaPadron(); }
 
     /**
+     * Lo que es TUYO en este viaje: tu nombre y tus códigos. Lo rellena
+     * `CotizacionFilePublicProvider` cuando te identificas.
+     *
+     * ── ⚠️ Por qué es un campo calculado y no la relación ───────────────────
+     * La tentación es exponer `filepasajeros.pertenencias` a `pax` y que el front busque la fila
+     * propia. Eso **manda el padrón entero**: los 133 nombres con el localizador de vuelo y el
+     * número de habitación de cada uno, a un F12 de distancia. Es exactamente lo que la
+     * identificación viene a impedir, así que hacerlo la volvería decorativa.
+     *
+     * Aquí sale **una** persona: la que abrió la sesión. Lo que no debe salir, no se manda.
+     *
+     * ── `null` es lo normal ─────────────────────────────────────────────────
+     * Un expediente individual, un tour de catálogo, o alguien que no se ha identificado: `null`.
+     * Sólo se rellena cuando hay identidad **y** el expediente la exige.
+     *
+     * @var array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null}>}|null
+     */
+    #[ApiProperty(openapiContext: [
+        'type' => 'object',
+        'nullable' => true,
+        'properties' => [
+            'nombre' => ['type' => 'string'],
+            'subgrupos' => [
+                'type' => 'array',
+                'items' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'eje' => ['type' => 'string'],
+                        'ejeLabel' => ['type' => 'string'],
+                        'subeje' => ['type' => 'string'],
+                        'clave' => ['type' => 'string'],
+                        'nombre' => ['type' => 'string', 'nullable' => true],
+                        'codigo' => ['type' => 'string', 'nullable' => true],
+                    ],
+                    'required' => ['eje', 'ejeLabel', 'subeje', 'clave'],
+                ],
+            ],
+        ],
+        'required' => ['nombre', 'subgrupos'],
+    ])]
+    #[Groups(['pax_file:read'])]
+    private ?array $miIdentidad = null;
+
+    /**
+     * @return array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null}>}|null
+     */
+    public function getMiIdentidad(): ?array
+    {
+        return $this->miIdentidad;
+    }
+
+    /**
+     * @param array{nombre: string, subgrupos: list<array{eje: string, ejeLabel: string, subeje: string, clave: string, nombre: string|null, codigo: string|null}>}|null $miIdentidad
+     */
+    public function setMiIdentidad(?array $miIdentidad): self
+    {
+        $this->miIdentidad = $miIdentidad;
+
+        return $this;
+    }
+
+    /**
      * Ejes en los que falta gente por asignar. Lo rellena `CotizacionFileItemProvider`.
      *
      * Ver {@see \App\Cotizacion\Service\CoberturaDeSubgrupos}: si el vuelo se parte en dos y

@@ -230,7 +230,7 @@ final readonly class PadronImportador
      * Cazarlo antes de tocar nada es lo que permite decir los dos nombres.
      *
      * @param list<list<mixed>>                                                                                                       $filas
-     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, nombreCompleto: bool} $columnas
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool} $columnas
      */
     private function denunciarDocumentosRepetidos(array $filas, array $columnas, int $indiceCabecera, ResultadoDelPadron $resultado): void
     {
@@ -344,16 +344,32 @@ final readonly class PadronImportador
      *
      * @param list<mixed> $cabeceras
      *
-     * @return array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, nombreCompleto: bool}
+     * @return array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool}
      */
     private function mapearCabeceras(array $cabeceras, ResultadoDelPadron $resultado): array
     {
-        $mapa = ['fijas' => [], 'docs' => [], 'ejes' => [], 'servicios' => [], 'nombreCompleto' => false];
+        $mapa = ['fijas' => [], 'docs' => [], 'ejes' => [], 'servicios' => [], 'codigos' => [], 'nombreCompleto' => false];
         $vencimientos = [];
 
         foreach ($cabeceras as $i => $bruta) {
             $cabecera = trim((string) $bruta);
             if ($cabecera === '') {
+                continue;
+            }
+
+            // ⚠️ ANTES del check de eje: «Cód. #Reserva aérea» contiene la marca de eje, así que
+            // si se comprobara después se registraría como un eje llamado «Cód. #…» y el
+            // importador avisaría de un eje desconocido en vez de leer el código.
+            if (str_starts_with($cabecera, PadronFormato::PREFIJO_CODIGO)) {
+                $deEje = trim(substr($cabecera, mb_strlen(PadronFormato::PREFIJO_CODIGO)));
+                $eje = PadronFormato::esColumnaDeEje($deEje) ? PadronFormato::ejeDe($deEje) : null;
+
+                if ($eje === null) {
+                    $resultado->aviso(sprintf('La columna «%s» no cualifica a ningún eje conocido: se ignora.', $cabecera));
+                    continue;
+                }
+
+                $mapa['codigos'][$eje['tipo']->value . '|' . ($eje['subeje'] ?? '')] = $i;
                 continue;
             }
 
@@ -415,7 +431,7 @@ final readonly class PadronImportador
 
     /**
      * @param list<mixed>                                                                                                            $fila
-     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, nombreCompleto: bool} $columnas
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool} $columnas
      */
     private function pasajeroDeLaFila(CotizacionFile $file, array $fila, array $columnas, ResultadoDelPadron $resultado): CotizacionFilepasajero
     {
@@ -523,7 +539,7 @@ final readonly class PadronImportador
 
     /**
      * @param list<mixed>                                                                                                            $fila
-     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, nombreCompleto: bool} $columnas
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool} $columnas
      */
     private function buscarPorDocumento(CotizacionFile $file, array $fila, array $columnas): ?CotizacionFilepasajero
     {
@@ -569,7 +585,7 @@ final readonly class PadronImportador
 
     /**
      * @param list<mixed>                                                                                                            $fila
-     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, nombreCompleto: bool} $columnas
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool} $columnas
      */
     private function aplicarIdentificaciones(CotizacionFilepasajero $pasajero, array $fila, array $columnas, ResultadoDelPadron $resultado): void
     {
@@ -601,17 +617,31 @@ final readonly class PadronImportador
 
     /**
      * @param list<mixed>                                                                                                            $fila
-     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, nombreCompleto: bool} $columnas
+     * @param array{fijas: array<string, int>, docs: array<string, array{col: int, venc: ?int}>, ejes: array<int, array{tipo: GrupoTipoEnum, subeje: ?string}>, servicios: array<int, string>, codigos: array<string, int>, nombreCompleto: bool} $columnas
      * @param array<string, array{nombre: string, detalle: string}>                                                                  $nombresDeGrupo
      */
     private function aplicarGrupos(CotizacionFile $file, CotizacionFilepasajero $pasajero, array $fila, array $columnas, array $nombresDeGrupo, ResultadoDelPadron $resultado): void
     {
         $deseados = [];
 
+        /** @var array<string, string> $codigoPorGrupo */
+        $codigoPorGrupo = [];
+
         foreach ($columnas['ejes'] as $i => $eje) {
             $clave = trim((string) ($fila[$i] ?? ''));
-            if ($clave !== '') {
-                $deseados[] = $this->grupo($file, $eje['tipo'], $clave, $nombresDeGrupo, $resultado, $eje['subeje']);
+            if ($clave === '') {
+                continue;
+            }
+
+            $grupo = $this->grupo($file, $eje['tipo'], $clave, $nombresDeGrupo, $resultado, $eje['subeje']);
+            $deseados[] = $grupo;
+
+            // El código de esta persona en este subgrupo, si el archivo lo trae.
+            $col = $columnas['codigos'][$eje['tipo']->value . '|' . ($eje['subeje'] ?? '')] ?? null;
+            $codigo = $col !== null ? trim((string) ($fila[$col] ?? '')) : '';
+
+            if ($codigo !== '') {
+                $codigoPorGrupo[spl_object_hash($grupo)] = $codigo;
             }
         }
 
@@ -633,11 +663,23 @@ final readonly class PadronImportador
         }
 
         foreach ($deseados as $grupo) {
-            if ($this->yaPertenece($pasajero, $grupo)) {
+            $codigo = $codigoPorGrupo[spl_object_hash($grupo)] ?? null;
+            $existente = $this->pertenenciaDe($pasajero, $grupo);
+
+            if ($existente !== null) {
+                // ⚠️ Sólo se PISA con un valor, nunca se borra con un vacío. Una columna en blanco
+                // en un reenvío del archivo significa «no lo sé», no «bórralo»: quien puso el
+                // localizador a mano no tiene por qué perderlo porque el Excel no lo traiga.
+                if ($codigo !== null && $codigo !== $existente->getCodigo()) {
+                    $existente->setCodigo($codigo);
+                    ++$resultado->pertenenciasCreadas;
+                }
+
                 continue;
             }
 
             $pertenencia = new CotizacionPasajeroGrupo();
+            $pertenencia->setCodigo($codigo);
             $pasajero->addPertenencia($pertenencia);
             $grupo->addMiembro($pertenencia);
             $this->em->persist($pertenencia);
@@ -645,16 +687,18 @@ final readonly class PadronImportador
         }
     }
 
-    private function yaPertenece(CotizacionFilepasajero $pasajero, CotizacionFileGrupo $grupo): bool
+    /** La pertenencia que ya une a estos dos, o `null`. */
+    private function pertenenciaDe(CotizacionFilepasajero $pasajero, CotizacionFileGrupo $grupo): ?CotizacionPasajeroGrupo
     {
         foreach ($pasajero->getPertenencias() as $pertenencia) {
             if ($pertenencia->getGrupo() === $grupo) {
-                return true;
+                return $pertenencia;
             }
         }
 
-        return false;
+        return null;
     }
+
 
     /** El grupo `(file, tipo, clave)`, creándolo si hace falta. */
     /**

@@ -313,6 +313,24 @@ La metadata vive en pools de caché que `cache:clear` no toca. Medido el 25/08/2
 Si publicas un campo y no lo ves en `api.d.ts`, **no es que el grupo esté mal**: comprueba
 primero que el export no venga de caché.
 
+⚠️ **Y hay un segundo caché que tampoco limpia: el de METADATA de Doctrine.** Un campo nuevo con
+su `#[ORM\Column]` puede quedar **sin mapear** en un sondeo de CLI, y entonces `setX()` no
+persiste: el `flush()` corre, no da error, y la columna se queda en `NULL`. Medido el 03/09/2026
+con `CotizacionPasajeroGrupo::$codigo`.
+
+Lo peor son las dos cosas que dicen que todo está bien:
+
+| Qué se comprueba | Qué contesta |
+|---|---|
+| `doctrine:schema:validate` | **«in sync»** — no denuncia una columna que la entidad no mapea |
+| `getFieldNames()` | `id, createdAt, updatedAt` — sin el campo nuevo |
+
+**Sólo `rm -rf var/cache/dev` lo arregla.** Producción no sufre esto —el `post-merge` corre
+`cache:clear --env=prod`— pero **un sondeo con `new App\Kernel('dev', false)` sí**, que es
+justamente cómo se verifica todo aquí. La regla: **tras añadir un campo mapeado, borra
+`var/cache/dev` antes de probar nada**, o el sondeo dirá que el dato no llega y el culpable
+parecerá el código.
+
 ### ⚠️ El contrato es `api.d.ts`. Los `*Model.ts` se ANCLAN a él, no lo copian
 
 **Nada de tipos escritos a mano.** La forma es siempre `Omit<Base, 'campo'> & { campo: TipoReal }`,

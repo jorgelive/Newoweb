@@ -884,8 +884,43 @@ const adelantoVista = computed(() => {
     </div>
 
     <!-- ═══ GUÍA ═══ -->
+
     <template v-else>
 
+      <!-- ═══ LO TUYO ═══
+           Va ARRIBA del itinerario porque es lo primero que busca quien viaja en grupo: su
+           localizador, su habitación. El itinerario es igual para los 133; esto no.
+           ⚠️ Sale UNA persona, la de la sesión. El backend nunca manda el padrón — ver
+           `CotizacionFile::$miIdentidad`. -->
+      <div v-if="store.miIdentidad?.subgrupos?.length"
+           class="max-w-3xl mx-auto mb-8 bg-white rounded-[2rem] shadow-md shadow-slate-200/40 border border-slate-100 p-5">
+        <div class="flex items-center gap-2 mb-4">
+          <i class="fas fa-id-card text-[#376875] text-sm"></i>
+          <p class="text-[11px] font-black uppercase tracking-[0.15em] text-[#376875]/70">
+            {{ maestroStore.t('cot_lo_tuyo') || 'Lo tuyo' }}
+          </p>
+          <span class="text-xs font-bold text-slate-400 truncate">· {{ store.miIdentidad.nombre }}</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div v-for="(sg, i) in store.miIdentidad.subgrupos" :key="i"
+               class="bg-slate-50/60 border border-slate-100 rounded-2xl p-3.5">
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              {{ sg.ejeLabel }}<span v-if="sg.subeje" class="text-slate-300"> · {{ sg.subeje }}</span>
+            </p>
+            <p class="font-black text-gray-800 text-sm leading-tight mt-1">
+              {{ sg.nombre || sg.clave }}
+            </p>
+            <!-- El código es lo único que de verdad es de esta persona: su localizador, su
+                 asiento. Se pinta en monoespaciado porque se copia y se dicta. -->
+            <p v-if="sg.codigo" class="text-xs font-mono font-black text-[#376875] tracking-wider mt-1.5">
+              {{ sg.codigo }}
+            </p>
+            <p v-else-if="sg.nombre && sg.clave && sg.nombre !== sg.clave"
+               class="text-[11px] font-bold text-slate-400 font-mono mt-1.5">{{ sg.clave }}</p>
+          </div>
+        </div>
+      </div>
       <!-- Header compacto -->
       <header class="bg-[#376875] text-white relative overflow-hidden">
         <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 24px 24px;"></div>
