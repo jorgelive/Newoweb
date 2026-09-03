@@ -2281,6 +2281,28 @@ El fallo de fondo —el histórico heredando `publicado`— era anterior; lo que
 fue poner una puerta que mira el **estado**. `GuardarHistoricoProcessor` fuerza ahora
 `publicado = false`: congelar una foto no es publicarla.
 
+### 🔥 4 · `filter()` sobre una colección `EXTRA_LAZY` tumbó el expediente
+
+Al corregir que la operativa contara como «1 histórico», `getTotalHistoricos()` pasó de
+`->count()` a `->filter(...)->count()`. Parecía equivalente y no lo es:
+
+```
+->count()            EXTRA_LAZY → SELECT COUNT(*), no toca ni una fila
+->filter(...)        INICIALIZA la colección entera, con todos sus JSON
+```
+
+Resultado en producción: **500 en el detalle de cualquier expediente con históricos**, con
+`SQLSTATE[HY001] Out of sort memory: 1038` — exactamente el fallo que ese `EXTRA_LAZY` existe para
+evitar, reintroducido por cambiar una línea.
+
+⚠️ **El síntoma engañaba:** los expedientes sin históricos abrían bien y los que sí tenían daban
+500. Parecía cosa de un expediente concreto, no del código. Lo cazó la traza, que apuntaba a la
+línea exacta.
+
+**La regla:** sobre una colección `EXTRA_LAZY`, `matching()` sí y `filter()` **no**. `matching()`
+empuja el criterio a SQL y sigue sin hidratar; `filter()` es PHP y necesita todo cargado. Lo mismo
+vale para `map()`, `slice()` con offset y cualquier cosa que recorra.
+
 ### 🔥 3 · El freno de intentos era un candado
 
 Se apoyaba en `expiresAfter()` sobre un ítem PSR-6 releído, y **Symfony Cache no restaura la

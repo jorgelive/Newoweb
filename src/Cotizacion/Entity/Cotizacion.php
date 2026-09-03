@@ -29,6 +29,8 @@ use App\Operacion\ApiPlatform\State\AplicarPlanOperacionProcessor;
 use App\Operacion\ApiPlatform\State\PlanificarOperacionProcessor;
 use App\Security\Roles;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Criteria;
+use Doctrine\Common\Collections\Selectable;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -916,16 +918,32 @@ class Cotizacion
      * `CotizacionFile::$cotizaciones`.
      */
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]
-    /**
-     * ⚠️ Cuenta HISTÓRICOS, no derivadas. `$historicos` es todo lo que cuelga por `derivadaDe`, y
-     * desde que existe la operativa eso incluye una fila que **no** es una foto del pasado: la
-     * cabecera de la confirmada decía «1 histórico» señalando a la operativa, que está viva.
-     */
     public function getTotalHistoricos(): int
     {
-        return $this->historicos
-            ->filter(static fn (self $c): bool => $c->getEstado() === CotizacionEstadoEnum::HISTORICO)
-            ->count();
+        // ⚠️ Cuenta HISTÓRICOS, no derivadas: `$historicos` es todo lo que cuelga por `derivadaDe`,
+        // y desde que existe la operativa eso incluye una fila que no es una foto del pasado.
+        //
+        // 🔥 **`matching()` y NO `filter()`.** Sobre una colección `EXTRA_LAZY`, `filter()` la
+        // **inicializa entera** —cada histórico con sus varios JSON grandes— y eso tumbó el
+        // detalle del expediente en producción con «Out of sort memory: 1038». Es exactamente el
+        // fallo que el `EXTRA_LAZY` existe para evitar, reintroducido por cambiar una línea que
+        // parecía equivalente.
+        //
+        // `matching()` empuja el criterio a SQL y sigue sin hidratar: un `SELECT COUNT(*)` con un
+        // `WHERE` más. El síntoma fue revelador: los expedientes SIN históricos abrían bien y los
+        // que sí tenían daban 500, así que parecía cosa del expediente y no del código.
+        // ⚠️ `matching()` la declara `Selectable`, no `Collection`. En la práctica siempre se
+        // cumple —`PersistentCollection` y `ArrayCollection` la implementan— pero el tipo de la
+        // propiedad es `Collection`, así que el guarda se queda: es una frontera que el tipo no
+        // garantiza. El respaldo cuenta de más (incluiría la operativa) y nunca revienta, que es
+        // el orden correcto de prioridades para una cifra de cabecera.
+        if (!$this->historicos instanceof Selectable) {
+            return $this->historicos->count();
+        }
+
+        return $this->historicos->matching(
+            Criteria::create()->where(Criteria::expr()->eq('estado', CotizacionEstadoEnum::HISTORICO)),
+        )->count();
     }
 
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'file:item:read'])]
