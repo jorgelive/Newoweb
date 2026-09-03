@@ -344,6 +344,12 @@ class CotizacionFileGrupo
         return $this->nombre ?? sprintf('%s %s', $this->tipo?->label() ?? 'Grupo', $this->clave ?? '—');
     }
 
-    #[Groups(['file:item:read'])]
+    /**
+     * ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+     * cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+     * no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+     * cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+     */
+    #[Groups(['file:item:read', 'grupo:option:read'])]
     public function getTotalMiembros(): int { return $this->miembros->count(); }
 }

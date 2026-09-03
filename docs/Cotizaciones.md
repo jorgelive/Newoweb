@@ -2324,6 +2324,42 @@ decidir qué pasa al borrar el original, y la respuesta correcta —que las copi
 que un `SET NULL` no expresa: borraría la marca y volvería la copia **imborrable**. Un id colgado
 significa «era copia de algo que ya no está», que es cierto.
 
+### La franja de reparto, encima de los componentes
+
+```
+REPARTIDO EN 2 · Vuelo Lima ↔ Cusco
+  Todo el grupo                    ×1   todos
+  Vuelo · Nacional · Sky Airline   ×1   44 pax
+  Cubre 44 de 100 pax · hay una parte «para todos», que no se suma
+```
+
+Va **encima** porque es lo que hay que mirar antes de tocar los componentes: dos tarjetas por
+separado no dejan ver que entre las dos cubren 44 de 100.
+
+### ⚠️ DOS números, y el segundo es el que importa
+
+| | |
+|---|---|
+| `×cantidad` | Lo que se **cobra** |
+| `N pax` | A cuánta gente **cubre** — los miembros de su subgrupo |
+
+En un servicio por persona coinciden. **En uno grupal no**: la cantidad vale `1` —se cobra una
+vez— y cubre a 44. Con un solo número, un vuelo repartido parecería cubrir «1 + 1» y no habría
+forma de ver a quién le falta. El conteo sale de `CotizacionFileGrupo::getTotalMiembros()`, que es
+un `COUNT(*)` gracias al `EXTRA_LAZY`.
+
+⚠️ **Una parte «para todos» no se suma**, y se dice aparte. Sumar el total del grupo ahí daría
+siempre «de sobra» y taparía justo lo que se busca.
+
+⚠️ **Espejo**: la regla de agrupar vive en `CotizacionCotservicio::repartos()` (PHP) y en
+`repartosDelServicio` (`CotizacionEditorView.vue`). Hay que tocar las dos. El front añade los
+asignados, que el servidor no calcula porque necesitaría los subgrupos del expediente y el editor
+ya los tiene cargados.
+
+⚠️ **La franja está en el panel del SERVICIO y el selector en el del componente**, así que al
+asignar no se ve el efecto hasta volver. Se sabe y se acepta: mover la franja al panel del
+componente la partiría en trozos que no suman.
+
 ### 🔥 Al clonar la cotización hay que REAPUNTARLO
 
 `duplicar()` es un `clone` superficial, así que la copia arrastra el `duplicadoDe` del original: un

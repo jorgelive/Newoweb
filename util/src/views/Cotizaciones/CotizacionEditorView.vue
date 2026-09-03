@@ -64,6 +64,90 @@ const { esEstrecha } = usePantallaEstrecha();
  * Un `try` alrededor porque en modo privado de algunos navegadores escribir lanza, y perder la
  * preferencia no puede tumbar el editor.
  */
+// ── Repartos: un componente partido entre subgrupos ─────────────────────────
+
+interface ParteDeReparto {
+  nombre: string;
+  cantidad: number;
+  asignados: number | null;   // null = «a todos»: no hay subgrupo que contar
+}
+
+interface Reparto {
+  titulo: string;
+  partes: ParteDeReparto[];
+  cantidad: number;
+  asignados: number;
+  hayAbiertos: boolean;       // alguna parte sin subgrupo
+}
+
+/**
+ * Los componentes partidos del servicio abierto, con lo que suman.
+ *
+ * ⚠️ **Espejo de `CotizacionCotservicio::repartos()`** (PHP). La regla de agrupar —«un original y
+ * los que apuntan a él por `duplicadoDe`»— vive en los dos sitios y hay que tocar los dos. Aquí
+ * además se cuentan los **asignados**, que el servidor no calcula porque necesita los subgrupos
+ * del expediente, y ésos el editor ya los tiene cargados.
+ *
+ * ── ⚠️ Por qué DOS números y no uno ────────────────────────────────────────
+ * `cantidad` es lo que se cobra; `asignados` es a cuánta gente cubre. En un servicio por persona
+ * coinciden, y en uno **grupal no**: la cantidad vale 1 —se cobra una vez— y cubre a 44. Enseñar
+ * sólo la cantidad haría que un vuelo repartido pareciera cubrir «1 + 1» y no habría forma de ver
+ * a quién le falta.
+ *
+ * ⚠️ Una parte **sin subgrupo** aplica a todos, así que no se suma a `asignados`: sumar el total
+ * del grupo ahí daría siempre «de sobra» y taparía justo lo que se busca. Se señala aparte.
+ */
+const repartosDelServicio = computed<Reparto[]>(() => {
+  const comps = store.servicioActivo?.cotcomponentes ?? [];
+  const porRaiz = new Map<string, ComponenteCompleto[]>();
+
+  for (const comp of comps) {
+    const raiz = comp.duplicadoDe ?? comp.id;
+
+    if (!raiz) continue;
+
+    porRaiz.set(raiz, [...(porRaiz.get(raiz) ?? []), comp]);
+  }
+
+  const miembrosDe = (iri?: string | null): number | null => {
+    if (!iri) return null;
+
+    return store.subgruposDelFile.find(sg => sg['@id'] === iri)?.totalMiembros ?? 0;
+  };
+
+  const salida: Reparto[] = [];
+
+  for (const miembros of porRaiz.values()) {
+    // Un servicio sin partir no es un reparto de uno.
+    if (miembros.length < 2) continue;
+
+    const partes = miembros.map((c): ParteDeReparto => {
+      const asignados = miembrosDe(typeof c.grupo === 'string' ? c.grupo : null);
+
+      return {
+        nombre: asignados === null
+          ? 'Todo el grupo'
+          : etiquetaSubgrupo(store.subgruposDelFile.find(sg => sg['@id'] === c.grupo)!),
+        cantidad: Number(c.cantidad ?? 0),
+        asignados,
+      };
+    });
+
+    salida.push({
+      // `nombreInternoSnapshot` es un `string` plano; sólo `tituloSnapshot` es i18n.
+      titulo: miembros[0].nombreInternoSnapshot
+        || store.getI18nText(miembros[0].tituloSnapshot, 'es')
+        || 'Componente',
+      partes,
+      cantidad: partes.reduce((s, p) => s + p.cantidad, 0),
+      asignados: partes.reduce((s, p) => s + (p.asignados ?? 0), 0),
+      hayAbiertos: partes.some(p => p.asignados === null),
+    });
+  }
+
+  return salida;
+});
+
 // ── Selector de estado ──────────────────────────────────────────────────────
 const estadoAbierto = ref(false);
 
@@ -2572,6 +2656,43 @@ store.$onAction(({ name, args }) => {
                      puede cambiar de opinión sin borrar y volver a crear. -->
                 <button @click="store.agregarComponente(servicioActivoId)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow-sm border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Extra</button>
               </h3>
+
+              <!-- ══ REPARTOS ═══════════════════════════════════════════════
+                   Encima de los componentes porque es lo que hay que mirar ANTES de tocarlos: dos
+                   tarjetas por separado no dejan ver que entre las dos cubren 35 de 40. -->
+              <div v-for="(r, i) in repartosDelServicio" :key="i"
+                   class="mb-3 rounded-2xl border p-3"
+                   :class="r.asignados === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos
+                     ? 'border-emerald-200 bg-emerald-50'
+                     : 'border-amber-200 bg-amber-50'">
+                <p class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 mb-2"
+                   :class="r.asignados === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos ? 'text-emerald-700' : 'text-amber-700'">
+                  <i class="fas" :class="r.asignados === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos ? 'fa-circle-check' : 'fa-triangle-exclamation'"></i>
+                  Repartido en {{ r.partes.length }} · {{ r.titulo }}
+                </p>
+
+                <div v-for="(pt, j) in r.partes" :key="j" class="flex items-center gap-2 text-[11px] text-slate-600 mb-0.5">
+                  <span class="font-bold truncate flex-1">{{ pt.nombre }}</span>
+                  <!-- ⚠️ DOS números: `cantidad` es lo que se cobra, `asignados` a cuánta gente
+                       cubre. En un servicio grupal la cantidad vale 1 y cubre a 44. -->
+                  <span class="font-mono text-slate-400 shrink-0">×{{ pt.cantidad }}</span>
+                  <span v-if="pt.asignados !== null" class="font-black shrink-0 w-14 text-right">{{ pt.asignados }} pax</span>
+                  <span v-else class="font-black text-amber-600 shrink-0 w-14 text-right">todos</span>
+                </div>
+
+                <p class="text-[11px] font-black mt-2 pt-2 border-t"
+                   :class="r.asignados === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos
+                     ? 'border-emerald-200 text-emerald-700' : 'border-amber-200 text-amber-800'">
+                  Cubre {{ r.asignados }} de {{ store.cotizacion?.numPax ?? 0 }} pax
+                  <span v-if="r.hayAbiertos" class="font-bold"> · hay una parte «para todos», que no se suma</span>
+                  <span v-else-if="r.asignados < (store.cotizacion?.numPax ?? 0)" class="font-bold">
+                    · faltan {{ (store.cotizacion?.numPax ?? 0) - r.asignados }} por asignar
+                  </span>
+                  <span v-else-if="r.asignados > (store.cotizacion?.numPax ?? 0)" class="font-bold">
+                    · hay {{ r.asignados - (store.cotizacion?.numPax ?? 0) }} contados dos veces
+                  </span>
+                </p>
+              </div>
               <div class="space-y-3">
 
                 <div v-for="comp in store.servicioActivo.cotcomponentes" :key="comp.id"

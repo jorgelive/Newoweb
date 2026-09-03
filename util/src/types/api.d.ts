@@ -11310,6 +11310,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo-cotizacion.read_timestamp.read": {
@@ -11348,6 +11354,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo-file.read_file.item.read_timestamp.read": {
@@ -11379,6 +11391,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
@@ -11442,6 +11460,13 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
+            readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo-pax_file.read_pax_cotizacion.read": {
             /** @enum {string} */
@@ -11498,6 +11523,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo.html-cotizacion.read_timestamp.read": {
@@ -11536,6 +11567,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read": {
@@ -11567,6 +11604,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
@@ -11582,6 +11625,13 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
+            readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo.html-pax_file.read_pax_cotizacion.read": {
             /** @enum {string} */
@@ -11639,6 +11689,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
@@ -11678,6 +11734,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
@@ -11710,6 +11772,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
@@ -11725,6 +11793,13 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
+            readonly totalMiembros?: number;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
         "CotizacionFileGrupo.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -11782,6 +11857,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo.multipart-cotizacion.read_timestamp.read": {
@@ -11820,6 +11901,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read": {
@@ -11851,6 +11938,12 @@ export interface components {
             readonly etiquetaDeEje?: string;
             /** @description Cómo se llama esto en pantalla. */
             readonly etiqueta?: string;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
             readonly totalMiembros?: number;
         };
         /** @description Un subgrupo dentro de un expediente: el salón B, el grupo 5, la habitación HA13, el vuelo JA2CWN. */
@@ -11866,6 +11959,13 @@ export interface components {
             clave: string;
             /** @description El rótulo CORTO, el que cabe al lado de la clave: «ARAJET», «DOBLE», «JetSmart». */
             nombre?: string | null;
+            /**
+             * @description ⚠️ También en `grupo:option:read` desde el 03/09/2026: el editor lo necesita para decir a
+             *     cuánta gente cubre un componente acotado. Hace falta porque **la `cantidad` del componente
+             *     no lo dice**: en un servicio grupal vale 1 —se cobra una vez, no por persona— y aun así
+             *     cubre a 44. Sin este número, un vuelo repartido entre dos subgrupos parece cubrir «1 + 1».
+             */
+            readonly totalMiembros?: number;
         };
         "CotizacionFileGrupo.multipart-pax_file.read_pax_cotizacion.read": {
             /** @enum {string} */
