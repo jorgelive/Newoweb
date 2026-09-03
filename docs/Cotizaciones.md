@@ -2324,6 +2324,47 @@ decidir qué pasa al borrar el original, y la respuesta correcta —que las copi
 que un `SET NULL` no expresa: borraría la marca y volvería la copia **imborrable**. Un id colgado
 significa «era copia de algo que ya no está», que es cierto.
 
+### Las horas reales: `app:cotizacion:horas-desde-vuelos`
+
+```bash
+php bin/console app:cotizacion:horas-desde-vuelos 5SRAJV --dry-run
+```
+
+Un componente de vuelo nace con la hora de la plantilla —a menudo un `08:00` de relleno, igual en
+inicio y fin—. La de verdad está en `CotizacionVuelo`, y **cuál** depende del subgrupo:
+
+```
+componente ──grupo──> CotizacionFileGrupo ──vuelos──> CotizacionVuelo (salida, llegada)
+```
+
+### 🔥 Elige por FECHA, no por «el único vuelo del grupo»
+
+La primera versión sólo actuaba si el subgrupo tenía **un** vuelo. Medido sobre datos reales, eso
+**no pasa nunca**: los 24 subgrupos aéreos de `5SRAJV` tienen 2 vuelos (ida y vuelta) o 4 (con
+escala). Un subgrupo es una **reserva** —un localizador— y cubre el viaje entero; el componente es
+un **tramo**. La regla habría sido correcta y no se habría disparado jamás.
+
+Lo que distingue el tramo es la **fecha del propio componente**, que ya está puesta aunque la hora
+sea de relleno:
+
+```
+componente 18-Sep  →  DM6771  18-Sep 03:00 → 09:19    (ida)
+componente 22-Sep  →  DM6770  22-Sep 20:22 → 00:30    (vuelta)
+```
+
+⚠️ **Varios vuelos el mismo día son una ESCALA, no una ambigüedad**: «Lima → Punta Cana» vía Panamá
+son dos filas, y el componente sale con el primero y llega con el último. Tratarlo como ambiguo
+dejaría sin hora justo los vuelos largos, que son los que más falta hacen en una orden.
+
+### ⚠️ NO adivina el subgrupo, y eso es el cuello de botella
+
+Si el componente no tiene subgrupo, se salta. Elegir por fecha y ruta acertaría con los servicios
+de un solo vuelo y **fallaría justo en los repartidos**, que son los que se están arreglando: el 17
+de setiembre hay **tres** vuelos Cusco→Lima —06:50, 07:15 y 20:05—, cada uno con su gente. Un
+acierto silencioso en el caso fácil no compensa un error mudo en el difícil.
+
+O sea: primero se reparte (duplicar + «A quién aplica»), y después el comando pone las horas.
+
 ### La franja de reparto, encima de los componentes
 
 ```
