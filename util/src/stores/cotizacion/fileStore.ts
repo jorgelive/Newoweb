@@ -192,6 +192,30 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Abre la propuesta OPERATIVA de una confirmada: lo que de verdad se va a operar.
+     *
+     * ⚠️ **Traspasa la operación.** Las filas de La Biblia dejan de colgar de la confirmada y
+     * pasan a la operativa, en una sola transacción. La confirmada queda congelada por convención
+     * —no por candado— y sigue siendo lo que el cliente ve en dinero.
+     *
+     * Es idempotente: si ya hay una operativa para esa propuesta, devuelve la que hay.
+     *
+     * El porqué está en `AbrirOperativaProcessor` y en `docs/Cotizaciones.md` §6.j.3.
+     */
+    const abrirOperativa = async (iriOrId: string): Promise<boolean> => {
+        error.value = null;
+        const id = String(iriOrId).includes('/') ? String(iriOrId).split('/').pop() : iriOrId;
+
+        try {
+            await apiClient.post(`/platform/sales/client/cotizacion/${id}/operativa`, {});
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al abrir la propuesta operativa.');
+            return false;
+        }
+    };
+
     // ────────────────────────────────────────────────────────────────────────
     // SUBGRUPOS DEL EXPEDIENTE
     //
@@ -495,6 +519,11 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
      * ⚠️ Separado de `estado` a propósito: son dos preguntas distintas —dónde está comercialmente
      * y si el cliente puede verla—, y mezclarlas obligaba a poner «enviada» sólo para conseguir
      * una visibilidad. Ver `docs/PlanPropuestaOperativa.md` §2.
+     *
+     * ⚠️ Publicar una **despublica a sus hermanas de la misma propuesta**, y eso lo hace el
+     * servidor (`CotizacionPublicadaEventListener`), no esta función. No hace falta refrescar por
+     * cuenta propia lo que se acaba de publicar, pero **sí recargar el expediente**: alguna otra
+     * fila de esa propuesta pudo quedar despublicada.
      */
     const actualizarPublicado = async (iri: string, publicado: boolean): Promise<boolean> => {
         error.value = null;
@@ -622,6 +651,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         updateDocument,
         cloneCotizacion,
         guardarHistorico,
+        abrirOperativa,
         crearGrupo,
         actualizarGrupo,
         cargarPadron,

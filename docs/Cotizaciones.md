@@ -4789,6 +4789,9 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Aligerar `clasificacionFinanciera` / ordenar el store por capas** → está medido y decidido en `docs/Pendientes.md` («El JSON financiero pesa 10× lo que dice»); la forma del servicio, en `docs/NodeEnElStack.md` §8. **Fixtures antes que nada.**
 - **TTL de caché del cliente** → `CACHE_TTL` en `pax/.../paxCotizacionStore.ts`.
 - **Cómo se cargan los assets (dev/prod, puertos)** → `templates/util/app.html.twig`, `templates/pax/app.html.twig`.
+- **Abrir la operativa de una confirmada** → botón naranja de ruta en `FileDetalle` → `AbrirOperativaProcessor`. Traspasa las órdenes y congela la confirmada. Ver §6.j.3.
+- **Que el cliente vea otro dinero del que guarda la fila** → `Cotizacion::origenFinancieroParaCliente()`, y **también** la consulta de portada de `CotizacionFilePublicProvider`. Ver §6.j.4.
+- **Que el cliente pueda ver una propuesta** → `Cotizacion::$publicado`, **no** el estado. Ver §6.j.1.
 - **Guardar el estado de una cotización antes de tocarla** → botón de cámara en `FileDetalle` → `GuardarHistoricoProcessor`. ⚠️ **No es clonar**: clonar crea la versión siguiente y hace perder las órdenes. Ver §6.j.
 - **Cargar un padrón** → `app:cotizacion:importar-padron` / `PadronImportador` (§6.r). Idempotente; sincroniza pertenencias pero **no borra personas**; el ensayo escribe y deshace.
 - **Cambiar las columnas del padrón (plantilla e importación)** → `PadronFormato`, una sola definición para generar y para leer. La plantilla se genera al vuelo desde los enums. Ver §6.n.

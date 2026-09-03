@@ -266,6 +266,52 @@ const alternarHistoricos = (id: string): void => {
 };
 
 const guardandoHistorico = ref<string | null>(null);
+const abriendoOperativa = ref<string | null>(null);
+
+/**
+ * ¿Esta propuesta ya tiene abierta su operativa?
+ *
+ * ⚠️ Se busca por NÚMERO de propuesta, no por `derivadaDe`: la operativa comparte número con la
+ * confirmada a propósito —es la misma propuesta, con lo que de verdad se va a operar—, y ése es el
+ * eje por el que el backend también comprueba que no haya dos.
+ */
+const operativaDe = (cot: ApiCotizacionVersion): ApiCotizacionVersion | undefined =>
+  (file.value?.cotizaciones ?? []).find(
+    (c: ApiCotizacionVersion) => c.estado === 'operativa' && c.propuesta === cot.propuesta
+  );
+
+/**
+ * Abre la propuesta operativa: lo que de verdad se va a operar.
+ *
+ * ⚠️ **Traspasa la operación.** Las filas de La Biblia dejan de colgar de la confirmada y pasan a
+ * la operativa, en una sola transacción — nunca hay un instante con las dos vivas. La confirmada
+ * queda congelada por convención, y sigue siendo lo que el cliente ve EN DINERO: el itinerario
+ * pasa a ser el de la operativa en cuanto se publique. Ver docs/Cotizaciones.md §6.j.3 y §6.j.4.
+ */
+const abrirOperativa = async (cot: ApiCotizacionVersion) => {
+  const idStr = extractIdStr(cot.id || cot['@id']);
+  if (!idStr) return;
+
+  if (!confirm(
+    `¿Abrir la propuesta operativa de la Propuesta ${cot.propuesta}?\n\n`
+    + 'Se crea una copia para trabajar la operación real: partir vuelos, ajustar cantidades, '
+    + 'asignar subgrupos.\n\n'
+    + 'Las órdenes de servicio pasan a colgar de ella y esta confirmada queda congelada. '
+    + 'El cliente sigue viendo los precios que aprobó, y nace SIN publicar: no verá el itinerario '
+    + 'nuevo hasta que lo publiques.'
+  )) return;
+
+  abriendoOperativa.value = idStr;
+  const ok = await fileStore.abrirOperativa(idStr);
+
+  if (ok) {
+    await cargarFile();
+  } else {
+    alert(fileStore.error || 'No se pudo abrir la propuesta operativa.');
+  }
+
+  abriendoOperativa.value = null;
+};
 
 /**
  * Congela una foto ANTES de tocar la cotización.
@@ -2557,6 +2603,18 @@ const eliminarDocumento = async (iri?: string) => {
                           class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors"
                           title="Revisar los cambios de esta versión en el Centro de Operaciones">
                     <i class="fas fa-code-compare text-xs"></i>
+                  </button>
+
+                  <!-- Abrir la operativa: sólo en la confirmada, y sólo si no la tiene ya. Es
+                       idempotente en el servidor —devuelve la que hay—, pero enseñar el botón
+                       cuando ya existe invita a pulsarlo esperando otra cosa. -->
+                  <button v-if="cot.estado === 'confirmado' && !operativaDe(cot)"
+                          @click="abrirOperativa(cot)"
+                          :disabled="abriendoOperativa === extractIdStr(cot.id || cot['@id'])"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-orange-200 text-orange-500 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-colors disabled:opacity-50"
+                          title="Abrir la propuesta operativa: lo que de verdad se va a operar">
+                    <i class="fas fa-spinner fa-spin text-xs" v-if="abriendoOperativa === extractIdStr(cot.id || cot['@id'])"></i>
+                    <i class="fas fa-route text-xs" v-else></i>
                   </button>
 
                   <!-- Guardar histórico vive AL LADO de clonar porque son la misma operación en

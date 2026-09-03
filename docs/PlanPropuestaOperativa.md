@@ -136,7 +136,7 @@ Publicas      → ahora ve el itinerario real
 | 2.2 | ~~`OPERATIVA` en el enum~~ **HECHO** | ✅ Sin migración (`varchar(30)`) · el typecheck cazó el mapa de `util` |
 | 2.3 | ~~Abrir la operativa: clon, sin publicar, `derivadaDe`, y **traspaso** de la operación~~ **HECHO 02/09/2026** | ✅ 47 → 0 en la confirmada, 0 → 47 en la operativa, 874 ms · detalle en `docs/Cotizaciones.md` §6.j.3 |
 | 2.4 | ~~Vista cliente **compuesta**: financiero de la confirmada, itinerario de la operativa~~ **HECHO 02/09/2026** | ✅ La operativa guardada a 99999.00 sigue enseñando 5922.09 · `docs/Cotizaciones.md` §6.j.4 |
-| 2.5 | Front: estado en el mapa, botón de publicar, y que el editor diga dónde está | |
+| 2.5 | ~~Front: estado en el mapa, botón de publicar, botón de abrir la operativa~~ **HECHO 02/09/2026** | ⚠️ typecheck y ESLint limpios; **sin comprobar en pantalla** |
 
 ⚠️ **2.1 no era el único punto mudo: era el primero de cuatro.** Al probar 2.3 con datos reales
 aparecieron tres más, todos pasando PHPStan y los 540 tests — un `Uuid` dentro de un `IN` que no
@@ -324,6 +324,9 @@ no deducirlo.
 | Si el cliente ve una propuesta | `Cotizacion::$publicado` — **no** el estado |
 | Qué pasa al cambiar de estado | `CotizacionConfirmadaEventListener` — el `match`, **explícito siempre** |
 | Abrir la operativa de una confirmada | `AbrirOperativaProcessor` — `POST /client/cotizacion/{id}/operativa` |
+| El botón de abrirla | `FileDetalle.vue` → `abrirOperativa()` · sólo en `confirmado` y si `operativaDe()` no encuentra una |
+| Publicar o despublicar | `FileDetalle.vue` → `alternarPublicado()` → `fileStore.actualizarPublicado()` |
+| De qué fila sale el dinero del cliente | `Cotizacion::origenFinancieroParaCliente()` — y **repetido** en la consulta de portada de `CotizacionFilePublicProvider` |
 | Que un clon no vuelva a traducirse | `duplicar()` de las 5 entidades del árbol — `setEjecutarTraduccion(false)` |
 | A quién aplica un componente | `CotizacionCotcomponente::$grupo` |
 | El código de vuelo de una persona | `CotizacionPasajeroGrupo::$codigo` |
