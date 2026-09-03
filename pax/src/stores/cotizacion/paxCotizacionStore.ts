@@ -39,6 +39,19 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
     const loading = ref(false);
     const error = ref<string | null>(null);
 
+    /**
+     * La propuesta pedida existe, pero hay que decir quién eres.
+     *
+     * ⚠️ **Es un estado, no un error.** Sólo pasa en la OPERATIVA de un expediente de grupo, que
+     * lleva datos por persona —tu vuelo, tu código—. Lo comercial (confirmadas, históricas) se
+     * navega entero sin identificarse.
+     *
+     * Lo distingue del 404 el código `IDENTIFICACION_REQUERIDA` que manda el servidor: mirar el
+     * texto del mensaje sería atarse a una traducción.
+     */
+    const requiereIdentificacion = ref(false);
+    const identificadoComo = ref<string | null>(null);
+
     // CATÁLOGO DE TOURS (escaparate público). El detalle de un tour reusa
     // el ref `detalle` para que la guía día a día funcione sin cambios.
     const portadaCatalogo = ref<PaxCatalogo | null>(null);
@@ -61,6 +74,21 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
     };
 
     const manejarError = (err: unknown, teniamosDatos: boolean) => {
+        // ⚠️ ANTES que nada: un 403 con este código no es un fallo, es una puerta. Si cayera en
+        // las ramas de abajo, el cliente vería «error de conexión» delante de algo que sí existe
+        // y a lo que sí tiene derecho.
+        if (axios.isAxiosError(err) && err.response?.status === 403) {
+            const detalleErr = err.response.data as { detail?: string; 'hydra:description'?: string } | undefined;
+            const texto = `${detalleErr?.detail ?? ''} ${detalleErr?.['hydra:description'] ?? ''}`;
+
+            if (texto.includes('IDENTIFICACION_REQUERIDA')) {
+                requiereIdentificacion.value = true;
+                error.value = null;
+
+                return;
+            }
+        }
+
         console.error('❌ PaxCotizacionStore:', err);
         if (teniamosDatos) {
             error.value = 'No se pudo actualizar, mostrando última versión guardada.';
@@ -71,6 +99,37 @@ export const usePaxCotizacionStore = defineStore('paxCotizacionStore', () => {
             ? 'Localizador o propuesta no encontrada.'
             : ((err as Error)?.message || 'Error de conexión crítico.');
         throw err;
+    };
+
+    /**
+     * Manda documento + fecha de nacimiento y, si cuadran, abre la operativa.
+     *
+     * ⚠️ La identidad queda en la **sesión del servidor**, no aquí: `pax` sólo se entera de si
+     * entró. Guardarla en el cliente la haría reenviable, que es justo lo que esto limita.
+     */
+    const identificarse = async (localizador: string, documento: string, fechaNacimiento: string): Promise<string | null> => {
+        try {
+            const nombre = await paxCotizacionService.identificar(localizador, documento, fechaNacimiento);
+
+            requiereIdentificacion.value = false;
+            identificadoComo.value = nombre;
+
+            // ⚠️ **Invalidar la caché a mano.** `pax` retiene el detalle 30 s, y si el 403 llegó
+            // teniendo una copia guardada de esa misma propuesta, `cargarPropuesta()` la daría por
+            // fresca y volvería sin pedir nada: el cliente se identificaría correctamente y
+            // seguiría sin ver su viaje, sin ningún error que lo explicara.
+            lastUpdateDetalle.value = 0;
+
+            return null;
+        } catch (err: unknown) {
+            if (axios.isAxiosError(err)) {
+                const cuerpo = err.response?.data as { mensaje?: string } | undefined;
+
+                return cuerpo?.mensaje ?? 'No pudimos comprobar tus datos. Inténtalo de nuevo.';
+            }
+
+            return 'No pudimos comprobar tus datos. Inténtalo de nuevo.';
+        }
     };
 
     // ── Acciones ──────────────────────────────────────────────────────────
@@ -418,6 +477,7 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
     return {
         // estado
         portada, detalle, loading, error,
+        requiereIdentificacion, identificadoComo, identificarse,
         currentLocalizador, currentVersion,
         lastUpdatePortada, lastUpdateDetalle,
         portadaCatalogo, lastUpdatePortadaCatalogo, esCatalogo,

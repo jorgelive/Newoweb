@@ -10003,7 +10003,8 @@ export interface components {
              *     usa queries escalares); el editor la sigue usando con file:item:read.
              */
             cotizaciones?: string[];
-            filepasajeros?: string[];
+            /** @description El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.** */
+            readonly filepasajeros?: string[];
             filearchivos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
@@ -10216,7 +10217,6 @@ export interface components {
             pasajeroPrincipal?: string | null;
             /** @default es */
             idiomaCliente: string;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero-pax_file.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
              * @default estandar
@@ -10231,6 +10231,7 @@ export interface components {
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
+            readonly filepasajeros?: components["schemas"]["CotizacionFilepasajero-pax_file.read"][];
             readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
@@ -10239,7 +10240,6 @@ export interface components {
             pasajeroPrincipal?: string | null;
             /** @default es */
             idiomaCliente: string;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero-pax_file.read_pax_cotizacion.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
              * @default estandar
@@ -10255,6 +10255,7 @@ export interface components {
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo-pax_file.read_pax_cotizacion.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
+            readonly filepasajeros?: components["schemas"]["CotizacionFilepasajero-pax_file.read_pax_cotizacion.read"][];
             readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
@@ -10286,7 +10287,8 @@ export interface components {
              *     usa queries escalares); el editor la sigue usando con file:item:read.
              */
             cotizaciones?: string[];
-            filepasajeros?: string[];
+            /** @description El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.** */
+            readonly filepasajeros?: string[];
             filearchivos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.html"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
@@ -10447,7 +10449,6 @@ export interface components {
             pasajeroPrincipal?: string | null;
             /** @default es */
             idiomaCliente: string;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-pax_file.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
              * @default estandar
@@ -10462,6 +10463,7 @@ export interface components {
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
+            readonly filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-pax_file.read"][];
             readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
@@ -10470,7 +10472,6 @@ export interface components {
             pasajeroPrincipal?: string | null;
             /** @default es */
             idiomaCliente: string;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-pax_file.read_pax_cotizacion.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
              * @default estandar
@@ -10486,6 +10487,7 @@ export interface components {
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.html-pax_file.read_pax_cotizacion.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
+            readonly filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-pax_file.read_pax_cotizacion.read"][];
             readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
@@ -10531,6 +10533,8 @@ export interface components {
             readonly documentosParaCliente?: string[];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
+            /** @description El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.** */
+            readonly filepasajeros?: string[];
             readonly exigeIdentificacion?: boolean;
         } & (components["schemas"]["HydraItemBaseSchema"] & {
             nombreGrupo?: string;
@@ -10683,7 +10687,6 @@ export interface components {
             pasajeroPrincipal?: string | null;
             /** @default es */
             idiomaCliente: string;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-pax_file.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
              * @default estandar
@@ -10698,6 +10701,7 @@ export interface components {
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
+            readonly filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-pax_file.read"][];
             readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
@@ -10706,7 +10710,6 @@ export interface components {
             pasajeroPrincipal?: string | null;
             /** @default es */
             idiomaCliente: string;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-pax_file.read_pax_cotizacion.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
              * @default estandar
@@ -10722,6 +10725,7 @@ export interface components {
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.jsonld-pax_file.read_pax_cotizacion.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
+            readonly filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-pax_file.read_pax_cotizacion.read"][];
             readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
@@ -10753,7 +10757,8 @@ export interface components {
              *     usa queries escalares); el editor la sigue usando con file:item:read.
              */
             cotizaciones?: string[];
-            filepasajeros?: string[];
+            /** @description El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.** */
+            readonly filepasajeros?: string[];
             filearchivos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.multipart"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
@@ -10914,7 +10919,6 @@ export interface components {
             pasajeroPrincipal?: string | null;
             /** @default es */
             idiomaCliente: string;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-pax_file.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
              * @default estandar
@@ -10929,6 +10933,7 @@ export interface components {
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
+            readonly filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-pax_file.read"][];
             readonly exigeIdentificacion?: boolean;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
@@ -10937,7 +10942,6 @@ export interface components {
             pasajeroPrincipal?: string | null;
             /** @default es */
             idiomaCliente: string;
-            filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-pax_file.read_pax_cotizacion.read"][];
             /**
              * @description Qué clase de negocio es, y de ahí cómo se comporta todo.
              * @default estandar
@@ -10953,6 +10957,7 @@ export interface components {
             readonly documentosParaCliente?: components["schemas"]["CotizacionFilearchivo.multipart-pax_file.read_pax_cotizacion.read"][];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
+            readonly filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-pax_file.read_pax_cotizacion.read"][];
             readonly exigeIdentificacion?: boolean;
         };
         CotizacionFileGrupo: {

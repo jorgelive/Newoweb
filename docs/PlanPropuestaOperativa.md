@@ -175,12 +175,20 @@ persona** —tu vuelo, tu código, tu horario—. Lo comercial es el mismo docum
 pasajeros **con su número de documento**, a la vista de cualquiera con el enlace. En un expediente
 individual el «manifiesto» es la familia y está bien; en uno grupal no es ni útil ni prudente.
 
-| | Acción |
-|---|---|
-| 4.1 | `FileModoEnum::ocultaManifiesto()` → `GRUPO`, y la portada lo respeta |
-| 4.2 | Endpoint: documento + fecha de nacimiento → identifica al pasajero |
-| 4.3 | El provider sirve la operativa sólo a quien se identificó, y filtrada a lo suyo |
-| 4.4 | Límite de intentos |
+| | Acción | Hecho cuando |
+|---|---|---|
+| 4.1 | ~~`FileModoEnum::ocultaManifiesto()`, y la portada lo respeta~~ **HECHO 02/09/2026** | ✅ `5SRAJV` pasa de 133 pasajeros a 0 · se corta en el SERVIDOR |
+| 4.2 | ~~Endpoint: documento + fecha de nacimiento~~ **HECHO** | ✅ `IdentidadDelPasajero` · probado con el padrón real |
+| 4.3a | ~~El provider sirve la operativa sólo a quien se identificó~~ **HECHO** | ✅ 403 `IDENTIFICACION_REQUERIDA` → formulario → sirve |
+| 4.3b | …y **filtrada a lo suyo** | ⏳ Necesita F5: hoy quien entra ve la operativa entera |
+| 4.4 | ~~Límite de intentos~~ **HECHO** | ✅ 8 / 15 min, por expediente **y** por IP |
+
+⚠️ **El padrón de `5SRAJV` son menores** —viaje de colegio, nacidos en 2009—, y sus documentos
+estaban públicos con sólo tener el enlace. 4.1 no era cosmética.
+
+⚠️ **4.3b es la mitad que falta.** La puerta está puesta; lo que hay detrás todavía no distingue
+entre las 133 personas, porque `grupo` y `codigo` son F5. Quien se identifica ve la operativa
+completa — que es más de lo que debería, aunque menos de lo que veía antes.
 
 **El tercero de una familia.** `ocultaManifiesto()` se suma a `exigeIdentificacion()` y
 `ocultaTotalDeGrupo()`, que ya existen y ya devuelven `GRUPO`. Tres comportamientos en un solo

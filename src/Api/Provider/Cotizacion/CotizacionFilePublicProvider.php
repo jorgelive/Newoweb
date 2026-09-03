@@ -9,8 +9,10 @@ use ApiPlatform\Metadata\Operation;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use App\Cotizacion\Service\Publico\IdentidadDelPasajero;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Bundle\SecurityBundle\Security;
 
 /**
@@ -32,6 +34,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly Security $security,
+        private readonly IdentidadDelPasajero $identidad,
     )
     {
     }
@@ -147,6 +150,25 @@ final class CotizacionFilePublicProvider implements ProviderInterface
 
             if (!$esVisible) {
                 return null; // versión inexistente, no pública o expirada
+            }
+
+            // ── La única puerta cerrada del expediente ───────────────────────
+            //
+            // La OPERATIVA de un grupo lleva datos por persona —tu vuelo, tu código, tu horario— y
+            // el enlace lo tienen 133 familias. Lo comercial (confirmadas, históricas) se queda
+            // abierto: es el mismo documento para todos.
+            //
+            // ⚠️ **403 y no 404.** Un 404 diría «no existe» y `pax` no tendría cómo saber que debe
+            // enseñar el formulario; además le mentiría al usuario sobre algo que sí está ahí. El
+            // código viaja en el cuerpo para que el front no tenga que adivinar por el texto.
+            //
+            // ⚠️ El operador se lo salta —ya se identificó de otra forma, con su sesión—, igual
+            // que se salta `publicado`. La caducidad no se salta ninguno de los dos.
+            if ($cotizacion->getEstado() === CotizacionEstadoEnum::OPERATIVA
+                && !$previsualiza
+                && !$this->identidad->estaIdentificado($file)
+            ) {
+                throw new AccessDeniedHttpException('IDENTIFICACION_REQUERIDA');
             }
 
             $file->setCotizacionParaCliente($cotizacion);

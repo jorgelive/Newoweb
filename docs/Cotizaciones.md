@@ -2027,6 +2027,70 @@ puede prometer que un método esté siempre ahí como promete una columna. El ty
 apps salió limpio —nadie escribía ese campo desde `pax`—, pero conviene saberlo antes de repetir
 el patrón.
 
+## 6.j.5 Quién ve qué en un expediente de grupo (02/09/2026)
+
+```
+Portada                          abierta · SIN manifiesto
+ ├── confirmadas e históricas    abiertas — se navegan enteras
+ └── la OPERATIVA                FORMULARIO · no funciona nada detrás
+```
+
+### El manifiesto se cae de la portada, y no es cosmética
+
+`pax_file:read` servía `filepasajeros` entero. En `5SRAJV` eso eran **133 nombres con su número de
+documento**, a la vista de cualquiera con el enlace — y al probarlo resultó que son **menores**: es
+un viaje de colegio.
+
+`FileModoEnum::ocultaManifiesto()` lo corta en modo grupo. En un expediente de dos personas se
+queda: el padrón son ellos mismos, y ver «vamos los dos» es lo que se espera de una confirmación.
+
+⚠️ **Se corta en el SERVIDOR, no en la vista.** Un `v-if` deja los 133 nombres viajando en la
+respuesta, a un F12 de distancia. Se sirve por `getManifiestoParaCliente()`, con `SerializedName`
+para que la API siga diciendo `filepasajeros` y `pax` no cambie: recibe una lista vacía y su `v-if`
+ya se encarga.
+
+### La operativa: formulario o nada
+
+Documento **y** fecha de nacimiento. Se descartó enseñar el itinerario común escondiendo lo
+personal: obliga a clasificar cada campo nuevo, y **olvidarse lo deja a la vista** — un fallo que
+no da error y que sólo se descubre cuando ya lo vio quien no debía. Con la puerta entera cerrada,
+la pregunta «¿este campo es personal?» deja de existir.
+
+⚠️ **No pretende ser un secreto fuerte.** El número de documento circula —está en una reserva, en
+un correo, en una lista de colegio—; la fecha de nacimiento no suele acompañarlo. Esto separa a las
+133 familias entre sí, no defiende de un atacante decidido. **Por eso el freno de intentos no es
+opcional**: sin él, un documento fijo y un barrido de fechas encuentra a cualquiera en una tarde.
+
+| | |
+|---|---|
+| Dónde vive la identidad | La **sesión** del servidor, llave `pax_identificado.<fileId>`. Una por expediente: identificarse en un viaje no abre el de al lado |
+| Por qué no un token | Un token en la URL se reenvía por WhatsApp sin querer — el reenvío que esto viene a limitar |
+| Freno | 8 intentos / 15 min, **por expediente Y por IP**. Sólo por IP castigaría a un colegio tras un NAT; sólo por expediente, a las 133 por culpa de un curioso |
+| Mensaje de fallo | **Uno solo para los dos casos.** Decir «ese documento no está en el grupo» convierte el formulario en un buscador de documentos |
+| Normalización | El documento se compara sin puntos ni espacios y en mayúsculas: la gente no lo escribe dos veces igual |
+
+### ⚠️ 403 y no 404
+
+El 403 lleva el código `IDENTIFICACION_REQUERIDA` en el cuerpo. Un 404 diría «no existe» —mentira,
+y alarmante para quien mira su propio viaje— y `pax` no tendría cómo saber que debe enseñar el
+formulario. El front mira el **código**, no el texto: mirar el mensaje sería atarse a una
+traducción.
+
+⚠️ En `pax`, el bloque del formulario va **antes** que el de «no encontrada» en el `v-else-if`.
+Invertirlos le diría al cliente que su viaje no está.
+
+⚠️ **Al identificarse se recarga, y hay que invalidar la caché a mano.** `pax` retiene el detalle
+30 s; si el 403 llegó teniendo una copia guardada de esa propuesta, `cargarPropuesta()` la daría
+por fresca y volvería sin pedir nada — el cliente se identificaría bien y **seguiría sin ver su
+viaje, sin ningún error que lo explicara**.
+
+### Lo que NO entra todavía
+
+El **filtrado por persona** —que cada uno vea sólo su vuelo y su código— necesita
+`CotizacionCotcomponente::$grupo` y `CotizacionPasajeroGrupo::$codigo`, que son F5. Hoy quien se
+identifica ve la operativa **entera**. La puerta está puesta; lo que hay detrás todavía no
+distingue.
+
 ## 6.j Versiones e históricos: dos clones en direcciones opuestas (23/08/2026)
 
 Un expediente tiene N `Cotizacion`, numeradas `version`. **Son propuestas**, no versiones de un

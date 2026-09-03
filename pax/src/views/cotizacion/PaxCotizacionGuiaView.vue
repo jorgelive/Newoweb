@@ -99,6 +99,37 @@ const irADia = (n: number) => {
   document.getElementById(`dia-${n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
+// ── Identificación (sólo en la operativa de un expediente de grupo) ─────────
+const identDocumento = ref('');
+const identNacimiento = ref('');
+const identEnviando = ref(false);
+const identError = ref<string | null>(null);
+
+/**
+ * ⚠️ Al entrar **se recarga la propuesta**, no se «desbloquea» lo que ya hay. El servidor nunca
+ * llegó a mandar el contenido —por eso respondió 403—, así que aquí no hay nada escondido que
+ * revelar: hay que ir a buscarlo con la sesión ya abierta.
+ */
+const enviarIdentificacion = async () => {
+  identEnviando.value = true;
+  identError.value = null;
+
+  const fallo = await store.identificarse(props.localizador, identDocumento.value, identNacimiento.value);
+
+  if (fallo) {
+    identError.value = fallo;
+    identEnviando.value = false;
+
+    return;
+  }
+
+  identDocumento.value = '';
+  identNacimiento.value = '';
+
+  await store.cargarPropuesta(props.localizador, Number(props.propuesta));
+  identEnviando.value = false;
+};
+
 const volverPortada = () => {
   router.push({
     name: esCatalogo.value ? 'catalogo_publico' : 'file_publica',
@@ -783,6 +814,59 @@ const adelantoVista = computed(() => {
       <p class="text-[#376875]/60 font-black animate-pulse uppercase tracking-[0.2em] text-xs">
         {{ maestroStore.t('cot_cargando_guia') || 'Preparando tu itinerario...' }}
       </p>
+    </div>
+
+    <!-- ═══ HAY QUE DECIR QUIÉN ERES ═══
+         ⚠️ VA ANTES que «no encontrada», y el orden es la mitad del asunto: la propuesta SÍ
+         existe y el cliente SÍ tiene derecho a verla. Caer en el bloque de abajo le diría que su
+         viaje no está, que es mentira y además alarma. -->
+    <div v-else-if="store.requiereIdentificacion" class="max-w-md mx-auto py-12 px-6 bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 mt-10 border border-slate-50">
+      <div class="w-20 h-20 bg-[#376875]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i class="fas fa-id-card text-[#376875] text-2xl"></i>
+      </div>
+
+      <h3 class="text-gray-900 font-black text-lg mb-2 text-center">
+        {{ maestroStore.t('cot_identificate_titulo') || 'Identifícate para ver tu viaje' }}
+      </h3>
+
+      <!-- Se explica POR QUÉ se pide. Un formulario sin motivo en una página de viaje parece
+           una trampa, y quien viaja en grupo agradece saber que lo suyo es sólo suyo. -->
+      <p class="text-slate-500 text-sm mb-6 text-center leading-relaxed">
+        {{ maestroStore.t('cot_identificate_motivo')
+          || 'Esta propuesta lleva datos de cada persona —tu vuelo, tus horarios—, así que te pedimos dos datos para enseñarte los tuyos.' }}
+      </p>
+
+      <form @submit.prevent="enviarIdentificacion" class="space-y-4">
+        <div>
+          <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5" for="ident-doc">
+            {{ maestroStore.t('cot_identificate_documento') || 'Número de documento' }}
+          </label>
+          <input id="ident-doc" v-model="identDocumento" type="text" inputmode="text" autocomplete="off" required
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-gray-800 outline-none focus:border-[#376875] transition-colors" />
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5" for="ident-nac">
+            {{ maestroStore.t('cot_identificate_nacimiento') || 'Fecha de nacimiento' }}
+          </label>
+          <input id="ident-nac" v-model="identNacimiento" type="date" required
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-gray-800 outline-none focus:border-[#376875] transition-colors" />
+        </div>
+
+        <p v-if="identError" class="text-xs font-bold text-amber-700 bg-amber-50 rounded-xl py-3 px-4 leading-relaxed">
+          <i class="fas fa-circle-exclamation mr-1"></i> {{ identError }}
+        </p>
+
+        <button type="submit" :disabled="identEnviando"
+                class="w-full bg-[#376875] hover:bg-[#2b525d] disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest px-6 py-3.5 rounded-2xl transition-colors">
+          <i v-if="identEnviando" class="fas fa-spinner fa-spin mr-2"></i>
+          {{ maestroStore.t('cot_identificate_entrar') || 'Ver mi viaje' }}
+        </button>
+      </form>
+
+      <button @click="volverPortada" class="w-full mt-3 text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-widest py-2 transition-colors">
+        {{ maestroStore.t('cot_volver') || 'Volver' }}
+      </button>
     </div>
 
     <!-- ═══ NO ENCONTRADA ═══ -->

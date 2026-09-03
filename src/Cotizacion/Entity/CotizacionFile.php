@@ -183,8 +183,10 @@ class CotizacionFile
     /**
      * @var Collection<int, CotizacionFilepasajero>
      */
+    // ⚠️ SIN `pax_file:read`: al cliente se lo sirve getManifiestoParaCliente(), que en un
+    // expediente de grupo devuelve una lista vacía. Ver FileModoEnum::ocultaManifiesto().
     #[ApiProperty(fetchEager: false)]
-    #[Groups(['file:item:read', 'pax_file:read'])]
+    #[Groups(['file:item:read'])]
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFilepasajero::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $filepasajeros;
 
@@ -537,6 +539,24 @@ class CotizacionFile
     /** Atajos para que quien pregunte no tenga que conocer el enum. */
     #[Groups(['file:read', 'file:item:read', 'pax_file:read'])]
     public function isUsaPadron(): bool { return $this->modo->usaPadron(); }
+
+    /**
+     * El padrón que ve el cliente en la portada pública. **Vacío en un expediente de grupo.**
+     *
+     * ⚠️ Aquí y no en la vista: esconderlo en el front deja los 133 nombres y sus números de
+     * documento viajando en la respuesta, a un F12 de distancia. Lo que no debe salir, no se manda.
+     *
+     * ⚠️ `SerializedName` a propósito: la API sigue diciendo `filepasajeros`, así que `pax` no
+     * cambia — simplemente recibe una lista vacía y su `v-if` ya se encarga.
+     *
+     * @return Collection<int, CotizacionFilepasajero>
+     */
+    #[Groups(['pax_file:read'])]
+    #[SerializedName('filepasajeros')]
+    public function getManifiestoParaCliente(): Collection
+    {
+        return $this->modo->ocultaManifiesto() ? new ArrayCollection() : $this->filepasajeros;
+    }
 
     #[Groups(['file:read', 'file:item:read', 'pax_file:read'])]
     public function isExigeIdentificacion(): bool { return $this->modo->exigeIdentificacion(); }
