@@ -157,6 +157,13 @@ class CotizacionSegmento
         $copia = clone $this;   // clone superficial por defecto (sin __clone)
         $copia->resetId();
 
+        // ⚠️ **Un clon NO vuelve a traducirse.** Ver la explicación entera en
+        // {@see \App\Cotizacion\Entity\Cotizacion::duplicar()}: el texto es idéntico al del
+        // original, que ya está traducido, y `ejecutarTraduccion` es virtual — sólo apaga el
+        // listener para ESTE guardado.
+        $copia->setEjecutarTraduccion(false);
+
+
         // Limpiar la colección inversa: los componentes se re-vinculan desde
         // CotizacionCotservicio::duplicar() a través del mapa de segmentos.
         $copia->cotcomponentes = new ArrayCollection();

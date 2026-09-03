@@ -255,6 +255,42 @@ Hacen `setTitulo([['language' => 'es', 'content' => $x]])`, o sea reemplazan el 
 listener ve sólo el español, los otros seis desaparecidos, y los rehace los seis. Lleva meses
 funcionando así. Si añades un comando de carga masiva, considera `setEjecutarTraduccion(false)`.
 
+### ⚠️ Clonar un árbol lo retraduce entero, y cuesta cuatro minutos *(arreglado el 02/09/2026)*
+
+`persist()` dispara `prePersist` **en el acto**, no en el `flush`. Así que duplicar una cotización
+—162 entidades— llamaba a Google por cada una, a siete idiomas.
+
+Medido sobre `2KVBMX`, 17 servicios:
+
+```
+                       persist()      flush()
+con traducción         245.532 ms      663 ms
+sin traducción              73 ms      243 ms      ← 777 veces menos
+```
+
+⚠️ **Lo que hacía invisible el diagnóstico:** todo el tiempo estaba en `persist()`, que nadie mira
+—el sospechoso natural es el `flush`— y la conexión a MySQL figuraba **`Sleep` durante 26 segundos
+seguidos**. Cero SQL. Con la base descartada, lo único que queda por mirar es qué se ejecuta por
+entidad, y ahí aparece el listener.
+
+**Por qué el `origenHash` no lo evitaba:** el clon sí arrastra las traducciones (`clone` es
+superficial), pero estas filas son anteriores al hash y no lo llevan; §3 explica por qué una fila
+sin hash se rehace a propósito. Sellar el histórico habría ayudado, pero **no es el arreglo**: aun
+con el hash puesto seguiríamos recorriendo 162 entidades para concluir que no hay nada que hacer.
+
+**El arreglo** está en `duplicar()` de las cinco entidades del árbol
+(`Cotizacion`, `CotizacionCotservicio`, `CotizacionCotcomponente`, `CotizacionCottarifa`,
+`CotizacionSegmento`): `setEjecutarTraduccion(false)` sobre la copia. El flag es virtual, así que
+sólo apaga el listener para ese guardado; editar la copia mañana la traduce con normalidad.
+
+⚠️ **Esto ya estaba pasando en producción** con el botón «Guardar foto»
+(`GuardarHistoricoProcessor`), que clona exactamente igual. En un expediente grupal grande eso son
+cuatro minutos de espera y cientos de llamadas pagadas al traductor — por encima del tiempo de
+cualquier gateway, así que lo más probable es que fallara.
+
+**La regla:** *un clon no vuelve a traducirse.* Es texto byte a byte idéntico a un árbol que ya
+está traducido. Si mañana el árbol crece un nivel, ese `duplicar()` también apaga el flag.
+
 ### ⚠️ `validLanguageCodes` se cachea para toda la vida del proceso
 
 Cambiar prioridades en `maestro_idioma` no surte efecto en los workers de messenger hasta
