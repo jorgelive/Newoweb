@@ -295,6 +295,35 @@ const alternarHistoricos = (id: string): void => {
 
 const guardandoHistorico = ref<string | null>(null);
 const abriendoOperativa = ref<string | null>(null);
+const armandoOperacion = ref<string | null>(null);
+
+/**
+ * Arma el cuadro de operación de esta fila.
+ *
+ * ⚠️ **Ya no ocurre solo al confirmar** (02/09/2026): son dos actos distintos en momentos
+ * distintos. Idempotente, así que también sirve para completar lo que falte tras añadir servicios.
+ */
+const generarOperacion = async (cot: ApiCotizacionVersion) => {
+  const idStr = extractIdStr(cot.id || cot['@id']);
+  if (!idStr) return;
+
+  if (!confirm(
+    `¿Armar la operación de la Propuesta ${cot.propuesta}?\n\n`
+    + 'Crea una fila en La Biblia por cada componente. Si ya hay filas, sólo añade las que '
+    + 'falten: no duplica ni revive lo que hayas cancelado a mano.'
+  )) return;
+
+  armandoOperacion.value = idStr;
+  const ok = await fileStore.generarOperacion(idStr);
+
+  if (ok) {
+    await cargarFile();
+  } else {
+    alert(fileStore.error || 'No se pudo armar la operación.');
+  }
+
+  armandoOperacion.value = null;
+};
 
 /**
  * ¿Esta propuesta ya tiene abierta su operativa?
@@ -2638,6 +2667,18 @@ const eliminarDocumento = async (iri?: string) => {
                      :title="`Abrir vista cliente (P${cot.propuesta})`">
                     <i class="fas fa-external-link-alt text-xs"></i>
                   </a>
+
+                  <!-- Armar la operación. ⚠️ Mismo sitio que el plan —donde VIVE la operación—
+                       porque son la misma cosa en dos momentos: éste la crea, aquél la revisa.
+                       Confirmar ya no la crea (02/09/2026): ver GenerarOperacionProcessor. -->
+                  <button v-if="cot.estado === 'operativa' || (cot.estado === 'confirmado' && !operativaDe(cot))"
+                          @click="generarOperacion(cot)"
+                          :disabled="armandoOperacion === extractIdStr(cot.id || cot['@id'])"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border border-[#376875]/30 text-[#376875] hover:bg-[#376875] hover:text-white transition-colors disabled:opacity-50"
+                          title="Armar la operación: una fila de La Biblia por componente">
+                    <i class="fas fa-spinner fa-spin text-xs" v-if="armandoOperacion === extractIdStr(cot.id || cot['@id'])"></i>
+                    <i class="fas fa-list-check text-xs" v-else></i>
+                  </button>
 
                   <!-- Donde VIVE la operación, que no siempre es la confirmada.
                        ⚠️ Al abrir la operativa, las filas de La Biblia se mudan a ella y las de la

@@ -328,6 +328,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/sales/client/cotizacion/{id}/operacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a Cotizacion resource.
+         * @description Creates a Cotizacion resource.
+         */
+        post: operations["api_salesclientcotizacion_idoperacion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/sales/client/cotizacion/{id}/operativa": {
         parameters: {
             query?: never;
@@ -5015,8 +5035,8 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que `pax` no cambia
-             *     ni una línea y `api.d.ts` no se mueve. Lo que cambia es de dónde sale el número.
+             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que ninguna vista de
+             *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
         };
@@ -5081,8 +5101,8 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que `pax` no cambia
-             *     ni una línea y `api.d.ts` no se mueve. Lo que cambia es de dónde sale el número.
+             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que ninguna vista de
+             *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
         };
@@ -5598,8 +5618,8 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que `pax` no cambia
-             *     ni una línea y `api.d.ts` no se mueve. Lo que cambia es de dónde sale el número.
+             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que ninguna vista de
+             *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
         };
@@ -5664,8 +5684,8 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que `pax` no cambia
-             *     ni una línea y `api.d.ts` no se mueve. Lo que cambia es de dónde sale el número.
+             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que ninguna vista de
+             *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
         };
@@ -6089,8 +6109,8 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que `pax` no cambia
-             *     ni una línea y `api.d.ts` no se mueve. Lo que cambia es de dónde sale el número.
+             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que ninguna vista de
+             *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
         };
@@ -6155,8 +6175,8 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que `pax` no cambia
-             *     ni una línea y `api.d.ts` no se mueve. Lo que cambia es de dónde sale el número.
+             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que ninguna vista de
+             *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
         };
@@ -6580,8 +6600,8 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que `pax` no cambia
-             *     ni una línea y `api.d.ts` no se mueve. Lo que cambia es de dónde sale el número.
+             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que ninguna vista de
+             *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
         };
@@ -6646,8 +6666,8 @@ export interface components {
                 [key: string]: string | null;
             } | null;
             /**
-             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que `pax` no cambia
-             *     ni una línea y `api.d.ts` no se mueve. Lo que cambia es de dónde sale el número.
+             * @description ⚠️ `SerializedName` a propósito: la API sigue diciendo `totalVenta`, así que ninguna vista de
+             *     `pax` cambia. Lo que cambia es de dónde sale el número.
              */
             readonly totalVenta?: string;
         };
@@ -34180,6 +34200,62 @@ export interface operations {
         };
     };
     api_salesclientcotizacion_idhistorico_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The new Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "application/json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "text/html": components["schemas"]["Cotizacion-cotizacion.write"];
+                "multipart/form-data": components["schemas"]["Cotizacion-cotizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.jsonld-file.item.read"];
+                    "application/json": components["schemas"]["Cotizacion-file.item.read"];
+                    "text/html": components["schemas"]["Cotizacion.html-file.item.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.multipart-file.item.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salesclientcotizacion_idoperacion_post: {
         parameters: {
             query?: never;
             header?: never;

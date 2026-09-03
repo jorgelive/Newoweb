@@ -8,7 +8,6 @@ use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Operacion\Entity\OperacionServicio;
 use App\Operacion\Enum\EstadoOperacionEnum;
-use App\Operacion\Service\BibliaSnapshotService;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
@@ -18,9 +17,9 @@ use Doctrine\ORM\UnitOfWork;
 #[AsDoctrineListener(event: Events::onFlush)]
 class CotizacionConfirmadaEventListener
 {
-    public function __construct(private readonly BibliaSnapshotService $snapshot)
-    {
-    }
+    // ⚠️ Sin dependencias: desde que confirmar no genera, este listener sólo mueve estados. Si
+    // alguien vuelve a inyectar aquí `BibliaSnapshotService`, está reintroduciendo la generación
+    // automática que se quitó a propósito el 02/09/2026 — léase el docblock de reactivar().
 
     /**
      * Intercepta el proceso de sincronización con la base de datos para evaluar
@@ -67,7 +66,7 @@ class CotizacionConfirmadaEventListener
             // porque trabaja por cotización y nunca ve las filas de la otra versión.
             // Riesgo de pedirle y pagarle dos veces lo mismo al proveedor.
             match ($nuevoEstado) {
-                CotizacionEstadoEnum::CONFIRMADO => $this->confirmar($entity, $em, $uow),
+                CotizacionEstadoEnum::CONFIRMADO => $this->reactivar($entity, $em, $uow),
                 CotizacionEstadoEnum::CANCELADO,
                 CotizacionEstadoEnum::PENDIENTE,
                 CotizacionEstadoEnum::ENVIADO,
@@ -81,13 +80,13 @@ class CotizacionConfirmadaEventListener
 
                 // ⚠️ La OPERATIVA es donde vive la operación: sus filas van ACTIVAS, igual que
                 // las de una confirmada. Explícito y no por el `default`, que aquí significa «no
-                // toques nada» — y para una operativa eso dejaría las órdenes sin generar.
+                // toques nada» — y para una operativa eso dejaría sus filas canceladas.
                 //
                 // 🔥 Y merece quedar escrito: al añadir este `case`, **PHPStan no dijo nada**. Los
                 // `match` exhaustivos del enum sí saltan, pero éste tiene `default`, así que un
                 // estado nuevo entra en silencio. Es lo que ya avisaba el comentario de abajo, y
                 // se cumplió a la primera.
-                CotizacionEstadoEnum::OPERATIVA  => $this->confirmar($entity, $em, $uow),
+                CotizacionEstadoEnum::OPERATIVA  => $this->reactivar($entity, $em, $uow),
 
                 // ⚠️ Sólo lo pisa OPERADO, y ahí «no tocar nada» es lo correcto: el viaje ya
                 // ocurrió y sus filas se quedan como están. Cualquier estado nuevo va ARRIBA, con
@@ -98,24 +97,28 @@ class CotizacionConfirmadaEventListener
     }
 
     /**
-     * Confirmar hace DOS cosas: reactivar lo que existía y generar lo que falte.
+     * Reactiva las filas de operación que ya existan. **NO genera ninguna.**
      *
-     * La reactivación no es un extra: sin ella, cancelar una cotización por error y
-     * volver a confirmarla al minuto dejaba las 42 filas en `cancelado` para siempre.
-     * La idempotencia del snapshot impide que se regeneren, y la reconciliación tampoco
-     * lo arregla — `estadoOperacion` está en la lista de campos que jamás toca, porque
-     * es del operador.
+     * ── ⚠️ Confirmar ya NO crea la operación (02/09/2026) ───────────────────
+     * Hasta hoy, pasar a CONFIRMADO generaba las filas de La Biblia de golpe. Se separó a
+     * petición del operador: **generar es una decisión suya, no un efecto de vender.** Confirmar
+     * es un acto comercial —el cliente aceptó— y puede ocurrir mucho antes de que la operación
+     * esté lista para armarse; encadenarlas obligaba a que el cuadro naciera con lo que hubiera
+     * en ese momento y a corregirlo después.
+     *
+     * La generación vive ahora en `GenerarOperacionProcessor`, con su botón.
+     *
+     * ── Lo que SÍ se queda: reactivar ───────────────────────────────────────
+     * Reactivar no es generar, y quitarlo sería otra cosa distinta de lo que se pidió. Sin ello,
+     * cancelar una cotización por error y volver a confirmarla al minuto dejaba las 42 filas en
+     * `cancelado` **para siempre**: la reconciliación tampoco lo arregla, porque `estadoOperacion`
+     * está en la lista de campos que jamás toca — es del operador.
+     *
+     * O sea: lo que existía, vuelve. Lo que no existe, no nace solo.
      */
-    private function confirmar(Cotizacion $cotizacion, EntityManagerInterface $em, UnitOfWork $uow): void
+    private function reactivar(Cotizacion $cotizacion, EntityManagerInterface $em, UnitOfWork $uow): void
     {
         $this->propagarEstadoOperacion($cotizacion, $em, $uow, EstadoOperacionEnum::PENDIENTE);
-
-        $metadata = $em->getClassMetadata(OperacionServicio::class);
-
-        foreach ($this->snapshot->generarParaCotizacion($cotizacion) as $ops) {
-            // Instruir manualmente a Doctrine para que inserte esta nueva entidad en el ciclo actual
-            $uow->computeChangeSet($metadata, $ops);
-        }
     }
 
     private function propagarEstadoOperacion(

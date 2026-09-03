@@ -14,6 +14,7 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 1. [Vocabulario](#1-vocabulario)
 2. [Flujo: de cotización confirmada a La Biblia](#2-flujo-de-cotización-confirmada-a-la-biblia)
 3. [Reglas del snapshot](#3-reglas-del-snapshot) — incluye [3.3 comprable vs. referencia](#33), [3.5 reconciliación](#35), [3.4 consola](#34), [3.7 el file de la fila](#37), [3.8 congelado vs. vivo](#38)
+2.bis [Confirmar ya NO arma la operación](#2bis-confirmar-ya-no-arma-la-operación)
 3.bis [Por qué La Biblia aparece vacía](#3bis-por-qué-la-biblia-aparece-vacía)
 4. [Los tres estados y por qué son tres](#4-los-tres-estados-y-por-qué-son-tres)
 5. [Órdenes de Servicio y bitácora](#5-órdenes-de-servicio-y-bitácora)
@@ -31,7 +32,7 @@ Alcance: `src/Operacion/` (entidades, enums, servicio, listener, comando), los e
 | Término | Significado |
 |---|---|
 | **La Biblia** | El cuadro de tráfico: qué se opera cada día, a qué hora, con quién. Una fila = un `OperacionServicio`. |
-| **OperacionServicio** | Unidad despachable. Nace como *snapshot* de un `CotizacionCotcomponente` al confirmar la cotización. |
+| **OperacionServicio** | Unidad despachable. Es un *snapshot* de un `CotizacionCotcomponente`. ⚠️ **Nace cuando el operador arma la operación**, no al confirmar (§2.bis). |
 | **Orden de Servicio (OS)** | Cabecera que agrupa varios `OperacionServicio` del **mismo proveedor y expediente** para solicitar formalmente y liquidar. |
 | **Expediente / File** | `CotizacionFile`: el grupo/pasajero. Tiene N cotizaciones (versiones); sólo la confirmada genera operación. |
 
@@ -55,11 +56,14 @@ CotizacionEditorView.vue                          OperacionView.vue  (/operacion
   │ CotizacionConfirmadaEventListener::onFlush() │        │
   └──────────────────────────────────────────────┘        │
         │                                                 │
-        ├─ CONFIRMADO ─► reactiva las filas canceladas (→ pendiente)
-        │                  + generarParaCotizacion() ────┘  1 fila por Cotcomponente
+        ├─ CONFIRMADO · OPERATIVA ─► reactiva las filas canceladas (→ pendiente)
+        │                              ⚠️ NO genera ninguna (ver §2.bis)
         │
         └─ CUALQUIER OTRO ─► propagarEstadoOperacion(CANCELADO)
            (cancelado / pendiente / enviado / archivado)
+
+           POST .../operacion ──► GenerarOperacionProcessor ──┘  1 fila por Cotcomponente
+                  ↑  una DECISIÓN del operador, con su botón
 
            POST .../operacion/plan ──► BibliaReconciliacionService::planificar()
                   ↓  revisión humana campo a campo (panel / consola)
@@ -86,6 +90,55 @@ Un "Día 3 – City Tour" con transporte, guía y almuerzo produce **tres** fila
 porque cada una puede tener proveedor, hora y estado de reserva distintos.
 
 ---
+
+## 2.bis Confirmar ya NO arma la operación (02/09/2026)
+
+Hasta esta fecha, pasar una cotización a CONFIRMADO generaba de golpe todas sus filas de La
+Biblia. Ya no. **Armar la operación es una acción del operador**, con su botón:
+
+```
+POST /client/cotizacion/{id}/operacion   →   GenerarOperacionProcessor
+```
+
+### Por qué se separó
+
+Son dos actos distintos que ocurren en momentos distintos. **Confirmar es comercial** —el cliente
+aceptó— y puede pasar semanas antes de que la operación esté lista para armarse. Encadenadas, el
+cuadro nacía con lo que hubiera ese día y había que corregirlo después, con el agravante conocido:
+`generarParaCotizacion()` es idempotente, así que **re-confirmar no repara** una fila mal generada
+(§3). El momento equivocado se quedaba pegado.
+
+Separadas, el operador arma cuando tiene con qué.
+
+### Lo que SÍ sigue siendo automático: reactivar
+
+`CotizacionConfirmadaEventListener::reactivar()` conserva la mitad que no crea nada: si una
+cotización se cancela por error y se vuelve a confirmar, sus filas vuelven de `cancelado` solas.
+
+⚠️ Quitar eso **no** era lo que se pidió, y habría sido caro: sin ello las filas se quedan
+canceladas para siempre, porque la reconciliación tampoco lo arregla —`estadoOperacion` está en la
+lista de campos que jamás toca, es del operador—.
+
+```
+lo que existía   →  vuelve solo
+lo que no existe →  no nace solo
+```
+
+### Dónde está el botón, y por qué ahí
+
+En la fila **donde vive la operación**: la operativa si la hay, si no la confirmada. Es el mismo
+sitio que el botón del plan de reconciliación, y a propósito: uno crea el cuadro y el otro lo
+revisa.
+
+⚠️ **Es idempotente y ésa es su forma de uso**, no un accidente: pulsarlo tras añadir servicios
+completa lo que falta sin tocar lo demás. Y **no revive lo cancelado** — una fila que el operador
+apagó se queda apagada, o cada uso del botón desharía decisiones suyas.
+
+### ⚠️ Consecuencia para lo que ya existe
+
+Las confirmadas anteriores conservan sus filas: no se borra nada. Lo que cambia es que una
+confirmada **nueva** nace con el cuadro vacío hasta que alguien lo arme. Si alguien reporta «La
+Biblia está vacía», la respuesta ya no es sólo §3.bis: puede ser que nadie haya pulsado el botón.
 
 ## 3. Reglas del snapshot
 
@@ -2931,6 +2984,8 @@ cotizado, no contra la venta real.
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
+| **Armar el cuadro de operación** | `src/Cotizacion/ApiPlatform/State/GenerarOperacionProcessor.php` | `process()` — botón «Armar la operación». ⚠️ **NO** lo hace confirmar (§2.bis) |
+| Que re-confirmar devuelva las filas canceladas | `src/Operacion/EventListener/CotizacionConfirmadaEventListener.php` | `reactivar()` — reactiva, no genera |
 | **Añadir un medio de pago a proveedor** | `src/Operacion/Enum/OperacionMedioPago.php` | un `case` + su `label()` e `icono()`; el panel lo recoge solo |
 | Cambiar en qué monedas se puede pagar una orden | `src/Operacion/Entity/OperacionOrdenServicio.php` | `monedasDeLosServicios()` — lo comprueba `OperacionPago::validarMonedaDeLaOrden()` |
 | Cambiar cuándo una orden cuenta como saldada | `src/Operacion/Entity/OperacionOrdenServicio.php` | `isSaldada()` — derivado, **no** es un estado de `estadoOs` |

@@ -16,6 +16,7 @@ use App\Cotizacion\ApiPlatform\Dto\InformeCoherencia;
 use App\Cotizacion\ApiPlatform\State\CloneCotizacionProcessor;
 use App\Cotizacion\ApiPlatform\State\RevisarCoherenciaProcessor;
 use App\Cotizacion\ApiPlatform\State\AbrirOperativaProcessor;
+use App\Cotizacion\ApiPlatform\State\GenerarOperacionProcessor;
 use App\Cotizacion\ApiPlatform\State\GuardarHistoricoProcessor;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
@@ -82,6 +83,20 @@ use Symfony\Component\Uid\Uuid;
             validate: false,
             processor: AbrirOperativaProcessor::class
         ),
+
+        // Armar el cuadro de operación. ⚠️ Acción propia y no efecto de confirmar: son dos
+        // actos distintos en momentos distintos. Ver GenerarOperacionProcessor.
+        new Post(
+            uriTemplate: '/client/cotizacion/{id}/operacion',
+            normalizationContext: ['groups' => ['file:item:read']],
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para armar la operación.',
+            read: true,
+            deserialize: false,
+            validate: false,
+            processor: GenerarOperacionProcessor::class
+        ),
+
         // Reconciliación en dos pasos: plan → revisión humana → aplicar sólo lo aprobado.
         //
         // Aquí hubo un `/resincronizar-operacion` que borraba y regeneraba de un golpe.

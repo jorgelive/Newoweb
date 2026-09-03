@@ -216,6 +216,29 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         }
     };
 
+    /**
+     * Arma el cuadro de operación: una fila de La Biblia por componente.
+     *
+     * ⚠️ **Ya no ocurre solo al confirmar.** Se separó el 02/09/2026: confirmar es un acto
+     * comercial y puede pasar semanas antes de que la operación esté lista para armarse.
+     * Encadenadas, el cuadro nacía con lo que hubiera ese día.
+     *
+     * Es idempotente y ésa es su forma de uso: pulsarlo tras añadir servicios **completa lo que
+     * falta sin tocar lo demás**, y no revive lo que el operador canceló a mano.
+     */
+    const generarOperacion = async (iriOrId: string): Promise<boolean> => {
+        error.value = null;
+        const id = String(iriOrId).includes('/') ? String(iriOrId).split('/').pop() : iriOrId;
+
+        try {
+            await apiClient.post(`/platform/sales/client/cotizacion/${id}/operacion`, {});
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al armar la operación.');
+            return false;
+        }
+    };
+
     // ────────────────────────────────────────────────────────────────────────
     // SUBGRUPOS DEL EXPEDIENTE
     //
@@ -652,6 +675,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         cloneCotizacion,
         guardarHistorico,
         abrirOperativa,
+        generarOperacion,
         crearGrupo,
         actualizarGrupo,
         cargarPadron,
