@@ -81,15 +81,20 @@ Servicio «Vuelo»
                       OperacionServicio ×2 — cada una con su hora, su punto y su orden
 ```
 
-⚠️ **La operativa nace al CONFIRMAR, sin publicar.** Y eso es lo que hace que **nunca haya que
-traspasar filas de operación**: nacen ya en la operativa. La alternativa —crearla a demanda—
-dejaba una ventana con dos filas con operación viva a la vez, que es exactamente el escenario que
-`CotizacionConfirmadaEventListener` describe como *«riesgo de pedirle y pagarle dos veces lo mismo
-al proveedor»*.
+⚠️ **La operativa se abre a MANO, con una acción propia** (`POST .../operativa`), y no como efecto
+de confirmar. El plan la describía naciendo sola; se cambió al implementarla, por un motivo
+mecánico: crear y persistir una entidad **dentro del `onFlush`** que confirma obliga a gimnasia con
+la unidad de trabajo. Con una acción propia el traspaso cabe en una transacción legible — y el
+operador decide cuándo, que además es lo que se pidió.
 
-El coste de crearla siempre es una operativa sin usar en expedientes individuales. **Nace
-invisible**, así que no molesta a nadie — y sigue siendo donde viven las órdenes, que es lo que de
-verdad hace.
+El precio de ese cambio es que **sí hay traspaso de filas de operación**, que la versión automática
+evitaba. Se paga entero dentro de una transacción: se cancelan las de la confirmada y se generan
+las de la operativa entre dos flushes, sin ningún instante con las dos vivas — que es el escenario
+que `CotizacionConfirmadaEventListener` describe como *«riesgo de pedirle y pagarle dos veces lo
+mismo al proveedor»*.
+
+A cambio, **no** se crean operativas sin usar en los expedientes individuales, que era el coste de
+la otra opción.
 
 ## 4. El borrador operativo sale gratis
 
@@ -129,13 +134,17 @@ Publicas      → ahora ve el itinerario real
 |---|---|---|
 | 2.1 | ~~El `match` del listener~~ **HECHO 02/09/2026** | ✅ Y confirmado que PHPStan no lo caza: `default` lo tapa |
 | 2.2 | ~~`OPERATIVA` en el enum~~ **HECHO** | ✅ Sin migración (`varchar(30)`) · el typecheck cazó el mapa de `util` |
-| 2.3 | Confirmar **crea la operativa** (clon, sin publicar, `derivadaDe`) y las filas de operación nacen ahí | Nunca hay dos filas con operación viva |
+| 2.3 | ~~Abrir la operativa: clon, sin publicar, `derivadaDe`, y **traspaso** de la operación~~ **HECHO 02/09/2026** | ✅ 47 → 0 en la confirmada, 0 → 47 en la operativa, 874 ms · detalle en `docs/Cotizaciones.md` §6.j.3 |
 | 2.4 | Vista cliente **compuesta**: financiero de la confirmada, itinerario de la operativa publicada | |
 | 2.5 | Front: estado en el mapa, botón de publicar, y que el editor diga dónde está | |
 
-⚠️ **2.1 es el único punto mudo de toda la fase.** Los tres `match` del enum y la unión generada de
-los `api.d.ts` hacen saltar el compilador; el `default => null` del listener, no — y su propio
-comentario advierte que un estado nuevo *«dejaría las filas activas sin que nada lo denunciara»*.
+⚠️ **2.1 no era el único punto mudo: era el primero de cuatro.** Al probar 2.3 con datos reales
+aparecieron tres más, todos pasando PHPStan y los 540 tests — un `Uuid` dentro de un `IN` que no
+casa nada, la operativa naciendo con cero filas porque el listener sólo mira actualizaciones, y lo
+`COMPLETADO` a punto de cancelarse. Están en `docs/Cotizaciones.md` §6.j.3.
+
+**Lo que los cazó a los tres fue el mismo sondeo**, y sólo después de arreglarle a él el mismo
+punto ciego: contaba las filas pasando entidades como parámetro y decía «ninguna» sobre 47.
 
 ### F3 · Sin candado, y es una decisión
 
@@ -272,12 +281,38 @@ Se dejan escritos porque el motivo sigue siendo útil.
 
 ## 9. Decisiones abiertas
 
-| | La pregunta |
-|---|---|
-| 1 | **Qué ve quien NO se identifica**: ¿nada, la portada sin padrón, o el itinerario común sin datos personales? |
-| 2 | **Si dos propuestas aprobadas son complementarias** (Lima + Bolivia), ¿la guía las fusiona por fecha o las enseña sueltas? |
+### ~~1 · Qué ve quien no se identifica~~ — **DECIDIDO 02/09/2026**
 
-La 2 es la más grande: el pasajero vive **un viaje**, no dos documentos — pero eso hay que quererlo,
+**El formulario, y nada más.** No hay versión degradada de la operativa.
+
+```
+Portada del expediente                    abierta · SIN manifiesto
+ ├── la aprobada y las históricas         abiertas — se navegan enteras
+ └── «Ver cotización» → la OPERATIVA      FORMULARIO · no funciona nada detrás
+```
+
+⚠️ **El manifiesto se cae de la portada en grupales, y esa parte no depende de identificarse: no
+está para nadie.** Hoy `PaxFilePortadaView` lista a los 133 pasajeros con su número de documento a
+la vista de cualquiera con el enlace. Cerrar la operativa y dejar el padrón delante sería poner la
+puerta al lado de la ventana abierta.
+
+⚠️ **Es formulario o nada, no «formulario y además una versión recortada».** La alternativa
+—enseñar el itinerario común y esconder lo personal— parece más amable y es la que se rompe: cada
+campo nuevo que alguien añada obliga a acordarse de clasificarlo, y **olvidarse lo deja a la
+vista**. Un fallo que no da error y que sólo se descubre cuando ya lo vio quien no debía.
+
+Con la puerta entera cerrada no hay nada que clasificar: la pregunta «¿este campo es personal?»
+deja de existir. Es la misma forma de razonar que `publicado` — quitar el desempate en vez de
+resolverlo mejor.
+
+Y no cuesta acceso: lo comercial —precios, itinerario vendido, condiciones— sigue abierto en las
+confirmadas e históricas, que es a lo que va quien todavía no es pasajero.
+
+### 2 · Si dos propuestas aprobadas son complementarias
+
+(Lima + Bolivia): ¿la guía las fusiona por fecha o las enseña sueltas?
+
+Es la más grande: el pasajero vive **un viaje**, no dos documentos — pero eso hay que quererlo,
 no deducirlo.
 
 ---
@@ -288,7 +323,8 @@ no deducirlo.
 |---|---|
 | Si el cliente ve una propuesta | `Cotizacion::$publicado` — **no** el estado |
 | Qué pasa al cambiar de estado | `CotizacionConfirmadaEventListener` — el `match`, **explícito siempre** |
-| Que confirmar abra la operación | el processor de confirmación (F2.3) |
+| Abrir la operativa de una confirmada | `AbrirOperativaProcessor` — `POST /client/cotizacion/{id}/operativa` |
+| Que un clon no vuelva a traducirse | `duplicar()` de las 5 entidades del árbol — `setEjecutarTraduccion(false)` |
 | A quién aplica un componente | `CotizacionCotcomponente::$grupo` |
 | El código de vuelo de una persona | `CotizacionPasajeroGrupo::$codigo` |
 | Los ejes de agrupación | `GrupoTipoEnum` — el subeje es texto libre, no hace falta un `case` por tramo |

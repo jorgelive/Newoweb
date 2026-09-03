@@ -15,6 +15,7 @@ use App\Attribute\AutoTranslate;
 use App\Cotizacion\ApiPlatform\Dto\InformeCoherencia;
 use App\Cotizacion\ApiPlatform\State\CloneCotizacionProcessor;
 use App\Cotizacion\ApiPlatform\State\RevisarCoherenciaProcessor;
+use App\Cotizacion\ApiPlatform\State\AbrirOperativaProcessor;
 use App\Cotizacion\ApiPlatform\State\GuardarHistoricoProcessor;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Entity\Trait\AutoTranslateControlTrait;
@@ -66,6 +67,19 @@ use Symfony\Component\Uid\Uuid;
             deserialize: false,
             validate: false,
             processor: GuardarHistoricoProcessor::class
+        ),
+        // Clonar hacia ADELANTE, después de vender: la operativa es lo que de verdad se va a
+        // operar. Misma propuesta, otro estado, y el traspaso de las filas de operación en una
+        // sola transacción. Ver AbrirOperativaProcessor.
+        new Post(
+            uriTemplate: '/client/cotizacion/{id}/operativa',
+            normalizationContext: ['groups' => ['file:item:read']],
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para abrir la operativa.',
+            read: true,
+            deserialize: false,
+            validate: false,
+            processor: AbrirOperativaProcessor::class
         ),
         // Reconciliación en dos pasos: plan → revisión humana → aplicar sólo lo aprobado.
         //
@@ -400,6 +414,37 @@ class Cotizacion
     {
         $copia = clone $this;               // clone superficial por defecto (sin __clone)
         $copia->resetId();
+
+        // ⚠️ **Un clon NO vuelve a traducirse, y esto es lo que hace la copia viable.**
+        //
+        // Medido el 02/09/2026 sobre una cotización real de 17 servicios (162 entidades en el
+        // árbol): `persist()` tardaba **245.532 ms** —cuatro minutos— y el `flush` posterior sólo
+        // 663. El tiempo no era de la base: la conexión estaba `Sleep`. Era `prePersist`
+        // llamando a Google por cada entidad nueva, a siete idiomas.
+        //
+        // Con el interruptor apagado: **73 ms de `persist` y 243 de `flush`**. 777 veces menos, y
+        // cientos de llamadas al traductor que no se pagan.
+        //
+        // ── Por qué el `origenHash` no lo evitaba ──────────────────────────────
+        // El clon SÍ arrastra las traducciones (`clone` es superficial), pero estas filas son
+        // anteriores al hash y no lo llevan. `AutoTranslationService` retraduce a propósito
+        // cualquier fila sin hash —«no sabemos si corresponde a su español, y la única forma
+        // honesta de averiguarlo es rehacerla»—, y esa decisión está bien: quien declara que una
+        // traducción vieja es correcta es `app:traduccion:sellar-hash`, no un clon.
+        //
+        // Sellar el histórico ayudaría, pero **no es lo que arregla esto**: aunque cada fila
+        // llevara su hash, seguiríamos recorriendo 162 entidades para concluir que no hay nada
+        // que hacer. Un clon es texto byte a byte idéntico a un árbol ya traducido; preguntarlo
+        // es la parte que sobra.
+        //
+        // ⚠️ El flag es **virtual, no se guarda**: apaga el listener para este guardado y nada
+        // más. Editar la copia mañana la traduce con normalidad.
+        //
+        // ⚠️ Consecuencia aceptada: si el original tenía un idioma sin rellenar, la copia nace
+        // igual de vacía en vez de aprovechar el viaje. Rellenar huecos es trabajo del comando de
+        // traducción o del siguiente guardado — no de copiar.
+        $copia->setEjecutarTraduccion(false);
+
         $copia->cotservicios = new ArrayCollection();
 
         // Ni el vínculo ni la colección se copian: la copia empieza suelta y quien la crea decide

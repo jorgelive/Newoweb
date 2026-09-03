@@ -1915,6 +1915,54 @@ Ya no decidía nada —la visibilidad es `publicado` (§6.j.1)— y dejarlo habr
 borrarlo: el siguiente que lo leyera creería que sigue mandando, y respondería que una operativa no
 es pública cuando sí puede serlo.
 
+## 6.j.3 Abrir la operativa: el traspaso de la operación (02/09/2026)
+
+`POST /client/cotizacion/{id}/operativa` → `AbrirOperativaProcessor`. Clona la confirmada hacia
+**adelante**: misma propuesta, estado `OPERATIVA`, `derivadaDe` apuntando a ella, **sin publicar**,
+y con el `clasificacionFinancieraCliente` heredado tal cual —ya se vendió y ya se cobró—.
+
+```
+antes    CONFIRMADA  47 filas de operación activas   ·  OPERATIVA  no existe
+después  CONFIRMADA   0 filas activas (congelada)    ·  OPERATIVA  47 activas
+```
+
+Medido con datos reales sobre `2KVBMX`: **874 ms**, en una sola transacción.
+
+### Por qué es una acción explícita y no un efecto de confirmar
+
+El plan la describía naciendo sola al confirmar. Crear y persistir una entidad **dentro del
+`onFlush`** que confirma obliga a gimnasia con la unidad de trabajo, y ahí es donde se rompen las
+cosas de forma difícil de ver. Con una acción propia el traspaso cabe en una transacción legible —
+y además el operador decide cuándo abrirla, que es lo que se pidió.
+
+### ⚠️ Tres fallos mudos que sólo vio el sondeo con datos reales
+
+Los tres pasaban PHPStan, los 540 tests y una lectura a ojo:
+
+| Qué | Síntoma | Por qué |
+|---|---|---|
+| La cancelación no cancelaba | Las 47 filas seguían activas | Un `Uuid` dentro de un `IN` **no casa ninguna fila y no da error**. Con `ArrayParameterType::BINARY` y `toBinary()`, sí |
+| La operativa nacía con **cero filas** | El cuadro de operación, vacío | `CotizacionConfirmadaEventListener` sólo recorre `getScheduledEntityUpdates()`, y la operativa nace como **inserción**: su `case OPERATIVA` no se pisaba nunca |
+| Lo `COMPLETADO` se habría cancelado | Se borraría el registro de lo ya operado | El listener sí protege ese estado; este camino no pasa por él y había que repetir la regla |
+
+⚠️ **Y el sondeo tuvo el mismo fallo antes que el código:** contaba las filas con
+`IN (:cotservicios)` pasando entidades, así que decía «(ninguna)» sobre una cotización con 47.
+Un verificador que comparte el punto ciego de lo que verifica no verifica nada — por eso cuenta en
+SQL crudo.
+
+### Idempotente
+
+Si ya hay una operativa para esa propuesta, se devuelve la que hay. Abrir dos sería tener dos
+sitios donde mirar qué se va a operar. `generarParaCotizacion()` también lo es —salta el
+componente que ya tiene fila—, así que el `case OPERATIVA` del listener y esta llamada explícita
+no se pisan.
+
+### ⚠️ Clonar ya no retraduce
+
+Duplicar un árbol de cotización llamaba a Google por cada una de sus 162 entidades: `persist()`
+tardaba **245 segundos**. Ahora tarda 73 ms. Afectaba también a «Guardar foto». El detalle, y por
+qué el `origenHash` no lo evitaba, en `docs/Autotraduccion.md` §9.
+
 ## 6.j Versiones e históricos: dos clones en direcciones opuestas (23/08/2026)
 
 Un expediente tiene N `Cotizacion`, numeradas `version`. **Son propuestas**, no versiones de un
