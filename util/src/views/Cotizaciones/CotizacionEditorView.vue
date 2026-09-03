@@ -28,6 +28,7 @@ import {
   CotServicio, CotSegmento, ComponenteCompleto, SnapshotItem, Segmento, OpcionUpgradeInterna, NotaSnapshot,
   MODALIDAD_CONFIG, CATEGORIA_CONFIG, enumOptions, clasificacionBadges, CLASIF_BADGE_CLASE,
   AudienciaDetalle, AUDIENCIA_DETALLE_CONFIG, type SubgrupoOpcion,
+  ESTADOS_ELEGIBLES, esEstadoDeProceso, type EstadoUIConfig, type CotizacionEstadoValue,
   type TarifaModalidadValue, type TarifaCategoriaValue
 } from '@/types/cotizacionEditorModel';
 import { GRUPO_TIPO_LABELS } from '@/types/fileDetalleModel';
@@ -63,6 +64,35 @@ const { esEstrecha } = usePantallaEstrecha();
  * Un `try` alrededor porque en modo privado de algunos navegadores escribir lanza, y perder la
  * preferencia no puede tumbar el editor.
  */
+// ── Selector de estado ──────────────────────────────────────────────────────
+const estadoAbierto = ref(false);
+
+/**
+ * La configuración visual del estado actual.
+ *
+ * ⚠️ Con respaldo: `estado` viene de la API como `string`, así que un estado que el front no
+ * conozca —uno nuevo en el backend y el mapa sin actualizar— dejaría la cabecera **sin nada**. Se
+ * prefiere enseñar el valor crudo en gris: feo se ve, invisible no.
+ */
+const cfgEstado = computed<EstadoUIConfig>(() => {
+  const actual = store.cotizacion?.estado;
+
+  // ⚠️ Se comprueba la pertenencia en vez de castear: `estado` llega como `string`, y un cast a
+  // ciegas haría que un estado nuevo del backend devolviera `undefined` sin que nada avisara.
+  if (actual !== undefined && actual in ESTADO_COTIZACION_CONFIG) {
+    return ESTADO_COTIZACION_CONFIG[actual as CotizacionEstadoValue];
+  }
+
+  return { label: actual ?? '—', bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-200', icon: 'fa-circle-question' };
+});
+
+const elegirEstado = (valor: CotizacionEstadoValue) => {
+  if (store.cotizacion) {
+    store.cotizacion.estado = valor;
+  }
+  estadoAbierto.value = false;
+};
+
 /**
  * Cómo se lee un subgrupo en el selector: «Vuelo · Nacional · ARAJET».
  *
@@ -2126,11 +2156,73 @@ store.$onAction(({ name, args }) => {
               <div class="col-span-2 grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-4">
                 <div>
                   <span class="block text-xs font-bold text-slate-500 uppercase mb-1">{{ store.modoCatalogo ? 'Estado del Tour' : 'Estado Propuesta' }}</span>
-                  <select v-model="store.cotizacion.estado" class="w-full font-black text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] text-sm appearance-none shadow-sm">
-                    <option v-for="(cfg, valor) in ESTADO_COTIZACION_CONFIG" :key="valor" :value="valor">
-                      {{ cfg.label }}
-                    </option>
-                  </select>
+
+                  <!-- ⚠️ Un estado que puso un PROCESO no se ofrece para cambiar, pero tampoco se
+                       pisa: se enseña bloqueado. Cambiarlo a mano dejaría una fila que ningún
+                       proceso creó —una «operativa» sin traspaso, un «histórico» sin foto— y nada
+                       lo denunciaría. Ver ESTADOS_ELEGIBLES. -->
+                  <div v-if="esEstadoDeProceso(store.cotizacion.estado)"
+                       class="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-black"
+                       :class="[cfgEstado.bg, cfgEstado.text, cfgEstado.border]"
+                       :title="store.cotizacion.estado === 'operativa'
+                         ? 'Lo creó «Abrir la operativa»: aquí no se cambia'
+                         : 'Lo creó «Guardar foto»: un histórico no se edita'">
+                    <i class="fas text-xs" :class="cfgEstado.icon"></i>
+                    <span>{{ cfgEstado.label }}</span>
+                    <i class="fas fa-lock text-[10px] ml-auto opacity-50"></i>
+                  </div>
+
+                  <div v-else class="relative">
+                    <button type="button" @click="estadoAbierto = !estadoAbierto"
+                            class="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-black shadow-sm transition-colors"
+                            :class="[cfgEstado.bg, cfgEstado.text, cfgEstado.border]">
+                      <i class="fas text-xs" :class="cfgEstado.icon"></i>
+                      <span>{{ cfgEstado.label }}</span>
+                      <i class="fas fa-chevron-down text-[10px] ml-auto opacity-60"></i>
+                    </button>
+
+                    <!-- Telón para cerrar al pulsar fuera: un `@click` en un fondo invisible es
+                         menos frágil que un listener global que hay que quitar al desmontar. -->
+                    <div v-if="estadoAbierto" class="fixed inset-0 z-20" @click="estadoAbierto = false"></div>
+
+                    <div v-if="estadoAbierto"
+                         class="absolute z-30 left-0 right-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
+                      <button v-for="valor in ESTADOS_ELEGIBLES" :key="valor" type="button"
+                              @click="elegirEstado(valor)"
+                              class="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-black text-left hover:bg-slate-50 transition-colors"
+                              :class="store.cotizacion.estado === valor ? ESTADO_COTIZACION_CONFIG[valor].bg : ''">
+                        <i class="fas text-xs w-4 text-center"
+                           :class="[ESTADO_COTIZACION_CONFIG[valor].icon, ESTADO_COTIZACION_CONFIG[valor].text]"></i>
+                        <span :class="ESTADO_COTIZACION_CONFIG[valor].text">{{ ESTADO_COTIZACION_CONFIG[valor].label }}</span>
+                        <i v-if="store.cotizacion.estado === valor" class="fas fa-check text-[10px] ml-auto text-slate-400"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ══ VISIBILIDAD ═══════════════════════════════════════════
+                     ⚠️ Es un eje APARTE del estado, y por eso vive al lado y no dentro. Mezclarlos
+                     obligaba a poner «Enviado» sólo para poder mirar una propuesta —la queja que
+                     originó el campo—. Ver docs/Cotizaciones.md §6.j.1. -->
+                <div class="col-span-2">
+                  <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Visible para el cliente</span>
+                  <button type="button" @click="store.cotizacion.publicado = !store.cotizacion.publicado"
+                          class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border text-sm font-black shadow-sm transition-colors"
+                          :class="store.cotizacion.publicado
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-500 border-slate-200'">
+                    <i class="fas text-xs" :class="store.cotizacion.publicado ? 'fa-eye' : 'fa-eye-slash'"></i>
+                    <span>{{ store.cotizacion.publicado ? 'Publicada' : 'No publicada' }}</span>
+                    <span class="ml-auto w-9 h-5 rounded-full relative transition-colors"
+                          :class="store.cotizacion.publicado ? 'bg-emerald-500' : 'bg-slate-300'">
+                      <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                            :class="store.cotizacion.publicado ? 'left-4.5' : 'left-0.5'"></span>
+                    </span>
+                  </button>
+                  <p class="text-[10px] text-slate-400 mt-1 leading-snug">
+                    Independiente del estado: puedes revisarla sin publicarla. Al publicar, el
+                    servidor despublica las otras filas de esta misma propuesta.
+                  </p>
                 </div>
                 <div>
                   <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Idioma</span>

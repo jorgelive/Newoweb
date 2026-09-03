@@ -197,9 +197,38 @@ export interface EstadoUIConfig {
     icon: string;
 }
 
-type CotizacionEstadoValue = components['schemas']['Cotizacion-cotizacion.read_timestamp.read']['estado'];
+export type CotizacionEstadoValue = components['schemas']['Cotizacion-cotizacion.read_timestamp.read']['estado'];
 
 export type Item = components['schemas']['TravelComponenteItem-componente.item.read'];
+
+/**
+ * Los estados que el operador PUEDE elegir, en el orden en que se ofrecen.
+ *
+ * ⚠️ **`historico` y `operativa` no están, y es lo importante de esta lista.** No son estados que
+ * se escojan: son el **resultado de un proceso** —«Guardar foto» y «Abrir la operativa»—, cada uno
+ * con su botón y sus consecuencias. `historico` congela una copia; `operativa` traspasa las filas
+ * de La Biblia. Ofrecerlos en un desplegable invitaba a provocar esas consecuencias sin saberlo, y
+ * peor: a marcar «Operativa» en una cotización cualquiera y dejarla en un estado que ningún
+ * proceso creó.
+ *
+ * ⚠️ Que no se ofrezcan **no significa que se pisen**: una cotización que ya está en uno de esos
+ * estados lo conserva y la interfaz lo enseña bloqueado. Ver `esEstadoDeProceso()`.
+ *
+ * El orden es deliberado: primero el camino normal de una venta —pendiente → enviado → cerrado →
+ * confirmado— y **abajo los dos finales**, operado y cancelado, que se eligen una vez y ya está.
+ */
+export const ESTADOS_ELEGIBLES: CotizacionEstadoValue[] = [
+    'pendiente',
+    'enviado',
+    'cerrado',
+    'confirmado',
+    'operado',
+    'cancelado',
+];
+
+/** ¿Este estado lo puso un proceso y no una persona? */
+export const esEstadoDeProceso = (estado?: string | null): boolean =>
+    estado === 'historico' || estado === 'operativa';
 
 export const ESTADO_COTIZACION_CONFIG: Record<CotizacionEstadoValue, EstadoUIConfig> = {
     pendiente: { label: 'Pendiente', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: 'fa-clock' },

@@ -1915,6 +1915,38 @@ Ya no decidía nada —la visibilidad es `publicado` (§6.j.1)— y dejarlo habr
 borrarlo: el siguiente que lo leyera creería que sigue mandando, y respondería que una operativa no
 es pública cuando sí puede serlo.
 
+## 6.j.2.b El selector de estado no ofrece lo que hace un proceso (03/09/2026)
+
+`ESTADOS_ELEGIBLES` — los seis que el operador **puede elegir**, en el orden en que se ofrecen:
+
+```
+Pendiente · Enviado · Cerrado · Confirmado        el camino de una venta
+Operado · Cancelado                              abajo: los dos finales
+```
+
+### ⚠️ `historico` y `operativa` NO están, y es lo importante de esa lista
+
+No son estados que se escojan: son el **resultado de un proceso**, cada uno con su botón y sus
+consecuencias. `historico` congela una copia; `operativa` **traspasa las 47 filas de La Biblia**.
+Ofrecerlos en un desplegable invitaba a provocar eso sin saberlo — y, peor, a marcar «Operativa» en
+una cotización cualquiera y dejarla en un estado **que ningún proceso creó**: sin `derivadaDe`, sin
+traspaso, sin financiero heredado. Una operativa de mentira que el resto del código da por buena.
+
+⚠️ **Que no se ofrezcan no significa que se pisen.** Una fila que ya está en uno de esos estados lo
+conserva, y el editor lo enseña **bloqueado con un candado** y el porqué en el `title`. Coaccionarla
+a un estado elegible al abrir el editor habría sido la otra forma del mismo error.
+
+### Y de paso, tres cosas que faltaban ahí
+
+| | |
+|---|---|
+| El `<select>` nativo | Sustituido por un desplegable con el color y el icono de cada estado, que ya estaban en `ESTADO_COTIZACION_CONFIG` y no se usaban |
+| El orden | «Operado» y «Cancelado» al final: se eligen una vez y ya está |
+| **`publicado` no se veía** | Interruptor propio, al lado del estado — **no dentro**. Son dos ejes (§6.j.1) y mezclarlos es lo que obligaba a poner «Enviado» sólo para poder mirar |
+
+⚠️ El respaldo del selector enseña el valor crudo en gris si el estado no está en el mapa: un
+estado nuevo en el backend dejaría la cabecera **vacía**, y feo se ve pero invisible no.
+
 ## 6.j.3 Abrir la operativa: el traspaso de la operación (02/09/2026)
 
 `POST /client/cotizacion/{id}/operativa` → `AbrirOperativaProcessor`. Clona la confirmada hacia
