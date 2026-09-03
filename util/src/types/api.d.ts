@@ -7325,12 +7325,8 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
-            /**
-             * Format: iri-reference
-             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
-             * @example https://example.com/
-             */
-            grupo?: string | null;
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7444,7 +7440,7 @@ export interface components {
         };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo-cotizacion.read_timestamp.read"] | null;
+            grupos?: components["schemas"]["CotizacionFileGrupo-cotizacion.read_timestamp.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7552,12 +7548,8 @@ export interface components {
         };
         "CotizacionCotcomponente-cotizacion.write": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.write"] | null;
-            /**
-             * Format: iri-reference
-             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
-             * @example https://example.com/
-             */
-            grupo?: string | null;
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7676,12 +7668,8 @@ export interface components {
         };
         "CotizacionCotcomponente-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_catalogo.read_pax_cotizacion.read"] | null;
-            /**
-             * Format: iri-reference
-             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
-             * @example https://example.com/
-             */
-            grupo?: string | null;
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7724,7 +7712,7 @@ export interface components {
         };
         "CotizacionCotcomponente-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo-pax_file.read_pax_cotizacion.read"] | null;
+            grupos?: components["schemas"]["CotizacionFileGrupo-pax_file.read_pax_cotizacion.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7779,12 +7767,8 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
-            /**
-             * Format: iri-reference
-             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
-             * @example https://example.com/
-             */
-            grupo?: string | null;
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -7898,7 +7882,7 @@ export interface components {
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.html-cotizacion.read_timestamp.read"] | null;
+            grupos?: components["schemas"]["CotizacionFileGrupo.html-cotizacion.read_timestamp.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8023,12 +8007,8 @@ export interface components {
         };
         "CotizacionCotcomponente.html-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_catalogo.read_pax_cotizacion.read"] | null;
-            /**
-             * Format: iri-reference
-             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
-             * @example https://example.com/
-             */
-            grupo?: string | null;
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8071,7 +8051,7 @@ export interface components {
         };
         "CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.html-pax_file.read_pax_cotizacion.read"] | null;
+            grupos?: components["schemas"]["CotizacionFileGrupo.html-pax_file.read_pax_cotizacion.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8126,12 +8106,8 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
-            /**
-             * Format: iri-reference
-             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
-             * @example https://example.com/
-             */
-            grupo?: string | null;
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8246,7 +8222,7 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-cotizacion.read_timestamp.read"] | null;
+            grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-cotizacion.read_timestamp.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8373,12 +8349,8 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_catalogo.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_catalogo.read_pax_cotizacion.read"] | null;
-            /**
-             * Format: iri-reference
-             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
-             * @example https://example.com/
-             */
-            grupo?: string | null;
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8422,7 +8394,7 @@ export interface components {
         /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
         "CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.jsonld-pax_file.read_pax_cotizacion.read"] | null;
+            grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-pax_file.read_pax_cotizacion.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8477,12 +8449,8 @@ export interface components {
              * @example https://example.com/
              */
             cotsegmento?: string | null;
-            /**
-             * Format: iri-reference
-             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
-             * @example https://example.com/
-             */
-            grupo?: string | null;
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8596,7 +8564,7 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.multipart-cotizacion.read_timestamp.read"] | null;
+            grupos?: components["schemas"]["CotizacionFileGrupo.multipart-cotizacion.read_timestamp.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8721,12 +8689,8 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-pax_catalogo.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_catalogo.read_pax_cotizacion.read"] | null;
-            /**
-             * Format: iri-reference
-             * @description A QUIÉN del grupo aplica este componente. `null` = a todos.
-             * @example https://example.com/
-             */
-            grupo?: string | null;
+            /** @description A QUIÉN aplica este componente. **Vacío = a todos.** */
+            grupos?: string[];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;
@@ -8769,7 +8733,7 @@ export interface components {
         };
         "CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"] | null;
-            grupo?: components["schemas"]["CotizacionFileGrupo.multipart-pax_file.read_pax_cotizacion.read"] | null;
+            grupos?: components["schemas"]["CotizacionFileGrupo.multipart-pax_file.read_pax_cotizacion.read"][];
             /** @description El nombre PÚBLICO de la línea que se compra: el que ve el cliente. */
             tituloSnapshot?: {
                 [key: string]: string | null;

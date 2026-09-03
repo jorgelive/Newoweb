@@ -67,17 +67,17 @@ const { esEstrecha } = usePantallaEstrecha();
 // ── Repartos: un componente partido entre subgrupos ─────────────────────────
 
 interface ParteDeReparto {
-  nombre: string;
+  nombres: string[];          // los subgrupos de esta parte
   cantidad: number;
-  asignados: number | null;   // null = «a todos»: no hay subgrupo que contar
+  personas: number | null;    // null = «a todos»: no hay a quién contar
 }
 
 interface Reparto {
   titulo: string;
   partes: ParteDeReparto[];
   cantidad: number;
-  asignados: number;
-  hayAbiertos: boolean;       // alguna parte sin subgrupo
+  personas: number;
+  hayAbiertos: boolean;
 }
 
 /**
@@ -85,17 +85,16 @@ interface Reparto {
  *
  * ⚠️ **Espejo de `CotizacionCotservicio::repartos()`** (PHP). La regla de agrupar —«un original y
  * los que apuntan a él por `duplicadoDe`»— vive en los dos sitios y hay que tocar los dos. Aquí
- * además se cuentan los **asignados**, que el servidor no calcula porque necesita los subgrupos
- * del expediente, y ésos el editor ya los tiene cargados.
+ * además se cuentan las personas, que el servidor sí calcula pero no expone todavía.
+ *
+ * ── ⚠️ Contar es una UNIÓN, no una suma ────────────────────────────────────
+ * Un componente puede llevar varios subgrupos —el vuelo JA7018 son 7 PNRs— y dos subgrupos pueden
+ * compartir gente. Sumar `totalMiembros` daría de más justo donde el solape importa, y diría
+ * «cubre 120 de 100» en vez de señalar el solape. Se cuentan **pasajeros distintos**.
  *
  * ── ⚠️ Por qué DOS números y no uno ────────────────────────────────────────
- * `cantidad` es lo que se cobra; `asignados` es a cuánta gente cubre. En un servicio por persona
- * coinciden, y en uno **grupal no**: la cantidad vale 1 —se cobra una vez— y cubre a 44. Enseñar
- * sólo la cantidad haría que un vuelo repartido pareciera cubrir «1 + 1» y no habría forma de ver
- * a quién le falta.
- *
- * ⚠️ Una parte **sin subgrupo** aplica a todos, así que no se suma a `asignados`: sumar el total
- * del grupo ahí daría siempre «de sobra» y taparía justo lo que se busca. Se señala aparte.
+ * `cantidad` es lo que se cobra; `personas` es a cuánta gente cubre. En un servicio por persona
+ * coinciden, y en uno **grupal no**: la cantidad vale 1 —se cobra una vez— y cubre a 44.
  */
 const repartosDelServicio = computed<Reparto[]>(() => {
   const comps = store.servicioActivo?.cotcomponentes ?? [];
@@ -109,44 +108,84 @@ const repartosDelServicio = computed<Reparto[]>(() => {
     porRaiz.set(raiz, [...(porRaiz.get(raiz) ?? []), comp]);
   }
 
-  const miembrosDe = (iri?: string | null): number | null => {
-    if (!iri) return null;
-
-    return store.subgruposDelFile.find(sg => sg['@id'] === iri)?.totalMiembros ?? 0;
-  };
+  const subgrupoDe = (iri: string) => store.subgruposDelFile.find(sg => sg['@id'] === iri);
 
   const salida: Reparto[] = [];
 
   for (const miembros of porRaiz.values()) {
-    // Un servicio sin partir no es un reparto de uno.
     if (miembros.length < 2) continue;
 
+    // Los pasajeros ya contados en ESTE reparto, para no sumar a nadie dos veces entre partes.
     const partes = miembros.map((c): ParteDeReparto => {
-      const asignados = miembrosDe(typeof c.grupo === 'string' ? c.grupo : null);
+      const iris = (c.grupos ?? []) as string[];
 
       return {
-        nombre: asignados === null
-          ? 'Todo el grupo'
-          : etiquetaSubgrupo(store.subgruposDelFile.find(sg => sg['@id'] === c.grupo)!),
+        nombres: iris.map(iri => {
+          const sg = subgrupoDe(iri);
+
+          return sg ? etiquetaSubgrupo(sg) : '—';
+        }),
         cantidad: Number(c.cantidad ?? 0),
-        asignados,
+        personas: iris.length === 0
+          ? null
+          : iris.reduce((s, iri) => s + (subgrupoDe(iri)?.totalMiembros ?? 0), 0),
       };
     });
 
     salida.push({
-      // `nombreInternoSnapshot` es un `string` plano; sólo `tituloSnapshot` es i18n.
       titulo: miembros[0].nombreInternoSnapshot
         || store.getI18nText(miembros[0].tituloSnapshot, 'es')
         || 'Componente',
       partes,
       cantidad: partes.reduce((s, p) => s + p.cantidad, 0),
-      asignados: partes.reduce((s, p) => s + (p.asignados ?? 0), 0),
-      hayAbiertos: partes.some(p => p.asignados === null),
+      personas: partes.reduce((s, p) => s + (p.personas ?? 0), 0),
+      hayAbiertos: partes.some(p => p.personas === null),
     });
   }
 
   return salida;
 });
+
+// ── «A quién aplica»: varios subgrupos por componente ───────────────────────
+const grupoAbierto = ref(false);
+
+/** ¿Este componente está acotado a este subgrupo? */
+const tieneGrupo = (iri: string): boolean =>
+  ((store.componenteActivo?.grupos ?? []) as string[]).includes(iri);
+
+/**
+ * Marca o desmarca un subgrupo.
+ *
+ * ⚠️ Se reasigna el array en vez de mutarlo: el editor detecta cambios por identidad, y un
+ * `push()` no dispararía el «hay cambios sin guardar».
+ */
+const alternarGrupo = (iri: string): void => {
+  if (!store.componenteActivo) return;
+
+  const actuales = (store.componenteActivo.grupos ?? []) as string[];
+
+  store.componenteActivo.grupos = actuales.includes(iri)
+    ? actuales.filter(x => x !== iri)
+    : [...actuales, iri];
+};
+
+/** Lo que se lee en el botón cerrado. */
+const resumenDeGrupos = (comp: ComponenteCompleto): string => {
+  const iris = (comp.grupos ?? []) as string[];
+
+  if (iris.length === 0) return 'Todo el grupo';
+
+  const pax = iris.reduce((s, iri) =>
+    s + (store.subgruposDelFile.find(sg => sg['@id'] === iri)?.totalMiembros ?? 0), 0);
+
+  if (iris.length === 1) {
+    const sg = store.subgruposDelFile.find(s => s['@id'] === iris[0]);
+
+    return sg ? `${etiquetaSubgrupo(sg)} · ${pax} pax` : `1 subgrupo · ${pax} pax`;
+  }
+
+  return `${iris.length} subgrupos · ${pax} pax`;
+};
 
 // ── Selector de estado ──────────────────────────────────────────────────────
 const estadoAbierto = ref(false);
@@ -2659,37 +2698,45 @@ store.$onAction(({ name, args }) => {
 
               <!-- ══ REPARTOS ═══════════════════════════════════════════════
                    Encima de los componentes porque es lo que hay que mirar ANTES de tocarlos: dos
-                   tarjetas por separado no dejan ver que entre las dos cubren 35 de 40. -->
+                   tarjetas por separado no dejan ver que entre las dos cubren 44 de 100. -->
               <div v-for="(r, i) in repartosDelServicio" :key="i"
                    class="mb-3 rounded-2xl border p-3"
-                   :class="r.asignados === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos
+                   :class="r.personas === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos
                      ? 'border-emerald-200 bg-emerald-50'
                      : 'border-amber-200 bg-amber-50'">
                 <p class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 mb-2"
-                   :class="r.asignados === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos ? 'text-emerald-700' : 'text-amber-700'">
-                  <i class="fas" :class="r.asignados === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos ? 'fa-circle-check' : 'fa-triangle-exclamation'"></i>
+                   :class="r.personas === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos ? 'text-emerald-700' : 'text-amber-700'">
+                  <i class="fas" :class="r.personas === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos ? 'fa-circle-check' : 'fa-triangle-exclamation'"></i>
                   Repartido en {{ r.partes.length }} · {{ r.titulo }}
                 </p>
 
-                <div v-for="(pt, j) in r.partes" :key="j" class="flex items-center gap-2 text-[11px] text-slate-600 mb-0.5">
-                  <span class="font-bold truncate flex-1">{{ pt.nombre }}</span>
-                  <!-- ⚠️ DOS números: `cantidad` es lo que se cobra, `asignados` a cuánta gente
+                <div v-for="(pt, j) in r.partes" :key="j" class="flex items-start gap-2 text-[11px] text-slate-600 mb-1">
+                  <span class="font-bold flex-1 leading-snug">
+                    <template v-if="pt.nombres.length">
+                      <!-- Varios subgrupos en una parte: el vuelo JA7018 son 7 PNRs. -->
+                      <span v-for="(n, k) in pt.nombres" :key="k">
+                        <span v-if="k" class="text-slate-300"> + </span>{{ n }}
+                      </span>
+                    </template>
+                    <span v-else class="text-amber-700">Todo el grupo</span>
+                  </span>
+                  <!-- ⚠️ DOS números: `cantidad` es lo que se cobra, `personas` a cuánta gente
                        cubre. En un servicio grupal la cantidad vale 1 y cubre a 44. -->
                   <span class="font-mono text-slate-400 shrink-0">×{{ pt.cantidad }}</span>
-                  <span v-if="pt.asignados !== null" class="font-black shrink-0 w-14 text-right">{{ pt.asignados }} pax</span>
+                  <span v-if="pt.personas !== null" class="font-black shrink-0 w-14 text-right">{{ pt.personas }} pax</span>
                   <span v-else class="font-black text-amber-600 shrink-0 w-14 text-right">todos</span>
                 </div>
 
                 <p class="text-[11px] font-black mt-2 pt-2 border-t"
-                   :class="r.asignados === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos
+                   :class="r.personas === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos
                      ? 'border-emerald-200 text-emerald-700' : 'border-amber-200 text-amber-800'">
-                  Cubre {{ r.asignados }} de {{ store.cotizacion?.numPax ?? 0 }} pax
+                  Cubre {{ r.personas }} de {{ store.cotizacion?.numPax ?? 0 }} pax
                   <span v-if="r.hayAbiertos" class="font-bold"> · hay una parte «para todos», que no se suma</span>
-                  <span v-else-if="r.asignados < (store.cotizacion?.numPax ?? 0)" class="font-bold">
-                    · faltan {{ (store.cotizacion?.numPax ?? 0) - r.asignados }} por asignar
+                  <span v-else-if="r.personas < (store.cotizacion?.numPax ?? 0)" class="font-bold">
+                    · faltan {{ (store.cotizacion?.numPax ?? 0) - r.personas }} por asignar
                   </span>
-                  <span v-else-if="r.asignados > (store.cotizacion?.numPax ?? 0)" class="font-bold">
-                    · hay {{ r.asignados - (store.cotizacion?.numPax ?? 0) }} contados dos veces
+                  <span v-else-if="r.personas > (store.cotizacion?.numPax ?? 0)" class="font-bold">
+                    · hay {{ r.personas - (store.cotizacion?.numPax ?? 0) }} contados dos veces
                   </span>
                 </p>
               </div>
@@ -3324,31 +3371,48 @@ store.$onAction(({ name, args }) => {
                 </div>
 
                 <!-- ══ A QUIÉN APLICA ═════════════════════════════════════════
-                     Sólo cuando el expediente tiene subgrupos: en uno individual, «a quién»
-                     no es una pregunta. Ver CotizacionCotcomponente::$grupo. -->
+                     Sólo cuando el expediente tiene subgrupos: en uno individual, «a quién» no es
+                     una pregunta. Ver CotizacionCotcomponente::$grupos. -->
                 <div v-if="store.subgruposDelFile.length">
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">A quién aplica</label>
-                  <div class="relative">
-                    <select v-model="store.componenteActivo.grupo"
-                            class="w-full appearance-none rounded-xl px-4 py-2.5 pr-9 text-xs font-black uppercase tracking-wide outline-none shadow-sm border cursor-pointer transition-colors"
-                            :class="store.componenteActivo.grupo
-                              ? 'bg-orange-50 text-orange-700 border-orange-200'
-                              : 'bg-slate-50 text-slate-600 border-slate-200'">
-                      <!-- ⚠️ `null` = TODOS, y va el PRIMERO a propósito: es el valor correcto en
-                           la enorme mayoría de componentes, y que sea el que está a mano es lo que
-                           evita que alguien acote por accidente. -->
-                      <option :value="null">Todo el grupo</option>
-                      <option v-for="sg in store.subgruposDelFile" :key="sg['@id']" :value="sg['@id']">
-                        {{ etiquetaSubgrupo(sg) }}
-                      </option>
-                    </select>
-                    <i class="fas absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs"
-                       :class="store.componenteActivo.grupo ? 'fa-users-rectangle text-orange-500' : 'fa-users text-slate-400'"></i>
+
+                  <!-- ⚠️ VARIOS, no uno. El vuelo JA7018 lleva 32 personas repartidas en 7 PNRs:
+                       con un solo subgrupo harían falta siete copias del mismo componente, con la
+                       misma hora y la misma orden al proveedor. -->
+                  <div class="rounded-xl border shadow-sm overflow-hidden"
+                       :class="(store.componenteActivo.grupos?.length ?? 0) ? 'border-orange-200' : 'border-slate-200'">
+                    <button type="button" @click="grupoAbierto = !grupoAbierto"
+                            class="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-black uppercase tracking-wide transition-colors"
+                            :class="(store.componenteActivo.grupos?.length ?? 0)
+                              ? 'bg-orange-50 text-orange-700' : 'bg-slate-50 text-slate-600'">
+                      <i class="fas text-xs" :class="(store.componenteActivo.grupos?.length ?? 0) ? 'fa-users-rectangle' : 'fa-users'"></i>
+                      <span class="flex-1 text-left normal-case tracking-normal truncate">
+                        {{ resumenDeGrupos(store.componenteActivo) }}
+                      </span>
+                      <i class="fas fa-chevron-down text-[10px] opacity-60"></i>
+                    </button>
+
+                    <div v-if="grupoAbierto" class="max-h-64 overflow-y-auto border-t border-slate-100 bg-white">
+                      <button type="button" @click="store.componenteActivo.grupos = []"
+                              class="w-full flex items-center gap-2 px-4 py-2 text-[11px] font-black text-left hover:bg-slate-50 border-b border-slate-100"
+                              :class="(store.componenteActivo.grupos?.length ?? 0) ? 'text-slate-500' : 'text-orange-700 bg-orange-50'">
+                        <i class="fas fa-users text-[10px] w-4"></i> Todo el grupo
+                      </button>
+
+                      <button v-for="sg in store.subgruposDelFile" :key="sg['@id']" type="button"
+                              @click="alternarGrupo(sg['@id'])"
+                              class="w-full flex items-center gap-2 px-4 py-2 text-[11px] font-bold text-left hover:bg-slate-50 transition-colors"
+                              :class="tieneGrupo(sg['@id']) ? 'bg-orange-50 text-orange-800' : 'text-slate-600'">
+                        <i class="fas text-[10px] w-4" :class="tieneGrupo(sg['@id']) ? 'fa-square-check' : 'fa-square text-slate-300'"></i>
+                        <span class="flex-1 truncate">{{ etiquetaSubgrupo(sg) }}</span>
+                        <span class="text-[10px] text-slate-400 shrink-0">{{ sg.totalMiembros ?? 0 }} pax</span>
+                      </button>
+                    </div>
                   </div>
+
                   <p class="text-[9px] text-slate-400 mt-1 ml-1 leading-snug">
-                    Acotarlo lo saca del itinerario de quien no esté en ese subgrupo, y hace que las
-                    cantidades del servicio dejen de sumar el total del grupo — que es lo correcto
-                    cuando el vuelo va partido.
+                    Vacío = todo el grupo. Marca varios cuando el mismo vuelo lleva gente de
+                    distintas reservas: es un componente, no uno por localizador.
                   </p>
                 </div>
 

@@ -339,7 +339,7 @@ class CotizacionCotservicio
      * sin partir no es un reparto de uno: es un servicio normal, y devolverlo obligaría a todos
      * los llamadores a filtrar lo mismo.
      *
-     * @return list<array{titulo: string|null, cantidad: int, partes: int}>
+     * @return list<array{titulo: string|null, cantidad: int, partes: int, personas: int}>
      */
     public function repartos(): array
     {
@@ -368,10 +368,44 @@ class CotizacionCotservicio
                     $miembros,
                 )),
                 'partes' => count($miembros),
+                'personas' => $this->personasCubiertas($miembros),
             ];
         }
 
         return $salida;
+    }
+
+    /**
+     * Cuántas personas DISTINTAS cubren estos componentes entre todos.
+     *
+     * 🔥 **Una unión, no una suma.** Un componente puede estar acotado a varios subgrupos y dos
+     * subgrupos pueden compartir gente —dos habitaciones no, pero dos cortes arbitrarios del eje
+     * `GRUPO` sí—. Sumar `totalMiembros` daría de más justo donde el solape importa, y el número
+     * inflado diría «cubre 120 de 100» en vez de señalar el solape.
+     *
+     * ⚠️ Un componente **para todos** no suma nada aquí: cubrirlo con el total del grupo daría
+     * siempre «de sobra» y taparía a quien falta. Se cuenta aparte, en la vista.
+     *
+     * @param list<CotizacionCotcomponente> $componentes
+     */
+    private function personasCubiertas(array $componentes): int
+    {
+        /** @var array<string, true> $vistas */
+        $vistas = [];
+
+        foreach ($componentes as $componente) {
+            foreach ($componente->getGrupos() as $grupo) {
+                foreach ($grupo->getMiembros() as $pertenencia) {
+                    $id = $pertenencia->getPasajero()?->getId()?->toRfc4122();
+
+                    if ($id !== null) {
+                        $vistas[$id] = true;
+                    }
+                }
+            }
+        }
+
+        return count($vistas);
     }
 
     /**
@@ -441,16 +475,23 @@ class CotizacionCotservicio
 
         return $this->cotcomponentes->filter(
             static function (CotizacionCotcomponente $componente) use ($permitidos): bool {
-                $grupo = $componente->getGrupo();
-
-                // Sin subgrupo = para todos. Ver el docblock de CotizacionCotcomponente::$grupo:
+                // Sin subgrupos = para todos. Ver el docblock de CotizacionCotcomponente::$grupos:
                 // un olvido al clasificar deja el componente de más, que se ve y se corrige, en
                 // vez de invisible, que no se descubre nunca.
-                if ($grupo === null) {
+                if ($componente->esParaTodos()) {
                     return true;
                 }
 
-                return in_array($grupo->getId()?->toRfc4122(), $permitidos, true);
+                // ⚠️ **Basta con UNO.** Un componente acotado a siete PNRs lo ve quien esté en
+                // cualquiera de los siete: la lista dice «a quiénes aplica», no «a quién hay que
+                // pertenecer entero». Exigir todos lo escondería de todo el mundo.
+                foreach ($componente->getGrupos() as $grupo) {
+                    if (in_array($grupo->getId()?->toRfc4122(), $permitidos, true)) {
+                        return true;
+                    }
+                }
+
+                return false;
             },
         );
     }

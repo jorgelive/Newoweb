@@ -582,9 +582,22 @@ type CotComponenteBase = components["schemas"]["CotizacionCotcomponente-cotizaci
 export type ComponenteCompleto = Omit<CotComponenteBase,
     'id' | 'tituloSnapshot' | 'estado' | 'modo' | 'fechaHoraInicio' | 'fechaHoraFin'
     | 'snapshotItems' | 'cottarifas' | 'detallesOperativos' | 'cotsegmento'
-    | 'prestadorTituloSnapshot' | 'prestadorImagenesSnapshot'
+    | 'prestadorTituloSnapshot' | 'prestadorImagenesSnapshot' | 'grupos'
 > & {
     id: string;
+
+    /**
+     * A quiénes aplica el componente, como IRIs. **Vacío = a todos.**
+     *
+     * ⚠️ Se estrecha porque el esquema no puede decirlo. En el contexto del editor,
+     * `CotizacionFileGrupo` sólo tiene los timestamps serializados, así que API Platform lo embebe
+     * como `{createdAt, updatedAt}` — un objeto que no identifica nada. Lo que sí viaja es el
+     * `@id` de JSON-LD, que además es lo que hay que mandar al escribir.
+     *
+     * El store lo normaliza a IRI al cargar (`normalizarGruposDeComponentes`), así que aquí
+     * siempre es una lista de cadenas en los dos sentidos.
+     */
+    grupos: string[];
     tituloSnapshot: I18nContent[];
     estado: string;
     modo: string;

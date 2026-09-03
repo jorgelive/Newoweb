@@ -42,7 +42,11 @@ final class CotservicioFiltradoPorSubgrupoTest extends TestCase
             ['LIM-PUJ internacional', $this->internacional, $this->segNacional],
             ['Hotel Tambo', null, $this->segHotel],
         ] as [$nombre, $grupo, $segmento]) {
-            $comp = (new CotizacionCotcomponente())->setGrupo($grupo);
+            $comp = new CotizacionCotcomponente();
+
+            if ($grupo !== null) {
+                $comp->addGrupo($grupo);
+            }
             $comp->setNombreInternoSnapshot($nombre);
             $comp->setCotsegmento($segmento);
             $this->servicio->getCotcomponentes()->add($comp);
@@ -109,6 +113,23 @@ final class CotservicioFiltradoPorSubgrupoTest extends TestCase
     public function testSinFiltroSeSirvenTodosLosSegmentos(): void
     {
         self::assertCount(2, $this->servicio->getCotsegmentosParaCliente());
+    }
+
+    public function testBastaConPertenecerAUNODeLosSubgruposDelComponente(): void
+    {
+        // 🔥 El caso que trajo el plural: el vuelo JA7018 lleva 7 PNRs. Un componente acotado a
+        // varios lo ve quien esté en CUALQUIERA de ellos — la lista dice «a quiénes aplica», no
+        // «a quién hay que pertenecer entero». Exigir todos lo escondería de todo el mundo.
+        $comp = new CotizacionCotcomponente();
+        $comp->setNombreInternoSnapshot('Vuelo compartido');
+        $comp->addGrupo($this->nacional);
+        $comp->addGrupo($this->internacional);
+        $comp->setCotsegmento($this->segNacional);
+        $this->servicio->getCotcomponentes()->add($comp);
+
+        $this->servicio->getCotizacion()?->setFiltroSubgrupos([$this->internacional->getId()?->toRfc4122() ?? '']);
+
+        self::assertContains('Vuelo compartido', $this->nombresServidos());
     }
 
     public function testFiltrarNoVaciaLaColeccionORIGINAL(): void

@@ -180,9 +180,18 @@ final class CotizacionHorasDesdeVuelosCommand extends Command
      */
     private function resolver(CotizacionCotcomponente $componente): array|false|null
     {
-        $grupo = $componente->getGrupo();
+        // ⚠️ Los subgrupos AÉREOS del componente. Puede tener varios —el vuelo JA7018 lleva 7
+        // PNRs— y también puede llevar de otros ejes a la vez: una habitación no dice nada de un
+        // horario, así que se ignoran en vez de estorbar.
+        $aereos = [];
 
-        if ($grupo === null || $grupo->getTipo() !== GrupoTipoEnum::RESERVA_AEREA) {
+        foreach ($componente->getGrupos() as $grupo) {
+            if ($grupo->getTipo() === GrupoTipoEnum::RESERVA_AEREA) {
+                $aereos[] = $grupo;
+            }
+        }
+
+        if ($aereos === []) {
             return null;
         }
 
@@ -201,15 +210,24 @@ final class CotizacionHorasDesdeVuelosCommand extends Command
             return false;
         }
 
+        // ⚠️ **Los vuelos de ESE día en cualquiera de sus subgrupos, sin repetir.** Los 7 PNRs de
+        // JA7018 apuntan todos al mismo vuelo; sin deduplicar saldría siete veces y el «tramo» se
+        // contaría como una escala de siete patas.
+        /** @var array<string, \App\Cotizacion\Entity\CotizacionVuelo> $delDia */
         $delDia = [];
 
-        foreach ($grupo->getVuelos() as $vuelo) {
-            $salida = $vuelo->getSalida();
+        foreach ($aereos as $grupo) {
+            foreach ($grupo->getVuelos() as $vuelo) {
+                $salida = $vuelo->getSalida();
+                $id = $vuelo->getId()?->toRfc4122();
 
-            if ($salida !== null && $vuelo->getLlegada() !== null && $salida->format('Y-m-d') === $dia) {
-                $delDia[] = $vuelo;
+                if ($id !== null && $salida !== null && $vuelo->getLlegada() !== null && $salida->format('Y-m-d') === $dia) {
+                    $delDia[$id] = $vuelo;
+                }
             }
         }
+
+        $delDia = array_values($delDia);
 
         if ($delDia === []) {
             return false;

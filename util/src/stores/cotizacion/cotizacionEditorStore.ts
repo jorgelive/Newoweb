@@ -1340,6 +1340,29 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     });
 
 
+    /**
+     * Deja los `grupos` de cada componente como IRIs.
+     *
+     * ⚠️ La API los devuelve **embebidos** —en el contexto del editor `CotizacionFileGrupo` sólo
+     * serializa sus timestamps, así que llegan como `{'@id', createdAt, updatedAt}`— y hay que
+     * mandarlos como IRI al escribir. Sin normalizar, el primer guardado enviaría objetos y API
+     * Platform los rechazaría, o peor: crearía subgrupos nuevos.
+     *
+     * Se hace al cargar y no al guardar para que todo lo de en medio —el selector, el conteo de la
+     * franja— trabaje con una sola forma.
+     */
+    const normalizarGruposDeComponentes = (data: Cotizacion): void => {
+        for (const servicio of data.cotservicios ?? []) {
+            for (const comp of servicio.cotcomponentes ?? []) {
+                const crudos = (comp.grupos ?? []) as unknown[];
+
+                comp.grupos = crudos
+                    .map(g => typeof g === 'string' ? g : (g as { '@id'?: string })?.['@id'])
+                    .filter((iri): iri is string => typeof iri === 'string');
+            }
+        }
+    };
+
     // ── SUBGRUPOS DEL EXPEDIENTE (para acotar un componente) ────────────────
     //
     // ⚠️ Se piden aparte y NO vienen con la cotización: `grupos` sólo está en `file:item:read`, y
@@ -2215,6 +2238,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             await Promise.all(fetchPromises);
 
             data.idiomaEdicion = 'es';
+            normalizarGruposDeComponentes(data);
             ordenarComponentesPorRelato(data);
             cotizacion.value = data;
             estadoPersistido.value = String(data?.estado ?? '');
@@ -3090,6 +3114,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 cotsegmentoId: null,
                 cotsegmento: null,
                 duplicadoDe: null,
+                grupos: [],
                 // Obligatorio en el contrato. `false`: un extra suelto no representa el
                 // horario global del día — esa promoción es única por (plantilla, día).
                 horaServicioCompleto: false,
@@ -3157,7 +3182,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // una cadena, y agrupar «las copias de este vuelo» exigiría recorrerla. Con la raíz el
             // conjunto es plano pase lo que pase, y sumar cantidades es una comparación directa.
             duplicadoDe: original.duplicadoDe ?? original.id,
-            grupo: null,
+            // ⚠️ **La copia nace SIN subgrupos**, o sea «para todo el grupo», igual que el
+            // original: dos componentes idénticos y visibles. Es incoherente a la vista a
+            // propósito — obliga a decir a quién aplica cada uno en vez de dejar una copia
+            // silenciosa duplicando cantidades.
+            grupos: [],
             cottarifas: (original.cottarifas ?? []).map((tarifa) => ({
                 ...structuredClone(toRaw(tarifa)),
                 id: crypto.randomUUID(),
@@ -3309,6 +3338,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const nuevoComp: ComponenteCompleto = {
                         id: nuevoId,
                         duplicadoDe: null,
+                        grupos: [],
                         componenteMaestroId: compMaestro.id || compMaestro['@id'],
                         tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                         // El operativo viaja con el título: la ruta del nombre es una sola y no
@@ -3892,6 +3922,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const nuevoComp: ComponenteCompleto = {
                     id: crypto.randomUUID(),
                     duplicadoDe: null,
+                    grupos: [],
                     componenteMaestroId: extractIdStr(compMaestro) || null,
                     tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                     // El operativo viaja con el título: la ruta del nombre es una sola y no

@@ -2203,7 +2203,57 @@ Servicio «Vuelo»
 ⚠️ **Las cantidades por componente dejan de sumar el total del grupo, y es correcto.** Era
 exactamente lo que antes no se podía representar.
 
-### `null` = todos, y es deliberado
+### 🔥 VARIOS subgrupos por componente, no uno
+
+Empezó siendo `?CotizacionFileGrupo`, uno solo, y se rompió contra los datos reales:
+
+```
+H2 5002 · 17-Sep 06:50    2 PNRs    88 personas
+JA7018  · 17-Sep 07:15    7 PNRs    32 personas
+JA7030  · 17-Sep 20:05    1 PNR      2 personas
+```
+
+El vuelo JA7018 lleva **32 personas repartidas en 7 PNRs**. Con un solo subgrupo harían falta
+**siete copias del componente** —mismo vuelo, misma hora, misma orden al proveedor— sólo porque el
+modelo no sabía decir «estos siete». El reparto operativo es **por vuelo**, no por localizador.
+
+⚠️ **Y no se ató al VUELO**, que fue la otra idea sobre la mesa. Apuntar a `CotizacionVuelo`
+resolvía el caso aéreo y **sólo** ése. Con una lista de subgrupos el mismo campo sirve para «los de
+la habitación 101 y 102», para «los que sí van a Coco Bongo» y para cualquier corte que alguien
+invente con el eje `GRUPO`, que es texto libre. **El acotador general es la gente, no el medio de
+transporte.**
+
+### ⚠️ Basta con pertenecer a UNO
+
+Al filtrar, un componente acotado a siete PNRs lo ve quien esté en **cualquiera** de los siete: la
+lista dice «a quiénes aplica», no «a quién hay que pertenecer entero». Exigir todos lo escondería
+de todo el mundo.
+
+### ⚠️ Contar es una UNIÓN, no una suma
+
+Dos subgrupos pueden compartir gente —dos habitaciones no, pero dos cortes arbitrarios sí—. Sumar
+`totalMiembros` daría de más justo donde el solape importa, y diría «cubre 120 de 100» en vez de
+señalarlo. `CotizacionCotservicio::personasCubiertas()` cuenta **pasajeros distintos**.
+
+### ⚠️ `duplicar()` necesita colección PROPIA
+
+`clone` es superficial: sin `new ArrayCollection($this->grupos->toArray())`, la copia y el original
+compartirían la misma `PersistentCollection`. Añadirle un subgrupo a la copia se lo añadiría al
+original y el `flush` guardaría las dos filas con lo mismo. Sin error: el reparto dejaría de
+repartir.
+
+⚠️ Se copian los **miembros**, no se vacía: los subgrupos cuelgan del expediente, así que una
+cotización clonada sigue acotando igual. Quien quiere la copia en blanco es el **editor** al partir
+un servicio, y eso lo decide él.
+
+### ⚠️ Al front llegan EMBEBIDOS, y hay que normalizarlos
+
+En el contexto del editor `CotizacionFileGrupo` sólo serializa sus timestamps, así que API Platform
+lo embebe como `{'@id', createdAt, updatedAt}` — un objeto que no identifica nada salvo por su
+`@id`, que es además lo que hay que mandar al escribir. `normalizarGruposDeComponentes()` los deja
+como IRIs **al cargar**, para que el selector y la franja trabajen con una sola forma.
+
+### Vacío = todos, y es deliberado
 
 Misma decisión que en skills, guía y conocimiento: **sin acotar en vez de invisible**. Un olvido al
 clasificar deja el componente **de más** —alguien lo ve y lo corrige— en vez de escondido, que no

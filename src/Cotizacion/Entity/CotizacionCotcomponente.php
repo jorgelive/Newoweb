@@ -57,36 +57,53 @@ class CotizacionCotcomponente
     private ?CotizacionSegmento $cotsegmento = null;
 
     /**
-     * A QUIÉN del grupo aplica este componente. `null` = a todos.
+     * A QUIÉN aplica este componente. **Vacío = a todos.**
      *
      * ── El caso que lo trajo ────────────────────────────────────────────────
-     * Se cotiza un grupo entero con un vuelo. Después la realidad se parte: 22 personas van en el
-     * nacional y 18 en el internacional. El servicio «Vuelo» pasa a tener **dos componentes**, y
+     * Se cotiza un grupo entero con un vuelo. Después la realidad se parte: unos van en el
+     * nacional y otros en el internacional. El servicio «Vuelo» pasa a tener **dos componentes**, y
      * las cantidades por componente **dejan de sumar el total del grupo** — que es correcto, y es
      * justo lo que antes no se podía representar.
      *
+     * ── 🔥 Por qué VARIOS y no uno ─────────────────────────────────────────
+     * Empezó siendo `?CotizacionFileGrupo`, uno solo, y se rompió contra los datos reales. El
+     * vuelo JA7018 del 17 de setiembre lleva **32 personas repartidas en 7 PNRs**: con un solo
+     * subgrupo harían falta **siete copias del componente** —mismo vuelo, misma hora, misma orden
+     * al proveedor— sólo porque el modelo no sabía decir «estos siete».
+     *
      * ```
-     * Componente «Vuelo LIM–PUJ»  grupo = #Vuelo Nacional        22 pax
-     * Componente «Vuelo LIM–PUJ»  grupo = #Vuelo Internacional   18 pax
-     * Componente «Hotel Tambo»    grupo = null                   los 40
+     * H2 5002 · 06:50    2 PNRs    88 personas   → 1 componente
+     * JA7018  · 07:15    7 PNRs    32 personas   → 1 componente
+     * JA7030  · 20:05    1 PNR      2 personas   → 1 componente
      * ```
      *
-     * ── ⚠️ `null` significa TODOS, y es deliberado ──────────────────────────
-     * Es la misma decisión que en skills, guía y conocimiento: **lista vacía = sin acotar**. Va
-     * contra la intuición y se elige a propósito, porque un olvido al clasificar deja el ítem **de
-     * más** —inofensivo, alguien lo ve y lo corrige— en vez de invisible. Lo segundo no se
-     * descubre nunca: nadie echa de menos lo que no sabía que existía.
+     * ⚠️ **Y no se ata al VUELO**, que fue la otra idea. Apuntar a `CotizacionVuelo` resolvía el
+     * caso aéreo y **sólo** ése. Con una lista de subgrupos el mismo campo sirve para «los de la
+     * habitación 101 y 102», para «los que sí van a Coco Bongo» y para cualquier corte que alguien
+     * invente mañana con el eje `GRUPO`, que es texto libre. El acotador general es la gente, no
+     * el medio de transporte.
      *
-     * Es además lo que hace barato el caso normal: un hotel que es para todos no lleva nada, y
-     * partir un vuelo no obliga a etiquetar los otros veinte componentes.
+     * ── ⚠️ Vacío significa TODOS, y es deliberado ──────────────────────────
+     * Misma decisión que en skills, guía y conocimiento: **lista vacía = sin acotar**. Un olvido al
+     * clasificar deja el componente **de más** —alguien lo ve y lo corrige— en vez de invisible,
+     * que no se descubre nunca. Y hace barato el caso normal: partir un vuelo no obliga a etiquetar
+     * los otros veinte componentes.
      *
-     * ⚠️ **El subgrupo es del EXPEDIENTE, no de la cotización.** Cuelga de `CotizacionFileGrupo`,
-     * así que sobrevive a abrir la operativa: los mismos «#Vuelo Nacional» siguen valiendo.
+     * ⚠️ **Los subgrupos son del EXPEDIENTE, no de la cotización**, así que sobreviven a abrir la
+     * operativa: los mismos «#Vuelo Nacional» siguen valiendo.
+     *
+     * ⚠️ **Contar gente es una UNIÓN, no una suma.** Dos subgrupos pueden compartir personas, así
+     * que quien mida cobertura tiene que contar pasajeros DISTINTOS. Sumar `totalMiembros` daría de
+     * más justo donde el solape importa.
+     *
+     * @var Collection<int, CotizacionFileGrupo>
      */
     #[Groups(['cotizacion:read', 'cotizacion:write', 'pax_cotizacion:read'])]
-    #[ORM\ManyToOne(targetEntity: CotizacionFileGrupo::class)]
-    #[ORM\JoinColumn(name: 'grupo_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
-    private ?CotizacionFileGrupo $grupo = null;
+    #[ORM\ManyToMany(targetEntity: CotizacionFileGrupo::class)]
+    #[ORM\JoinTable(name: 'cotizacion_cotcomponente_grupo')]
+    #[ORM\JoinColumn(name: 'cotcomponente_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\InverseJoinColumn(name: 'grupo_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    private Collection $grupos;
 
     /**
      * El nombre PÚBLICO de la línea que se compra: el que ve el cliente.
@@ -423,6 +440,7 @@ class CotizacionCotcomponente
     {
         $this->initializeId();
         $this->cottarifas = new ArrayCollection();
+        $this->grupos = new ArrayCollection();
     }
 
     /**
@@ -439,6 +457,19 @@ class CotizacionCotcomponente
         // listener para ESTE guardado.
         $copia->setEjecutarTraduccion(false);
 
+
+        // 🔥 **Colección PROPIA, con los mismos subgrupos dentro.**
+        //
+        // `clone` es superficial: sin esta línea, la copia y el original compartirían la misma
+        // `PersistentCollection`. Añadirle un subgrupo a la copia se lo añadiría también al
+        // original, y el `flush` guardaría las dos filas con lo mismo. No daría ningún error:
+        // simplemente el reparto dejaría de repartir.
+        //
+        // ⚠️ Se copian los MIEMBROS, no se vacía: los subgrupos cuelgan del expediente, así que
+        // una cotización clonada sigue acotando igual. Quien quiere una copia en blanco es el
+        // editor al partir un servicio, y eso lo decide él —no aquí—, porque aquí el clon es de la
+        // cotización entera y vaciarlo perdería el reparto al guardar una foto.
+        $copia->grupos = new ArrayCollection($this->grupos->toArray());
 
         $copia->cottarifas = new ArrayCollection();
         foreach ($this->cottarifas as $tarifa) {
@@ -552,9 +583,29 @@ class CotizacionCotcomponente
     /** Azúcar para lo que se pregunta más: pintar la marca y desbloquear el borrado. */
     public function esCopia(): bool { return $this->duplicadoDe !== null; }
 
-    public function getGrupo(): ?CotizacionFileGrupo { return $this->grupo; }
+    /**
+     * @return Collection<int, CotizacionFileGrupo>
+     */
+    public function getGrupos(): Collection { return $this->grupos; }
 
-    public function setGrupo(?CotizacionFileGrupo $grupo): self { $this->grupo = $grupo; return $this; }
+    public function addGrupo(CotizacionFileGrupo $grupo): self
+    {
+        if (!$this->grupos->contains($grupo)) {
+            $this->grupos->add($grupo);
+        }
+
+        return $this;
+    }
+
+    public function removeGrupo(CotizacionFileGrupo $grupo): self
+    {
+        $this->grupos->removeElement($grupo);
+
+        return $this;
+    }
+
+    /** ¿Aplica a todo el mundo? Es el caso normal, y por eso se pregunta así. */
+    public function esParaTodos(): bool { return $this->grupos->isEmpty(); }
 
     /**
      * Obtiene la cantidad de componentes instanciados.
