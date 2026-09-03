@@ -4620,6 +4620,8 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /** @description Cuánta gente hay de verdad en el expediente, según el manifiesto. */
+            readonly totalEnElManifiesto?: number;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -5401,6 +5403,8 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /** @description Cuánta gente hay de verdad en el expediente, según el manifiesto. */
+            readonly totalEnElManifiesto?: number;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -5898,6 +5902,8 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /** @description Cuánta gente hay de verdad en el expediente, según el manifiesto. */
+            readonly totalEnElManifiesto?: number;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */
@@ -6395,6 +6401,8 @@ export interface components {
              *     para no forzar al frontend a hacer aritmética sobre strings decimales.
              */
             readonly ganancia?: string;
+            /** @description Cuánta gente hay de verdad en el expediente, según el manifiesto. */
+            readonly totalEnElManifiesto?: number;
             /** @description De qué cotización viva salió esta foto. Plano, para no arrastrar el árbol entero. */
             readonly derivadaDeId?: string | null;
             /** @description Cuántas fotos del pasado tiene. Es lo que pinta la cabecera del editor. */

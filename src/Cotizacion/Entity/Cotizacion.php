@@ -706,6 +706,37 @@ class Cotizacion
     }
 
     /**
+     * Cuánta gente hay de verdad en el expediente, según el manifiesto.
+     *
+     * ── 🔥 No es lo mismo que `numPax`, y en una operativa la diferencia importa ─
+     * `numPax` es lo **cotizado**: en `5SRAJV` se vendió para 100 y al final se apuntaron **133**.
+     * Ese 100 se queda congelado —es lo que el cliente aprobó y pagó— y la operativa existe
+     * justamente para representar lo que de verdad va a pasar.
+     *
+     * Comparar la cobertura de un reparto contra `numPax` **miente al revés**: con 122 personas
+     * repartidas diría «122 de 100 · hay 22 contados dos veces» cuando en realidad **faltan 11**.
+     * Un número que parece una comprobación y apunta al lado contrario es peor que no tenerlo.
+     *
+     * ⚠️ **`matching()` y no `count()`.** `$filepasajeros` **no** es `EXTRA_LAZY`, así que
+     * `count()` hidrataría las 133 fichas con sus identificaciones y grupos EAGER sólo para
+     * devolver un entero. `matching()` empuja un `COUNT(*)` y no carga nada — la misma lección que
+     * costó el «Out of sort memory» de `getTotalHistoricos()`.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:item:read'])]
+    public function getTotalEnElManifiesto(): int
+    {
+        $pasajeros = $this->file?->getFilepasajeros();
+
+        if ($pasajeros === null) {
+            return 0;
+        }
+
+        return $pasajeros instanceof Selectable
+            ? $pasajeros->matching(Criteria::create())->count()
+            : $pasajeros->count();
+    }
+
+    /**
      * De qué fila sale el DINERO que ve el cliente.
      *
      * ── La composición ──────────────────────────────────────────────────────

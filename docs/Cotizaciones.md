@@ -2427,6 +2427,31 @@ REPARTIDO EN 2 · Vuelo Lima ↔ Cusco
 Va **encima** porque es lo que hay que mirar antes de tocar los componentes: dos tarjetas por
 separado no dejan ver que entre las dos cubren 44 de 100.
 
+### 🔥 Contra cuánta gente se mide: el MANIFIESTO, no lo cotizado
+
+```
+5SRAJV   numPax = 100      lo que se vendió y se cobró
+         manifiesto = 133   los que al final se apuntaron
+```
+
+`numPax` se queda congelado —es lo que el cliente aprobó— y **la operativa existe justamente para
+representar lo que de verdad va a pasar**. Medir la cobertura contra `numPax` **miente al revés**:
+con 122 personas repartidas diría «122 de 100 · hay 22 contados dos veces» cuando en realidad
+**faltan 11**. Un número que parece una comprobación y apunta al lado contrario es peor que no
+tenerlo.
+
+| Estado | Se mide contra |
+|---|---|
+| **OPERATIVA** | `getTotalEnElManifiesto()` — los que van de verdad |
+| Cualquier otro | `numPax` — lo cotizado, que es de lo que se habla |
+
+⚠️ **Se dice en pantalla de dónde sale el número** —«(del manifiesto; se cotizó para 100)»— cuando
+los dos no coinciden. Callarlo haría dudar del total.
+
+⚠️ **`matching()` y no `count()`**: `$filepasajeros` no es `EXTRA_LAZY`, así que `count()`
+hidrataría las 133 fichas con sus identificaciones y grupos EAGER para devolver un entero. Misma
+lección que costó el «Out of sort memory» de `getTotalHistoricos()`.
+
 ### ⚠️ DOS números, y el segundo es el que importa
 
 | | |

@@ -96,6 +96,37 @@ interface Reparto {
  * `cantidad` es lo que se cobra; `personas` es a cuánta gente cubre. En un servicio por persona
  * coinciden, y en uno **grupal no**: la cantidad vale 1 —se cobra una vez— y cubre a 44.
  */
+/**
+ * Contra cuánta gente se mide la cobertura de un reparto.
+ *
+ * 🔥 **En una operativa, el manifiesto; en lo demás, lo cotizado.** `numPax` es lo **vendido**: en
+ * `5SRAJV` se cotizó para 100 y al final se apuntaron **133**. Ese 100 se queda congelado —es lo
+ * que el cliente aprobó y pagó— y la operativa existe justamente para representar lo que de verdad
+ * va a pasar.
+ *
+ * Medir contra `numPax` **miente al revés**: con 122 personas repartidas diría «122 de 100 · hay
+ * 22 contados dos veces» cuando en realidad **faltan 11**. Un número que parece una comprobación y
+ * apunta al lado contrario es peor que no tenerlo.
+ *
+ * ⚠️ Con respaldo a `numPax`: un expediente sin manifiesto cargado devolvería 0 y entonces todo
+ * reparto saldría «de sobra», que es el mismo error con otra cara.
+ */
+const paxDeReferencia = computed<number>(() => {
+  const cot = store.cotizacion;
+
+  if (cot?.estado === 'operativa' && (cot.totalEnElManifiesto ?? 0) > 0) {
+    return cot.totalEnElManifiesto ?? 0;
+  }
+
+  return cot?.numPax ?? 0;
+});
+
+/** ¿Se mide contra el manifiesto en vez de contra lo cotizado? Se dice, no se esconde. */
+const midePorManifiesto = computed<boolean>(() =>
+  store.cotizacion?.estado === 'operativa'
+  && (store.cotizacion.totalEnElManifiesto ?? 0) > 0
+  && store.cotizacion.totalEnElManifiesto !== store.cotizacion.numPax);
+
 const repartosDelServicio = computed<Reparto[]>(() => {
   const comps = store.servicioActivo?.cotcomponentes ?? [];
   const porRaiz = new Map<string, ComponenteCompleto[]>();
@@ -2701,12 +2732,12 @@ store.$onAction(({ name, args }) => {
                    tarjetas por separado no dejan ver que entre las dos cubren 44 de 100. -->
               <div v-for="(r, i) in repartosDelServicio" :key="i"
                    class="mb-3 rounded-2xl border p-3"
-                   :class="r.personas === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos
+                   :class="r.personas === paxDeReferencia && !r.hayAbiertos
                      ? 'border-emerald-200 bg-emerald-50'
                      : 'border-amber-200 bg-amber-50'">
                 <p class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 mb-2"
-                   :class="r.personas === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos ? 'text-emerald-700' : 'text-amber-700'">
-                  <i class="fas" :class="r.personas === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos ? 'fa-circle-check' : 'fa-triangle-exclamation'"></i>
+                   :class="r.personas === paxDeReferencia && !r.hayAbiertos ? 'text-emerald-700' : 'text-amber-700'">
+                  <i class="fas" :class="r.personas === paxDeReferencia && !r.hayAbiertos ? 'fa-circle-check' : 'fa-triangle-exclamation'"></i>
                   Repartido en {{ r.partes.length }} · {{ r.titulo }}
                 </p>
 
@@ -2728,15 +2759,21 @@ store.$onAction(({ name, args }) => {
                 </div>
 
                 <p class="text-[11px] font-black mt-2 pt-2 border-t"
-                   :class="r.personas === (store.cotizacion?.numPax ?? 0) && !r.hayAbiertos
+                   :class="r.personas === paxDeReferencia && !r.hayAbiertos
                      ? 'border-emerald-200 text-emerald-700' : 'border-amber-200 text-amber-800'">
-                  Cubre {{ r.personas }} de {{ store.cotizacion?.numPax ?? 0 }} pax
-                  <span v-if="r.hayAbiertos" class="font-bold"> · hay una parte «para todos», que no se suma</span>
-                  <span v-else-if="r.personas < (store.cotizacion?.numPax ?? 0)" class="font-bold">
-                    · faltan {{ (store.cotizacion?.numPax ?? 0) - r.personas }} por asignar
+                  Cubre {{ r.personas }} de {{ paxDeReferencia }} pax
+                  <!-- ⚠️ Se dice de dónde sale el número: en una operativa se mide contra el
+                       manifiesto, no contra lo cotizado, y la diferencia es el motivo de que la
+                       operativa exista. Callarlo haría dudar del número. -->
+                  <span v-if="midePorManifiesto" class="font-bold text-slate-500">
+                    (del manifiesto; se cotizó para {{ store.cotizacion?.numPax ?? 0 }})
                   </span>
-                  <span v-else-if="r.personas > (store.cotizacion?.numPax ?? 0)" class="font-bold">
-                    · hay {{ r.personas - (store.cotizacion?.numPax ?? 0) }} contados dos veces
+                  <span v-if="r.hayAbiertos" class="font-bold"> · hay una parte «para todos», que no se suma</span>
+                  <span v-else-if="r.personas < paxDeReferencia" class="font-bold">
+                    · faltan {{ paxDeReferencia - r.personas }} por asignar
+                  </span>
+                  <span v-else-if="r.personas > paxDeReferencia" class="font-bold">
+                    · hay {{ r.personas - paxDeReferencia }} contados dos veces
                   </span>
                 </p>
               </div>
