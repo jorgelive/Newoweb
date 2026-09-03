@@ -716,7 +716,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         // Una copia no la puso la plantilla: la hizo una persona para partir el servicio entre
         // subgrupos, y una persona se equivoca al crearla. Sin esta línea, un duplicado por error
         // se quedaba para siempre contando pax que no existen.
-        if (comp.esDuplicado) return false;
+        if (comp.duplicadoDe) return false;
 
         // Bloqueado si pertenece a un segmento del itinerario (storytelling)
         if (comp.cotsegmentoId || comp.cotsegmento) return true;
@@ -3089,7 +3089,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 fechaHoraFin: fechaHoraInicio,
                 cotsegmentoId: null,
                 cotsegmento: null,
-                esDuplicado: false,
+                duplicadoDe: null,
                 // Obligatorio en el contrato. `false`: un extra suelto no representa el
                 // horario global del día — esa promoción es única por (plantilla, día).
                 horaServicioCompleto: false,
@@ -3153,7 +3153,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const copia: ComponenteCompleto = {
             ...structuredClone(toRaw(original)),
             id: crypto.randomUUID(),
-            esDuplicado: true,
+            // ⚠️ Apunta a la RAÍZ, no a la copia de la que se copió: duplicar una copia crearía
+            // una cadena, y agrupar «las copias de este vuelo» exigiría recorrerla. Con la raíz el
+            // conjunto es plano pase lo que pase, y sumar cantidades es una comparación directa.
+            duplicadoDe: original.duplicadoDe ?? original.id,
             grupo: null,
             cottarifas: (original.cottarifas ?? []).map((tarifa) => ({
                 ...structuredClone(toRaw(tarifa)),
@@ -3305,7 +3308,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                     const nuevoComp: ComponenteCompleto = {
                         id: nuevoId,
-                        esDuplicado: false,
+                        duplicadoDe: null,
                         componenteMaestroId: compMaestro.id || compMaestro['@id'],
                         tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                         // El operativo viaja con el título: la ruta del nombre es una sola y no
@@ -3888,7 +3891,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 const nuevoComp: ComponenteCompleto = {
                     id: crypto.randomUUID(),
-                    esDuplicado: false,
+                    duplicadoDe: null,
                     componenteMaestroId: extractIdStr(compMaestro) || null,
                     tituloSnapshot: JSON.parse(JSON.stringify(getTituloSafe(compMaestro))),
                     // El operativo viaja con el título: la ruta del nombre es una sola y no

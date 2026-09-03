@@ -2291,8 +2291,8 @@ Hoy eso **no se puede hacer desde el editor**:
 
 ### «Duplicar componente» — hecho el 03/09/2026
 
-Botón de copia en cada componente. La copia conserva el **segmento** —y con él el relato— y nace
-con `esDuplicado = true`.
+Botón de copia en cada componente. La copia conserva el **segmento** —y con él el relato— y guarda
+en `duplicadoDe` **el id del componente del que salió**.
 
 | | |
 |---|---|
@@ -2300,7 +2300,43 @@ con `esDuplicado = true`.
 | Las tarifas se copian **con id nuevo** | Sin eso las dos filas compartirían tarifa y editar el precio de un vuelo cambiaría el del otro |
 | Se inserta **justo detrás** del original | Partir un vuelo es una decisión sobre ese vuelo; al final de la lista hay que buscarla |
 
-### ⚠️ `esDuplicado` es lo que permite BORRARLO
+### ⚠️ Por qué el ID y no un booleano
+
+Empezó siendo `esDuplicado` sí/no. Basta para pintar la marca y desbloquear el borrado, y **se
+queda corto en cuanto hay dos copias en el mismo servicio**: dice que las dos son copias, no de
+cuál. Con el id, el reparto es un conjunto identificable —el original y los que apuntan a él— y
+**eso se puede sumar**:
+
+```
+Vuelo LIM–PUJ   nacional        22
+Vuelo LIM–PUJ   internacional   18   →  40 de 40 ✓
+```
+
+Que las partes sumen 35 en un grupo de 40 es un fallo que **nadie ve** mirando dos tarjetas por
+separado. `CotizacionCotservicio::repartos()` lo calcula; con un booleano no había conjunto que
+sumar. Cuesta lo mismo —una columna anulable— y dice estrictamente más.
+
+⚠️ **Apunta siempre a la RAÍZ**, nunca a otra copia: duplicar una copia crearía una cadena, y
+agrupar exigiría recorrerla. Con la raíz el conjunto es plano pase lo que pase.
+
+⚠️ **Es un id suelto, no una FK.** Mismo criterio que `componenteMaestroId`: una FK obligaría a
+decidir qué pasa al borrar el original, y la respuesta correcta —que las copias sobrevivan— es lo
+que un `SET NULL` no expresa: borraría la marca y volvería la copia **imborrable**. Un id colgado
+significa «era copia de algo que ya no está», que es cierto.
+
+### 🔥 Al clonar la cotización hay que REAPUNTARLO
+
+`duplicar()` es un `clone` superficial, así que la copia arrastra el `duplicadoDe` del original: un
+id de la cotización **de origen**. Sin remapear, las copias del clon apuntan a componentes de otra
+cotización — un vínculo que cruza cotizaciones, **no da ningún error** y agrupa mal en silencio
+para siempre.
+
+Se remapea en `CotizacionCotservicio::duplicar()`, en el mismo sitio y por el mismo motivo que
+`cotsegmento`, y **en una segunda pasada**: una copia puede venir antes que su original en la
+colección —el orden lo decide la base—, así que en una sola pasada el mapa estaría a medias justo
+para los casos que importan. Hay un test que sólo vigila eso.
+
+### ⚠️ Es también lo que permite BORRARLO
 
 `isComponenteBloqueado()` bloquea todo componente atado a un segmento, porque lo puso la plantilla
 del itinerario y borrarlo rompe el relato. **Una copia no la puso la plantilla: la hizo una

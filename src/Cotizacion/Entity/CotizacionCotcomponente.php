@@ -176,7 +176,7 @@ class CotizacionCotcomponente
     private bool $esManual = false;
 
     /**
-     * Este componente lo **duplicó una persona** para partir el servicio entre subgrupos.
+     * De qué componente es COPIA. `null` = es un original.
      *
      * ── Para qué existe ─────────────────────────────────────────────────────
      * Partir un vuelo en nacional e internacional es **dos componentes en el MISMO segmento**: así
@@ -184,21 +184,35 @@ class CotizacionCotcomponente
      * copia se crea con «Duplicar», no con «+ Añadir Extra», que la dejaría sin segmento y por
      * tanto invisible para el cliente.
      *
-     * ── ⚠️ Y sobre todo: es lo que permite BORRARLO ─────────────────────────
-     * `isComponenteBloqueado()` bloquea todo componente atado a un segmento, porque lo puso la
-     * plantilla del itinerario y borrarlo rompería el relato. Una copia no: **la creó una persona,
-     * y una persona se equivoca al crearla**. Sin este campo, un duplicado por error se quedaba
-     * para siempre, contando pax que no existen.
+     * ── ⚠️ Por qué el ID y no un booleano ──────────────────────────────────
+     * Un `esDuplicado` sí/no basta para pintar la marca y para desbloquear el borrado, y **se
+     * queda corto en cuanto hay dos copias en el mismo servicio**: dice que las dos son copias y
+     * no de cuál. Con el id, el reparto de un servicio es un conjunto identificable —el original y
+     * sus copias— y eso se puede **sumar**: «los componentes que salieron de este vuelo tienen que
+     * cubrir a los 40 del grupo» es una comprobación posible; con un booleano no lo es.
      *
-     * ── Por qué NO se reutiliza `esManual` ──────────────────────────────────
-     * `esManual` significa «no viene del catálogo y no va a venir», y de ahí cuelga que el editor
-     * esconda el buscador de insumos. Un duplicado **sí** tiene maestro —lo copia del original—,
-     * así que marcarlo como manual le quitaría el buscador sin motivo. Son dos hechos distintos
-     * sobre el mismo componente.
+     * Cuesta lo mismo —una columna anulable— y dice estrictamente más.
+     *
+     * ── ⚠️ Siempre apunta a la RAÍZ, nunca a otra copia ─────────────────────
+     * Duplicar una copia apunta al original de ésta, no a ella. Si no, saldría una cadena y
+     * agrupar exigiría recorrerla; con la raíz, «las copias de X» es una comparación directa y el
+     * conjunto es plano pase lo que pase.
+     *
+     * ── ⚠️ Es un id suelto, no una relación ─────────────────────────────────
+     * Mismo criterio que `componenteMaestroId`: una FK obligaría a decidir qué pasa al borrar el
+     * original, y la respuesta correcta —que las copias sobrevivan huérfanas— es justo lo que una
+     * FK no deja expresar sin `SET NULL`, que además borraría la marca y volvería la copia
+     * imborrable. Aquí un id colgado significa «era copia de algo que ya no está», que es cierto.
+     *
+     * ── ⚠️ Y al clonar la COTIZACIÓN hay que reapuntarlo ────────────────────
+     * `CotizacionCotservicio::duplicar()` crea componentes con ids nuevos. Sin remapear, las
+     * copias del clon apuntarían a los componentes de la cotización **original**: un vínculo que
+     * cruza cotizaciones y que no da ningún error — sólo agrupa mal, en silencio, para siempre.
+     * Se remapea en el mismo sitio y por el mismo motivo que `cotsegmento`.
      */
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
-    #[ORM\Column(name: 'es_duplicado', type: 'boolean', options: ['default' => false])]
-    private bool $esDuplicado = false;
+    #[ORM\Column(name: 'duplicado_de', type: 'string', length: 36, nullable: true)]
+    private ?string $duplicadoDe = null;
 
     /**
      * Las ubicaciones de un componente que **no tiene maestro**: Lima, Ica, Cusco.
@@ -531,9 +545,12 @@ class CotizacionCotcomponente
      */
     public function setTituloSnapshot(array $tituloSnapshot): self { $this->tituloSnapshot = $tituloSnapshot; return $this; }
 
-    public function isEsDuplicado(): bool { return $this->esDuplicado; }
+    public function getDuplicadoDe(): ?string { return $this->duplicadoDe; }
 
-    public function setEsDuplicado(bool $esDuplicado): self { $this->esDuplicado = $esDuplicado; return $this; }
+    public function setDuplicadoDe(?string $duplicadoDe): self { $this->duplicadoDe = $duplicadoDe; return $this; }
+
+    /** Azúcar para lo que se pregunta más: pintar la marca y desbloquear el borrado. */
+    public function esCopia(): bool { return $this->duplicadoDe !== null; }
 
     public function getGrupo(): ?CotizacionFileGrupo { return $this->grupo; }
 

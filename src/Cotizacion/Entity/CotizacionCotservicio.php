@@ -194,6 +194,10 @@ class CotizacionCotservicio
         }
 
         $copia->cotcomponentes = new ArrayCollection();
+
+        /** @var array<string, CotizacionCotcomponente> $mapaComponentes */
+        $mapaComponentes = [];
+
         foreach ($this->cotcomponentes as $componente) {
             $copiaComp = $componente->duplicar();
             $copiaComp->setCotservicio($copia);
@@ -205,7 +209,41 @@ class CotizacionCotservicio
                     : null
             );
 
+            $viejoId = $componente->getId()?->toRfc4122();
+
+            if ($viejoId !== null) {
+                $mapaComponentes[$viejoId] = $copiaComp;
+            }
+
             $copia->cotcomponentes->add($copiaComp);
+        }
+
+        // 🔥 **Reapuntar `duplicadoDe`, y en una SEGUNDA pasada.**
+        //
+        // `duplicar()` es un `clone` superficial, así que la copia arrastra el `duplicadoDe` del
+        // original: un id de la cotización de ORIGEN. Sin esto, las copias del clon apuntarían a
+        // componentes de otra cotización —vínculo que cruza cotizaciones, no da ningún error y
+        // agrupa mal en silencio para siempre—.
+        //
+        // ⚠️ Segunda pasada porque una copia puede venir ANTES que su original en la colección: el
+        // orden lo decide la base, no la lógica. En una sola pasada el mapa estaría a medias justo
+        // para los casos que importan.
+        //
+        // ⚠️ Y si el original no está en este servicio, se pone `null`: mejor perder la traza que
+        // dejar un id que apunta fuera. Un `null` dice «es un original» —falso pero inocuo, se ve
+        // y se corrige—; un id colgado agrupa mal sin que nadie lo mire.
+        foreach ($this->cotcomponentes as $componente) {
+            $origen = $componente->getDuplicadoDe();
+
+            if ($origen === null) {
+                continue;
+            }
+
+            $viejoId = $componente->getId()?->toRfc4122();
+            $suCopia = $viejoId !== null ? ($mapaComponentes[$viejoId] ?? null) : null;
+            $nuevoOrigen = $mapaComponentes[$origen] ?? null;
+
+            $suCopia?->setDuplicadoDe($nuevoOrigen?->getId()?->toRfc4122());
         }
 
         return $copia;
@@ -283,6 +321,58 @@ class CotizacionCotservicio
     public function getFechaInicioAbsoluta(): ?DateTimeImmutable { return $this->fechaInicioAbsoluta; }
     public function setFechaInicioAbsoluta(?DateTimeImmutable $fechaInicioAbsoluta): self { $this->fechaInicioAbsoluta = $fechaInicioAbsoluta; return $this; }
 
+
+    /**
+     * Los repartos de este servicio: cada original con sus copias, y cuánto suman entre todos.
+     *
+     * ── Lo que esto permite y un booleano no ────────────────────────────────
+     * Partir un vuelo en nacional (22) e internacional (18) deja dos componentes cuyas cantidades
+     * **ya no suman el total del grupo**, y eso es correcto. Lo que **no** es correcto es que
+     * sumen 35 en un grupo de 40: hay cinco personas sin vuelo, y nadie lo va a notar mirando dos
+     * tarjetas por separado.
+     *
+     * Con un `esDuplicado` sí/no esto no se puede calcular: dos copias en el mismo servicio se
+     * saben copias pero no **de cuál**, así que no hay conjunto que sumar. Con `duplicadoDe`, el
+     * reparto es exactamente «un original y los que apuntan a él».
+     *
+     * ⚠️ **Sólo devuelve los repartos de verdad** —los que tienen al menos una copia—. Un servicio
+     * sin partir no es un reparto de uno: es un servicio normal, y devolverlo obligaría a todos
+     * los llamadores a filtrar lo mismo.
+     *
+     * @return list<array{titulo: string|null, cantidad: int, partes: int}>
+     */
+    public function repartos(): array
+    {
+        /** @var array<string, list<CotizacionCotcomponente>> $porRaiz */
+        $porRaiz = [];
+
+        foreach ($this->cotcomponentes as $componente) {
+            $raiz = $componente->getDuplicadoDe() ?? $componente->getId()?->toRfc4122();
+
+            if ($raiz !== null) {
+                $porRaiz[$raiz][] = $componente;
+            }
+        }
+
+        $salida = [];
+
+        foreach ($porRaiz as $miembros) {
+            if (count($miembros) < 2) {
+                continue;
+            }
+
+            $salida[] = [
+                'titulo' => $miembros[0]->getNombreInternoSnapshot(),
+                'cantidad' => array_sum(array_map(
+                    static fn (CotizacionCotcomponente $c): int => $c->getCantidad(),
+                    $miembros,
+                )),
+                'partes' => count($miembros),
+            ];
+        }
+
+        return $salida;
+    }
 
     /**
      * Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo.

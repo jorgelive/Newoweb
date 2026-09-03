@@ -2597,7 +2597,7 @@ store.$onAction(({ name, args }) => {
                   </button>
 
                   <button v-if="!store.isComponenteBloqueado(comp)" v-tooltip-tactil @click.stop="store.eliminarComponente(servicioActivoId, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center"
-                          :title="comp.esDuplicado ? 'Eliminar esta copia' : 'Eliminar este componente'">
+                          :title="comp.duplicadoDe ? 'Eliminar esta copia' : 'Eliminar este componente'">
                     <i class="fas fa-trash-alt text-sm"></i>
                   </button>
 
@@ -2610,7 +2610,7 @@ store.$onAction(({ name, args }) => {
                         <!-- ⚠️ La marca importa porque los dos componentes se LLAMAN IGUAL: son el
                              mismo vuelo repartido. Sin ella, ver «Vuelo de Cusco a Lima» dos veces
                              parece un error de carga y alguien borra el que no debe. -->
-                        <span v-if="comp.esDuplicado" v-tooltip-tactil
+                        <span v-if="comp.duplicadoDe" v-tooltip-tactil
                               class="text-[8px] font-black bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded uppercase shrink-0 flex items-center gap-1"
                               title="Copia creada para repartir el servicio entre subgrupos. Se puede eliminar.">
                           <i class="fas fa-clone text-[7px]"></i> Copia
