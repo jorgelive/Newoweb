@@ -159,6 +159,27 @@ const getDocNombre = (doc: ApiCotizacionFilearchivo | null | undefined, lang = i
 
 const editandoVersion = ref<string | null>(null);
 const propuestaTemp = ref<number>(1);
+
+/**
+ * Publicar o dejar de publicar una propuesta.
+ *
+ * ⚠️ **Como máximo una publicada por propuesta**, y por eso publicar una despublica a sus hermanas
+ * —sus históricos, la operativa—. Esa invariante es la que hace que el provider no tenga que
+ * desempatar qué fila sirve: no puede haber dos.
+ */
+const alternarPublicado = async (cot: { '@id'?: string; propuesta?: number; publicado?: boolean }) => {
+  const iri = cot['@id'];
+  if (!iri) return;
+
+  const publicar = !cot.publicado;
+
+  if (publicar && !confirm(`¿Publicar la propuesta ${cot.propuesta}?\n\nEl cliente pasará a verla, y dejará de ver cualquier otra propuesta ${cot.propuesta} que estuviera publicada.`)) return;
+  if (!publicar && !confirm(`¿Dejar de publicar la propuesta ${cot.propuesta}?\n\nEl cliente dejará de verla.`)) return;
+
+  const ok = await fileStore.actualizarPublicado(iri, publicar);
+  if (ok) await cargarFile();
+  else alert(fileStore.error || 'No se pudo cambiar la publicación.');
+};
 const eliminandoItem = ref<string | null>(null);
 const clonandoItem = ref<string | null>(null);
 
@@ -2508,6 +2529,21 @@ const eliminarDocumento = async (iri?: string) => {
                     Editar <i class="fas fa-arrow-right"></i>
                   </button>
 
+                  <!-- ⚠️ Publicar es un eje PROPIO, no una consecuencia del estado. Antes había que
+                       poner «enviada» para que el cliente la viera —o para verla uno mismo—, que es
+                       mentir sobre un acto comercial para conseguir una visibilidad. -->
+                  <button @click="alternarPublicado(cot)"
+                          :class="cot.publicado
+                            ? 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
+                            : 'text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-50'"
+                          class="w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
+                          :title="cot.publicado
+                            ? `El cliente VE esta propuesta. Pulsa para dejar de publicarla.`
+                            : `El cliente NO la ve. Pulsa para publicarla.`">
+                    <i class="fas text-xs" :class="cot.publicado ? 'fa-eye' : 'fa-eye-slash'"></i>
+                  </button>
+
+                  <!-- La vista cliente se abre siempre: como operador ves también lo no publicado. -->
                   <a :href="linkPublicoPropuesta(cot.propuesta)" target="_blank" rel="noopener"
                      class="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50 transition-colors"
                      :title="`Abrir vista cliente (P${cot.propuesta})`">

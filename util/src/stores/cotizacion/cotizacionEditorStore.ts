@@ -2181,6 +2181,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             ordenarComponentesPorRelato(data);
             cotizacion.value = data;
             estadoPersistido.value = String(data?.estado ?? '');
+            publicadoPersistido.value = data?.publicado === true;
 
             void fetchPuntosDeServicios(data?.id ?? id);
 
@@ -2198,6 +2199,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 ? { catalogo: `/platform/sales/cotizacion_catalogos/${fileId}`, preciosDesde: [], orden: 0 }
                 : { file: `/platform/sales/cotizacion_files/${fileId}` }),
             propuesta: 1,
+            // Nace sin publicar: se publica cuando se decide, no por llegar a un estado.
+            publicado: false,
             estado: 'pendiente',
             monedaGlobal: 'USD',
             idiomaCliente: idiomaDefault,
@@ -2366,6 +2369,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      */
     const estadoPersistido = ref<string>('');
 
+    /** Si estaba publicada cuando se cargó: lo que permite detectar el paso a publicada. */
+    const publicadoPersistido = ref<boolean>(false);
+
     const guardarCotizacion = async (): Promise<boolean> => {
         if (!cotizacion.value) return false;
 
@@ -2444,13 +2450,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // Lo que hay que proteger es PUBLICAR algo con conflictos, no seguir trabajando sobre
             // lo que ya se publicó. Si el estado no cambia en este guardado, se avisa y se deja
             // decidir.
-            const estadosProtegidos = ['enviado', 'confirmado', 'operado'];
-            const cambiaDeEstado = payload.estado !== estadoPersistido.value;
+            // ⚠️ **Ahora se vigila PUBLICAR, que es lo que este guarda siempre quiso vigilar.**
+            // Hasta el 02/09/2026 lo aproximaba con una lista de estados porque «publicado» no
+            // existía como concepto, y esa aproximación fallaba por los dos lados: pasar de
+            // `enviado` a `confirmado` disparaba el aviso sin publicar nada nuevo, y publicar una
+            // `pendiente` no lo disparaba en absoluto.
+            const empiezaAPublicarse = payload.publicado === true && publicadoPersistido.value !== true;
 
-            if (estadosProtegidos.includes(payload.estado) && cambiaDeEstado && fin && !fin.publicable) {
-                const estadoLabel = payload.estado.charAt(0).toUpperCase() + payload.estado.slice(1);
+            if (empiezaAPublicarse && fin && !fin.publicable) {
                 alert(
-                    `No se puede pasar la cotización a "${estadoLabel}" debido a los siguientes conflictos financieros:\n\n` +
+                    `No se puede publicar la cotización debido a los siguientes conflictos financieros:\n\n` +
                     (fin.advertencias.length
                         ? fin.advertencias.map(a => `• ${a}`).join('\n')
                         : '• Hay perfiles de pasajero en conflicto (revisa el panel de resumen para asignar las tarifas correctamente).')
@@ -2459,10 +2468,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 return false;
             }
 
-            // Y si NO cambia de estado, se avisa pero se deja guardar: son cosas distintas
+            // Y si YA estaba publicada, se avisa pero se deja guardar: son cosas distintas
             // —publicar con conflictos frente a seguir trabajando sobre algo ya publicado— y
             // tratarlas igual es lo que dejaba la cotizadora en solo-lectura.
-            if (estadosProtegidos.includes(payload.estado) && fin && !fin.publicable) {
+            if (payload.publicado === true && fin && !fin.publicable) {
                 const seguir = confirm(
                     'Esta cotización tiene conflictos financieros sin resolver:\n\n'
                     + (fin.advertencias.length
@@ -2652,6 +2661,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // Lo guardado pasa a ser la nueva referencia: si ahora está en «confirmado», el
             // siguiente guardado ya no cuenta como transición.
             estadoPersistido.value = String(savedData.estado ?? payload.estado);
+            publicadoPersistido.value = savedData.publicado === true;
 
             alert('Cotización guardada exitosamente.');
 

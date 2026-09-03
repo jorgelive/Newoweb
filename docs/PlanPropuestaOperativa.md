@@ -6,8 +6,7 @@ vendió, sin que el cliente pierda los precios que aprobó y sin duplicar trabaj
 **Alcance:** plan de ejecución con fases y criterios de «hecho». El modelo de propuestas está en
 `docs/Cotizaciones.md` §6.j.0.
 
-**Estado:** redactado el 02/09/2026 tras una conversación que descartó tres diseños antes de éste
-(§8). Sin empezar.
+**Estado:** F1 hecha (02/09/2026). Detalle de lo construido en `docs/Cotizaciones.md` §6.j.1.
 
 ---
 
@@ -116,9 +115,10 @@ Publicas      → ahora ve el itinerario real
 
 | | Acción | Hecho cuando |
 |---|---|---|
-| 1.1 | `Cotizacion.publicado` (bool) + migración: `true` donde estado ∈ (enviado, confirmado) | El día del despliegue nadie ve nada distinto |
-| 1.2 | `esVisibleParaCliente()` mira `publicado`, no el estado | |
-| 1.3 | **Previsualización del operador**: el provider deja pasar lo no publicado si quien pide está autenticado | Ver la vista cliente sin tocar el estado |
+| 1.1 | ~~`Cotizacion.publicado` + migración~~ **HECHO 02/09/2026** | ✅ 7 publicadas: 6 enviado + 1 confirmado |
+| 1.2 | ~~`esVisibleParaCliente()` mira `publicado`~~ **HECHO** | ✅ Y los dos providers, en la consulta |
+| 1.3 | ~~Previsualización del operador~~ **HECHO** | ✅ `ROLE_USER` ve lo no publicado; la caducidad no se salta |
+| 1.4 | **Invariante «una publicada por propuesta»**, en el servidor | ✅ Probada con datos reales |
 
 ⚠️ 1.3 no necesita enlace ni token especial: `util` y `pax` comparten dominio de cookie
 (`FRAMEWORK_SESION_COOKIE_DOMAIN`), así que basta una condición.

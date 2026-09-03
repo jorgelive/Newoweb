@@ -490,6 +490,24 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     };
 
     /**
+     * Publica o despublica una propuesta.
+     *
+     * ⚠️ Separado de `estado` a propósito: son dos preguntas distintas —dónde está comercialmente
+     * y si el cliente puede verla—, y mezclarlas obligaba a poner «enviada» sólo para conseguir
+     * una visibilidad. Ver `docs/PlanPropuestaOperativa.md` §2.
+     */
+    const actualizarPublicado = async (iri: string, publicado: boolean): Promise<boolean> => {
+        error.value = null;
+        try {
+            await apiClient.patch(iri, { publicado });
+            return true;
+        } catch (err: unknown) {
+            error.value = extractApiErrorMessage(err, 'Error al cambiar la publicación.');
+            return false;
+        }
+    };
+
+    /**
      * Extrae un preview truncado y sin HTML de un campo AutoTranslate (I18nContent[]).
      * Usado para previsualizar `resumen` en la tarjeta de versión sin abrir el motor.
      */
@@ -598,6 +616,7 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         deleteCotizacion,
         deleteFile,
         updateCotizacionPropuesta,
+        actualizarPublicado,
         extraerResumenPreview,
         updatePassenger,
         updateDocument,

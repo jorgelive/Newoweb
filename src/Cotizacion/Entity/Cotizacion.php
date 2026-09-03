@@ -165,6 +165,23 @@ class Cotizacion
     private ?CotizacionCatalogo $catalogo = null;
 
     /**
+     * ¿Puede verla el cliente ahora mismo?
+     *
+     * ⚠️ **Eje propio, INDEPENDIENTE del estado.** Hasta el 02/09/2026 la visibilidad la decidía
+     * `estado->esPublico()`, y eso obligaba a mentir sobre un acto comercial para conseguir una
+     * visibilidad: *«para ver la cotización antes de mandarla tengo que ponerle enviada»*. Son dos
+     * preguntas distintas —dónde está comercialmente y si el cliente puede verla— y mezclarlas
+     * hacía imposible previsualizar, y también reorganizar sin que el cliente lo viera a medias.
+     *
+     * ⚠️ **Como máximo una publicada por propuesta.** Esa invariante es la que hace que no haya
+     * que «desempatar» qué fila sirve el provider cuando conviven la aprobada y la operativa: cada
+     * eje decide lo suyo y la pregunta no existe. Ver `docs/PlanPropuestaOperativa.md` §2.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write', 'file:item:read'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $publicado = false;
+
+    /**
      * Cuál de las propuestas del expediente es ésta.
      *
      * ⚠️ **No es una versión**: las propuestas NO se sustituyen entre sí. Un expediente puede
@@ -611,22 +628,27 @@ class Cotizacion
      *
      * ⚠️ **Es una regla de SEGURIDAD, y por eso importa que tenga un solo sitio.** Un espejo aquí
      * no falla ruidosamente: al desalinearse **publica lo que el otro lado ya ocultaba**. El
-     * provider la sigue aplicando en SQL —ahí no puede llamar a un método de PHP— así que la
-     * parte que de verdad manda, «qué estados son públicos», vive en
-     * `CotizacionEstadoEnum::esPublico()` y la consultan los dos.
+     * provider la sigue aplicando en SQL —ahí no puede llamar a un método de PHP— así que ahora
+     * los dos miran la misma columna, `publicado`, en vez de una lista de estados.
+     *
+     * ⚠️ **El estado ya NO decide esto.** Una confirmada puede estar despublicada mientras se
+     * reorganiza, y una pendiente puede previsualizarse sin publicarse.
      *
      * Cualquier superficie pública nueva llama aquí y devuelve **404 uniforme**: distinguir «no
      * existe» de «no es pública» le diría a quien prueba localizadores cuáles existen.
      */
     public function esVisibleParaCliente(?\DateTimeImmutable $ahora = null): bool
     {
-        if (!$this->estado->esPublico()) {
+        if (!$this->publicado) {
             return false;
         }
 
         return $this->fechaExpiracion === null
             || $this->fechaExpiracion >= ($ahora ?? new \DateTimeImmutable());
     }
+
+    public function isPublicado(): bool { return $this->publicado; }
+    public function setPublicado(bool $publicado): self { $this->publicado = $publicado; return $this; }
 
     public function getEstado(): CotizacionEstadoEnum { return $this->estado; }
     public function setEstado(CotizacionEstadoEnum $estado): self { $this->estado = $estado; return $this; }

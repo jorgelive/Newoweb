@@ -11,6 +11,7 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Bundle\SecurityBundle\Security;
 
 /**
  * Provider público del expediente por localizador.
@@ -28,7 +29,10 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
  */
 final class CotizacionFilePublicProvider implements ProviderInterface
 {
-    public function __construct(private readonly EntityManagerInterface $em)
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly Security $security,
+    )
     {
     }
 
@@ -42,10 +46,21 @@ final class CotizacionFilePublicProvider implements ProviderInterface
         }
 
         $ahora = new \DateTimeImmutable();
-        $estadosPublicos = array_map(
-            fn(CotizacionEstadoEnum $e) => $e->value,
-            array_filter(CotizacionEstadoEnum::cases(), fn(CotizacionEstadoEnum $e) => $e->esPublico())
-        );
+
+        /**
+         * ⚠️ **El operador ve lo no publicado; el cliente no.**
+         *
+         * Es lo que permite previsualizar la vista cliente sin tocar el estado —la queja que
+         * originó separar `publicado`: «para verla antes de mandarla tengo que ponerle enviada»—.
+         *
+         * No hace falta enlace ni token especial: `util` y `pax` comparten dominio de cookie
+         * (`FRAMEWORK_SESION_COOKIE_DOMAIN`) y el host de la API está bajo el firewall `main`, que
+         * es stateful. La sesión del operador ya llega hasta aquí.
+         *
+         * ⚠️ La caducidad NO se salta: una propuesta expirada tampoco se previsualiza, porque
+         * entonces el operador vería algo que el cliente no puede ver y creería que sí.
+         */
+        $previsualiza = $this->security->isGranted('ROLE_USER');
 
         // ── 1. Resúmenes para la portada: un solo query escalar ──────────────
         $filas = $this->em->createQuery(<<<'DQL'
@@ -55,13 +70,13 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             FROM App\Cotizacion\Entity\Cotizacion c
             LEFT JOIN c.cotservicios s
             WHERE c.file = :file
-              AND c.estado IN (:publicos)
+              AND (c.publicado = true OR :previsualiza = true)
               AND (c.fechaExpiracion IS NULL OR c.fechaExpiracion >= :ahora)
             GROUP BY c.id
             ORDER BY c.propuesta DESC
         DQL)
             ->setParameter('file', $file->getId(), UuidType::NAME)
-            ->setParameter('publicos', $estadosPublicos)
+            ->setParameter('previsualiza', $previsualiza)
             ->setParameter('ahora', $ahora)
             ->getArrayResult();
 
@@ -97,24 +112,23 @@ final class CotizacionFilePublicProvider implements ProviderInterface
 
         // ── 2. Detalle: cargar SOLO la versión solicitada ─────────────────────
         if (isset($uriVariables['propuesta'])) {
-            // ⚠️ El ESTADO va en la consulta, no sólo en la comprobación de abajo.
+            // ⚠️ `publicado` va EN LA CONSULTA, no sólo en la comprobación de abajo.
             //
-            // Desde que existen los históricos, `(file, version)` puede devolver más de una fila:
-            // un histórico conserva a propósito el número de la cotización de la que salió. Con
-            // el `findOneBy` a secas, MySQL podía entregar la foto congelada y esto respondía 404
-            // aunque hubiera una versión pública perfectamente viva — un enlace que el cliente ya
-            // tenía dejando de funcionar sin que cambiara nada suyo.
+            // Una propuesta tiene varias filas —sus históricos, la aprobada, la operativa— y todas
+            // comparten número. Con el `findOneBy` a secas MySQL podía entregar la que quisiera y
+            // esto respondía 404 aunque hubiera una publicada perfectamente viva: un enlace que el
+            // cliente ya tenía dejando de funcionar sin que cambiara nada suyo. Ya pasó una vez.
+            //
+            // Y con `publicado` como eje propio esto además es DETERMINISTA: la invariante dice
+            // que hay como máximo una publicada por propuesta, así que no hay nada que desempatar.
             $cotizacion = $this->em->getRepository(Cotizacion::class)->findOneBy([
                 'file'    => $file,
                 'propuesta' => (int) $uriVariables['propuesta'],
-                'estado'  => array_filter(
-                    CotizacionEstadoEnum::cases(),
-                    static fn (CotizacionEstadoEnum $e): bool => $e->esPublico(),
-                ),
+                ...($previsualiza ? [] : ['publicado' => true]),
             ]);
 
             $esVisible = $cotizacion
-                && $cotizacion->getEstado()->esPublico()
+                && ($previsualiza || $cotizacion->isPublicado())
                 && ($cotizacion->getFechaExpiracion() === null || $cotizacion->getFechaExpiracion() >= $ahora);
 
             if (!$esVisible) {

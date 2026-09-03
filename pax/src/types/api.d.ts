@@ -4385,6 +4385,11 @@ export interface components {
         };
         "Cotizacion-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -4478,6 +4483,11 @@ export interface components {
         "Cotizacion-cotizacion.read_timestamp.read": {
             file?: components["schemas"]["CotizacionFile-cotizacion.read_timestamp.read"] | null;
             catalogo?: components["schemas"]["CotizacionCatalogo-cotizacion.read_timestamp.read"] | null;
+            /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
             /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
@@ -4584,6 +4594,11 @@ export interface components {
              */
             catalogo?: string | null;
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -4675,6 +4690,11 @@ export interface components {
              */
             catalogo?: string | null;
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -4754,6 +4774,11 @@ export interface components {
         };
         "Cotizacion-file.item.read": {
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -4827,6 +4852,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion-file.read_file.item.read_timestamp.read": {
+            /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
             /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
@@ -5124,6 +5154,11 @@ export interface components {
         };
         "Cotizacion.html-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -5218,6 +5253,11 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.html-cotizacion.read_timestamp.read"] | null;
             catalogo?: components["schemas"]["CotizacionCatalogo.html-cotizacion.read_timestamp.read"] | null;
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -5311,6 +5351,11 @@ export interface components {
         };
         "Cotizacion.html-file.item.read": {
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -5384,6 +5429,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.html-file.read_file.item.read_timestamp.read": {
+            /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
             /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
@@ -5589,6 +5639,11 @@ export interface components {
         };
         "Cotizacion.jsonld-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -5683,6 +5738,11 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.jsonld-cotizacion.read_timestamp.read"] | null;
             catalogo?: components["schemas"]["CotizacionCatalogo.jsonld-cotizacion.read_timestamp.read"] | null;
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -5776,6 +5836,11 @@ export interface components {
         };
         "Cotizacion.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -5849,6 +5914,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
             /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
@@ -6054,6 +6124,11 @@ export interface components {
         };
         "Cotizacion.multipart-catalogo.read_catalogo.item.read_file.item.read_timestamp.read": {
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -6148,6 +6223,11 @@ export interface components {
             file?: components["schemas"]["CotizacionFile.multipart-cotizacion.read_timestamp.read"] | null;
             catalogo?: components["schemas"]["CotizacionCatalogo.multipart-cotizacion.read_timestamp.read"] | null;
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -6241,6 +6321,11 @@ export interface components {
         };
         "Cotizacion.multipart-file.item.read": {
             /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
+            /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1
              */
@@ -6314,6 +6399,11 @@ export interface components {
             readonly historico?: boolean;
         };
         "Cotizacion.multipart-file.read_file.item.read_timestamp.read": {
+            /**
+             * @description ¿Puede verla el cliente ahora mismo?
+             * @default false
+             */
+            publicado: boolean;
             /**
              * @description Cuál de las propuestas del expediente es ésta.
              * @default 1

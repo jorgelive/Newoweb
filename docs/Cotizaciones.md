@@ -1812,6 +1812,75 @@ vigilaba: la API devolvía **404 con «Parameter "version" not found»** y sólo
 endpoint de verdad. La lección de siempre — un atributo mal puesto no falla, deja de hacer su
 trabajo — con una vuelta más: aquí sí fallaba, pero en un sitio donde nada estático miraba.
 
+## 6.j.1 La visibilidad es un eje propio: `publicado` (02/09/2026)
+
+**El estado ya NO decide si el cliente ve una propuesta.** Lo decide `Cotizacion::$publicado`.
+
+Hasta hoy la visibilidad salía de `CotizacionEstadoEnum::esPublico()` —`enviado` o `confirmado`—,
+y eso obligaba a **mentir sobre un acto comercial para conseguir una visibilidad**: *«para ver la
+cotización antes de mandarla tengo que ponerle enviada»*. Son dos preguntas distintas:
+
+```
+estado      dónde está comercialmente    pendiente · enviado · confirmado · cerrado…
+publicado   ¿el cliente puede verlo?     bool, independiente
+```
+
+La migración tradujo el dato exacto —`publicado = true` donde el estado era `enviado` o
+`confirmado`— así que ningún cliente vio nada distinto el día del despliegue. Es la única forma
+aceptable de mover una regla de visibilidad sobre enlaces que ya están en manos de gente.
+
+### Lo que resuelve, y no era sólo la molestia
+
+| | Antes | Ahora |
+|---|---|---|
+| Ver una propuesta antes de mandarla | ponerle «enviada» | previsualizar sin tocar el estado |
+| Reorganizar sin que el cliente lo vea | no se podía | despublicar mientras se trabaja |
+| Varias filas públicas en una propuesta | había que desempatar | **no puede pasar** (invariante) |
+
+### ⚠️ La invariante: UNA publicada por propuesta
+
+Una propuesta tiene varias filas —sus históricos, la aprobada, y en su día la operativa— y todas
+comparten número. `CotizacionPublicadaEventListener` despublica a las hermanas al publicar una.
+
+**Con eso el desempate del provider deja de existir**, en vez de resolverse mejor: filtra por
+`publicado = true` y sólo puede encontrar una. Ese desempate ya mordió una vez (§6.j).
+
+⚠️ **Va en el servidor, no en el botón.** El editor no es el único que escribe —la API acepta un
+`PATCH`, y mañana lo hará el agente—. Una invariante que sólo cumple la interfaz es una costumbre.
+
+### 🔥 Pasar una ENTIDAD como parámetro de una relación UUID devuelve cero, sin error
+
+Al probar la invariante con datos reales no se cumplía, y el código parecía correcto:
+
+```php
+->setParameter('padre', $padre)                            // 0 filas · en silencio
+->setParameter('padre', $padre->getId(), UuidType::NAME)   // 3 filas
+```
+
+Con clave UUID, Doctrine **no casa nada y no se queja**: la consulta devuelve cero y parece que
+simplemente no había hermanas que despublicar. Es el mismo patrón que los providers públicos ya
+usaban —`->setParameter('file', $file->getId(), UuidType::NAME)`— y por eso a ellos no les pasa.
+
+⚠️ **Sólo se ve comprobando el RESULTADO, no la ausencia de excepciones.** Una prueba que sólo mira
+que no reviente da esto por bueno.
+
+### La previsualización del operador
+
+El provider deja pasar lo no publicado si `isGranted('ROLE_USER')`. No hace falta enlace ni token:
+`util` y `pax` comparten dominio de cookie (`FRAMEWORK_SESION_COOKIE_DOMAIN`) y el host de la API
+está bajo el firewall `main`, que es *stateful*.
+
+⚠️ **La caducidad NO se salta.** Una propuesta expirada tampoco se previsualiza: si no, el operador
+vería algo que el cliente no puede ver y creería que sí.
+
+### Y el guarda de conflictos financieros vigila lo que siempre quiso
+
+`guardarCotizacion()` bloqueaba el paso a `enviado`/`confirmado`/`operado` con conflictos, y su
+propio comentario decía: *«lo que hay que proteger es PUBLICAR algo con conflictos»*. Tenía que
+aproximarlo con una lista de estados porque publicar no existía. Ahora vigila el paso a `publicado`,
+y la aproximación fallaba por los dos lados: pasar de `enviado` a `confirmado` disparaba el aviso
+sin publicar nada nuevo, y publicar una `pendiente` no lo disparaba en absoluto.
+
 ## 6.j Versiones e históricos: dos clones en direcciones opuestas (23/08/2026)
 
 Un expediente tiene N `Cotizacion`, numeradas `version`. **Son propuestas**, no versiones de un

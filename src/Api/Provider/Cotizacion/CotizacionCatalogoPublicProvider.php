@@ -12,6 +12,7 @@ use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Cotizacion\Service\TourTarjetaResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Bundle\SecurityBundle\Security;
 
 /**
  * Provider público del catálogo de tours por localizador.
@@ -35,6 +36,7 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TourTarjetaResolver $tarjetas,
+        private readonly Security $security,
     ) {
     }
 
@@ -47,10 +49,15 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
             return null; // 404 uniforme
         }
 
-        $estadosPublicos = array_map(
-            fn(CotizacionEstadoEnum $e) => $e->value,
-            array_filter(CotizacionEstadoEnum::cases(), fn(CotizacionEstadoEnum $e) => $e->esPublico())
-        );
+        /**
+         * ⚠️ **El operador ve lo no publicado; el cliente no.**
+         *
+         * Permite previsualizar un tour antes de publicarlo, sin tocar su estado. No hace falta
+         * enlace especial: `util` y `pax` comparten dominio de cookie y el host de la API está
+         * bajo el firewall `main`, que es stateful.
+         */
+        $previsualiza = $this->security->isGranted('ROLE_USER');
+
 
         // ── 1. Cards para la portada: un solo query escalar ──────────────────
         $filas = $this->em->createQuery(<<<'DQL'
@@ -61,12 +68,12 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
             FROM App\Cotizacion\Entity\Cotizacion c
             LEFT JOIN c.cotservicios s
             WHERE c.catalogo = :catalogo
-              AND c.estado IN (:publicos)
+              AND (c.publicado = true OR :previsualiza = true)
             GROUP BY c.id
             ORDER BY c.orden ASC, c.propuesta ASC
         DQL)
             ->setParameter('catalogo', $catalogo->getId(), UuidType::NAME)
-            ->setParameter('publicos', $estadosPublicos)
+            ->setParameter('previsualiza', $previsualiza)
             ->getArrayResult();
 
         // Sin ningún tour público vigente, el catálogo no es visible
@@ -101,13 +108,17 @@ final class CotizacionCatalogoPublicProvider implements ProviderInterface
 
         // ── 2. Detalle: cargar SOLO el tour solicitado ────────────────────────
         if (isset($uriVariables['propuesta'])) {
+            // ⚠️ `publicado` en la CONSULTA, no sólo en la comprobación: un tour tiene varias
+            // filas con el mismo número —sus históricos— y `findOneBy` a secas puede entregar
+            // cualquiera. Mismo motivo que en el provider del expediente.
             $cotizacion = $this->em->getRepository(Cotizacion::class)->findOneBy([
                 'catalogo' => $catalogo,
-                'propuesta'  => (int) $uriVariables['propuesta'],
+                'propuesta' => (int) $uriVariables['propuesta'],
+                ...($previsualiza ? [] : ['publicado' => true]),
             ]);
 
-            if (!$cotizacion || !$cotizacion->getEstado()->esPublico()) {
-                return null; // tour inexistente o no público
+            if (!$cotizacion || !($previsualiza || $cotizacion->isPublicado())) {
+                return null; // tour inexistente o no publicado
             }
 
             $catalogo->setCotizacionParaCliente($cotizacion);
